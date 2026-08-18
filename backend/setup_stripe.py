@@ -11,6 +11,7 @@ PRODUCT = {
     "tax_code": "txcd_10103001",  # SaaS
     "prices": [
         {"lookup_key": "premium_monthly", "amount": 500, "currency": "eur", "interval": "month"},
+        {"lookup_key": "premium_yearly", "amount": 4800, "currency": "eur", "interval": "year"},
     ],
 }
 
