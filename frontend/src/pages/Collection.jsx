@@ -1,18 +1,25 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Plus, Printer, Check, X, Loader2 } from "lucide-react";
+import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { api } from "@/lib/api";
 import { CARD_TYPES } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
-import { CardFront } from "@/components/TradingCard";
+import { CardFront, CardBack } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
+
+// Print-sheet card formats (A4). Ratio kept at 2.5:3.5 (h = w * 1.4).
+const FORMATS = {
+  mini: { label: "Mini", w: 44, h: 61.6, cols: 4, rows: 4 },
+  standard: { label: "Standard", w: 63, h: 88.2, cols: 3, rows: 3 },
+  grande: { label: "Grande", w: 86, h: 120.4, cols: 2, rows: 2 },
+};
 
 export default function Collection() {
   const navigate = useNavigate();
@@ -24,12 +31,17 @@ export default function Collection() {
   const [selected, setSelected] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [format, setFormat] = useState("standard");
+  const [includeBack, setIncludeBack] = useState(false);
   const cardRefs = useRef({});
+  const backRefs = useRef({});
   const sheetContainerRef = useRef(null);
 
   const toggleSelect = (id) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
+
+  const selectAll = () => setSelected(cards.map((c) => c.id));
 
   const exitSelectMode = () => {
     setSelectMode(false);
@@ -37,6 +49,7 @@ export default function Collection() {
   };
 
   const chosenCards = cards.filter((c) => selected.includes(c.id));
+  const totalSteps = chosenCards.length * (includeBack ? 2 : 1);
 
   const exportPrintSheet = async () => {
     if (!chosenCards.length) {
@@ -44,6 +57,22 @@ export default function Collection() {
       return;
     }
     setExporting(true);
+    const { w: cardW, h: cardH, cols, rows } = FORMATS[format];
+    const perPage = cols * rows;
+    const gap = 3;
+    const marginX = (210 - (cols * cardW + (cols - 1) * gap)) / 2;
+    const marginY = (297 - (rows * cardH + (rows - 1) * gap)) / 2;
+    const posAt = (idx, mirror) => {
+      let col = idx % cols;
+      const row = Math.floor(idx / cols);
+      if (mirror) col = cols - 1 - col;
+      return { x: marginX + col * (cardW + gap), y: marginY + row * (cardH + gap) };
+    };
+    const drawCut = (pdf, x, y) => {
+      pdf.setDrawColor(120, 100, 50);
+      pdf.setLineWidth(0.1);
+      pdf.rect(x, y, cardW, cardH);
+    };
     try {
       // Wait for all artwork images inside the off-screen sheet to load
       const imgs = sheetContainerRef.current?.querySelectorAll("img") || [];
@@ -55,26 +84,37 @@ export default function Collection() {
       await new Promise((r) => setTimeout(r, 300));
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const cardW = 60, cardH = 84, gap = 3;
-      const marginX = (210 - (3 * cardW + 2 * gap)) / 2;
-      const marginY = (297 - (3 * cardH + 2 * gap)) / 2;
+      const pages = Math.ceil(chosenCards.length / perPage);
+      let step = 0;
+      let firstPage = true;
 
-      for (let i = 0; i < chosenCards.length; i++) {
-        setProgress(i + 1);
-        const pageIdx = i % 9;
-        if (i > 0 && pageIdx === 0) pdf.addPage();
-        const el = cardRefs.current[chosenCards[i].id];
-        if (!el) continue;
-        const canvas = await html2canvas(el, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
-        const col = pageIdx % 3;
-        const row = Math.floor(pageIdx / 3);
-        const x = marginX + col * (cardW + gap);
-        const y = marginY + row * (cardH + gap);
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
-        // thin cut guide
-        pdf.setDrawColor(120, 100, 50);
-        pdf.setLineWidth(0.1);
-        pdf.rect(x, y, cardW, cardH);
+      for (let p = 0; p < pages; p++) {
+        const group = chosenCards.slice(p * perPage, (p + 1) * perPage);
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+        // Front page
+        for (let i = 0; i < group.length; i++) {
+          step += 1; setProgress(step);
+          const el = cardRefs.current[group[i].id];
+          if (!el) continue;
+          const canvas = await html2canvas(el, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
+          const { x, y } = posAt(i, false);
+          pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
+          drawCut(pdf, x, y);
+        }
+        // Mirrored back page for duplex printing
+        if (includeBack) {
+          pdf.addPage();
+          for (let i = 0; i < group.length; i++) {
+            step += 1; setProgress(step);
+            const el = backRefs.current[group[i].id];
+            if (!el) continue;
+            const canvas = await html2canvas(el, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
+            const { x, y } = posAt(i, true);
+            pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
+            drawCut(pdf, x, y);
+          }
+        }
       }
       pdf.save(`tomeforge-foglio-stampa.pdf`);
       toast.success(`Foglio pronto: ${chosenCards.length} carte`);
@@ -140,10 +180,37 @@ export default function Collection() {
         </div>
 
         {selectMode && (
-          <div data-testid="select-hint" className="mt-3 border border-gold-deep/40 bg-card px-4 py-2.5 flex items-center justify-between gap-4">
-            <span className="font-body text-sm text-foreground/80">
-              Tocca le carte da includere · <span className="text-gold">{selected.length}</span> selezionate <span className="text-muted-foreground">(9 per foglio A4)</span>
-            </span>
+          <div data-testid="select-hint" className="mt-3 border border-gold-deep/40 bg-card p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="font-body text-sm text-foreground/80">
+                Tocca le carte da includere · <span className="text-gold">{selected.length}</span> selezionate
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" data-testid="select-all-btn" onClick={selectAll}
+                  className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[10px] tracking-widest h-8 transition-colors">
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> SELEZIONA TUTTE
+                </Button>
+                <Button size="sm" variant="outline" data-testid="deselect-all-btn" onClick={() => setSelected([])}
+                  className="rounded-none border-border bg-transparent text-muted-foreground hover:text-crimson font-label text-[10px] tracking-widest h-8 transition-colors">
+                  <X className="w-3.5 h-3.5 mr-1" /> DESELEZIONA
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-1 border-t border-border/50">
+              <div className="flex items-center gap-2 pt-2">
+                <span className="font-label text-[10px] tracking-widest text-gold/70 flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> FORMATO</span>
+                {Object.entries(FORMATS).map(([id, f]) => (
+                  <button key={id} data-testid={`format-${id}`} onClick={() => setFormat(id)}
+                    className={`px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${format === id ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
+                    {f.label} <span className="opacity-60">{f.cols * f.rows}/pag</span>
+                  </button>
+                ))}
+              </div>
+              <button data-testid="include-back-toggle" onClick={() => setIncludeBack((v) => !v)}
+                className={`mt-2 flex items-center gap-2 px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${includeBack ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
+                <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "RETRO INCLUSO (F/R)" : "INCLUDI RETRO (F/R)"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -206,7 +273,7 @@ export default function Collection() {
           <Button data-testid="export-sheet-btn" onClick={exportPrintSheet} disabled={exporting}
             className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-xs tracking-widest h-9 transition-colors">
             {exporting ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Printer className="w-4 h-4 mr-1.5" />}
-            {exporting ? `${progress}/${selected.length}` : "ESPORTA PDF"}
+            {exporting ? `${progress}/${totalSteps}` : "ESPORTA PDF"}
           </Button>
         </motion.div>
       )}
@@ -214,8 +281,15 @@ export default function Collection() {
       {/* Off-screen render of selected cards for capture */}
       <div ref={sheetContainerRef} style={{ position: "fixed", left: -99999, top: 0 }} aria-hidden="true">
         {chosenCards.map((card) => (
-          <div key={card.id} ref={(el) => { if (el) cardRefs.current[card.id] = el; }} style={{ width: 340, aspectRatio: "2.5/3.5", marginBottom: 8 }}>
-            <CardFront card={card} exportMode />
+          <div key={card.id}>
+            <div ref={(el) => { if (el) cardRefs.current[card.id] = el; }} style={{ width: 340, aspectRatio: "2.5/3.5", marginBottom: 8 }}>
+              <CardFront card={card} exportMode />
+            </div>
+            {includeBack && (
+              <div ref={(el) => { if (el) backRefs.current[card.id] = el; }} style={{ width: 340, aspectRatio: "2.5/3.5", marginBottom: 8 }}>
+                <CardBack card={card} exportMode />
+              </div>
+            )}
           </div>
         ))}
       </div>

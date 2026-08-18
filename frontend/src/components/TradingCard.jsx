@@ -54,10 +54,10 @@ const QuickStats = ({ card }) => {
   );
 };
 
-export const CardFront = React.forwardRef(({ card, exportMode }, ref) => {
+export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) => {
   const TypeIcon = typeIcon(card.type);
-  const img = card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER;
-  const qrValue = `${window.location.origin}/carta/${card.id}`;
+  const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
+  const qrValue = `${window.location.origin}/p/${card.id}`;
   return (
     <div ref={ref} data-testid="card-front"
       className="relative w-full h-full bg-card border-2 border-gold-deep flex flex-col overflow-hidden"

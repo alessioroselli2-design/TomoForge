@@ -8,6 +8,7 @@ import Landing from "@/pages/Landing";
 import Collection from "@/pages/Collection";
 import CardEditor from "@/pages/CardEditor";
 import CardDetail from "@/pages/CardDetail";
+import PublicCard from "@/pages/PublicCard";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -62,6 +63,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/p/:id" element={<PublicCard />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/carta/:id/modifica" element={<Protected><CardEditor /></Protected>} />

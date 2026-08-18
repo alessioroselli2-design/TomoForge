@@ -17,3 +17,6 @@ export const artworkUrl = (path) => {
   const token = localStorage.getItem("tf_token") || "";
   return `${API}/files/${path}?auth=${encodeURIComponent(token)}`;
 };
+
+// Public (no auth) image URL, used by shareable card view
+export const publicArtworkUrl = (path) => (path ? `${API}/public/files/${path}` : null);

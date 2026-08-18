@@ -1,0 +1,42 @@
+{
+  "summary": "Frontend-only verification of the new FREE 'COMPONI DESCRIZIONE (GRATIS)' feature in /crea (CardEditor.jsx). Logged in as mago@grimorio.it / arcano123, navigated to /crea. VERIFIED (PASS): (1) Green 'COMPONI GRATIS (SENZA AI)' panel renders separately from the gold 'EVOCAZIONE ARCANA (AI)' panel; compose-free-btn is visible. (2) With type=spell, name-field='Fulmine Arcano', and attributes attr-livello=3, attr-scuola=Evocazione, attr-azione=Azione, attr-gittata='36 m', attr-concentrazione=No, attr-danno='8d6 fulmine' filled, clicking compose-free-btn produced desc-field='Fulmine Arcano è una magia di evocazione di livello 3. Si lancia come azione, gittata 36 m. Infligge 8d6 fulmine.' and story-field='Le origini di Fulmine Arcano si perdono tra le pagine ingiallite di antichi tomi, tramandate da generazioni di avventurieri.' Success toast 'Descrizione composta gratis (nessun credito usato)' shown. (3) Network monitor recorded ZERO requests during the compose click (0 total requests, 0 to /api/ai/*) — feature is fully client-side as designed. (4) Regression: gen-text-btn, gen-image-btn, upload-btn, save-btn all render (not clicked for AI buttons per instructions). save-btn works: created the card via POST /api/cards and navigated to /carta/<id>. (5) No JS pageerrors during the flow. FAILURE (BUG): the required negative test — clicking compose-free-btn with an EMPTY name and empty attributes — did NOT show the error toast 'Compila prima nome e qualche statistica'. Instead it composed a generic 'Questa carta è una magia.' description and populated the story field, exactly the opposite of the spec.",
+  "ai_feature_verdicts": [
+    {
+      "capability": "Free client-side description composer (composeFree in CardEditor.jsx)",
+      "verdict": "partial-pass",
+      "notes": "Positive path with populated fields PASSES perfectly and provably does not hit any AI endpoint (0 requests fired during click). Empty-state validation FAILS for the default type (spell) — see bug in frontend_issues."
+    }
+  ],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CardEditor.jsx composeFree() empty-state validation",
+        "issue": "Clicking COMPONI DESCRIZIONE (GRATIS) with an empty name and empty attributes STILL composes text and populates desc-field + story-field. Expected: toast.error 'Compila prima nome e qualche statistica' and no population. Root cause: for card.type in [spell, weapon, monster, character, race, class, feat] composeFree unconditionally pushes at least one seed sentence into `parts[]` (e.g. spell: `${name} è una magia.` where name falls back to 'Questa carta'). The guard `if (!description || description === \"${name}.\") { toast.error(...) }` therefore never matches — the description is 'Questa carta è una magia.' which is longer than `${name}.`. This branch only currently fires for type=custom with no attributes. Reproducible on /crea with default state (type=spell) by clicking compose-free-btn immediately after page load.",
+        "selector": "[data-testid=\"compose-free-btn\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_6.json"],
+  "action_items": [
+    "Fix composeFree() empty-state validation in /app/frontend/src/pages/CardEditor.jsx: reject when name is empty AND all attribute values (filtered by g()) are empty, BEFORE building parts[]. Suggested guard at the top of composeFree: `const hasAnyAttr = Object.values(a).some(v => Array.isArray(v) ? v.length : (v && String(v).trim() && String(v).trim() !== '-')); if (!card.name.trim() && !hasAnyAttr) { toast.error('Compila prima nome e qualche statistica'); return; }`. This preserves the current positive-path behavior while making the empty-state test pass."
+  ],
+  "critical_code_review_comments": [
+    "CardEditor.jsx composeFree() L104-200: correct client-side design (no network), Italian text is well-composed and grammatically sound, uses attrLabel() as fallback for custom types — good. HOWEVER the empty-state gate at L190 `description === `${name}.`` is unreachable for any non-custom type because every branch (spell/weapon/monster/character/race/class/feat) unconditionally pushes a leading sentence. Add an explicit early-return check on card.name+attributes as described in action_items.",
+    "CardEditor.jsx L110: `const name = card.name.trim() || 'Questa carta';` — with the fallback to 'Questa carta', clicking with an empty name produces the odd copy 'Questa carta è una magia.' and story 'Le origini di Questa carta si perdono…'. Once the empty gate is fixed this becomes unreachable, but if the fallback is intended, consider a nicer placeholder (e.g. 'Una carta senza nome').",
+    "CardEditor.jsx L195-197: story is auto-filled ONLY when `!card.story.trim()` — matches spec 'story-field also gets filled (since it was empty)'. Good; not a regression.",
+    "CardEditor.jsx L332-335: green panel + compose-free-btn correctly separated visually (border-emerald-800/50 vs border-gold-deep/40 for the AI panel). No overlap issues. data-testid present.",
+    "Positive path proved no-AI: network monitor recorded 0 requests during the compose click, so the client-side promise is honoured."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only per request)", "frontend": "5/6 checks pass (~83%). Only failing check is the empty-state error-toast requirement."},
+  "test_credentials": "mago@grimorio.it / arcano123",
+  "seed_data_creation": "Created one test card 'Fulmine Arcano' (spell) via the compose+save flow: /api/cards -> id=c7d57cc8-8302-4920-83a6-c38687df5ca4. Can be deleted by main agent if not needed.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The compose-free feature is CORRECT for the positive path (populated fields) and provably makes zero /api/ai/* calls. The only failing requirement is the negative empty-state test — see ui_bugs. To retest after the fix, just visit /crea (default type=spell, all fields empty) and click [data-testid=\"compose-free-btn\"]: it must show toast 'Compila prima nome e qualche statistica' AND leave desc-field/story-field empty. Then repeat the positive scenario from iteration_6 summary. Network capture with `page.on('request', ...)` filtering for '/api/ai/' is the definitive check that no AI call is made — confirmed 0 requests fired during the compose click.",
+  "rca of the issue": "composeFree() in /app/frontend/src/pages/CardEditor.jsx unconditionally emits a leading seed sentence for every non-custom type (e.g. spell: `${name} è una magia.`). Because `name` falls back to 'Questa carta' when card.name is empty, parts[] is never empty and the guard `description === `${name}.`` at L190 never matches. Result: with all fields empty, the button still populates desc-field with 'Questa carta è una magia.' and story-field with the default lore sentence — violating the spec 'error toast + do not populate'. Fix: add an early-return that checks whether card.name is empty AND every attribute value is empty (see action_items for a concrete snippet). No other code changes are required; the positive path already passes end-to-end (compose text quality, no network calls, success toast, save flow all verified)."
+}

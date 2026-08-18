@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette } from "lucide-react";
+import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine } from "lucide-react";
 import { api } from "@/lib/api";
-import { CARD_TYPES, EMBLEMS, BACK_STYLES } from "@/lib/cardTypes";
+import { CARD_TYPES, EMBLEMS, BACK_STYLES, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import AttributeEditor from "@/components/AttributeEditor";
@@ -99,6 +99,113 @@ export default function CardEditor() {
     } finally {
       setGenImg(false);
     }
+  };
+
+  const composeFree = () => {
+    const a = card.attributes || {};
+    const hasName = card.name.trim() !== "";
+    const hasAttr = Object.values(a).some((v) => {
+      if (Array.isArray(v)) return v.some((x) => (x && typeof x === "object") ? Object.values(x).some((s) => String(s).trim() !== "") : String(x).trim() !== "");
+      return String(v).trim() !== "" && String(v).trim() !== "-";
+    });
+    if (!hasName && !hasAttr) {
+      toast.error("Compila prima nome e qualche statistica");
+      return;
+    }
+    const g = (k) => {
+      const v = a[k];
+      return v !== undefined && v !== null && String(v).trim() !== "" && String(v).trim() !== "-" ? String(v).trim() : null;
+    };
+    const name = card.name.trim() || "Questa carta";
+    const parts = [];
+    const t = card.type;
+
+    if (t === "spell") {
+      let s = `${name} è una magia`;
+      if (g("scuola")) s += ` di ${g("scuola").toLowerCase()}`;
+      if (g("livello")) s += ` di livello ${g("livello")}`;
+      s += ".";
+      parts.push(s);
+      const cast = [];
+      if (g("azione")) cast.push(`si lancia come ${g("azione").toLowerCase()}`);
+      if (g("tempo_lancio") && !g("azione")) cast.push(`tempo di lancio ${g("tempo_lancio")}`);
+      if (g("gittata")) cast.push(`gittata ${g("gittata")}`);
+      if (g("area")) cast.push(`area ${g("area")}`);
+      if (g("durata")) cast.push(`durata ${g("durata")}`);
+      if (cast.length) parts.push(`${cast.join(", ")}.`.replace(/^./, (c) => c.toUpperCase()));
+      if (g("concentrazione") && /s[ìi]/i.test(g("concentrazione"))) parts.push("Richiede concentrazione.");
+      if (g("danno")) parts.push(`Infligge ${g("danno")}.`);
+      if (g("effetto")) parts.push(g("effetto"));
+    } else if (t === "weapon") {
+      let s = `${name} è un'arma`;
+      if (g("categoria")) s += ` ${g("categoria").toLowerCase()}`;
+      if (g("danno")) s += ` che infligge ${g("danno")}`;
+      if (g("tipo_danno")) s += ` danni ${g("tipo_danno").toLowerCase()}`;
+      s += ".";
+      parts.push(s);
+      if (g("proprieta")) parts.push(`Proprietà: ${g("proprieta")}.`);
+      if (g("peso") || g("costo")) parts.push([g("peso") && `Peso ${g("peso")}`, g("costo") && `costo ${g("costo")}`].filter(Boolean).join(", ") + ".");
+    } else if (t === "monster") {
+      let s = `${name} è una temibile creatura`;
+      if (g("grado_sfida")) s += ` di grado sfida ${g("grado_sfida")}`;
+      s += ".";
+      parts.push(s);
+      const st = [];
+      if (g("classe_armatura")) st.push(`CA ${g("classe_armatura")}`);
+      if (g("punti_ferita")) st.push(`${g("punti_ferita")} punti ferita`);
+      if (g("velocita")) st.push(`velocità ${g("velocita")}`);
+      if (st.length) parts.push(`Possiede ${st.join(", ")}.`);
+      const res = [g("resistenze") && `resistenze a ${g("resistenze")}`, g("immunita") && `immunità a ${g("immunita")}`, g("vulnerabilita") && `vulnerabilità a ${g("vulnerabilita")}`].filter(Boolean);
+      if (res.length) parts.push(`Ha ${res.join(", ")}.`);
+    } else if (t === "character") {
+      let s = `${name}`;
+      const bio = [g("razza"), g("classe") && `${g("classe")}`].filter(Boolean).join(" ");
+      if (bio) s += `, ${bio.toLowerCase()}`;
+      if (g("livello")) s += ` di livello ${g("livello")}`;
+      s += ".";
+      parts.push(s);
+      const st = [];
+      if (g("classe_armatura")) st.push(`CA ${g("classe_armatura")}`);
+      if (g("punti_ferita")) st.push(`${g("punti_ferita")} PF`);
+      if (st.length) parts.push(st.join(", ") + ".");
+    } else if (t === "race") {
+      let s = `I ${name}`;
+      const st = [];
+      if (g("taglia")) st.push(`taglia ${g("taglia").toLowerCase()}`);
+      if (g("velocita")) st.push(`velocità ${g("velocita")}`);
+      s += st.length ? ` hanno ${st.join(" e ")}.` : " sono un popolo dalle antiche origini.";
+      parts.push(s);
+      if (g("linguaggi")) parts.push(`Parlano: ${g("linguaggi")}.`);
+    } else if (t === "class") {
+      let s = `${name} è una classe`;
+      if (g("abilita_primaria")) s += ` incentrata su ${g("abilita_primaria")}`;
+      s += ".";
+      parts.push(s);
+      if (g("dado_vita")) parts.push(`Dado vita: ${g("dado_vita")}.`);
+      if (g("tiri_salvezza")) parts.push(`Tiri salvezza: ${g("tiri_salvezza")}.`);
+    } else if (t === "feat") {
+      parts.push(`${name} è un talento che conferisce vantaggi unici.`);
+      if (g("prerequisito")) parts.push(`Prerequisito: ${g("prerequisito")}.`);
+    } else {
+      parts.push(`${name}.`);
+      const extra = Object.keys(a)
+        .filter((k) => g(k))
+        .slice(0, 6)
+        .map((k) => `${attrLabel(k)}: ${g(k)}`);
+      if (extra.length) parts.push(extra.join(" · ") + ".");
+    }
+
+    const description = parts.join(" ").replace(/\s+/g, " ").trim();
+    if (!description || description === `${name}.`) {
+      toast.error("Compila prima nome e qualche statistica");
+      return;
+    }
+    const patch = { description };
+    if (!card.story.trim()) {
+      patch.story = `Le origini di ${name} si perdono tra le pagine ingiallite di antichi tomi, tramandate da generazioni di avventurieri.`;
+    }
+    set(patch);
+    toast.success("Descrizione composta gratis (nessun credito usato)");
   };
 
   const onUpload = async (e) => {
@@ -219,6 +326,22 @@ export default function CardEditor() {
                 </Button>
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} data-testid="file-input" />
               </div>
+              <p className="font-body text-[11px] text-muted-foreground mt-2 italic">GENERA CONTENUTO e GENERA ARTWORK usano l'AI e consumano crediti. Il caricamento immagine è gratuito.</p>
+            </div>
+
+            {/* Free (no-AI) composer */}
+            <div className="border border-emerald-800/50 bg-emerald-950/10 p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <PenLine className="w-4 h-4 text-emerald-400" />
+                <span className="font-label text-xs tracking-widest text-emerald-300">COMPONI GRATIS (SENZA AI)</span>
+              </div>
+              <p className="font-body text-[12px] text-foreground/70 mb-3">
+                Compila nome e statistiche qui sotto, poi crea automaticamente descrizione e storia dai campi inseriti. Nessun credito consumato.
+              </p>
+              <Button data-testid="compose-free-btn" onClick={composeFree}
+                className="rounded-none bg-emerald-700 text-white hover:bg-emerald-600 font-label text-xs tracking-wide transition-colors">
+                <PenLine className="w-4 h-4 mr-1.5" /> COMPONI DESCRIZIONE (GRATIS)
+              </Button>
             </div>
 
             {/* Manual fields */}

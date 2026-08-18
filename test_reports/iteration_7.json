@@ -1,0 +1,30 @@
+{
+  "summary": "Targeted re-test of the empty-state validation guard for the free 'COMPONI DESCRIZIONE (GRATIS)' button on /crea (CardEditor.jsx composeFree). Both scenarios from the review request now PASS end-to-end. Scenario 1 (NEGATIVE): logged in as mago@grimorio.it / arcano123, navigated to /crea with default type=spell, EMPTY name-field and all attributes empty. Clicked compose-free-btn -> error toast 'Compila prima nome e qualche statistica' is shown AND desc-field remained empty (''). ZERO network requests fired during the click (0 total, 0 to /api/ai/*). Scenario 2 (POSITIVE): filled name-field='Fulmine Arcano' and attr-livello=3, then clicked compose-free-btn -> desc-field populated with 'Fulmine Arcano è una magia di livello 3.' and success toast 'Descrizione composta gratis (nessun credito usato)' shown. Again ZERO network requests fired (0 total, 0 to /api/ai/*), confirming the feature is fully client-side. The iteration_6 bug is fixed by the new guard at CardEditor.jsx L106-114 (hasName + hasAttr check before building parts[]).",
+  "ai_feature_verdicts": [
+    {
+      "capability": "Free client-side description composer (composeFree in CardEditor.jsx)",
+      "verdict": "pass",
+      "notes": "Empty-state guard now blocks empty input with correct Italian toast and no field mutation. Positive path still works and provably makes zero /api/ai/* calls."
+    }
+  ],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_7.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CardEditor.jsx L104-114: fix looks correct — the new guard computes hasName (trimmed) and hasAttr (recursively over Array/object attribute values, ignoring empty strings and '-'), returning early with toast.error before parts[] is built. This matches the spec and blocks the previously-reported bug.",
+    "The legacy fallback guard at L200 (`description === \\`${name}.\\``) is now unreachable for non-custom types but harmless; consider removing to keep the function lean."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only per request)", "frontend": "2/2 checks pass (100%). Empty-state guard PASS + positive-path PASS with zero /api/ai calls in either case."},
+  "test_credentials": "mago@grimorio.it / arcano123",
+  "seed_data_creation": "None — this iteration did not save any new cards; only clicked compose-free-btn on /crea.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "iteration_6 bug (empty-state validation for compose-free-btn) is fixed. Guard lives at /app/frontend/src/pages/CardEditor.jsx L106-114. Both empty-state and populated-state paths verified with zero /api/ai/* calls. No further action required for this feature.",
+  "rca of the issue": "Not applicable — this was a re-test of a previously-fixed bug. Fix confirmed working."
+}

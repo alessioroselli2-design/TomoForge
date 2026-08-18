@@ -486,6 +486,23 @@ async def delete_card(card_id: str, user: User = Depends(get_current_user)):
     return {"ok": True}
 
 
+@api_router.get("/public/cards/{card_id}")
+async def public_get_card(card_id: str):
+    doc = await db.cards.find_one({"id": card_id}, {"_id": 0, "user_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    return doc
+
+
+@api_router.get("/public/files/{path:path}")
+async def public_download(path: str):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="File non trovato")
+    data, content_type = get_object(path)
+    return Response(content=data, media_type=record.get("content_type", content_type))
+
+
 @api_router.get("/")
 async def root():
     return {"message": "TomeForge API"}
