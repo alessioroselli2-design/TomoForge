@@ -1,0 +1,138 @@
+{
+  "theme": "Dark Fantasy Grimoire",
+  "mood": "Mysterious, ancient, tactile, premium, dark magic",
+  "typography": {
+    "fonts": {
+      "headings": "'Cormorant Garamond', serif",
+      "body": "'Spectral', serif",
+      "ui_labels": "'Cinzel', serif"
+    },
+    "rules": [
+      "Use 'Cormorant Garamond' for all major headings (H1-H3). Keep it elegant, using font-weight 600 or 700.",
+      "Use 'Spectral' for body text, card descriptions, and D&D stat blocks. It provides excellent legibility while maintaining a bookish, ancient feel.",
+      "Use 'Cinzel' for UI buttons, tabs, and overlines/labels (e.g., 'ARMOR CLASS', 'HIT POINTS'). Always uppercase.",
+      "Never use default generic sans-serif fonts like Inter or Roboto for main content to avoid breaking the immersion.",
+      "D&D stat blocks must strictly follow the traditional layout: bold labels followed by regular text, separated by thematic horizontal rules (often a tapered crimson or gold line)."
+    ],
+    "installation": "Add Google Fonts link in public/index.html: <link href=\"https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Spectral:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">"
+  },
+  "colors": {
+    "description": "Obsidian black base with antique gold accents and crimson highlights.",
+    "palette": {
+      "background": "#0c0a09",
+      "foreground": "#e5e0d8",
+      "primary": "#d4af37",
+      "primary-foreground": "#0c0a09",
+      "secondary": "#1c1917",
+      "secondary-foreground": "#d4af37",
+      "accent": "#7f1d1d",
+      "accent-foreground": "#f87171",
+      "destructive": "#991b1b",
+      "destructive-foreground": "#fef2f2",
+      "muted": "#292524",
+      "muted-foreground": "#a8a29e",
+      "card": "#151311",
+      "card-foreground": "#e5e0d8",
+      "border": "#44403c",
+      "ring": "#d4af37"
+    }
+  },
+  "visual_enhancers": {
+    "textures": [
+      "Tactile Noise Overlay: Add a subtle static noise overlay to the main background to simulate a matte, ancient grimoire cover. Use CSS mix-blend-mode or SVG filter.",
+      "Gold Foil: Use a subtle metallic CSS gradient for primary borders and key dividers (e.g., `bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-700`).",
+      "Parchment: For the actual trading cards, use a very dark warm grey (e.g., #151311) with a soft inner shadow to mimic thick cardstock."
+    ],
+    "surfaces": [
+      "Solid, opaque surfaces. DO NOT use glassmorphism or transparent blur overlays; an ancient tome has solid, physical pages and covers.",
+      "Borders should be thin (1px) and colored in muted gold or dark brass (#44403c)."
+    ]
+  },
+  "grids_and_layouts": {
+    "landing_auth": [
+      "Hero layout with a central focus, large 'Cormorant Garamond' typography, and an atmospheric background image with a heavy vignette (`bg-black/60` to `bg-black/80` at the edges).",
+      "Auth forms should look like a dark, ornate plaque or page inside the tome, bordered with subtle gold."
+    ],
+    "collection_grid": [
+      "Bento/Tetris grid pattern for the card collection dashboard. Cards displayed in a responsive grid (`grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`).",
+      "Gap: `gap-6` or `gap-8`. Cards should maintain a standard trading card aspect ratio (e.g., 2.5 : 3.5)."
+    ],
+    "card_detail_flip": [
+      "Split view: Left side displays the Card (interactive, flippable), right side contains the form controls (Shadcn customized) to edit stats.",
+      "The card must be wrapped in a Framer Motion 3D rotation container (`rotateY`).",
+      "The 'Front' contains Image, Name, Stats, Description, and QR Code.",
+      "The 'Back' contains the customized emblem, motto, and style."
+    ]
+  },
+  "motion": {
+    "card_flip": "Use framer-motion to create a realistic 3D card flip when a user clicks the 'Flip to Back/Front' button. Ensure `backface-visibility: hidden` is applied to the card faces.",
+    "hover_states": "Interactive elements (cards in grid, buttons) should slightly lift (`-translate-y-1`) and cast a subtle gold or crimson shadow.",
+    "page_transitions": "Fade in with a slight upward drift (`translate-y-4` to `translate-y-0` and `opacity-0` to `opacity-100`) to feel deliberate and dramatic."
+  },
+  "component_styles": {
+    "buttons": "Sharp corners (`rounded-none` or `rounded-sm`). Primary buttons have a gold background with black text. Secondary buttons have a dark background with a 1px gold border and gold text.",
+    "inputs_forms": "Dark background (`bg-secondary`), bordered by `border-border`, white/parchment text. Focus ring should be the primary gold color.",
+    "dnd_stat_block": "A specific layout component matching D&D 5e visual hierarchy. A thick gold line at top/bottom, tapered red dividers inside, bold stat names (STR, DEX, etc.), and distinct blocks for actions/reactions.",
+    "character_sheet": "For the A4 PDF Character Sheet layout, use a dense, 2-to-3 column grid to fit Stats, Skills, Attacks, and Spell Slots cleanly. Use 'Spectral' for optimal printing clarity."
+  },
+  "media": {
+    "image_urls": {
+      "hero_background": {
+        "url": "https://images.unsplash.com/photo-1774366127010-9835ae1373a0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwzfHxhbmNpZW50JTIwc3BlbGxib29rJTIwZ3JpbW9pcmUlMjBkYXJrfGVufDB8fHx8MTc4NzAzMjcyOXww&ixlib=rb-4.1.0&q=85",
+        "description": "An old, leather-bound book with textured pages. Use for landing page hero or auth background with heavy dark overlay.",
+        "category": "background"
+      },
+      "empty_state_dashboard": {
+        "url": "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "An open spellbook with wand and quill. Use for 'No cards yet' or dashboard banner.",
+        "category": "illustration"
+      },
+      "character_placeholder": {
+        "url": "https://images.unsplash.com/photo-1769221909977-dafd61c79a3d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxkYXJrJTIwZmFudGFzeSUyMGNoYXJhY3RlciUyMHBvcnRyYWl0fGVufDB8fHx8MTc4NzAzMjcyOXww&ixlib=rb-4.1.0&q=85",
+        "description": "Dark fantasy armor portrait. Use as a placeholder for Character Cards.",
+        "category": "card_artwork"
+      },
+      "deck_placeholder": {
+        "url": "https://images.unsplash.com/photo-1616958396261-1042e852432b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwyfHxhbmNpZW50JTIwc3BlbGxib29rJTIwZ3JpbW9pcmUlMjBkYXJrfGVufDB8fHx8MTc4NzAzMjcyOXww&ixlib=rb-4.1.0&q=85",
+        "description": "Black and gold box. Use as a placeholder for 'Decks' or card categories.",
+        "category": "illustration"
+      }
+    }
+  },
+  "accessibility": [
+    "Ensure contrast ratio is above 4.5:1 for the dark parchment text against the obsidian background.",
+    "Use data-testid on all interactive elements (e.g., `data-testid=\"card-flip-button\"`, `data-testid=\"generate-ai-content\"`).",
+    "Add 'aria-hidden=\"true\"' to decorative dividers and ornate border SVGs."
+  ],
+  "libraries": [
+    "framer-motion (for card flipping and list stagger animations)",
+    "lucide-react (for icons, styled in antique gold)",
+    "html2canvas / jspdf (for Card sharing as image and PDF print front+back)",
+    "sonner (for mystical, dark-themed toast notifications)"
+  ],
+  "instructions_to_main_agent": [
+    "Language is Italian by default. Ensure all static UI text is in Italian.",
+    "For Tailwind configuration, map the provided CSS variables to match the 'colors' palette exactly. No pure white or pure black backgrounds; everything should be tinted towards the grimoire theme.",
+    "Avoid the generic Shadcn 'card' look. Build custom HTML/Tailwind for the actual trading cards to achieve the trading card aspect ratio, inner borders, and layout.",
+    "In the Card Collection grid, use framer-motion to stagger the entrance of the cards.",
+    "For the card creation form, use Shadcn forms/inputs but restyle them with the dark background, sharp corners, and gold focus rings.",
+    "Ensure a toggle/button for 'Genera con AI' (Generate with AI) is prominently featured in the card creation forms, using a distinct visual style (e.g., a subtle gold pulse animation) to indicate magical generation.",
+    "The Character sheet view must be printable in A4 format. Use standard CSS print media queries (`@media print`) to hide UI controls and format the layout specifically for A4 paper dimensions."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "You MUST NOT apply universal transition. Eg: `transition: all`. Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container.",
+    "Always use modern button styles with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations separate good from extraordinary.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use sonner for toasts.",
+    "All interactive and key informational elements MUST include a `data-testid` attribute to facilitate robust automated testing."
+  ]
+}

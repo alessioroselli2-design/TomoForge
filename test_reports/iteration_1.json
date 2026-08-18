@@ -1,0 +1,52 @@
+{
+  "summary": "End-to-end test of TomeForge MVP (frontend + backend). AI text (Gemini 3 Flash) and AI image (Gemini Nano Banana + Emergent object storage) are the primary AI features — both PASS with real outputs. All 13 backend pytest cases pass; full UI flow (login -> collection -> AI create -> card detail -> flip -> share PNG -> PDF F/R -> delete) works. Monster stat block and Character spell slots (plus/minus/long rest) + A4 PDF sheet all working. Skills loaded: ai-testing-core, ai-testing-llm, ai-testing-image-video.",
+  "ai_feature_verdicts": [
+    "AI text generation (Gemini 3 Flash) - pass - evidence: POST /api/ai/generate-content 200 in ~10s; returned name='Statua del Gelo Eterno', desc=321 chars, story=319 chars, attributes with livello/scuola/tempo_lancio/gittata/componenti/durata/effetto all populated in Italian. Monster prompt returned classe_armatura, punti_ferita, for/des/cos filled (D&D-appropriate). skill: ai-testing-llm",
+    "AI image generation (Gemini Nano Banana) [PRIMARY visual] - pass - evidence: POST /api/ai/generate-image 200 -> artwork_path=tomeforge/artwork/user_1a6451f0fadf/*.jpg; GET /api/files/<path> with Bearer -> 200, JPEG bytes with FFD8FF header, size > 5KB. Auth-required (401 without token, 200 with ?auth= query). skill: ai-testing-image-video",
+    "Emergent Object Storage - pass - evidence: upload (1x1 PNG) -> tomeforge/uploads/<user>/*.png, retrieved back with PNG signature. Used by both generate-image and /api/upload."
+  ],
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Landing - login toast overlay", "issues": ["Sonner success toast appears in top-center and can briefly overlap the NUOVA CARTA button in navbar right after login (~2s). Cosmetic only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is single-file 501 lines - acceptable for MVP but consider splitting into routers/auth.py, routers/cards.py, routers/ai.py, services/storage.py once feature set grows.",
+    "generate_content: on JSONDecodeError, `text` local var can be undefined if the exception fires before assignment path (edge case if raw.strip() returns empty). Defensive but low risk.",
+    "download route: no rate limiting on /api/files/{path} - fine for MVP but public preview endpoint may want throttling long-term.",
+    "html2canvas triggers CORS on remote Unsplash images used as placeholder artwork - works with useCORS: true today but PDF/PNG export could break if the CDN changes headers. Not blocking."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (created)"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100% (all critical flows verified)"},
+  "test_credentials": "Email: mago@grimorio.it / Password: arcano123 (already seeded, working).",
+  "seed_data_creation": "Created & cleaned test cards (TEST_Drago Rosso Antico monster, TEST_Elarion il Saggio character) to verify monster stat block and character spell-slot/PDF flows without spending extra AI budget. All test data deleted after run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/backend_test.py is reusable. Uses REACT_APP_BACKEND_URL and mago@grimorio.it/arcano123. AI image test consumes 1 real generation (~5-10s). Cleanup logic deletes all TEST_-prefixed cards. Frontend has data-testid on every interactive element per Landing/Collection/CardEditor/CardDetail. File input is intentionally hidden and driven via upload-btn (use set_input_files with state='attached' or default state, not 'visible').",
+  "verified_flows": [
+    "Email/password login (mago@grimorio.it/arcano123) -> redirect to /collezione",
+    "Email/password registration (new random email) -> token issued + login round-trip works",
+    "GET /api/auth/me with Bearer -> 200; without token -> 401",
+    "Collection: type filters, name search, empty state all render",
+    "AI text generation (real Gemini 3 Flash) fills name/desc/story/attributes in Italian in ~10s through the UI",
+    "Card CRUD end-to-end (create -> detail -> update -> delete) via UI and via API",
+    "Card detail: flip animation, share image download, PDF F/R download all trigger real browser downloads",
+    "Monster stat block: FOR/DES/COS/INT/SAG/CAR, CA, PF, resistenze, vulnerabilità, immunità, sensi, linguaggi, grado sfida, azioni (Multiattacco + Soffio di Fuoco) all render",
+    "Character spell slots: minus decrements (4/4 -> 2/4), plus increments (3/4), long-rest resets ALL levels to full (4/4, 3/3, 2/2). Persisted via PUT /api/cards/{id}.",
+    "Character A4 PDF sheet exports (scheda-*.pdf downloaded)",
+    "Upload endpoint: 1x1 PNG upload -> stored in object storage -> served back via ?auth=<token>"
+  ]
+}
