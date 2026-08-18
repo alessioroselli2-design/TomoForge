@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const DEFAULT_ATTRS = {
-  spell: { livello: "", scuola: "", tempo_lancio: "", gittata: "", componenti: "", durata: "", effetto: "" },
+  spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
   class: { dado_vita: "", abilita_primaria: "", tiri_salvezza: "", competenze: "", caratteristiche: [] },
   race: { bonus_caratteristiche: "", velocita: "", taglia: "", linguaggi: "", tratti: [] },
   weapon: { danno: "", tipo_danno: "", proprieta: "", peso: "", costo: "", categoria: "" },

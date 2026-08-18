@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend-only verification of iteration_4 follow-up polish: TradingCard.jsx CardFront header changed to `pt-3 pb-1.5` and h3 to `text-lg leading-tight` to give italic Cormorant Garamond ascenders more headroom in html2canvas exports. Login mago@grimorio.it/arcano123 -> Collezione -> opened Dardo Incantato -> `pdf-btn` clicked -> download captured 'dardo-fronte-retro.pdf' (3.88 MB, 2 pages). Went back to Collezione -> `print-sheet-toggle` -> selected 'Dardo Incantato' + 'Elarion il Saggio' (header confirmed 'Foglio pronto: 2 carte') -> `export-sheet-btn` -> download captured 'foglio.pdf' (3.88 MB). Both PDFs rendered with PyMuPDF at 250 DPI and inspected via numpy gold-pixel scan (R>150,G>100,B<130,R-B>40). RESULTS: (a) Page 1 (front) of fronte-retro PDF: 'Dardo Incantato' fully rendered in SOLID GOLD (text-gold class). Topmost gold-pixel row = 52 (of 875 total), card top border = rows 0..4 -> ~47 device px (~18 CSS px) of black headroom between border and tallest ascender. Column-wise topmost-gold histogram is smooth (rows 52,53,55,56,57,58,61,62,63,64,65,66 — 11 tall cols for D/I/d/t ascenders, then 85+ cols at the main cap-height row 63-64) — NO abrupt horizontal spike that would indicate a clipping edge. Fix confirmed. (b) Page 2 (back): 'TOMEFORGE' solid gold + upright, emblem circle upright, MAGIA label correct — regression from iteration_3 mirror-fix still holds. (c) Print-sheet PDF: both card names ('Elarion il Saggio' and 'Dardo Incantato') rendered in solid gold with the same generous top headroom — no clipping. (d) No JS pageerrors, no error toasts on page (ERROR TOASTS: []). Only html2canvas debug logs and benign Canvas2D `willReadFrequently` warnings. Runtime measurements of live h3: paddingTop=12px (pt-3), paddingBottom=6px (pb-1.5), h3 top rel card=14px, h3 bottom rel card=36.5px, fontSize=18px, lineHeight=22.5px (leading-tight), fontFamily='Cormorant Garamond' serif. Skills loaded: none (pure UI/export regression, no AI capability).",
+  "ai_feature_verdicts": [],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Exported card FRONT (PDF page 1 + print-sheet cards)",
+        "issues": [
+          "COSMETIC (not a clipping issue): under html2canvas rasterization the italic Cormorant Garamond capital 'D' and 'I' visually appear slightly LESS ornate at the top than in the live browser (the tiny extending serif spurs above cap-height that render on-screen are softened/dropped by html2canvas at ~250 DPI). This is a limitation of html2canvas font rasterization — NOT a container-edge clip. Pixel analysis confirms ~47 device px (~18 CSS px) of black headroom above the tallest gold pixel, and the topmost-gold-row column histogram is smooth (no horizontal cut edge). The name is fully legible in every export. No action needed for the reported issue."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_5.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TradingCard.jsx L66: header flex row now `px-3 pt-3 pb-1.5` — correctly bumps top padding from pt-2.5 (10px) to pt-3 (12px). Confirmed live: paddingTop='12px'.",
+    "TradingCard.jsx L67: h3 now `font-heading font-bold text-lg leading-tight truncate pr-2 ${exportMode ? 'text-gold' : 'tf-gold-text'}` — leading-tight (1.25) replacing leading-none (1.0) gives the line-box a bit more vertical room. Confirmed live: lineHeight='22.5px' for 18px font. The exportMode branch continues to swap tf-gold-text -> text-gold so html2canvas can rasterize a solid color instead of the CSS text-gradient — regression preserved.",
+    "TradingCard.jsx L115: CardBack TOMEFORGE title unchanged — still `exportMode ? 'text-gold' : 'tf-gold-text'`; back page 2 still renders in solid gold + upright.",
+    "MINOR (unchanged from iter_4, not blocking): html2canvas at scale=2 emits many `Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true` warnings — cosmetic browser warning inside the html2canvas library, not app code. Could be silenced by upstream library upgrade; no user impact."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only per request)", "frontend": "100% (all 4 verification points pass — PDF front name legible with no top-clip, back TOMEFORGE regression holds, print-sheet 2-card export legible, no pageerrors/error toasts)"},
+  "test_credentials": "mago@grimorio.it / arcano123",
+  "seed_data_creation": "None. Used pre-seeded cards (Dardo Incantato spell + Elarion il Saggio character).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration_5 confirms the pt-3 + leading-tight polish resolved the ~30-40% ascender-clipping issue flagged in iteration_4. To measure ascender headroom: render the PDF via `pymupdf.open(p).load_page(0).get_pixmap(dpi=250)` -> numpy array -> gold pixel mask (R>150,G>100,B<130,R-B>40) -> per-column argmax to find topmost gold row -> if the resulting histogram has a single large spike at one row it's a clip; if it's smooth across 6-15 rows it's a natural glyph edge. In this iteration the topmost 11 rows had 1-2 cols each (ascender tips) followed by a bulk at cap-height — smooth = healthy. Cosmetic softening of italic serif spurs by html2canvas is a rasterizer property, not a card-edge clip; if the main agent wants pixel-perfect ornate serifs the only path would be replacing html2canvas with a canvas-native rasterizer (e.g. render via SVG-to-canvas or Puppeteer server-side) — not needed for the current polish scope.",
+  "rca of the issue": "iteration_4 flagged that italic Cormorant Garamond ascenders in the exported card NAME were clipped by the card's `overflow-hidden` outer border because the h3 used `text-lg leading-none` inside a header with `pt-2.5` (10px). Fix in this iteration: TradingCard.jsx header changed to `pt-3 pb-1.5` (+2px top padding) and the h3 to `leading-tight` (line-height 1.0 -> 1.25, +4.5px extra line-box). Combined, the h3 line box now sits with ~18 CSS px (47 device px @ 250 DPI) of clear black space above the tallest ascender — verified by numpy column-scan of the rasterized PDF (topmost-gold-row min=52 out of 875 total card height; column histogram distributed smoothly across rows 52-66 for ascender tips + cap-height, no abrupt horizontal cut line). The name is fully legible in both the fronte-retro PDF page 1 and every card on the print-sheet PDF. Back page (TOMEFORGE) still renders solid gold + upright — mirror fix regression preserved. No JS pageerrors or error toasts."
+}

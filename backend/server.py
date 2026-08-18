@@ -318,7 +318,7 @@ TYPE_LABELS = {
 }
 
 TYPE_SCHEMAS = {
-    "spell": '"attributes": {"livello": "", "scuola": "", "tempo_lancio": "", "gittata": "", "componenti": "", "durata": "", "effetto": ""}',
+    "spell": '"attributes": {"livello": "", "scuola": "", "azione": "(Azione, Azione bonus o Reazione)", "tempo_lancio": "", "gittata": "", "area": "(es. Sfera 6 m, oppure - se a bersaglio singolo)", "componenti": "", "durata": "", "concentrazione": "(Sì o No)", "danno": "(es. 8d6 fuoco, oppure - se non infligge danni)", "effetto": ""}',
     "class": '"attributes": {"dado_vita": "", "abilita_primaria": "", "tiri_salvezza": "", "competenze": "", "caratteristiche": ["tratto1", "tratto2"]}',
     "race": '"attributes": {"bonus_caratteristiche": "", "velocita": "", "taglia": "", "linguaggi": "", "tratti": ["tratto1", "tratto2"]}',
     "weapon": '"attributes": {"danno": "", "tipo_danno": "", "proprieta": "", "peso": "", "costo": "", "categoria": ""}',

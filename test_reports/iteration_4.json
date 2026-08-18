@@ -1,0 +1,38 @@
+{
+  "summary": "Frontend-only verification of iteration_3 follow-up: the EXPORT copies of CardFront/CardBack now receive `exportMode` prop and render name/TOMEFORGE with a SOLID `text-gold` color instead of the `tf-gold-text` CSS gradient (which html2canvas cannot rasterize). Login mago@grimorio.it/arcano123 -> collezione -> opened 'Dardo Incantato' -> real browser downloads captured: 'Dardo Incantato-fronte-retro.pdf' (3.88 MB, 2 pages), 'Dardo Incantato.png' (462 KB), and 'tomeforge-foglio-stampa.pdf' (3.88 MB, 2 cards selected: Dardo Incantato + Elarion il Saggio). All PDFs rendered with PyMuPDF at 250 DPI and inspected visually + programmatically (numpy gold-pixel scan). RESULTS: (a) PDF Page 2 (back): 'TOMEFORGE' rendered in SOLID GOLD, upright, fully legible — mirror fix from iteration_3 still holds; emblem circle upright, 'MAGIA' type label correct. (b) PDF Page 1 (front) & PNG: card NAME 'Dardo Incantato' is now rendered in solid gold instead of being invisible — the fix DID apply (previously the tf-gold-text CSS text-gradient produced blank/faint grey text under html2canvas). HOWEVER the top ~30-40% of the h3 name is CLIPPED by the card container's overflow-hidden edge, because the h3 uses `text-lg leading-none` inside `pt-2.5` padding — italic serif ascenders (D, I, l, t) protrude above the flex line box and are cut off. The name is READABLE ('Dardo Incantato' can be identified) but not perfectly legible. Same partial clipping is visible on the print-sheet PDF for both selected cards' names. Quick-reference chips (LIVELLO, AZIONE, GITTATA, AREA, CONCENTRAZIONE, DANNO) are present on the front and their values render correctly. No JS pageerrors, no error toasts. Two success sonner toasts observed. Skills loaded: none (no AI capability in scope — pure UI/export regression).",
+  "ai_feature_verdicts": [],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Exported card FRONT (PDF page 1, PNG, and print-sheet grid cards)",
+        "issues": [
+          "PARTIAL FIX: main agent's exportMode -> text-gold change correctly makes the h3 name render in solid gold (previously invisible under html2canvas because of tf-gold-text's -webkit-background-clip:text). Card name 'Dardo Incantato' is now visible in gold, and 'TOMEFORGE' on the back is solid gold + upright (unchanged). BUT the h3 uses `text-lg leading-none truncate` inside a parent with only `pt-2.5` padding, so when html2canvas rasterizes, the top ~30-40% of tall glyphs (D, I, l, t, ascenders of italic serif Cormorant Garamond) is clipped by the card's outer overflow-hidden boundary. Result: the name is READABLE ('Dardo Incantato' identifiable) but not perfectly legible — the tops of the letters are cropped away. Same clipping visible on the print-sheet PDF for each grid card name. Suggested follow-up: on the export copies (or globally), give the h3 more headroom — e.g. change `leading-none` to `leading-tight` / `leading-5`, or increase parent `pt-2.5` to `pt-3.5`, or add `pb-0.5 pt-3` on the header flex row. Not blocking; primary goal (solid gold vs invisible) is achieved."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_4.json"
+  ],
+  "action_items": [
+    "OPTIONAL polish (non-blocking): expand vertical headroom of the CardFront h3 so italic serif ascenders are not clipped in html2canvas exports. Options: (a) remove `leading-none` from the h3 (use default line-height), (b) bump parent padding from `pt-2.5` to `pt-3.5` on the header flex row, or (c) apply an export-only class (e.g. `[exportMode && 'leading-tight pt-1']`) to the outer container so the on-screen layout is unchanged. Primary fix (solid gold color) is confirmed working."
+  ],
+  "critical_code_review_comments": [
+    "TradingCard.jsx L67 + L115: `exportMode ? 'text-gold' : 'tf-gold-text'` conditional is correctly wired for both CardFront h3 (name) and CardBack TOMEFORGE title — html2canvas now rasterizes them in solid gold. Good fix.",
+    "CardDetail.jsx L334-339: off-screen exportFrontRef / exportBackRef wrappers pass `exportMode` prop as expected; both are inside `position:fixed; left:-99999` with no 3D transform ancestor — so the mirror fix from iteration_3 still holds.",
+    "Collection.jsx L218: print-sheet off-screen render also correctly passes `exportMode` — each grid card in the sheet PDF now shows a solid-gold name (with the same top-clipping issue noted above).",
+    "COSMETIC follow-up: CardFront header h3 uses `text-lg leading-none` inside `pt-2.5`. In on-screen rendering it looks fine because the browser handles ascenders naturally, but html2canvas clips the top of italic serif glyphs. Consider `leading-tight` or slightly more top padding to fully solve legibility.",
+    "MINOR: two 401 CONSOLE errors observed during the session (harmless — appear to be legacy resource requests after login flow); no pageerror events fired."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only per request)", "frontend": "80% (primary fix works — solid gold color applied; secondary top-clipping issue remains but text is readable)"},
+  "test_credentials": "mago@grimorio.it / arcano123",
+  "seed_data_creation": "None. Used pre-seeded cards (Dardo Incantato spell + Elarion il Saggio character).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "For any subsequent verification of card exports: (1) TWO card-front DOM nodes exist per detail page (visible + off-screen export copy). Always use `locator('[data-testid=\"card-front\"]').first` for on-screen checks. (2) Downloads: `[data-testid=\"pdf-btn\"]` -> '<name>-fronte-retro.pdf' (2 pages, 63.5x88.9mm); `[data-testid=\"share-btn\"]` -> '<name>.png' (front only); Collection `[data-testid=\"print-sheet-toggle\"]` -> select cards -> `[data-testid=\"export-sheet-btn\"]` -> 'tomeforge-foglio-stampa.pdf' (A4). (3) Render PDFs with PyMuPDF at 250 DPI: `pymupdf.open(p).load_page(n).get_pixmap(dpi=250)` — then inspect header/center area for gold text presence. (4) Print-sheet card selection: in select mode, click the card body (not by data-testid; uses text/name click). Confirmation shown in header: 'Foglio pronto: N carte'.",
+  "rca of the issue": "iteration_3 identified that the exported card front NAME (h3 with class `tf-gold-text` — CSS text-gradient using background-image + `-webkit-background-clip: text` + `text-fill-color: transparent`) was invisible in the PDF/PNG exports because html2canvas cannot rasterize CSS text-gradients. Fix in this iteration: TradingCard.jsx L67 and L115 now render the h3 name and the TOMEFORGE title with `exportMode ? 'text-gold' : 'tf-gold-text'` — the off-screen export copies (in CardDetail.jsx exportFrontRef/exportBackRef and Collection.jsx print-sheet off-screen render) pass `exportMode` so they use a solid Tailwind `text-gold` (opaque gold) instead of the unsupported gradient. Verification via 250-DPI PyMuPDF render + numpy gold-pixel scan: the exported header now contains ~4-6% gold pixels (previously ~0-1% for the same header band), and visually the letters 'Dardo Incantato' + 'TOMEFORGE' are now present in solid gold. Remaining polish issue: the italic serif Cormorant Garamond ascenders are still top-clipped inside the h3's `leading-none` line-box under html2canvas — the fix is functionally correct (color/opacity), but a small layout tweak (extra top padding or `leading-tight`) would improve legibility further."
+}

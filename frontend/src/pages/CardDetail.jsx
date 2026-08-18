@@ -137,8 +137,8 @@ export default function CardDetail() {
   const [card, setCard] = useState(null);
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
-  const frontRef = useRef(null);
-  const backRef = useRef(null);
+  const exportFrontRef = useRef(null);
+  const exportBackRef = useRef(null);
   const sheetRef = useRef(null);
 
   const load = async () => {
@@ -171,10 +171,10 @@ export default function CardDetail() {
   };
 
   const shareImage = async () => {
-    if (!frontRef.current) return;
+    if (!exportFrontRef.current) return;
     setBusy(true);
     try {
-      const canvas = await html2canvas(frontRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
+      const canvas = await html2canvas(exportFrontRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
       const link = document.createElement("a");
       link.download = `${card.name || "carta"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -185,12 +185,12 @@ export default function CardDetail() {
   };
 
   const exportPDF = async () => {
-    if (!frontRef.current || !backRef.current) return;
+    if (!exportFrontRef.current || !exportBackRef.current) return;
     setBusy(true);
     try {
       const [fc, bc] = await Promise.all([
-        html2canvas(frontRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 }),
-        html2canvas(backRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 }),
+        html2canvas(exportFrontRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 }),
+        html2canvas(exportBackRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 }),
       ]);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });
       pdf.addImage(fc.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
@@ -248,10 +248,10 @@ export default function CardDetail() {
                 transition={{ duration: 0.7, ease: "easeInOut" }}
               >
                 <div className="absolute inset-0 backface-hidden">
-                  <CardFront ref={frontRef} card={card} />
+                  <CardFront card={card} />
                 </div>
                 <div className="absolute inset-0 backface-hidden rotate-y-180">
-                  <CardBack ref={backRef} card={card} />
+                  <CardBack card={card} />
                 </div>
               </motion.div>
             </div>
@@ -328,6 +328,16 @@ export default function CardDetail() {
           </div>
         </div>
       </main>
+
+      {/* Off-screen clean renders for export (no 3D transform -> no mirrored text) */}
+      <div style={{ position: "fixed", left: -99999, top: 0 }} aria-hidden="true">
+        <div ref={exportFrontRef} style={{ width: 340, aspectRatio: "2.5/3.5" }}>
+          <CardFront card={card} exportMode />
+        </div>
+        <div ref={exportBackRef} style={{ width: 340, aspectRatio: "2.5/3.5", marginTop: 8 }}>
+          <CardBack card={card} exportMode />
+        </div>
+      </div>
 
       {/* Off-screen A4 character sheet for PDF */}
       {card.type === "character" && (

@@ -2,7 +2,7 @@ import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Flame, Skull, Sword, Moon, Eye, Shield, Star, Sparkles } from "lucide-react";
 import { artworkUrl } from "@/lib/api";
-import { typeLabel, typeIcon, attrLabel } from "@/lib/cardTypes";
+import { typeLabel, typeIcon, attrLabel, QUICK_FIELDS } from "@/lib/cardTypes";
 
 const EMBLEM_ICONS = {
   flame: Flame, skull: Skull, dragon: Sparkles, sword: Sword,
@@ -13,39 +13,48 @@ const PLACEHOLDER = "https://images.unsplash.com/photo-1769221909977-dafd61c79a3
 
 const isScalar = (v) => typeof v === "string" || typeof v === "number";
 
-const MiniStats = ({ card }) => {
+const ABIL = ["for", "des", "cos", "int", "sag", "car"];
+
+// Compact gameplay quick-reference shown on the card FRONT.
+const QuickStats = ({ card }) => {
   const attrs = card.attributes || {};
-  const entries = Object.entries(attrs).filter(([, v]) => isScalar(v) && String(v).trim() !== "");
-  const shown = entries.slice(0, 6);
-  if (card.type === "monster" || card.type === "character") {
-    const abil = ["for", "des", "cos", "int", "sag", "car"].filter((k) => attrs[k]);
-    if (abil.length) {
-      return (
-        <div className="grid grid-cols-6 gap-1 mt-2">
-          {abil.map((k) => (
+  const has = (k) => isScalar(attrs[k]) && String(attrs[k]).trim() !== "";
+  const showAbil = (card.type === "monster" || card.type === "character") && ABIL.some(has);
+
+  let fields = (QUICK_FIELDS[card.type] || []).filter(has);
+  if (!fields.length && !showAbil) {
+    fields = Object.keys(attrs).filter((k) => has(k) && !ABIL.includes(k)).slice(0, 4);
+  }
+  fields = fields.slice(0, 6);
+
+  if (!showAbil && !fields.length) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      {showAbil && (
+        <div className="grid grid-cols-6 gap-1">
+          {ABIL.filter(has).map((k) => (
             <div key={k} className="text-center border border-gold-deep/40 bg-obsidian/60 py-1">
               <div className="font-label text-[8px] tracking-wider text-gold/70 uppercase">{k}</div>
               <div className="font-body text-[11px] text-foreground leading-none mt-0.5">{attrs[k]}</div>
             </div>
           ))}
         </div>
-      );
-    }
-  }
-  if (!shown.length) return null;
-  return (
-    <div className="mt-2 space-y-0.5">
-      {shown.map(([k, v]) => (
-        <div key={k} className="flex justify-between gap-2 text-[10px] leading-tight">
-          <span className="font-label tracking-wide text-gold/70 uppercase truncate">{attrLabel(k)}</span>
-          <span className="font-body text-foreground/90 text-right truncate">{v}</span>
+      )}
+      {fields.length > 0 && (
+        <div className="grid grid-cols-2 gap-1">
+          {fields.map((k) => (
+            <div key={k} className="border border-gold-deep/30 bg-obsidian/50 px-1.5 py-1 leading-tight">
+              <div className="font-label text-[7px] tracking-wider text-gold/60 uppercase truncate">{attrLabel(k)}</div>
+              <div className="font-body text-[10px] text-foreground/90 truncate">{attrs[k]}</div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 };
 
-export const CardFront = React.forwardRef(({ card }, ref) => {
+export const CardFront = React.forwardRef(({ card, exportMode }, ref) => {
   const TypeIcon = typeIcon(card.type);
   const img = card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER;
   const qrValue = `${window.location.origin}/carta/${card.id}`;
@@ -54,8 +63,8 @@ export const CardFront = React.forwardRef(({ card }, ref) => {
       className="relative w-full h-full bg-card border-2 border-gold-deep flex flex-col overflow-hidden"
       style={{ boxShadow: "inset 0 0 40px rgba(0,0,0,0.7)" }}>
       {/* header */}
-      <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
-        <h3 className="font-heading font-bold text-lg leading-none tf-gold-text truncate pr-2">{card.name || "Senza nome"}</h3>
+      <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+        <h3 className={`font-heading font-bold text-lg leading-tight truncate pr-2 ${exportMode ? "text-gold" : "tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
         <div className="flex items-center gap-1 shrink-0">
           <TypeIcon className="w-3.5 h-3.5 text-gold" />
           <span className="font-label text-[9px] tracking-widest text-gold/80 uppercase">{typeLabel(card.type, card.custom_type)}</span>
@@ -68,14 +77,14 @@ export const CardFront = React.forwardRef(({ card }, ref) => {
       </div>
       {/* body */}
       <div className="flex-1 px-3 py-2 overflow-hidden">
-        <MiniStats card={card} />
+        <QuickStats card={card} />
         {card.description && (
-          <p className="font-body text-[11px] leading-snug text-foreground/85 mt-2 line-clamp-4 italic">{card.description}</p>
+          <p className="font-body text-[10px] leading-snug text-foreground/70 mt-1.5 line-clamp-2 italic">{card.description}</p>
         )}
       </div>
       {/* footer with QR */}
       <div className="flex items-end justify-between px-3 pb-2.5 pt-1">
-        <span className="font-label text-[8px] tracking-widest text-muted-foreground uppercase">TomeForge</span>
+        <span className="font-label text-[8px] tracking-widest text-muted-foreground uppercase leading-tight">Dettagli<br/>completi →</span>
         <div className="bg-white p-1 border border-gold-deep">
           <QRCodeCanvas value={qrValue} size={40} bgColor="#ffffff" fgColor="#0c0a09" level="M" />
         </div>
@@ -85,7 +94,7 @@ export const CardFront = React.forwardRef(({ card }, ref) => {
 });
 CardFront.displayName = "CardFront";
 
-export const CardBack = React.forwardRef(({ card }, ref) => {
+export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
   const back = card.back || {};
   const Emblem = EMBLEM_ICONS[back.emblem] || Flame;
   const color = back.color || "#7f1d1d";
@@ -103,7 +112,7 @@ export const CardBack = React.forwardRef(({ card }, ref) => {
           style={{ borderColor: color, boxShadow: `0 0 30px ${color}55` }}>
           <Emblem className="w-11 h-11" style={{ color }} />
         </div>
-        <div className="font-display text-2xl tf-gold-text tracking-wide">TOMEFORGE</div>
+        <div className={`font-display text-2xl tracking-wide ${exportMode ? "text-gold" : "tf-gold-text"}`}>TOMEFORGE</div>
         {back.motto && (
           <p className="font-heading italic text-lg text-foreground/80 max-w-[80%]">“{back.motto}”</p>
         )}
