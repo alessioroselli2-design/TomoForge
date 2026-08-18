@@ -305,6 +305,13 @@ async def logout(request: Request, response: Response):
 
 
 # --- AI routes ---
+def _ai_error(e: Exception, fallback: str):
+    msg = str(e).lower()
+    if any(k in msg for k in ["budget", "quota", "insufficient", "exceeded", "402", "payment", "credit", "balance"]):
+        return HTTPException(status_code=402, detail="Credito AI esaurito. Ricarica la Universal Key da Profilo → Manage plan → Universal Key → Add Balance.")
+    return HTTPException(status_code=502, detail=fallback)
+
+
 TYPE_LABELS = {
     "spell": "Magia/Incantesimo", "class": "Classe", "race": "Razza", "weapon": "Arma",
     "feat": "Talento", "monster": "Mostro/Nemico", "character": "Personaggio", "custom": "Tipo personalizzato",
@@ -364,7 +371,7 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(get_
         raise HTTPException(status_code=502, detail="Generazione AI non valida, riprova")
     except Exception as e:
         logger.error(f"AI content error: {e}")
-        raise HTTPException(status_code=502, detail="Errore nella generazione AI")
+        raise _ai_error(e, "Errore nella generazione AI")
 
 
 @api_router.post("/ai/generate-image")
@@ -397,7 +404,7 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(get_curr
         raise
     except Exception as e:
         logger.error(f"AI image error: {e}")
-        raise HTTPException(status_code=502, detail="Errore nella generazione immagine")
+        raise _ai_error(e, "Errore nella generazione immagine")
 
 
 # --- File routes ---
