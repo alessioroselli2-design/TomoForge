@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only verification of new 'Foglio di Stampa' (print-sheet) feature on /collezione. All 7 acceptance criteria PASS. Login (mago@grimorio.it/arcano123) redirects to /collezione which shows 5 seeded cards. Regression: normal card click still navigates to /carta/<id>. Selection mode: FOGLIO DI STAMPA button toggles selectMode -> select-hint bar appears, badges render on each card, card clicks toggle selection (no nav), counter updates (2 -> 1 -> 2). Floating export bar with 'ESPORTA PDF' shows once >=1 selected. Export click triggers real browser download 'tomeforge-foglio-stampa.pdf' (3.88 MB, valid %PDF header), Sonner success toast 'Foglio pronto: 2 carte' fires (data-type=success), no JS/pageerror, no error toast, and selection mode auto-exits post-export. ANNULLA button exits select mode and clears selection; after cancel, normal navigation is restored. Skills loaded: none (no AI capability in scope for this feature).",
+  "ai_feature_verdicts": [],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_2.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Collection.jsx exportPrintSheet: html2canvas runs sequentially per card (one-by-one). For a full 9-card A4 sheet expect ~2-3s per card => 20-30s total. Consider showing per-card progress in the button (e.g. 'Rendering 3/9') for UX; success only after full loop.",
+    "Off-screen sheet renders every chosen card inside the DOM (position:fixed left:-99999). If a user selects many cards (e.g. 27 across 3 pages) this may cause a heavy DOM/memory footprint. Consider rendering one card at a time by pushing/popping into the container.",
+    "The card <button> is inside a motion.button with role of button; nested Check icon inside a checkbox-like div is not announced to screen readers (no aria-checked / aria-pressed on the outer button in select mode). Small a11y improvement.",
+    "In selectMode the button click swallows the semantic 'go to detail' behavior with no visual affordance that a long-press or right-click could bypass. Not a bug, just a suggestion to add a small helper next to the hint bar."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only per request)", "frontend": "100% (7/7 acceptance criteria)"},
+  "test_credentials": "mago@grimorio.it / arcano123",
+  "seed_data_creation": "None (used the 5 pre-seeded cards).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Print-sheet flow selectors: print-sheet-toggle (enter), print-sheet-cancel (exit/ANNULLA), select-hint (hint bar), card-<uuid> (each card, toggles selection in selectMode / navigates otherwise), export-sheet-btn (ESPORTA PDF). PDF filename is 'tomeforge-foglio-stampa.pdf', jsPDF+html2canvas, ~2s render per card. Download can be captured with page.expect_download (30s is enough for 2 cards; allow ~90s if testing 9+). Success toast text: 'Foglio pronto: N carte'. Sonner root: [data-sonner-toast][data-type=success]. No backend calls are made during export (client-side PDF).",
+  "rca of the issue": "N/A - no defects found in this iteration."
+}
