@@ -9,6 +9,9 @@ import Collection from "@/pages/Collection";
 import CardEditor from "@/pages/CardEditor";
 import CardDetail from "@/pages/CardDetail";
 import PublicCard from "@/pages/PublicCard";
+import PaymentSuccess from "@/pages/PaymentSuccess";
+import PaymentCancel from "@/pages/PaymentCancel";
+import Admin from "@/pages/Admin";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -68,6 +71,9 @@ function AppRouter() {
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/carta/:id/modifica" element={<Protected><CardEditor /></Protected>} />
       <Route path="/carta/:id" element={<Protected><CardDetail /></Protected>} />
+      <Route path="/payment/success" element={<Protected><PaymentSuccess /></Protected>} />
+      <Route path="/payment/cancel" element={<Protected><PaymentCancel /></Protected>} />
+      <Route path="/admin" element={<Protected><Admin /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

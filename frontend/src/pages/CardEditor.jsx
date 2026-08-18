@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine } from "lucide-react";
+import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown } from "lucide-react";
 import { api } from "@/lib/api";
 import { CARD_TYPES, EMBLEMS, BACK_STYLES, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
+import { PremiumDialog } from "@/components/PremiumDialog";
+import { useAuth } from "@/context/AuthContext";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import AttributeEditor from "@/components/AttributeEditor";
 import { Button } from "@/components/ui/button";
@@ -30,8 +32,10 @@ const inputCls = "bg-input border-border rounded-none font-body focus-visible:ri
 export default function CardEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = !!id;
   const fileRef = useRef(null);
+  const [premiumOpen, setPremiumOpen] = useState(false);
 
   const [card, setCard] = useState({
     type: "spell", custom_type: "", name: "", description: "", story: "",
@@ -66,6 +70,7 @@ export default function CardEditor() {
   };
 
   const generateText = async () => {
+    if (!user?.is_premium) { setPremiumOpen(true); return; }
     if (!prompt.trim()) { toast.error("Descrivi cosa vuoi evocare"); return; }
     setGenText(true);
     try {
@@ -87,6 +92,7 @@ export default function CardEditor() {
   };
 
   const generateImage = async () => {
+    if (!user?.is_premium) { setPremiumOpen(true); return; }
     const p = prompt.trim() || card.name.trim() || card.description.trim();
     if (!p) { toast.error("Aggiungi un nome o una descrizione prima"); return; }
     setGenImg(true);
@@ -253,6 +259,7 @@ export default function CardEditor() {
   return (
     <div className="min-h-screen bg-obsidian">
       <Navbar />
+      <PremiumDialog open={premiumOpen} onOpenChange={setPremiumOpen} />
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8">
         <button data-testid="back-btn" onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-muted-foreground hover:text-gold font-label text-xs tracking-widest mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> INDIETRO
@@ -304,6 +311,11 @@ export default function CardEditor() {
               <div className="flex items-center gap-2 mb-3">
                 <Wand2 className="w-4 h-4 text-gold" />
                 <span className="font-label text-xs tracking-widest text-gold">EVOCAZIONE ARCANA (AI)</span>
+                {!user?.is_premium && (
+                  <span className="flex items-center gap-1 border border-gold/50 px-1.5 py-0.5 font-label text-[9px] tracking-widest text-gold ml-auto">
+                    <Crown className="w-3 h-3" /> PREMIUM
+                  </span>
+                )}
               </div>
               <Textarea data-testid="ai-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Descrivi la carta da evocare… es. 'Un antico drago di ghiaccio corrotto dal Piano Ombra'"
@@ -326,7 +338,7 @@ export default function CardEditor() {
                 </Button>
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} data-testid="file-input" />
               </div>
-              <p className="font-body text-[11px] text-muted-foreground mt-2 italic">GENERA CONTENUTO e GENERA ARTWORK usano l'AI e consumano crediti. Il caricamento immagine è gratuito.</p>
+              <p className="font-body text-[11px] text-muted-foreground mt-2 italic">GENERA CONTENUTO e GENERA ARTWORK sono funzioni Premium e consumano crediti AI. Il caricamento immagine è gratuito.</p>
             </div>
 
             {/* Free (no-AI) composer */}

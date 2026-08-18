@@ -69,9 +69,25 @@ export default function Collection() {
       return { x: marginX + col * (cardW + gap), y: marginY + row * (cardH + gap) };
     };
     const drawCut = (pdf, x, y) => {
+      // faint card boundary
       pdf.setDrawColor(120, 100, 50);
       pdf.setLineWidth(0.1);
       pdf.rect(x, y, cardW, cardH);
+      // corner crop/trim marks (L-shaped, pointing outward) for precise cutting
+      const L = 3, o = 0.6;
+      pdf.setDrawColor(60, 50, 25);
+      pdf.setLineWidth(0.2);
+      const marks = [
+        // top-left
+        [x - o - L, y, x - o, y], [x, y - o - L, x, y - o],
+        // top-right
+        [x + cardW + o, y, x + cardW + o + L, y], [x + cardW, y - o - L, x + cardW, y - o],
+        // bottom-left
+        [x - o - L, y + cardH, x - o, y + cardH], [x, y + cardH + o, x, y + cardH + o + L],
+        // bottom-right
+        [x + cardW + o, y + cardH, x + cardW + o + L, y + cardH], [x + cardW, y + cardH + o, x + cardW, y + cardH + o + L],
+      ];
+      marks.forEach(([x1, y1, x2, y2]) => pdf.line(x1, y1, x2, y2));
     };
     try {
       // Wait for all artwork images inside the off-screen sheet to load

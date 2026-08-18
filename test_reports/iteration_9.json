@@ -1,0 +1,42 @@
+{
+  "summary": "Targeted retest of the login-flags bug (iteration_8 HIGH). Verified frontend-only with Playwright against the public URL. Bug FIXED: after login, the Navbar reflects is_admin/is_premium immediately WITHOUT any page reload.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "admin_login_no_reload": {
+      "email": "admin@tomeforge.it",
+      "redirected_to_collezione": true,
+      "nav_premium_badge_visible": true,
+      "nav_upgrade_hidden": true,
+      "nav_admin_in_dropdown": true,
+      "admin_panel_loads_on_click": true,
+      "notes": "PANNELLO ADMIN visible immediately (no reload) and /admin loads the GESTIONE PREMIUM user list (Ephemeral, Custode del Tomo, Alessio Roselli, Mago Test, etc.)."
+    },
+    "normal_user_login_no_reload": {
+      "email": "mago@grimorio.it",
+      "redirected_to_collezione": true,
+      "nav_premium_badge_visible": false,
+      "nav_upgrade_visible": true,
+      "nav_admin_in_dropdown": false,
+      "notes": "Correct non-premium, non-admin state on first render after login (no reload)."
+    }
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (per request)", "frontend": "100%"},
+  "test_credentials": "Admin: admin@tomeforge.it / TomeAdmin2026! ; Normal: mago@grimorio.it / arcano123",
+  "seed_data_creation": "None. Mago remains non-premium as instructed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration_8 HIGH bug (login response missing is_admin/is_premium) is confirmed fixed. Both /api/auth/login flows now populate the user object with the correct flags so Navbar renders PREMIUM badge and PANNELLO ADMIN without a page reload. No AI generation was triggered.",
+  "rca of the issue": "Fixed in iteration_9 by main agent: /api/auth/login, /api/auth/register and /api/auth/google-session in backend/server.py now return the full user shape {**User(**doc).model_dump(), is_premium: compute_premium(...)} matching /api/auth/me. AuthContext.loginWithToken persists this into user state, so Navbar.jsx immediately sees user.is_admin and user.is_premium on first render post-login."
+}

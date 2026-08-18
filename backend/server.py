@@ -10,6 +10,7 @@ from typing import List, Optional, Any, Annotated
 import jwt
 import bcrypt
 import requests
+import stripe
 from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, UploadFile, File, Header, Query
 from starlette.middleware.cors import CORSMiddleware
@@ -34,6 +35,12 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "tomeforge_secret")
 JWT_ALGO = "HS256"
 TEXT_MODEL = "gemini-3-flash-preview"
 IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+PREMIUM_LOOKUP_KEY = "premium_monthly"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
 STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
@@ -163,6 +170,9 @@ class User(BaseModel):
     name: str
     picture: Optional[str] = None
     auth_provider: str = "email"
+    is_admin: bool = False
+    premium_manual: bool = False
+    premium_until: Optional[str] = None
 
 
 # --- App ---
@@ -177,6 +187,22 @@ async def startup():
         logger.info("Storage initialized")
     except Exception as e:
         logger.error(f"Storage init failed: {e}")
+    # Seed admin account (idempotent)
+    if ADMIN_EMAIL and ADMIN_PASSWORD:
+        try:
+            existing = await db.users.find_one({"email": ADMIN_EMAIL.lower()})
+            if not existing:
+                await db.users.insert_one({
+                    "user_id": f"user_{uuid.uuid4().hex[:12]}", "email": ADMIN_EMAIL.lower(),
+                    "name": "Custode del Tomo", "picture": None, "auth_provider": "email",
+                    "password_hash": hash_password(ADMIN_PASSWORD), "is_admin": True, "premium_manual": True,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
+            else:
+                await db.users.update_one({"email": ADMIN_EMAIL.lower()}, {"$set": {"is_admin": True, "premium_manual": True}})
+            logger.info("Admin seeded")
+        except Exception as e:
+            logger.error(f"Admin seed failed: {e}")
 
 
 # --- Auth helpers ---
@@ -227,6 +253,33 @@ async def get_current_user(request: Request) -> User:
     raise HTTPException(status_code=401, detail="Token non valido")
 
 
+def compute_premium(user) -> bool:
+    if getattr(user, "premium_manual", False):
+        return True
+    pu = getattr(user, "premium_until", None)
+    if pu:
+        try:
+            dt = datetime.fromisoformat(pu)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt > datetime.now(timezone.utc)
+        except Exception:
+            return False
+    return False
+
+
+async def require_premium(user: User = Depends(get_current_user)) -> User:
+    if not compute_premium(user):
+        raise HTTPException(status_code=402, detail="Funzione Premium: attiva l'abbonamento per usare la generazione AI.")
+    return user
+
+
+async def require_admin(user: User = Depends(get_current_user)) -> User:
+    if not getattr(user, "is_admin", False):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return user
+
+
 # --- Auth routes ---
 @api_router.post("/auth/register")
 async def register(body: RegisterInput):
@@ -244,7 +297,9 @@ async def register(body: RegisterInput):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     token = create_jwt(user_id)
-    return {"token": token, "user": {"user_id": user_id, "email": body.email.lower(), "name": body.name, "picture": None, "auth_provider": "email"}}
+    doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    u = User(**doc)
+    return {"token": token, "user": {**u.model_dump(), "is_premium": compute_premium(u)}}
 
 
 @api_router.post("/auth/login")
@@ -255,7 +310,8 @@ async def login(body: LoginInput):
     if not verify_password(body.password, user_doc["password_hash"]):
         raise HTTPException(status_code=401, detail="Credenziali non valide")
     token = create_jwt(user_doc["user_id"])
-    return {"token": token, "user": {"user_id": user_doc["user_id"], "email": user_doc["email"], "name": user_doc["name"], "picture": user_doc.get("picture"), "auth_provider": "email"}}
+    u = User(**user_doc)
+    return {"token": token, "user": {**u.model_dump(), "is_premium": compute_premium(u)}}
 
 
 @api_router.post("/auth/google-session")
@@ -287,12 +343,16 @@ async def google_session(request: Request, response: Response):
         "expires_at": expires_at.isoformat(), "created_at": datetime.now(timezone.utc).isoformat(),
     })
     response.set_cookie("session_token", session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 60 * 60)
-    return {"user": {"user_id": user_id, "email": email, "name": data.get("name"), "picture": data.get("picture"), "auth_provider": "google"}, "session_token": session_token}
+    doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    u = User(**doc)
+    return {"user": {**u.model_dump(), "is_premium": compute_premium(u)}, "session_token": session_token}
 
 
 @api_router.get("/auth/me")
 async def auth_me(user: User = Depends(get_current_user)):
-    return user
+    d = user.model_dump()
+    d["is_premium"] = compute_premium(user)
+    return d
 
 
 @api_router.post("/auth/logout")
@@ -330,7 +390,7 @@ TYPE_SCHEMAS = {
 
 
 @api_router.post("/ai/generate-content")
-async def generate_content(body: GenerateContentInput, user: User = Depends(get_current_user)):
+async def generate_content(body: GenerateContentInput, user: User = Depends(require_premium)):
     type_label = body.custom_type if body.type == "custom" and body.custom_type else TYPE_LABELS.get(body.type, body.type)
     lang = "italiano" if body.language == "it" else "inglese"
     schema = TYPE_SCHEMAS.get(body.type, TYPE_SCHEMAS["custom"])
@@ -375,7 +435,7 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(get_
 
 
 @api_router.post("/ai/generate-image")
-async def generate_image(body: GenerateImageInput, user: User = Depends(get_current_user)):
+async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium)):
     type_hint = TYPE_LABELS.get(body.type or "", "")
     art_prompt = (
         f"Epic dark fantasy trading card artwork, Dungeons and Dragons style, for: {body.prompt}. "
@@ -501,6 +561,141 @@ async def public_download(path: str):
         raise HTTPException(status_code=404, detail="File non trovato")
     data, content_type = get_object(path)
     return Response(content=data, media_type=record.get("content_type", content_type))
+
+
+class PremiumToggle(BaseModel):
+    enabled: bool
+
+
+@api_router.get("/admin/users")
+async def admin_list_users(admin: User = Depends(require_admin)):
+    docs = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(1000)
+    out = []
+    for d in docs:
+        d["is_premium"] = compute_premium(User(**d))
+        out.append(d)
+    return out
+
+
+@api_router.post("/admin/users/{uid}/premium")
+async def admin_set_premium(uid: str, body: PremiumToggle, admin: User = Depends(require_admin)):
+    res = await db.users.update_one({"user_id": uid}, {"$set": {"premium_manual": body.enabled}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    return {"ok": True}
+
+
+class CheckoutRequest(BaseModel):
+    lookup_key: str = PREMIUM_LOOKUP_KEY
+    origin_url: str
+
+
+async def _activate_from_session(session: dict):
+    meta = session.get("metadata") or {}
+    uid = meta.get("user_id")
+    if not uid:
+        return
+    sub_id = session.get("subscription")
+    customer_id = session.get("customer")
+    premium_until = None
+    if sub_id:
+        try:
+            sub = stripe.Subscription.retrieve(sub_id)
+            cpe = sub.get("current_period_end")
+            if cpe:
+                premium_until = datetime.fromtimestamp(cpe, tz=timezone.utc).isoformat()
+        except Exception:
+            pass
+    if not premium_until:
+        premium_until = (datetime.now(timezone.utc) + timedelta(days=31)).isoformat()
+    await db.users.update_one({"user_id": uid}, {"$set": {
+        "premium_until": premium_until, "stripe_subscription_id": sub_id, "stripe_customer_id": customer_id,
+    }})
+
+
+@api_router.post("/payments/checkout")
+async def create_checkout(req: CheckoutRequest, user: User = Depends(get_current_user)):
+    prices = stripe.Price.list(lookup_keys=[req.lookup_key], active=True, limit=1).data
+    if not prices:
+        raise HTTPException(status_code=500, detail="Piano non trovato")
+    price = prices[0]
+    kwargs = dict(
+        line_items=[{"price": price.id, "quantity": 1}],
+        mode="subscription",
+        success_url=f"{req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{req.origin_url}/payment/cancel",
+        metadata={"user_id": user.user_id, "lookup_key": req.lookup_key},
+        subscription_data={"metadata": {"user_id": user.user_id}},
+    )
+    try:
+        session = stripe.checkout.Session.create(**kwargs, managed_payments={"enabled": True})
+    except stripe.error.InvalidRequestError as e:
+        msg = (getattr(e, "user_message", "") or "").lower()
+        if "managed payments" in msg or "ineligible" in msg:
+            session = stripe.checkout.Session.create(**kwargs, automatic_tax={"enabled": True}, billing_address_collection="required")
+        else:
+            raise
+    now = datetime.now(timezone.utc).isoformat()
+    await db.payment_transactions.insert_one({
+        "session_id": session.id, "user_id": user.user_id, "lookup_key": req.lookup_key,
+        "amount": price.unit_amount or 0, "currency": price.currency,
+        "status": "initiated", "payment_status": "pending", "created_at": now, "updated_at": now,
+    })
+    return {"checkout_url": session.url, "session_id": session.id}
+
+
+@api_router.get("/payments/status/{session_id}")
+async def payment_status(session_id: str):
+    record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Transazione non trovata")
+    if record.get("payment_status") != "paid":
+        try:
+            s = stripe.checkout.Session.retrieve(session_id)
+            if s.payment_status == "paid" or s.status == "complete":
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id, "payment_status": {"$ne": "paid"}},
+                    {"$set": {"status": "completed", "payment_status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}},
+                )
+                await _activate_from_session(s)
+                record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+        except stripe.error.StripeError:
+            pass
+    return {"session_id": record["session_id"], "status": record["status"], "payment_status": record["payment_status"]}
+
+
+@api_router.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    obj, t = event["data"]["object"], event["type"]
+    now = datetime.now(timezone.utc).isoformat()
+    if t == "checkout.session.completed":
+        await db.payment_transactions.update_one(
+            {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
+            {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "updated_at": now}},
+        )
+        await _activate_from_session(obj)
+    elif t in ("invoice.paid", "invoice.payment_succeeded"):
+        sub_id = obj.get("subscription")
+        if sub_id:
+            try:
+                sub = stripe.Subscription.retrieve(sub_id)
+                uid = (sub.get("metadata") or {}).get("user_id")
+                cpe = sub.get("current_period_end")
+                if uid and cpe:
+                    await db.users.update_one({"user_id": uid}, {"$set": {"premium_until": datetime.fromtimestamp(cpe, tz=timezone.utc).isoformat()}})
+            except Exception:
+                pass
+    elif t == "customer.subscription.deleted":
+        uid = (obj.get("metadata") or {}).get("user_id")
+        if uid:
+            await db.users.update_one({"user_id": uid}, {"$set": {"premium_until": now}})
+    return {"status": "ok"}
 
 
 @api_router.get("/")

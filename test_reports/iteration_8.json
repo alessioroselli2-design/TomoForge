@@ -1,0 +1,55 @@
+{
+  "summary": "Premium/Admin flow end-to-end (backend + frontend). Backend 14/14 pass (test_premium_admin.py): non-premium AI gated by 402, admin listing + toggle, non-admin gets 403, real Stripe checkout URL, pending payment_status, cleanup. Frontend flows PASS: gen-text-btn/gen-image-btn open premium-dialog with ZERO /api/ai calls, compose-free-btn still works for non-premium, nav-upgrade opens dialog, premium-upgrade-btn calls /api/payments/checkout (200), and — most importantly — admin can grant premium and the newly-premium mago successfully generates real content via /api/ai/generate-content (name='Dardo di Scintille', 212-char on-topic description matching prompt 'danni da fuoco', full spell attributes). Final state left CLEAN: mago non-premium, is_premium=false, premium_manual=false. FOUND 1 REAL BUG: /api/auth/login response is missing is_admin/is_premium flags, so RIGHT AFTER LOGIN the frontend user context lacks these — admin sees nav-upgrade instead of nav-premium-badge and does NOT see nav-admin (PANNELLO ADMIN) in the user dropdown. A page reload fixes it (because checkAuth() then calls /api/auth/me which returns the flags). Reproduced twice.",
+  "ai_feature_verdicts": [
+    {
+      "capability": "Gemini text generation (/api/ai/generate-content) - premium-gated",
+      "verdict": "pass",
+      "evidence": "HTTP 200 for premium mago; response: name='Dardo di Scintille', description (212 chars) mentions fiamma/scintille/calore matching prompt 'danni da fuoco', story populated (330 chars), attributes keys=['livello','scuola','azione','tempo_lancio','gittata','area','componenti','durata','concentrazione','danno','effetto']. UI name-field + desc-field auto-populated in editor. HTTP 402 correctly returned for non-premium (backend test + frontend test both confirm ZERO /api/ai calls on click when non-premium).",
+      "skill": "ai-testing-llm"
+    },
+    {
+      "capability": "Gemini image generation (/api/ai/generate-image) - premium-gated",
+      "verdict": "not-in-scope-this-iteration",
+      "evidence": "Reviewed brief says NOT to spend image credits. Only 402 gate verified end-to-end (backend + frontend both confirm 402 for non-premium AND that clicking gen-image-btn does NOT fire /api/ai/*). Endpoint auth/premium wiring is identical to generate-content, which was verified real."
+    },
+    {
+      "capability": "Stripe subscription checkout (/api/payments/checkout)",
+      "verdict": "pass",
+      "evidence": "HTTP 200; checkout_url starts with 'https://checkout.stripe.com/'; session_id starts with 'cs_'. GET /api/payments/status/{sid} returns payment_status='unpaid' as expected pre-payment. Hosted-checkout page not driven (external domain; sandbox key)."
+    }
+  ],
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/login", "issue": "Response user object does NOT include is_admin/is_premium/premium_manual/premium_until fields (returned only by /api/auth/me). Frontend Landing.jsx calls loginWithToken(res.data.token, res.data.user) storing this incomplete user; the Navbar hides nav-admin (PANNELLO ADMIN) and shows nav-upgrade (Premium button) even for admin users until the page is reloaded (which triggers checkAuth -> /api/auth/me). Reproduced twice.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Navbar (via AuthContext + Landing.jsx)", "issue": "After successful login, nav-admin dropdown item is missing for admin users, and nav-premium-badge does not appear for premium users, because the user object populated by loginWithToken(...) came from /api/auth/login which omits those flags. A full page reload works around it. Fix: either (a) call checkAuth() right after loginWithToken() so /api/auth/me refreshes flags, or (b) have /api/auth/login return the same shape as /api/auth/me (include is_admin, is_premium, premium_manual, premium_until).", "selector": "[data-testid=\"nav-admin\"], [data-testid=\"nav-premium-badge\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_premium_admin.py", "/app/test_reports/pytest/premium_admin.xml", "/app/test_reports/pytest/all_iter8.xml"],
+  "action_items": [
+    "FIX auth-login shape mismatch: update /api/auth/login (and /api/auth/register) to include is_admin, is_premium, premium_manual, premium_until in the user payload (mirroring /api/auth/me), OR update Landing.jsx to call checkAuth() after loginWithToken() so the missing flags are pulled in immediately. This is the only blocker preventing an admin from seeing PANNELLO ADMIN without a manual page refresh.",
+    "OPTIONAL: update /app/backend/tests/backend_test.py::TestAIText and ::TestAIImage — they still assume mago has AI access and now fail 402 (which is the NEW correct behavior). Those 3 stale tests should be moved to a premium-user fixture or removed (test_premium_admin.py already covers the current behavior).",
+    "OPTIONAL: PREMIUM crown badge on AI panel of /crea for non-premium users was not visually detected via simple text scan in my playwright (the span has a Crown svg child that broke my query). Not a bug — inspected code and the JSX conditionally renders the badge when !user.is_premium. Confirmed visually via the two 'gen-*' click flows both triggering the dialog."
+  ],
+  "critical_code_review_comments": [
+    "server.py /api/auth/login and /api/auth/register responses use a hand-crafted user dict that OMITS is_admin/is_premium/premium_manual. Prefer returning the same shape as /api/auth/me via a shared serializer to prevent drift like the bug found above.",
+    "CardEditor.jsx generateText/generateImage correctly early-return setPremiumOpen(true) when !user.is_premium — no /api/ai call fired. Verified with network traffic capture (0 calls).",
+    "PremiumDialog.jsx does window.location.href = res.data.checkout_url which is fine but any error after redirect is lost. Consider a small try/catch on the checkout_url validation before redirecting.",
+    "Admin.jsx toggle() optimistically updates local state — good UX; also calls load() after — good consistency. The disabled={u.is_admin} on the Switch correctly prevents admins from de-privileging themselves (confirmed).",
+    "server.py stripe.error.InvalidRequestError catch for managed_payments fallback is nicely defensive; verified checkout works with sandbox key end-to-end."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "14/14 (100%) on new test_premium_admin.py; 3 stale tests in backend_test.py::TestAIText/TestAIImage now fail 402 because mago is intentionally non-premium (documented, not a regression).", "frontend": "6/6 flows pass (100%) — nav-upgrade opens dialog, gen-text/gen-image non-premium open dialog with 0 /api/ai calls, compose-free works client-side (0 /api/ai calls), premium-upgrade-btn -> /api/payments/checkout 200, admin toggle mago premium ON/OFF end-to-end, real AI text generation for premium mago. 1 HIGH bug found (login flags missing)."},
+  "test_credentials": "Admin: admin@tomeforge.it / TomeAdmin2026! ; Normal: mago@grimorio.it / arcano123.",
+  "seed_data_creation": "None. Toggled mago premium_manual=true then back to false. Generated ONE real Gemini text (one-time AI credit spend as required by the review request).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "1) mago is currently NON-premium (premium_manual=false, premium_until=null) — verified by /api/auth/me AND /api/ai/generate-content returning 402. 2) Backend test_premium_admin.py is the source of truth for the new premium/admin flow. 3) Login-shape bug: /api/auth/login is missing is_admin/is_premium; a page reload workaround is needed after login until the fix. 4) When re-testing, use RELOAD-after-login for admin nav-admin visibility if the fix hasn't landed. 5) Old tests in backend_test.py::TestAIText/TestAIImage need updating (grant premium before calling AI).",
+  "rca of the issue": "AuthContext.loginWithToken(token, userData) stores whatever the caller passed. Landing.jsx passes res.data.user from POST /api/auth/login. That endpoint (server.py L303-311) builds a hand-crafted dict of {user_id,email,name,picture,auth_provider} — it does NOT include is_admin, is_premium, premium_manual, premium_until. So immediately after login the React user context has undefined for those flags -> Navbar hides nav-admin, hides nav-premium-badge, shows nav-upgrade. A page reload runs the AuthProvider useEffect -> checkAuth() -> GET /api/auth/me which DOES include is_premium+is_admin via compute_premium(user), and the UI corrects itself. Fix: mirror the /api/auth/me shape in login/register responses (preferred) OR call checkAuth() inside loginWithToken()."
+}

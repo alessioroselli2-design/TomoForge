@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { BookOpen, LogOut, Plus } from "lucide-react";
+import { BookOpen, LogOut, Plus, Crown, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { PremiumDialog } from "@/components/PremiumDialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -10,6 +11,7 @@ import {
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [premiumOpen, setPremiumOpen] = useState(false);
 
   const doLogout = async () => {
     await logout();
@@ -20,6 +22,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-gold-deep/30 bg-obsidian/90 backdrop-blur-sm">
+      <PremiumDialog open={premiumOpen} onOpenChange={setPremiumOpen} />
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
         <Link to="/collezione" data-testid="nav-logo" className="flex items-center gap-3 group">
           <BookOpen className="w-6 h-6 text-gold transition-transform group-hover:-translate-y-0.5" strokeWidth={1.5} />
@@ -27,6 +30,17 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          {user && !user.is_premium && (
+            <Button data-testid="nav-upgrade" onClick={() => setPremiumOpen(true)} variant="outline"
+              className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label tracking-wide text-xs h-9 px-3 transition-colors">
+              <Crown className="w-4 h-4 mr-1.5" /> PREMIUM
+            </Button>
+          )}
+          {user?.is_premium && (
+            <span data-testid="nav-premium-badge" className="hidden sm:flex items-center gap-1.5 border border-gold/60 px-2.5 h-9 font-label text-[10px] tracking-widest text-gold">
+              <Crown className="w-3.5 h-3.5" /> PREMIUM
+            </span>
+          )}
           <Button data-testid="nav-create" onClick={() => navigate("/crea")}
             className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label tracking-wide text-xs h-9 px-4 transition-colors">
             <Plus className="w-4 h-4 mr-1.5" /> NUOVA CARTA
@@ -47,6 +61,12 @@ export default function Navbar() {
                 <p className="font-body text-sm text-foreground truncate">{user?.name}</p>
                 <p className="font-body text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
+              {user?.is_admin && (
+                <DropdownMenuItem data-testid="nav-admin" onClick={() => navigate("/admin")}
+                  className="font-label text-xs tracking-wide cursor-pointer focus:bg-secondary focus:text-gold">
+                  <ShieldCheck className="w-4 h-4 mr-2" /> PANNELLO ADMIN
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem data-testid="nav-logout" onClick={doLogout}
                 className="font-label text-xs tracking-wide cursor-pointer focus:bg-secondary focus:text-crimson">
                 <LogOut className="w-4 h-4 mr-2" /> ESCI DAL TOMO
