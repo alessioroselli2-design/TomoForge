@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Plus, Sparkles } from "lucide-react";
+import { Search, Plus, Printer, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { api } from "@/lib/api";
-import { CARD_TYPES, typeLabel, typeIcon } from "@/lib/cardTypes";
+import { CARD_TYPES } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
