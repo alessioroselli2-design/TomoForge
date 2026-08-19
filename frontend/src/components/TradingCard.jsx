@@ -100,25 +100,49 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
   const back = card.back || {};
   const Emblem = EMBLEM_ICONS[back.emblem] || Flame;
   const color = back.color || "#7f1d1d";
+  const style = back.style || "classic";
   return (
     <div ref={ref} data-testid="card-back"
-      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${card.frame || "gold"} flex flex-col items-center justify-center overflow-hidden p-6`}>
-      <div className="absolute inset-3 border border-gold-deep/50" aria-hidden="true" />
-      <div className="absolute inset-5 border border-gold-deep/25" aria-hidden="true" />
-      {back.style === "runic" && (
-        <div className="absolute inset-0 opacity-[0.06] flex items-center justify-center font-display text-[10rem] text-gold pointer-events-none">ᛟ</div>
+      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${card.frame || "gold"} tf-back-card tf-back-${style} flex flex-col items-center justify-center overflow-hidden p-6`}
+      style={{
+        "--tf-back-accent": color,
+        "--tf-back-accent-soft": `${color}38`,
+        "--tf-back-accent-glow": `${color}66`,
+      }}>
+      <div className="tf-back-vignette" aria-hidden="true" />
+      <div className="tf-back-pattern" aria-hidden="true" />
+      <div className="tf-back-inner-border" aria-hidden="true" />
+      <div className="tf-back-inner-border tf-back-inner-border-soft" aria-hidden="true" />
+      <div className="tf-back-corner tf-back-corner-tl" aria-hidden="true">✦</div>
+      <div className="tf-back-corner tf-back-corner-tr" aria-hidden="true">✦</div>
+      <div className="tf-back-corner tf-back-corner-bl" aria-hidden="true">✦</div>
+      <div className="tf-back-corner tf-back-corner-br" aria-hidden="true">✦</div>
+      {style === "runic" && (
+        <div className="tf-back-rune" aria-hidden="true">ᛟ</div>
       )}
-      <div className="relative z-10 flex flex-col items-center text-center gap-5">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center border-2"
-          style={{ borderColor: color, boxShadow: `0 0 30px ${color}55` }}>
-          <Emblem className="w-11 h-11" style={{ color }} />
+      <div className="relative z-10 flex min-h-full w-full flex-col items-center justify-center text-center">
+        <div className="tf-back-kicker">SIGILLUM · TOMEFORGE</div>
+        <div className="tf-back-crest" style={{ borderColor: color, boxShadow: `0 0 0 5px ${color}16, 0 0 34px ${color}55` }}>
+          <div className="tf-back-crest-ring" aria-hidden="true" />
+          <div className="tf-back-crest-core">
+            <Emblem className="w-10 h-10" strokeWidth={1.5} style={{ color }} />
+          </div>
+          <span className="tf-back-crest-mark tf-back-crest-mark-top" aria-hidden="true">✦</span>
+          <span className="tf-back-crest-mark tf-back-crest-mark-bottom" aria-hidden="true">✦</span>
         </div>
-        <div className={`font-display text-2xl tracking-wide tf-title-3d ${exportMode ? "text-gold" : "tf-gold-text"}`}>TOMEFORGE</div>
+        <div className={`tf-back-wordmark ${exportMode ? "tf-back-wordmark-export" : ""}`}>
+          <span>TOME</span><i aria-hidden="true">·</i><span>FORGE</span>
+          <small>GRIMORIO ARCANO</small>
+        </div>
         {back.motto && (
-          <p className="font-heading italic text-lg text-foreground/80 max-w-[80%]">“{back.motto}”</p>
+          <div className="tf-back-motto">
+            <span aria-hidden="true">“</span>
+            <p>{back.motto}</p>
+            <span aria-hidden="true">”</span>
+          </div>
         )}
-        <hr className="tf-divider w-32" aria-hidden="true" />
-        <span className="font-label text-[9px] tracking-[0.3em] text-gold/60 uppercase">{typeLabel(card.type, card.custom_type)}</span>
+        <div className="tf-back-rule" aria-hidden="true"><span>◆</span><i /><span>◆</span></div>
+        <span className="tf-back-type">{typeLabel(card.type, card.custom_type)}</span>
       </div>
     </div>
   );
