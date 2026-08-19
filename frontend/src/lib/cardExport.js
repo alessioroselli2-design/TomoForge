@@ -477,12 +477,6 @@ export async function renderCardBackCanvas(card) {
     ctx.restore();
   });
 
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#d8ba61";
-  ctx.font = "600 9px 'Cinzel', Georgia, serif";
-  ctx.fillText("SIGILLUM · TOMEFORGE", width / 2, 74);
-
   ctx.strokeStyle = accent;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -511,10 +505,9 @@ export async function renderCardBackCanvas(card) {
   wordmark.addColorStop(1, "#9a6c19");
   ctx.fillStyle = wordmark;
   ctx.font = "700 30px 'Cinzel Decorative', Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
   ctx.fillText("TOME · FORGE", width / 2, 315);
-  ctx.fillStyle = "#d8ba61";
-  ctx.font = "600 9px 'Cinzel', Georgia, serif";
-  ctx.fillText("GRIMORIO ARCANO", width / 2, 336);
 
   if (String(back.motto || "").trim()) {
     ctx.strokeStyle = "rgba(216, 186, 97, 0.42)";
@@ -530,11 +523,6 @@ export async function renderCardBackCanvas(card) {
   ctx.fillStyle = "rgba(216, 186, 97, 0.7)";
   ctx.font = "400 9px Georgia, serif";
   ctx.fillText("✦", width / 2, 425);
-  ctx.fillStyle = "#d8ba61";
-  drawFittedText(ctx, typeLabel(card.type, card.custom_type).toUpperCase(), width / 2, 447, 220, 8, "'Cinzel', Georgia, serif", "600");
-  ctx.fillStyle = "rgba(216, 186, 97, 0.42)";
-  ctx.font = "600 6px 'Cinzel', Georgia, serif";
-  ctx.fillText("ᛟ · ᚱ · ᛟ · ᚱ · ᛟ", width / 2, 463);
   return canvas;
 }
 

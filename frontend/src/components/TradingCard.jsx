@@ -148,9 +148,7 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
       {style === "runic" && (
         <div className="tf-back-rune" aria-hidden="true">ᛟ</div>
       )}
-      <div className="tf-back-rune-rail" aria-hidden="true">ᛟ · ᚱ · ᛟ · ᚱ · ᛟ</div>
       <div className="relative z-10 flex min-h-full w-full flex-col items-center justify-center text-center">
-        <div className="tf-back-kicker">SIGILLUM · TOMEFORGE</div>
         <div className="tf-back-crest" style={{ borderColor: color, boxShadow: `0 0 0 5px ${color}16, 0 0 34px ${color}55` }}>
           <div className="tf-back-crest-ring" aria-hidden="true" />
           <div className="tf-back-crest-orbit" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span><span>✦</span></div>
@@ -162,7 +160,6 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
         </div>
         <div className={`tf-back-wordmark ${exportMode ? "tf-back-wordmark-export" : ""}`}>
           <span>TOME</span><i aria-hidden="true">·</i><span>FORGE</span>
-          <small>GRIMORIO ARCANO</small>
         </div>
         {back.motto && (
           <div className="tf-back-motto">
@@ -172,7 +169,6 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
           </div>
         )}
         <div className="tf-back-rule" aria-hidden="true"><span>◆</span><i /><span>◆</span></div>
-        <span className="tf-back-type">{typeLabel(card.type, card.custom_type)}</span>
       </div>
     </div>
   );

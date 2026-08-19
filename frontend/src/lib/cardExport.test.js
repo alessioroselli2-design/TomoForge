@@ -187,7 +187,7 @@ describe("card export renderers", () => {
       expect(frontText).toContain("Difende il sigillo antico");
       expect(backText).toContain("TOME · FORGE");
       expect(backText).toContain("Dove il fuoco incontra");
-      expect(backText).toContain(type === "monster" ? "MOSTRO" : "PERSONAGGIO");
+      expect(backText).not.toContain(type === "monster" ? "MOSTRO" : "PERSONAGGIO");
       expect(backText).toContain("ᚱ");
       expect(backText).toContain("♜");
       expect(back.operations.some((entry) => entry.name === "stroke" && entry.strokeStyle === configuredBack.color)).toBe(true);
@@ -270,6 +270,7 @@ describe("card export renderers", () => {
     expect(png.operations.some((entry) => entry.name === "strokeRect" && entry.x === 1.5)).toBe(true);
     expect(singleCard.front.operations.some((entry) => entry.name === "fillText" && entry.text === "PERSONAGGIO")).toBe(true);
     expect(singleCard.back.operations.some((entry) => entry.name === "fillText" && entry.text === "♜")).toBe(true);
+    expect(singleCard.back.operations.some((entry) => entry.name === "fillText" && entry.text === "GRIMORIO ARCANO")).toBe(false);
     expect(sheetFront.operations.some((entry) => entry.name === "fillText" && entry.text === "FOR")).toBe(true);
     expect(sheetBack.operations.some((entry) => entry.name === "stroke" && entry.strokeStyle === configuredBack.color)).toBe(true);
     expect(pdf.addPage).toHaveBeenCalledWith([63.5, 88.9], "portrait");

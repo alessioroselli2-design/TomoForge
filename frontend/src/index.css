@@ -362,15 +362,6 @@ body {
     font: 10rem/1 'Cinzel Decorative', serif;
     pointer-events: none;
 }
-.tf-back-rune-rail {
-    position: absolute;
-    bottom: 27px;
-    z-index: 2;
-    color: rgba(240,216,132,.24);
-    font: 600 6px/1 'Cinzel', serif;
-    letter-spacing: .32em;
-    pointer-events: none;
-}
 .tf-back-filigree {
     position: absolute;
     top: 50%;
@@ -382,13 +373,6 @@ body {
 }
 .tf-back-filigree-left { left: 22px; transform: translateY(-50%) rotate(-20deg); }
 .tf-back-filigree-right { right: 22px; transform: translateY(-50%) scaleX(-1) rotate(-20deg); }
-.tf-back-kicker {
-    margin-bottom: 12px;
-    color: rgba(240,216,132,.72);
-    font: 600 7px/1.2 'Cinzel', serif;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-}
 .tf-back-crest {
     position: relative;
     display: grid;
@@ -463,13 +447,6 @@ body {
     font: normal 16px/1 'Cinzel', serif;
     text-shadow: 0 0 10px var(--tf-back-accent);
 }
-.tf-back-wordmark small {
-    position: absolute;
-    transform: translateY(22px);
-    color: rgba(240,216,132,.62);
-    font: 600 6px/1 'Cinzel', serif;
-    letter-spacing: .34em;
-}
 .tf-back-motto {
     display: flex;
     align-items: center;
@@ -503,14 +480,6 @@ body {
     height: 1px;
     background: linear-gradient(90deg, transparent, #d4af37, transparent);
 }
-.tf-back-type {
-    margin-top: 10px;
-    color: rgba(240,216,132,.63);
-    font: 600 7px/1.2 'Cinzel', serif;
-    letter-spacing: .32em;
-    text-transform: uppercase;
-}
-
 .tf-gold-border {
     border-image: linear-gradient(180deg, #d4af37, #9a7d2e, #d4af37) 1;
 }
