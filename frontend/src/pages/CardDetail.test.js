@@ -1,16 +1,12 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { api } from "@/lib/api";
 import { addSingleCardA4PdfPages } from "@/lib/cardExport";
 import CardDetail from "./CardDetail";
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
-
-jest.mock("react-router-dom", () => ({
-  useNavigate: () => jest.fn(),
-  useParams: () => ({ id: "card-123" }),
-}), { virtual: true });
 
 jest.mock("@/lib/api", () => ({
   api: {
@@ -123,7 +119,13 @@ describe("CardDetail A4 export action", () => {
 
   it("routes the loaded card's A4 action through the shared two-page export adapter", async () => {
     await act(async () => {
-      root.render(<CardDetail />);
+      root.render(
+        <MemoryRouter initialEntries={["/carta/card-123"]}>
+          <Routes>
+            <Route path="/carta/:id" element={<CardDetail />} />
+          </Routes>
+        </MemoryRouter>,
+      );
       await Promise.resolve();
     });
 

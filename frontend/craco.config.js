@@ -74,6 +74,11 @@ let webpackConfig = {
     configure: {
       moduleNameMapper: {
         "^@/(.*)$": "<rootDir>/src/$1",
+        // React Router v7 uses conditional package exports that CRA's Jest
+        // resolver does not consistently select. Point tests at its CJS builds.
+        "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
+        "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js",
+        "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
       },
     },
   },
