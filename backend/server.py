@@ -500,6 +500,10 @@ def compute_premium(user: User) -> bool:
         return False
 
 
+def is_configured_admin_email(email: str) -> bool:
+    return bool(ADMIN_EMAIL and email.lower() == ADMIN_EMAIL.lower())
+
+
 async def require_premium(user: User = Depends(get_current_user)) -> User:
     if not compute_premium(user):
         raise HTTPException(status_code=402, detail="Funzione Premium: attiva l'abbonamento per usare la generazione AI.")
@@ -524,7 +528,7 @@ async def register(body: RegisterInput):
     if existing:
         raise HTTPException(status_code=400, detail="Email già registrata")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
-    is_configured_admin = bool(ADMIN_EMAIL and body.email.lower() == ADMIN_EMAIL.lower())
+    is_configured_admin = is_configured_admin_email(body.email)
     document = {
         "user_id": user_id, "email": body.email.lower(), "name": body.name,
         "picture": None, "auth_provider": "email", "password_hash": hash_password(body.password),
@@ -585,6 +589,7 @@ async def supabase_session(body: SupabaseSessionInput):
         raise HTTPException(status_code=401, detail="L'account Google non contiene un'email verificata")
     email = external_user.email.lower()
     metadata = external_user.user_metadata or {}
+    is_configured_admin = is_configured_admin_email(email)
     existing = await db.users.find_one({"email": email})
     if existing:
         user_id = existing["user_id"]
@@ -593,16 +598,21 @@ async def supabase_session(body: SupabaseSessionInput):
             "picture": metadata.get("avatar_url") or existing.get("picture"),
             "auth_provider": "google",
             "supabase_auth_id": external_user.id,
+            **({"is_admin": True, "premium_manual": True} if is_configured_admin else {}),
         }})
-        existing.update({"supabase_auth_id": external_user.id, "auth_provider": "google"})
+        existing.update({
+            "supabase_auth_id": external_user.id,
+            "auth_provider": "google",
+            **({"is_admin": True, "premium_manual": True} if is_configured_admin else {}),
+        })
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         existing = {
             "user_id": user_id, "email": email,
             "name": metadata.get("full_name") or metadata.get("name") or email,
             "picture": metadata.get("avatar_url"), "auth_provider": "google",
-            "supabase_auth_id": external_user.id, "is_admin": False,
-            "premium_manual": False, "created_at": utc_now(),
+            "supabase_auth_id": external_user.id, "is_admin": is_configured_admin,
+            "premium_manual": is_configured_admin, "created_at": utc_now(),
         }
         await db.users.insert_one(existing)
     user = User(**existing)

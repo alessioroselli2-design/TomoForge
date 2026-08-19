@@ -173,3 +173,35 @@ def test_configured_admin_email_registers_as_admin_and_premium(monkeypatch):
     assert result["user"]["is_premium"] is True
     assert fake_db.users.documents[0]["is_admin"] is True
     assert fake_db.users.documents[0]["premium_manual"] is True
+
+
+def test_configured_admin_email_is_promoted_after_google_login(monkeypatch):
+    class FakeUsers:
+        def __init__(self):
+            self.documents = []
+
+        async def find_one(self, query):
+            return next((row for row in self.documents if row["email"] == query["email"]), None)
+
+        async def insert_one(self, document):
+            self.documents.append(document)
+
+    external_user = SimpleNamespace(
+        id="google-user-id",
+        email="admin@example.com",
+        user_metadata={"full_name": "Admin Google", "avatar_url": "https://example.com/avatar.png"},
+    )
+    fake_auth_client = SimpleNamespace(auth=SimpleNamespace(
+        get_user=lambda access_token: SimpleNamespace(user=external_user)
+    ))
+    fake_db = SimpleNamespace(users=FakeUsers())
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setattr(server, "create_jwt", lambda user_id: "test-token")
+    monkeypatch.setattr(server, "supabase_auth_client", lambda: fake_auth_client)
+
+    result = asyncio.run(server.supabase_session(server.SupabaseSessionInput(access_token="google-token")))
+
+    assert result["user"]["is_admin"] is True
+    assert result["user"]["is_premium"] is True
+    assert fake_db.users.documents[0]["auth_provider"] == "google"
