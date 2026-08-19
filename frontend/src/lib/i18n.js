@@ -40,16 +40,20 @@ const dictionaries = {
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [locale, setLocale] = useState(() => localStorage.getItem("tf_locale") || "it");
-  useEffect(() => { localStorage.setItem("tf_locale", locale); document.documentElement.lang = locale; }, [locale]);
+  // Temporarily keep the interface Italian-only until all screens are fully
+  // translated. The dictionaries remain available for the next language pass.
+  const locale = "it";
+  const setLocale = () => {};
+  useEffect(() => {
+    localStorage.setItem("tf_locale", "it");
+    document.documentElement.lang = "it";
+  }, []);
   const value = useMemo(() => ({
     locale,
     setLocale,
-    languages: [
-      ["it", "Italiano"], ["en", "English"], ["es", "Español"], ["de", "Deutsch"],
-    ],
-    t: (key) => dictionaries[locale]?.[key] || dictionaries.it[key] || key,
-  }), [locale]);
+    languages: [["it", "Italiano"]],
+    t: (key) => dictionaries.it[key] || key,
+  }), []);
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
