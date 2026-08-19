@@ -36,13 +36,16 @@ export async function captureCard(element, backgroundColor = "#0c0a09") {
     if (document.fonts?.ready) await document.fonts.ready;
     await waitForImages(element);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const isAppleTouch = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     return await html2canvas(element, {
       useCORS: true,
       allowTaint: false,
       backgroundColor,
-      // Extra resolution keeps the small labels and QR code readable at
-      // standard physical card sizes after the PDF viewer scales the A4 page.
-      scale: Math.min(4, Math.max(3, window.devicePixelRatio || 3)),
+      // iOS Safari can clip web-font glyphs when html2canvas supersamples a
+      // card at 3x/4x. The PDF receives the same physical dimensions, so a
+      // 1x source is preferable to a high-resolution source with broken text.
+      scale: isAppleTouch ? 1 : Math.min(3, Math.max(2, window.devicePixelRatio || 2)),
       logging: false,
       scrollX: 0,
       scrollY: 0,
