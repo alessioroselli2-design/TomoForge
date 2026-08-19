@@ -3,7 +3,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { Flame, Skull, Sword, Moon, Eye, Shield, Star, Sparkles } from "lucide-react";
 import { artworkUrl } from "@/lib/api";
 import {
-  typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE, TITLE_EFFECTS,
+  typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE, FRAME_STYLES, TITLE_EFFECTS,
 } from "@/lib/cardTypes";
 import { useI18n } from "@/lib/i18n";
 
@@ -17,6 +17,21 @@ const PLACEHOLDER = "https://images.unsplash.com/photo-1769221909977-dafd61c79a3
 const isScalar = (v) => typeof v === "string" || typeof v === "number";
 
 const ABIL = ["for", "des", "cos", "int", "sag", "car"];
+
+const getFrameColors = (frame, appearance = {}) => {
+  if (appearance.frame_custom_color_enabled) {
+    return [appearance.frame_custom_color || "#d4af37", "#ffffff", appearance.frame_custom_color || "#d4af37"];
+  }
+  return FRAME_STYLES.find((style) => style.id === frame)?.colors || FRAME_STYLES[0].colors;
+};
+
+const foilFrameStyle = (frame, appearance) => {
+  const colors = getFrameColors(frame, appearance);
+  return {
+    borderImage: `linear-gradient(135deg, ${colors.join(", ")}) 1`,
+    boxShadow: `inset 0 0 0 2px rgba(255,255,255,.16), inset 0 0 35px rgba(0,0,0,.68), 0 0 14px ${colors[1]}55`,
+  };
+};
 
 // Compact gameplay quick-reference shown on the card FRONT.
 const QuickStats = ({ card, exportMode }) => {
@@ -65,10 +80,18 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
   const frame = card.frame || "gold";
   const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
   const titleEffect = TITLE_EFFECTS.find((effect) => effect.id === appearance.title_effect) || TITLE_EFFECTS[0];
+  const titleColors = appearance.title_custom_color_enabled
+    ? [appearance.title_custom_color, appearance.title_custom_color, appearance.title_custom_color]
+    : titleEffect.colors;
+  const frontBackground = appearance.front_background_gradient
+    ? `linear-gradient(145deg, ${appearance.front_background_start}, ${appearance.front_background_end})`
+    : appearance.front_background_start;
   return (
     <div ref={ref} data-testid="card-front"
-      className={`relative w-full h-full bg-card tf-card-front tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}
+      className={`relative w-full h-full tf-card-front tf-card-frame flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}
       style={{
+        ...foilFrameStyle(frame, appearance),
+        background: frontBackground,
         "--tf-description-opacity": appearance.description_opacity,
         "--tf-description-color": appearance.text_panel_color,
         "--tf-description-text": appearance.text_color,
@@ -82,7 +105,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       <div className="relative z-10 flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
         <h3
           className={`min-w-0 font-heading font-bold text-lg leading-tight pr-2 tf-title-metal ${appearance.title_shadow ? "tf-title-shadow" : "tf-title-flat"} ${exportMode ? "tf-export-title" : "truncate"}`}
-          style={{ backgroundImage: `linear-gradient(180deg, ${titleEffect.colors.join(", ")})` }}
+          style={{ backgroundImage: `linear-gradient(180deg, ${titleColors.join(", ")})` }}
         >
           {card.name || "Senza nome"}
         </h3>
@@ -126,10 +149,12 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
   const Emblem = EMBLEM_ICONS[back.emblem] || Flame;
   const color = back.color || "#7f1d1d";
   const style = back.style || "classic";
+  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
   return (
     <div ref={ref} data-testid="card-back"
-      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${card.frame || "gold"} tf-back-card tf-back-${style} flex flex-col items-center justify-center overflow-hidden p-6`}
+      className={`relative w-full h-full bg-card tf-card-frame tf-back-card tf-back-${style} flex flex-col items-center justify-center overflow-hidden p-6`}
       style={{
+        ...foilFrameStyle(card.frame || "gold", appearance),
         "--tf-back-accent": color,
         "--tf-back-accent-soft": `${color}38`,
         "--tf-back-accent-glow": `${color}66`,

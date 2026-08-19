@@ -1,4 +1,4 @@
-import { QUICK_FIELDS, attrLabel, typeLabel, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
+import { QUICK_FIELDS, attrLabel, typeLabel, DEFAULT_APPEARANCE, FRAME_STYLES } from "@/lib/cardTypes";
 
 const waitForImages = async (element) => {
   const images = Array.from(element?.querySelectorAll("img") || []);
@@ -12,6 +12,14 @@ const waitForImages = async (element) => {
 };
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
+
+const getExportFrameColors = (card, appearance = {}) => {
+  if (appearance.frame_custom_color_enabled) {
+    const color = appearance.frame_custom_color || "#d4af37";
+    return [color, "#ffffff", color];
+  }
+  return FRAME_STYLES.find((style) => style.id === card.frame)?.colors || FRAME_STYLES[0].colors;
+};
 
 // Keep these dimensions independent of CSS so PNG, the single-card PDF, and
 // every physical size on the A4 sheet all originate from the same safe area.
@@ -211,14 +219,18 @@ export async function renderCardCanvas(element, card) {
   canvas.height = height * scale;
   const ctx = canvas.getContext("2d");
   ctx.scale(scale, scale);
-  ctx.fillStyle = "#151311";
+  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
+  if (appearance.front_background_gradient) {
+    const frontBackground = ctx.createLinearGradient(0, 0, width, height);
+    frontBackground.addColorStop(0, appearance.front_background_start || "#151311");
+    frontBackground.addColorStop(1, appearance.front_background_end || "#151311");
+    ctx.fillStyle = frontBackground;
+  } else {
+    ctx.fillStyle = appearance.front_background_start || "#151311";
+  }
   ctx.fillRect(0, 0, width, height);
 
-  const frameColors = {
-    gold: ["#6b4612", "#fff3a4", "#b87c16"],
-    silver: ["#535c66", "#f7fbff", "#9ca9b8"],
-    rainbow: ["#ed4f6f", "#f7cc52", "#59b9ee"],
-  }[card.frame || "gold"] || ["#6b4612", "#fff3a4", "#b87c16"];
+  const frameColors = getExportFrameColors(card, appearance);
   const border = ctx.createLinearGradient(0, 0, width, height);
   frameColors.forEach((color, index) => border.addColorStop(index / (frameColors.length - 1), color));
   ctx.strokeStyle = border;
@@ -236,8 +248,9 @@ export async function renderCardCanvas(element, card) {
 
   const gold = "#f8d764";
   const light = "#f5f1df";
-  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
-  const titleColors = {
+  const titleColors = appearance.title_custom_color_enabled
+    ? [appearance.title_custom_color || gold, appearance.title_custom_color || gold, appearance.title_custom_color || gold]
+    : ({
     gold: ["#fffbd1", "#f8d764", "#c98b18"],
     silver: ["#ffffff", "#cbd5e1", "#64748b"],
     rainbow: ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"],
@@ -246,7 +259,12 @@ export async function renderCardCanvas(element, card) {
     violet: ["#f3e8ff", "#c084fc", "#581c87"],
     emerald: ["#d1fae5", "#34d399", "#064e3b"],
     copper: ["#ffedd5", "#fb923c", "#7c2d12"],
-  }[appearance.title_effect] || ["#fffbd1", "#f8d764", "#c98b18"];
+    rose: ["#fff1f2", "#fb7185", "#9f1239"],
+    arctic: ["#ecfeff", "#67e8f9", "#0e7490"],
+    onyx: ["#f8fafc", "#94a3b8", "#0f172a"],
+    amber: ["#fffbeb", "#fbbf24", "#92400e"],
+    ruby: ["#fee2e2", "#ef4444", "#7f1d1d"],
+  }[appearance.title_effect] || ["#fffbd1", "#f8d764", "#c98b18"]);
   const titleGradient = ctx.createLinearGradient(12, 12, 238, 36);
   titleColors.forEach((color, index) => titleGradient.addColorStop(index / (titleColors.length - 1), color));
   ctx.textBaseline = "alphabetic";
@@ -384,11 +402,8 @@ export async function renderCardBackCanvas(card) {
   const style = back.style || "classic";
   const accent = back.color || "#7f1d1d";
   const [r, g, b] = colorToRgb(accent);
-  const frameColors = {
-    gold: ["#6b4612", "#fff3a4", "#b87c16"],
-    silver: ["#535c66", "#f7fbff", "#9ca9b8"],
-    rainbow: ["#ed4f6f", "#f7cc52", "#5ddc8d", "#59b9ee", "#9870f0"],
-  }[card.frame || "gold"] || ["#6b4612", "#fff3a4", "#b87c16"];
+  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
+  const frameColors = getExportFrameColors(card, appearance);
 
   const background = ctx.createLinearGradient(0, 0, width, height);
   background.addColorStop(0, style === "arcane" ? "#10192a" : "#241a18");

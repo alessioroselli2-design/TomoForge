@@ -42,6 +42,13 @@ def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
                 description_opacity=0.8,
                 text_panel_color="#0b1d31",
                 text_color="#dbeafe",
+                front_background_start="#0b1d31",
+                front_background_end="#581c87",
+                front_background_gradient=True,
+                title_custom_color_enabled=True,
+                title_custom_color="#67e8f9",
+                frame_custom_color_enabled=True,
+                frame_custom_color="#f43f5e",
             ),
         ),
         user,
@@ -54,9 +61,14 @@ def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
     assert card.appearance.description_opacity == 0.8
     assert card.appearance.text_panel_color == "#0b1d31"
     assert card.appearance.text_color == "#dbeafe"
+    assert card.appearance.front_background_gradient is True
+    assert card.appearance.front_background_end == "#581c87"
+    assert card.appearance.title_custom_color == "#67e8f9"
+    assert card.appearance.frame_custom_color == "#f43f5e"
     assert fake_db.cards.documents[0]["name"] == "Lancia di luce"
     assert fake_db.cards.documents[0]["appearance"]["title_effect"] == "silver"
     assert fake_db.cards.documents[0]["appearance"]["text_color"] == "#dbeafe"
+    assert fake_db.cards.documents[0]["appearance"]["front_background_gradient"] is True
 
 
 def test_file_record_is_created_after_storage_upload(monkeypatch):

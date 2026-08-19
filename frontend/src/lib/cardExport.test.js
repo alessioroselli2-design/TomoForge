@@ -205,6 +205,11 @@ describe("card export renderers", () => {
     ["violet", ["#f3e8ff", "#c084fc", "#581c87"]],
     ["emerald", ["#d1fae5", "#34d399", "#064e3b"]],
     ["copper", ["#ffedd5", "#fb923c", "#7c2d12"]],
+    ["rose", ["#fff1f2", "#fb7185", "#9f1239"]],
+    ["arctic", ["#ecfeff", "#67e8f9", "#0e7490"]],
+    ["onyx", ["#f8fafc", "#94a3b8", "#0f172a"]],
+    ["amber", ["#fffbeb", "#fbbf24", "#92400e"]],
+    ["ruby", ["#fee2e2", "#ef4444", "#7f1d1d"]],
   ])("keeps the %s title effect in the fixed export renderer", async (titleEffect, expectedColors) => {
     await renderCardCanvas(makeExportElement(), {
       id: `title-${titleEffect}`,
@@ -217,6 +222,30 @@ describe("card export renderers", () => {
 
     const colors = canvases[0].gradients.flatMap((gradient) => gradient.stops.map((stop) => stop.color));
     expect(colors).toEqual(expect.arrayContaining(expectedColors));
+  });
+
+  it("keeps custom front gradients, title color, and frame color in fixed exports", async () => {
+    const card = {
+      id: "custom-front-treatment",
+      type: "spell",
+      name: "Raggio d'Aurora",
+      frame: "gold",
+      appearance: {
+        front_background_start: "#0b1d31",
+        front_background_end: "#581c87",
+        front_background_gradient: true,
+        title_custom_color_enabled: true,
+        title_custom_color: "#67e8f9",
+        frame_custom_color_enabled: true,
+        frame_custom_color: "#f43f5e",
+      },
+      attributes: { livello: "4" },
+    };
+
+    const canvas = await renderCardCanvas(makeExportElement(), card);
+    const colors = canvas.gradients.flatMap((gradient) => gradient.stops.map((stop) => stop.color));
+
+    expect(colors).toEqual(expect.arrayContaining(["#0b1d31", "#581c87", "#67e8f9", "#f43f5e", "#ffffff"]));
   });
 
   it("keeps custom text-panel and text colors in the fixed export renderer", async () => {

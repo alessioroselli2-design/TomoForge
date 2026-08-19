@@ -290,12 +290,20 @@ class CardBack(BaseModel):
 class CardAppearance(BaseModel):
     title_effect: Literal[
         "gold", "silver", "rainbow", "crimson", "azure",
-        "violet", "emerald", "copper",
+        "violet", "emerald", "copper", "rose", "arctic",
+        "onyx", "amber", "ruby",
     ] = "gold"
     title_shadow: bool = True
     description_opacity: float = Field(default=0.64, ge=0.3, le=0.9)
     text_panel_color: str = "#05080a"
     text_color: str = "#f5f1df"
+    front_background_start: str = "#151311"
+    front_background_end: str = "#151311"
+    front_background_gradient: bool = False
+    title_custom_color_enabled: bool = False
+    title_custom_color: str = "#f8d764"
+    frame_custom_color_enabled: bool = False
+    frame_custom_color: str = "#d4af37"
 
 
 class Card(BaseModel):

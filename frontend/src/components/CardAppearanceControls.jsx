@@ -5,6 +5,7 @@ import { Switch } from './ui/switch';
 import {
   DEFAULT_APPEARANCE,
   FRAME_STYLES,
+  FRONT_BACKGROUND_COLORS,
   TEXT_COLORS,
   TEXT_PANEL_COLORS,
   TITLE_EFFECTS,
@@ -102,34 +103,87 @@ export function CardAppearanceControls({
         <div>
           <h2 className="font-display text-lg font-semibold text-white">Aspetto del fronte</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Personalizza cornice, titolo, pannello testi e leggibilità di descrizione e storia.
+            Personalizza sfondo, cornice, titolo, pannello testi e leggibilità di descrizione e storia.
           </p>
         </div>
       </div>
 
       <div className="space-y-5">
+        <ColorPalette
+          id="front-background-start"
+          label="Sfondo del fronte"
+          hint="Scegli il colore base della carta: puoi usare un colore pieno oppure una sfumatura."
+          options={FRONT_BACKGROUND_COLORS}
+          value={normalizedAppearance.front_background_start}
+          onChange={(front_background_start) => setAppearance({ front_background_start })}
+          icon={Palette}
+        />
+
+        <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-950/40 p-3">
+          <div>
+            <Label htmlFor="front-background-gradient" className="text-slate-200">Sfondo sfumato</Label>
+            <p className="mt-1 text-xs text-slate-500">Unisce il colore base con un secondo colore sul fronte.</p>
+          </div>
+          <Switch
+            id="front-background-gradient"
+            checked={normalizedAppearance.front_background_gradient === true}
+            onCheckedChange={(front_background_gradient) => setAppearance({ front_background_gradient })}
+          />
+        </div>
+
+        {normalizedAppearance.front_background_gradient && (
+          <ColorPalette
+            id="front-background-end"
+            label="Secondo colore della sfumatura"
+            hint="Completa la sfumatura diagonale del fronte."
+            options={FRONT_BACKGROUND_COLORS}
+            value={normalizedAppearance.front_background_end}
+            onChange={(front_background_end) => setAppearance({ front_background_end })}
+            icon={Palette}
+          />
+        )}
+
         <div>
           <Label className="mb-2 flex items-center gap-2 text-slate-300">
             <BoxSelect className="h-4 w-4" />
             Cornice foil
           </Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {FRAME_STYLES.map((option) => (
               <ChoiceButton
                 key={option.id}
-                active={frame === option.id}
+                active={frame === option.id && !normalizedAppearance.frame_custom_color_enabled}
                 label={option.label}
-                colors={
-                  option.id === 'gold'
-                    ? ['#fff3a3', '#d97706', '#78350f']
-                    : option.id === 'silver'
-                      ? ['#ffffff', '#94a3b8', '#334155']
-                      : ['#fb7185', '#facc15', '#34d399', '#60a5fa', '#c084fc']
-                }
-                onClick={() => onFrameChange(option.id)}
+                colors={option.colors}
+                onClick={() => {
+                  onFrameChange(option.id);
+                  setAppearance({ frame_custom_color_enabled: false });
+                }}
               />
             ))}
           </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-700 bg-slate-950/40 p-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="frame-custom-color" className="text-slate-200">Cornice con colore personalizzato</Label>
+              <p className="mt-1 text-xs text-slate-500">Crea una finitura foil usando qualunque colore.</p>
+            </div>
+            <Switch
+              id="frame-custom-color"
+              checked={normalizedAppearance.frame_custom_color_enabled === true}
+              onCheckedChange={(frame_custom_color_enabled) => setAppearance({ frame_custom_color_enabled })}
+            />
+          </div>
+          {normalizedAppearance.frame_custom_color_enabled && (
+            <div className="mt-3 flex items-center gap-2 border-t border-slate-800 pt-3">
+              <input type="color" value={normalizedAppearance.frame_custom_color}
+                onChange={(event) => setAppearance({ frame_custom_color: event.target.value })}
+                className="h-9 w-11 cursor-pointer border border-slate-600 bg-slate-900 p-1" />
+              <span className="font-mono text-xs text-slate-300">{normalizedAppearance.frame_custom_color.toUpperCase()}</span>
+            </div>
+          )}
         </div>
 
         <div>
@@ -160,6 +214,28 @@ export function CardAppearanceControls({
             checked={normalizedAppearance.title_shadow !== false}
             onCheckedChange={(checked) => setAppearance({ title_shadow: checked })}
           />
+        </div>
+
+        <div className="rounded-xl border border-slate-700 bg-slate-950/40 p-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="title-custom-color" className="text-slate-200">Titolo con colore personalizzato</Label>
+              <p className="mt-1 text-xs text-slate-500">Sovrascrive la finitura selezionata con il colore che preferisci.</p>
+            </div>
+            <Switch
+              id="title-custom-color"
+              checked={normalizedAppearance.title_custom_color_enabled === true}
+              onCheckedChange={(title_custom_color_enabled) => setAppearance({ title_custom_color_enabled })}
+            />
+          </div>
+          {normalizedAppearance.title_custom_color_enabled && (
+            <div className="mt-3 flex items-center gap-2 border-t border-slate-800 pt-3">
+              <input type="color" value={normalizedAppearance.title_custom_color}
+                onChange={(event) => setAppearance({ title_custom_color: event.target.value })}
+                className="h-9 w-11 cursor-pointer border border-slate-600 bg-slate-900 p-1" />
+              <span className="font-mono text-xs text-slate-300">{normalizedAppearance.title_custom_color.toUpperCase()}</span>
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-slate-700 bg-slate-950/40 p-3">

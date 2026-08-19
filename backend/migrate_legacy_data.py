@@ -89,6 +89,13 @@ def main():
             "description_opacity": 0.64,
             "text_panel_color": "#05080a",
             "text_color": "#f5f1df",
+            "front_background_start": "#151311",
+            "front_background_end": "#151311",
+            "front_background_gradient": False,
+            "title_custom_color_enabled": False,
+            "title_custom_color": "#f8d764",
+            "frame_custom_color_enabled": False,
+            "frame_custom_color": "#d4af37",
         })
         record.setdefault("back", {"style": "classic", "color": "#7f1d1d", "emblem": "flame", "motto": ""})
         if not record.get("user_id") or not record.get("type"):

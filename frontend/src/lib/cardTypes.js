@@ -72,9 +72,18 @@ export const BACK_STYLES = [
 ];
 
 export const FRAME_STYLES = [
-  { id: "gold", label: "Oro" },
-  { id: "silver", label: "Argento" },
-  { id: "rainbow", label: "Arcobaleno" },
+  { id: "gold", label: "Oro", colors: ["#6b4612", "#fff3a4", "#b87c16"] },
+  { id: "silver", label: "Argento", colors: ["#535c66", "#f7fbff", "#9ca9b8"] },
+  { id: "rainbow", label: "Arcobaleno", colors: ["#ed4f6f", "#f7cc52", "#5ddc8d", "#59b9ee", "#9870f0"] },
+  { id: "crimson", label: "Cremisi", colors: ["#7f1d1d", "#fecdd3", "#9f1239"] },
+  { id: "azure", label: "Azzurro", colors: ["#1e3a8a", "#bae6fd", "#0284c7"] },
+  { id: "violet", label: "Viola", colors: ["#581c87", "#e9d5ff", "#7e22ce"] },
+  { id: "emerald", label: "Smeraldo", colors: ["#064e3b", "#bbf7d0", "#059669"] },
+  { id: "copper", label: "Rame", colors: ["#7c2d12", "#fed7aa", "#c2410c"] },
+  { id: "rose", label: "Rosa", colors: ["#881337", "#fce7f3", "#e11d48"] },
+  { id: "arctic", label: "Ghiaccio", colors: ["#0c4a6e", "#ecfeff", "#67e8f9"] },
+  { id: "onyx", label: "Onice", colors: ["#020617", "#cbd5e1", "#334155"] },
+  { id: "amber", label: "Ambra", colors: ["#78350f", "#fef3c7", "#f59e0b"] },
 ];
 
 export const TITLE_EFFECTS = [
@@ -86,6 +95,22 @@ export const TITLE_EFFECTS = [
   { id: "violet", label: "Viola", colors: ["#f3e8ff", "#c084fc", "#581c87"] },
   { id: "emerald", label: "Smeraldo", colors: ["#d1fae5", "#34d399", "#064e3b"] },
   { id: "copper", label: "Rame", colors: ["#ffedd5", "#fb923c", "#7c2d12"] },
+  { id: "rose", label: "Rosa", colors: ["#fff1f2", "#fb7185", "#9f1239"] },
+  { id: "arctic", label: "Ghiaccio", colors: ["#ecfeff", "#67e8f9", "#0e7490"] },
+  { id: "onyx", label: "Onice", colors: ["#f8fafc", "#94a3b8", "#0f172a"] },
+  { id: "amber", label: "Ambra", colors: ["#fffbeb", "#fbbf24", "#92400e"] },
+  { id: "ruby", label: "Rubino", colors: ["#fee2e2", "#ef4444", "#7f1d1d"] },
+];
+
+export const FRONT_BACKGROUND_COLORS = [
+  { id: "charcoal", label: "Carbone", color: "#151311" },
+  { id: "midnight", label: "Mezzanotte", color: "#0f172a" },
+  { id: "wine", label: "Vino", color: "#2b1019" },
+  { id: "ocean", label: "Oceano", color: "#0b1d31" },
+  { id: "forest", label: "Foresta", color: "#0d241d" },
+  { id: "plum", label: "Prugna", color: "#251338" },
+  { id: "parchment", label: "Pergamena", color: "#bba77d" },
+  { id: "smoke", label: "Fumo", color: "#374151" },
 ];
 
 export const TEXT_PANEL_COLORS = [
@@ -112,4 +137,11 @@ export const DEFAULT_APPEARANCE = {
   description_opacity: 0.64,
   text_panel_color: "#05080a",
   text_color: "#f5f1df",
+  front_background_start: "#151311",
+  front_background_end: "#151311",
+  front_background_gradient: false,
+  title_custom_color_enabled: false,
+  title_custom_color: "#f8d764",
+  frame_custom_color_enabled: false,
+  frame_custom_color: "#d4af37",
 };
