@@ -236,6 +236,11 @@ export async function renderCardCanvas(element, card) {
     gold: ["#fffbd1", "#f8d764", "#c98b18"],
     silver: ["#ffffff", "#cbd5e1", "#64748b"],
     rainbow: ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"],
+    crimson: ["#ffe4e6", "#fb7185", "#881337"],
+    azure: ["#e0f2fe", "#38bdf8", "#1e3a8a"],
+    violet: ["#f3e8ff", "#c084fc", "#581c87"],
+    emerald: ["#d1fae5", "#34d399", "#064e3b"],
+    copper: ["#ffedd5", "#fb923c", "#7c2d12"],
   }[appearance.title_effect] || ["#fffbd1", "#f8d764", "#c98b18"];
   const titleGradient = ctx.createLinearGradient(12, 12, 238, 36);
   titleColors.forEach((color, index) => titleGradient.addColorStop(index / (titleColors.length - 1), color));
@@ -332,11 +337,12 @@ export async function renderCardCanvas(element, card) {
     const descriptionLines = descriptionHeight >= 26 ? 2 : 1;
     const descriptionOpacity = Math.max(0.3, Math.min(0.9, Number(appearance.description_opacity) || 0.64));
     if (descriptionHeight >= 15) {
-      ctx.fillStyle = `rgba(5, 8, 10, ${descriptionOpacity})`;
+      const [panelRed, panelGreen, panelBlue] = colorToRgb(appearance.text_panel_color || "#05080a");
+      ctx.fillStyle = `rgba(${panelRed}, ${panelGreen}, ${panelBlue}, ${descriptionOpacity})`;
       ctx.fillRect(12, descriptionY, 250, descriptionHeight);
       ctx.strokeStyle = "rgba(201, 160, 58, 0.45)";
       ctx.strokeRect(12.5, descriptionY + 0.5, 249, descriptionHeight - 1);
-      ctx.fillStyle = light;
+      ctx.fillStyle = appearance.text_color || light;
       ctx.font = "italic 10px 'Spectral', Georgia, serif";
       drawWrappedText(ctx, description, 19, descriptionY + 13, 232, 12, descriptionLines);
     }
@@ -453,6 +459,24 @@ export async function renderCardBackCanvas(card) {
     ctx.restore();
   });
 
+  ctx.fillStyle = "rgba(232, 196, 96, 0.58)";
+  [[53, 91], [286, 98], [75, 342], [269, 339], [43, 391], [297, 395]].forEach(([x, y]) => {
+    ctx.fillRect(x, y, 1.5, 1.5);
+  });
+  ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.46)`;
+  ctx.lineWidth = 1;
+  [-1, 1].forEach((side) => {
+    ctx.save();
+    ctx.translate(width / 2 + side * 93, 210);
+    ctx.scale(side, 1);
+    ctx.beginPath();
+    ctx.moveTo(0, -54);
+    ctx.bezierCurveTo(20, -44, 27, -25, 15, -6);
+    ctx.bezierCurveTo(31, 8, 28, 30, 0, 51);
+    ctx.stroke();
+    ctx.restore();
+  });
+
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#d8ba61";
@@ -469,6 +493,12 @@ export async function renderCardBackCanvas(card) {
   ctx.beginPath();
   ctx.arc(width / 2, 210, 57, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.fillStyle = "rgba(232, 196, 96, 0.72)";
+  ctx.font = "400 8px Georgia, serif";
+  for (let i = 0; i < 8; i += 1) {
+    const angle = (Math.PI * 2 * i) / 8;
+    ctx.fillText("✦", width / 2 + Math.cos(angle) * 63, 213 + Math.sin(angle) * 63);
+  }
   ctx.fillStyle = "rgba(5, 6, 8, 0.76)";
   ctx.beginPath();
   ctx.arc(width / 2, 210, 47, 0, Math.PI * 2);
@@ -502,6 +532,9 @@ export async function renderCardBackCanvas(card) {
   ctx.fillText("✦", width / 2, 425);
   ctx.fillStyle = "#d8ba61";
   drawFittedText(ctx, typeLabel(card.type, card.custom_type).toUpperCase(), width / 2, 447, 220, 8, "'Cinzel', Georgia, serif", "600");
+  ctx.fillStyle = "rgba(216, 186, 97, 0.42)";
+  ctx.font = "600 6px 'Cinzel', Georgia, serif";
+  ctx.fillText("ᛟ · ᚱ · ᛟ · ᚱ · ᛟ", width / 2, 463);
   return canvas;
 }
 

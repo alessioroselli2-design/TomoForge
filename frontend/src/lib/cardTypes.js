@@ -81,10 +81,35 @@ export const TITLE_EFFECTS = [
   { id: "gold", label: "Oro", colors: ["#fff3a3", "#f59e0b", "#7c2d12"] },
   { id: "silver", label: "Argento", colors: ["#ffffff", "#94a3b8", "#334155"] },
   { id: "rainbow", label: "Arcobaleno", colors: ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"] },
+  { id: "crimson", label: "Cremisi", colors: ["#ffe4e6", "#fb7185", "#881337"] },
+  { id: "azure", label: "Azzurro", colors: ["#e0f2fe", "#38bdf8", "#1e3a8a"] },
+  { id: "violet", label: "Viola", colors: ["#f3e8ff", "#c084fc", "#581c87"] },
+  { id: "emerald", label: "Smeraldo", colors: ["#d1fae5", "#34d399", "#064e3b"] },
+  { id: "copper", label: "Rame", colors: ["#ffedd5", "#fb923c", "#7c2d12"] },
+];
+
+export const TEXT_PANEL_COLORS = [
+  { id: "obsidian", label: "Ossidiana", color: "#05080a" },
+  { id: "burgundy", label: "Borgogna", color: "#2b1019" },
+  { id: "navy", label: "Abisso blu", color: "#0b1d31" },
+  { id: "forest", label: "Foresta", color: "#0d241d" },
+  { id: "parchment", label: "Pergamena", color: "#d9c7a0" },
+  { id: "slate", label: "Ardesia", color: "#273548" },
+];
+
+export const TEXT_COLORS = [
+  { id: "ivory", label: "Avorio", color: "#f5f1df" },
+  { id: "gold", label: "Oro", color: "#f8d764" },
+  { id: "ice", label: "Ghiaccio", color: "#dbeafe" },
+  { id: "rose", label: "Rosa", color: "#fecdd3" },
+  { id: "mint", label: "Menta", color: "#bbf7d0" },
+  { id: "ink", label: "Inchiostro", color: "#1f2937" },
 ];
 
 export const DEFAULT_APPEARANCE = {
   title_effect: "gold",
   title_shadow: true,
   description_opacity: 0.64,
+  text_panel_color: "#05080a",
+  text_color: "#f5f1df",
 };

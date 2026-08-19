@@ -288,9 +288,14 @@ class CardBack(BaseModel):
 
 
 class CardAppearance(BaseModel):
-    title_effect: Literal["gold", "silver", "rainbow"] = "gold"
+    title_effect: Literal[
+        "gold", "silver", "rainbow", "crimson", "azure",
+        "violet", "emerald", "copper",
+    ] = "gold"
     title_shadow: bool = True
     description_opacity: float = Field(default=0.64, ge=0.3, le=0.9)
+    text_panel_color: str = "#05080a"
+    text_color: str = "#f5f1df"
 
 
 class Card(BaseModel):

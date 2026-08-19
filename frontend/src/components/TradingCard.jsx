@@ -2,7 +2,9 @@ import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Flame, Skull, Sword, Moon, Eye, Shield, Star, Sparkles } from "lucide-react";
 import { artworkUrl } from "@/lib/api";
-import { typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
+import {
+  typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE, TITLE_EFFECTS,
+} from "@/lib/cardTypes";
 import { useI18n } from "@/lib/i18n";
 
 const EMBLEM_ICONS = {
@@ -62,10 +64,15 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
   const qrValue = `${window.location.origin}/p/${card.id}`;
   const frame = card.frame || "gold";
   const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
+  const titleEffect = TITLE_EFFECTS.find((effect) => effect.id === appearance.title_effect) || TITLE_EFFECTS[0];
   return (
     <div ref={ref} data-testid="card-front"
       className={`relative w-full h-full bg-card tf-card-front tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}
-      style={{ "--tf-description-opacity": appearance.description_opacity }}>
+      style={{
+        "--tf-description-opacity": appearance.description_opacity,
+        "--tf-description-color": appearance.text_panel_color,
+        "--tf-description-text": appearance.text_color,
+      }}>
       <div className="tf-front-inner-border" aria-hidden="true" />
       <div className="tf-front-corner tf-front-corner-tl" aria-hidden="true">✦</div>
       <div className="tf-front-corner tf-front-corner-tr" aria-hidden="true">✦</div>
@@ -73,7 +80,10 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       <div className="tf-front-corner tf-front-corner-br" aria-hidden="true">✦</div>
       {/* header */}
       <div className="relative z-10 flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
-        <h3 className={`min-w-0 font-heading font-bold text-lg leading-tight pr-2 tf-title-metal-${appearance.title_effect} ${appearance.title_shadow ? "tf-title-shadow" : "tf-title-flat"} ${exportMode ? "tf-export-title" : "truncate"}`}>
+        <h3
+          className={`min-w-0 font-heading font-bold text-lg leading-tight pr-2 tf-title-metal ${appearance.title_shadow ? "tf-title-shadow" : "tf-title-flat"} ${exportMode ? "tf-export-title" : "truncate"}`}
+          style={{ backgroundImage: `linear-gradient(180deg, ${titleEffect.colors.join(", ")})` }}
+        >
           {card.name || "Senza nome"}
         </h3>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -126,8 +136,11 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
       }}>
       <div className="tf-back-vignette" aria-hidden="true" />
       <div className="tf-back-pattern" aria-hidden="true" />
+      <div className="tf-back-starfield" aria-hidden="true" />
       <div className="tf-back-inner-border" aria-hidden="true" />
       <div className="tf-back-inner-border tf-back-inner-border-soft" aria-hidden="true" />
+      <div className="tf-back-filigree tf-back-filigree-left" aria-hidden="true">❧</div>
+      <div className="tf-back-filigree tf-back-filigree-right" aria-hidden="true">❧</div>
       <div className="tf-back-corner tf-back-corner-tl" aria-hidden="true">✦</div>
       <div className="tf-back-corner tf-back-corner-tr" aria-hidden="true">✦</div>
       <div className="tf-back-corner tf-back-corner-bl" aria-hidden="true">✦</div>
@@ -135,10 +148,12 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
       {style === "runic" && (
         <div className="tf-back-rune" aria-hidden="true">ᛟ</div>
       )}
+      <div className="tf-back-rune-rail" aria-hidden="true">ᛟ · ᚱ · ᛟ · ᚱ · ᛟ</div>
       <div className="relative z-10 flex min-h-full w-full flex-col items-center justify-center text-center">
         <div className="tf-back-kicker">SIGILLUM · TOMEFORGE</div>
         <div className="tf-back-crest" style={{ borderColor: color, boxShadow: `0 0 0 5px ${color}16, 0 0 34px ${color}55` }}>
           <div className="tf-back-crest-ring" aria-hidden="true" />
+          <div className="tf-back-crest-orbit" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span><span>✦</span></div>
           <div className="tf-back-crest-core">
             <Emblem className="w-10 h-10" strokeWidth={1.5} style={{ color }} />
           </div>

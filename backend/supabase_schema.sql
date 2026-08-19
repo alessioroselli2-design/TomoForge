@@ -30,7 +30,7 @@ create table if not exists public.cards (
   attributes jsonb not null default '{}'::jsonb,
   artwork_path text,
   frame text not null default 'gold',
-  appearance jsonb not null default '{"title_effect":"gold","title_shadow":true,"description_opacity":0.64}'::jsonb,
+  appearance jsonb not null default '{"title_effect":"gold","title_shadow":true,"description_opacity":0.64,"text_panel_color":"#05080a","text_color":"#f5f1df"}'::jsonb,
   back jsonb not null default '{"style":"classic","color":"#7f1d1d","emblem":"flame","motto":""}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -38,7 +38,7 @@ create table if not exists public.cards (
 create index if not exists cards_user_created_idx on public.cards (user_id, created_at desc);
 alter table public.cards
   add column if not exists appearance jsonb
-  not null default '{"title_effect":"gold","title_shadow":true,"description_opacity":0.64}'::jsonb;
+  not null default '{"title_effect":"gold","title_shadow":true,"description_opacity":0.64,"text_panel_color":"#05080a","text_color":"#f5f1df"}'::jsonb;
 
 create table if not exists public.files (
   id text primary key,

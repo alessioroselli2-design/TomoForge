@@ -40,6 +40,8 @@ def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
                 title_effect="silver",
                 title_shadow=False,
                 description_opacity=0.8,
+                text_panel_color="#0b1d31",
+                text_color="#dbeafe",
             ),
         ),
         user,
@@ -50,8 +52,11 @@ def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
     assert card.appearance.title_effect == "silver"
     assert card.appearance.title_shadow is False
     assert card.appearance.description_opacity == 0.8
+    assert card.appearance.text_panel_color == "#0b1d31"
+    assert card.appearance.text_color == "#dbeafe"
     assert fake_db.cards.documents[0]["name"] == "Lancia di luce"
     assert fake_db.cards.documents[0]["appearance"]["title_effect"] == "silver"
+    assert fake_db.cards.documents[0]["appearance"]["text_color"] == "#dbeafe"
 
 
 def test_file_record_is_created_after_storage_upload(monkeypatch):

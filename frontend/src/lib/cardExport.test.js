@@ -42,7 +42,9 @@ const createContext = (operations, gradients) => ({
   textAlign: "left",
   textBaseline: "alphabetic",
   scale: (x, y) => operations.push({ name: "scale", x, y }),
-  fillRect: (x, y, w, h) => operations.push({ name: "fillRect", x, y, w, h }),
+  fillRect(x, y, w, h) {
+    operations.push({ name: "fillRect", x, y, w, h, fillStyle: this.fillStyle });
+  },
   strokeRect: (x, y, w, h) => operations.push({ name: "strokeRect", x, y, w, h }),
   fillText: (text, x, y, maxWidth) => operations.push({
     name: "fillText", text: String(text), x, y, maxWidth,
@@ -199,6 +201,11 @@ describe("card export renderers", () => {
     ["gold", ["#fffbd1", "#f8d764", "#c98b18"]],
     ["silver", ["#ffffff", "#cbd5e1", "#64748b"]],
     ["rainbow", ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"]],
+    ["crimson", ["#ffe4e6", "#fb7185", "#881337"]],
+    ["azure", ["#e0f2fe", "#38bdf8", "#1e3a8a"]],
+    ["violet", ["#f3e8ff", "#c084fc", "#581c87"]],
+    ["emerald", ["#d1fae5", "#34d399", "#064e3b"]],
+    ["copper", ["#ffedd5", "#fb923c", "#7c2d12"]],
   ])("keeps the %s title effect in the fixed export renderer", async (titleEffect, expectedColors) => {
     await renderCardCanvas(makeExportElement(), {
       id: `title-${titleEffect}`,
@@ -211,6 +218,31 @@ describe("card export renderers", () => {
 
     const colors = canvases[0].gradients.flatMap((gradient) => gradient.stops.map((stop) => stop.color));
     expect(colors).toEqual(expect.arrayContaining(expectedColors));
+  });
+
+  it("keeps custom text-panel and text colors in the fixed export renderer", async () => {
+    const card = {
+      id: "contrast-colors",
+      type: "spell",
+      name: "Inchiostro di Luna",
+      frame: "gold",
+      appearance: {
+        text_panel_color: "#0b1d31",
+        text_color: "#dbeafe",
+        description_opacity: 0.85,
+      },
+      attributes: { livello: "2" },
+      description: "Il testo deve conservare il contrasto scelto dall'utente.",
+    };
+
+    const canvas = await renderCardCanvas(makeExportElement(), card);
+    const descriptionPanel = canvas.operations
+      .filter((entry) => entry.name === "fillRect" && entry.x === 12 && entry.w === 250)
+      .at(-1);
+    const text = canvas.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
+
+    expect(descriptionPanel.fillStyle).toBe("rgba(11, 29, 49, 0.85)");
+    expect(text).toContain("Il testo deve conservare");
   });
 
   it("uses the same dedicated front/back renderer for PNG, single PDF, and A4 sheet exports", async () => {
