@@ -220,3 +220,13 @@ def test_google_start_uses_browser_compatible_implicit_flow(monkeypatch):
     assert query["provider"] == ["google"]
     assert query["redirect_to"] == ["https://app.example/oauth/callback"]
     assert "code_challenge" not in query
+
+
+def test_ai_api_keys_ignore_accidental_surrounding_whitespace(monkeypatch):
+    monkeypatch.setattr(server, "SEGMIND_API_KEY", "  segmind-key  ")
+    monkeypatch.setattr(server, "OPENAI_API_KEY", "  openai-key  ")
+
+    assert server.require_segmind() == "segmind-key"
+
+    client = server.require_openai()
+    assert client.api_key == "openai-key"

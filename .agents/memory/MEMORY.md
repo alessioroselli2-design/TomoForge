@@ -1,2 +1,3 @@
 - [Mobile print rendering](mobile-print-rendering.md) — Card exports must avoid DOM screenshot layouts on iOS; use dedicated fixed-coordinate canvas renderers for both faces.
 - [React Router Jest compatibility](react-router-jest-compatibility.md) — CRA’s Jest runtime needs explicit Router v7 CJS resolution and encoding globals for route-based page tests.
+- [Supabase OAuth callback flow](supabase-oauth-callback-flow.md) — Server-started Google OAuth must avoid unrecoverable PKCE verifiers and surface callback errors rather than silently returning to login.

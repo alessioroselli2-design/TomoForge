@@ -249,15 +249,17 @@ MOCK_OBJECTS: dict[str, tuple[bytes, str]] = {}
 
 
 def require_openai() -> AsyncOpenAI:
-    if not OPENAI_API_KEY:
+    api_key = (OPENAI_API_KEY or "").strip()
+    if not api_key:
         raise HTTPException(status_code=503, detail="OpenAI non configurato: aggiungi OPENAI_API_KEY")
-    return AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=120.0)
+    return AsyncOpenAI(api_key=api_key, timeout=120.0)
 
 
 def require_segmind() -> str:
-    if not SEGMIND_API_KEY:
+    api_key = (SEGMIND_API_KEY or "").strip()
+    if not api_key:
         raise HTTPException(status_code=503, detail="Segmind non configurato: aggiungi SEGMIND_API_KEY")
-    return SEGMIND_API_KEY
+    return api_key
 
 
 def supabase_auth_client() -> Client:
@@ -677,6 +679,11 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
         raise HTTPException(status_code=502, detail="OpenAI ha restituito un formato non valido") from exc
     except Exception as exc:
         logger.exception("OpenAI content generation failed")
+        if "credit_balance_exhausted" in str(exc):
+            raise HTTPException(
+                status_code=402,
+                detail="OpenAI non ha crediti disponibili. Ricarica il credito del tuo account OpenAI per generare contenuti AI.",
+            ) from exc
         raise HTTPException(status_code=502, detail="Errore nella generazione testo OpenAI") from exc
 
 
