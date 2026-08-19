@@ -17,7 +17,7 @@ const isScalar = (v) => typeof v === "string" || typeof v === "number";
 const ABIL = ["for", "des", "cos", "int", "sag", "car"];
 
 // Compact gameplay quick-reference shown on the card FRONT.
-const QuickStats = ({ card }) => {
+const QuickStats = ({ card, exportMode }) => {
   const attrs = card.attributes || {};
   const has = (k) => isScalar(attrs[k]) && String(attrs[k]).trim() !== "";
   const showAbil = (card.type === "monster" || card.type === "character") && ABIL.some(has);
@@ -45,8 +45,8 @@ const QuickStats = ({ card }) => {
         <div className="grid grid-cols-2 gap-1">
           {fields.map((k) => (
             <div key={k} className="border border-gold-deep/30 bg-obsidian/50 px-1.5 py-1 leading-tight">
-              <div className="font-label text-[7px] tracking-wider text-gold/60 uppercase truncate">{attrLabel(k)}</div>
-              <div className="font-body text-[10px] text-foreground/90 truncate">{attrs[k]}</div>
+              <div className={`font-label text-[7px] tracking-wider text-gold/60 uppercase ${exportMode ? "tf-export-stat" : "truncate"}`}>{attrLabel(k)}</div>
+              <div className={`font-body text-[10px] text-foreground/90 ${exportMode ? "tf-export-stat" : "truncate"}`}>{attrs[k]}</div>
             </div>
           ))}
         </div>
@@ -66,7 +66,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       className={`relative w-full h-full bg-card tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}>
       {/* header */}
       <div className="flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
-        <h3 className={`font-heading font-bold text-lg leading-tight truncate pr-2 tf-title-3d ${exportMode ? "text-gold" : "tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
+        <h3 className={`font-heading font-bold text-lg leading-tight pr-2 tf-title-3d ${exportMode ? "tf-export-title text-gold" : "truncate tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
         <div className="flex items-center gap-1 shrink-0">
           <TypeIcon className="w-3.5 h-3.5 text-gold" />
           <span className="font-label text-[9px] tracking-widest text-gold/80 uppercase">{typeLabel(card.type, card.custom_type)}</span>
@@ -79,9 +79,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       </div>
       {/* body */}
       <div className="min-h-0 flex-1 px-3 py-2 overflow-hidden">
-        <QuickStats card={card} />
+        <QuickStats card={card} exportMode={exportMode} />
         {card.description && (
-          <p className="font-body text-[10px] leading-snug text-foreground/70 mt-1.5 line-clamp-2 italic">{card.description}</p>
+          <p className={`font-body text-[10px] text-foreground/70 mt-1.5 italic ${exportMode ? "tf-export-description" : "leading-snug line-clamp-2"}`}>{card.description}</p>
         )}
       </div>
       {/* footer with QR */}

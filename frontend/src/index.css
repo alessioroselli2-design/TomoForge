@@ -66,6 +66,38 @@ body {
     min-height: 476px !important;
     max-height: 476px !important;
     box-sizing: border-box !important;
+    -webkit-text-size-adjust: none !important;
+}
+
+/* Safari/iOS html2canvas can rasterize downloaded web fonts together with
+   line-clamp/truncate as half-height glyphs. Export uses local font metrics
+   and explicit line boxes; the on-screen card keeps the themed web fonts. */
+.tf-export-card .font-heading,
+.tf-export-card .font-body,
+.tf-export-card .font-label,
+.tf-export-card .font-display {
+    font-family: Georgia, "Times New Roman", serif !important;
+    line-height: 1.25 !important;
+}
+.tf-export-card .tf-export-title {
+    display: block !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.25 !important;
+}
+.tf-export-card .tf-export-stat {
+    display: block !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.25 !important;
+}
+.tf-export-card .tf-export-description {
+    display: block !important;
+    max-height: 30px !important;
+    overflow: hidden !important;
+    line-height: 15px !important;
 }
 .tf-foil-gold {
     border-image: linear-gradient(135deg, #6b4612, #fff3a4 18%, #b87c16 45%, #fff4a8 72%, #6b4612) 1 !important;
