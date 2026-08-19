@@ -146,6 +146,39 @@ export default function Collection() {
           <h1 className="font-display text-4xl sm:text-5xl tf-gold-text tf-title-3d">{t("collection")}</h1>
         </motion.div>
 
+        <section className="mt-6 border border-gold-deep/40 bg-card/65 p-5 sm:p-6" aria-label="Azioni rapide">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="font-label text-[10px] tracking-[0.25em] text-gold/70">IL LABORATORIO DEL TOMO</p>
+              <h2 className="mt-1 font-heading text-2xl text-foreground sm:text-3xl">Dall’idea alla carta stampata.</h2>
+              <p className="mt-2 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground">
+                Crea una nuova leggenda, evoca il contenuto con l’AI o prepara subito il tuo prossimo foglio A4.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-5 border-t border-border/70 pt-3 font-label text-[10px] tracking-widest text-muted-foreground lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+              <span><strong className="block text-lg text-gold">{cards.length}</strong> CARTE</span>
+              <span><strong className="block text-lg text-gold">{new Set(cards.map((card) => card.type)).size}</strong> TIPI</span>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <button data-testid="quick-create" onClick={() => navigate("/crea")}
+              className="group flex items-center justify-between border border-gold-deep/50 bg-obsidian/50 px-4 py-3 text-left transition-colors hover:border-gold hover:bg-gold/10">
+              <span><strong className="block font-label text-[11px] tracking-widest text-gold">FORGIA UNA CARTA</strong><small className="mt-1 block font-body text-xs text-muted-foreground">Parti da un tipo e dai vita all’idea.</small></span>
+              <Plus className="h-5 w-5 text-gold transition-transform group-hover:rotate-90" />
+            </button>
+            <button data-testid="quick-ai" onClick={() => navigate("/crea")}
+              className="group flex items-center justify-between border border-gold-deep/50 bg-obsidian/50 px-4 py-3 text-left transition-colors hover:border-gold hover:bg-gold/10">
+              <span><strong className="block font-label text-[11px] tracking-widest text-gold">EVOCA CON L’AI</strong><small className="mt-1 block font-body text-xs text-muted-foreground">Contenuto e artwork in un solo laboratorio.</small></span>
+              <Wand2 className="h-5 w-5 text-gold transition-transform group-hover:-rotate-12" />
+            </button>
+            <button data-testid="quick-print" onClick={() => setSelectMode(true)}
+              className="group flex items-center justify-between border border-gold-deep/50 bg-obsidian/50 px-4 py-3 text-left transition-colors hover:border-gold hover:bg-gold/10">
+              <span><strong className="block font-label text-[11px] tracking-widest text-gold">PREPARA LA STAMPA</strong><small className="mt-1 block font-body text-xs text-muted-foreground">Scegli carte, formato e retro A4.</small></span>
+              <Printer className="h-5 w-5 text-gold transition-transform group-hover:-translate-y-1" />
+            </button>
+          </div>
+        </section>
+
         {/* Controls */}
         <div className="mt-8 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-sm">
