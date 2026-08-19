@@ -53,6 +53,7 @@ export default function Collection() {
 
   const chosenCards = cards.filter((c) => selected.includes(c.id));
   const totalSteps = chosenCards.length * (includeBack ? 2 : 1);
+  const perPage = FORMATS[format].cols * FORMATS[format].rows;
 
   const exportPrintSheet = async () => {
     if (!chosenCards.length) {
