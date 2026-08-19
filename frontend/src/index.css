@@ -76,7 +76,6 @@ body {
 .tf-export-card .font-body,
 .tf-export-card .font-label,
 .tf-export-card .font-display {
-    font-family: Georgia, "Times New Roman", serif !important;
     line-height: 1.25 !important;
 }
 .tf-export-card .tf-export-title {
@@ -86,18 +85,36 @@ body {
     text-overflow: ellipsis !important;
     line-height: 1.25 !important;
 }
-.tf-export-card .tf-export-stat {
+.tf-export-card .tf-export-stat-label {
     display: block !important;
     overflow: hidden !important;
     white-space: nowrap !important;
     text-overflow: ellipsis !important;
     line-height: 1.25 !important;
+    color: #f8d764 !important;
+    opacity: 1 !important;
+}
+.tf-export-card .tf-export-stat-value {
+    display: block !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.25 !important;
+    color: #f5f1df !important;
+    opacity: 1 !important;
 }
 .tf-export-card .tf-export-description {
     display: block !important;
     max-height: 30px !important;
     overflow: hidden !important;
     line-height: 15px !important;
+    color: #f5f1df !important;
+    opacity: 1 !important;
+}
+.tf-export-card .tf-export-footer {
+    color: #f5f1df !important;
+    opacity: 1 !important;
+    transform: translateY(-2px);
 }
 .tf-foil-gold {
     border-image: linear-gradient(135deg, #6b4612, #fff3a4 18%, #b87c16 45%, #fff4a8 72%, #6b4612) 1 !important;

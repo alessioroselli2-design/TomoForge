@@ -34,9 +34,9 @@ const QuickStats = ({ card, exportMode }) => {
       {showAbil && (
         <div className="grid grid-cols-6 gap-1">
           {ABIL.filter(has).map((k) => (
-            <div key={k} className="text-center border border-gold-deep/40 bg-obsidian/60 py-1">
-              <div className="font-label text-[8px] tracking-wider text-gold/70 uppercase">{k}</div>
-              <div className="font-body text-[11px] text-foreground leading-none mt-0.5">{attrs[k]}</div>
+              <div key={k} className="text-center border border-gold-deep/40 bg-obsidian/60 py-1">
+                <div className={`font-label text-[8px] tracking-wider uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/70"}`}>{k}</div>
+                <div className={`font-body text-[11px] leading-none mt-0.5 ${exportMode ? "tf-export-stat-value" : "text-foreground"}`}>{attrs[k]}</div>
             </div>
           ))}
         </div>
@@ -45,8 +45,8 @@ const QuickStats = ({ card, exportMode }) => {
         <div className="grid grid-cols-2 gap-1">
           {fields.map((k) => (
             <div key={k} className="border border-gold-deep/30 bg-obsidian/50 px-1.5 py-1 leading-tight">
-              <div className={`font-label text-[7px] tracking-wider text-gold/60 uppercase ${exportMode ? "tf-export-stat" : "truncate"}`}>{attrLabel(k)}</div>
-              <div className={`font-body text-[10px] text-foreground/90 ${exportMode ? "tf-export-stat" : "truncate"}`}>{attrs[k]}</div>
+              <div className={`font-label text-[7px] tracking-wider uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/60 truncate"}`}>{attrLabel(k)}</div>
+              <div className={`font-body text-[10px] ${exportMode ? "tf-export-stat-value" : "text-foreground/90 truncate"}`}>{attrs[k]}</div>
             </div>
           ))}
         </div>
@@ -69,7 +69,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
         <h3 className={`font-heading font-bold text-lg leading-tight pr-2 tf-title-3d ${exportMode ? "tf-export-title text-gold" : "truncate tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
         <div className="flex items-center gap-1 shrink-0">
           <TypeIcon className="w-3.5 h-3.5 text-gold" />
-          <span className="font-label text-[9px] tracking-widest text-gold/80 uppercase">{typeLabel(card.type, card.custom_type)}</span>
+          <span className={`font-label text-[9px] tracking-widest uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/80"}`}>{typeLabel(card.type, card.custom_type)}</span>
         </div>
       </div>
       <hr className="tf-divider mx-3" aria-hidden="true" />
@@ -81,12 +81,12 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       <div className="min-h-0 flex-1 px-3 py-2 overflow-hidden">
         <QuickStats card={card} exportMode={exportMode} />
         {card.description && (
-          <p className={`font-body text-[10px] text-foreground/70 mt-1.5 italic ${exportMode ? "tf-export-description" : "leading-snug line-clamp-2"}`}>{card.description}</p>
+          <p className={`font-body text-[10px] mt-1.5 italic ${exportMode ? "tf-export-description" : "text-foreground/70 leading-snug line-clamp-2"}`}>{card.description}</p>
         )}
       </div>
       {/* footer with QR */}
       <div className="flex-none flex items-end justify-between px-3 pb-2.5 pt-1">
-        <span className="font-label text-[8px] tracking-widest text-muted-foreground uppercase leading-tight">{t("completeDetails")}<br/>→</span>
+        <span className={`font-label text-[8px] tracking-widest uppercase leading-tight ${exportMode ? "tf-export-footer" : "text-muted-foreground"}`}>{t("completeDetails")}<br/>→</span>
         <div className="bg-white p-1 border border-gold-deep absolute right-2.5 bottom-2.5">
           <QRCodeCanvas value={qrValue} size={40} bgColor="#ffffff" fgColor="#0c0a09" level="M" />
         </div>
