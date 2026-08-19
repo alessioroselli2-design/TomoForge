@@ -11,17 +11,10 @@ import { CardFront } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { renderCardBackCanvas, renderCardCanvas } from "@/lib/cardExport";
+import { addPrintSheetCard } from "@/lib/cardExport";
+import { getPrintSheetPositions, PRINT_FORMATS } from "@/lib/printFormats";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-
-// Print-sheet card formats (A4). Ratio kept at 2.5:3.5 (h = w * 1.4).
-const FORMATS = {
-  mini: { label: "Mini", w: 44, h: 61.6, cols: 4, rows: 4 },
-  // Standard trading-card dimensions: 63.5 × 88.9 mm.
-  standard: { label: "Standard", w: 63.5, h: 88.9, cols: 3, rows: 3 },
-  grande: { label: "Grande", w: 86, h: 120.4, cols: 2, rows: 2 },
-};
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
@@ -182,7 +175,7 @@ export default function Collection() {
 
   const chosenCards = cards.filter((c) => selected.includes(c.id));
   const totalSteps = chosenCards.length * (includeBack ? 2 : 1);
-  const perPage = FORMATS[format].cols * FORMATS[format].rows;
+  const perPage = PRINT_FORMATS[format].cols * PRINT_FORMATS[format].rows;
 
   const exportPrintSheet = async () => {
     if (!chosenCards.length) {
@@ -190,17 +183,8 @@ export default function Collection() {
       return;
     }
     setExporting(true);
-    const { w: cardW, h: cardH, cols, rows } = FORMATS[format];
+    const { w: cardW, h: cardH, cols, rows } = PRINT_FORMATS[format];
     const perPage = cols * rows;
-    const gap = 3;
-    const marginX = (210 - (cols * cardW + (cols - 1) * gap)) / 2;
-    const marginY = (297 - (rows * cardH + (rows - 1) * gap)) / 2;
-    const posAt = (idx, mirror) => {
-      let col = idx % cols;
-      const row = Math.floor(idx / cols);
-      if (mirror) col = cols - 1 - col;
-      return { x: marginX + col * (cardW + gap), y: marginY + row * (cardH + gap) };
-    };
     const drawCut = (pdf, x, y) => {
       // faint card boundary
       pdf.setDrawColor(120, 100, 50);
@@ -237,9 +221,8 @@ export default function Collection() {
           step += 1; setProgress(step);
           const el = cardRefs.current[group[i].id];
           if (!el) continue;
-           const canvas = await renderCardCanvas(el, group[i]);
-          const { x, y } = posAt(i, false);
-           pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
+           const { x, y } = getPrintSheetPositions(format, group.length)[i];
+           await addPrintSheetCard(pdf, el, group[i], { x, y, w: cardW, h: cardH });
            drawCut(pdf, x, y);
         }
         // Mirrored back page for duplex printing
@@ -247,9 +230,8 @@ export default function Collection() {
           pdf.addPage();
           for (let i = 0; i < group.length; i++) {
             step += 1; setProgress(step);
-            const canvas = await renderCardBackCanvas(group[i]);
-            const { x, y } = posAt(i, true);
-            pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
+             const { x, y } = getPrintSheetPositions(format, group.length, true)[i];
+             await addPrintSheetCard(pdf, null, group[i], { x, y, w: cardW, h: cardH }, true);
             drawCut(pdf, x, y);
           }
         }
@@ -337,7 +319,7 @@ export default function Collection() {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-1 border-t border-border/50">
               <div className="flex items-center gap-2 pt-2">
                 <span className="font-label text-[10px] tracking-widest text-gold/70 flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> {t("format").toUpperCase()}</span>
-                {Object.entries(FORMATS).map(([id, f]) => (
+                {Object.entries(PRINT_FORMATS).map(([id, f]) => (
                   <button key={id} data-testid={`format-${id}`} onClick={() => setFormat(id)}
                     className={`px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${format === id ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
                     {f.label} <span className="opacity-60">{f.cols * f.rows}/pag</span>
@@ -350,7 +332,7 @@ export default function Collection() {
               </button>
             </div>
             <p className="font-body text-xs text-muted-foreground/80 border-t border-border/40 pt-2">
-              Il PDF mantiene le dimensioni fisiche selezionate: {FORMATS[format].cols}×{FORMATS[format].rows} carte per A4.
+              Il PDF mantiene le dimensioni fisiche selezionate: {PRINT_FORMATS[format].cols}×{PRINT_FORMATS[format].rows} carte per A4.
               {selected.length < perPage && " Le posizioni non selezionate restano bianche: seleziona altre carte per riempire la griglia."}
               {includeBack && " Per allineare fronte e retro, stampa in modalità fronte/retro con ribaltamento sul lato lungo."}
             </p>

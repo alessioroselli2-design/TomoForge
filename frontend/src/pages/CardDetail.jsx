@@ -11,7 +11,7 @@ import { typeLabel, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
-import { captureCard, renderCardBackCanvas, renderCardCanvas } from "@/lib/cardExport";
+import { addSingleCardPdfPages, captureCard, createCardPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -173,7 +173,7 @@ export default function CardDetail() {
     if (!exportFrontRef.current) return;
     setBusy(true);
     try {
-      const canvas = await renderCardCanvas(exportFrontRef.current, card);
+      const canvas = await createCardPng(exportFrontRef.current, card);
       const link = document.createElement("a");
       link.download = `${card.name || "carta"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -187,14 +187,8 @@ export default function CardDetail() {
     if (!exportFrontRef.current) return;
     setBusy(true);
     try {
-      const [fc, bc] = await Promise.all([
-        renderCardCanvas(exportFrontRef.current, card),
-        renderCardBackCanvas(card),
-      ]);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });
-      pdf.addImage(fc.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
-      pdf.addPage([63.5, 88.9], "portrait");
-      pdf.addImage(bc.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
+      await addSingleCardPdfPages(pdf, exportFrontRef.current, card);
       pdf.save(`${card.name || "carta"}-fronte-retro.pdf`);
       toast.success("PDF generato");
     } catch (e) { toast.error("Generazione PDF fallita"); }

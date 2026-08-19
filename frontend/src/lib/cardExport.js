@@ -48,7 +48,11 @@ export async function getCardExportAssets(element) {
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
-const exportLayout = (card) => {
+// Keep these dimensions independent of CSS so PNG, the single-card PDF, and
+// every physical size on the A4 sheet all originate from the same safe area.
+export const CARD_CANVAS_SIZE = Object.freeze({ width: 340, height: 476, scale: 3 });
+
+export const getCardExportLayout = (card) => {
   const attrs = card.attributes || {};
   const has = (key) => {
     const value = attrs[key];
@@ -69,11 +73,13 @@ const exportLayout = (card) => {
 
 const drawFittedText = (ctx, text, x, y, maxWidth, size, family, weight = "400") => {
   let currentSize = size;
+  const minSize = Math.min(8, size);
   do {
     ctx.font = `${weight} ${currentSize}px ${family}`;
     currentSize -= 0.5;
-  } while (currentSize > 8 && ctx.measureText(text).width > maxWidth);
-  ctx.fillText(text, x, y);
+  } while (currentSize > minSize && ctx.measureText(text).width > maxWidth);
+  ctx.font = `${weight} ${Math.max(minSize, currentSize)}px ${family}`;
+  ctx.fillText(text, x, y, maxWidth);
 };
 
 const drawCategorySymbol = (ctx, type, cx, cy) => {
@@ -169,17 +175,34 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
+
+  const pushWord = (word) => {
+    let segment = "";
+    Array.from(word).forEach((character) => {
+      const next = segment + character;
+      if (segment && ctx.measureText(next).width > maxWidth) {
+        lines.push(segment);
+        segment = character;
+      } else {
+        segment = next;
+      }
+    });
+    if (segment) line = segment;
+  };
+
   words.forEach((word) => {
     const next = line ? `${line} ${word}` : word;
     if (line && ctx.measureText(next).width > maxWidth) {
       lines.push(line);
-      line = word;
+      if (ctx.measureText(word).width > maxWidth) pushWord(word);
+      else line = word;
     } else {
-      line = next;
+      if (!line && ctx.measureText(word).width > maxWidth) pushWord(word);
+      else line = next;
     }
   });
   if (line) lines.push(line);
-  lines.slice(0, maxLines).forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight));
+  lines.slice(0, maxLines).forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
 };
 
 const drawBackEmblem = (ctx, emblem, cx, cy, accent) => {
@@ -211,9 +234,7 @@ export async function renderCardCanvas(element, card) {
   await waitForImages(element);
   if (document.fonts?.ready) await document.fonts.ready;
 
-  const scale = 3;
-  const width = 340;
-  const height = 476;
+  const { scale, width, height } = CARD_CANVAS_SIZE;
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;
@@ -297,7 +318,7 @@ export async function renderCardCanvas(element, card) {
   ctx.lineWidth = 1;
   ctx.strokeRect(artX, artY, artW, artH);
 
-  const { abilities, fields } = exportLayout(card);
+  const { abilities, fields } = getCardExportLayout(card);
   const statY = 299;
   if (abilities.length) {
     const abilityGap = 3;
@@ -309,10 +330,9 @@ export async function renderCardCanvas(element, card) {
       ctx.textAlign = "center";
       ctx.fillStyle = gold;
       ctx.font = "700 7px 'Cinzel', Georgia, serif";
-      ctx.fillText(label, cellX + abilityW / 2, statY + 10);
+      drawFittedText(ctx, label, cellX + abilityW / 2, statY + 10, abilityW - 5, 7, "'Cinzel', Georgia, serif", "700");
       ctx.fillStyle = light;
-      ctx.font = "600 11px 'Spectral', Georgia, serif";
-      ctx.fillText(value, cellX + abilityW / 2, statY + 23, abilityW - 5);
+      drawFittedText(ctx, value, cellX + abilityW / 2, statY + 23, abilityW - 5, 11, "'Spectral', Georgia, serif", "600");
     });
   }
 
@@ -328,11 +348,9 @@ export async function renderCardCanvas(element, card) {
     ctx.strokeRect(cellX, cellY, cellW, cellH);
     ctx.textAlign = "left";
     ctx.fillStyle = gold;
-    ctx.font = "700 7px 'Cinzel', Georgia, serif";
-    ctx.fillText(label.toUpperCase(), cellX + 6, cellY + 9);
+    drawFittedText(ctx, label.toUpperCase(), cellX + 6, cellY + 9, cellW - 12, 7, "'Cinzel', Georgia, serif", "700");
     ctx.fillStyle = light;
-    ctx.font = "400 10px 'Spectral', Georgia, serif";
-    ctx.fillText(value, cellX + 6, cellY + 19, cellW - 12);
+    drawFittedText(ctx, value, cellX + 6, cellY + 19, cellW - 12, 10, "'Spectral', Georgia, serif");
   });
   ctx.textAlign = "left";
 
@@ -342,25 +360,20 @@ export async function renderCardCanvas(element, card) {
     const descriptionY = fields.length
       ? fieldStartY + rows * 26 + 5
       : abilities.length ? 334 : 303;
+    // The footer starts at 452. Reserve an 8px gutter so six statistics and
+    // a two-line description can never paint over the footer or be clipped.
+    const descriptionHeight = Math.min(39, 444 - descriptionY);
+    const descriptionLines = descriptionHeight >= 26 ? 2 : 1;
     const descriptionOpacity = Math.max(0.3, Math.min(0.9, Number(appearance.description_opacity) || 0.64));
-    ctx.fillStyle = `rgba(5, 8, 10, ${descriptionOpacity})`;
-    ctx.fillRect(12, descriptionY, 250, 39);
-    ctx.strokeStyle = "rgba(201, 160, 58, 0.45)";
-    ctx.strokeRect(12.5, descriptionY + 0.5, 249, 38);
-    ctx.fillStyle = light;
-    ctx.font = "italic 10px 'Spectral', Georgia, serif";
-    const words = description.split(/\s+/);
-    const lines = [];
-    let line = "";
-    words.forEach((word) => {
-      const next = line ? `${line} ${word}` : word;
-      if (ctx.measureText(next).width > 232 && line) {
-        lines.push(line);
-        line = word;
-      } else line = next;
-    });
-    if (line) lines.push(line);
-    lines.slice(0, 2).forEach((value, index) => ctx.fillText(value, 19, descriptionY + 15 + index * 14));
+    if (descriptionHeight >= 15) {
+      ctx.fillStyle = `rgba(5, 8, 10, ${descriptionOpacity})`;
+      ctx.fillRect(12, descriptionY, 250, descriptionHeight);
+      ctx.strokeStyle = "rgba(201, 160, 58, 0.45)";
+      ctx.strokeRect(12.5, descriptionY + 0.5, 249, descriptionHeight - 1);
+      ctx.fillStyle = light;
+      ctx.font = "italic 10px 'Spectral', Georgia, serif";
+      drawWrappedText(ctx, description, 19, descriptionY + 13, 232, 12, descriptionLines);
+    }
   }
 
   ctx.fillStyle = light;
@@ -383,9 +396,7 @@ export async function renderCardCanvas(element, card) {
 export async function renderCardBackCanvas(card) {
   if (document.fonts?.ready) await document.fonts.ready;
 
-  const scale = 3;
-  const width = 340;
-  const height = 476;
+  const { scale, width, height } = CARD_CANVAS_SIZE;
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;
@@ -524,8 +535,30 @@ export async function renderCardBackCanvas(card) {
   ctx.font = "400 9px Georgia, serif";
   ctx.fillText("✦", width / 2, 425);
   ctx.fillStyle = "#d8ba61";
-  ctx.font = "600 8px 'Cinzel', Georgia, serif";
-  ctx.fillText(typeLabel(card.type, card.custom_type).toUpperCase(), width / 2, 447);
+  drawFittedText(ctx, typeLabel(card.type, card.custom_type).toUpperCase(), width / 2, 447, 220, 8, "'Cinzel', Georgia, serif", "600");
+  return canvas;
+}
+
+// These adapters keep the user-facing export routes on the same dedicated
+// canvas path as the regression tests, rather than reintroducing DOM capture.
+export const createCardPng = (element, card) => renderCardCanvas(element, card);
+
+export async function addSingleCardPdfPages(pdf, element, card) {
+  const [front, back] = await Promise.all([
+    renderCardCanvas(element, card),
+    renderCardBackCanvas(card),
+  ]);
+  pdf.addImage(front.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
+  pdf.addPage([63.5, 88.9], "portrait");
+  pdf.addImage(back.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
+  return { front, back };
+}
+
+export async function addPrintSheetCard(pdf, element, card, bounds, back = false) {
+  const canvas = back
+    ? await renderCardBackCanvas(card)
+    : await renderCardCanvas(element, card);
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", bounds.x, bounds.y, bounds.w, bounds.h);
   return canvas;
 }
 
