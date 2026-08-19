@@ -11,7 +11,7 @@ import { CardFront, CardBack } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { captureCard } from "@/lib/cardExport";
+import { captureCard, renderCardCanvas } from "@/lib/cardExport";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -238,7 +238,7 @@ export default function Collection() {
           step += 1; setProgress(step);
           const el = cardRefs.current[group[i].id];
           if (!el) continue;
-           const canvas = await captureCard(el);
+           const canvas = await renderCardCanvas(el, group[i]);
           const { x, y } = posAt(i, false);
            pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
            drawCut(pdf, x, y);
