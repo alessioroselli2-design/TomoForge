@@ -6,7 +6,7 @@ import stripe
 stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 PRODUCT = {
-    "emergent_product_id": "tomeforge_premium",
+    "product_id": "tomeforge_premium",
     "name": "TomeForge Premium",
     "tax_code": "txcd_10103001",  # SaaS
     "prices": [
@@ -28,11 +28,11 @@ def ensure_tax_settings():
 
 def get_or_create_product(entry):
     for p in stripe.Product.list(active=True).auto_paging_iter():
-        if p.to_dict().get("metadata", {}).get("emergent_product_id") == entry["emergent_product_id"]:
+        if p.to_dict().get("metadata", {}).get("product_id") == entry["product_id"]:
             return p
     return stripe.Product.create(
         name=entry["name"], tax_code=entry.get("tax_code"),
-        metadata={"managed_by": "emergent", "emergent_product_id": entry["emergent_product_id"]},
+        metadata={"managed_by": "tomeforge", "product_id": entry["product_id"]},
     )
 
 

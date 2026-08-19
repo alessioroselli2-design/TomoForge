@@ -1,7 +1,7 @@
 """
 TomeForge backend tests.
-Covers: auth (register/login/me), cards CRUD, AI text (Gemini 3 Flash),
-AI image (Gemini Nano Banana) + object storage, file upload/download.
+Covers: auth (register/login/me), cards CRUD, AI text (OpenAI),
+AI image (OpenAI Images) + Supabase Storage, file upload/download.
 """
 import io
 import os
@@ -10,6 +10,11 @@ import uuid
 import hashlib
 import pytest
 import requests
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_INTEGRATION_TESTS") != "1",
+    reason="Integration tests need a configured Supabase/OpenAI environment. Set RUN_INTEGRATION_TESTS=1 to run them.",
+)
 
 BASE_URL = os.environ['REACT_APP_BACKEND_URL'].rstrip('/') if 'REACT_APP_BACKEND_URL' in os.environ else None
 if not BASE_URL:
@@ -164,7 +169,7 @@ class TestCards:
         assert r.status_code == 401
 
 
-# ---------- AI: text generation (Gemini 3 Flash) ----------
+# ---------- AI: text generation (OpenAI) ----------
 class TestAIText:
     def test_generate_content_spell_italian(self, s, auth_headers):
         r = s.post(f"{API}/ai/generate-content", headers=auth_headers, json={
@@ -197,7 +202,7 @@ class TestAIText:
         print(f"[AI MONSTER] name={data['name']!r} CA={attrs.get('classe_armatura')} PF={attrs.get('punti_ferita')}")
 
 
-# ---------- AI: image generation (Gemini Nano Banana) + storage ----------
+# ---------- AI: image generation (OpenAI Images) + storage ----------
 class TestAIImage:
     """Only ONE paid image generation, per budget rules."""
 

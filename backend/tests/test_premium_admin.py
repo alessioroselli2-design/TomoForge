@@ -11,7 +11,7 @@ Covers the review_request items:
 
 IMPORTANT: leaves `mago@grimorio.it` as NON-premium at the end (premium_manual=false).
 Does NOT actually call /api/ai/generate-content while user is premium (that would
-consume real Emergent credits and is covered separately from the UI test).
+consume real OpenAI credits and is covered separately from the UI test).
 """
 import os
 import requests
@@ -139,7 +139,7 @@ class TestAdminEndpoints:
         # Verify AI endpoint no longer 402 (we don't fully invoke to save credits — try a
         # minimal request and only assert that the response is NOT 402). To keep costs
         # low we assert the status code is NOT the premium-gate 402.
-        # NOTE: since a real Gemini call would spend credits, we use a very short prompt
+        # NOTE: since a real OpenAI call would spend credits, we use a very short prompt
         # BUT we still make the call — that is what proves premium is truly lifted.
         # To fully avoid spend we assert only "not 402".
         # ---> we skip actually calling the AI to keep this backend test cheap; the

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 const PERKS = [
   "Generazione AI dei contenuti (nome, descrizione, statistiche, storia)",
-  "Generazione AI dell'artwork fantasy (Gemini Nano Banana)",
+  "Generazione AI dell'artwork fantasy con OpenAI",
   "Lingua italiana e inglese",
   "Tutte le altre funzioni restano incluse",
 ];

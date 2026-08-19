@@ -1,98 +1,285 @@
+import base64
+import json
+import logging
 import os
 import uuid
-import json
-import base64
-import logging
-from pathlib import Path
+import copy
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Any, Annotated
+from pathlib import Path
+from typing import Any, List, Optional
 
-import jwt
 import bcrypt
-import requests
+import jwt
 import stripe
 from dotenv import load_dotenv
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, UploadFile, File, Header, Query
+from fastapi import APIRouter, Depends, FastAPI, File, Header, HTTPException, Query, Request, Response, UploadFile
+from openai import AsyncOpenAI
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, EmailStr, BeforeValidator, ConfigDict
-
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from supabase import Client, create_client
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("tomeforge")
 
-# --- Config ---
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
-JWT_SECRET = os.environ.get("JWT_SECRET", "tomeforge_secret")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+MOCK_DATA = os.getenv("MOCK_DATA", "").lower() in {"1", "true", "yes"}
+MOCK_USER_EMAIL = "demo@example.com"
+MOCK_USER_PASSWORD = "tomeforge-demo"
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "tomeforge-assets")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
+OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
+JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SESSION_SECRET")
 JWT_ALGO = "HS256"
-TEXT_MODEL = "gemini-3-flash-preview"
-IMAGE_MODEL = "gemini-3.1-flash-image-preview"
-
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 PREMIUM_LOOKUP_KEY = "premium_monthly"
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
-STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
-APP_NAME = "tomeforge"
-_storage_key = None
-
-MIME_TYPES = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
-              "gif": "image/gif", "webp": "image/webp"}
-
-
-def init_storage(force: bool = False):
-    global _storage_key
-    if _storage_key and not force:
-        return _storage_key
-    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
-    resp.raise_for_status()
-    _storage_key = resp.json()["storage_key"]
-    return _storage_key
+MIME_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+    "gif": "image/gif", "webp": "image/webp",
+}
 
 
-def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    resp = requests.put(f"{STORAGE_URL}/objects/{path}",
-                        headers={"X-Storage-Key": key, "Content-Type": content_type},
-                        data=data, timeout=120)
-    if resp.status_code == 404:
-        key = init_storage(force=True)
-        resp = requests.put(f"{STORAGE_URL}/objects/{path}",
-                            headers={"X-Storage-Key": key, "Content-Type": content_type},
-                            data=data, timeout=120)
-    resp.raise_for_status()
-    return resp.json()
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
-def get_object(path: str):
-    key = init_storage()
-    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    if resp.status_code == 404:
-        key = init_storage(force=True)
-        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+def configuration_status() -> dict:
+    return {
+        "supabase": bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY) or MOCK_DATA,
+        "supabase_auth": bool(SUPABASE_ANON_KEY) or MOCK_DATA,
+        "openai": bool(OPENAI_API_KEY) or MOCK_DATA,
+        "jwt": bool(JWT_SECRET),
+        "stripe": bool(stripe.api_key),
+    }
 
 
-# --- Mongo base model ---
-def _validate_object_id(v: Any) -> str:
-    return str(v)
-
-PyObjectId = Annotated[str, BeforeValidator(_validate_object_id)]
+def require_jwt_secret() -> None:
+    if not JWT_SECRET:
+        raise HTTPException(status_code=503, detail="JWT_SECRET o SESSION_SECRET non configurato")
 
 
-# --- Models ---
+class SupabaseCursor:
+    def __init__(self, collection: "SupabaseCollection", query: dict, projection: Optional[dict]):
+        self.collection = collection
+        self.query = query
+        self.projection = projection
+        self.order_field: Optional[str] = None
+        self.order_desc = False
+
+    def sort(self, field: str, direction: int) -> "SupabaseCursor":
+        self.order_field = field
+        self.order_desc = direction < 0
+        return self
+
+    async def to_list(self, limit: int) -> list[dict]:
+        client = self.collection.client
+        statement = client.table(self.collection.name).select("*")
+        statement = self.collection.apply_filters(statement, self.query)
+        if self.order_field:
+            statement = statement.order(self.order_field, desc=self.order_desc)
+        result = statement.limit(limit).execute()
+        return [self.collection.apply_projection(row, self.projection) for row in (result.data or [])]
+
+
+class UpdateResult:
+    def __init__(self, count: int):
+        self.matched_count = count
+        self.deleted_count = count
+
+
+class MemoryCursor:
+    def __init__(self, rows: list[dict], projection: Optional[dict]):
+        self.rows = rows
+        self.projection = projection
+
+    def sort(self, field: str, direction: int) -> "MemoryCursor":
+        self.rows.sort(key=lambda row: row.get(field, ""), reverse=direction < 0)
+        return self
+
+    async def to_list(self, limit: int) -> list[dict]:
+        return [
+            {key: value for key, value in row.items() if not self.projection or self.projection.get(key, 1) != 0}
+            for row in self.rows[:limit]
+        ]
+
+
+class MemoryCollection:
+    def __init__(self):
+        self.rows: list[dict] = []
+
+    @staticmethod
+    def matches(row: dict, query: dict) -> bool:
+        for field, value in query.items():
+            if isinstance(value, dict) and "$ne" in value:
+                if row.get(field) == value["$ne"]:
+                    return False
+            elif row.get(field) != value:
+                return False
+        return True
+
+    async def find_one(self, query: dict, projection: Optional[dict] = None) -> Optional[dict]:
+        for row in self.rows:
+            if self.matches(row, query):
+                result = copy.deepcopy(row)
+                return {key: value for key, value in result.items() if not projection or projection.get(key, 1) != 0}
+        return None
+
+    async def insert_one(self, document: dict) -> None:
+        self.rows.append(copy.deepcopy(document))
+
+    async def update_one(self, query: dict, update: dict) -> UpdateResult:
+        changes = update.get("$set", update)
+        count = 0
+        for row in self.rows:
+            if self.matches(row, query):
+                row.update(copy.deepcopy(changes))
+                count += 1
+        return UpdateResult(count)
+
+    async def delete_one(self, query: dict) -> UpdateResult:
+        for index, row in enumerate(self.rows):
+            if self.matches(row, query):
+                self.rows.pop(index)
+                return UpdateResult(1)
+        return UpdateResult(0)
+
+    def find(self, query: dict, projection: Optional[dict] = None) -> MemoryCursor:
+        return MemoryCursor(
+            [copy.deepcopy(row) for row in self.rows if self.matches(row, query)],
+            projection,
+        )
+
+
+class SupabaseCollection:
+    def __init__(self, database: "SupabaseDatabase", name: str):
+        self.database = database
+        self.name = name
+
+    @property
+    def client(self) -> Client:
+        return self.database.client
+
+    @staticmethod
+    def apply_projection(row: dict, projection: Optional[dict]) -> dict:
+        if not projection:
+            return row
+        return {key: value for key, value in row.items() if projection.get(key, 1) != 0}
+
+    @staticmethod
+    def apply_filters(statement: Any, query: dict) -> Any:
+        for field, value in query.items():
+            if isinstance(value, dict):
+                if "$ne" in value:
+                    statement = statement.neq(field, value["$ne"])
+                else:
+                    raise HTTPException(status_code=400, detail=f"Filtro non supportato: {field}")
+            else:
+                statement = statement.eq(field, value)
+        return statement
+
+    async def find_one(self, query: dict, projection: Optional[dict] = None) -> Optional[dict]:
+        statement = self.apply_filters(self.client.table(self.name).select("*"), query)
+        result = statement.limit(1).execute()
+        if not result.data:
+            return None
+        return self.apply_projection(result.data[0], projection)
+
+    async def insert_one(self, document: dict) -> None:
+        self.client.table(self.name).insert(document).execute()
+
+    async def update_one(self, query: dict, update: dict) -> UpdateResult:
+        changes = update.get("$set", update)
+        statement = self.apply_filters(self.client.table(self.name).update(changes), query)
+        result = statement.execute()
+        return UpdateResult(len(result.data or []))
+
+    async def delete_one(self, query: dict) -> UpdateResult:
+        statement = self.apply_filters(self.client.table(self.name).delete(), query)
+        result = statement.execute()
+        return UpdateResult(len(result.data or []))
+
+    def find(self, query: dict, projection: Optional[dict] = None) -> SupabaseCursor:
+        return SupabaseCursor(self, query, projection)
+
+
+class SupabaseDatabase:
+    def __init__(self):
+        self._client: Optional[Client] = None
+        self._memory: dict[str, MemoryCollection] = {}
+
+    @property
+    def configured(self) -> bool:
+        return bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY) or MOCK_DATA
+
+    @property
+    def client(self) -> Client:
+        if MOCK_DATA:
+            raise HTTPException(status_code=503, detail="Supabase client non disponibile in modalità mock")
+        if not self.configured:
+            raise HTTPException(status_code=503, detail="Supabase non configurato: aggiungi SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY")
+        if self._client is None:
+            self._client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        return self._client
+
+    def __getattr__(self, name: str) -> SupabaseCollection:
+        if MOCK_DATA:
+            if name not in self._memory:
+                self._memory[name] = MemoryCollection()
+            return self._memory[name]
+        return SupabaseCollection(self, name)
+
+
+db = SupabaseDatabase()
+MOCK_OBJECTS: dict[str, tuple[bytes, str]] = {}
+
+
+def require_openai() -> AsyncOpenAI:
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="OpenAI non configurato: aggiungi OPENAI_API_KEY")
+    return AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=120.0)
+
+
+def supabase_auth_client() -> Client:
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(status_code=503, detail="Supabase Auth non configurato: aggiungi SUPABASE_URL e SUPABASE_ANON_KEY")
+    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+
+def put_object(path: str, data: bytes, content_type: str) -> str:
+    if MOCK_DATA:
+        MOCK_OBJECTS[path] = (data, content_type)
+        return path
+    try:
+        db.client.storage.from_(SUPABASE_STORAGE_BUCKET).upload(
+            path, data, {"content-type": content_type, "upsert": "false"}
+        )
+        return path
+    except Exception as exc:
+        logger.exception("Supabase Storage upload failed")
+        raise HTTPException(status_code=502, detail=f"Caricamento su Supabase Storage fallito: {exc}") from exc
+
+
+def get_object(path: str) -> bytes:
+    if MOCK_DATA:
+        if path not in MOCK_OBJECTS:
+            raise HTTPException(status_code=404, detail="File mock non trovato")
+        return MOCK_OBJECTS[path][0]
+    try:
+        return db.client.storage.from_(SUPABASE_STORAGE_BUCKET).download(path)
+    except Exception as exc:
+        logger.exception("Supabase Storage download failed")
+        raise HTTPException(status_code=404, detail="File non trovato nello storage") from exc
+
+
 class CardBack(BaseModel):
     style: str = "classic"
     color: str = "#7f1d1d"
@@ -114,8 +301,8 @@ class Card(BaseModel):
     artwork_path: Optional[str] = None
     frame: str = "gold"
     back: CardBack = Field(default_factory=CardBack)
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = Field(default_factory=utc_now)
+    updated_at: str = Field(default_factory=utc_now)
 
 
 class CardCreate(BaseModel):
@@ -155,6 +342,10 @@ class LoginInput(BaseModel):
     password: str
 
 
+class SupabaseSessionInput(BaseModel):
+    access_token: str
+
+
 class GenerateContentInput(BaseModel):
     type: str
     custom_type: Optional[str] = None
@@ -176,99 +367,104 @@ class User(BaseModel):
     is_admin: bool = False
     premium_manual: bool = False
     premium_until: Optional[str] = None
+    supabase_auth_id: Optional[str] = None
 
 
-# --- App ---
-app = FastAPI()
+app = FastAPI(title="TomeForge API")
 api_router = APIRouter(prefix="/api")
 
 
 @app.on_event("startup")
-async def startup():
-    try:
-        init_storage()
-        logger.info("Storage initialized")
-    except Exception as e:
-        logger.error(f"Storage init failed: {e}")
-    # Seed admin account (idempotent)
+async def startup() -> None:
+    status = configuration_status()
+    logger.info("TomeForge configuration: %s", status)
+    if MOCK_DATA:
+        await seed_mock_data()
+        logger.warning("TomeForge is running with MOCK_DATA=true; no external data is used.")
+    if not db.configured:
+        logger.warning("Supabase is not configured; protected data endpoints will return 503.")
+        return
     if ADMIN_EMAIL and ADMIN_PASSWORD:
-        try:
-            existing = await db.users.find_one({"email": ADMIN_EMAIL.lower()})
-            if not existing:
-                await db.users.insert_one({
-                    "user_id": f"user_{uuid.uuid4().hex[:12]}", "email": ADMIN_EMAIL.lower(),
-                    "name": "Custode del Tomo", "picture": None, "auth_provider": "email",
-                    "password_hash": hash_password(ADMIN_PASSWORD), "is_admin": True, "premium_manual": True,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                })
-            else:
-                await db.users.update_one({"email": ADMIN_EMAIL.lower()}, {"$set": {"is_admin": True, "premium_manual": True}})
-            logger.info("Admin seeded")
-        except Exception as e:
-            logger.error(f"Admin seed failed: {e}")
+        existing = await db.users.find_one({"email": ADMIN_EMAIL.lower()})
+        payload = {
+            "user_id": f"user_{uuid.uuid4().hex[:12]}",
+            "email": ADMIN_EMAIL.lower(),
+            "name": "Custode del Tomo",
+            "picture": None,
+            "auth_provider": "email",
+            "password_hash": hash_password(ADMIN_PASSWORD),
+            "is_admin": True,
+            "premium_manual": True,
+            "created_at": utc_now(),
+        }
+        if existing:
+            await db.users.update_one({"email": ADMIN_EMAIL.lower()}, {"$set": {"is_admin": True, "premium_manual": True}})
+        else:
+            await db.users.insert_one(payload)
 
 
-# --- Auth helpers ---
-def hash_password(pw: str) -> str:
-    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
+async def seed_mock_data() -> None:
+    existing = await db.users.find_one({"email": MOCK_USER_EMAIL})
+    if existing:
+        return
+    user_id = "user_demo_tomeforge"
+    await db.users.insert_one({
+        "user_id": user_id, "email": MOCK_USER_EMAIL, "name": "Evocatore Demo",
+        "picture": None, "auth_provider": "email", "password_hash": hash_password(MOCK_USER_PASSWORD),
+        "is_admin": True, "premium_manual": True, "created_at": utc_now(),
+    })
+    await db.cards.insert_one({
+        "id": "card_demo_flame", "user_id": user_id, "type": "spell",
+        "custom_type": None, "name": "Fiamma del Primo Tomo",
+        "description": "Una scintilla arcana per provare il grimorio.",
+        "story": "La prima carta apparve tra le ceneri di un antico laboratorio.",
+        "language": "it", "attributes": {"livello": "2", "scuola": "Invocazione", "danno": "2d6 fuoco"},
+        "artwork_path": None, "frame": "gold",
+        "back": {"style": "classic", "color": "#7f1d1d", "emblem": "flame", "motto": "Audentes fortuna iuvat"},
+        "created_at": utc_now(), "updated_at": utc_now(),
+    })
 
 
-def verify_password(pw: str, hashed: str) -> bool:
-    return bcrypt.checkpw(pw.encode(), hashed.encode())
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
 def create_jwt(user_id: str) -> str:
-    payload = {"user_id": user_id, "exp": datetime.now(timezone.utc) + timedelta(days=7)}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
+    require_jwt_secret()
+    return jwt.encode({"user_id": user_id, "exp": datetime.now(timezone.utc) + timedelta(days=7)}, JWT_SECRET, algorithm=JWT_ALGO)
 
 
 async def get_current_user(request: Request) -> User:
-    token = request.cookies.get("session_token")
-    if not token:
-        auth = request.headers.get("Authorization")
-        if auth and auth.startswith("Bearer "):
-            token = auth.split(" ", 1)[1]
+    token = request.cookies.get("session_token") or request.query_params.get("auth")
+    auth = request.headers.get("Authorization")
+    if not token and auth and auth.startswith("Bearer "):
+        token = auth.split(" ", 1)[1]
     if not token:
         raise HTTPException(status_code=401, detail="Non autenticato")
-
-    # Try google session first
-    session = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
-    if session:
-        expires_at = session["expires_at"]
-        if isinstance(expires_at, str):
-            expires_at = datetime.fromisoformat(expires_at)
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at < datetime.now(timezone.utc):
-            raise HTTPException(status_code=401, detail="Sessione scaduta")
-        user_doc = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
-        if user_doc:
-            return User(**user_doc)
-
-    # Try JWT
+    require_jwt_secret()
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
-        user_doc = await db.users.find_one({"user_id": payload["user_id"]}, {"_id": 0})
-        if user_doc:
-            return User(**user_doc)
-    except jwt.PyJWTError:
-        pass
-    raise HTTPException(status_code=401, detail="Token non valido")
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status_code=401, detail="Token non valido") from exc
+    user_doc = await db.users.find_one({"user_id": payload["user_id"]})
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="Utente non trovato")
+    return User(**user_doc)
 
 
-def compute_premium(user) -> bool:
-    if getattr(user, "premium_manual", False):
+def compute_premium(user: User) -> bool:
+    if user.premium_manual:
         return True
-    pu = getattr(user, "premium_until", None)
-    if pu:
-        try:
-            dt = datetime.fromisoformat(pu)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt > datetime.now(timezone.utc)
-        except Exception:
-            return False
-    return False
+    if not user.premium_until:
+        return False
+    try:
+        return datetime.fromisoformat(user.premium_until) > datetime.now(timezone.utc)
+    except ValueError:
+        return False
 
 
 async def require_premium(user: User = Depends(get_current_user)) -> User:
@@ -278,231 +474,229 @@ async def require_premium(user: User = Depends(get_current_user)) -> User:
 
 
 async def require_admin(user: User = Depends(get_current_user)) -> User:
-    if not getattr(user, "is_admin", False):
+    if not user.is_admin:
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
     return user
 
 
-# --- Auth routes ---
+@api_router.get("/health")
+async def health() -> dict:
+    status = configuration_status()
+    return {"status": "ok" if status["supabase"] and status["jwt"] else "degraded", "services": status}
+
+
 @api_router.post("/auth/register")
 async def register(body: RegisterInput):
     existing = await db.users.find_one({"email": body.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Email già registrata")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
-    await db.users.insert_one({
-        "user_id": user_id,
-        "email": body.email.lower(),
-        "name": body.name,
-        "picture": None,
-        "auth_provider": "email",
-        "password_hash": hash_password(body.password),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    })
-    token = create_jwt(user_id)
-    doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    u = User(**doc)
-    return {"token": token, "user": {**u.model_dump(), "is_premium": compute_premium(u)}}
+    document = {
+        "user_id": user_id, "email": body.email.lower(), "name": body.name,
+        "picture": None, "auth_provider": "email", "password_hash": hash_password(body.password),
+        "is_admin": False, "premium_manual": False, "created_at": utc_now(),
+    }
+    await db.users.insert_one(document)
+    user = User(**document)
+    return {"token": create_jwt(user_id), "user": {**user.model_dump(), "is_premium": compute_premium(user)}}
 
 
 @api_router.post("/auth/login")
 async def login(body: LoginInput):
-    user_doc = await db.users.find_one({"email": body.email.lower()})
-    if not user_doc or not user_doc.get("password_hash"):
+    document = await db.users.find_one({"email": body.email.lower()})
+    if not document or not document.get("password_hash") or not verify_password(body.password, document["password_hash"]):
         raise HTTPException(status_code=401, detail="Credenziali non valide")
-    if not verify_password(body.password, user_doc["password_hash"]):
-        raise HTTPException(status_code=401, detail="Credenziali non valide")
-    token = create_jwt(user_doc["user_id"])
-    u = User(**user_doc)
-    return {"token": token, "user": {**u.model_dump(), "is_premium": compute_premium(u)}}
-
-
-@api_router.post("/auth/google-session")
-async def google_session(request: Request, response: Response):
-    session_id = request.headers.get("X-Session-ID")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Session ID mancante")
-    resp = requests.get("https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
-                        headers={"X-Session-ID": session_id}, timeout=30)
-    if resp.status_code != 200:
-        raise HTTPException(status_code=401, detail="Sessione Google non valida")
-    data = resp.json()
-    email = data["email"].lower()
-    existing = await db.users.find_one({"email": email}, {"_id": 0})
-    if existing:
-        user_id = existing["user_id"]
-        await db.users.update_one({"user_id": user_id}, {"$set": {"name": data.get("name"), "picture": data.get("picture")}})
-    else:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({
-            "user_id": user_id, "email": email, "name": data.get("name"),
-            "picture": data.get("picture"), "auth_provider": "google",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-    session_token = data["session_token"]
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-    await db.user_sessions.insert_one({
-        "user_id": user_id, "session_token": session_token,
-        "expires_at": expires_at.isoformat(), "created_at": datetime.now(timezone.utc).isoformat(),
-    })
-    response.set_cookie("session_token", session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 60 * 60)
-    doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    u = User(**doc)
-    return {"user": {**u.model_dump(), "is_premium": compute_premium(u)}, "session_token": session_token}
+    user = User(**document)
+    return {"token": create_jwt(user.user_id), "user": {**user.model_dump(), "is_premium": compute_premium(user)}}
 
 
 @api_router.get("/auth/me")
 async def auth_me(user: User = Depends(get_current_user)):
-    d = user.model_dump()
-    d["is_premium"] = compute_premium(user)
-    return d
+    return {**user.model_dump(), "is_premium": compute_premium(user)}
 
 
 @api_router.post("/auth/logout")
-async def logout(request: Request, response: Response):
-    token = request.cookies.get("session_token")
-    if token:
-        await db.user_sessions.delete_one({"session_token": token})
+async def logout(response: Response):
     response.delete_cookie("session_token", path="/")
     return {"ok": True}
 
 
-# --- AI routes ---
-def _ai_error(e: Exception, fallback: str):
-    msg = str(e).lower()
-    if any(k in msg for k in ["budget", "quota", "insufficient", "exceeded", "402", "payment", "credit", "balance"]):
-        return HTTPException(status_code=402, detail="Credito AI esaurito. Ricarica la Universal Key da Profilo → Manage plan → Universal Key → Add Balance.")
-    return HTTPException(status_code=502, detail=fallback)
+@api_router.get("/auth/google/start")
+async def google_start(redirect_to: str):
+    """Start Google OAuth using the app's Supabase Auth provider."""
+    try:
+        result = supabase_auth_client().auth.sign_in_with_oauth({
+            "provider": "google",
+            "options": {"redirect_to": redirect_to},
+        })
+        url = getattr(result, "url", None)
+        if not url:
+            raise ValueError("Supabase did not return an authorization URL")
+        return {"url": url}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Could not start Supabase Google OAuth")
+        raise HTTPException(status_code=502, detail="Impossibile avviare l'accesso Google") from exc
+
+
+@api_router.post("/auth/supabase-session")
+async def supabase_session(body: SupabaseSessionInput):
+    """Exchange a verified Supabase OAuth token for TomeForge's session token."""
+    try:
+        external_user = supabase_auth_client().auth.get_user(body.access_token).user
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Sessione Supabase non valida") from exc
+    if not external_user or not external_user.email:
+        raise HTTPException(status_code=401, detail="L'account Google non contiene un'email verificata")
+    email = external_user.email.lower()
+    metadata = external_user.user_metadata or {}
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        user_id = existing["user_id"]
+        await db.users.update_one({"user_id": user_id}, {"$set": {
+            "name": metadata.get("full_name") or metadata.get("name") or existing.get("name") or email,
+            "picture": metadata.get("avatar_url") or existing.get("picture"),
+            "auth_provider": "google",
+            "supabase_auth_id": external_user.id,
+        }})
+        existing.update({"supabase_auth_id": external_user.id, "auth_provider": "google"})
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        existing = {
+            "user_id": user_id, "email": email,
+            "name": metadata.get("full_name") or metadata.get("name") or email,
+            "picture": metadata.get("avatar_url"), "auth_provider": "google",
+            "supabase_auth_id": external_user.id, "is_admin": False,
+            "premium_manual": False, "created_at": utc_now(),
+        }
+        await db.users.insert_one(existing)
+    user = User(**existing)
+    return {"token": create_jwt(user_id), "user": {**user.model_dump(), "is_premium": compute_premium(user)}}
 
 
 TYPE_LABELS = {
     "spell": "Magia/Incantesimo", "class": "Classe", "race": "Razza", "weapon": "Arma",
     "feat": "Talento", "monster": "Mostro/Nemico", "character": "Personaggio", "custom": "Tipo personalizzato",
 }
-
 TYPE_SCHEMAS = {
-    "spell": '"attributes": {"livello": "", "scuola": "", "azione": "(Azione, Azione bonus o Reazione)", "tempo_lancio": "", "gittata": "", "area": "(es. Sfera 6 m, oppure - se a bersaglio singolo)", "componenti": "", "durata": "", "concentrazione": "(Sì o No)", "danno": "(es. 8d6 fuoco, oppure - se non infligge danni)", "effetto": ""}',
-    "class": '"attributes": {"dado_vita": "", "abilita_primaria": "", "tiri_salvezza": "", "competenze": "", "caratteristiche": ["tratto1", "tratto2"]}',
-    "race": '"attributes": {"bonus_caratteristiche": "", "velocita": "", "taglia": "", "linguaggi": "", "tratti": ["tratto1", "tratto2"]}',
+    "spell": '"attributes": {"livello": "", "scuola": "", "azione": "", "tempo_lancio": "", "gittata": "", "area": "", "componenti": "", "durata": "", "concentrazione": "", "danno": "", "effetto": ""}',
+    "class": '"attributes": {"dado_vita": "", "abilita_primaria": "", "tiri_salvezza": "", "competenze": "", "caratteristiche": []}',
+    "race": '"attributes": {"bonus_caratteristiche": "", "velocita": "", "taglia": "", "linguaggi": "", "tratti": []}',
     "weapon": '"attributes": {"danno": "", "tipo_danno": "", "proprieta": "", "peso": "", "costo": "", "categoria": ""}',
-    "feat": '"attributes": {"prerequisito": "", "benefici": ["beneficio1", "beneficio2"]}',
-    "monster": '"attributes": {"classe_armatura": "", "punti_ferita": "", "velocita": "", "for": "", "des": "", "cos": "", "int": "", "sag": "", "car": "", "tiri_salvezza": "", "resistenze": "", "vulnerabilita": "", "immunita": "", "sensi": "", "linguaggi": "", "grado_sfida": "", "azioni": [{"nome": "", "descrizione": ""}]}',
-    "character": '"attributes": {"classe": "", "razza": "", "livello": "", "for": "", "des": "", "cos": "", "int": "", "sag": "", "car": "", "bonus_competenza": "", "classe_armatura": "", "punti_ferita": "", "cd_incantesimi": "", "competenze": "", "abilita_sottoclasse": ["abilita1"], "slot_incantesimi": [{"livello": 1, "totale": 2}]}',
-    "custom": '"attributes": {"campo1": "", "campo2": ""}',
+    "feat": '"attributes": {"prerequisito": "", "benefici": []}',
+    "monster": '"attributes": {"classe_armatura": "", "punti_ferita": "", "velocita": "", "for": "", "des": "", "cos": "", "int": "", "sag": "", "car": "", "azioni": [{"nome": "", "descrizione": ""}]}',
+    "character": '"attributes": {"classe": "", "razza": "", "livello": "", "for": "", "des": "", "cos": "", "int": "", "sag": "", "car": "", "slot_incantesimi": []}',
+    "custom": '"attributes": {}',
 }
+LANGUAGES = {"it": "Italiano", "en": "English", "es": "Spanish", "de": "German"}
+
+
+def parse_ai_json(text: str) -> dict:
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.strip("`").removeprefix("json").strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end == -1:
+        raise ValueError("OpenAI did not return JSON")
+    return json.loads(text[start:end + 1])
 
 
 @api_router.post("/ai/generate-content")
 async def generate_content(body: GenerateContentInput, user: User = Depends(require_premium)):
+    if MOCK_DATA:
+        return {
+            "name": "Eco della Luna (Demo)",
+            "description": f"Una creazione simulata per: {body.prompt}.",
+            "story": "Il testo dimostrativo appare senza chiamare OpenAI.",
+            "attributes": {"livello": "2", "scuola": "Illusione", "azione": "1 azione", "danno": "2d6 psichico"},
+        }
+    language = LANGUAGES.get(body.language, "Italiano")
     type_label = body.custom_type if body.type == "custom" and body.custom_type else TYPE_LABELS.get(body.type, body.type)
-    lang = "italiano" if body.language == "it" else "inglese"
-    schema = TYPE_SCHEMAS.get(body.type, TYPE_SCHEMAS["custom"])
-    system = (
-        f"Sei un maestro creatore di contenuti per Dungeons & Dragons 5e. "
-        f"Genera contenuti coerenti, bilanciati e in lingua {lang}. "
-        f"Rispondi SEMPRE ed ESCLUSIVAMENTE con un oggetto JSON valido, senza testo aggiuntivo, senza markdown, senza ```."
-    )
-    user_prompt = (
-        f"Crea una carta di tipo '{type_label}' per D&D basata su questa richiesta: \"{body.prompt}\".\n"
-        f"Restituisci un JSON con questa struttura esatta (in {lang}):\n"
-        f'{{"name": "nome della carta", "description": "descrizione evocativa (max 3 frasi)", '
-        f'"story": "breve storia/lore (max 4 frasi)", {schema}}}\n'
-        f"Compila tutti i campi con valori realistici e coerenti con le regole D&D 5e. Le liste devono contenere elementi pertinenti."
+    prompt = (
+        f"Create a balanced Dungeons & Dragons 5e {type_label} card in {language} from: {body.prompt}. "
+        f"Return only valid JSON with name, description (maximum 3 sentences), story (maximum 4 sentences), and {TYPE_SCHEMAS.get(body.type, TYPE_SCHEMAS['custom'])}."
     )
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"gen-{uuid.uuid4().hex[:8]}", system_message=system)
-        chat.with_model("gemini", TEXT_MODEL)
-        raw = await chat.send_message(UserMessage(text=user_prompt))
-        text = raw.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1] if "```" in text else text
-            if text.startswith("json"):
-                text = text[4:]
-        text = text.strip()
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end != -1:
-            text = text[start:end + 1]
-        data = json.loads(text)
-        return {
-            "name": data.get("name", ""),
-            "description": data.get("description", ""),
-            "story": data.get("story", ""),
-            "attributes": data.get("attributes", {}),
-        }
-    except json.JSONDecodeError:
-        logger.error(f"JSON parse failed: {text[:200]}")
-        raise HTTPException(status_code=502, detail="Generazione AI non valida, riprova")
-    except Exception as e:
-        logger.error(f"AI content error: {e}")
-        raise _ai_error(e, "Errore nella generazione AI")
+        client = require_openai()
+        response = await client.chat.completions.create(
+            model=OPENAI_TEXT_MODEL,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": "You are a D&D 5e content designer. Be accurate, imaginative, and return JSON only."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        data = parse_ai_json(response.choices[0].message.content or "{}")
+        return {"name": data.get("name", ""), "description": data.get("description", ""), "story": data.get("story", ""), "attributes": data.get("attributes", {})}
+    except HTTPException:
+        raise
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="OpenAI ha restituito un formato non valido") from exc
+    except Exception as exc:
+        logger.exception("OpenAI content generation failed")
+        raise HTTPException(status_code=502, detail="Errore nella generazione testo OpenAI") from exc
+
+
+async def save_file(path: str, data: bytes, content_type: str, user_id: str, original_filename: Optional[str] = None) -> str:
+    stored_path = put_object(path, data, content_type)
+    await db.files.insert_one({
+        "id": str(uuid.uuid4()), "storage_path": stored_path, "user_id": user_id,
+        "original_filename": original_filename, "content_type": content_type,
+        "is_deleted": False, "created_at": utc_now(),
+    })
+    return stored_path
 
 
 @api_router.post("/ai/generate-image")
 async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium)):
+    if MOCK_DATA:
+        # 1x1 transparent PNG: enough for the editor/export flow without fake credentials.
+        demo_png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+        path = f"artwork/{user.user_id}/{uuid.uuid4()}.png"
+        return {"artwork_path": await save_file(path, demo_png, "image/png", user.user_id, "mock-generated.png")}
     type_hint = TYPE_LABELS.get(body.type or "", "")
-    art_prompt = (
-        f"Epic dark fantasy trading card artwork, Dungeons and Dragons style, for: {body.prompt}. "
-        f"{('Subject category: ' + type_hint + '. ') if type_hint else ''}"
-        f"Highly detailed digital painting, dramatic lighting, obsidian and antique gold and crimson palette, "
-        f"ornate, cinematic, no text, no borders, no watermark, portrait orientation."
+    prompt = (
+        f"Epic dark fantasy Dungeons & Dragons trading-card artwork for {body.prompt}. "
+        f"{'Subject category: ' + type_hint + '. ' if type_hint else ''}"
+        "Detailed digital painting, dramatic lighting, obsidian, antique gold and crimson palette, portrait orientation, no text, no frame, no watermark."
     )
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"img-{uuid.uuid4().hex[:8]}", system_message="You are a master fantasy illustrator.")
-        chat.with_model("gemini", IMAGE_MODEL).with_params(modalities=["image", "text"])
-        _, images = await chat.send_message_multimodal_response(UserMessage(text=art_prompt))
-        if not images:
-            raise HTTPException(status_code=502, detail="Nessuna immagine generata")
-        img = images[0]
-        img_bytes = base64.b64decode(img["data"])
-        ext = "png" if "png" in img["mime_type"] else "jpg"
-        path = f"{APP_NAME}/artwork/{user.user_id}/{uuid.uuid4()}.{ext}"
-        result = put_object(path, img_bytes, img["mime_type"])
-        await db.files.insert_one({
-            "id": str(uuid.uuid4()), "storage_path": result["path"], "user_id": user.user_id,
-            "content_type": img["mime_type"], "is_deleted": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        return {"artwork_path": result["path"]}
+        client = require_openai()
+        image = await client.images.generate(model=OPENAI_IMAGE_MODEL, prompt=prompt, size="1024x1536", quality="low")
+        encoded = image.data[0].b64_json
+        if not encoded:
+            raise ValueError("OpenAI did not return image data")
+        path = f"artwork/{user.user_id}/{uuid.uuid4()}.png"
+        return {"artwork_path": await save_file(path, base64.b64decode(encoded), "image/png", user.user_id, "openai-generated.png")}
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"AI image error: {e}")
-        raise _ai_error(e, "Errore nella generazione immagine")
+    except Exception as exc:
+        logger.exception("OpenAI image generation failed")
+        raise HTTPException(status_code=502, detail="Errore nella generazione immagine OpenAI") from exc
 
 
-# --- File routes ---
 @api_router.post("/upload")
 async def upload(file: UploadFile = File(...), user: User = Depends(get_current_user)):
-    ext = (file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "png")
+    ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else "png"
     content_type = MIME_TYPES.get(ext, file.content_type or "application/octet-stream")
-    path = f"{APP_NAME}/uploads/{user.user_id}/{uuid.uuid4()}.{ext}"
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Carica un file immagine valido")
     data = await file.read()
-    result = put_object(path, data, content_type)
-    await db.files.insert_one({
-        "id": str(uuid.uuid4()), "storage_path": result["path"], "user_id": user.user_id,
-        "original_filename": file.filename, "content_type": content_type, "is_deleted": False,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    })
-    return {"artwork_path": result["path"]}
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="L'immagine supera il limite di 10 MB")
+    path = f"uploads/{user.user_id}/{uuid.uuid4()}.{ext}"
+    return {"artwork_path": await save_file(path, data, content_type, user.user_id, file.filename)}
 
 
 @api_router.get("/files/{path:path}")
-async def download(path: str, authorization: str = Header(None), auth: str = Query(None)):
-    token = None
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.split(" ", 1)[1]
-    elif auth:
-        token = auth
-    if not token:
-        raise HTTPException(status_code=401, detail="Non autorizzato")
-    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
-    if not record:
+async def download(path: str, user: User = Depends(get_current_user)):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False})
+    if not record or record["user_id"] != user.user_id:
         raise HTTPException(status_code=404, detail="File non trovato")
-    data, content_type = get_object(path)
-    return Response(content=data, media_type=record.get("content_type", content_type))
+    return Response(content=get_object(path), media_type=record.get("content_type", "application/octet-stream"))
 
 
-# --- Card routes ---
 @api_router.post("/cards", response_model=Card)
 async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
     card = Card(user_id=user.user_id, **body.model_dump(exclude_none=True))
@@ -512,33 +706,33 @@ async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
 
 @api_router.get("/cards", response_model=List[Card])
 async def list_cards(type: Optional[str] = None, search: Optional[str] = None, user: User = Depends(get_current_user)):
-    query = {"user_id": user.user_id}
+    cards = await db.cards.find({"user_id": user.user_id}).sort("created_at", -1).to_list(1000)
     if type and type != "all":
-        query["type"] = type
+        cards = [card for card in cards if card.get("type") == type]
     if search:
-        query["name"] = {"$regex": search, "$options": "i"}
-    docs = await db.cards.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    return [Card(**d) for d in docs]
+        needle = search.casefold()
+        cards = [card for card in cards if needle in card.get("name", "").casefold()]
+    return [Card(**card) for card in cards]
 
 
 @api_router.get("/cards/{card_id}", response_model=Card)
 async def get_card(card_id: str, user: User = Depends(get_current_user)):
-    doc = await db.cards.find_one({"id": card_id, "user_id": user.user_id}, {"_id": 0})
-    if not doc:
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
-    return Card(**doc)
+    return Card(**card)
 
 
 @api_router.put("/cards/{card_id}", response_model=Card)
 async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_current_user)):
-    doc = await db.cards.find_one({"id": card_id, "user_id": user.user_id}, {"_id": 0})
-    if not doc:
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
     updates = body.model_dump(exclude_none=True)
-    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    updates["updated_at"] = utc_now()
     await db.cards.update_one({"id": card_id, "user_id": user.user_id}, {"$set": updates})
-    doc.update(updates)
-    return Card(**doc)
+    card.update(updates)
+    return Card(**card)
 
 
 @api_router.delete("/cards/{card_id}")
@@ -551,19 +745,18 @@ async def delete_card(card_id: str, user: User = Depends(get_current_user)):
 
 @api_router.get("/public/cards/{card_id}")
 async def public_get_card(card_id: str):
-    doc = await db.cards.find_one({"id": card_id}, {"_id": 0, "user_id": 0})
-    if not doc:
+    card = await db.cards.find_one({"id": card_id}, {"user_id": 0})
+    if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
-    return doc
+    return card
 
 
 @api_router.get("/public/files/{path:path}")
 async def public_download(path: str):
-    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False})
     if not record:
         raise HTTPException(status_code=404, detail="File non trovato")
-    data, content_type = get_object(path)
-    return Response(content=data, media_type=record.get("content_type", content_type))
+    return Response(content=get_object(path), media_type=record.get("content_type", "application/octet-stream"))
 
 
 class PremiumToggle(BaseModel):
@@ -572,18 +765,14 @@ class PremiumToggle(BaseModel):
 
 @api_router.get("/admin/users")
 async def admin_list_users(admin: User = Depends(require_admin)):
-    docs = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(1000)
-    out = []
-    for d in docs:
-        d["is_premium"] = compute_premium(User(**d))
-        out.append(d)
-    return out
+    users = await db.users.find({}, {"password_hash": 0}).sort("created_at", -1).to_list(1000)
+    return [{**item, "is_premium": compute_premium(User(**item))} for item in users]
 
 
 @api_router.post("/admin/users/{uid}/premium")
 async def admin_set_premium(uid: str, body: PremiumToggle, admin: User = Depends(require_admin)):
-    res = await db.users.update_one({"user_id": uid}, {"$set": {"premium_manual": body.enabled}})
-    if res.matched_count == 0:
+    result = await db.users.update_one({"user_id": uid}, {"$set": {"premium_manual": body.enabled}})
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Utente non trovato")
     return {"ok": True}
 
@@ -593,130 +782,157 @@ class CheckoutRequest(BaseModel):
     origin_url: str
 
 
-async def _activate_from_session(session: dict):
-    meta = session.get("metadata") or {}
-    uid = meta.get("user_id")
-    if not uid:
-        return
-    sub_id = session.get("subscription")
-    customer_id = session.get("customer")
-    premium_until = None
-    if sub_id:
-        try:
-            sub = stripe.Subscription.retrieve(sub_id)
-            cpe = sub.get("current_period_end")
-            if cpe:
-                premium_until = datetime.fromtimestamp(cpe, tz=timezone.utc).isoformat()
-        except Exception:
-            pass
-    if not premium_until:
-        premium_until = (datetime.now(timezone.utc) + timedelta(days=31)).isoformat()
-    await db.users.update_one({"user_id": uid}, {"$set": {
-        "premium_until": premium_until, "stripe_subscription_id": sub_id, "stripe_customer_id": customer_id,
-    }})
+def require_stripe() -> None:
+    if not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Stripe non configurato")
+
+
+def stripe_field(resource: Any, field: str, default: Any = None) -> Any:
+    if isinstance(resource, dict):
+        return resource.get(field, default)
+    return getattr(resource, field, default)
+
+
+def premium_until_from_subscription(subscription: Any) -> Optional[str]:
+    period_end = stripe_field(subscription, "current_period_end")
+    if period_end is None:
+        items = stripe_field(subscription, "items", {})
+        data = stripe_field(items, "data", [])
+        if data:
+            period_end = stripe_field(data[0], "current_period_end")
+    if not period_end:
+        return None
+    return datetime.fromtimestamp(int(period_end), tz=timezone.utc).isoformat()
+
+
+async def sync_subscription_entitlement(subscription_id: str, fallback_user_id: Optional[str] = None) -> Optional[str]:
+    """Synchronize Premium access from Stripe's actual subscription period."""
+    subscription = stripe.Subscription.retrieve(subscription_id)
+    metadata = stripe_field(subscription, "metadata", {}) or {}
+    user_id = stripe_field(metadata, "user_id") or fallback_user_id
+    premium_until = premium_until_from_subscription(subscription)
+    if not user_id or not premium_until:
+        logger.warning("Could not sync Stripe subscription %s: missing user or period end", subscription_id)
+        return None
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "premium_until": premium_until,
+            "stripe_subscription_id": subscription_id,
+            "stripe_customer_id": stripe_field(subscription, "customer"),
+        }},
+    )
+    return user_id
+
+
+async def revoke_subscription_entitlement(subscription: Any) -> Optional[str]:
+    metadata = stripe_field(subscription, "metadata", {}) or {}
+    user_id = stripe_field(metadata, "user_id")
+    if not user_id:
+        return None
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "premium_until": datetime.now(timezone.utc).isoformat(),
+            "stripe_subscription_id": None,
+        }},
+    )
+    return user_id
 
 
 @api_router.post("/payments/checkout")
 async def create_checkout(req: CheckoutRequest, user: User = Depends(get_current_user)):
+    require_stripe()
     prices = stripe.Price.list(lookup_keys=[req.lookup_key], active=True, limit=1).data
     if not prices:
         raise HTTPException(status_code=500, detail="Piano non trovato")
     price = prices[0]
-    kwargs = dict(
-        line_items=[{"price": price.id, "quantity": 1}],
-        mode="subscription",
+    session = stripe.checkout.Session.create(
+        line_items=[{"price": price.id, "quantity": 1}], mode="subscription",
         success_url=f"{req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{req.origin_url}/payment/cancel",
         metadata={"user_id": user.user_id, "lookup_key": req.lookup_key},
         subscription_data={"metadata": {"user_id": user.user_id}},
     )
-    try:
-        session = stripe.checkout.Session.create(**kwargs, managed_payments={"enabled": True})
-    except stripe.error.InvalidRequestError as e:
-        msg = (getattr(e, "user_message", "") or "").lower()
-        if "managed payments" in msg or "ineligible" in msg:
-            session = stripe.checkout.Session.create(**kwargs, automatic_tax={"enabled": True}, billing_address_collection="required")
-        else:
-            raise
-    now = datetime.now(timezone.utc).isoformat()
     await db.payment_transactions.insert_one({
         "session_id": session.id, "user_id": user.user_id, "lookup_key": req.lookup_key,
-        "amount": price.unit_amount or 0, "currency": price.currency,
-        "status": "initiated", "payment_status": "pending", "created_at": now, "updated_at": now,
+        "amount": price.unit_amount or 0, "currency": price.currency, "status": "initiated",
+        "payment_status": "pending", "stripe_subscription_id": None,
+        "created_at": utc_now(), "updated_at": utc_now(),
     })
     return {"checkout_url": session.url, "session_id": session.id}
 
 
 @api_router.get("/payments/status/{session_id}")
-async def payment_status(session_id: str):
-    record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+async def payment_status(session_id: str, user: User = Depends(get_current_user)):
+    record = await db.payment_transactions.find_one({"session_id": session_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Transazione non trovata")
-    if record.get("payment_status") != "paid":
+    if stripe.api_key:
         try:
-            s = stripe.checkout.Session.retrieve(session_id)
-            if s.payment_status == "paid" or s.status == "complete":
-                await db.payment_transactions.update_one(
-                    {"session_id": session_id, "payment_status": {"$ne": "paid"}},
-                    {"$set": {"status": "completed", "payment_status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}},
-                )
-                await _activate_from_session(s)
-                record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+            session = stripe.checkout.Session.retrieve(session_id)
+            payment = stripe_field(session, "payment_status", record["payment_status"])
+            status = stripe_field(session, "status", record["status"])
+            subscription_id = stripe_field(session, "subscription")
+            updates = {"status": status, "payment_status": payment, "updated_at": utc_now()}
+            if subscription_id:
+                updates["stripe_subscription_id"] = subscription_id
+            await db.payment_transactions.update_one({"session_id": session_id, "user_id": user.user_id}, {"$set": updates})
+            if payment == "paid" and subscription_id:
+                await sync_subscription_entitlement(subscription_id, user.user_id)
+            record.update(updates)
         except stripe.error.StripeError:
-            pass
+            logger.warning("Stripe status reconciliation failed for checkout session %s", session_id, exc_info=True)
     return {"session_id": record["session_id"], "status": record["status"], "payment_status": record["payment_status"]}
 
 
 @api_router.post("/stripe/webhook")
 async def stripe_webhook(request: Request):
-    payload = await request.body()
-    sig = request.headers.get("stripe-signature", "")
+    require_stripe()
     try:
-        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-    obj, t = event["data"]["object"], event["type"]
-    now = datetime.now(timezone.utc).isoformat()
-    if t == "checkout.session.completed":
-        await db.payment_transactions.update_one(
-            {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
-            {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "updated_at": now}},
-        )
-        await _activate_from_session(obj)
-    elif t in ("invoice.paid", "invoice.payment_succeeded"):
-        sub_id = obj.get("subscription")
-        if sub_id:
-            try:
-                sub = stripe.Subscription.retrieve(sub_id)
-                uid = (sub.get("metadata") or {}).get("user_id")
-                cpe = sub.get("current_period_end")
-                if uid and cpe:
-                    await db.users.update_one({"user_id": uid}, {"$set": {"premium_until": datetime.fromtimestamp(cpe, tz=timezone.utc).isoformat()}})
-            except Exception:
-                pass
-    elif t == "customer.subscription.deleted":
-        uid = (obj.get("metadata") or {}).get("user_id")
-        if uid:
-            await db.users.update_one({"user_id": uid}, {"$set": {"premium_until": now}})
+        event = stripe.Webhook.construct_event(await request.body(), request.headers.get("stripe-signature", ""), STRIPE_WEBHOOK_SECRET)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Firma Stripe non valida") from exc
+    event_type = event["type"]
+    resource = event["data"]["object"]
+    try:
+        if event_type == "checkout.session.completed":
+            session_id = stripe_field(resource, "id")
+            subscription_id = stripe_field(resource, "subscription")
+            updates = {
+                "status": stripe_field(resource, "status", "completed"),
+                "payment_status": stripe_field(resource, "payment_status", "paid"),
+                "updated_at": utc_now(),
+            }
+            if subscription_id:
+                updates["stripe_subscription_id"] = subscription_id
+            await db.payment_transactions.update_one({"session_id": session_id}, {"$set": updates})
+            if subscription_id:
+                metadata = stripe_field(resource, "metadata", {}) or {}
+                await sync_subscription_entitlement(subscription_id, stripe_field(metadata, "user_id"))
+        elif event_type in {"invoice.paid", "invoice.payment_succeeded"}:
+            subscription_id = stripe_field(resource, "subscription")
+            if subscription_id:
+                await sync_subscription_entitlement(subscription_id)
+        elif event_type == "customer.subscription.deleted":
+            await revoke_subscription_entitlement(resource)
+    except stripe.error.StripeError:
+        logger.exception("Stripe lifecycle sync failed for event %s", event_type)
+        raise HTTPException(status_code=502, detail="Impossibile sincronizzare l'abbonamento Stripe")
     return {"status": "ok"}
 
 
 @api_router.get("/")
 async def root():
-    return {"message": "TomeForge API"}
+    return {"message": "TomeForge API", "health": "/api/health"}
 
 
 app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:5000,http://127.0.0.1:5000").split(",")],
+    allow_origin_regex=r"https://.*\.replit\.dev",
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()

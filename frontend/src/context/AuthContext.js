@@ -21,8 +21,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // If returning from OAuth callback, let AuthCallback establish the session first.
-    if (window.location.hash?.includes("session_id=")) {
+    // Let the OAuth callback exchange the short-lived Supabase token first.
+    if (window.location.pathname === "/oauth/callback") {
       setLoading(false);
       return;
     }

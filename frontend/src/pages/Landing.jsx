@@ -41,10 +41,15 @@ export default function Landing() {
     }
   };
 
-  const googleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/collezione";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  const googleLogin = async () => {
+    try {
+      const res = await api.get("/auth/google/start", {
+        params: { redirect_to: `${window.location.origin}/oauth/callback` },
+      });
+      window.location.assign(res.data.url);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Accesso Google non disponibile");
+    }
   };
 
   return (
@@ -135,6 +140,7 @@ export default function Landing() {
             className="w-full rounded-none border-gold-deep/50 bg-transparent text-foreground hover:bg-secondary hover:text-gold font-label tracking-wide h-11 transition-colors">
             <Sparkles className="w-4 h-4 mr-2 text-gold" /> Continua con Google
           </Button>
+
         </motion.div>
       </div>
     </div>
