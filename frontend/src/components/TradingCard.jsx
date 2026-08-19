@@ -27,9 +27,16 @@ const getFrameColors = (frame, appearance = {}) => {
 
 const foilFrameStyle = (frame, appearance) => {
   const colors = getFrameColors(frame, appearance);
+  const primary = colors[0];
+  const highlight = colors[Math.floor(colors.length / 2)] || primary;
+  const accent = colors[colors.length - 1] || primary;
   return {
-    borderImage: `linear-gradient(135deg, ${colors.join(", ")}) 1`,
-    boxShadow: `inset 0 0 0 2px rgba(255,255,255,.16), inset 0 0 35px rgba(0,0,0,.68), 0 0 14px ${colors[1]}55`,
+    "--tf-frame-primary": primary,
+    "--tf-frame-highlight": highlight,
+    "--tf-frame-accent": accent,
+    borderImageSource: `linear-gradient(135deg, ${colors.join(", ")})`,
+    borderImageSlice: 1,
+    boxShadow: `inset 0 0 0 2px ${highlight}2e, inset 0 0 35px rgba(0,0,0,.68), 0 0 14px ${highlight}55`,
   };
 };
 
@@ -128,12 +135,12 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
         <QuickStats card={card} exportMode={exportMode} />
         {card.description && (
           <div className="tf-description-panel">
-            <p className={`font-body text-[10px] italic ${exportMode ? "tf-export-description" : "text-foreground/90 leading-snug line-clamp-2"}`}>{card.description}</p>
+            <p className={`font-body text-[10px] italic ${exportMode ? "tf-export-description" : "text-foreground/90 leading-snug line-clamp-2 pr-12"}`}>{card.description}</p>
           </div>
         )}
       </div>
       {/* footer with QR */}
-      <div className="flex-none flex items-end justify-between px-3 pb-2.5 pt-1">
+      <div className="relative flex min-h-[52px] flex-none items-end justify-between px-3 pb-2.5 pt-1">
         <span className={`font-label text-[8px] tracking-widest uppercase leading-tight ${exportMode ? "tf-export-footer" : "text-muted-foreground"}`}>{t("completeDetails")}<br/>→</span>
         <div className="bg-white p-1 border border-gold-deep absolute right-2.5 bottom-2.5">
           <QRCodeCanvas value={qrValue} size={40} bgColor="#ffffff" fgColor="#0c0a09" level="M" />
