@@ -18,7 +18,8 @@ const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240
 // Print-sheet card formats (A4). Ratio kept at 2.5:3.5 (h = w * 1.4).
 const FORMATS = {
   mini: { label: "Mini", w: 44, h: 61.6, cols: 4, rows: 4 },
-  standard: { label: "Standard", w: 63, h: 88.2, cols: 3, rows: 3 },
+  // Standard trading-card dimensions: 63.5 × 88.9 mm.
+  standard: { label: "Standard", w: 63.5, h: 88.9, cols: 3, rows: 3 },
   grande: { label: "Grande", w: 86, h: 120.4, cols: 2, rows: 2 },
 };
 
@@ -220,6 +221,10 @@ export default function Collection() {
                 <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "RETRO INCLUSO (F/R)" : "INCLUDI RETRO (F/R)"}
               </button>
             </div>
+            <p className="font-body text-xs text-muted-foreground/80 border-t border-border/40 pt-2">
+              Il PDF mantiene le dimensioni fisiche selezionate: {FORMATS[format].cols}×{FORMATS[format].rows} carte per A4.
+              {selected.length < perPage && " Le posizioni non selezionate restano bianche: seleziona altre carte per riempire la griglia."}
+            </p>
           </div>
         )}
 
