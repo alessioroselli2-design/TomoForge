@@ -1,4 +1,5 @@
 import base64
+import asyncio
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ from typing import Any, List, Literal, Optional
 import bcrypt
 import jwt
 import stripe
+import requests
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, File, Header, HTTPException, Query, Request, Response, UploadFile
 from openai import AsyncOpenAI
@@ -34,6 +36,8 @@ SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "tomeforge-assets
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
+SEGMIND_API_KEY = os.getenv("SEGMIND_API_KEY")
+SEGMIND_IMAGE_MODEL = os.getenv("SEGMIND_IMAGE_MODEL", "fast-flux-schnell")
 JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SESSION_SECRET")
 JWT_ALGO = "HS256"
 PREMIUM_LOOKUP_KEY = "premium_monthly"
@@ -57,6 +61,7 @@ def configuration_status() -> dict:
         "supabase": bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY) or MOCK_DATA,
         "supabase_auth": bool(SUPABASE_ANON_KEY) or MOCK_DATA,
         "openai": bool(OPENAI_API_KEY) or MOCK_DATA,
+        "segmind": bool(SEGMIND_API_KEY) or MOCK_DATA,
         "jwt": bool(JWT_SECRET),
         "stripe": bool(stripe.api_key),
     }
@@ -246,6 +251,12 @@ def require_openai() -> AsyncOpenAI:
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=503, detail="OpenAI non configurato: aggiungi OPENAI_API_KEY")
     return AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=120.0)
+
+
+def require_segmind() -> str:
+    if not SEGMIND_API_KEY:
+        raise HTTPException(status_code=503, detail="Segmind non configurato: aggiungi SEGMIND_API_KEY")
+    return SEGMIND_API_KEY
 
 
 def supabase_auth_client() -> Client:
@@ -684,18 +695,45 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
         "Detailed digital painting, dramatic lighting, obsidian, antique gold and crimson palette, portrait orientation, no text, no frame, no watermark."
     )
     try:
-        client = require_openai()
-        image = await client.images.generate(model=OPENAI_IMAGE_MODEL, prompt=prompt, size="1024x1536", quality="low")
-        encoded = image.data[0].b64_json
-        if not encoded:
-            raise ValueError("OpenAI did not return image data")
-        path = f"artwork/{user.user_id}/{uuid.uuid4()}.png"
-        return {"artwork_path": await save_file(path, base64.b64decode(encoded), "image/png", user.user_id, "openai-generated.png")}
+        response = await asyncio.to_thread(
+            requests.post,
+            f"https://api.segmind.com/v1/{SEGMIND_IMAGE_MODEL}",
+            headers={"x-api-key": require_segmind(), "Content-Type": "application/json"},
+            json={"prompt": prompt, "steps": 4, "aspect_ratio": "2:3"},
+            timeout=(10, 120),
+        )
+        response.raise_for_status()
+        content_type = response.headers.get("content-type", "").split(";", 1)[0].lower()
+        if content_type.startswith("image/"):
+            artwork_data = response.content
+        else:
+            payload = response.json()
+            image_value = payload.get("image") or payload.get("output") or payload.get("url")
+            if isinstance(image_value, list):
+                image_value = image_value[0] if image_value else None
+            if not isinstance(image_value, str) or not image_value:
+                raise ValueError("Segmind did not return image data")
+            if image_value.startswith(("https://", "http://")):
+                image_response = await asyncio.to_thread(requests.get, image_value, timeout=(10, 120))
+                image_response.raise_for_status()
+                artwork_data = image_response.content
+                content_type = image_response.headers.get("content-type", "image/jpeg").split(";", 1)[0].lower()
+            else:
+                artwork_data = base64.b64decode(image_value.split(",", 1)[-1])
+                content_type = "image/png"
+        if not artwork_data or not content_type.startswith("image/"):
+            raise ValueError("Segmind did not return a usable image")
+        extension = {"image/jpeg": "jpg", "image/webp": "webp", "image/png": "png"}.get(content_type, "png")
+        path = f"artwork/{user.user_id}/{uuid.uuid4()}.{extension}"
+        return {"artwork_path": await save_file(path, artwork_data, content_type, user.user_id, f"segmind-generated.{extension}")}
     except HTTPException:
         raise
+    except requests.RequestException as exc:
+        logger.exception("Segmind image generation failed")
+        raise HTTPException(status_code=502, detail="Segmind non ha potuto generare l'immagine") from exc
     except Exception as exc:
-        logger.exception("OpenAI image generation failed")
-        raise HTTPException(status_code=502, detail="Errore nella generazione immagine OpenAI") from exc
+        logger.exception("Segmind image processing failed")
+        raise HTTPException(status_code=502, detail="Segmind ha restituito un'immagine non valida") from exc
 
 
 @api_router.post("/upload")

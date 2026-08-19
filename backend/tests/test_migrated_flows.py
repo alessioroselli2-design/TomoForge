@@ -109,3 +109,39 @@ def test_openai_content_response_is_mapped_to_card_fields(monkeypatch):
         "story": "Nata tra le rovine.",
         "attributes": {"livello": "2"},
     }
+
+
+def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
+    class FakeResponse:
+        headers = {"content-type": "image/jpeg"}
+        content = b"segmind-image-bytes"
+
+        def raise_for_status(self):
+            return None
+
+    fake_db = FakeDatabase()
+    request_data = {}
+
+    def fake_post(url, **kwargs):
+        request_data["url"] = url
+        request_data.update(kwargs)
+        return FakeResponse()
+
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+    user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
+
+    result = asyncio.run(server.generate_image(
+        server.GenerateImageInput(type="spell", prompt="Una fenice di ossidiana"),
+        user,
+    ))
+
+    assert request_data["url"].endswith("/fast-flux-schnell")
+    assert request_data["headers"]["x-api-key"] == "test-key"
+    assert request_data["json"]["aspect_ratio"] == "2:3"
+    assert "no text" in request_data["json"]["prompt"]
+    assert result["artwork_path"].endswith(".jpg")
+    assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
+    assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.jpg"

@@ -17,7 +17,7 @@ trap shutdown EXIT INT TERM
 
 (
   cd backend
-  exec env MOCK_DATA=true uvicorn server:app --host 0.0.0.0 --port 5001
+  exec env MOCK_DATA="${MOCK_DATA:-false}" uvicorn server:app --host 0.0.0.0 --port 5001
 ) &
 api_pid=$!
 
