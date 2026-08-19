@@ -10,4 +10,4 @@ def test_health_reports_configuration_without_secrets():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] in {"ok", "degraded"}
-    assert set(payload["services"]) == {"supabase", "supabase_auth", "openai", "segmind", "jwt", "stripe"}
+    assert set(payload["services"]) == {"supabase", "supabase_auth", "openai", "gemini", "segmind", "jwt", "stripe"}

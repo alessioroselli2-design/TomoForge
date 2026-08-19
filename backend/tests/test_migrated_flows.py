@@ -86,17 +86,25 @@ def test_file_record_is_created_after_storage_upload(monkeypatch):
     assert fake_db.files.documents[0]["content_type"] == "image/png"
 
 
-def test_openai_content_response_is_mapped_to_card_fields(monkeypatch):
-    class FakeCompletions:
-        async def create(self, **kwargs):
-            return SimpleNamespace(
-                choices=[SimpleNamespace(message=SimpleNamespace(
-                    content='{"name":"Nebbia runica","description":"Una nebbia protettiva.","story":"Nata tra le rovine.","attributes":{"livello":"2"}}'
-                ))]
-            )
+def test_gemini_content_response_is_mapped_to_card_fields(monkeypatch):
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
 
-    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
-    monkeypatch.setattr(server, "require_openai", lambda: fake_client)
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{
+                "text": '{"name":"Nebbia runica","description":"Una nebbia protettiva.","story":"Nata tra le rovine.","attributes":{"livello":"2"}}'
+            }]}}]}
+
+    request_data = {}
+
+    def fake_post(url, **kwargs):
+        request_data["url"] = url
+        request_data.update(kwargs)
+        return FakeResponse()
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_content(
@@ -110,6 +118,8 @@ def test_openai_content_response_is_mapped_to_card_fields(monkeypatch):
         "story": "Nata tra le rovine.",
         "attributes": {"livello": "2"},
     }
+    assert request_data["url"].endswith("/models/gemini-2.5-flash:generateContent")
+    assert request_data["params"] == {"key": "test-gemini-key"}
 
 
 def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
@@ -230,3 +240,6 @@ def test_ai_api_keys_ignore_accidental_surrounding_whitespace(monkeypatch):
 
     client = server.require_openai()
     assert client.api_key == "openai-key"
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "  gemini-key  ")
+    assert server.require_gemini() == "gemini-key"

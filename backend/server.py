@@ -37,6 +37,8 @@ SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "tomeforge-assets
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
 SEGMIND_API_KEY = os.getenv("SEGMIND_API_KEY")
 SEGMIND_IMAGE_MODEL = os.getenv("SEGMIND_IMAGE_MODEL", "fast-flux-schnell")
 JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SESSION_SECRET")
@@ -62,6 +64,7 @@ def configuration_status() -> dict:
         "supabase": bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY) or MOCK_DATA,
         "supabase_auth": bool(SUPABASE_ANON_KEY) or MOCK_DATA,
         "openai": bool(OPENAI_API_KEY) or MOCK_DATA,
+        "gemini": bool(GEMINI_API_KEY) or MOCK_DATA,
         "segmind": bool(SEGMIND_API_KEY) or MOCK_DATA,
         "jwt": bool(JWT_SECRET),
         "stripe": bool(stripe.api_key),
@@ -259,6 +262,13 @@ def require_segmind() -> str:
     api_key = (SEGMIND_API_KEY or "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Segmind non configurato: aggiungi SEGMIND_API_KEY")
+    return api_key
+
+
+def require_gemini() -> str:
+    api_key = (GEMINI_API_KEY or "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Gemini non configurato: aggiungi GEMINI_API_KEY")
     return api_key
 
 
@@ -662,29 +672,47 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
         f"Return only valid JSON with name, description (maximum 3 sentences), story (maximum 4 sentences), and {TYPE_SCHEMAS.get(body.type, TYPE_SCHEMAS['custom'])}."
     )
     try:
-        client = require_openai()
-        response = await client.chat.completions.create(
-            model=OPENAI_TEXT_MODEL,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": "You are a D&D 5e content designer. Be accurate, imaginative, and return JSON only."},
-                {"role": "user", "content": prompt},
-            ],
+        response = await asyncio.to_thread(
+            requests.post,
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
+            params={"key": require_gemini()},
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{
+                    "text": (
+                        "You are a D&D 5e content designer. Be accurate, imaginative, "
+                        "and return JSON only.\n\n" + prompt
+                    ),
+                }]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "temperature": 0.7,
+                },
+            },
+            timeout=(10, 120),
         )
-        data = parse_ai_json(response.choices[0].message.content or "{}")
+        response.raise_for_status()
+        response_data = response.json()
+        data = parse_ai_json(
+            response_data["candidates"][0]["content"]["parts"][0]["text"]
+        )
         return {"name": data.get("name", ""), "description": data.get("description", ""), "story": data.get("story", ""), "attributes": data.get("attributes", {})}
     except HTTPException:
         raise
     except (json.JSONDecodeError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="OpenAI ha restituito un formato non valido") from exc
-    except Exception as exc:
-        logger.exception("OpenAI content generation failed")
-        if "credit_balance_exhausted" in str(exc):
+        raise HTTPException(status_code=502, detail="Gemini ha restituito un formato non valido") from exc
+    except requests.HTTPError as exc:
+        status_code = getattr(exc.response, "status_code", None)
+        if status_code == 429:
             raise HTTPException(
-                status_code=402,
-                detail="OpenAI non ha crediti disponibili. Ricarica il credito del tuo account OpenAI per generare contenuti AI.",
+                status_code=429,
+                detail="Gemini ha raggiunto il limite gratuito temporaneo. Riprova più tardi.",
             ) from exc
-        raise HTTPException(status_code=502, detail="Errore nella generazione testo OpenAI") from exc
+        logger.exception("Gemini content generation failed")
+        raise HTTPException(status_code=502, detail="Errore nella generazione testo Gemini") from exc
+    except Exception as exc:
+        logger.exception("Gemini content generation failed")
+        raise HTTPException(status_code=502, detail="Errore nella generazione testo Gemini") from exc
 
 
 async def save_file(path: str, data: bytes, content_type: str, user_id: str, original_filename: Optional[str] = None) -> str:
