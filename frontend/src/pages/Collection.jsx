@@ -45,8 +45,8 @@ const cardFields = (card) => {
 const drawNativeFront = (pdf, card, assets, x, y, cardW, cardH, drawCut) => {
   const scale = cardW / 63.5;
   const pad = 6 * scale;
-  const gold = [212, 175, 55];
-  const muted = [180, 174, 160];
+  const gold = [248, 215, 100];
+  const lightText = [245, 245, 238];
   const paper = [21, 19, 17];
   const artY = y + 14 * scale;
   const artW = cardW - pad * 2;
@@ -61,9 +61,16 @@ const drawNativeFront = (pdf, card, assets, x, y, cardW, cardH, drawCut) => {
   pdf.line(x + pad, y + 11 * scale, x + cardW - pad, y + 11 * scale);
 
   pdf.setFont("times", "bold");
-  pdf.setFontSize(10 * scale);
   pdf.setTextColor(...gold);
-  pdf.text(String(card.name || "Senza nome"), x + pad, y + 8 * scale, { maxWidth: cardW - 28 * scale });
+  const title = String(card.name || "Senza nome");
+  const titleMaxWidth = cardW - 28 * scale;
+  let titleSize = 10 * scale;
+  pdf.setFontSize(titleSize);
+  while (titleSize > 6 * scale && pdf.getTextWidth(title) > titleMaxWidth) {
+    titleSize -= 0.5 * scale;
+    pdf.setFontSize(titleSize);
+  }
+  pdf.text(title, x + pad, y + 8 * scale);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(6.5 * scale);
   pdf.text(typeLabel(card.type, card.custom_type).toUpperCase(), x + cardW - pad, y + 8 * scale, { align: "right" });
@@ -93,7 +100,7 @@ const drawNativeFront = (pdf, card, assets, x, y, cardW, cardH, drawCut) => {
     pdf.setTextColor(...gold);
     pdf.text(String(label).toUpperCase(), cellX + 1.5 * scale, cellY + 2.8 * scale, { maxWidth: cellW - 3 * scale });
     pdf.setFontSize(6.5 * scale);
-    pdf.setTextColor(...muted);
+    pdf.setTextColor(...lightText);
     pdf.text(String(value), cellX + 1.5 * scale, cellY + 6 * scale, { maxWidth: cellW - 3 * scale });
   });
 
@@ -102,15 +109,22 @@ const drawNativeFront = (pdf, card, assets, x, y, cardW, cardH, drawCut) => {
     const descY = statsY + (Math.ceil(fields.length / 2) * (cellH + 1.5 * scale)) + 3 * scale;
     pdf.setFont("times", "italic");
     pdf.setFontSize(6.5 * scale);
-    pdf.setTextColor(...muted);
+    pdf.setTextColor(...lightText);
     pdf.text(pdf.splitTextToSize(description, artW).slice(0, 2), x + pad, descY, { maxWidth: artW });
   }
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(5.3 * scale);
-  pdf.setTextColor(...muted);
-  pdf.text("DETTAGLI COMPLETI", x + pad, y + cardH - 7 * scale);
-  pdf.text("→", x + pad, y + cardH - 3.5 * scale);
+  pdf.setTextColor(...lightText);
+  pdf.text("DETTAGLI COMPLETI", x + pad, y + cardH - 8 * scale);
+  // Draw the arrow as two vector strokes. jsPDF's core fonts do not contain
+  // the Unicode arrow glyph, which was printed as a clipped exclamation mark.
+  const arrowY = y + cardH - 3.5 * scale;
+  const arrowX = x + pad;
+  pdf.setDrawColor(...lightText);
+  pdf.setLineWidth(0.35 * scale);
+  pdf.line(arrowX, arrowY - 1.4 * scale, arrowX + 1.8 * scale, arrowY);
+  pdf.line(arrowX + 1.8 * scale, arrowY, arrowX, arrowY + 1.4 * scale);
   if (assets?.qr) {
     const qrSize = 12 * scale;
     pdf.addImage(assets.qr, "PNG", x + cardW - pad - qrSize, y + cardH - pad - qrSize, qrSize, qrSize);
