@@ -11,7 +11,7 @@ import { typeLabel, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
-import { captureCard, renderCardCanvas } from "@/lib/cardExport";
+import { captureCard, renderCardBackCanvas, renderCardCanvas } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -138,7 +138,6 @@ export default function CardDetail() {
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
   const exportFrontRef = useRef(null);
-  const exportBackRef = useRef(null);
   const sheetRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -174,7 +173,7 @@ export default function CardDetail() {
     if (!exportFrontRef.current) return;
     setBusy(true);
     try {
-      const canvas = await captureCard(exportFrontRef.current);
+      const canvas = await renderCardCanvas(exportFrontRef.current, card);
       const link = document.createElement("a");
       link.download = `${card.name || "carta"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -185,12 +184,12 @@ export default function CardDetail() {
   };
 
   const exportPDF = async () => {
-    if (!exportFrontRef.current || !exportBackRef.current) return;
+    if (!exportFrontRef.current) return;
     setBusy(true);
     try {
       const [fc, bc] = await Promise.all([
         renderCardCanvas(exportFrontRef.current, card),
-        captureCard(exportBackRef.current),
+        renderCardBackCanvas(card),
       ]);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });
       pdf.addImage(fc.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
@@ -329,13 +328,10 @@ export default function CardDetail() {
         </div>
       </main>
 
-      {/* Off-screen clean renders for export (no 3D transform -> no mirrored text) */}
+      {/* Off-screen clean front render used only to load artwork and QR export assets. */}
       <div style={{ position: "fixed", left: -99999, top: 0 }} aria-hidden="true">
         <div ref={exportFrontRef} style={{ width: 340, height: 476 }}>
           <CardFront card={card} exportMode />
-        </div>
-        <div ref={exportBackRef} style={{ width: 340, height: 476, marginTop: 8 }}>
-          <CardBack card={card} exportMode />
         </div>
       </div>
 

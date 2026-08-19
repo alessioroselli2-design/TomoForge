@@ -2,7 +2,7 @@ import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Flame, Skull, Sword, Moon, Eye, Shield, Star, Sparkles } from "lucide-react";
 import { artworkUrl } from "@/lib/api";
-import { typeLabel, typeIcon, attrLabel, QUICK_FIELDS } from "@/lib/cardTypes";
+import { typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
 import { useI18n } from "@/lib/i18n";
 
 const EMBLEM_ICONS = {
@@ -61,15 +61,28 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
   const qrValue = `${window.location.origin}/p/${card.id}`;
   const frame = card.frame || "gold";
+  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
   return (
     <div ref={ref} data-testid="card-front"
-      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}>
+      className={`relative w-full h-full bg-card tf-card-front tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}
+      style={{ "--tf-description-opacity": appearance.description_opacity }}>
+      <div className="tf-front-inner-border" aria-hidden="true" />
+      <div className="tf-front-corner tf-front-corner-tl" aria-hidden="true">✦</div>
+      <div className="tf-front-corner tf-front-corner-tr" aria-hidden="true">✦</div>
+      <div className="tf-front-corner tf-front-corner-bl" aria-hidden="true">✦</div>
+      <div className="tf-front-corner tf-front-corner-br" aria-hidden="true">✦</div>
       {/* header */}
-      <div className="flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
-        <h3 className={`font-heading font-bold text-lg leading-tight pr-2 tf-title-3d ${exportMode ? "tf-export-title text-gold" : "truncate tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
-        <div className="flex items-center gap-1 shrink-0">
-          <TypeIcon className="w-3.5 h-3.5 text-gold" />
-          <span className={`font-label text-[9px] tracking-widest uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/80"}`}>{typeLabel(card.type, card.custom_type)}</span>
+      <div className="relative z-10 flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
+        <h3 className={`min-w-0 font-heading font-bold text-lg leading-tight pr-2 tf-title-metal-${appearance.title_effect} ${appearance.title_shadow ? "tf-title-shadow" : "tf-title-flat"} ${exportMode ? "tf-export-title" : "truncate"}`}>
+          {card.name || "Senza nome"}
+        </h3>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`font-label hidden min-[250px]:block text-[8px] tracking-widest uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/80"}`}>
+            {typeLabel(card.type, card.custom_type)}
+          </span>
+          <div className="tf-type-seal" title={typeLabel(card.type, card.custom_type)} aria-label={typeLabel(card.type, card.custom_type)}>
+            <TypeIcon className="h-4 w-4" strokeWidth={1.8} />
+          </div>
         </div>
       </div>
       <hr className="tf-divider mx-3" aria-hidden="true" />
@@ -81,7 +94,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       <div className="min-h-0 flex-1 px-3 py-2 overflow-hidden">
         <QuickStats card={card} exportMode={exportMode} />
         {card.description && (
-          <p className={`font-body text-[10px] mt-1.5 italic ${exportMode ? "tf-export-description" : "text-foreground/70 leading-snug line-clamp-2"}`}>{card.description}</p>
+          <div className="tf-description-panel">
+            <p className={`font-body text-[10px] italic ${exportMode ? "tf-export-description" : "text-foreground/90 leading-snug line-clamp-2"}`}>{card.description}</p>
+          </div>
         )}
       </div>
       {/* footer with QR */}

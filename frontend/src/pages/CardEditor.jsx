@@ -4,9 +4,10 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown } from "lucide-react";
 import { api } from "@/lib/api";
-import { CARD_TYPES, EMBLEMS, BACK_STYLES, attrLabel } from "@/lib/cardTypes";
+import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { PremiumDialog } from "@/components/PremiumDialog";
+import { CardAppearanceControls } from "@/components/CardAppearanceControls";
 import { useAuth } from "@/context/AuthContext";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import AttributeEditor from "@/components/AttributeEditor";
@@ -15,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useI18n } from "@/lib/i18n";
 
 const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
@@ -34,7 +34,6 @@ export default function CardEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useI18n();
   const isEdit = !!id;
   const fileRef = useRef(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
@@ -42,7 +41,9 @@ export default function CardEditor() {
   const [card, setCard] = useState({
     type: "spell", custom_type: "", name: "", description: "", story: "",
     language: "it", attributes: { ...DEFAULT_ATTRS.spell }, artwork_path: null,
-    frame: "gold", back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
+    frame: "gold",
+    appearance: { ...DEFAULT_APPEARANCE },
+    back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
   });
   const [prompt, setPrompt] = useState("");
   const [genText, setGenText] = useState(false);
@@ -56,7 +57,11 @@ export default function CardEditor() {
     (async () => {
       try {
         const res = await api.get(`/cards/${id}`);
-        setCard(res.data);
+        setCard({
+          ...res.data,
+          appearance: { ...DEFAULT_APPEARANCE, ...(res.data.appearance || {}) },
+          back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(res.data.back || {}) },
+        });
       } catch (e) {
         toast.error("Carta non trovata");
         navigate("/collezione");
@@ -65,6 +70,7 @@ export default function CardEditor() {
   }, [id, isEdit, navigate]);
 
   const set = (patch) => setCard((c) => ({ ...c, ...patch }));
+  const setAppearance = (appearance) => setCard((c) => ({ ...c, appearance }));
   const setBack = (patch) => setCard((c) => ({ ...c, back: { ...c.back, ...patch } }));
 
   const onTypeChange = (type) => {
@@ -240,7 +246,8 @@ export default function CardEditor() {
       const payload = {
         type: card.type, custom_type: card.custom_type, name: card.name,
         description: card.description, story: card.story, language: card.language,
-        attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame, back: card.back,
+        attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame,
+        appearance: card.appearance, back: card.back,
       };
       if (isEdit) {
         await api.put(`/cards/${id}`, payload);
@@ -380,6 +387,13 @@ export default function CardEditor() {
               <AttributeEditor attributes={card.attributes} onChange={(a) => set({ attributes: a })} allowCustomFields={card.type === "custom"} />
             </div>
 
+            <CardAppearanceControls
+              frame={card.frame || "gold"}
+              appearance={{ ...DEFAULT_APPEARANCE, ...(card.appearance || {}) }}
+              onFrameChange={(frame) => set({ frame })}
+              onAppearanceChange={setAppearance}
+            />
+
             {/* Back customization */}
             <div className="border-t border-border pt-6">
               <div className="flex items-center gap-2 mb-4">
@@ -387,15 +401,6 @@ export default function CardEditor() {
                 <h2 className="font-heading text-2xl text-foreground">Retro della Carta</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-label text-xs tracking-widest text-gold/80">{t("foil").toUpperCase()}</Label>
-                  <Select value={card.frame || "gold"} onValueChange={(v) => set({ frame: v })}>
-                    <SelectTrigger data-testid="foil-frame" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-card border-gold-deep/40 rounded-none">
-                      {["gold", "silver", "rainbow"].map((frame) => <SelectItem key={frame} value={frame} className="font-body">{t(frame)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div>
                   <Label className="font-label text-xs tracking-widest text-gold/80">STILE</Label>
                   <Select value={card.back.style} onValueChange={(v) => setBack({ style: v })}>

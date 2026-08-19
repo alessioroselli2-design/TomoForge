@@ -1,1 +1,1 @@
-- [Mobile print rendering](mobile-print-rendering.md) — A4 card exports must avoid DOM screenshot layouts on iOS; use a dedicated fixed-coordinate canvas renderer for the front.
+- [Mobile print rendering](mobile-print-rendering.md) — Card exports must avoid DOM screenshot layouts on iOS; use dedicated fixed-coordinate canvas renderers for both faces.

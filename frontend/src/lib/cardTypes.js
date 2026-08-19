@@ -70,3 +70,21 @@ export const BACK_STYLES = [
   { id: "damask", label: "Damascato" },
   { id: "arcane", label: "Arcano" },
 ];
+
+export const FRAME_STYLES = [
+  { id: "gold", label: "Oro" },
+  { id: "silver", label: "Argento" },
+  { id: "rainbow", label: "Arcobaleno" },
+];
+
+export const TITLE_EFFECTS = [
+  { id: "gold", label: "Oro", colors: ["#fff3a3", "#f59e0b", "#7c2d12"] },
+  { id: "silver", label: "Argento", colors: ["#ffffff", "#94a3b8", "#334155"] },
+  { id: "rainbow", label: "Arcobaleno", colors: ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"] },
+];
+
+export const DEFAULT_APPEARANCE = {
+  title_effect: "gold",
+  title_shadow: true,
+  description_opacity: 0.64,
+};

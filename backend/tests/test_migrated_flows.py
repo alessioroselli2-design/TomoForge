@@ -26,19 +26,32 @@ class FakeDatabase:
         self.files = FakeFiles()
 
 
-def test_card_creation_keeps_owner_and_foil_frame(monkeypatch):
+def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
     fake_db = FakeDatabase()
     monkeypatch.setattr(server, "db", fake_db)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage")
 
     card = asyncio.run(server.create_card(
-        server.CardCreate(type="spell", name="Lancia di luce", frame="rainbow"),
+        server.CardCreate(
+            type="spell",
+            name="Lancia di luce",
+            frame="rainbow",
+            appearance=server.CardAppearance(
+                title_effect="silver",
+                title_shadow=False,
+                description_opacity=0.8,
+            ),
+        ),
         user,
     ))
 
     assert card.user_id == user.user_id
     assert card.frame == "rainbow"
+    assert card.appearance.title_effect == "silver"
+    assert card.appearance.title_shadow is False
+    assert card.appearance.description_opacity == 0.8
     assert fake_db.cards.documents[0]["name"] == "Lancia di luce"
+    assert fake_db.cards.documents[0]["appearance"]["title_effect"] == "silver"
 
 
 def test_file_record_is_created_after_storage_upload(monkeypatch):

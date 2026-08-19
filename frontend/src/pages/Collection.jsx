@@ -7,11 +7,11 @@ import jsPDF from "jspdf";
 import { api } from "@/lib/api";
 import { CARD_TYPES, QUICK_FIELDS, attrLabel, typeLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
-import { CardFront, CardBack } from "@/components/TradingCard";
+import { CardFront } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { captureCard, renderCardCanvas } from "@/lib/cardExport";
+import { renderCardBackCanvas, renderCardCanvas } from "@/lib/cardExport";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -167,7 +167,6 @@ export default function Collection() {
   const [format, setFormat] = useState("standard");
   const [includeBack, setIncludeBack] = useState(false);
   const cardRefs = useRef({});
-  const backRefs = useRef({});
   const sheetContainerRef = useRef(null);
 
   const toggleSelect = (id) => {
@@ -248,9 +247,7 @@ export default function Collection() {
           pdf.addPage();
           for (let i = 0; i < group.length; i++) {
             step += 1; setProgress(step);
-            const el = backRefs.current[group[i].id];
-            if (!el) continue;
-            const canvas = await captureCard(el);
+            const canvas = await renderCardBackCanvas(group[i]);
             const { x, y } = posAt(i, true);
             pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
             drawCut(pdf, x, y);
@@ -355,6 +352,7 @@ export default function Collection() {
             <p className="font-body text-xs text-muted-foreground/80 border-t border-border/40 pt-2">
               Il PDF mantiene le dimensioni fisiche selezionate: {FORMATS[format].cols}×{FORMATS[format].rows} carte per A4.
               {selected.length < perPage && " Le posizioni non selezionate restano bianche: seleziona altre carte per riempire la griglia."}
+              {includeBack && " Per allineare fronte e retro, stampa in modalità fronte/retro con ribaltamento sul lato lungo."}
             </p>
           </div>
         )}
@@ -430,11 +428,6 @@ export default function Collection() {
             <div ref={(el) => { if (el) cardRefs.current[card.id] = el; }} style={{ width: 340, height: 476, marginBottom: 8 }}>
               <CardFront card={card} exportMode />
             </div>
-            {includeBack && (
-              <div ref={(el) => { if (el) backRefs.current[card.id] = el; }} style={{ width: 340, height: 476, marginBottom: 8 }}>
-                <CardBack card={card} exportMode />
-              </div>
-            )}
           </div>
         ))}
       </div>

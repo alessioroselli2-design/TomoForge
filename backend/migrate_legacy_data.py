@@ -63,7 +63,7 @@ def main():
     }
     card_fields = {
         "id", "user_id", "type", "custom_type", "name", "description", "story",
-        "language", "attributes", "artwork_path", "frame", "back", "created_at", "updated_at",
+        "language", "attributes", "artwork_path", "frame", "appearance", "back", "created_at", "updated_at",
     }
     payment_fields = {
         "session_id", "user_id", "lookup_key", "amount", "currency", "status",
@@ -83,6 +83,7 @@ def main():
         record = select(document, card_fields)
         record.setdefault("id", str(document["_id"]))
         record.setdefault("frame", "gold")
+        record.setdefault("appearance", {"title_effect": "gold", "title_shadow": True, "description_opacity": 0.64})
         record.setdefault("back", {"style": "classic", "color": "#7f1d1d", "emblem": "flame", "motto": ""})
         if not record.get("user_id") or not record.get("type"):
             raise SystemExit(f"Cannot migrate card without owner/type: {document.get('_id')}")

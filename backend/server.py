@@ -6,7 +6,7 @@ import uuid
 import copy
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 import bcrypt
 import jwt
@@ -287,6 +287,12 @@ class CardBack(BaseModel):
     motto: str = ""
 
 
+class CardAppearance(BaseModel):
+    title_effect: Literal["gold", "silver", "rainbow"] = "gold"
+    title_shadow: bool = True
+    description_opacity: float = Field(default=0.64, ge=0.3, le=0.9)
+
+
 class Card(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -300,6 +306,7 @@ class Card(BaseModel):
     attributes: dict = Field(default_factory=dict)
     artwork_path: Optional[str] = None
     frame: str = "gold"
+    appearance: CardAppearance = Field(default_factory=CardAppearance)
     back: CardBack = Field(default_factory=CardBack)
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
@@ -315,6 +322,7 @@ class CardCreate(BaseModel):
     attributes: dict = Field(default_factory=dict)
     artwork_path: Optional[str] = None
     frame: str = "gold"
+    appearance: Optional[CardAppearance] = None
     back: Optional[CardBack] = None
 
 
@@ -328,6 +336,7 @@ class CardUpdate(BaseModel):
     attributes: Optional[dict] = None
     artwork_path: Optional[str] = None
     frame: Optional[str] = None
+    appearance: Optional[CardAppearance] = None
     back: Optional[CardBack] = None
 
 
