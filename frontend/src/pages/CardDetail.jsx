@@ -11,7 +11,7 @@ import { typeLabel, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
-import { captureCard } from "@/lib/cardExport";
+import { captureCard, renderCardCanvas } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -189,7 +189,7 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const [fc, bc] = await Promise.all([
-        captureCard(exportFrontRef.current),
+        renderCardCanvas(exportFrontRef.current, card),
         captureCard(exportBackRef.current),
       ]);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });

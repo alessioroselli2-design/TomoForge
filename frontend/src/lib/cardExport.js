@@ -1,5 +1,5 @@
 import html2canvas from "html2canvas";
-import { QUICK_FIELDS, attrLabel } from "@/lib/cardTypes";
+import { QUICK_FIELDS, attrLabel, typeLabel } from "@/lib/cardTypes";
 
 const waitForImages = async (element) => {
   const images = Array.from(element?.querySelectorAll("img") || []);
@@ -102,7 +102,7 @@ export async function renderCardCanvas(element, card) {
   drawFittedText(ctx, String(card.name || "Senza nome"), 12, 32, 250, 18, "'Cormorant Garamond', Georgia, serif", "700");
   ctx.font = "600 10px 'Cinzel', Georgia, serif";
   ctx.textAlign = "right";
-  ctx.fillText(String(card.custom_type || card.type || "").toUpperCase(), 328, 30);
+  ctx.fillText(typeLabel(card.type, card.custom_type).toUpperCase(), 328, 30);
   ctx.textAlign = "left";
 
   const divider = ctx.createLinearGradient(12, 0, 328, 0);
