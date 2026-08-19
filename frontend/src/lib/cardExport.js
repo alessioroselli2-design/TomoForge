@@ -11,6 +11,40 @@ const waitForImages = async (element) => {
   }));
 };
 
+const imageToDataUrl = async (image) => {
+  if (!image) return null;
+  try {
+    if (!image.complete) {
+      await new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      });
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    if (!canvas.width || !canvas.height) return null;
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } catch {
+    return null;
+  }
+};
+
+// PDF-native assets: artwork and QR are images, while all card text is drawn
+// by jsPDF. This avoids browser DOM/font rasterization entirely for print
+// sheets, especially on iOS Safari.
+export async function getCardExportAssets(element) {
+  if (!element) throw new Error("Card render unavailable");
+  await waitForImages(element);
+  const image = element.querySelector("img");
+  const qr = element.querySelector("canvas");
+  return {
+    artwork: await imageToDataUrl(image),
+    qr: qr?.toDataURL("image/png") || null,
+  };
+}
+
 // One export path for both desktop and mobile. Waiting for fonts and artwork
 // prevents the partial/unstyled canvas captures often seen on touch devices.
 export async function captureCard(element, backgroundColor = "#0c0a09") {

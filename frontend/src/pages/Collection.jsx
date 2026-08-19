@@ -5,13 +5,13 @@ import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2 
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { api } from "@/lib/api";
-import { CARD_TYPES } from "@/lib/cardTypes";
+import { CARD_TYPES, QUICK_FIELDS, attrLabel, typeLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { captureCard } from "@/lib/cardExport";
+import { getCardExportAssets } from "@/lib/cardExport";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -21,6 +21,122 @@ const FORMATS = {
   // Standard trading-card dimensions: 63.5 × 88.9 mm.
   standard: { label: "Standard", w: 63.5, h: 88.9, cols: 3, rows: 3 },
   grande: { label: "Grande", w: 86, h: 120.4, cols: 2, rows: 2 },
+};
+
+const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
+
+const cardFields = (card) => {
+  const attrs = card.attributes || {};
+  const has = (key) => {
+    const value = attrs[key];
+    return (typeof value === "string" || typeof value === "number") && String(value).trim() !== "";
+  };
+  const showAbilities = (card.type === "monster" || card.type === "character") && ABILITIES.some(has);
+  let fields = showAbilities
+    ? ABILITIES.filter(has).map((key) => [key, attrs[key]])
+    : (QUICK_FIELDS[card.type] || []).filter(has).map((key) => [attrLabel(key), attrs[key]]);
+  if (!fields.length) {
+    fields = Object.keys(attrs).filter((key) => has(key) && !ABILITIES.includes(key))
+      .slice(0, 6).map((key) => [attrLabel(key), attrs[key]]);
+  }
+  return fields.slice(0, 6);
+};
+
+const drawNativeFront = (pdf, card, assets, x, y, cardW, cardH, drawCut) => {
+  const scale = cardW / 63.5;
+  const pad = 6 * scale;
+  const gold = [212, 175, 55];
+  const muted = [180, 174, 160];
+  const paper = [21, 19, 17];
+  const artY = y + 14 * scale;
+  const artW = cardW - pad * 2;
+  const artH = artW / 1.35;
+
+  pdf.setFillColor(...paper);
+  pdf.rect(x, y, cardW, cardH, "F");
+  pdf.setDrawColor(...gold);
+  pdf.setLineWidth(0.8);
+  pdf.rect(x, y, cardW, cardH);
+  pdf.setLineWidth(0.25);
+  pdf.line(x + pad, y + 11 * scale, x + cardW - pad, y + 11 * scale);
+
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(10 * scale);
+  pdf.setTextColor(...gold);
+  pdf.text(String(card.name || "Senza nome"), x + pad, y + 8 * scale, { maxWidth: cardW - 28 * scale });
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(6.5 * scale);
+  pdf.text(typeLabel(card.type, card.custom_type).toUpperCase(), x + cardW - pad, y + 8 * scale, { align: "right" });
+
+  pdf.setFillColor(9, 15, 16);
+  pdf.rect(x + pad, artY, artW, artH, "F");
+  if (assets?.artwork) {
+    pdf.addImage(assets.artwork, "JPEG", x + pad, artY, artW, artH, undefined, "MEDIUM");
+  }
+  pdf.setDrawColor(154, 125, 46);
+  pdf.setLineWidth(0.35);
+  pdf.rect(x + pad, artY, artW, artH);
+
+  const fields = cardFields(card);
+  const statsY = artY + artH + 5 * scale;
+  const cellW = (artW - 2 * scale) / 2;
+  const cellH = 7.5 * scale;
+  pdf.setFont("helvetica", "normal");
+  fields.forEach(([label, value], index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    const cellX = x + pad + col * (cellW + 2 * scale);
+    const cellY = statsY + row * (cellH + 1.5 * scale);
+    pdf.setDrawColor(115, 91, 35);
+    pdf.rect(cellX, cellY, cellW, cellH);
+    pdf.setFontSize(4.8 * scale);
+    pdf.setTextColor(...gold);
+    pdf.text(String(label).toUpperCase(), cellX + 1.5 * scale, cellY + 2.8 * scale, { maxWidth: cellW - 3 * scale });
+    pdf.setFontSize(6.5 * scale);
+    pdf.setTextColor(...muted);
+    pdf.text(String(value), cellX + 1.5 * scale, cellY + 6 * scale, { maxWidth: cellW - 3 * scale });
+  });
+
+  const description = String(card.description || "").trim();
+  if (description) {
+    const descY = statsY + (Math.ceil(fields.length / 2) * (cellH + 1.5 * scale)) + 3 * scale;
+    pdf.setFont("times", "italic");
+    pdf.setFontSize(6.5 * scale);
+    pdf.setTextColor(...muted);
+    pdf.text(pdf.splitTextToSize(description, artW).slice(0, 2), x + pad, descY, { maxWidth: artW });
+  }
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(5.3 * scale);
+  pdf.setTextColor(...muted);
+  pdf.text("DETTAGLI COMPLETI", x + pad, y + cardH - 7 * scale);
+  pdf.text("→", x + pad, y + cardH - 3.5 * scale);
+  if (assets?.qr) {
+    const qrSize = 12 * scale;
+    pdf.addImage(assets.qr, "PNG", x + cardW - pad - qrSize, y + cardH - pad - qrSize, qrSize, qrSize);
+  }
+  drawCut(pdf, x, y);
+};
+
+const drawNativeBack = (pdf, card, x, y, cardW, cardH, drawCut) => {
+  const scale = cardW / 63.5;
+  const gold = [212, 175, 55];
+  pdf.setFillColor(21, 19, 17);
+  pdf.rect(x, y, cardW, cardH, "F");
+  pdf.setDrawColor(...gold);
+  pdf.setLineWidth(0.8);
+  pdf.rect(x, y, cardW, cardH);
+  pdf.setLineWidth(0.25);
+  pdf.rect(x + 3 * scale, y + 3 * scale, cardW - 6 * scale, cardH - 6 * scale);
+  pdf.rect(x + 5 * scale, y + 5 * scale, cardW - 10 * scale, cardH - 10 * scale);
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(16 * scale);
+  pdf.setTextColor(...gold);
+  pdf.text("TOMEFORGE", x + cardW / 2, y + cardH / 2, { align: "center" });
+  pdf.setFont("times", "italic");
+  pdf.setFontSize(7 * scale);
+  pdf.text(String(card.back?.motto || ""), x + cardW / 2, y + cardH / 2 + 9 * scale, { align: "center", maxWidth: cardW - 14 * scale });
+  drawCut(pdf, x, y);
 };
 
 export default function Collection() {
@@ -108,10 +224,9 @@ export default function Collection() {
           step += 1; setProgress(step);
           const el = cardRefs.current[group[i].id];
           if (!el) continue;
-          const canvas = await captureCard(el);
+          const assets = await getCardExportAssets(el);
           const { x, y } = posAt(i, false);
-          pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
-          drawCut(pdf, x, y);
+          drawNativeFront(pdf, group[i], assets, x, y, cardW, cardH, drawCut);
         }
         // Mirrored back page for duplex printing
         if (includeBack) {
@@ -120,10 +235,8 @@ export default function Collection() {
             step += 1; setProgress(step);
             const el = backRefs.current[group[i].id];
             if (!el) continue;
-            const canvas = await captureCard(el);
             const { x, y } = posAt(i, true);
-            pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
-            drawCut(pdf, x, y);
+            drawNativeBack(pdf, group[i], x, y, cardW, cardH, drawCut);
           }
         }
       }
