@@ -44,7 +44,7 @@ export const attrLabel = (k) => ATTR_LABELS[k] || k.replace(/_/g, " ");
 // Fields shown as quick gameplay reference on the CARD FRONT (in order), per type.
 // The full detail (and remaining fields) live on the detail page / QR.
 export const QUICK_FIELDS = {
-  spell: ["livello", "azione", "gittata", "area", "concentrazione", "danno"],
+  spell: ["livello", "area", "azione", "tempo_lancio", "concentrazione", "danno"],
   weapon: ["danno", "tipo_danno", "proprieta", "categoria"],
   feat: ["prerequisito"],
   class: ["dado_vita", "abilita_primaria"],

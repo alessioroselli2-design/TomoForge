@@ -12,6 +12,7 @@ import PublicCard from "@/pages/PublicCard";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import Admin from "@/pages/Admin";
+import { LanguageProvider } from "@/lib/i18n";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -84,8 +85,10 @@ function App() {
     <div className="App tf-noise">
       <BrowserRouter>
         <AuthProvider>
-          <Toaster position="top-center" theme="dark" toastOptions={{ style: { background: "#151311", border: "1px solid #9a7d2e", color: "#e5e0d8", fontFamily: "'Spectral', serif" } }} />
-          <AppRouter />
+          <LanguageProvider>
+            <Toaster position="top-center" theme="dark" toastOptions={{ style: { background: "#151311", border: "1px solid #9a7d2e", color: "#e5e0d8", fontFamily: "'Spectral', serif" } }} />
+            <AppRouter />
+          </LanguageProvider>
         </AuthProvider>
       </BrowserRouter>
     </div>

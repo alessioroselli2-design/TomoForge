@@ -112,6 +112,7 @@ class Card(BaseModel):
     language: str = "it"
     attributes: dict = Field(default_factory=dict)
     artwork_path: Optional[str] = None
+    frame: str = "gold"
     back: CardBack = Field(default_factory=CardBack)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -126,6 +127,7 @@ class CardCreate(BaseModel):
     language: str = "it"
     attributes: dict = Field(default_factory=dict)
     artwork_path: Optional[str] = None
+    frame: str = "gold"
     back: Optional[CardBack] = None
 
 
@@ -138,6 +140,7 @@ class CardUpdate(BaseModel):
     language: Optional[str] = None
     attributes: Optional[dict] = None
     artwork_path: Optional[str] = None
+    frame: Optional[str] = None
     back: Optional[CardBack] = None
 
 

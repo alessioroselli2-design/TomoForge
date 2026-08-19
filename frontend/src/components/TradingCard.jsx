@@ -3,6 +3,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { Flame, Skull, Sword, Moon, Eye, Shield, Star, Sparkles } from "lucide-react";
 import { artworkUrl } from "@/lib/api";
 import { typeLabel, typeIcon, attrLabel, QUICK_FIELDS } from "@/lib/cardTypes";
+import { useI18n } from "@/lib/i18n";
 
 const EMBLEM_ICONS = {
   flame: Flame, skull: Skull, dragon: Sparkles, sword: Sword,
@@ -55,16 +56,17 @@ const QuickStats = ({ card }) => {
 };
 
 export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) => {
+  const { t } = useI18n();
   const TypeIcon = typeIcon(card.type);
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
   const qrValue = `${window.location.origin}/p/${card.id}`;
+  const frame = card.frame || "gold";
   return (
     <div ref={ref} data-testid="card-front"
-      className="relative w-full h-full bg-card border-2 border-gold-deep flex flex-col overflow-hidden"
-      style={{ boxShadow: "inset 0 0 40px rgba(0,0,0,0.7)" }}>
+      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden`}>
       {/* header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-        <h3 className={`font-heading font-bold text-lg leading-tight truncate pr-2 ${exportMode ? "text-gold" : "tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
+        <h3 className={`font-heading font-bold text-lg leading-tight truncate pr-2 tf-title-3d ${exportMode ? "text-gold" : "tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
         <div className="flex items-center gap-1 shrink-0">
           <TypeIcon className="w-3.5 h-3.5 text-gold" />
           <span className="font-label text-[9px] tracking-widest text-gold/80 uppercase">{typeLabel(card.type, card.custom_type)}</span>
@@ -84,8 +86,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       </div>
       {/* footer with QR */}
       <div className="flex items-end justify-between px-3 pb-2.5 pt-1">
-        <span className="font-label text-[8px] tracking-widest text-muted-foreground uppercase leading-tight">Dettagli<br/>completi →</span>
-        <div className="bg-white p-1 border border-gold-deep">
+        <span className="font-label text-[8px] tracking-widest text-muted-foreground uppercase leading-tight">{t("completeDetails")}<br/>→</span>
+        <div className="bg-white p-1 border border-gold-deep absolute right-2.5 bottom-2.5">
           <QRCodeCanvas value={qrValue} size={40} bgColor="#ffffff" fgColor="#0c0a09" level="M" />
         </div>
       </div>
@@ -100,8 +102,7 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
   const color = back.color || "#7f1d1d";
   return (
     <div ref={ref} data-testid="card-back"
-      className="relative w-full h-full bg-card border-2 border-gold-deep flex flex-col items-center justify-center overflow-hidden p-6"
-      style={{ boxShadow: "inset 0 0 60px rgba(0,0,0,0.8)" }}>
+      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${card.frame || "gold"} flex flex-col items-center justify-center overflow-hidden p-6`}>
       <div className="absolute inset-3 border border-gold-deep/50" aria-hidden="true" />
       <div className="absolute inset-5 border border-gold-deep/25" aria-hidden="true" />
       {back.style === "runic" && (
@@ -112,7 +113,7 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
           style={{ borderColor: color, boxShadow: `0 0 30px ${color}55` }}>
           <Emblem className="w-11 h-11" style={{ color }} />
         </div>
-        <div className={`font-display text-2xl tracking-wide ${exportMode ? "text-gold" : "tf-gold-text"}`}>TOMEFORGE</div>
+        <div className={`font-display text-2xl tracking-wide tf-title-3d ${exportMode ? "text-gold" : "tf-gold-text"}`}>TOMEFORGE</div>
         {back.motto && (
           <p className="font-heading italic text-lg text-foreground/80 max-w-[80%]">“{back.motto}”</p>
         )}

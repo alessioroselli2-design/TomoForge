@@ -101,20 +101,20 @@ export default function Landing() {
             {mode === "register" && (
               <div>
                 <Label className="font-label text-xs tracking-widest text-gold/80">NOME EVOCATORE</Label>
-                <Input data-testid="name-input" required value={form.name}
+                <Input data-testid="name-input" autoComplete="name" required value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="mt-2 bg-input border-border rounded-none font-body focus-visible:ring-gold" placeholder="Il tuo nome" />
               </div>
             )}
             <div>
               <Label className="font-label text-xs tracking-widest text-gold/80">EMAIL</Label>
-              <Input data-testid="email-input" type="email" required value={form.email}
+              <Input data-testid="email-input" type="email" autoComplete="email" required value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="mt-2 bg-input border-border rounded-none font-body focus-visible:ring-gold" placeholder="tu@grimorio.it" />
             </div>
             <div>
               <Label className="font-label text-xs tracking-widest text-gold/80">PAROLA D'ORDINE</Label>
-              <Input data-testid="password-input" type="password" required value={form.password}
+              <Input data-testid="password-input" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="mt-2 bg-input border-border rounded-none font-body focus-visible:ring-gold" placeholder="••••••••" />
             </div>

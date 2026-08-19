@@ -4,6 +4,7 @@ import { BookOpen, LogOut, Plus, Crown, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { PremiumDialog } from "@/components/PremiumDialog";
+import { useI18n } from "@/lib/i18n";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -12,6 +13,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [premiumOpen, setPremiumOpen] = useState(false);
+  const { locale, setLocale, languages, t } = useI18n();
 
   const doLogout = async () => {
     await logout();
@@ -30,6 +32,11 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          <label className="sr-only" htmlFor="tf-language">{t("language")}</label>
+          <select id="tf-language" data-testid="interface-language" value={locale} onChange={(e) => setLocale(e.target.value)}
+            className="block bg-transparent border border-gold-deep/50 h-9 px-2 text-gold font-label text-[10px] tracking-wide focus:outline-none focus:ring-1 focus:ring-gold">
+            {languages.map(([code, label]) => <option className="bg-card text-foreground" key={code} value={code}>{label}</option>)}
+          </select>
           {user && !user.is_premium && (
             <Button data-testid="nav-upgrade" onClick={() => setPremiumOpen(true)} variant="outline"
               className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label tracking-wide text-xs h-9 px-3 transition-colors">
@@ -43,7 +50,7 @@ export default function Navbar() {
           )}
           <Button data-testid="nav-create" onClick={() => navigate("/crea")}
             className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label tracking-wide text-xs h-9 px-4 transition-colors">
-            <Plus className="w-4 h-4 mr-1.5" /> NUOVA CARTA
+            <Plus className="w-4 h-4 mr-1.5" /> {t("create").toUpperCase()}
           </Button>
 
           <DropdownMenu>

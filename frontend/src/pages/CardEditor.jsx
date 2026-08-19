@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useI18n } from "@/lib/i18n";
 
 const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
@@ -33,6 +34,7 @@ export default function CardEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
   const isEdit = !!id;
   const fileRef = useRef(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
@@ -40,7 +42,7 @@ export default function CardEditor() {
   const [card, setCard] = useState({
     type: "spell", custom_type: "", name: "", description: "", story: "",
     language: "it", attributes: { ...DEFAULT_ATTRS.spell }, artwork_path: null,
-    back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
+    frame: "gold", back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
   });
   const [prompt, setPrompt] = useState("");
   const [genText, setGenText] = useState(false);
@@ -238,7 +240,7 @@ export default function CardEditor() {
       const payload = {
         type: card.type, custom_type: card.custom_type, name: card.name,
         description: card.description, story: card.story, language: card.language,
-        attributes: card.attributes, artwork_path: card.artwork_path, back: card.back,
+        attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame, back: card.back,
       };
       if (isEdit) {
         await api.put(`/cards/${id}`, payload);
@@ -385,6 +387,15 @@ export default function CardEditor() {
                 <h2 className="font-heading text-2xl text-foreground">Retro della Carta</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-label text-xs tracking-widest text-gold/80">{t("foil").toUpperCase()}</Label>
+                  <Select value={card.frame || "gold"} onValueChange={(v) => set({ frame: v })}>
+                    <SelectTrigger data-testid="foil-frame" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-card border-gold-deep/40 rounded-none">
+                      {["gold", "silver", "rainbow"].map((frame) => <SelectItem key={frame} value={frame} className="font-body">{t(frame)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label className="font-label text-xs tracking-widest text-gold/80">STILE</Label>
                   <Select value={card.back.style} onValueChange={(v) => setBack({ style: v })}>

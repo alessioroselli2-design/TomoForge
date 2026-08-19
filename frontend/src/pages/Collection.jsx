@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { api } from "@/lib/api";
 import { CARD_TYPES } from "@/lib/cardTypes";
@@ -11,6 +10,8 @@ import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
+import { captureCard } from "@/lib/cardExport";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -23,6 +24,7 @@ const FORMATS = {
 
 export default function Collection() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -90,15 +92,6 @@ export default function Collection() {
       marks.forEach(([x1, y1, x2, y2]) => pdf.line(x1, y1, x2, y2));
     };
     try {
-      // Wait for all artwork images inside the off-screen sheet to load
-      const imgs = sheetContainerRef.current?.querySelectorAll("img") || [];
-      await Promise.all(
-        Array.from(imgs).map((img) =>
-          img.complete ? Promise.resolve() : new Promise((res) => { img.onload = res; img.onerror = res; })
-        )
-      );
-      await new Promise((r) => setTimeout(r, 300));
-
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pages = Math.ceil(chosenCards.length / perPage);
       let step = 0;
@@ -113,7 +106,7 @@ export default function Collection() {
           step += 1; setProgress(step);
           const el = cardRefs.current[group[i].id];
           if (!el) continue;
-          const canvas = await html2canvas(el, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
+          const canvas = await captureCard(el);
           const { x, y } = posAt(i, false);
           pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
           drawCut(pdf, x, y);
@@ -125,7 +118,7 @@ export default function Collection() {
             step += 1; setProgress(step);
             const el = backRefs.current[group[i].id];
             if (!el) continue;
-            const canvas = await html2canvas(el, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
+            const canvas = await captureCard(el);
             const { x, y } = posAt(i, true);
             pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, cardW, cardH);
             drawCut(pdf, x, y);
@@ -169,7 +162,7 @@ export default function Collection() {
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <p className="font-label text-xs tracking-[0.3em] text-gold/70 mb-2">IL TUO GRIMORIO</p>
-          <h1 className="font-display text-4xl sm:text-5xl tf-gold-text">La Collezione</h1>
+          <h1 className="font-display text-4xl sm:text-5xl tf-gold-text tf-title-3d">{t("collection")}</h1>
         </motion.div>
 
         {/* Controls */}
@@ -184,7 +177,7 @@ export default function Collection() {
             {!selectMode ? (
               <Button data-testid="print-sheet-toggle" onClick={() => setSelectMode(true)} variant="outline"
                 className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[11px] tracking-widest h-9 transition-colors">
-                <Printer className="w-4 h-4 mr-1.5" /> FOGLIO DI STAMPA
+                <Printer className="w-4 h-4 mr-1.5" /> {t("printSheet").toUpperCase()}
               </Button>
             ) : (
               <Button data-testid="print-sheet-cancel" onClick={exitSelectMode} variant="outline"
@@ -204,17 +197,17 @@ export default function Collection() {
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" data-testid="select-all-btn" onClick={selectAll}
                   className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[10px] tracking-widest h-8 transition-colors">
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> SELEZIONA TUTTE
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> {t("selectAll").toUpperCase()}
                 </Button>
                 <Button size="sm" variant="outline" data-testid="deselect-all-btn" onClick={() => setSelected([])}
                   className="rounded-none border-border bg-transparent text-muted-foreground hover:text-crimson font-label text-[10px] tracking-widest h-8 transition-colors">
-                  <X className="w-3.5 h-3.5 mr-1" /> DESELEZIONA
+                  <X className="w-3.5 h-3.5 mr-1" /> {t("deselectAll").toUpperCase()}
                 </Button>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-1 border-t border-border/50">
               <div className="flex items-center gap-2 pt-2">
-                <span className="font-label text-[10px] tracking-widest text-gold/70 flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> FORMATO</span>
+                <span className="font-label text-[10px] tracking-widest text-gold/70 flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> {t("format").toUpperCase()}</span>
                 {Object.entries(FORMATS).map(([id, f]) => (
                   <button key={id} data-testid={`format-${id}`} onClick={() => setFormat(id)}
                     className={`px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${format === id ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
@@ -261,7 +254,7 @@ export default function Collection() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.5) }}
                     whileHover={{ y: -6 }}
-                    className="text-left group relative"
+                    className="text-left group relative touch-manipulation"
                     style={{ aspectRatio: "2.5/3.5" }}
                   >
                     <div className={`w-full h-full transition-shadow duration-300 group-hover:shadow-[0_14px_40px_-8px_rgba(212,175,55,0.35)] ${selectMode && isSel ? "ring-2 ring-gold" : ""} ${selectMode && !isSel ? "opacity-70" : ""}`}>
@@ -289,7 +282,7 @@ export default function Collection() {
           <Button data-testid="export-sheet-btn" onClick={exportPrintSheet} disabled={exporting}
             className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-xs tracking-widest h-9 transition-colors">
             {exporting ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Printer className="w-4 h-4 mr-1.5" />}
-            {exporting ? `${progress}/${totalSteps}` : "ESPORTA PDF"}
+            {exporting ? `${progress}/${totalSteps}` : t("exportPdf").toUpperCase()}
           </Button>
         </motion.div>
       )}

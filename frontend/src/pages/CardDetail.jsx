@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import {
   ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2,
@@ -12,6 +11,7 @@ import { typeLabel, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
+import { captureCard } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -141,7 +141,7 @@ export default function CardDetail() {
   const exportBackRef = useRef(null);
   const sheetRef = useRef(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const res = await api.get(`/cards/${id}`);
       setCard(res.data);
@@ -149,8 +149,8 @@ export default function CardDetail() {
       toast.error("Carta non trovata");
       navigate("/collezione");
     }
-  };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  }, [id, navigate]);
+  useEffect(() => { load(); }, [load]);
 
   const persistAttrs = async (attributes) => {
     setCard((c) => ({ ...c, attributes }));
@@ -174,7 +174,7 @@ export default function CardDetail() {
     if (!exportFrontRef.current) return;
     setBusy(true);
     try {
-      const canvas = await html2canvas(exportFrontRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 });
+      const canvas = await captureCard(exportFrontRef.current);
       const link = document.createElement("a");
       link.download = `${card.name || "carta"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -189,8 +189,8 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const [fc, bc] = await Promise.all([
-        html2canvas(exportFrontRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 }),
-        html2canvas(exportBackRef.current, { useCORS: true, backgroundColor: "#0c0a09", scale: 2 }),
+        captureCard(exportFrontRef.current),
+        captureCard(exportBackRef.current),
       ]);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });
       pdf.addImage(fc.toDataURL("image/png"), "PNG", 0, 0, 63.5, 88.9);
@@ -206,7 +206,7 @@ export default function CardDetail() {
     if (!sheetRef.current) return;
     setBusy(true);
     try {
-      const canvas = await html2canvas(sheetRef.current, { useCORS: true, backgroundColor: "#fefdf9", scale: 2 });
+      const canvas = await captureCard(sheetRef.current, "#fefdf9");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const w = 210, h = (canvas.height * w) / canvas.width;
       pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, Math.min(h, 297));
