@@ -1,14 +1,13 @@
 import {
   CARD_CANVAS_SIZE,
   addPrintSheetCard,
+  addSingleCardA4PdfPages,
   addSingleCardPdfPages,
   createCardPng,
   getCardExportLayout,
   renderCardBackCanvas,
   renderCardCanvas,
 } from "./cardExport";
-
-jest.mock("html2canvas", () => jest.fn());
 
 const sixQuickStats = {
   livello: "5",
@@ -277,5 +276,27 @@ describe("card export renderers", () => {
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 0, 0, 63.5, 88.9);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 12, 18, 63.5, 88.9);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 134.5, 18, 63.5, 88.9);
+  });
+
+  it("routes the detail page A4 export through the shared front and back print-sheet renderers", async () => {
+    const card = {
+      id: "detail-a4-export",
+      type: "character",
+      name: "Carta dettaglio",
+      attributes: { ...abilities, classe: "Chierico", livello: "6" },
+      back: configuredBack,
+    };
+    const pdf = {
+      addImage: jest.fn(),
+      addPage: jest.fn(),
+    };
+
+    const { front, back } = await addSingleCardA4PdfPages(pdf, makeExportElement(), card);
+
+    expect(front.operations.some((entry) => entry.name === "fillText" && entry.text === "PERSONAGGIO")).toBe(true);
+    expect(back.operations.some((entry) => entry.name === "fillText" && entry.text === "♜")).toBe(true);
+    expect(pdf.addPage).toHaveBeenCalledTimes(1);
+    expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 73.25, 104.05, 63.5, 88.9);
+    expect(pdf.addImage).toHaveBeenCalledTimes(2);
   });
 });

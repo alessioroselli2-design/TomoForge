@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -6,12 +6,12 @@ import jsPDF from "jspdf";
 import {
   ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2,
 } from "lucide-react";
-import { api, artworkUrl } from "@/lib/api";
+import { api } from "@/lib/api";
 import { typeLabel, attrLabel, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
-import { addSingleCardPdfPages, captureCard, createCardPng } from "@/lib/cardExport";
+import { addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -138,7 +138,6 @@ export default function CardDetail() {
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
   const exportFrontRef = useRef(null);
-  const sheetRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -196,16 +195,14 @@ export default function CardDetail() {
   };
 
   const exportSheet = async () => {
-    if (!sheetRef.current) return;
+    if (!exportFrontRef.current) return;
     setBusy(true);
     try {
-      const canvas = await captureCard(sheetRef.current, "#fefdf9");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const w = 210, h = (canvas.height * w) / canvas.width;
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, Math.min(h, 297));
-      pdf.save(`scheda-${card.name || "personaggio"}.pdf`);
-      toast.success("Scheda A4 generata");
-    } catch (e) { toast.error("Generazione scheda fallita"); }
+      await addSingleCardA4PdfPages(pdf, exportFrontRef.current, card);
+      pdf.save(`carta-${card.name || "personaggio"}-a4-fronte-retro.pdf`);
+      toast.success("Carta A4 generata");
+    } catch (e) { toast.error("Generazione carta A4 fallita"); }
     finally { setBusy(false); }
   };
 
@@ -296,12 +293,10 @@ export default function CardDetail() {
                 <Printer className="w-3.5 h-3.5 mr-1.5" /> PDF F/R
               </Button>
             </div>
-            {card.type === "character" && (
-              <Button data-testid="sheet-btn" onClick={exportSheet} disabled={busy}
-                className="w-full mt-2 rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-widest transition-colors">
-                <FileText className="w-3.5 h-3.5 mr-1.5" /> SCHEDA PERSONAGGIO A4
-              </Button>
-            )}
+            <Button data-testid="sheet-btn" onClick={exportSheet} disabled={busy}
+              className="w-full mt-2 rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-widest transition-colors">
+              <FileText className="w-3.5 h-3.5 mr-1.5" /> CARTA A4 F/R
+            </Button>
           </div>
 
           {/* Info */}
@@ -338,73 +333,6 @@ export default function CardDetail() {
         </div>
       </div>
 
-      {/* Off-screen A4 character sheet for PDF */}
-      {card.type === "character" && (
-        <div style={{ position: "fixed", left: -9999, top: 0 }}>
-          <CharacterSheet ref={sheetRef} card={card} />
-        </div>
-      )}
     </div>
   );
 }
-
-const CharacterSheet = React.forwardRef(({ card }, ref) => {
-  const a = card.attributes || {};
-  const img = card.artwork_path ? artworkUrl(card.artwork_path) : null;
-  const scalarKeys = Object.keys(a).filter((k) => isScalar(a[k]) && a[k] !== "" && !ABILITIES.includes(k));
-  const listKeys = Object.keys(a).filter((k) => Array.isArray(a[k]) && a[k].length && typeof a[k][0] === "string");
-  return (
-    <div ref={ref} style={{ width: 794, minHeight: 1123, background: "#fefdf9", color: "#1a140c", padding: 48, fontFamily: "'Spectral', serif" }}>
-      <div style={{ borderBottom: "3px double #9a7d2e", paddingBottom: 16, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: 3, color: "#9a7d2e" }}>SCHEDA PERSONAGGIO · TOMEFORGE</div>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 44, fontWeight: 700, lineHeight: 1 }}>{card.name}</div>
-          <div style={{ fontSize: 16, marginTop: 4 }}>{[a.razza, a.classe, a.livello && `Livello ${a.livello}`].filter(Boolean).join(" · ")}</div>
-        </div>
-        {img && <img src={img} alt="" crossOrigin="anonymous" style={{ width: 120, height: 120, objectFit: "cover", border: "2px solid #9a7d2e" }} />}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 20 }}>
-        {ABILITIES.map((k) => (
-          <div key={k} style={{ border: "1.5px solid #9a7d2e", textAlign: "center", padding: "10px 4px" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: 1, color: "#7a5c1e" }}>{k.toUpperCase()}</div>
-            <div style={{ fontSize: 26, fontWeight: 600 }}>{a[k] || "—"}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div>
-          {scalarKeys.map((k) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #d8c9a0", padding: "6px 0" }}>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: 1, color: "#7a5c1e", textTransform: "uppercase" }}>{attrLabel(k)}</span>
-              <span style={{ fontSize: 14 }}>{a[k]}</span>
-            </div>
-          ))}
-        </div>
-        <div>
-          {listKeys.map((k) => (
-            <div key={k} style={{ marginBottom: 14 }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: 1, color: "#7a5c1e", textTransform: "uppercase", marginBottom: 4, borderBottom: "1px solid #9a7d2e" }}>{attrLabel(k)}</div>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                {a[k].filter((x) => String(x).trim()).map((it, i) => <li key={i} style={{ fontSize: 14, marginBottom: 3 }}>{it}</li>)}
-              </ul>
-            </div>
-          ))}
-          {Array.isArray(a.slot_incantesimi) && a.slot_incantesimi.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: 1, color: "#7a5c1e", textTransform: "uppercase", marginBottom: 4, borderBottom: "1px solid #9a7d2e" }}>Slot Incantesimi</div>
-              {a.slot_incantesimi.map((s, i) => (
-                <div key={i} style={{ fontSize: 14 }}>Livello {s.livello || i + 1}: {s.totale} slot</div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {card.description && <p style={{ fontStyle: "italic", marginTop: 20, fontSize: 14 }}>{card.description}</p>}
-      {card.story && <p style={{ marginTop: 10, fontSize: 13, color: "#4a3c28" }}>{card.story}</p>}
-    </div>
-  );
-});
-CharacterSheet.displayName = "CharacterSheet";
