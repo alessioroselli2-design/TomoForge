@@ -8,6 +8,7 @@ import copy
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, List, Literal, Optional
+from urllib.parse import urlencode
 
 import bcrypt
 import jwt
@@ -562,20 +563,17 @@ async def logout(response: Response):
 @api_router.get("/auth/google/start")
 async def google_start(redirect_to: str):
     """Start Google OAuth using the app's Supabase Auth provider."""
-    try:
-        result = supabase_auth_client().auth.sign_in_with_oauth({
-            "provider": "google",
-            "options": {"redirect_to": redirect_to},
-        })
-        url = getattr(result, "url", None)
-        if not url:
-            raise ValueError("Supabase did not return an authorization URL")
-        return {"url": url}
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("Could not start Supabase Google OAuth")
-        raise HTTPException(status_code=502, detail="Impossibile avviare l'accesso Google") from exc
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(status_code=503, detail="Supabase Auth non configurato")
+
+    # Build an implicit-flow URL deliberately. The server-side Supabase client
+    # generates a PKCE verifier that cannot be recovered by the browser callback,
+    # leaving users returned to the login screen without a usable session token.
+    auth_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/authorize?{urlencode({
+        'provider': 'google',
+        'redirect_to': redirect_to,
+    })}"
+    return {"url": auth_url}
 
 
 @api_router.post("/auth/supabase-session")

@@ -1,5 +1,6 @@
 import asyncio
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlparse
 
 import server
 
@@ -205,3 +206,17 @@ def test_configured_admin_email_is_promoted_after_google_login(monkeypatch):
     assert result["user"]["is_admin"] is True
     assert result["user"]["is_premium"] is True
     assert fake_db.users.documents[0]["auth_provider"] == "google"
+
+
+def test_google_start_uses_browser_compatible_implicit_flow(monkeypatch):
+    monkeypatch.setattr(server, "SUPABASE_URL", "https://project.supabase.co")
+    monkeypatch.setattr(server, "SUPABASE_ANON_KEY", "anon-key")
+
+    result = asyncio.run(server.google_start("https://app.example/oauth/callback"))
+    parsed = urlparse(result["url"])
+    query = parse_qs(parsed.query)
+
+    assert parsed.geturl().startswith("https://project.supabase.co/auth/v1/authorize")
+    assert query["provider"] == ["google"]
+    assert query["redirect_to"] == ["https://app.example/oauth/callback"]
+    assert "code_challenge" not in query

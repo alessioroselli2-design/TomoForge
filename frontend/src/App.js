@@ -48,13 +48,19 @@ function AppRouter() {
 function OAuthCallback() {
   const navigate = useNavigate();
   const { loginWithToken } = useAuth();
+  const [error, setError] = React.useState("");
 
   React.useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const accessToken = params.get("access_token");
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const queryParams = new URLSearchParams(window.location.search);
+    const accessToken = hashParams.get("access_token");
+    const providerError = hashParams.get("error_description")
+      || queryParams.get("error_description")
+      || hashParams.get("error")
+      || queryParams.get("error");
     window.history.replaceState(null, "", "/oauth/callback");
     if (!accessToken) {
-      navigate("/", { replace: true });
+      setError(providerError || "Google non ha restituito una sessione valida. Riprova l'accesso.");
       return;
     }
     api.post("/auth/supabase-session", { access_token: accessToken })
@@ -62,12 +68,30 @@ function OAuthCallback() {
         loginWithToken(data.token, data.user);
         navigate("/collezione", { replace: true });
       })
-      .catch(() => navigate("/", { replace: true }));
+      .catch((requestError) => {
+        setError(requestError.response?.data?.detail || "Impossibile completare l'accesso Google. Riprova.");
+      });
   }, [loginWithToken, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-obsidian">
-      <p className="font-label text-gold tracking-widest animate-pulse">APERTURA DEL TOMO…</p>
+      <div className="max-w-md px-6 text-center">
+        <p className={`font-label text-gold tracking-widest ${error ? "" : "animate-pulse"}`}>
+          {error ? "ACCESSO GOOGLE NON COMPLETATO" : "APERTURA DEL TOMO…"}
+        </p>
+        {error && (
+          <>
+            <p className="mt-4 font-body text-sm leading-relaxed text-foreground/75">{error}</p>
+            <button
+              type="button"
+              onClick={() => navigate("/", { replace: true })}
+              className="mt-6 font-label text-xs tracking-widest text-gold hover:text-gold-deep"
+            >
+              TORNA AL LOGIN
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
