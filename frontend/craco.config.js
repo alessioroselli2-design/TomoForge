@@ -108,6 +108,11 @@ let webpackConfig = {
 };
 
 webpackConfig.devServer = (devServerConfig) => {
+  // Replit serves the preview through a proxied hostname. CRA's default
+  // host allow-list rejects that hostname with "Invalid Host header".
+  devServerConfig.host = "0.0.0.0";
+  devServerConfig.allowedHosts = "all";
+
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
     const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
