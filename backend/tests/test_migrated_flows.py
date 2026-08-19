@@ -145,3 +145,31 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
     assert result["artwork_path"].endswith(".jpg")
     assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
     assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.jpg"
+
+
+def test_configured_admin_email_registers_as_admin_and_premium(monkeypatch):
+    class FakeUsers:
+        def __init__(self):
+            self.documents = []
+
+        async def find_one(self, query):
+            return next((row for row in self.documents if row["email"] == query["email"]), None)
+
+        async def insert_one(self, document):
+            self.documents.append(document)
+
+    fake_db = SimpleNamespace(users=FakeUsers())
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setattr(server, "create_jwt", lambda user_id: "test-token")
+
+    result = asyncio.run(server.register(server.RegisterInput(
+        email="admin@example.com",
+        password="secure-test-password",
+        name="Admin",
+    )))
+
+    assert result["user"]["is_admin"] is True
+    assert result["user"]["is_premium"] is True
+    assert fake_db.users.documents[0]["is_admin"] is True
+    assert fake_db.users.documents[0]["premium_manual"] is True

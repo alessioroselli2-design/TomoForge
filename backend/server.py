@@ -524,10 +524,11 @@ async def register(body: RegisterInput):
     if existing:
         raise HTTPException(status_code=400, detail="Email già registrata")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
+    is_configured_admin = bool(ADMIN_EMAIL and body.email.lower() == ADMIN_EMAIL.lower())
     document = {
         "user_id": user_id, "email": body.email.lower(), "name": body.name,
         "picture": None, "auth_provider": "email", "password_hash": hash_password(body.password),
-        "is_admin": False, "premium_manual": False, "created_at": utc_now(),
+        "is_admin": is_configured_admin, "premium_manual": is_configured_admin, "created_at": utc_now(),
     }
     await db.users.insert_one(document)
     user = User(**document)
