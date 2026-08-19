@@ -331,10 +331,10 @@ export default function CardDetail() {
 
       {/* Off-screen clean renders for export (no 3D transform -> no mirrored text) */}
       <div style={{ position: "fixed", left: -99999, top: 0 }} aria-hidden="true">
-        <div ref={exportFrontRef} style={{ width: 340, aspectRatio: "2.5/3.5" }}>
+        <div ref={exportFrontRef} style={{ width: 340, height: 476 }}>
           <CardFront card={card} exportMode />
         </div>
-        <div ref={exportBackRef} style={{ width: 340, aspectRatio: "2.5/3.5", marginTop: 8 }}>
+        <div ref={exportBackRef} style={{ width: 340, height: 476, marginTop: 8 }}>
           <CardBack card={card} exportMode />
         </div>
       </div>

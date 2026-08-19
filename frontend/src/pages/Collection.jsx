@@ -297,11 +297,11 @@ export default function Collection() {
       <div ref={sheetContainerRef} style={{ position: "fixed", left: -99999, top: 0 }} aria-hidden="true">
         {chosenCards.map((card) => (
           <div key={card.id}>
-            <div ref={(el) => { if (el) cardRefs.current[card.id] = el; }} style={{ width: 340, aspectRatio: "2.5/3.5", marginBottom: 8 }}>
+            <div ref={(el) => { if (el) cardRefs.current[card.id] = el; }} style={{ width: 340, height: 476, marginBottom: 8 }}>
               <CardFront card={card} exportMode />
             </div>
             {includeBack && (
-              <div ref={(el) => { if (el) backRefs.current[card.id] = el; }} style={{ width: 340, aspectRatio: "2.5/3.5", marginBottom: 8 }}>
+              <div ref={(el) => { if (el) backRefs.current[card.id] = el; }} style={{ width: 340, height: 476, marginBottom: 8 }}>
                 <CardBack card={card} exportMode />
               </div>
             )}

@@ -57,6 +57,16 @@ body {
     border: 3px solid transparent !important;
     border-radius: 3px;
 }
+
+/* html2canvas on iOS can resolve an aspect-ratio-only export wrapper with a
+   shorter height than the physical card. Keep the capture box deterministic. */
+.tf-export-card {
+    width: 340px !important;
+    height: 476px !important;
+    min-height: 476px !important;
+    max-height: 476px !important;
+    box-sizing: border-box !important;
+}
 .tf-foil-gold {
     border-image: linear-gradient(135deg, #6b4612, #fff3a4 18%, #b87c16 45%, #fff4a8 72%, #6b4612) 1 !important;
     box-shadow: inset 0 0 0 2px rgba(255,225,123,.2), inset 0 0 35px rgba(0,0,0,.68), 0 0 12px rgba(212,175,55,.22);

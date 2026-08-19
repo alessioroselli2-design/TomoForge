@@ -63,9 +63,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
   const frame = card.frame || "gold";
   return (
     <div ref={ref} data-testid="card-front"
-      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden`}>
+      className={`relative w-full h-full bg-card tf-card-frame tf-foil-${frame} flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}>
       {/* header */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+      <div className="flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
         <h3 className={`font-heading font-bold text-lg leading-tight truncate pr-2 tf-title-3d ${exportMode ? "text-gold" : "tf-gold-text"}`}>{card.name || "Senza nome"}</h3>
         <div className="flex items-center gap-1 shrink-0">
           <TypeIcon className="w-3.5 h-3.5 text-gold" />
@@ -74,18 +74,18 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       </div>
       <hr className="tf-divider mx-3" aria-hidden="true" />
       {/* artwork */}
-      <div className="mx-3 mt-2 border border-gold-deep/60 overflow-hidden bg-obsidian" style={{ aspectRatio: "1.35" }}>
+      <div className="flex-none mx-3 mt-2 border border-gold-deep/60 overflow-hidden bg-obsidian" style={{ aspectRatio: "1.35" }}>
         <img src={img} alt={card.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
       </div>
       {/* body */}
-      <div className="flex-1 px-3 py-2 overflow-hidden">
+      <div className="min-h-0 flex-1 px-3 py-2 overflow-hidden">
         <QuickStats card={card} />
         {card.description && (
           <p className="font-body text-[10px] leading-snug text-foreground/70 mt-1.5 line-clamp-2 italic">{card.description}</p>
         )}
       </div>
       {/* footer with QR */}
-      <div className="flex items-end justify-between px-3 pb-2.5 pt-1">
+      <div className="flex-none flex items-end justify-between px-3 pb-2.5 pt-1">
         <span className="font-label text-[8px] tracking-widest text-muted-foreground uppercase leading-tight">{t("completeDetails")}<br/>→</span>
         <div className="bg-white p-1 border border-gold-deep absolute right-2.5 bottom-2.5">
           <QRCodeCanvas value={qrValue} size={40} bgColor="#ffffff" fgColor="#0c0a09" level="M" />
