@@ -26,15 +26,15 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-gold-deep/30 bg-obsidian/90 backdrop-blur-sm">
       <PremiumDialog open={premiumOpen} onOpenChange={setPremiumOpen} />
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
-        <Link to="/collezione" data-testid="nav-logo" className="flex items-center gap-3 group">
+        <Link to="/collezione" data-testid="nav-logo" className="flex shrink-0 items-center gap-2 sm:gap-3 group">
           <BookOpen className="w-6 h-6 text-gold transition-transform group-hover:-translate-y-0.5" strokeWidth={1.5} />
-          <span className="font-label tracking-[0.3em] text-gold text-sm">TOMEFORGE</span>
+          <span className="hidden font-label tracking-[0.3em] text-gold text-sm min-[390px]:block">TOMEFORGE</span>
         </Link>
 
         <div className="flex items-center gap-3">
           {user && !user.is_premium && (
             <Button data-testid="nav-upgrade" onClick={() => setPremiumOpen(true)} variant="outline"
-              className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label tracking-wide text-xs h-9 px-3 transition-colors">
+              className="hidden rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label tracking-wide text-xs h-9 px-3 transition-colors md:inline-flex">
               <Crown className="w-4 h-4 mr-1.5" /> PREMIUM
             </Button>
           )}
@@ -44,8 +44,9 @@ export default function Navbar() {
             </span>
           )}
           <Button data-testid="nav-create" onClick={() => navigate("/crea")}
-            className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label tracking-wide text-xs h-9 px-4 transition-colors">
-            <Plus className="w-4 h-4 mr-1.5" /> {t("create").toUpperCase()}
+            aria-label={t("create")}
+            className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label tracking-wide text-xs h-9 px-3 sm:px-4 transition-colors">
+            <Plus className="w-4 h-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t("create").toUpperCase()}</span>
           </Button>
 
           <DropdownMenu>

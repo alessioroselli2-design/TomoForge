@@ -10,6 +10,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
+    const token = localStorage.getItem("tf_token");
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await api.get("/auth/me");
       setUser(res.data);

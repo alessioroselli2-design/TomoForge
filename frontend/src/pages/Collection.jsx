@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2 } from "lucide-react";
+import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2, Wand2, Sparkles, FileText } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { api } from "@/lib/api";
@@ -155,6 +155,10 @@ export default function Collection() {
               className="pl-9 bg-input border-border rounded-none font-body focus-visible:ring-gold" />
           </div>
           <div className="flex items-center gap-2">
+            <Button data-testid="collection-create" onClick={() => navigate("/crea")}
+              className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-widest h-9 transition-colors">
+              <Plus className="w-4 h-4 mr-1.5" /> NUOVA CARTA
+            </Button>
             {!selectMode ? (
               <Button data-testid="print-sheet-toggle" onClick={() => setSelectMode(true)} variant="outline"
                 className="rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[11px] tracking-widest h-9 transition-colors">
@@ -308,5 +312,47 @@ const EmptyState = ({ navigate, search, filter }) => (
       className="mt-6 rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label tracking-widest transition-colors">
       <Plus className="w-4 h-4 mr-1.5" /> CREA UNA CARTA
     </Button>
+    {!search && filter === "all" && (
+      <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-3 px-5 text-left sm:grid-cols-3">
+        <OnboardingStep
+          icon={Plus}
+          title="1 · FORGIA"
+          description="Scegli il tipo di carta e inizia dai tuoi campi."
+          action="CREA ORA"
+          onClick={() => navigate("/crea")}
+        />
+        <OnboardingStep
+          icon={Wand2}
+          title="2 · EVOCA"
+          description="Genera contenuto e artwork oppure usa le tue idee."
+          action="APRI L’EDITOR"
+          onClick={() => navigate("/crea")}
+        />
+        <OnboardingStep
+          icon={Printer}
+          title="3 · STAMPA"
+          description="Esporta PNG, PDF o un foglio A4 quando la collezione prende forma."
+          action="SCOPRI I FORMATI"
+          muted
+        />
+      </div>
+    )}
   </motion.div>
+);
+
+const OnboardingStep = ({ icon: Icon, title, description, action, onClick, muted }) => (
+  <div className="border border-gold-deep/35 bg-obsidian/50 p-4">
+    <Icon className="h-5 w-5 text-gold" />
+    <h4 className="mt-3 font-label text-[11px] tracking-widest text-gold">{title}</h4>
+    <p className="mt-2 min-h-[42px] font-body text-xs leading-relaxed text-muted-foreground">{description}</p>
+    {onClick ? (
+      <button onClick={onClick} className="mt-4 font-label text-[10px] tracking-widest text-gold hover:text-gold-deep">
+        {action} →
+      </button>
+    ) : (
+      <span className="mt-4 inline-flex items-center gap-1 font-label text-[10px] tracking-widest text-muted-foreground">
+        <FileText className="h-3 w-3" /> {action}
+      </span>
+    )}
+  </div>
 );

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
@@ -279,10 +280,12 @@ export default function CardEditor() {
           <div className="space-y-8">
             <div>
               <h1 className="font-display text-3xl sm:text-4xl tf-gold-text">{isEdit ? "Modifica Carta" : "Forgia una Carta"}</h1>
+                <p className="mt-2 font-body text-sm text-muted-foreground">Segui i passaggi del laboratorio: la preview resta accanto a te mentre modifichi.</p>
             </div>
+             <EditorNavigation />
 
             {/* Type + language */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div id="editor-identity" className="grid scroll-mt-28 grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="font-label text-xs tracking-widest text-gold/80">TIPO DI CARTA</Label>
                 <Select value={card.type} onValueChange={onTypeChange}>
@@ -316,7 +319,7 @@ export default function CardEditor() {
             )}
 
             {/* AI generation */}
-            <div className="border border-gold-deep/40 bg-card p-5">
+             <div id="editor-evocation" className="scroll-mt-28 border border-gold-deep/40 bg-card p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Wand2 className="w-4 h-4 text-gold" />
                 <span className="font-label text-xs tracking-widest text-gold">EVOCAZIONE ARCANA (AI)</span>
@@ -366,7 +369,7 @@ export default function CardEditor() {
             </div>
 
             {/* Manual fields */}
-            <div className="space-y-5">
+             <div id="editor-content" className="scroll-mt-28 space-y-5">
               <div>
                 <Label className="font-label text-xs tracking-widest text-gold/80">NOME</Label>
                 <Input data-testid="name-field" value={card.name} onChange={(e) => set({ name: e.target.value })} className={`${inputCls} mt-2`} />
@@ -382,58 +385,67 @@ export default function CardEditor() {
             </div>
 
             {/* Attributes */}
-            <div className="border-t border-border pt-6">
+             <div id="editor-stats" className="scroll-mt-28 border-t border-border pt-6">
               <h2 className="font-heading text-2xl text-foreground mb-4">Statistiche & Attributi</h2>
               <AttributeEditor attributes={card.attributes} onChange={(a) => set({ attributes: a })} allowCustomFields={card.type === "custom"} />
             </div>
 
-            <CardAppearanceControls
-              frame={card.frame || "gold"}
-              appearance={{ ...DEFAULT_APPEARANCE, ...(card.appearance || {}) }}
-              onFrameChange={(frame) => set({ frame })}
-              onAppearanceChange={setAppearance}
-            />
+             <Accordion type="multiple" defaultValue={["appearance", "back"]} className="border-y border-border">
+               <AccordionItem value="appearance" id="editor-appearance" className="scroll-mt-28 border-border">
+                 <AccordionTrigger className="font-heading text-xl text-foreground hover:no-underline">
+                   <span className="flex items-center gap-2"><Palette className="h-5 w-5 text-gold" /> 4 · ASPETTO DEL FRONTE</span>
+                 </AccordionTrigger>
+                 <AccordionContent className="pt-2">
+                   <CardAppearanceControls
+                     frame={card.frame || "gold"}
+                     appearance={{ ...DEFAULT_APPEARANCE, ...(card.appearance || {}) }}
+                     onFrameChange={(frame) => set({ frame })}
+                     onAppearanceChange={setAppearance}
+                   />
+                 </AccordionContent>
+               </AccordionItem>
 
-            {/* Back customization */}
-            <div className="border-t border-border pt-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Palette className="w-5 h-5 text-gold" />
-                <h2 className="font-heading text-2xl text-foreground">Retro della Carta</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-label text-xs tracking-widest text-gold/80">STILE</Label>
-                  <Select value={card.back.style} onValueChange={(v) => setBack({ style: v })}>
-                    <SelectTrigger data-testid="back-style" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-card border-gold-deep/40 rounded-none">
-                      {BACK_STYLES.map((s) => <SelectItem key={s.id} value={s.id} className="font-body">{s.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="font-label text-xs tracking-widest text-gold/80">EMBLEMA</Label>
-                  <Select value={card.back.emblem} onValueChange={(v) => setBack({ emblem: v })}>
-                    <SelectTrigger data-testid="back-emblem" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-card border-gold-deep/40 rounded-none">
-                      {EMBLEMS.map((s) => <SelectItem key={s.id} value={s.id} className="font-body">{s.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="font-label text-xs tracking-widest text-gold/80">COLORE</Label>
-                  <div className="flex items-center gap-3 mt-2">
-                    <input type="color" data-testid="back-color" value={card.back.color} onChange={(e) => setBack({ color: e.target.value })}
-                      className="w-12 h-10 bg-input border border-border cursor-pointer" />
-                    <span className="font-body text-sm text-muted-foreground">{card.back.color}</span>
-                  </div>
-                </div>
-                <div>
-                  <Label className="font-label text-xs tracking-widest text-gold/80">MOTTO</Label>
-                  <Input data-testid="back-motto" value={card.back.motto} onChange={(e) => setBack({ motto: e.target.value })}
-                    placeholder="Es. Dalle ceneri, potere" className={`${inputCls} mt-2`} />
-                </div>
-              </div>
-            </div>
+               <AccordionItem value="back" id="editor-back" className="scroll-mt-28 border-0">
+                 <AccordionTrigger className="font-heading text-xl text-foreground hover:no-underline">
+                   <span className="flex items-center gap-2"><Palette className="h-5 w-5 text-gold" /> 5 · RETRO DELLA CARTA</span>
+                 </AccordionTrigger>
+                 <AccordionContent className="pt-2">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div>
+                       <Label className="font-label text-xs tracking-widest text-gold/80">STILE</Label>
+                       <Select value={card.back.style} onValueChange={(v) => setBack({ style: v })}>
+                         <SelectTrigger data-testid="back-style" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
+                         <SelectContent className="bg-card border-gold-deep/40 rounded-none">
+                           {BACK_STYLES.map((s) => <SelectItem key={s.id} value={s.id} className="font-body">{s.label}</SelectItem>)}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label className="font-label text-xs tracking-widest text-gold/80">EMBLEMA</Label>
+                       <Select value={card.back.emblem} onValueChange={(v) => setBack({ emblem: v })}>
+                         <SelectTrigger data-testid="back-emblem" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
+                         <SelectContent className="bg-card border-gold-deep/40 rounded-none">
+                           {EMBLEMS.map((s) => <SelectItem key={s.id} value={s.id} className="font-body">{s.label}</SelectItem>)}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label className="font-label text-xs tracking-widest text-gold/80">COLORE</Label>
+                       <div className="flex items-center gap-3 mt-2">
+                         <input type="color" data-testid="back-color" value={card.back.color} onChange={(e) => setBack({ color: e.target.value })}
+                           className="w-12 h-10 bg-input border border-border cursor-pointer" />
+                         <span className="font-body text-sm text-muted-foreground">{card.back.color}</span>
+                       </div>
+                     </div>
+                     <div>
+                       <Label className="font-label text-xs tracking-widest text-gold/80">MOTTO</Label>
+                       <Input data-testid="back-motto" value={card.back.motto} onChange={(e) => setBack({ motto: e.target.value })}
+                         placeholder="Es. Dalle ceneri, potere" className={`${inputCls} mt-2`} />
+                     </div>
+                   </div>
+                 </AccordionContent>
+               </AccordionItem>
+             </Accordion>
 
             <Button data-testid="save-btn" onClick={save} disabled={saving}
               className="w-full sm:w-auto rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label tracking-widest h-12 px-10 transition-colors">
@@ -443,7 +455,7 @@ export default function CardEditor() {
           </div>
 
           {/* PREVIEW */}
-          <div className="lg:sticky lg:top-24 h-fit">
+            <div className="lg:sticky lg:top-24 h-fit lg:max-h-[calc(100vh-7rem)]">
             <p className="font-label text-xs tracking-widest text-gold/70 mb-3 text-center">ANTEPRIMA</p>
             <motion.div layout className="mx-auto" style={{ width: 280, aspectRatio: "2.5/3.5" }}>
               {showBack ? <CardBack card={card} /> : <CardFront card={card} />}
@@ -460,3 +472,23 @@ export default function CardEditor() {
     </div>
   );
 }
+
+const EditorNavigation = () => {
+  const goTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  return (
+    <nav aria-label="Passaggi dell'editor" className="grid grid-cols-2 gap-2 border-y border-border py-3 sm:grid-cols-5">
+      {[
+        ["editor-identity", "1 · IDENTITÀ"],
+        ["editor-evocation", "2 · CONTENUTO"],
+        ["editor-stats", "3 · STATISTICHE"],
+        ["editor-appearance", "4 · FRONTE"],
+        ["editor-back", "5 · RETRO"],
+      ].map(([id, label]) => (
+        <button key={id} type="button" onClick={() => goTo(id)}
+          className="border border-border px-2 py-2 font-label text-[9px] tracking-wider text-muted-foreground transition-colors hover:border-gold-deep hover:text-gold sm:text-[10px]">
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+};

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import {
-  ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2,
+  ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2, ImageDown,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { typeLabel, attrLabel, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
@@ -137,6 +137,7 @@ export default function CardDetail() {
   const [card, setCard] = useState(null);
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState("");
   const exportFrontRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -177,6 +178,7 @@ export default function CardDetail() {
       link.download = `${card.name || "carta"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+      setExportFeedback("PNG scaricato: pronto da condividere.");
       toast.success("Immagine esportata");
     } catch (e) { toast.error("Esportazione fallita"); }
     finally { setBusy(false); }
@@ -189,6 +191,7 @@ export default function CardDetail() {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });
       await addSingleCardPdfPages(pdf, exportFrontRef.current, card);
       pdf.save(`${card.name || "carta"}-fronte-retro.pdf`);
+      setExportFeedback("PDF fronte/retro generato.");
       toast.success("PDF generato");
     } catch (e) { toast.error("Generazione PDF fallita"); }
     finally { setBusy(false); }
@@ -201,6 +204,7 @@ export default function CardDetail() {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       await addSingleCardA4PdfPages(pdf, exportFrontRef.current, card);
       pdf.save(`carta-${card.name || "personaggio"}-a4-fronte-retro.pdf`);
+      setExportFeedback("Foglio A4 fronte/retro generato.");
       toast.success("Carta A4 generata");
     } catch (e) { toast.error("Generazione carta A4 fallita"); }
     finally { setBusy(false); }
@@ -234,11 +238,11 @@ export default function CardDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-10">
           {/* Card + actions */}
-          <div className="lg:sticky lg:top-24 h-fit">
-            <div className="mx-auto" style={{ width: 320, perspective: "1600px" }}>
+            <div className="lg:sticky lg:top-24 h-fit">
+              <div className="mx-auto w-full max-w-[320px]" style={{ perspective: "1600px" }}>
               <motion.div
                 className="relative preserve-3d"
-                style={{ width: 320, aspectRatio: "2.5/3.5", transformStyle: "preserve-3d" }}
+                  style={{ width: "100%", aspectRatio: "2.5/3.5", transformStyle: "preserve-3d" }}
                 animate={{ rotateY: flipped ? 180 : 0 }}
                 transition={{ duration: 0.7, ease: "easeInOut" }}
               >
@@ -284,19 +288,30 @@ export default function CardDetail() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Button data-testid="share-btn" onClick={shareImage} disabled={busy} variant="outline"
-                className="rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
-                <Download className="w-3.5 h-3.5 mr-1.5" /> IMMAGINE
-              </Button>
-              <Button data-testid="pdf-btn" onClick={exportPDF} disabled={busy} variant="outline"
-                className="rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
-                <Printer className="w-3.5 h-3.5 mr-1.5" /> PDF F/R
-              </Button>
             </div>
-            <Button data-testid="sheet-btn" onClick={exportSheet} disabled={busy}
-              className="w-full mt-2 rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-widest transition-colors">
-              <FileText className="w-3.5 h-3.5 mr-1.5" /> CARTA A4 F/R
-            </Button>
+            <div className="mt-4 border border-gold-deep/40 bg-card/50 p-3">
+              <p className="font-label text-[10px] tracking-[0.18em] text-gold">ESPORTA O STAMPA</p>
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                <Button data-testid="share-btn" onClick={shareImage} disabled={busy} variant="outline"
+                  className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
+                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG
+                </Button>
+                <Button data-testid="pdf-btn" onClick={exportPDF} disabled={busy} variant="outline"
+                  className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
+                  <Download className="w-3.5 h-3.5 mr-2 text-gold" /> PDF FRONTE / RETRO
+                </Button>
+                <Button data-testid="sheet-btn" onClick={exportSheet} disabled={busy}
+                  className="justify-start rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-wide transition-colors">
+                  {busy ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-2" />} FOGLIO A4 FRONTE / RETRO
+                </Button>
+              </div>
+              <p className="mt-3 font-body text-[11px] leading-relaxed text-muted-foreground">
+                Il foglio A4 mantiene la dimensione Standard e il retro allineato per la stampa fronte/retro.
+              </p>
+              <p aria-live="polite" className="mt-2 min-h-4 font-body text-[11px] text-gold/90">
+                {busy ? "Preparazione dell’export in corso…" : exportFeedback}
+              </p>
+            </div>
           </div>
 
           {/* Info */}
