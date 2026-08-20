@@ -118,8 +118,8 @@ def test_gemini_content_response_is_mapped_to_card_fields(monkeypatch):
         "story": "Nata tra le rovine.",
         "attributes": {"livello": "2"},
     }
-    assert request_data["url"].endswith("/models/gemini-2.5-flash:generateContent")
-    assert request_data["params"] == {"key": "test-gemini-key"}
+    assert request_data["url"].endswith("/models/gemini-3.6-flash:generateContent")
+    assert request_data["headers"]["x-goog-api-key"] == "test-gemini-key"
 
 
 def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):

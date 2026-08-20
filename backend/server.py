@@ -38,7 +38,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.6-flash")
 SEGMIND_API_KEY = os.getenv("SEGMIND_API_KEY")
 SEGMIND_IMAGE_MODEL = os.getenv("SEGMIND_IMAGE_MODEL", "fast-flux-schnell")
 JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SESSION_SECRET")
@@ -675,8 +675,10 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
         response = await asyncio.to_thread(
             requests.post,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
-            params={"key": require_gemini()},
-            headers={"Content-Type": "application/json"},
+            headers={
+                "x-goog-api-key": require_gemini(),
+                "Content-Type": "application/json",
+            },
             json={
                 "contents": [{"parts": [{
                     "text": (
