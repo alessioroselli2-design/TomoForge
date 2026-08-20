@@ -1,5 +1,6 @@
 import base64
 import asyncio
+import io
 import json
 import logging
 import os
@@ -37,6 +38,10 @@ SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "tomeforge-assets
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
+# Generated artwork is cleaned by default. Deployments may explicitly opt out
+# with ARTWORK_CLEANUP_ENABLED=false when they do not want the extra edit pass.
+ARTWORK_CLEANUP_ENABLED = os.getenv("ARTWORK_CLEANUP_ENABLED", "true").lower() not in {"0", "false", "no", "off"}
+ARTWORK_CLEANUP_MODEL = os.getenv("ARTWORK_CLEANUP_MODEL", OPENAI_IMAGE_MODEL)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.6-flash")
 SEGMIND_API_KEY = os.getenv("SEGMIND_API_KEY")
@@ -727,6 +732,97 @@ async def save_file(path: str, data: bytes, content_type: str, user_id: str, ori
     return stored_path
 
 
+ARTWORK_CLEANUP_PROMPT = (
+    "Clean this artwork before it is saved. Remove any visible decorative signature, "
+    "watermark, logo, artist mark, text, letters, numbers, or readable glyphs that may "
+    "have been added by the image model. Preserve the original subject, pose, composition, "
+    "lighting, colors, and portrait aspect ratio. Do not add any new writing or change the "
+    "artwork into a card, poster, cover, banner, or interface. Return only the cleaned artwork."
+)
+
+
+def _artwork_input_filename(content_type: str) -> str:
+    extension = {
+        "image/jpeg": "jpg",
+        "image/webp": "webp",
+        "image/gif": "gif",
+    }.get(content_type, "png")
+    return f"artwork.{extension}"
+
+
+async def cleanup_artwork(data: bytes, content_type: str) -> tuple[bytes, str]:
+    """Optionally remove model-added marks before artwork reaches storage.
+
+    Cleanup is enabled by default for generated artwork and can be explicitly disabled
+    by deployment configuration. The Segmind request and its response handling stay
+    unchanged; this function only runs after Segmind has produced usable image bytes.
+    """
+    if not ARTWORK_CLEANUP_ENABLED:
+        return data, content_type
+    if not data or not content_type.startswith("image/"):
+        raise ValueError("Cannot clean an empty or non-image artwork")
+
+    client = require_openai()
+    image_file = io.BytesIO(data)
+    image_file.name = _artwork_input_filename(content_type)
+    response = await client.images.edit(
+        model=ARTWORK_CLEANUP_MODEL,
+        image=image_file,
+        prompt=ARTWORK_CLEANUP_PROMPT,
+    )
+    result = response.data[0] if response.data else None
+    image_value = result.get("b64_json") if isinstance(result, dict) else getattr(result, "b64_json", None)
+    if image_value:
+        cleaned_data = base64.b64decode(image_value)
+        return cleaned_data, "image/png"
+
+    image_url = result.get("url") if isinstance(result, dict) else getattr(result, "url", None)
+    if image_url:
+        image_response = await asyncio.to_thread(requests.get, image_url, timeout=(10, 120))
+        image_response.raise_for_status()
+        cleaned_content_type = image_response.headers.get("content-type", "image/png").split(";", 1)[0].lower()
+        if not cleaned_content_type.startswith("image/"):
+            raise ValueError("OpenAI cleanup did not return an image")
+        return image_response.content, cleaned_content_type
+
+    raise ValueError("OpenAI cleanup did not return image data")
+
+
+async def save_artwork(
+    path: str,
+    data: bytes,
+    content_type: str,
+    user_id: str,
+    original_filename: Optional[str] = None,
+    *,
+    cleanup: bool = False,
+) -> str:
+    """Validate and persist generated artwork, optionally cleaning model-added marks."""
+    if cleanup and ARTWORK_CLEANUP_ENABLED:
+        try:
+            data, content_type = await cleanup_artwork(data, content_type)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.exception("Artwork cleanup failed")
+            raise HTTPException(status_code=502, detail="Pulizia dell'artwork non riuscita") from exc
+        if not data or not content_type.startswith("image/"):
+            raise HTTPException(status_code=502, detail="La pulizia non ha restituito un'immagine valida")
+
+    extension = {
+        "image/jpeg": "jpg",
+        "image/webp": "webp",
+        "image/png": "png",
+    }.get(content_type, "png")
+    if cleanup and ARTWORK_CLEANUP_ENABLED:
+        path = f"{path.rsplit('.', 1)[0]}.{extension}" if "." in path.rsplit("/", 1)[-1] else f"{path}.{extension}"
+    if cleanup and ARTWORK_CLEANUP_ENABLED and original_filename:
+        cleaned_filename = f"{Path(original_filename).stem}.{extension}"
+    else:
+        cleaned_filename = original_filename or f"generated.{extension}"
+    return await save_file(path, data, content_type, user_id, cleaned_filename)
+
+
 @api_router.post("/ai/generate-image")
 async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium)):
     if MOCK_DATA:
@@ -774,7 +870,16 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
             raise ValueError("Segmind did not return a usable image")
         extension = {"image/jpeg": "jpg", "image/webp": "webp", "image/png": "png"}.get(content_type, "png")
         path = f"artwork/{user.user_id}/{uuid.uuid4()}.{extension}"
-        return {"artwork_path": await save_file(path, artwork_data, content_type, user.user_id, f"segmind-generated.{extension}")}
+        return {
+            "artwork_path": await save_artwork(
+                path,
+                artwork_data,
+                content_type,
+                user.user_id,
+                f"segmind-generated.{extension}",
+                cleanup=True,
+            )
+        }
     except HTTPException:
         raise
     except requests.RequestException as exc:

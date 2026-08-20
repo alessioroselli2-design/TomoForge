@@ -1,7 +1,9 @@
 import asyncio
+import base64
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 import server
 
 
@@ -86,6 +88,49 @@ def test_file_record_is_created_after_storage_upload(monkeypatch):
     assert fake_db.files.documents[0]["content_type"] == "image/png"
 
 
+def test_artwork_cleanup_is_a_noop_when_disabled(monkeypatch):
+    monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", False)
+
+    result = asyncio.run(server.cleanup_artwork(b"original-artwork", "image/jpeg"))
+
+    assert result == (b"original-artwork", "image/jpeg")
+
+
+def test_artwork_cleanup_removes_marks_before_the_image_is_saved(monkeypatch):
+    fake_db = FakeDatabase()
+    calls = {}
+    cleaned_bytes = b"cleaned-png-artwork"
+
+    class FakeImages:
+        async def edit(self, **kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(data=[SimpleNamespace(
+                b64_json=base64.b64encode(cleaned_bytes).decode("ascii")
+            )])
+
+    monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", True)
+    monkeypatch.setattr(server, "require_openai", lambda: SimpleNamespace(images=FakeImages()))
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+
+    saved_path = asyncio.run(server.save_artwork(
+        "artwork/user_123/generated.jpg",
+        b"segmind-jpeg-artwork",
+        "image/jpeg",
+        "user_123",
+        "segmind-generated.jpg",
+        cleanup=True,
+    ))
+
+    assert calls["model"] == server.ARTWORK_CLEANUP_MODEL
+    assert calls["image"].read() == b"segmind-jpeg-artwork"
+    assert "signature" in calls["prompt"]
+    assert "watermark" in calls["prompt"]
+    assert saved_path == "artwork/user_123/generated.png"
+    assert fake_db.files.documents[0]["content_type"] == "image/png"
+    assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.png"
+
+
 def test_gemini_content_response_is_mapped_to_card_fields(monkeypatch):
     class FakeResponse:
         def raise_for_status(self):
@@ -132,16 +177,22 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
 
     fake_db = FakeDatabase()
     request_data = {}
+    cleanup_calls = []
 
     def fake_post(url, **kwargs):
         request_data["url"] = url
         request_data.update(kwargs)
         return FakeResponse()
 
+    async def fake_cleanup(data, content_type):
+        cleanup_calls.append((data, content_type))
+        return b"cleaned-image-bytes", "image/png"
+
     monkeypatch.setattr(server, "db", fake_db)
     monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
     monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
+    monkeypatch.setattr(server, "cleanup_artwork", fake_cleanup)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_image(
@@ -157,9 +208,40 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
     assert "not a card design" in prompt
     assert "never render them as writing" in prompt
     assert "no typography, words, letters, numbers, readable runes" in prompt
-    assert result["artwork_path"].endswith(".jpg")
-    assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
-    assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.jpg"
+    assert cleanup_calls == [(b"segmind-image-bytes", "image/jpeg")]
+    assert result["artwork_path"].endswith(".png")
+    assert fake_db.files.documents[0]["content_type"] == "image/png"
+    assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.png"
+
+
+def test_generated_artwork_is_not_saved_when_cleanup_fails(monkeypatch):
+    class FakeResponse:
+        headers = {"content-type": "image/jpeg"}
+        content = b"segmind-image-bytes"
+
+        def raise_for_status(self):
+            return None
+
+    async def failing_cleanup(data, content_type):
+        raise RuntimeError("image cleanup unavailable")
+
+    fake_db = FakeDatabase()
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(server, "cleanup_artwork", failing_cleanup)
+    user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
+
+    with pytest.raises(server.HTTPException) as exc_info:
+        asyncio.run(server.generate_image(
+            server.GenerateImageInput(type="spell", prompt="Un golem d'ombra"),
+            user,
+        ))
+
+    assert exc_info.value.status_code == 502
+    assert "Pulizia dell'artwork" in exc_info.value.detail
+    assert fake_db.files.documents == []
 
 
 def test_configured_admin_email_registers_as_admin_and_premium(monkeypatch):
