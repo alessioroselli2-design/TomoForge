@@ -811,37 +811,36 @@ async def save_artwork(
     original_filename: Optional[str] = None,
     *,
     cleanup: bool = False,
-) -> str:
+) -> tuple[str, Optional[str]]:
     """Validate and persist generated artwork, optionally cleaning model-added marks."""
-    if cleanup and ARTWORK_CLEANUP_ENABLED:
+    cleanup_notice = None
+    if cleanup:
         try:
+            require_artwork_cleanup()
             data, content_type = await cleanup_artwork(data, content_type)
-        except HTTPException:
-            raise
         except Exception as exc:
-            logger.exception("Artwork cleanup failed")
-            raise HTTPException(status_code=502, detail="Pulizia dell'artwork non riuscita") from exc
-        if not data or not content_type.startswith("image/"):
-            raise HTTPException(status_code=502, detail="La pulizia non ha restituito un'immagine valida")
+            logger.warning("Artwork cleanup skipped; preserving original artwork: %s", exc)
+            cleanup_notice = "Artwork generato, ma la pulizia di firme e filigrane non è riuscita. L’immagine originale è stata salvata."
+        else:
+            if not data or not content_type.startswith("image/"):
+                raise HTTPException(status_code=502, detail="La pulizia non ha restituito un'immagine valida")
 
     extension = {
         "image/jpeg": "jpg",
         "image/webp": "webp",
         "image/png": "png",
     }.get(content_type, "png")
-    if cleanup and ARTWORK_CLEANUP_ENABLED:
+    if cleanup and not cleanup_notice:
         path = f"{path.rsplit('.', 1)[0]}.{extension}" if "." in path.rsplit("/", 1)[-1] else f"{path}.{extension}"
-    if cleanup and ARTWORK_CLEANUP_ENABLED and original_filename:
+    if cleanup and not cleanup_notice and original_filename:
         cleaned_filename = f"{Path(original_filename).stem}.{extension}"
     else:
         cleaned_filename = original_filename or f"generated.{extension}"
-    return await save_file(path, data, content_type, user_id, cleaned_filename)
+    return await save_file(path, data, content_type, user_id, cleaned_filename), cleanup_notice
 
 
 @api_router.post("/ai/generate-image")
 async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium)):
-    if body.cleanup:
-        require_artwork_cleanup()
     if MOCK_DATA:
         # 1x1 transparent PNG: enough for the editor/export flow without fake credentials.
         demo_png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
@@ -896,16 +895,18 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
             raise ValueError("Segmind did not return a usable image")
         extension = {"image/jpeg": "jpg", "image/webp": "webp", "image/png": "png"}.get(content_type, "png")
         path = f"artwork/{user.user_id}/{uuid.uuid4()}.{extension}"
-        return {
-            "artwork_path": await save_artwork(
-                path,
-                artwork_data,
-                content_type,
-                user.user_id,
-                f"segmind-generated.{extension}",
-                cleanup=body.cleanup,
-            )
-        }
+        artwork_path, cleanup_notice = await save_artwork(
+            path,
+            artwork_data,
+            content_type,
+            user.user_id,
+            f"segmind-generated.{extension}",
+            cleanup=body.cleanup,
+        )
+        result = {"artwork_path": artwork_path}
+        if cleanup_notice:
+            result["cleanup_notice"] = cleanup_notice
+        return result
     except HTTPException:
         raise
     except requests.RequestException as exc:

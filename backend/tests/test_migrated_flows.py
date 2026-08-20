@@ -113,7 +113,7 @@ def test_artwork_cleanup_removes_marks_before_the_image_is_saved(monkeypatch):
     monkeypatch.setattr(server, "db", fake_db)
     monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
 
-    saved_path = asyncio.run(server.save_artwork(
+    saved_path, cleanup_notice = asyncio.run(server.save_artwork(
         "artwork/user_123/generated.jpg",
         b"segmind-jpeg-artwork",
         "image/jpeg",
@@ -127,6 +127,7 @@ def test_artwork_cleanup_removes_marks_before_the_image_is_saved(monkeypatch):
     assert "signature" in calls["prompt"]
     assert "watermark" in calls["prompt"]
     assert saved_path == "artwork/user_123/generated.png"
+    assert cleanup_notice is None
     assert fake_db.files.documents[0]["content_type"] == "image/png"
     assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.png"
 
@@ -220,7 +221,7 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
     assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.png"
 
 
-def test_generated_artwork_is_not_saved_when_cleanup_fails(monkeypatch):
+def test_generated_artwork_is_saved_with_notice_when_cleanup_fails(monkeypatch):
     class FakeResponse:
         headers = {"content-type": "image/jpeg"}
         content = b"segmind-image-bytes"
@@ -239,15 +240,14 @@ def test_generated_artwork_is_not_saved_when_cleanup_fails(monkeypatch):
     monkeypatch.setattr(server, "cleanup_artwork", failing_cleanup)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
-    with pytest.raises(server.HTTPException) as exc_info:
-        asyncio.run(server.generate_image(
-            server.GenerateImageInput(type="spell", prompt="Un golem d'ombra", cleanup=True),
-            user,
-        ))
+    result = asyncio.run(server.generate_image(
+        server.GenerateImageInput(type="spell", prompt="Un golem d'ombra", cleanup=True),
+        user,
+    ))
 
-    assert exc_info.value.status_code == 502
-    assert "Pulizia dell'artwork" in exc_info.value.detail
-    assert fake_db.files.documents == []
+    assert result["artwork_path"].endswith(".jpg")
+    assert "pulizia" in result["cleanup_notice"].lower()
+    assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
 
 
 def test_generated_artwork_skips_cleanup_unless_requested(monkeypatch):
@@ -282,18 +282,30 @@ def test_generated_artwork_skips_cleanup_unless_requested(monkeypatch):
     assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
 
 
-def test_requested_artwork_cleanup_reports_when_unavailable(monkeypatch):
+def test_requested_artwork_cleanup_saves_original_when_unavailable(monkeypatch):
+    class FakeResponse:
+        headers = {"content-type": "image/jpeg"}
+        content = b"segmind-image-bytes"
+
+        def raise_for_status(self):
+            return None
+
+    fake_db = FakeDatabase()
     monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", False)
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
-    with pytest.raises(server.HTTPException) as exc_info:
-        asyncio.run(server.generate_image(
-            server.GenerateImageInput(type="spell", prompt="Un drago d'ombra", cleanup=True),
-            user,
-        ))
+    result = asyncio.run(server.generate_image(
+        server.GenerateImageInput(type="spell", prompt="Un drago d'ombra", cleanup=True),
+        user,
+    ))
 
-    assert exc_info.value.status_code == 503
-    assert "pulizia opzionale" in exc_info.value.detail
+    assert result["artwork_path"].endswith(".jpg")
+    assert "pulizia" in result["cleanup_notice"].lower()
+    assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
 
 
 def test_configured_admin_email_registers_as_admin_and_premium(monkeypatch):

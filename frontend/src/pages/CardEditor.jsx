@@ -114,7 +114,11 @@ export default function CardEditor() {
         cleanup: cleanupArtwork,
       });
       set({ artwork_path: res.data.artwork_path });
-      toast.success("Artwork evocato");
+      if (res.data.cleanup_notice) {
+        toast.warning(res.data.cleanup_notice);
+      } else {
+        toast.success("Artwork evocato");
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || "Generazione immagine fallita");
     } finally {
