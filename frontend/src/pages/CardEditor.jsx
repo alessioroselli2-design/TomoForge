@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Switch } from "@/components/ui/switch";
 
 const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
@@ -49,6 +50,7 @@ export default function CardEditor() {
   const [prompt, setPrompt] = useState("");
   const [genText, setGenText] = useState(false);
   const [genImg, setGenImg] = useState(false);
+  const [cleanupArtwork, setCleanupArtwork] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showBack, setShowBack] = useState(false);
@@ -106,7 +108,11 @@ export default function CardEditor() {
     if (!p) { toast.error("Aggiungi un nome o una descrizione prima"); return; }
     setGenImg(true);
     try {
-      const res = await api.post("/ai/generate-image", { prompt: p, type: card.type });
+      const res = await api.post("/ai/generate-image", {
+        prompt: p,
+        type: card.type,
+        cleanup: cleanupArtwork,
+      });
       set({ artwork_path: res.data.artwork_path });
       toast.success("Artwork evocato");
     } catch (e) {
@@ -332,6 +338,25 @@ export default function CardEditor() {
               <Textarea data-testid="ai-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Descrivi la carta da evocare… es. 'Un antico drago di ghiaccio corrotto dal Piano Ombra'"
                 className={`${inputCls} min-h-[70px]`} />
+              <div className="mt-3 flex items-start justify-between gap-4 border border-gold-deep/30 bg-secondary/20 px-3 py-3">
+                <div>
+                  <Label htmlFor="artwork-cleanup" className="font-label text-[11px] tracking-wider text-gold">
+                    PULISCI FIRME E FILIGRANE
+                  </Label>
+                  <p className="mt-1 font-body text-[11px] leading-relaxed text-muted-foreground">
+                    Richiede un passaggio AI aggiuntivo per rimuovere eventuali firme, loghi o testo dall’artwork.
+                  </p>
+                </div>
+                <Switch
+                  id="artwork-cleanup"
+                  data-testid="artwork-cleanup-switch"
+                  checked={cleanupArtwork}
+                  onCheckedChange={setCleanupArtwork}
+                  disabled={genImg}
+                  aria-label="Richiedi la pulizia di firme e filigrane"
+                  className="mt-1 data-[state=checked]:bg-gold"
+                />
+              </div>
               <div className="flex flex-wrap gap-3 mt-3">
                 <Button data-testid="gen-text-btn" onClick={generateText} disabled={genText}
                   className="rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-xs tracking-wide animate-gold-pulse transition-colors">

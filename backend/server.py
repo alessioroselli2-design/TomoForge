@@ -38,8 +38,8 @@ SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "tomeforge-assets
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
-# Generated artwork is cleaned by default. Deployments may explicitly opt out
-# with ARTWORK_CLEANUP_ENABLED=false when they do not want the extra edit pass.
+# Artwork cleanup is an optional, per-generation feature. Deployments can disable
+# it entirely with ARTWORK_CLEANUP_ENABLED=false to avoid the extra edit pass.
 ARTWORK_CLEANUP_ENABLED = os.getenv("ARTWORK_CLEANUP_ENABLED", "true").lower() not in {"0", "false", "no", "off"}
 ARTWORK_CLEANUP_MODEL = os.getenv("ARTWORK_CLEANUP_MODEL", OPENAI_IMAGE_MODEL)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -407,6 +407,7 @@ class GenerateContentInput(BaseModel):
 class GenerateImageInput(BaseModel):
     prompt: str
     type: Optional[str] = None
+    cleanup: bool = False
 
 
 class User(BaseModel):
@@ -751,12 +752,7 @@ def _artwork_input_filename(content_type: str) -> str:
 
 
 async def cleanup_artwork(data: bytes, content_type: str) -> tuple[bytes, str]:
-    """Optionally remove model-added marks before artwork reaches storage.
-
-    Cleanup is enabled by default for generated artwork and can be explicitly disabled
-    by deployment configuration. The Segmind request and its response handling stay
-    unchanged; this function only runs after Segmind has produced usable image bytes.
-    """
+    """Remove model-added marks before artwork reaches storage."""
     if not ARTWORK_CLEANUP_ENABLED:
         return data, content_type
     if not data or not content_type.startswith("image/"):
@@ -786,6 +782,25 @@ async def cleanup_artwork(data: bytes, content_type: str) -> tuple[bytes, str]:
         return image_response.content, cleaned_content_type
 
     raise ValueError("OpenAI cleanup did not return image data")
+
+
+def require_artwork_cleanup() -> None:
+    """Confirm that the optional cleanup pass can run for this request."""
+    if not ARTWORK_CLEANUP_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="La pulizia opzionale di firme e filigrane non è disponibile su questo server.",
+        )
+    if MOCK_DATA:
+        raise HTTPException(
+            status_code=503,
+            detail="La pulizia opzionale di firme e filigrane non è disponibile nella modalità demo.",
+        )
+    if not (OPENAI_API_KEY or "").strip():
+        raise HTTPException(
+            status_code=503,
+            detail="La pulizia opzionale di firme e filigrane non è configurata su questo server.",
+        )
 
 
 async def save_artwork(
@@ -825,6 +840,8 @@ async def save_artwork(
 
 @api_router.post("/ai/generate-image")
 async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium)):
+    if body.cleanup:
+        require_artwork_cleanup()
     if MOCK_DATA:
         # 1x1 transparent PNG: enough for the editor/export flow without fake credentials.
         demo_png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
@@ -877,7 +894,7 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
                 content_type,
                 user.user_id,
                 f"segmind-generated.{extension}",
-                cleanup=True,
+                cleanup=body.cleanup,
             )
         }
     except HTTPException:

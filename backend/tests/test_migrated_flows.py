@@ -196,7 +196,7 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_image(
-        server.GenerateImageInput(type="spell", prompt="Una fenice di ossidiana"),
+        server.GenerateImageInput(type="spell", prompt="Una fenice di ossidiana", cleanup=True),
         user,
     ))
 
@@ -235,13 +235,59 @@ def test_generated_artwork_is_not_saved_when_cleanup_fails(monkeypatch):
 
     with pytest.raises(server.HTTPException) as exc_info:
         asyncio.run(server.generate_image(
-            server.GenerateImageInput(type="spell", prompt="Un golem d'ombra"),
+            server.GenerateImageInput(type="spell", prompt="Un golem d'ombra", cleanup=True),
             user,
         ))
 
     assert exc_info.value.status_code == 502
     assert "Pulizia dell'artwork" in exc_info.value.detail
     assert fake_db.files.documents == []
+
+
+def test_generated_artwork_skips_cleanup_unless_requested(monkeypatch):
+    class FakeResponse:
+        headers = {"content-type": "image/jpeg"}
+        content = b"segmind-image-bytes"
+
+        def raise_for_status(self):
+            return None
+
+    fake_db = FakeDatabase()
+    cleanup_calls = []
+
+    async def fake_cleanup(data, content_type):
+        cleanup_calls.append((data, content_type))
+        return b"cleaned-image-bytes", "image/png"
+
+    monkeypatch.setattr(server, "db", fake_db)
+    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(server, "cleanup_artwork", fake_cleanup)
+    user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
+
+    result = asyncio.run(server.generate_image(
+        server.GenerateImageInput(type="spell", prompt="Una fenice di ossidiana"),
+        user,
+    ))
+
+    assert cleanup_calls == []
+    assert result["artwork_path"].endswith(".jpg")
+    assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
+
+
+def test_requested_artwork_cleanup_reports_when_unavailable(monkeypatch):
+    monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", False)
+    user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
+
+    with pytest.raises(server.HTTPException) as exc_info:
+        asyncio.run(server.generate_image(
+            server.GenerateImageInput(type="spell", prompt="Un drago d'ombra", cleanup=True),
+            user,
+        ))
+
+    assert exc_info.value.status_code == 503
+    assert "pulizia opzionale" in exc_info.value.detail
 
 
 def test_configured_admin_email_registers_as_admin_and_premium(monkeypatch):
