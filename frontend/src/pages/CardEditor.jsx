@@ -102,7 +102,7 @@ export default function CardEditor() {
 
   const generateImage = async () => {
     if (!user?.is_premium) { setPremiumOpen(true); return; }
-    const p = prompt.trim() || card.name.trim() || card.description.trim();
+    const p = card.description.trim() || prompt.trim() || card.story.trim();
     if (!p) { toast.error("Aggiungi un nome o una descrizione prima"); return; }
     setGenImg(true);
     try {

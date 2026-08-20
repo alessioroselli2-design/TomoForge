@@ -152,7 +152,11 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
     assert request_data["url"].endswith("/fast-flux-schnell")
     assert request_data["headers"]["x-api-key"] == "test-key"
     assert request_data["json"]["aspect_ratio"] == "2:3"
-    assert "no text" in request_data["json"]["prompt"]
+    prompt = request_data["json"]["prompt"]
+    assert "depicting: Una fenice di ossidiana" in prompt
+    assert "not a card design" in prompt
+    assert "never render them as writing" in prompt
+    assert "no typography, words, letters, numbers, readable runes" in prompt
     assert result["artwork_path"].endswith(".jpg")
     assert fake_db.files.documents[0]["content_type"] == "image/jpeg"
     assert fake_db.files.documents[0]["original_filename"] == "segmind-generated.jpg"

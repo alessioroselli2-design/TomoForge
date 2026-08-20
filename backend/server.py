@@ -736,9 +736,12 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
         return {"artwork_path": await save_file(path, demo_png, "image/png", user.user_id, "mock-generated.png")}
     type_hint = TYPE_LABELS.get(body.type or "", "")
     prompt = (
-        f"Epic dark fantasy Dungeons & Dragons trading-card artwork for {body.prompt}. "
+        f"Create one art-only dark fantasy illustration depicting: {body.prompt}. "
         f"{'Subject category: ' + type_hint + '. ' if type_hint else ''}"
-        "Detailed digital painting, dramatic lighting, obsidian, antique gold and crimson palette, portrait orientation, no text, no frame, no watermark."
+        "Detailed digital painting, dramatic lighting, obsidian, antique gold and crimson palette, portrait orientation. "
+        "This is not a card design, cover, poster, sign, scroll, banner, or interface. "
+        "Treat any names in the subject as internal character or place names only; never render them as writing. "
+        "Absolutely no typography, words, letters, numbers, readable runes, glyphs, captions, signatures, watermarks, borders, frames, or labels."
     )
     try:
         response = await asyncio.to_thread(
