@@ -92,6 +92,24 @@ const drawCategorySymbol = (ctx, type, cx, cy) => {
     ctx.moveTo(-7, 3);
     ctx.lineTo(-3, 7);
     ctx.stroke();
+  } else if (type === "armor") {
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(7, -5);
+    ctx.lineTo(6, 2);
+    ctx.quadraticCurveTo(4, 7, 0, 9);
+    ctx.quadraticCurveTo(-4, 7, -6, 2);
+    ctx.lineTo(-7, -5);
+    ctx.closePath();
+    ctx.stroke();
+  } else if (type === "item") {
+    ctx.strokeRect(-7, -5, 14, 12);
+    ctx.beginPath();
+    ctx.moveTo(-7, -1);
+    ctx.lineTo(7, -1);
+    ctx.moveTo(0, -5);
+    ctx.lineTo(0, 7);
+    ctx.stroke();
   } else if (type === "class") {
     ctx.beginPath();
     ctx.moveTo(0, -8);

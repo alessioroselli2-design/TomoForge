@@ -87,6 +87,46 @@ create table if not exists public.private_spells (
 );
 create index if not exists private_spells_user_name_idx on public.private_spells (user_id, normalized_name);
 
+-- Generic private catalogue for classes, subclasses, features, feats, races,
+-- monsters, and other structured facts extracted from owner-supplied manuals.
+-- Source PDF binaries are intentionally never stored in this table or Storage.
+create table if not exists public.private_reference_records (
+  id text primary key,
+  user_id text not null references public.users(user_id) on delete cascade,
+  reference_type text not null check (reference_type in (
+    'class', 'subclass', 'class_feature', 'feat', 'race', 'subrace',
+    'monster', 'ability', 'weapon', 'armor', 'shield', 'equipment',
+    'tool', 'magic_item', 'vehicle', 'ammunition', 'mount', 'trade_good',
+    'service', 'other'
+  )),
+  name text not null,
+  normalized_name text not null,
+  description text not null default '',
+  full_text text not null default '',
+  attributes jsonb not null default '{}'::jsonb,
+  tags jsonb not null default '[]'::jsonb,
+  source_refs jsonb not null default '[]'::jsonb,
+  review_flags jsonb not null default '[]'::jsonb,
+  review_status text not null default 'pending' check (review_status in ('pending', 'verified', 'needs_review')),
+  review_notes text not null default '',
+  imported_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, reference_type, normalized_name)
+);
+-- Existing installations created before equipment support need their original
+-- type check widened as well; CREATE TABLE IF NOT EXISTS alone cannot alter it.
+alter table public.private_reference_records
+  drop constraint if exists private_reference_records_reference_type_check;
+alter table public.private_reference_records
+  add constraint private_reference_records_reference_type_check check (reference_type in (
+    'class', 'subclass', 'class_feature', 'feat', 'race', 'subrace',
+    'monster', 'ability', 'weapon', 'armor', 'shield', 'equipment',
+    'tool', 'magic_item', 'vehicle', 'ammunition', 'mount', 'trade_good',
+    'service', 'other'
+  ));
+create index if not exists private_reference_records_user_name_idx
+  on public.private_reference_records (user_id, reference_type, normalized_name);
+
 -- Private bucket; FastAPI streams authorized files and public card artwork.
 insert into storage.buckets (id, name, public)
 values ('tomeforge-assets', 'tomeforge-assets', false)
@@ -97,7 +137,9 @@ alter table public.cards enable row level security;
 alter table public.files enable row level security;
 alter table public.payment_transactions enable row level security;
 alter table public.private_spells enable row level security;
+alter table public.private_reference_records enable row level security;
 
 -- The browser has no direct access to this catalogue. FastAPI uses the service
 -- role and enforces ownership on every read/write.
 revoke all on table public.private_spells from anon, authenticated;
+revoke all on table public.private_reference_records from anon, authenticated;

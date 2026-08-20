@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -23,7 +23,9 @@ const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
   class: { dado_vita: "", abilita_primaria: "", tiri_salvezza: "", competenze: "", caratteristiche: [] },
   race: { bonus_caratteristiche: "", velocita: "", taglia: "", linguaggi: "", tratti: [] },
-  weapon: { danno: "", tipo_danno: "", proprieta: "", peso: "", costo: "", categoria: "" },
+  weapon: { danno: "", tipo_danno: "", proprieta: "", gittata: "", peso: "", costo: "", categoria: "" },
+  armor: { classe_armatura: "", forza_minima: "", svantaggio_furtivita: "", peso: "", costo: "", categoria: "" },
+  item: { categoria: "", costo: "", peso: "", proprieta: "", rarita: "", sintonia: "" },
   feat: { prerequisito: "", benefici: [] },
   monster: { classe_armatura: "", punti_ferita: "", velocita: "", for: "", des: "", cos: "", int: "", sag: "", car: "", tiri_salvezza: "", resistenze: "", vulnerabilita: "", immunita: "", sensi: "", linguaggi: "", grado_sfida: "", azioni: [{ nome: "", descrizione: "" }] },
   character: { classe: "", razza: "", livello: "", for: "", des: "", cos: "", int: "", sag: "", car: "", bonus_competenza: "", classe_armatura: "", punti_ferita: "", cd_incantesimi: "", competenze: "", abilita_sottoclasse: [], slot_incantesimi: [] },
@@ -31,6 +33,24 @@ const DEFAULT_ATTRS = {
 };
 
 const inputCls = "bg-input border-border rounded-none font-body focus-visible:ring-gold";
+const LIBRARY_TYPES_BY_CARD = {
+  class: "class,subclass,class_feature",
+  race: "race,subrace",
+  feat: "feat",
+  monster: "monster",
+  weapon: "weapon",
+  armor: "armor,shield",
+  item: "equipment,tool,magic_item,vehicle,ammunition,mount,trade_good,service,other",
+  custom: "ability,other",
+};
+const LIBRARY_TYPE_LABELS = {
+  class: "Classe", subclass: "Sottoclasse", class_feature: "Privilegio di classe",
+  feat: "Talento", race: "Razza", subrace: "Sottorazza", monster: "Mostro",
+  ability: "Capacità", weapon: "Arma", armor: "Armatura", shield: "Scudo",
+  equipment: "Equipaggiamento", tool: "Strumento", magic_item: "Oggetto magico",
+  vehicle: "Veicolo", ammunition: "Munizioni", mount: "Cavalcatura",
+  trade_good: "Merce commerciale", service: "Servizio", other: "Contenuto del manuale",
+};
 
 export default function CardEditor() {
   const { id } = useParams();
@@ -58,6 +78,18 @@ export default function CardEditor() {
   const [spellResults, setSpellResults] = useState([]);
   const [searchingSpells, setSearchingSpells] = useState(false);
   const [applyingSpell, setApplyingSpell] = useState(null);
+  const [referenceQuery, setReferenceQuery] = useState("");
+  const [referenceResults, setReferenceResults] = useState([]);
+  const [searchingReferences, setSearchingReferences] = useState(false);
+  const [applyingReference, setApplyingReference] = useState(null);
+  const [libraryManuals, setLibraryManuals] = useState([]);
+  const [loadingManuals, setLoadingManuals] = useState(false);
+  const [manualImporting, setManualImporting] = useState(false);
+  const [selectedManual, setSelectedManual] = useState("");
+  const [manualStartPage, setManualStartPage] = useState("5");
+  const [manualEndPage, setManualEndPage] = useState("16");
+  const [useManualOcr, setUseManualOcr] = useState(false);
+  const [ocrConfirmed, setOcrConfirmed] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -98,7 +130,11 @@ export default function CardEditor() {
         story: res.data.story || card.story,
         attributes: res.data.attributes && Object.keys(res.data.attributes).length ? res.data.attributes : card.attributes,
       });
-      toast.success(res.data.source === "grimorio" ? "Dati applicati dal Grimorio privato" : "Contenuto evocato dall'arcano");
+      toast.success(
+        res.data.source === "grimorio" ? "Dati applicati dal Grimorio privato"
+          : res.data.source === "biblioteca_privata" ? "Dati applicati dalla biblioteca privata"
+            : "Contenuto evocato dall'arcano"
+      );
     } catch (e) {
       toast.error(e.response?.data?.detail || "Generazione fallita");
     } finally {
@@ -143,6 +179,89 @@ export default function CardEditor() {
       toast.error(error.response?.data?.detail || "Impossibile applicare l'incantesimo");
     } finally {
       setApplyingSpell(null);
+    }
+  };
+
+  useEffect(() => {
+    const types = LIBRARY_TYPES_BY_CARD[card.type];
+    if (!types || !referenceQuery.trim()) {
+      setReferenceResults([]);
+      setSearchingReferences(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(async () => {
+      setSearchingReferences(true);
+      try {
+        const res = await api.get("/library", { params: { q: referenceQuery, types } });
+        setReferenceResults(res.data.records || []);
+      } catch (error) {
+        setReferenceResults([]);
+      } finally {
+        setSearchingReferences(false);
+      }
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [card.type, referenceQuery]);
+
+  const applyReference = async (referenceId) => {
+    setApplyingReference(referenceId);
+    try {
+      const res = await api.post(`/library/${referenceId}/apply`);
+      set({
+        name: res.data.name || card.name,
+        description: res.data.description || card.description,
+        story: res.data.story || card.story,
+        attributes: { ...(DEFAULT_ATTRS[card.type] || {}), ...(res.data.attributes || {}) },
+      });
+      setReferenceQuery(res.data.name || "");
+      setReferenceResults([]);
+      toast.success("Contenuto applicato dalla biblioteca privata");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile applicare il contenuto");
+    } finally {
+      setApplyingReference(null);
+    }
+  };
+
+  const loadLibraryManuals = useCallback(async () => {
+    if (!user?.is_premium) return;
+    setLoadingManuals(true);
+    try {
+      const res = await api.get("/library/manuals");
+      const manuals = res.data.manuals || [];
+      setLibraryManuals(manuals);
+      setSelectedManual((current) => current || manuals[0]?.filename || "");
+    } catch (error) {
+      setLibraryManuals([]);
+    } finally {
+      setLoadingManuals(false);
+    }
+  }, [user?.is_premium]);
+
+  useEffect(() => { loadLibraryManuals(); }, [loadLibraryManuals]);
+
+  const importManual = async () => {
+    if (!selectedManual) { toast.error("Seleziona un manuale"); return; }
+    if (useManualOcr && !ocrConfirmed) {
+      toast.error("Conferma l'invio delle pagine selezionate a Gemini per l'OCR");
+      return;
+    }
+    const start = Math.max(1, Number.parseInt(manualStartPage, 10) || 1);
+    const end = Math.max(start, Number.parseInt(manualEndPage, 10) || start);
+    setManualImporting(true);
+    try {
+      const res = await api.post("/library/import", {
+        filenames: [selectedManual],
+        start_page: start,
+        ...(useManualOcr ? { end_page: end, use_ai_ocr: true, external_processing_confirmed: true } : {}),
+      });
+      const report = res.data.sources?.[0];
+      toast.success(`${res.data.imported + res.data.updated} contenuti importati${report?.pages_needing_ocr?.length ? ` · ${report.pages_needing_ocr.length} pagine richiedono OCR` : ""}`);
+      await loadLibraryManuals();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Importazione del manuale non riuscita");
+    } finally {
+      setManualImporting(false);
     }
   };
 
@@ -212,6 +331,22 @@ export default function CardEditor() {
       if (g("tipo_danno")) s += ` danni ${g("tipo_danno").toLowerCase()}`;
       s += ".";
       parts.push(s);
+      if (g("proprieta")) parts.push(`Proprietà: ${g("proprieta")}.`);
+      if (g("peso") || g("costo")) parts.push([g("peso") && `Peso ${g("peso")}`, g("costo") && `costo ${g("costo")}`].filter(Boolean).join(", ") + ".");
+    } else if (t === "armor") {
+      let s = `${name} è ${g("categoria") ? g("categoria").toLowerCase() : "un'armatura"}`;
+      if (g("classe_armatura")) s += ` con CA ${g("classe_armatura")}`;
+      s += ".";
+      parts.push(s);
+      if (g("forza_minima")) parts.push(`Richiede Forza ${g("forza_minima")}.`);
+      if (g("svantaggio_furtivita") && /s[ìi]/i.test(g("svantaggio_furtivita"))) parts.push("Impone svantaggio alle prove di Furtività.");
+      if (g("peso") || g("costo")) parts.push([g("peso") && `Peso ${g("peso")}`, g("costo") && `costo ${g("costo")}`].filter(Boolean).join(", ") + ".");
+    } else if (t === "item") {
+      let s = `${name} è ${g("categoria") ? g("categoria").toLowerCase() : "un oggetto"}`;
+      if (g("rarita")) s += ` ${g("rarita").toLowerCase()}`;
+      s += ".";
+      parts.push(s);
+      if (g("sintonia")) parts.push(g("sintonia") + ".");
       if (g("proprieta")) parts.push(`Proprietà: ${g("proprieta")}.`);
       if (g("peso") || g("costo")) parts.push([g("peso") && `Peso ${g("peso")}`, g("costo") && `costo ${g("costo")}`].filter(Boolean).join(", ") + ".");
     } else if (t === "monster") {
@@ -425,6 +560,118 @@ export default function CardEditor() {
                  )}
                </section>
              )}
+
+              {user?.is_premium && (
+                <section id="editor-library-import" className="scroll-mt-28 border border-amber-700/45 bg-amber-950/10 p-5">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-amber-300" />
+                    <h2 className="font-label text-xs tracking-widest text-amber-200">CUSTODIA DEI MANUALI</h2>
+                  </div>
+                  <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
+                    Importa i riferimenti strutturati dai PDF locali del tuo account. I PDF non vengono caricati nello storage né resi pubblici.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label className="font-label text-[10px] tracking-widest text-gold/80">MANUALE</Label>
+                      <Select value={selectedManual} onValueChange={setSelectedManual} disabled={loadingManuals || !libraryManuals.length}>
+                        <SelectTrigger className={`${inputCls} mt-1`}><SelectValue placeholder="Caricamento manuali…" /></SelectTrigger>
+                        <SelectContent className="bg-card border-gold-deep/40 rounded-none">
+                          {libraryManuals.map((manual) => (
+                            <SelectItem key={manual.filename} value={manual.filename} className="font-body text-xs">
+                              {manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ")} · {manual.imported_records} record
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button type="button" onClick={importManual} disabled={manualImporting || !selectedManual}
+                        className="w-full rounded-none bg-amber-700 text-white hover:bg-amber-600 font-label text-xs tracking-wide">
+                        {manualImporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <BookOpen className="mr-1.5 h-4 w-4" />}
+                        {useManualOcr ? "IMPORTA CON OCR" : "IMPORTA TESTO NATIVO"}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-amber-900/50 pt-4">
+                    <div>
+                      <Label htmlFor="ocr-enabled" className="font-label text-[10px] tracking-widest text-amber-100">OCR GEMINI PER PAGINE SCANSIONATE</Label>
+                      <p className="mt-1 font-body text-[11px] text-muted-foreground">Massimo 12 pagine per volta, ripetibile e verificabile.</p>
+                    </div>
+                    <Switch id="ocr-enabled" checked={useManualOcr} onCheckedChange={setUseManualOcr} />
+                  </div>
+                  {useManualOcr && (
+                    <div className="mt-3 space-y-3 border-l-2 border-amber-700/50 pl-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="font-label text-[10px] tracking-widest text-gold/80">DA PAGINA</Label>
+                          <Input type="number" min="1" value={manualStartPage} onChange={(event) => setManualStartPage(event.target.value)} className={`${inputCls} mt-1`} />
+                        </div>
+                        <div>
+                          <Label className="font-label text-[10px] tracking-widest text-gold/80">A PAGINA</Label>
+                          <Input type="number" min="1" value={manualEndPage} onChange={(event) => setManualEndPage(event.target.value)} className={`${inputCls} mt-1`} />
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Switch id="ocr-confirmation" checked={ocrConfirmed} onCheckedChange={setOcrConfirmed} />
+                        <Label htmlFor="ocr-confirmation" className="font-body text-[11px] leading-relaxed text-muted-foreground">
+                          Confermo di poter inviare a Gemini esclusivamente le pagine selezionate per trascriverle. Verificherò i record contrassegnati.
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {LIBRARY_TYPES_BY_CARD[card.type] && (
+                <section id="editor-library" className="scroll-mt-28 border border-gold-deep/50 bg-card p-5">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-gold" />
+                    <h2 className="font-label text-xs tracking-widest text-gold">BIBLIOTECA PRIVATA</h2>
+                  </div>
+                  <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
+                    Cerca contenuti già importati dai tuoi manuali. I dati regolamentari compilano la carta senza usare crediti AI.
+                  </p>
+                  <div className="relative mt-3">
+                    <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gold/70" />
+                    <Input
+                      data-testid="reference-search"
+                      value={referenceQuery}
+                      onChange={(event) => setReferenceQuery(event.target.value)}
+                      placeholder={card.type === "class" ? "Es. Guerriero, Arciere Arcano…" : card.type === "monster" ? "Es. Beholder" : "Cerca nella biblioteca"}
+                      className={`${inputCls} pl-9`}
+                    />
+                    {searchingReferences && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gold" />}
+                  </div>
+                  {referenceQuery.trim() && !searchingReferences && referenceResults.length === 0 && (
+                    <p className="mt-3 font-body text-xs text-muted-foreground">Nessun contenuto corrispondente nella tua biblioteca.</p>
+                  )}
+                  {referenceResults.length > 0 && (
+                    <div className="mt-3 divide-y divide-border border border-border">
+                      {referenceResults.map((record) => (
+                        <button
+                          key={record.id}
+                          type="button"
+                          data-testid={`apply-reference-${record.id}`}
+                          disabled={applyingReference === record.id}
+                          onClick={() => applyReference(record.id)}
+                          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary disabled:opacity-60"
+                        >
+                          <span>
+                            <span className="block font-heading text-base text-foreground">{record.name}</span>
+                            <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
+                              {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.filename} p.${ref.page}`).join(", ")}
+                              {record.needs_review ? " · Da verificare" : ""}
+                            </span>
+                          </span>
+                          {applyingReference === record.id
+                            ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
+                            : <span className="font-label text-[10px] tracking-widest text-gold">APPLICA</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
             {/* AI generation */}
              <div id="editor-evocation" className="scroll-mt-28 border border-gold-deep/40 bg-card p-5">

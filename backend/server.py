@@ -27,6 +27,14 @@ from spell_library import (
     search_spell_records,
     spell_to_card_payload,
 )
+from reference_library import (
+    CARD_TYPE_BY_REFERENCE_TYPE,
+    REFERENCE_TYPES,
+    extract_reference_records,
+    merge_reference_records,
+    reference_to_card_payload,
+    search_reference_records,
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -60,6 +68,11 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 SPELL_PDF_DIRECTORY = ROOT_DIR.parent / "attached_assets"
+REFERENCE_MANUAL_FILENAMES = (
+    "Manuale_del_giocatore__1787259882002.pdf",
+    "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf",
+    "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf",
+)
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -418,6 +431,27 @@ class SpellImportResult(BaseModel):
     skipped: int
 
 
+class ReferenceImportInput(BaseModel):
+    filenames: list[str] = Field(default_factory=list)
+    start_page: int = Field(default=5, ge=1)
+    end_page: Optional[int] = Field(default=None, ge=1)
+    use_ai_ocr: bool = False
+    external_processing_confirmed: bool = False
+
+
+class ReferenceImportResult(BaseModel):
+    imported: int
+    updated: int
+    flagged_for_review: int
+    skipped: int
+    sources: list[dict]
+
+
+class ReferenceReviewInput(BaseModel):
+    review_status: Literal["pending", "verified", "needs_review"]
+    review_notes: str = Field(default="", max_length=3000)
+
+
 class GenerateImageInput(BaseModel):
     prompt: str
     type: Optional[str] = None
@@ -651,6 +685,7 @@ async def supabase_session(body: SupabaseSessionInput):
 
 TYPE_LABELS = {
     "spell": "Magia/Incantesimo", "class": "Classe", "race": "Razza", "weapon": "Arma",
+    "armor": "Armatura/Scudo", "item": "Oggetto/Equipaggiamento",
     "feat": "Talento", "monster": "Mostro/Nemico", "character": "Personaggio", "custom": "Tipo personalizzato",
 }
 TYPE_SCHEMAS = {
@@ -658,6 +693,8 @@ TYPE_SCHEMAS = {
     "class": '"attributes": {"dado_vita": "", "abilita_primaria": "", "tiri_salvezza": "", "competenze": "", "caratteristiche": []}',
     "race": '"attributes": {"bonus_caratteristiche": "", "velocita": "", "taglia": "", "linguaggi": "", "tratti": []}',
     "weapon": '"attributes": {"danno": "", "tipo_danno": "", "proprieta": "", "peso": "", "costo": "", "categoria": ""}',
+    "armor": '"attributes": {"classe_armatura": "", "forza_minima": "", "svantaggio_furtivita": "", "peso": "", "costo": "", "categoria": ""}',
+    "item": '"attributes": {"categoria": "", "costo": "", "peso": "", "proprieta": "", "rarita": "", "sintonia": ""}',
     "feat": '"attributes": {"prerequisito": "", "benefici": []}',
     "monster": '"attributes": {"classe_armatura": "", "punti_ferita": "", "velocita": "", "for": "", "des": "", "cos": "", "int": "", "sag": "", "car": "", "azioni": [{"nome": "", "descrizione": ""}]}',
     "character": '"attributes": {"classe": "", "razza": "", "livello": "", "for": "", "des": "", "cos": "", "int": "", "sag": "", "car": "", "slot_incantesimi": []}',
@@ -795,6 +832,253 @@ async def apply_private_spell(spell_id: str, user: User = Depends(get_current_us
     return {**spell_to_card_payload(spell), "spell_id": spell["id"]}
 
 
+def available_reference_manuals() -> dict[str, Path]:
+    """Whitelist supplied local manuals; callers can never select arbitrary paths."""
+    return {
+        filename: SPELL_PDF_DIRECTORY / filename
+        for filename in REFERENCE_MANUAL_FILENAMES
+        if (SPELL_PDF_DIRECTORY / filename).is_file()
+    }
+
+
+def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
+    """Transcribe a private scanned page without persisting the page image."""
+    pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
+    image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
+    prompt = (
+        "Trascrivi fedelmente questa pagina di un manuale di gioco in italiano. "
+        "Mantieni titoli in MAIUSCOLO, paragrafi e tabelle leggibili. Non riassumere, "
+        "non inventare testo, non aggiungere commenti: restituisci solo la trascrizione."
+    )
+    response = requests.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
+        headers={"x-goog-api-key": require_gemini(), "Content-Type": "application/json"},
+        json={
+            "contents": [{"parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": "image/png", "data": image_b64}},
+            ]}],
+            "generationConfig": {"temperature": 0, "maxOutputTokens": 8192},
+        },
+        timeout=(15, 180),
+    )
+    response.raise_for_status()
+    try:
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(f"OCR Gemini senza testo per pagina {page_number}") from exc
+
+
+async def private_reference_records(user_id: str) -> list[dict]:
+    """Load a user's non-spell manual facts only; the source PDFs stay local."""
+    collection = getattr(db, "private_reference_records", None)
+    if collection is None:
+        return []
+    try:
+        return await collection.find({"user_id": user_id}).to_list(8000)
+    except Exception as exc:
+        if "private_reference_records" in str(exc):
+            logger.warning("Private reference catalogue schema is not available yet")
+            return []
+        raise
+
+
+async def find_private_reference(user_id: str, query: str, card_type: Optional[str] = None) -> Optional[dict]:
+    records = await private_reference_records(user_id)
+    matches = search_reference_records(records, query, limit=20)
+    if card_type:
+        matches = [record for record in matches if CARD_TYPE_BY_REFERENCE_TYPE.get(record.get("reference_type")) == card_type]
+    return matches[0] if matches else None
+
+
+async def import_private_reference_manuals(user_id: str, body: ReferenceImportInput) -> ReferenceImportResult:
+    """Idempotently import selected supplied manuals without uploading their PDFs."""
+    manuals = available_reference_manuals()
+    requested = body.filenames or list(manuals)
+    unknown = sorted(set(requested) - set(manuals))
+    if unknown:
+        raise HTTPException(status_code=400, detail="Uno o più manuali richiesti non sono disponibili localmente")
+    if body.end_page and body.end_page < body.start_page:
+        raise HTTPException(status_code=400, detail="L'intervallo di pagine non è valido")
+    if body.use_ai_ocr:
+        if not body.external_processing_confirmed:
+            raise HTTPException(
+                status_code=400,
+                detail="Conferma esplicitamente l'invio delle sole pagine selezionate a Gemini per l'OCR",
+            )
+        if len(requested) != 1:
+            raise HTTPException(status_code=400, detail="L'OCR può elaborare un solo manuale per volta")
+        if body.end_page is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Per l'OCR seleziona un piccolo intervallo di pagine (massimo 12) così l'importazione resta verificabile",
+            )
+        if body.end_page - body.start_page + 1 > 12:
+            raise HTTPException(status_code=400, detail="L'OCR Gemini è limitato a 12 pagine per importazione")
+
+    all_records: list[dict] = []
+    source_reports: list[dict] = []
+    ocr_callback = gemini_ocr_manual_page if body.use_ai_ocr else None
+    for filename in requested:
+        report = await asyncio.to_thread(
+            extract_reference_records,
+            manuals[filename],
+            ocr_callback,
+            body.start_page,
+            body.end_page,
+        )
+        all_records.extend(report.records)
+        source_reports.append({
+            "filename": filename,
+            "pages_read": report.pages_read,
+            "pages_needing_ocr": report.pages_needing_ocr,
+            "records_detected": len(report.records),
+        })
+
+    collection = getattr(db, "private_reference_records", None)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Biblioteca privata non disponibile: applica prima la migrazione SQL")
+
+    imported = updated = flagged = skipped = 0
+    for record in merge_reference_records(all_records):
+        if not record.get("name") or not record.get("full_text"):
+            skipped += 1
+            continue
+        existing = await collection.find_one({
+            "user_id": user_id,
+            "reference_type": record["reference_type"],
+            "normalized_name": record["normalized_name"],
+        })
+        owned_record_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{user_id}:{record['id']}").hex
+        payload = {
+            **record,
+            # Source-derived IDs are stable inside a source page but must not
+            # collide when two separate owners import the same manual.
+            "id": f"ref_{owned_record_id}",
+            "user_id": user_id,
+            "review_status": "needs_review" if record.get("review_flags") else "pending",
+            "review_notes": "",
+            "updated_at": utc_now(),
+        }
+        if existing:
+            # Human verification must survive a repeatable import.
+            payload["review_status"] = existing.get("review_status", payload["review_status"])
+            payload["review_notes"] = existing.get("review_notes", "")
+            await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
+            updated += 1
+        else:
+            payload["imported_at"] = utc_now()
+            await collection.insert_one(payload)
+            imported += 1
+        flagged += bool(record.get("review_flags"))
+    return ReferenceImportResult(
+        imported=imported,
+        updated=updated,
+        flagged_for_review=flagged,
+        skipped=skipped,
+        sources=source_reports,
+    )
+
+
+def reference_summary(record: dict) -> dict:
+    return {
+        "id": record["id"],
+        "name": record["name"],
+        "reference_type": record.get("reference_type", "other"),
+        "attributes": record.get("attributes", {}),
+        "source_refs": record.get("source_refs", []),
+        "needs_review": bool(record.get("review_flags")) or record.get("review_status") == "needs_review",
+    }
+
+
+@api_router.get("/library/manuals")
+async def private_library_manuals(user: User = Depends(require_premium)):
+    """Return local import metadata only, never the manual files or page text."""
+    records = await private_reference_records(user.user_id)
+    manuals = []
+    for filename, path in available_reference_manuals().items():
+        source_records = [
+            record for record in records
+            if any(ref.get("filename") == filename for ref in record.get("source_refs", []))
+        ]
+        try:
+            import fitz
+            document = fitz.open(path)
+            page_count = len(document)
+            document.close()
+        except Exception:
+            page_count = None
+        manuals.append({
+            "filename": filename,
+            "page_count": page_count,
+            "imported_records": len(source_records),
+            "requires_ocr": filename.startswith(("Manuale_del_giocatore", "Calderone-Omnicomprensivo")),
+        })
+    return {"manuals": manuals, "ocr_batch_limit": 12}
+
+
+@api_router.get("/library")
+async def search_private_library(
+    q: str = Query("", max_length=120),
+    types: str = Query("", max_length=200),
+    review_only: bool = False,
+    user: User = Depends(get_current_user),
+):
+    requested_types = {value.strip() for value in types.split(",") if value.strip()}
+    if requested_types - set(REFERENCE_TYPES):
+        raise HTTPException(status_code=400, detail="Tipo di contenuto non valido")
+    records = search_reference_records(await private_reference_records(user.user_id), q, limit=40)
+    if requested_types:
+        records = [record for record in records if record.get("reference_type") in requested_types]
+    if review_only:
+        records = [record for record in records if record.get("review_flags") or record.get("review_status") == "needs_review"]
+    return {"records": [reference_summary(record) for record in records]}
+
+
+@api_router.post("/library/import", response_model=ReferenceImportResult)
+async def import_private_library(body: ReferenceImportInput, user: User = Depends(require_premium)):
+    """Per-account, resumable import. OCR is explicit because it calls Gemini."""
+    try:
+        return await import_private_reference_manuals(user.user_id, body)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Private manual import failed")
+        raise HTTPException(status_code=502, detail="Importazione della biblioteca privata non riuscita") from exc
+
+
+@api_router.get("/library/{reference_id}")
+async def get_private_reference(reference_id: str, user: User = Depends(get_current_user)):
+    record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    return record
+
+
+@api_router.post("/library/{reference_id}/apply")
+async def apply_private_reference(reference_id: str, user: User = Depends(get_current_user)):
+    record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    return {**reference_to_card_payload(record), "reference_id": record["id"]}
+
+
+@api_router.patch("/library/{reference_id}/review")
+async def review_private_reference(
+    reference_id: str,
+    body: ReferenceReviewInput,
+    user: User = Depends(require_admin),
+):
+    record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    await db.private_reference_records.update_one(
+        {"id": reference_id, "user_id": user.user_id},
+        {"$set": {**body.model_dump(), "updated_at": utc_now()}},
+    )
+    return {"ok": True, "id": reference_id, **body.model_dump()}
+
+
 @api_router.post("/ai/generate-content")
 async def generate_content(body: GenerateContentInput, user: User = Depends(require_premium)):
     if MOCK_DATA:
@@ -808,6 +1092,9 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
         spell = await find_private_spell(user.user_id, body.prompt)
         if spell:
             return spell_to_card_payload(spell)
+    reference = await find_private_reference(user.user_id, body.prompt, body.type)
+    if reference:
+        return reference_to_card_payload(reference)
     language = LANGUAGES.get(body.language, "Italiano")
     type_label = body.custom_type if body.type == "custom" and body.custom_type else TYPE_LABELS.get(body.type, body.type)
     prompt = (

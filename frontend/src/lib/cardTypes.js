@@ -1,10 +1,12 @@
-import { Sparkles, Shield, Users, Sword, Award, Skull, User, Wand2 } from "lucide-react";
+import { Sparkles, Shield, Users, Sword, Award, Skull, User, Wand2, Package } from "lucide-react";
 
 export const CARD_TYPES = [
   { id: "spell", label: "Magia", icon: Sparkles },
   { id: "class", label: "Classe", icon: Shield },
   { id: "race", label: "Razza", icon: Users },
   { id: "weapon", label: "Arma", icon: Sword },
+  { id: "armor", label: "Armatura", icon: Shield },
+  { id: "item", label: "Oggetto", icon: Package },
   { id: "feat", label: "Talento", icon: Award },
   { id: "monster", label: "Mostro", icon: Skull },
   { id: "character", label: "Personaggio", icon: User },
@@ -27,7 +29,8 @@ export const ATTR_LABELS = {
   bonus_caratteristiche: "Bonus caratteristiche", velocita: "Velocità", taglia: "Taglia",
   linguaggi: "Linguaggi", tratti: "Tratti",
   danno: "Danno", tipo_danno: "Tipo di danno", proprieta: "Proprietà", peso: "Peso",
-  costo: "Costo", categoria: "Categoria",
+  costo: "Costo", categoria: "Categoria", gittata: "Gittata", forza_minima: "Forza minima",
+  svantaggio_furtivita: "Svantaggio a Furtività", rarita: "Rarità", sintonia: "Sintonia",
   prerequisito: "Prerequisito", benefici: "Benefici",
   classe_armatura: "Classe Armatura (CA)", punti_ferita: "Punti Ferita (PF)",
   for: "FOR", des: "DES", cos: "COS", int: "INT", sag: "SAG", car: "CAR",
@@ -46,6 +49,8 @@ export const attrLabel = (k) => ATTR_LABELS[k] || k.replace(/_/g, " ");
 export const QUICK_FIELDS = {
   spell: ["livello", "area", "azione", "tempo_lancio", "concentrazione", "danno"],
   weapon: ["danno", "tipo_danno", "proprieta", "categoria"],
+  armor: ["classe_armatura", "forza_minima", "svantaggio_furtivita", "categoria"],
+  item: ["categoria", "rarita", "sintonia", "costo", "peso"],
   feat: ["prerequisito"],
   class: ["dado_vita", "abilita_primaria"],
   race: ["velocita", "taglia"],
