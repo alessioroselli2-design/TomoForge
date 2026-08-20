@@ -2,7 +2,7 @@ modules = ["nodejs-20", "python-3.12", "web", "bash"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cargo", "libiconv", "libxcrypt", "rustc"]
+packages = ["cargo", "freetype", "gumbo", "harfbuzz", "jbig2dec", "libiconv", "libjpeg_turbo", "libxcrypt", "mupdf", "openjpeg", "rustc", "swig", "xcbuild"]
 
 [agent]
 expertMode = true
