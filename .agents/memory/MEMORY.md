@@ -1,3 +1,4 @@
 - [Mobile print rendering](mobile-print-rendering.md) — Card exports must avoid DOM screenshot layouts on iOS; use dedicated fixed-coordinate canvas renderers for both faces.
 - [React Router Jest compatibility](react-router-jest-compatibility.md) — CRA’s Jest runtime needs explicit Router v7 CJS resolution and encoding globals for route-based page tests.
 - [Supabase OAuth callback flow](supabase-oauth-callback-flow.md) — Server-started Google OAuth must avoid unrecoverable PKCE verifiers and surface callback errors rather than silently returning to login.
+- [Segmind model availability](segmind-model-availability.md) — Test account access before adopting a listed model; Imagen 4 Fast was unavailable while Flux Dev worked.

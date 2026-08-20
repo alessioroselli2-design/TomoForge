@@ -45,7 +45,7 @@ ARTWORK_CLEANUP_MODEL = os.getenv("ARTWORK_CLEANUP_MODEL", OPENAI_IMAGE_MODEL)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.6-flash")
 SEGMIND_API_KEY = os.getenv("SEGMIND_API_KEY")
-SEGMIND_IMAGE_MODEL = os.getenv("SEGMIND_IMAGE_MODEL", "fast-flux-schnell")
+SEGMIND_IMAGE_MODEL = os.getenv("SEGMIND_IMAGE_MODEL", "flux-dev")
 JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SESSION_SECRET")
 JWT_ALGO = "HS256"
 PREMIUM_LOOKUP_KEY = "premium_monthly"
@@ -861,7 +861,16 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
             requests.post,
             f"https://api.segmind.com/v1/{SEGMIND_IMAGE_MODEL}",
             headers={"x-api-key": require_segmind(), "Content-Type": "application/json"},
-            json={"prompt": prompt, "steps": 4, "aspect_ratio": "2:3"},
+            json={
+                "prompt": prompt,
+                "samples": 1,
+                "guidance": 3.5,
+                "steps": 25,
+                "prompt_strength": 0.8,
+                "aspect_ratio": "2:3",
+                "output_format": "webp",
+                "output_quality": 85,
+            },
             timeout=(10, 120),
         )
         response.raise_for_status()

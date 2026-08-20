@@ -200,9 +200,15 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
         user,
     ))
 
-    assert request_data["url"].endswith("/fast-flux-schnell")
+    assert request_data["url"].endswith("/flux-dev")
     assert request_data["headers"]["x-api-key"] == "test-key"
     assert request_data["json"]["aspect_ratio"] == "2:3"
+    assert request_data["json"]["samples"] == 1
+    assert request_data["json"]["guidance"] == 3.5
+    assert request_data["json"]["steps"] == 25
+    assert request_data["json"]["prompt_strength"] == 0.8
+    assert request_data["json"]["output_format"] == "webp"
+    assert request_data["json"]["output_quality"] == 85
     prompt = request_data["json"]["prompt"]
     assert "depicting: Una fenice di ossidiana" in prompt
     assert "not a card design" in prompt
