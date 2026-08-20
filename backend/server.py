@@ -21,6 +21,12 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
 from supabase import Client, create_client
+from spell_library import (
+    extract_spell_records,
+    merge_spell_records,
+    search_spell_records,
+    spell_to_card_payload,
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -53,6 +59,7 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+SPELL_PDF_DIRECTORY = ROOT_DIR.parent / "attached_assets"
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -404,6 +411,13 @@ class GenerateContentInput(BaseModel):
     language: str = "it"
 
 
+class SpellImportResult(BaseModel):
+    imported: int
+    updated: int
+    flagged_for_review: int
+    skipped: int
+
+
 class GenerateImageInput(BaseModel):
     prompt: str
     type: Optional[str] = None
@@ -662,6 +676,125 @@ def parse_ai_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
+async def private_spell_records(user_id: str) -> list[dict]:
+    """Load only one owner's catalogue; no unauthenticated route calls this."""
+    collection = getattr(db, "private_spells", None)
+    if collection is None:
+        return []
+    try:
+        return await collection.find({"user_id": user_id}).to_list(3000)
+    except Exception as exc:
+        # Existing installations can receive the code before the SQL schema is
+        # applied. Keep AI generation usable and leave a clear server-side cue.
+        if "private_spells" in str(exc):
+            logger.warning("Private spell catalogue schema is not available yet")
+            return []
+        raise
+
+
+async def find_private_spell(user_id: str, query: str) -> Optional[dict]:
+    matches = search_spell_records(await private_spell_records(user_id), query, limit=1)
+    return matches[0] if matches else None
+
+
+async def import_private_spell_pdfs(user_id: str) -> SpellImportResult:
+    """Import supplied PDFs into a single private owner's catalogue."""
+    pdf_paths = sorted(SPELL_PDF_DIRECTORY.glob("*.pdf"))
+    if not pdf_paths:
+        raise HTTPException(status_code=404, detail="Nessun PDF degli incantesimi è disponibile per l'importazione")
+
+    extracted_groups = await asyncio.gather(
+        *(asyncio.to_thread(extract_spell_records, path) for path in pdf_paths)
+    )
+    records = merge_spell_records(record for group in extracted_groups for record in group)
+    imported = updated = flagged = skipped = 0
+    collection = getattr(db, "private_spells", None)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Catalogo privato non disponibile")
+
+    for record in records:
+        if not record.get("name") or not record.get("description"):
+            skipped += 1
+            continue
+        existing = await collection.find_one({
+            "user_id": user_id,
+            "normalized_name": record["normalized_name"],
+        })
+        payload = {
+            **record,
+            "user_id": user_id,
+            "updated_at": utc_now(),
+        }
+        if existing:
+            await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
+            updated += 1
+        else:
+            payload.update({"id": str(uuid.uuid4()), "imported_at": utc_now()})
+            await collection.insert_one(payload)
+            imported += 1
+        flagged += bool(record.get("review_flags"))
+    return SpellImportResult(
+        imported=imported,
+        updated=updated,
+        flagged_for_review=flagged,
+        skipped=skipped,
+    )
+
+
+def spell_summary(spell: dict) -> dict:
+    """A compact result for the picker; full description is detail-only."""
+    return {
+        "id": spell["id"],
+        "name": spell["name"],
+        "level": spell.get("level", ""),
+        "school": spell.get("school", ""),
+        "classes": spell.get("classes", []),
+        "casting_time": spell.get("casting_time", ""),
+        "range": spell.get("range", ""),
+        "needs_review": bool(spell.get("review_flags")),
+    }
+
+
+@api_router.get("/spells")
+async def search_private_spells(
+    q: str = Query("", max_length=120),
+    review_only: bool = False,
+    user: User = Depends(get_current_user),
+):
+    records = search_spell_records(await private_spell_records(user.user_id), q)
+    if review_only:
+        records = [record for record in records if record.get("review_flags")]
+    return {"spells": [spell_summary(record) for record in records]}
+
+
+@api_router.post("/spells/import", response_model=SpellImportResult)
+async def import_private_spells(user: User = Depends(require_admin)):
+    """Admin-only local import; it never copies the PDF binaries to storage."""
+    try:
+        return await import_private_spell_pdfs(user.user_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Private spell PDF import failed")
+        raise HTTPException(status_code=502, detail="Importazione del Grimorio non riuscita") from exc
+
+
+@api_router.get("/spells/{spell_id}")
+async def get_private_spell(spell_id: str, user: User = Depends(get_current_user)):
+    spell = await db.private_spells.find_one({"id": spell_id, "user_id": user.user_id})
+    if not spell:
+        raise HTTPException(status_code=404, detail="Incantesimo non trovato nel tuo Grimorio")
+    return spell
+
+
+@api_router.post("/spells/{spell_id}/apply")
+async def apply_private_spell(spell_id: str, user: User = Depends(get_current_user)):
+    spell = await db.private_spells.find_one({"id": spell_id, "user_id": user.user_id})
+    if not spell:
+        raise HTTPException(status_code=404, detail="Incantesimo non trovato nel tuo Grimorio")
+    return {**spell_to_card_payload(spell), "spell_id": spell["id"]}
+
+
 @api_router.post("/ai/generate-content")
 async def generate_content(body: GenerateContentInput, user: User = Depends(require_premium)):
     if MOCK_DATA:
@@ -671,6 +804,10 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
             "story": "Il testo dimostrativo appare senza chiamare OpenAI.",
             "attributes": {"livello": "2", "scuola": "Illusione", "azione": "1 azione", "danno": "2d6 psichico"},
         }
+    if body.type == "spell":
+        spell = await find_private_spell(user.user_id, body.prompt)
+        if spell:
+            return spell_to_card_payload(spell)
     language = LANGUAGES.get(body.language, "Italiano")
     type_label = body.custom_type if body.type == "custom" and body.custom_type else TYPE_LABELS.get(body.type, body.type)
     prompt = (

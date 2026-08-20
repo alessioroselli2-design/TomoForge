@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown } from "lucide-react";
+import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -54,6 +54,10 @@ export default function CardEditor() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showBack, setShowBack] = useState(false);
+  const [spellQuery, setSpellQuery] = useState("");
+  const [spellResults, setSpellResults] = useState([]);
+  const [searchingSpells, setSearchingSpells] = useState(false);
+  const [applyingSpell, setApplyingSpell] = useState(null);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -94,11 +98,51 @@ export default function CardEditor() {
         story: res.data.story || card.story,
         attributes: res.data.attributes && Object.keys(res.data.attributes).length ? res.data.attributes : card.attributes,
       });
-      toast.success("Contenuto evocato dall'arcano");
+      toast.success(res.data.source === "grimorio" ? "Dati applicati dal Grimorio privato" : "Contenuto evocato dall'arcano");
     } catch (e) {
       toast.error(e.response?.data?.detail || "Generazione fallita");
     } finally {
       setGenText(false);
+    }
+  };
+
+  useEffect(() => {
+    if (card.type !== "spell" || !spellQuery.trim()) {
+      setSpellResults([]);
+      setSearchingSpells(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(async () => {
+      setSearchingSpells(true);
+      try {
+        const res = await api.get("/spells", { params: { q: spellQuery } });
+        setSpellResults(res.data.spells || []);
+      } catch (error) {
+        setSpellResults([]);
+      } finally {
+        setSearchingSpells(false);
+      }
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [card.type, spellQuery]);
+
+  const applySpell = async (spellId) => {
+    setApplyingSpell(spellId);
+    try {
+      const res = await api.post(`/spells/${spellId}/apply`);
+      set({
+        name: res.data.name || card.name,
+        description: res.data.description || card.description,
+        story: res.data.story || card.story,
+        attributes: { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) },
+      });
+      setSpellQuery(res.data.name || "");
+      setSpellResults([]);
+      toast.success("Incantesimo applicato dal Grimorio privato");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile applicare l'incantesimo");
+    } finally {
+      setApplyingSpell(null);
     }
   };
 
@@ -331,6 +375,56 @@ export default function CardEditor() {
                   placeholder="Es. Reliquia, Location, Fazione…" className={`${inputCls} mt-2`} />
               </div>
             )}
+
+             {card.type === "spell" && (
+               <section id="editor-grimoire" className="scroll-mt-28 border border-gold-deep/50 bg-card p-5">
+                 <div className="flex items-center gap-2">
+                   <BookOpen className="h-4 w-4 text-gold" />
+                   <h2 className="font-label text-xs tracking-widest text-gold">GRIMORIO PRIVATO</h2>
+                 </div>
+                 <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
+                   Cerca un incantesimo importato. I suoi dati regolamentari compilano la carta senza usare crediti AI.
+                 </p>
+                 <div className="relative mt-3">
+                   <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gold/70" />
+                   <Input
+                     data-testid="spell-search"
+                     value={spellQuery}
+                     onChange={(event) => setSpellQuery(event.target.value)}
+                     placeholder="Es. Palla di fuoco"
+                     className={`${inputCls} pl-9`}
+                   />
+                   {searchingSpells && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gold" />}
+                 </div>
+                 {spellQuery.trim() && !searchingSpells && spellResults.length === 0 && (
+                   <p className="mt-3 font-body text-xs text-muted-foreground">Nessun incantesimo corrispondente nel tuo Grimorio.</p>
+                 )}
+                 {spellResults.length > 0 && (
+                   <div className="mt-3 divide-y divide-border border border-border">
+                     {spellResults.map((spell) => (
+                       <button
+                         key={spell.id}
+                         type="button"
+                         data-testid={`apply-spell-${spell.id}`}
+                         disabled={applyingSpell === spell.id}
+                         onClick={() => applySpell(spell.id)}
+                         className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary disabled:opacity-60"
+                       >
+                         <span>
+                           <span className="block font-heading text-base text-foreground">{spell.name}</span>
+                           <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
+                             {spell.level === "Trucchetto" ? spell.level : `${spell.level || "?"}° livello`} · {spell.school || "Scuola non rilevata"} · {(spell.classes || []).join(", ")}
+                           </span>
+                         </span>
+                         {applyingSpell === spell.id
+                           ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
+                           : <span className="font-label text-[10px] tracking-widest text-gold">APPLICA</span>}
+                       </button>
+                     ))}
+                   </div>
+                 )}
+               </section>
+             )}
 
             {/* AI generation */}
              <div id="editor-evocation" className="scroll-mt-28 border border-gold-deep/40 bg-card p-5">

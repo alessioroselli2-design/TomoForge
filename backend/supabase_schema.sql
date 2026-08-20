@@ -64,6 +64,29 @@ create table if not exists public.payment_transactions (
 );
 alter table public.payment_transactions add column if not exists stripe_subscription_id text;
 
+-- Spell records are derived once from the owner's supplied PDFs.  The source
+-- documents themselves are never uploaded to Storage or exposed by an API.
+create table if not exists public.private_spells (
+  id text primary key,
+  user_id text not null references public.users(user_id) on delete cascade,
+  name text not null,
+  normalized_name text not null,
+  level text not null default '',
+  school text not null default '',
+  casting_time text not null default '',
+  range text not null default '',
+  components text not null default '',
+  duration text not null default '',
+  description text not null default '',
+  classes jsonb not null default '[]'::jsonb,
+  source_refs jsonb not null default '[]'::jsonb,
+  review_flags jsonb not null default '[]'::jsonb,
+  imported_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, normalized_name)
+);
+create index if not exists private_spells_user_name_idx on public.private_spells (user_id, normalized_name);
+
 -- Private bucket; FastAPI streams authorized files and public card artwork.
 insert into storage.buckets (id, name, public)
 values ('tomeforge-assets', 'tomeforge-assets', false)
@@ -73,3 +96,8 @@ alter table public.users enable row level security;
 alter table public.cards enable row level security;
 alter table public.files enable row level security;
 alter table public.payment_transactions enable row level security;
+alter table public.private_spells enable row level security;
+
+-- The browser has no direct access to this catalogue. FastAPI uses the service
+-- role and enforces ownership on every read/write.
+revoke all on table public.private_spells from anon, authenticated;
