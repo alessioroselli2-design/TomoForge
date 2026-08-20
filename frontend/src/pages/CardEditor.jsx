@@ -236,15 +236,19 @@ export default function CardEditor() {
   const onUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Let the browser/Axios add the multipart boundary automatically.
+    e.target.value = "";
     setUploading(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await api.post("/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const res = await api.post("/upload", fd);
       set({ artwork_path: res.data.artwork_path });
       toast.success("Immagine caricata");
     } catch (err) {
-      toast.error("Caricamento fallito");
+      const detail = err.response?.data?.detail;
+      const message = typeof detail === "string" ? detail : "Caricamento immagine fallito";
+      toast.error(message);
     } finally {
       setUploading(false);
     }
