@@ -93,7 +93,7 @@ export default function LibraryCoverageReadiness({ onOpenReviews }) {
           const isOpen = expanded === manual.filename;
           return <div key={manual.filename} className="border border-border/80 bg-obsidian/25">
             <button type="button" onClick={() => setExpanded(isOpen ? null : manual.filename)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-secondary/40">
-              <CircleDashed className="h-4 w-4 shrink-0 text-gold/80" /><span className="min-w-0 flex-1"><strong className="block truncate font-heading text-base text-foreground">{manual.title || manual.filename}</strong><small className="font-body text-[11px] text-muted-foreground">{manual.source_language?.toUpperCase() || "—"} · {ready + review} record classificati · {missing} categorie senza record</small></span>
+              <CircleDashed className="h-4 w-4 shrink-0 text-gold/80" /><span className="min-w-0 flex-1"><strong className="block truncate font-heading text-base text-foreground">{manual.title || "Manuale importato"}</strong><small className="font-body text-[11px] text-muted-foreground">{manual.source_language?.toUpperCase() || "—"} · {ready + review} record classificati · {missing} categorie senza record</small></span>
               <span className="hidden gap-1.5 sm:flex"><StatePill tone="ready"><Check className="h-3 w-3" />{ready}</StatePill><StatePill tone="review">{review}</StatePill><StatePill tone="missing">{missing}</StatePill></span>{isOpen ? <ChevronUp className="h-4 w-4 text-gold" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </button>
             {isOpen && <div className="border-t border-border/70 px-3 pb-3 pt-2">

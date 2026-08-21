@@ -13,6 +13,7 @@ const coverage = {
   manuals: [{
     filename: "manuale-giocatore.pdf",
     title: "Manuale del Giocatore",
+    source_text: "Testo sorgente riservato che non deve apparire nel riepilogo",
     source_language: "it",
     categories: [
       { reference_type: "class", valid: 2, to_review: 1, missing: 0, records_total: 3 },
@@ -51,6 +52,7 @@ describe("LibraryCoverageReadiness", () => {
     expect(container.textContent).toContain("Cosa puoi usare con fiducia");
     expect(container.textContent).toContain("CATEGORIE SENZA RECORD");
     expect(container.textContent).not.toContain("manuale-giocatore.pdf");
+    expect(container.textContent).not.toContain("Testo sorgente riservato");
 
     await act(async () => {
       [...container.querySelectorAll("button")].find((button) => button.textContent.includes("Manuale del Giocatore")).click();
