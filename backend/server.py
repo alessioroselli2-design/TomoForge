@@ -850,23 +850,53 @@ def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
         "Mantieni titoli in MAIUSCOLO, paragrafi e tabelle leggibili. Non riassumere, "
         "non inventare testo, non aggiungere commenti: restituisci solo la trascrizione."
     )
-    response = requests.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
-        headers={"x-goog-api-key": require_gemini(), "Content-Type": "application/json"},
-        json={
-            "contents": [{"parts": [
-                {"text": prompt},
-                {"inline_data": {"mime_type": "image/png", "data": image_b64}},
-            ]}],
-            "generationConfig": {"temperature": 0, "maxOutputTokens": 8192},
-        },
-        timeout=(15, 180),
-    )
-    response.raise_for_status()
     try:
-        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError, TypeError) as exc:
-        raise RuntimeError(f"OCR Gemini senza testo per pagina {page_number}") from exc
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
+            headers={"x-goog-api-key": require_gemini(), "Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": "image/png", "data": image_b64}},
+                ]}],
+                "generationConfig": {"temperature": 0, "maxOutputTokens": 8192},
+            },
+            timeout=(15, 180),
+        )
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        status_code = getattr(exc.response, "status_code", None)
+        logger.warning("OCR Gemini non disponibile per pagina %s (HTTP %s)", page_number, status_code or "errore")
+        # Let the extractor retain the page number for a future, explicitly
+        # confirmed retry instead of discarding the rest of the import batch.
+        return ""
+    except requests.RequestException as exc:
+        logger.warning("OCR Gemini non raggiungibile per pagina %s: %s", page_number, exc)
+        return ""
+    try:
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("risposta JSON non oggetto")
+        candidates = payload.get("candidates")
+        candidate = candidates[0] if isinstance(candidates, list) and candidates else {}
+        if not isinstance(candidate, dict):
+            raise ValueError("candidato OCR non valido")
+        content = candidate.get("content")
+        parts = content.get("parts") if isinstance(content, dict) else []
+        if not isinstance(parts, list):
+            raise ValueError("parti OCR non valide")
+        transcription = "\n".join(
+            part.get("text", "") for part in parts if isinstance(part, dict) and part.get("text")
+        ).strip()
+        if transcription:
+            return transcription
+        finish_reason = candidate.get("finishReason", "sconosciuto")
+        logger.warning("OCR Gemini senza testo per pagina %s (motivo: %s)", page_number, finish_reason)
+    except (ValueError, TypeError, IndexError, AttributeError) as exc:
+        logger.warning("OCR Gemini ha restituito una risposta non leggibile per pagina %s: %s", page_number, exc)
+    # Returning an empty value lets the extractor mark only this page for
+    # review instead of abandoning the whole user-confirmed batch.
+    return ""
 
 
 async def private_reference_records(user_id: str) -> list[dict]:

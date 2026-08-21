@@ -78,6 +78,94 @@ Prerequisito: Forza 13. Questo talento migliora il combattimento e offre un bene
     assert report.records[0]["reference_type"] == "feat"
 
 
+def test_reference_extractor_flags_only_empty_ocr_page_without_aborting_batch(tmp_path):
+    import fitz
+    from reference_library import extract_reference_records
+
+    pdf_path = tmp_path / "scan-empty-ocr.pdf"
+    document = fitz.open()
+    document.new_page()
+    document.save(pdf_path)
+    document.close()
+
+    report = extract_reference_records(pdf_path, ocr_page=lambda page, page_number: "")
+
+    assert report.pages_read == 0
+    assert report.pages_needing_ocr == [1]
+    assert report.records == []
+
+
+def test_reference_extractor_continues_after_one_failed_ocr_page(tmp_path):
+    import fitz
+    from reference_library import extract_reference_records
+
+    pdf_path = tmp_path / "scan-partial-ocr.pdf"
+    document = fitz.open()
+    document.new_page()
+    document.new_page()
+    document.save(pdf_path)
+    document.close()
+
+    report = extract_reference_records(
+        pdf_path,
+        ocr_page=lambda page, page_number: "" if page_number == 1 else """TALENTO DELLA GUERRA
+Prerequisito: Forza 13. Questo talento migliora il combattimento e offre un beneficio verificabile.
+""",
+    )
+
+    assert report.pages_read == 1
+    assert report.pages_needing_ocr == [1]
+    assert report.records[0]["reference_type"] == "feat"
+
+
+class _OcrPage:
+    class _Pixmap:
+        def tobytes(self, format_name):
+            return b"png"
+
+    def get_pixmap(self, **kwargs):
+        return self._Pixmap()
+
+
+class _OcrResponse:
+    def __init__(self, payload=None, error=None):
+        self.payload = payload
+        self.error = error
+
+    def raise_for_status(self):
+        if self.error:
+            raise self.error
+
+    def json(self):
+        return self.payload
+
+
+def test_gemini_ocr_returns_empty_for_http_transport_and_malformed_responses(monkeypatch):
+    from requests import HTTPError, Timeout
+
+    http_error = HTTPError("rate limited")
+    http_error.response = SimpleNamespace(status_code=429)
+    responses = [
+        _OcrResponse(error=http_error),
+        Timeout("connection timed out"),
+        _OcrResponse(payload=[]),
+        _OcrResponse(payload={"candidates": [None]}),
+        _OcrResponse(payload={"candidates": [{"content": None}]}),
+    ]
+
+    def fake_post(*args, **kwargs):
+        next_response = responses.pop(0)
+        if isinstance(next_response, Exception):
+            raise next_response
+        return next_response
+
+    monkeypatch.setattr(server.requests, "post", fake_post)
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+
+    for _ in range(5):
+        assert server.gemini_ocr_manual_page(_OcrPage(), 7) == ""
+
+
 def test_equipment_table_rows_create_structured_weapon_armor_and_item_records():
     page = """ARMI
 Spada lunga 15 mo 1d8 taglienti 1,5 kg Versatile (1d10)
