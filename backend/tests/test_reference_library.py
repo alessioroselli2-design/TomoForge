@@ -402,3 +402,10 @@ def test_ocr_import_requires_server_side_confirmation_and_one_manual(monkeypatch
         assert False, "Expected one-manual OCR failure"
     except server.HTTPException as error:
         assert error.status_code == 400
+
+
+def test_manual_metadata_uses_the_same_ocr_rule_as_imports():
+    assert server.manual_requires_ocr("Manuale_del_giocatore__1787259882002.pdf")
+    assert server.manual_requires_ocr("Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf")
+    assert server.manual_requires_ocr("724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf")
+    assert not server.manual_requires_ocr("Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf")

@@ -77,6 +77,10 @@ REFERENCE_MANUAL_FILENAMES = (
 OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset({
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 })
+OCR_REQUIRED_REFERENCE_PREFIXES = (
+    "Manuale_del_giocatore",
+    "Calderone-Omnicomprensivo",
+)
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -845,6 +849,14 @@ def available_reference_manuals() -> dict[str, Path]:
     }
 
 
+def manual_requires_ocr(filename: str) -> bool:
+    """Keep the import path and picker metadata consistent for scanned manuals."""
+    return (
+        filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES
+        or filename.startswith(OCR_REQUIRED_REFERENCE_PREFIXES)
+    )
+
+
 def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     """Transcribe a private scanned page without persisting the page image."""
     pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
@@ -960,7 +972,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             ocr_callback,
             body.start_page,
             body.end_page,
-            filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES,
+            manual_requires_ocr(filename),
         )
         all_records.extend(report.records)
         source_reports.append({
@@ -1047,7 +1059,7 @@ async def private_library_manuals(user: User = Depends(require_premium)):
             "filename": filename,
             "page_count": page_count,
             "imported_records": len(source_records),
-            "requires_ocr": filename.startswith(("Manuale_del_giocatore", "Calderone-Omnicomprensivo")),
+            "requires_ocr": manual_requires_ocr(filename),
         })
     return {"manuals": manuals, "ocr_batch_limit": 12}
 
