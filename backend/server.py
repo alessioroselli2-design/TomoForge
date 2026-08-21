@@ -72,7 +72,11 @@ REFERENCE_MANUAL_FILENAMES = (
     "Manuale_del_giocatore__1787259882002.pdf",
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf",
     "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf",
+    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 )
+OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset({
+    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
+})
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -956,6 +960,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             ocr_callback,
             body.start_page,
             body.end_page,
+            filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES,
         )
         all_records.extend(report.records)
         source_reports.append({

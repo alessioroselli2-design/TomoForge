@@ -95,6 +95,24 @@ def test_reference_extractor_flags_only_empty_ocr_page_without_aborting_batch(tm
     assert report.records == []
 
 
+def test_reference_extractor_can_require_ocr_for_broken_text_layer(tmp_path):
+    import fitz
+    from reference_library import extract_reference_records
+
+    pdf_path = tmp_path / "broken-text.pdf"
+    document = fitz.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "TALENTO DELLA GUERRA " * 8)
+    document.save(pdf_path)
+    document.close()
+
+    report = extract_reference_records(pdf_path, force_ocr=True)
+
+    assert report.pages_read == 0
+    assert report.pages_needing_ocr == [1]
+    assert report.records == []
+
+
 def test_reference_extractor_continues_after_one_failed_ocr_page(tmp_path):
     import fitz
     from reference_library import extract_reference_records

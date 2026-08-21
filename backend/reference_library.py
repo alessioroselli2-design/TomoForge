@@ -356,6 +356,7 @@ def extract_reference_records(
     ocr_page: Optional[Callable[[object, int], str]] = None,
     start_page: int = 1,
     end_page: Optional[int] = None,
+    force_ocr: bool = False,
 ) -> ReferenceImportReport:
     """Read native text, invoking an optional private OCR callback only as needed."""
     try:
@@ -370,7 +371,7 @@ def extract_reference_records(
         last = min(end_page or len(document), len(document))
         for page_number in range(first, last + 1):
             page = document[page_number - 1]
-            text = page.get_text("text")
+            text = "" if force_ocr else page.get_text("text")
             if not text_is_usable(text):
                 if ocr_page is None:
                     report.pages_needing_ocr.append(page_number)
