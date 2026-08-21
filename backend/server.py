@@ -1309,6 +1309,83 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
     )
 
 
+async def retry_private_reference_translation(user_id: str, reference_id: str) -> dict:
+    """Retry one failed Spanish translation without re-reading the manual."""
+    collection = getattr(db, "private_reference_records", None)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Biblioteca privata non disponibile: applica prima la migrazione SQL")
+
+    record = await collection.find_one({"id": reference_id, "user_id": user_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    if record.get("source_language") != "es":
+        raise HTTPException(status_code=400, detail="Questo record non richiede una traduzione dallo spagnolo")
+    # Retrying is intentionally idempotent for completed records. In
+    # particular, do not call the provider or replace a successful translation.
+    if record.get("translation_status") != "failed":
+        return record
+
+    source_record = {
+        "id": reference_id,
+        "source_name": record.get("source_name", ""),
+        "source_description": record.get("source_description", ""),
+        "source_full_text": record.get("source_full_text", ""),
+        "source_attributes": dict(record.get("source_attributes") or {}),
+    }
+    try:
+        translated, error = await asyncio.to_thread(
+            translate_spanish_reference_batch,
+            [source_record],
+        )
+    except Exception as exc:
+        logger.warning("Retry della traduzione Gemini fallito per %s: %s", reference_id, exc)
+        translated, error = {}, "provider_translation_failed"
+
+    translated_record = translated.get(reference_id)
+    failed_query = {
+        "id": reference_id,
+        "user_id": user_id,
+        "translation_status": "failed",
+    }
+    if not translated_record:
+        # Keep all source-derived fields untouched and retain the review flag.
+        # The conditional filter also avoids overwriting a concurrent success.
+        await collection.update_one(
+            failed_query,
+            {
+                "$set": {
+                    "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
+                    "review_status": "needs_review",
+                    "translation_error": error or "provider_translation_failed",
+                    "updated_at": utc_now(),
+                }
+            },
+        )
+        return await collection.find_one({"id": reference_id, "user_id": user_id}) or record
+
+    remaining_review_flags = sorted(
+        set(record.get("review_flags") or []) - {"traduzione_da_verificare"}
+    )
+    await collection.update_one(
+        failed_query,
+        {
+            "$set": {
+                "name": translated_record["name"],
+                "normalized_name": normalize_reference_name(translated_record["name"]),
+                "description": translated_record["description"],
+                "full_text": translated_record["full_text"],
+                "attributes": translated_record["attributes"],
+                "translation_status": "translated",
+                "translation_error": "",
+                "review_flags": remaining_review_flags,
+                "review_status": "needs_review" if remaining_review_flags else "pending",
+                "updated_at": utc_now(),
+            }
+        },
+    )
+    return await collection.find_one({"id": reference_id, "user_id": user_id}) or record
+
+
 def reference_summary(record: dict) -> dict:
     return {
         "id": record["id"],
@@ -1395,6 +1472,14 @@ async def apply_private_reference(reference_id: str, user: User = Depends(get_cu
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
     return {**reference_to_card_payload(record), "reference_id": record["id"]}
+
+
+@api_router.post("/library/{reference_id}/translation-retry")
+async def retry_private_reference_translation_endpoint(
+    reference_id: str,
+    user: User = Depends(require_premium),
+):
+    return await retry_private_reference_translation(user.user_id, reference_id)
 
 
 @api_router.patch("/library/{reference_id}/review")

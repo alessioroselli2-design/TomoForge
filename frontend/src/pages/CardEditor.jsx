@@ -87,6 +87,7 @@ export default function CardEditor() {
   const [libraryManuals, setLibraryManuals] = useState([]);
   const [loadingManuals, setLoadingManuals] = useState(false);
   const [manualImporting, setManualImporting] = useState(false);
+  const [retryingTranslation, setRetryingTranslation] = useState(null);
   const [selectedManual, setSelectedManual] = useState("");
   const [manualStartPage, setManualStartPage] = useState("5");
   const [manualEndPage, setManualEndPage] = useState("16");
@@ -241,6 +242,36 @@ export default function CardEditor() {
       toast.error(error.response?.data?.detail || "Impossibile leggere la fonte del record");
     } finally {
       setLoadingSourceRecord(null);
+    }
+  };
+
+  const retryReferenceTranslation = async (referenceId) => {
+    if (!user?.is_premium) { setPremiumOpen(true); return; }
+    setRetryingTranslation(referenceId);
+    try {
+      const res = await api.post(`/library/${referenceId}/translation-retry`);
+      const updatedRecord = res.data;
+      const summary = {
+        id: updatedRecord.id,
+        name: updatedRecord.name,
+        reference_type: updatedRecord.reference_type,
+        attributes: updatedRecord.attributes || {},
+        source_refs: updatedRecord.source_refs || [],
+        source_language: updatedRecord.source_language || "it",
+        translation_status: updatedRecord.translation_status,
+        needs_review: Boolean(updatedRecord.review_flags?.length) || updatedRecord.review_status === "needs_review",
+      };
+      setSourceRecord((current) => current?.id === referenceId ? updatedRecord : current);
+      setReferenceResults((current) => current.map((record) => record.id === referenceId ? { ...record, ...summary } : record));
+      if (updatedRecord.translation_status === "translated") {
+        toast.success("Traduzione riprovata e completata");
+      } else {
+        toast.error("La traduzione non è riuscita: il testo sorgente resta da verificare");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile riprovare la traduzione");
+    } finally {
+      setRetryingTranslation(null);
     }
   };
 
@@ -739,11 +770,26 @@ export default function CardEditor() {
                           <p className="font-label text-[10px] tracking-widest text-sky-200">FONTE ORIGINALE · {sourceRecord.source_language === "es" ? "SPAGNOLO" : "ITALIANO"}</p>
                           <p className="mt-1 font-heading text-base text-foreground">{sourceRecord.source_name || sourceRecord.name}</p>
                         </div>
-                        <button type="button" onClick={() => setSourceRecord(null)} className="font-label text-[10px] tracking-widest text-muted-foreground hover:text-foreground">CHIUDI</button>
+                        <div className="flex shrink-0 items-center gap-3">
+                          {sourceRecord.translation_status === "failed" && (
+                            <button
+                              type="button"
+                              data-testid={`retry-reference-translation-${sourceRecord.id}`}
+                              disabled={retryingTranslation === sourceRecord.id}
+                              onClick={() => retryReferenceTranslation(sourceRecord.id)}
+                              className="flex items-center gap-1 font-label text-[10px] tracking-widest text-amber-200 hover:text-amber-100 disabled:opacity-60"
+                            >
+                              {retryingTranslation === sourceRecord.id
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : "RIPROVA TRADUZIONE"}
+                            </button>
+                          )}
+                          <button type="button" onClick={() => setSourceRecord(null)} className="font-label text-[10px] tracking-widest text-muted-foreground hover:text-foreground">CHIUDI</button>
+                        </div>
                       </div>
                       <p className="mt-2 font-body text-[11px] text-muted-foreground">
                         {(sourceRecord.source_refs || []).map((ref) => `${ref.filename} · pagina ${ref.page}`).join(", ")}
-                        {sourceRecord.translation_status === "failed" ? " · Traduzione non riuscita: verifica il testo prima di applicarlo." : ""}
+                        {sourceRecord.translation_status === "failed" ? ` · Traduzione non riuscita${sourceRecord.translation_error ? ` (${sourceRecord.translation_error})` : ""}: verifica il testo prima di applicarlo.` : ""}
                       </p>
                       <p className="mt-3 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/90">{sourceRecord.source_full_text || sourceRecord.source_description || sourceRecord.full_text}</p>
                     </div>

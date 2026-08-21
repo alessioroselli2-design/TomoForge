@@ -1,6 +1,8 @@
 import asyncio
 from types import SimpleNamespace
 
+from fastapi.testclient import TestClient
+
 import server
 from reference_library import (
     merge_reference_records,
@@ -567,6 +569,148 @@ def test_spanish_translation_failure_is_saved_for_review(monkeypatch, tmp_path):
     assert collection.rows[0]["translation_status"] == "failed"
     assert collection.rows[0]["translation_error"] == "provider_translation_failed"
     assert "traduzione_da_verificare" in collection.rows[0]["review_flags"]
+
+
+def test_retry_single_failed_spanish_translation_preserves_source_fields(monkeypatch):
+    source = {
+        **make_reference(
+            "Bárbaro",
+            reference_type="class",
+            normalized_name="barbaro",
+            description="Un guerrero feroz.",
+            full_text="Un guerrero feroz que combate con furia.",
+            attributes={"dado_vita": "d12"},
+            source_language="es",
+            source_key="Manual-del-Jugador.pdf",
+            source_normalized_name="barbaro",
+            source_name="Bárbaro",
+            source_description="Un guerrero feroz.",
+            source_full_text="Un guerrero feroz que combate con furia.",
+            source_attributes={"dado_vita": "d12"},
+            source_text_checksum="source-checksum",
+            translation_status="failed",
+            translation_error="provider_translation_failed",
+            review_flags=["traduzione_da_verificare"],
+            review_status="needs_review",
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    collection = MutableMemoryReferences([source])
+    calls = []
+
+    def translate(batch):
+        calls.append(batch)
+        assert batch[0]["id"] == source["id"]
+        assert batch[0]["source_name"] == "Bárbaro"
+        assert batch[0]["source_full_text"] == source["source_full_text"]
+        return {
+            source["id"]: {
+                "name": "Barbaro",
+                "description": "Un guerriero feroce.",
+                "full_text": "Un guerriero feroce che combatte con furia.",
+                "attributes": {"dado_vita": "d12"},
+            }
+        }, ""
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+
+    assert len(calls) == 1
+    assert result["id"] == source["id"]
+    assert result["source_language"] == "es"
+    assert result["source_name"] == "Bárbaro"
+    assert result["source_full_text"] == source["source_full_text"]
+    assert result["source_key"] == source["source_key"]
+    assert result["name"] == "Barbaro"
+    assert result["translation_status"] == "translated"
+    assert result["translation_error"] == ""
+    assert result["review_flags"] == []
+    assert result["review_status"] == "pending"
+
+
+def test_retry_failed_translation_keeps_source_when_provider_fails(monkeypatch):
+    source = {
+        **make_reference(
+            "Bárbaro",
+            reference_type="class",
+            normalized_name="barbaro",
+            description="Testo sorgente.",
+            full_text="Testo sorgente spagnolo da verificare.",
+            source_language="es",
+            source_key="Manual-del-Jugador.pdf",
+            source_normalized_name="barbaro",
+            source_name="Bárbaro",
+            source_description="Texto fuente.",
+            source_full_text="Texto fuente español que debe permanecer.",
+            source_attributes={"dado_vita": "d12"},
+            translation_status="failed",
+            translation_error="provider_translation_failed",
+            review_flags=["traduzione_da_verificare"],
+            review_status="needs_review",
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    collection = MutableMemoryReferences([source])
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(
+        server,
+        "translate_spanish_reference_batch",
+        lambda batch: ({}, "provider_translation_invalid"),
+    )
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+
+    assert result["translation_status"] == "failed"
+    assert result["translation_error"] == "provider_translation_invalid"
+    assert result["name"] == "Bárbaro"
+    assert result["full_text"] == "Testo sorgente spagnolo da verificare."
+    assert result["source_name"] == "Bárbaro"
+    assert result["source_full_text"] == "Texto fuente español que debe permanecer."
+    assert result["source_language"] == "es"
+    assert result["review_status"] == "needs_review"
+    assert "traduzione_da_verificare" in result["review_flags"]
+
+
+def test_retry_translated_record_does_not_call_provider_or_modify_record(monkeypatch):
+    source = {
+        **make_reference(
+            "Barbaro",
+            reference_type="class",
+            source_language="es",
+            translation_status="translated",
+            translation_error="",
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    collection = MutableMemoryReferences([source])
+    calls = []
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+
+    assert result == source
+    assert calls == []
+
+
+def test_retry_translation_endpoint_rejects_non_premium_user_before_provider_call(monkeypatch):
+    calls = []
+
+    async def non_premium_user():
+        return server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
+
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+    server.app.dependency_overrides[server.get_current_user] = non_premium_user
+    try:
+        with TestClient(server.app) as client:
+            response = client.post("/api/library/ref-owned-barbaro/translation-retry")
+    finally:
+        server.app.dependency_overrides.pop(server.get_current_user, None)
+
+    assert response.status_code == 402
+    assert calls == []
 
 
 def test_spanish_manual_rejects_ocr_even_when_the_request_is_confirmed(monkeypatch, tmp_path):
