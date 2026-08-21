@@ -38,6 +38,36 @@ const derivedProficiency = (level) => {
   return parsed && parsed > 0 ? `+${2 + Math.floor((Math.min(parsed, 20) - 1) / 4)}` : "—";
 };
 
+const hasValue = (value) => {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== undefined && value !== null && String(value).trim() !== "";
+};
+
+const copyIfMissing = (target, key, value) => {
+  if (!hasValue(target[key]) && hasValue(value)) target[key] = value;
+};
+
+const manualDefaults = (records, attributes) => {
+  const next = { ...attributes };
+  records.forEach((record) => {
+    const source = record.attributes || {};
+    if (record.reference_type === "class") {
+      copyIfMissing(next, "dadi_vita", source.dado_vita);
+      copyIfMissing(next, "competenze", source.competenze);
+      copyIfMissing(next, "tiri_salvezza", source.tiri_salvezza);
+    }
+    if (record.reference_type === "race" || record.reference_type === "subrace") {
+      copyIfMissing(next, "velocita", source.velocita);
+      copyIfMissing(next, "linguaggi", source.linguaggi);
+      copyIfMissing(next, "tratti_razza", source.tratti);
+    }
+    if (record.reference_type === "subclass") {
+      copyIfMissing(next, "abilita_sottoclasse", source.caratteristiche || source.privilegi);
+    }
+  });
+  return next;
+};
+
 const ValueList = ({ title, values, empty = "Nessun dato inserito." }) => (
   <section className="border border-gold-deep/45 bg-card/75 p-5">
     <h2 className="font-label text-xs tracking-[0.18em] text-gold">{title}</h2>
@@ -61,6 +91,7 @@ export default function CharacterSheet() {
   const [card, setCard] = useState(null);
   const [linkedRecords, setLinkedRecords] = useState([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -120,6 +151,25 @@ export default function CharacterSheet() {
   const capabilities = [...asList(attributes.abilita_sottoclasse), ...asList(attributes.privilegi)];
   const sourceRecords = linkedRecords.filter((record) => record.source_refs?.length);
 
+  const completeFromManuals = async () => {
+    const nextAttributes = manualDefaults(linkedRecords, attributes);
+    const changed = Object.keys(nextAttributes).some((key) => nextAttributes[key] !== attributes[key]);
+    if (!changed) {
+      toast.message("Non ci sono nuovi dati certi da applicare dai manuali disponibili");
+      return;
+    }
+    setCompleting(true);
+    try {
+      const { data } = await api.put(`/cards/${id}`, { attributes: nextAttributes });
+      setCard(data);
+      toast.success("Applicati solo i dati deterministici trovati nei manuali");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile aggiornare la scheda");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-obsidian">
       <Navbar />
@@ -138,13 +188,14 @@ export default function CharacterSheet() {
           </div>
         </div>
 
-        <header className="mt-7 border border-gold-deep/70 bg-[linear-gradient(135deg,#24160d,#110f0d)] p-6 sm:p-8">
+        <section className="tf-sheet-a4 mt-7">
+        <header className="border border-gold-deep/70 bg-[linear-gradient(135deg,#24160d,#110f0d)] p-6 sm:p-8">
           <p className="font-label text-[10px] tracking-[0.3em] text-gold/70">SCHEDA DEL PERSONAGGIO</p>
           <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
               <h1 className="font-display text-4xl tf-gold-text sm:text-6xl">{card.name || "Personaggio senza nome"}</h1>
               <p className="mt-2 font-body text-base text-foreground/80">{identity || "Aggiungi razza e classe per completare l’identità."}</p>
-              {attributes.background && <p className="mt-1 font-body text-sm text-muted-foreground">Background: {attributes.background}</p>}
+              <p className="mt-1 font-body text-sm text-muted-foreground">Background: {attributes.background || "—"} · Allineamento: {attributes.allineamento || "—"}</p>
             </div>
             <div className="grid grid-cols-3 divide-x divide-gold-deep/50 border border-gold-deep/50 bg-obsidian/55 text-center">
               <div className="px-4 py-3"><p className="font-label text-[9px] tracking-widest text-gold/75">LIVELLO</p><p className="mt-1 font-heading text-2xl text-foreground">{level}</p></div>
@@ -185,38 +236,89 @@ export default function CharacterSheet() {
               </div>
             </section>
 
-            <ValueList title="COMPETENZE" values={asList(attributes.competenze)} />
-            <ValueList title="PRIVILEGI E CAPACITÀ" values={capabilities} />
-            <ValueList title="INCANTESIMI" values={asList(attributes.incantesimi)} />
+            <ValueList title="COMPETENZE E TIRI SALVEZZA" values={[...asList(attributes.tiri_salvezza), ...asList(attributes.competenze)]} />
+            <ValueList title="ARMI E TRUCCHI DA COMBATTIMENTO" values={asList(attributes.armi_trucchi)} empty="Aggiungi attacchi, armi o trucchi dal personaggio." />
           </div>
 
           <div className="space-y-6">
-            <ValueList title="EQUIPAGGIAMENTO" values={asList(attributes.equipaggiamento)} />
+            <ValueList title="PRIVILEGI DI CLASSE" values={capabilities} />
+            <ValueList title="TRATTI DELLA SPECIE" values={asList(attributes.tratti_razza)} />
             <ValueList title="TALENTI" values={asList(attributes.talenti)} />
-            <ValueList title="LINGUAGGI" values={asList(attributes.linguaggi)} />
-            {attributes.slot_incantesimi?.length > 0 && (
+            <section className="border border-gold-deep/45 bg-card/75 p-5">
+              <h2 className="font-label text-xs tracking-[0.18em] text-gold">ADDESTRAMENTO E COMPETENZE NELL’EQUIPAGGIAMENTO</h2>
+              <div className="mt-3 space-y-2 font-body text-sm">
+                <p><strong>Armature:</strong> {attributes.competenza_armature || "—"}</p>
+                <p><strong>Armi:</strong> {attributes.competenze_armi || "—"}</p>
+                <p><strong>Strumenti:</strong> {attributes.strumenti || "—"}</p>
+              </div>
+            </section>
+          </div>
+        </div>
+        </section>
+
+        <section className="tf-sheet-a4 mt-7">
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+            <div className="space-y-6">
               <section className="border border-gold-deep/45 bg-card/75 p-5">
-                <h2 className="font-label text-xs tracking-[0.18em] text-gold">SLOT INCANTESIMI</h2>
-                <div className="mt-3 space-y-2">
-                  {attributes.slot_incantesimi.filter((slot) => slot && (slot.livello || slot.totale)).map((slot, index) => (
-                    <div key={`${slot.livello}-${index}`} className="flex justify-between border-b border-border/70 pb-2 font-body text-sm">
-                      <span>Livello {slot.livello || index + 1}</span>
-                      <span className="text-gold">{Math.max(0, Number(slot.totale || 0) - Number(slot.usati || 0))}/{slot.totale || 0}</span>
+                <h2 className="font-label text-xs tracking-[0.18em] text-gold">CARATTERISTICA DA INCANTATORE</h2>
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  {[
+                    ["Caratteristica", attributes.caratteristica_incantatore || "—"],
+                    ["Modificatore", attributes.modificatore_incantatore || "—"],
+                    ["Bonus attacco", attributes.bonus_attacco_incantesimi || "—"],
+                    ["CD tiro salvezza", attributes.cd_incantesimi || "—"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="border border-border/80 bg-obsidian/45 px-3 py-3">
+                      <p className="font-label text-[9px] tracking-widest text-gold/70">{label.toUpperCase()}</p>
+                      <p className="mt-1 font-body text-base text-foreground">{value}</p>
                     </div>
                   ))}
                 </div>
               </section>
-            )}
+              <section className="border border-gold-deep/45 bg-card/75 p-5">
+                <h2 className="font-label text-xs tracking-[0.18em] text-gold">SLOT INCANTESIMI</h2>
+                {(attributes.slot_incantesimi || []).filter((slot) => slot && (slot.livello || slot.totale)).length ? (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {attributes.slot_incantesimi.filter((slot) => slot && (slot.livello || slot.totale)).map((slot, index) => (
+                      <div key={`${slot.livello}-${index}`} className="border border-border/70 bg-obsidian/45 px-3 py-2 font-body text-sm">
+                        <span>Livello {slot.livello || index + 1}</span>
+                        <span className="float-right text-gold">{Math.max(0, Number(slot.totale || 0) - Number(slot.usati || 0))}/{slot.totale || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="mt-3 font-body text-sm text-muted-foreground">Nessuno slot inserito.</p>}
+              </section>
+              <ValueList title="TRUCCHETTI E INCANTESIMI PREPARATI" values={asList(attributes.incantesimi)} empty="Aggiungi gli incantesimi scelti dal personaggio." />
+            </div>
+            <div className="space-y-6">
+              <ValueList title="ASPETTO" values={asList(attributes.aspetto)} empty="Descrivi l’aspetto del personaggio." />
+              <ValueList title="STORIA E TRATTI CARATTERIALI" values={[card.description, card.story].filter(Boolean)} empty="Aggiungi note, storia e tratti al personaggio." />
+              <section className="border border-gold-deep/45 bg-card/75 p-5">
+                <h2 className="font-label text-xs tracking-[0.18em] text-gold">LINGUE</h2>
+                <p className="mt-3 font-body text-sm leading-relaxed text-foreground/90">{asList(attributes.linguaggi).join(" · ") || "Nessuna lingua inserita."}</p>
+              </section>
+              <ValueList title="EQUIPAGGIAMENTO" values={asList(attributes.equipaggiamento)} empty="Aggiungi l’equipaggiamento del personaggio." />
+              <section className="border border-gold-deep/45 bg-card/75 p-5">
+                <h2 className="font-label text-xs tracking-[0.18em] text-gold">DENARI E SINTONIA</h2>
+                <p className="mt-3 font-body text-sm"><strong>Denari:</strong> {attributes.denari || "—"}</p>
+                <p className="mt-2 font-body text-sm"><strong>Sintonia:</strong> {asList(attributes.sintonia).join(" · ") || "—"}</p>
+              </section>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <section className="mt-6 border border-sky-700/45 bg-sky-950/15 p-5">
+        <section className="no-print mt-6 border border-sky-700/45 bg-sky-950/15 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-label text-[10px] tracking-[0.2em] text-sky-200">CARTE COLLEGATE DALLA BIBLIOTECA</p>
-              <p className="mt-1 font-body text-sm text-muted-foreground">Razza, classe e sottoclasse vengono cercate nella tua biblioteca. Puoi aprire un record direttamente nel laboratorio carte.</p>
+              <p className="mt-1 font-body text-sm text-muted-foreground">Razza, classe e sottoclasse vengono cercate nella tua biblioteca. Puoi applicare solo i campi certi mancanti oppure aprire un record nel laboratorio carte.</p>
             </div>
-            {loadingLinks && <Loader2 className="h-4 w-4 animate-spin text-sky-200" />}
+            <div className="flex items-center gap-2">
+              {loadingLinks && <Loader2 className="h-4 w-4 animate-spin text-sky-200" />}
+              <Button size="sm" data-testid="complete-sheet-from-manuals" onClick={completeFromManuals} disabled={loadingLinks || completing || !linkedRecords.length} className="rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600">
+                {completing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <BookOpen className="mr-1 h-3 w-3" />} COMPLETA DAI MANUALI
+              </Button>
+            </div>
           </div>
           {linkedRecords.length ? (
             <div className="mt-4 grid gap-2 sm:grid-cols-2">

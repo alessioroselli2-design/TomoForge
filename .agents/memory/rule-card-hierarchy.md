@@ -20,3 +20,9 @@ AI assistance is optional. Core character, card, rules lookup, calculation, and 
 **Why:** The user confirmed that AI should make natural-language requests easier, but must not be required for the product to function or become the source of truth for game rules.
 
 **How to apply:** Add AI as an explicit assistant action or mode. Ground its answers in retrieved database records, preserve source fidelity, and fail gracefully to the normal deterministic UI when AI is unavailable.
+
+The printable character sheet uses an original TomeForge two-page layout modeled on the functional grouping of the user-provided blank sheet: identity, abilities, combat, and features on page one; spellcasting, appearance, languages, equipment, and currency on page two.
+
+**Why:** The user supplied a blank sheet as the preferred organization and expects an existing character to become a nicer printable sheet, without treating the PDF itself as a browsable source.
+
+**How to apply:** Preserve that two-page information hierarchy while keeping TomeForge styling original. Populate only saved character values and verified rule data; leave rolled, chosen, or unavailable fields editable or visibly empty.

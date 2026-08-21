@@ -32,8 +32,11 @@ const DEFAULT_ATTRS = {
     classe: "", sottoclasse: "", razza: "", sottorazza: "", background: "", livello: "",
     for: "", des: "", cos: "", int: "", sag: "", car: "", bonus_competenza: "",
     classe_armatura: "", punti_ferita: "", pf_attuali: "", pf_temporanei: "", dadi_vita: "",
-    velocita: "", linguaggi: "", cd_incantesimi: "", competenze: "", abilita_sottoclasse: [],
-    privilegi: [], incantesimi: [], equipaggiamento: [], talenti: [], slot_incantesimi: [],
+    velocita: "", taglia: "", iniziativa: "", percezione_passiva: "", ispirazione: "", allineamento: "",
+    linguaggi: [], competenze: [], abilita_sottoclasse: [], privilegi: [], tratti_razza: [], talenti: [],
+    armi_trucchi: [], equipaggiamento: [], competenza_armature: "", competenze_armi: "", strumenti: "",
+    aspetto: "", caratteristica_incantatore: "", modificatore_incantatore: "", cd_incantesimi: "",
+    bonus_attacco_incantesimi: "", denari: "", sintonia: [], slot_incantesimi: [], incantesimi: [],
   },
   custom: {},
 };

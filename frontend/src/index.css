@@ -550,6 +550,36 @@ body {
     }
 }
 
+.tf-sheet-a4 {
+    background-color: #f4efe4;
+    background-image:
+        linear-gradient(rgba(100, 82, 52, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100, 82, 52, 0.055) 1px, transparent 1px);
+    background-size: 16px 16px;
+    color: #211b14;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+    padding: 1.25rem;
+}
+
+.tf-sheet-a4 * {
+    color: #211b14;
+}
+
+.tf-sheet-a4 .text-gold,
+.tf-sheet-a4 .tf-gold-text {
+    color: #755422 !important;
+}
+
+.tf-sheet-a4 [class*="bg-card"],
+.tf-sheet-a4 [class*="bg-obsidian"] {
+    background-color: rgba(255, 252, 244, 0.74) !important;
+}
+
+.tf-sheet-a4 [class*="border-gold"],
+.tf-sheet-a4 [class*="border-border"] {
+    border-color: rgba(105, 80, 41, 0.55) !important;
+}
+
 @layer base {
     * { @apply border-border; }
     body { @apply bg-background text-foreground; }
@@ -566,4 +596,6 @@ body {
     .character-sheet-page .tf-gold-text { color: #6b4612 !important; }
     .character-sheet-page .border,
     .character-sheet-page [class*="border-"] { border-color: #806b4f !important; }
+    .tf-sheet-a4 { min-height: 275mm; padding: 8mm !important; break-after: page; page-break-after: always; }
+    .tf-sheet-a4:last-of-type { break-after: auto; page-break-after: auto; }
 }
