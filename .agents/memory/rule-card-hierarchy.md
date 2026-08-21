@@ -14,3 +14,9 @@ The character sheet must support two entry points: generate a polished, printabl
 **Why:** The user wants existing characters to become nicer complete sheets, while still allowing the same source-backed assistance when starting a new character.
 
 **How to apply:** Treat saved character values as authoritative; fill only deterministic or missing rule fields from the canonical database, leave rolled/choice-dependent fields editable, and offer PDF/print output for both paths.
+
+AI assistance is optional. Core character, card, rules lookup, calculation, and print workflows must work from the canonical database and application logic without requiring an AI call.
+
+**Why:** The user confirmed that AI should make natural-language requests easier, but must not be required for the product to function or become the source of truth for game rules.
+
+**How to apply:** Add AI as an explicit assistant action or mode. Ground its answers in retrieved database records, preserve source fidelity, and fail gracefully to the normal deterministic UI when AI is unavailable.
