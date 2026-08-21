@@ -7,6 +7,7 @@ import os
 import re
 import uuid
 import copy
+import time
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
 from pathlib import Path
@@ -151,6 +152,12 @@ class UpdateResult:
         self.deleted_count = count
 
 
+TRANSLATION_PROCESSING_STATUS = "processing"
+TRANSLATION_LEASE_SECONDS = 180
+TRANSLATION_WAIT_SECONDS = 135
+TRANSLATION_POLL_INTERVAL_SECONDS = 0.05
+
+
 class MemoryCursor:
     def __init__(self, rows: list[dict], projection: Optional[dict]):
         self.rows = rows
@@ -174,8 +181,14 @@ class MemoryCollection:
     @staticmethod
     def matches(row: dict, query: dict) -> bool:
         for field, value in query.items():
-            if isinstance(value, dict) and "$ne" in value:
+            if field == "$or":
+                if not isinstance(value, list) or not any(MemoryCollection.matches(row, option) for option in value):
+                    return False
+            elif isinstance(value, dict) and "$ne" in value:
                 if row.get(field) == value["$ne"]:
+                    return False
+            elif isinstance(value, dict) and "$lt" in value:
+                if row.get(field) is None or row.get(field) >= value["$lt"]:
                     return False
             elif row.get(field) != value:
                 return False
@@ -232,9 +245,29 @@ class SupabaseCollection:
     @staticmethod
     def apply_filters(statement: Any, query: dict) -> Any:
         for field, value in query.items():
-            if isinstance(value, dict):
+            if field == "$or":
+                if not isinstance(value, list):
+                    raise HTTPException(status_code=400, detail="Filtro OR non valido")
+                clauses = []
+                for option in value:
+                    option_clauses = []
+                    for option_field, option_value in option.items():
+                        if isinstance(option_value, dict) and "$lt" in option_value:
+                            option_clauses.append(f"{option_field}.lt.{option_value['$lt']}")
+                        elif not isinstance(option_value, dict):
+                            option_clauses.append(f"{option_field}.eq.{option_value}")
+                        else:
+                            raise HTTPException(status_code=400, detail=f"Filtro non supportato: {option_field}")
+                    clauses.append(
+                        option_clauses[0] if len(option_clauses) == 1
+                        else f"and({','.join(option_clauses)})"
+                    )
+                statement = statement.or_(",".join(clauses))
+            elif isinstance(value, dict):
                 if "$ne" in value:
                     statement = statement.neq(field, value["$ne"])
+                elif "$lt" in value:
+                    statement = statement.lt(field, value["$lt"])
                 else:
                     raise HTTPException(status_code=400, detail=f"Filtro non supportato: {field}")
             else:
@@ -254,7 +287,9 @@ class SupabaseCollection:
     async def update_one(self, query: dict, update: dict) -> UpdateResult:
         changes = update.get("$set", update)
         statement = self.apply_filters(self.client.table(self.name).update(changes), query)
-        result = statement.execute()
+        # Ask PostgREST to return the changed rows so conditional updates can
+        # be used as atomic claims by callers.
+        result = statement.select("id").execute()
         return UpdateResult(len(result.data or []))
 
     async def delete_one(self, query: dict) -> UpdateResult:
@@ -1309,6 +1344,30 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
     )
 
 
+def _translation_lease_is_active(record: dict) -> bool:
+    return (
+        record.get("translation_status") == TRANSLATION_PROCESSING_STATUS
+        and int(record.get("translation_lease_expires_at") or 0) > int(time.time())
+    )
+
+
+async def _wait_for_translation(collection: Any, user_id: str, reference_id: str, fallback: dict) -> dict:
+    """Return the result of a retry owned by another concurrent request."""
+    lease_remaining = max(
+        0,
+        int(fallback.get("translation_lease_expires_at") or 0) - int(time.time()),
+    )
+    deadline = asyncio.get_running_loop().time() + min(TRANSLATION_WAIT_SECONDS, lease_remaining)
+    current = fallback
+    while asyncio.get_running_loop().time() < deadline:
+        await asyncio.sleep(TRANSLATION_POLL_INTERVAL_SECONDS)
+        current = await collection.find_one({"id": reference_id, "user_id": user_id})
+        if not current or current.get("translation_status") != TRANSLATION_PROCESSING_STATUS:
+            return current or fallback
+    # Never issue a second provider request while its lease is still valid.
+    return current or fallback
+
+
 async def retry_private_reference_translation(user_id: str, reference_id: str) -> dict:
     """Retry one failed Spanish translation without re-reading the manual."""
     collection = getattr(db, "private_reference_records", None)
@@ -1322,8 +1381,59 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
         raise HTTPException(status_code=400, detail="Questo record non richiede una traduzione dallo spagnolo")
     # Retrying is intentionally idempotent for completed records. In
     # particular, do not call the provider or replace a successful translation.
+    if record.get("translation_status") != "failed" and _translation_lease_is_active(record):
+        return await _wait_for_translation(
+            collection,
+            user_id,
+            reference_id,
+            record,
+        )
     if record.get("translation_status") != "failed":
-        return record
+        if record.get("translation_status") != TRANSLATION_PROCESSING_STATUS:
+            return record
+        # An abandoned request can be reclaimed only after its persisted lease
+        # expires. The conditional update below makes that recovery atomic.
+
+    # Claim the failed row atomically. Only the request that changes the
+    # status can contact Gemini; expired claims can be safely recovered.
+    now = int(time.time())
+    lease_id = uuid.uuid4().hex
+    claim = await collection.update_one(
+        {
+            "id": reference_id,
+            "user_id": user_id,
+            "$or": [
+                {"translation_status": "failed"},
+                {
+                    "translation_status": TRANSLATION_PROCESSING_STATUS,
+                    "translation_lease_expires_at": {"$lt": now + 1},
+                },
+            ],
+        },
+        {
+            "$set": {
+                "translation_status": TRANSLATION_PROCESSING_STATUS,
+                "translation_error": "",
+                "translation_lease_id": lease_id,
+                "translation_lease_expires_at": now + TRANSLATION_LEASE_SECONDS,
+                "updated_at": utc_now(),
+            }
+        },
+    )
+    if not claim or not getattr(claim, "matched_count", 0):
+        current = await collection.find_one({"id": reference_id, "user_id": user_id})
+        if current and current.get("translation_status") == TRANSLATION_PROCESSING_STATUS:
+            return await _wait_for_translation(
+                collection,
+                user_id,
+                reference_id,
+                current,
+            )
+        return current or record
+
+    # Reload after claiming so the response and source fields always come
+    # from the record that owns this retry, not from a stale pre-claim read.
+    record = await collection.find_one({"id": reference_id, "user_id": user_id}) or record
 
     source_record = {
         "id": reference_id,
@@ -1342,21 +1452,25 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
         translated, error = {}, "provider_translation_failed"
 
     translated_record = translated.get(reference_id)
-    failed_query = {
+    processing_query = {
         "id": reference_id,
         "user_id": user_id,
-        "translation_status": "failed",
+        "translation_status": TRANSLATION_PROCESSING_STATUS,
+        "translation_lease_id": lease_id,
     }
     if not translated_record:
         # Keep all source-derived fields untouched and retain the review flag.
         # The conditional filter also avoids overwriting a concurrent success.
         await collection.update_one(
-            failed_query,
+            processing_query,
             {
                 "$set": {
                     "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
                     "review_status": "needs_review",
+                    "translation_status": "failed",
                     "translation_error": error or "provider_translation_failed",
+                    "translation_lease_id": "",
+                    "translation_lease_expires_at": 0,
                     "updated_at": utc_now(),
                 }
             },
@@ -1367,7 +1481,7 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
         set(record.get("review_flags") or []) - {"traduzione_da_verificare"}
     )
     await collection.update_one(
-        failed_query,
+        processing_query,
         {
             "$set": {
                 "name": translated_record["name"],
@@ -1377,6 +1491,8 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
                 "attributes": translated_record["attributes"],
                 "translation_status": "translated",
                 "translation_error": "",
+                "translation_lease_id": "",
+                "translation_lease_expires_at": 0,
                 "review_flags": remaining_review_flags,
                 "review_status": "needs_review" if remaining_review_flags else "pending",
                 "updated_at": utc_now(),

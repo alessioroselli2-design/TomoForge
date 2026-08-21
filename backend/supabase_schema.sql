@@ -116,8 +116,10 @@ create table if not exists public.private_reference_records (
   source_description text not null default '',
   source_full_text text not null default '',
   source_text_checksum text not null default '',
-  translation_status text not null default 'not_required' check (translation_status in ('not_required', 'translated', 'failed')),
+  translation_status text not null default 'not_required' check (translation_status in ('not_required', 'translated', 'failed', 'processing')),
   translation_error text not null default '',
+  translation_lease_id text not null default '',
+  translation_lease_expires_at bigint not null default 0,
   imported_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, reference_type, normalized_name)
@@ -142,7 +144,14 @@ alter table public.private_reference_records
   add column if not exists source_full_text text not null default '',
   add column if not exists source_text_checksum text not null default '',
   add column if not exists translation_status text not null default 'not_required',
-  add column if not exists translation_error text not null default '';
+  add column if not exists translation_error text not null default '',
+  add column if not exists translation_lease_id text not null default '',
+  add column if not exists translation_lease_expires_at bigint not null default 0;
+alter table public.private_reference_records
+  drop constraint if exists private_reference_records_translation_status_check;
+alter table public.private_reference_records
+  add constraint private_reference_records_translation_status_check
+  check (translation_status in ('not_required', 'translated', 'failed', 'processing'));
 update public.private_reference_records
   set source_key = coalesce(nullif(source_refs->0->>'filename', ''), source_key),
       source_normalized_name = coalesce(nullif(source_normalized_name, ''), normalized_name),

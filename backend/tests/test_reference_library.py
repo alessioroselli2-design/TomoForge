@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -315,9 +316,12 @@ class MutableMemoryReferences(MemoryReferences):
         self.rows.append(document.copy())
 
     async def update_one(self, query, update):
+        count = 0
         for row in self.rows:
-            if all(row.get(key) == value for key, value in query.items()):
+            if server.MemoryCollection.matches(row, query):
                 row.update(update.get("$set", update))
+                count += 1
+        return server.UpdateResult(count)
 
 
 def test_apply_reference_endpoint_cannot_read_another_users_record(monkeypatch):
@@ -630,6 +634,121 @@ def test_retry_single_failed_spanish_translation_preserves_source_fields(monkeyp
     assert result["review_status"] == "pending"
 
 
+def test_concurrent_translation_retries_share_one_provider_call_and_return_completed_record(monkeypatch):
+    source = {
+        **make_reference(
+            "Bárbaro",
+            reference_type="class",
+            normalized_name="barbaro",
+            description="Un guerrero feroz.",
+            full_text="Un guerrero feroz que combate con furia.",
+            source_language="es",
+            source_key="Manual-del-Jugador.pdf",
+            source_normalized_name="barbaro",
+            source_name="Bárbaro",
+            source_description="Un guerrero feroz.",
+            source_full_text="Un guerrero feroz que combate con furia.",
+            source_attributes={"dado_vita": "d12"},
+            translation_status="failed",
+            translation_error="provider_translation_failed",
+            review_flags=["traduzione_da_verificare"],
+            review_status="needs_review",
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    collection = MutableMemoryReferences([source])
+    provider_started = threading.Event()
+    allow_provider_result = threading.Event()
+    calls = []
+
+    def translate(batch):
+        calls.append(batch)
+        provider_started.set()
+        assert allow_provider_result.wait(timeout=2), "The test did not release the provider"
+        return {
+            source["id"]: {
+                "name": "Barbaro",
+                "description": "Un guerriero feroce.",
+                "full_text": "Un guerriero feroce che combatte con furia.",
+                "attributes": {"dado_vita": "d12"},
+            }
+        }, ""
+
+    async def retry_from_two_devices():
+        first = asyncio.create_task(
+            server.retry_private_reference_translation("owner-1", source["id"])
+        )
+        assert await asyncio.to_thread(provider_started.wait, 1)
+        second = asyncio.create_task(
+            server.retry_private_reference_translation("owner-1", source["id"])
+        )
+        await asyncio.sleep(0.1)
+        assert len(calls) == 1
+        allow_provider_result.set()
+        return await asyncio.gather(first, second)
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+
+    first_result, second_result = asyncio.run(retry_from_two_devices())
+
+    assert len(calls) == 1
+    assert first_result == second_result
+    assert second_result["translation_status"] == "translated"
+    assert second_result["name"] == "Barbaro"
+    assert second_result["source_language"] == "es"
+    assert second_result["source_full_text"] == source["source_full_text"]
+    assert second_result["source_refs"] == source["source_refs"]
+    assert collection.rows[0]["translation_status"] == "translated"
+    assert collection.rows[0]["source_refs"] == source["source_refs"]
+
+
+def test_retry_reclaims_an_abandoned_translation_lease(monkeypatch):
+    source = {
+        **make_reference(
+            "Bárbaro",
+            reference_type="class",
+            source_language="es",
+            source_key="Manual-del-Jugador.pdf",
+            source_normalized_name="barbaro",
+            source_name="Bárbaro",
+            source_description="Un guerrero feroz.",
+            source_full_text="Un guerrero feroz que combate con furia.",
+            source_attributes={"dado_vita": "d12"},
+            translation_status="processing",
+            translation_lease_id="abandoned-request",
+            translation_lease_expires_at=0,
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    collection = MutableMemoryReferences([source])
+    calls = []
+
+    def translate(batch):
+        calls.append(batch)
+        return {
+            source["id"]: {
+                "name": "Barbaro",
+                "description": "Un guerriero feroce.",
+                "full_text": "Un guerriero feroce che combatte con furia.",
+                "attributes": {"dado_vita": "d12"},
+            }
+        }, ""
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+
+    assert len(calls) == 1
+    assert result["translation_status"] == "translated"
+    assert result["translation_lease_id"] == ""
+    assert result["translation_lease_expires_at"] == 0
+    assert result["source_language"] == "es"
+    assert result["source_full_text"] == source["source_full_text"]
+    assert result["source_refs"] == source["source_refs"]
+
+
 def test_retry_failed_translation_keeps_source_when_provider_fails(monkeypatch):
     source = {
         **make_reference(
@@ -671,6 +790,8 @@ def test_retry_failed_translation_keeps_source_when_provider_fails(monkeypatch):
     assert result["source_language"] == "es"
     assert result["review_status"] == "needs_review"
     assert "traduzione_da_verificare" in result["review_flags"]
+    assert result["translation_lease_id"] == ""
+    assert result["translation_lease_expires_at"] == 0
 
 
 def test_retry_translated_record_does_not_call_provider_or_modify_record(monkeypatch):
