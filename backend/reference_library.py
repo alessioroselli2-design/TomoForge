@@ -20,6 +20,7 @@ REFERENCE_TYPES = (
     "class",
     "subclass",
     "class_feature",
+    "spell",
     "feat",
     "race",
     "subrace",
@@ -42,10 +43,21 @@ CLASS_TITLES = {
     "barbaro", "bardo", "chierico", "druido", "guerriero", "ladro",
     "mago", "monaco", "paladino", "ranger", "stregone", "warlock",
 }
+SPANISH_CLASS_TITLES = {
+    "barbaro", "bardo", "clerigo", "druida", "guerrero", "monje",
+    "paladin", "explorador", "picaro", "hechicero", "brujo", "mago",
+}
+RACE_TITLES = {
+    "dragonide", "elfo", "enano", "gnomo", "humano", "mediano",
+    "mezzelfo", "mezzorco", "tiefling",
+    "draconido", "elfo", "enano", "gnomo", "humano", "mediano",
+    "semielfo", "semiorco", "tiefling",
+}
 CARD_TYPE_BY_REFERENCE_TYPE = {
     "class": "class",
     "subclass": "class",
     "class_feature": "class",
+    "spell": "spell",
     "feat": "feat",
     "race": "race",
     "subrace": "race",
@@ -94,6 +106,14 @@ def compact_text(value: str, maximum: int = MAX_CARD_DESCRIPTION) -> str:
     return f"{value[: maximum - 1].rsplit(' ', 1)[0].rstrip(' ,;:')}…"
 
 
+def source_reference(source_filename: str, source_page: int, source_language: str) -> dict:
+    """Keep existing Italian provenance compact while labeling foreign sources."""
+    reference = {"filename": source_filename, "page": source_page}
+    if source_language != "it":
+        reference["language"] = source_language
+    return reference
+
+
 def text_is_usable(value: str) -> bool:
     """Reject broken font mappings while accepting Italian text and tables."""
     value = clean_text(value)
@@ -108,6 +128,15 @@ def _title_from_line(value: str) -> Optional[str]:
     value = clean_text(value)
     if not 3 <= len(value) <= 84 or not any(char.isalpha() for char in value):
         return None
+    # Some text-native Spanish PDFs use small caps, which PyMuPDF exposes as
+    # mixed case (for example "BárBaro"). Recognise only known base class and
+    # race titles before applying the conservative heading heuristic below.
+    title_key = normalize_reference_name(value)
+    if (
+        title_key in CLASS_TITLES | SPANISH_CLASS_TITLES | RACE_TITLES
+        and value == value.strip(" .:;,")
+    ):
+        return value.title()
     # Native Italian D&D PDFs use all-caps headings; requiring a high uppercase
     # ratio avoids promoting normal paragraphs or table rows into records.
     letters = [char for char in value if char.isalpha()]
@@ -121,55 +150,77 @@ def _title_from_line(value: str) -> Optional[str]:
 def _record_type(title: str, body: str) -> str:
     sample = f"{title} {body[:900]}".casefold()
     title_key = title.casefold()
-    if normalize_reference_name(title) in CLASS_TITLES:
+    normalized_title = normalize_reference_name(title)
+    if normalized_title in CLASS_TITLES | SPANISH_CLASS_TITLES:
         return "class"
-    if "oggetti magici" in title_key or "oggetto magico" in title_key:
+    if normalized_title in RACE_TITLES:
+        return "race"
+    if normalized_title in {"oggetti magici", "oggetto magico", "objetos magicos", "objeto magico"}:
         return "magic_item"
-    if "armature" in title_key or title_key in {"armatura", "armature e scudi"}:
+    if normalized_title in {"armature", "armatura", "armature e scudi", "armaduras", "armadura"}:
         return "armor"
-    if title_key.startswith("armatura"):
-        return "armor"
-    if "scudi" in title_key or title_key == "scudo":
+    if normalized_title in {"scudi", "scudo", "escudos", "escudo"}:
         return "shield"
-    if title_key.startswith("scudo"):
-        return "shield"
-    if title_key.startswith("armi") or title_key in {"arma", "armi semplici", "armi marziali"}:
+    if normalized_title in {
+        "armi", "arma", "armi semplici", "armi marziali",
+        "armas", "armas simples", "armas marciales",
+    }:
         return "weapon"
-    if "strumenti" in title_key or title_key == "strumento":
+    if normalized_title in {"strumenti", "strumento", "herramientas", "herramienta"}:
         return "tool"
-    if "veicoli" in title_key or title_key == "veicolo":
+    if normalized_title in {"veicoli", "veicolo", "vehiculos", "vehiculo"}:
         return "vehicle"
-    if "cavalcature" in title_key or "animali da tiro" in title_key:
+    if normalized_title in {"cavalcature", "animali da tiro", "monturas", "animales de tiro"}:
         return "mount"
-    if "munizioni" in title_key or title_key == "munizione":
+    if normalized_title in {"munizioni", "munizione", "municion"}:
         return "ammunition"
-    if "merci commerciali" in title_key or "beni commerciali" in title_key:
+    if normalized_title in {"merci commerciali", "beni commerciali", "mercancias"}:
         return "trade_good"
-    if "servizi" in title_key or title_key == "servizio":
+    if normalized_title in {"servizi", "servizio", "servicios", "servicio"}:
         return "service"
-    if "equipaggiamento" in title_key or "attrezzatura" in title_key:
+    if normalized_title in {"equipaggiamento", "attrezzatura", "equipo"}:
         return "equipment"
     if re.search(r"\b\d+d\d+\b", sample) and any(
-        token in sample for token in ("taglienti", "perforanti", "contundenti", "proprietà", "proprieta")
+        token in sample for token in (
+            "taglienti", "perforanti", "contundenti", "proprietà", "proprieta",
+            "cortante", "perforante", "contundente", "propiedades",
+        )
     ):
         return "weapon"
-    if re.search(r"\b(comune|non comune|raro|molto raro|leggendario|artefatto)\b", sample) and (
-        "sintonia" in sample or "oggetto" in sample
+    if re.search(r"\b(comune|non comune|raro|molto raro|leggendario|artefatto|comun|poco comun|muy raro|legendario|artefacto)\b", sample) and (
+        "sintonia" in sample or "sintonía" in sample or "oggetto" in sample or "objeto" in sample
     ):
         return "magic_item"
-    if "classe armatura" in sample and "punti ferita" in sample:
+    if ("classe armatura" in sample and "punti ferita" in sample) or (
+        "clase de armadura" in sample and "puntos de golpe" in sample
+    ):
         return "monster"
-    if "prerequisito" in sample and ("talento" in sample or "incremento" in sample):
+    if "prerequisito" in sample and (
+        "talento" in sample or "incremento" in sample or "dote" in sample or "mejora" in sample
+    ):
         return "feat"
-    if "tratti razziali" in sample or "sottorazza" in sample:
-        return "subrace" if "sottorazza" in sample else "race"
-    if any(token in title_key for token in ("archetipo", "collegio", "cammino", "dominio", "circolo", "giuramento", "tradizione", "patto", "conclave", "ordine", "via del")):
+    if any(token in sample for token in ("tratti razziali", "rasgos raciales", "sottorazza", "subraza")):
+        return "subrace" if "sottorazza" in sample or "subraza" in sample else "race"
+    if any(token in title_key for token in (
+        "archetipo", "arquetipo", "collegio", "colegio", "cammino", "camino",
+        "dominio", "circolo", "circulo", "giuramento", "juramento", "tradizione",
+        "tradicion", "patto", "pacto", "conclave", "ordine", "via del",
+    )):
         return "subclass"
-    if "archetipo" in sample and "quando scegli" in sample:
+    if ("archetipo" in sample and "quando scegli" in sample) or (
+        "arquetipo" in sample and "cuando eliges" in sample
+    ):
         return "subclass"
-    if "al " in sample and " livello" in sample and any(token in sample for token in ("ottiene", "privilegio", "capacità")):
+    if (
+        any(token in sample for token in ("ottiene", "obtienes")) and "livello" in sample
+    ) or (
+        "nivel" in sample and any(token in sample for token in ("obtienes", "rasgo", "caracteristica"))
+    ):
         return "class_feature"
-    if any(token in sample for token in ("capacità", "privilegio", "invocazione", "manovra")):
+    if any(token in sample for token in (
+        "capacità", "privilegio", "invocazione", "manovra", "capacidad",
+        "rasgo", "invocacion", "maniobra",
+    )):
         return "ability"
     return "other"
 
@@ -177,7 +228,32 @@ def _record_type(title: str, body: str) -> str:
 def _attributes(record_type: str, body: str) -> dict:
     flat = clean_text(body)
     attributes: dict = {}
-    if record_type == "feat":
+    if record_type == "spell":
+        spell_text = body or flat
+        spell_header = re.search(
+            r"(Abjuración|Adivinación|Conjuración|Encantamiento|Evocación|Ilusión|Nigromancia|Transmutación)"
+            r"\s+(?:nivel\s+)?(\d+|truco)(?:\s*\((ritual)\))?",
+            spell_text,
+            flags=re.IGNORECASE,
+        )
+        if spell_header:
+            attributes["scuola"] = spell_header.group(1)
+            attributes["livello"] = "Trucchetto" if spell_header.group(2).casefold() == "truco" else spell_header.group(2)
+            if spell_header.group(3):
+                attributes["rituale"] = "Sì"
+        spell_patterns = {
+            "tempo_lancio": r"(?mi)^Tiempo de lanzamiento\s*:\s*(.+)$",
+            "gittata": r"(?mi)^(?:Alcance|Alance)\s*:\s*(.+)$",
+            "componenti": r"(?mi)^Componentes\s*:\s*(.+)$",
+            "durata": r"(?mi)^Duración\s*:\s*(.+)$",
+        }
+        for field, pattern in spell_patterns.items():
+            found = re.search(pattern, spell_text, flags=re.IGNORECASE)
+            if found:
+                attributes[field] = found.group(1).strip()
+        if re.search(r"Concentración", spell_text, flags=re.IGNORECASE):
+            attributes["concentrazione"] = "Sì"
+    elif record_type == "feat":
         match = re.search(r"Prerequisito\s*:\s*([^.]{2,180})", flat, flags=re.IGNORECASE)
         attributes["prerequisito"] = match.group(1).strip() if match else ""
     elif record_type == "monster":
@@ -192,15 +268,23 @@ def _attributes(record_type: str, body: str) -> dict:
             if found:
                 attributes[field] = found.group(1).strip()
     elif record_type in {"class_feature", "ability"}:
-        level = re.search(r"(?:al|dal)\s+(\d+)°?\s+livello", flat, flags=re.IGNORECASE)
+        level = re.search(
+            r"(?:al|dal|a partir del|en el|a)\s+(\d+)°?\s+(?:livello|nivel)",
+            flat,
+            flags=re.IGNORECASE,
+        )
         if level:
             attributes["livello"] = level.group(1)
     elif record_type in {
         "weapon", "armor", "shield", "equipment", "tool", "magic_item",
         "vehicle", "ammunition", "mount", "trade_good", "service",
     }:
-        currency = re.search(r"\b([0-9]+(?:[.,][0-9]+)?)\s*(mo|ma|mr|mc|m\.?o\.?|m\.?a\.?|m\.?r\.?|m\.?c\.?)\b", flat, flags=re.IGNORECASE)
-        weight = re.search(r"\b([0-9]+(?:[.,][0-9]+)?)\s*(kg|chili|libbre?)\b", flat, flags=re.IGNORECASE)
+        currency = re.search(
+            r"\b([0-9]+(?:[.,][0-9]+)?)\s*(mo|ma|mr|mc|po|pl|pe|pc|m\.?o\.?|m\.?a\.?|m\.?r\.?|m\.?c\.?)\b",
+            flat,
+            flags=re.IGNORECASE,
+        )
+        weight = re.search(r"\b([0-9]+(?:[.,][0-9]+)?)\s*(kg|chili|libbre?|libras?)\b", flat, flags=re.IGNORECASE)
         if currency:
             attributes["costo"] = currency.group(0)
         if weight:
@@ -210,28 +294,28 @@ def _attributes(record_type: str, body: str) -> dict:
             if damage:
                 attributes["danno"] = damage.group(1)
                 attributes["tipo_danno"] = damage.group(2)
-            properties = re.search(r"(?:proprietà|proprieta)\s*:\s*([^.;]{2,180})", flat, flags=re.IGNORECASE)
+            properties = re.search(r"(?:proprietà|proprieta|propiedades)\s*:\s*([^.;]{2,180})", flat, flags=re.IGNORECASE)
             if properties:
                 attributes["proprieta"] = properties.group(1).strip()
-            range_match = re.search(r"(?:gittata|portata)\s*:\s*([^.;]{2,80})", flat, flags=re.IGNORECASE)
+            range_match = re.search(r"(?:gittata|portata|alcance)\s*:\s*([^.;]{2,80})", flat, flags=re.IGNORECASE)
             if range_match:
                 attributes["gittata"] = range_match.group(1).strip()
             attributes["categoria"] = "Arma"
         elif record_type in {"armor", "shield"}:
-            armor_class = re.search(r"(?:classe armatura|CA)\s*[:+]?\s*([0-9]+(?:\s*\+\s*[A-Za-z]+)?)", flat, flags=re.IGNORECASE)
-            strength = re.search(r"(?:forza minima|requisito di forza|Forza)\s*[:+]?\s*([0-9]+)", flat, flags=re.IGNORECASE)
+            armor_class = re.search(r"(?:classe armatura|clase de armadura|CA)\s*[:+]?\s*([0-9]+(?:\s*\+\s*[A-Za-z]+)?)", flat, flags=re.IGNORECASE)
+            strength = re.search(r"(?:forza minima|requisito di forza|fuerza minima|requisito de fuerza|Fuerza)\s*[:+]?\s*([0-9]+)", flat, flags=re.IGNORECASE)
             if armor_class:
                 attributes["classe_armatura"] = armor_class.group(1)
             if strength:
                 attributes["forza_minima"] = strength.group(1)
-            if re.search(r"svantaggio[^.]{0,80}furtività", flat, flags=re.IGNORECASE):
+            if re.search(r"(?:svantaggio[^.]{0,80}furtività|desventaja[^.]{0,80}sigilo)", flat, flags=re.IGNORECASE):
                 attributes["svantaggio_furtivita"] = "Sì"
             attributes["categoria"] = "Scudo" if record_type == "shield" else "Armatura"
         elif record_type == "magic_item":
-            rarity = re.search(r"\b(comune|non comune|raro|molto raro|leggendario|artefatto)\b", flat, flags=re.IGNORECASE)
+            rarity = re.search(r"\b(comune|non comune|raro|molto raro|leggendario|artefatto|comun|poco comun|muy raro|legendario|artefacto)\b", flat, flags=re.IGNORECASE)
             if rarity:
                 attributes["rarita"] = rarity.group(1)
-            if re.search(r"sintonia", flat, flags=re.IGNORECASE):
+            if re.search(r"sintonia|sintonía", flat, flags=re.IGNORECASE):
                 attributes["sintonia"] = "Richiede sintonia"
             attributes["categoria"] = "Oggetto magico"
         else:
@@ -247,11 +331,62 @@ def _attributes(record_type: str, body: str) -> dict:
     return attributes
 
 
+SPANISH_SPELL_HEADER = re.compile(
+    r"^(?:Abjuración|Adivinación|Conjuración|Encantamiento|Evocación|Ilusión|Nigromancia|Transmutación)"
+    r"\s+(?:nivel\s+)?(?:\d+|truco)(?:\s*\(ritual\))?\s*$",
+    flags=re.IGNORECASE,
+)
+
+
+def _spanish_spell_records(
+    text: str,
+    source_filename: str,
+    source_page: int,
+    source_language: str,
+) -> list[dict]:
+    """Extract native Spanish spell blocks whose title uses mixed small caps."""
+    if source_language != "es":
+        return []
+    lines = [line.strip() for line in (text or "").splitlines()]
+    starts = [
+        index for index in range(1, len(lines))
+        if SPANISH_SPELL_HEADER.match(clean_text(lines[index]))
+        and 2 <= len(clean_text(lines[index - 1])) <= 84
+        and any(char.isalpha() for char in lines[index - 1])
+    ]
+    records: list[dict] = []
+    for position, header_index in enumerate(starts):
+        title = clean_text(lines[header_index - 1]).title()
+        # The next spell's title is the line immediately before its school
+        # header, so exclude it from the previous spell's source block.
+        next_header = starts[position + 1] - 1 if position + 1 < len(starts) else len(lines)
+        raw_body = "\n".join(lines[header_index:next_header])
+        body = clean_text(raw_body)
+        if len(body) < 80:
+            continue
+        normalized_name = normalize_reference_name(title)
+        stable_source = f"{source_filename}:{source_page}:spell:{normalized_name}"
+        records.append({
+            "id": f"ref_{sha256(stable_source.encode()).hexdigest()[:24]}",
+            "reference_type": "spell",
+            "name": title,
+            "normalized_name": normalized_name,
+            "description": compact_text(body),
+            "full_text": body,
+            "attributes": _attributes("spell", raw_body),
+            "tags": ["spell"],
+            "source_refs": [source_reference(source_filename, source_page, source_language)],
+            "review_flags": ["sezione_potenzialmente_continua"] if position == len(starts) - 1 else [],
+        })
+    return records
+
+
 def _equipment_row_records(
     body: str,
     parent_type: str,
     source_filename: str,
     source_page: int,
+    source_language: str = "it",
 ) -> list[dict]:
     """Extract conservative rows from equipment tables.
 
@@ -270,7 +405,7 @@ def _equipment_row_records(
         if len(line) < 8 or len(line) > 220:
             continue
         tokens = list(re.finditer(
-            r"\b(?:[0-9]+d[0-9]+|[0-9]+(?:[.,][0-9]+)?\s*(?:mo|ma|mr|mc|kg|chili|libbre?))\b",
+            r"\b(?:[0-9]+d[0-9]+|[0-9]+(?:[.,][0-9]+)?\s*(?:mo|ma|mr|mc|po|pl|pe|pc|kg|chili|libbre?|libras?))\b",
             line,
             flags=re.IGNORECASE,
         ))
@@ -278,7 +413,7 @@ def _equipment_row_records(
         # (1 kg)"). Prefer a damage roll or a currency column as the first
         # structural field, and only then fall back to a weight token.
         token = next(
-            (match for match in tokens if "d" in match.group(0).casefold() or re.search(r"m[oa rc]", match.group(0), re.IGNORECASE)),
+            (match for match in tokens if "d" in match.group(0).casefold() or re.search(r"(?:m[oa rc]|p[ol ec])", match.group(0), re.IGNORECASE)),
             tokens[0] if tokens else None,
         )
         if token is None:
@@ -289,9 +424,17 @@ def _equipment_row_records(
         if _title_from_line(name):
             continue
         normalized_name = normalize_reference_name(name)
-        if not normalized_name or normalized_name in {"nome", "costo", "danno", "peso", "proprieta"}:
+        if not normalized_name or normalized_name in {
+            "nome", "costo", "danno", "peso", "proprieta", "nombre", "coste",
+            "danio", "peso", "propiedades",
+        }:
             continue
-        row_type = "shield" if parent_type == "armor" and normalize_reference_name(name).startswith("scudo") else parent_type
+        row_type = (
+            "shield"
+            if parent_type == "armor"
+            and normalize_reference_name(name).startswith(("scudo", "escudo"))
+            else parent_type
+        )
         stable_source = f"{source_filename}:{source_page}:{row_type}:{normalized_name}"
         rows.append(
             {
@@ -303,14 +446,19 @@ def _equipment_row_records(
                 "full_text": line,
                 "attributes": _attributes(row_type, line),
                 "tags": [row_type],
-                "source_refs": [{"filename": source_filename, "page": source_page}],
+                "source_refs": [source_reference(source_filename, source_page, source_language)],
                 "review_flags": ["riga_tabella_da_verificare"],
             }
         )
     return rows
 
 
-def parse_reference_page(text: str, source_filename: str, source_page: int) -> list[dict]:
+def parse_reference_page(
+    text: str,
+    source_filename: str,
+    source_page: int,
+    source_language: str = "it",
+) -> list[dict]:
     """Extract conservative heading-based records from one text-native page.
 
     A record is intentionally marked for review when a section can end on a
@@ -318,6 +466,8 @@ def parse_reference_page(text: str, source_filename: str, source_page: int) -> l
     """
     lines = [line.strip() for line in (text or "").splitlines()]
     headings = [(index, title) for index, line in enumerate(lines) if (title := _title_from_line(line))]
+    spell_records = _spanish_spell_records(text, source_filename, source_page, source_language)
+    spell_names = {record["normalized_name"] for record in spell_records}
     records: list[dict] = []
     for heading_index, (line_index, title) in enumerate(headings):
         next_line = headings[heading_index + 1][0] if heading_index + 1 < len(headings) else len(lines)
@@ -325,12 +475,16 @@ def parse_reference_page(text: str, source_filename: str, source_page: int) -> l
         raw_body = "\n".join(body_lines)
         body = clean_text(" ".join(body_lines))
         record_type = _record_type(title, body)
-        equipment_rows = _equipment_row_records(raw_body, record_type, source_filename, source_page)
+        equipment_rows = _equipment_row_records(
+            raw_body, record_type, source_filename, source_page, source_language
+        )
         if len(body) < 90:
             records.extend(equipment_rows)
             continue
         normalized_name = normalize_reference_name(title)
         if not normalized_name:
+            continue
+        if record_type == "other" and normalized_name in spell_names:
             continue
         review_flags = ["sezione_potenzialmente_continua"] if heading_index == len(headings) - 1 else []
         stable_source = f"{source_filename}:{source_page}:{record_type}:{normalized_name}"
@@ -343,12 +497,12 @@ def parse_reference_page(text: str, source_filename: str, source_page: int) -> l
             "full_text": body,
             "attributes": _attributes(record_type, body),
             "tags": [],
-            "source_refs": [{"filename": source_filename, "page": source_page}],
+            "source_refs": [source_reference(source_filename, source_page, source_language)],
             "review_flags": review_flags,
         }
         records.append(record)
         records.extend(equipment_rows)
-    return records
+    return records + spell_records
 
 
 def extract_reference_records(
@@ -357,6 +511,7 @@ def extract_reference_records(
     start_page: int = 1,
     end_page: Optional[int] = None,
     force_ocr: bool = False,
+    source_language: str = "it",
 ) -> ReferenceImportReport:
     """Read native text, invoking an optional private OCR callback only as needed."""
     try:
@@ -381,7 +536,7 @@ def extract_reference_records(
                     report.pages_needing_ocr.append(page_number)
                     continue
             report.pages_read += 1
-            report.records.extend(parse_reference_page(text, pdf_path.name, page_number))
+            report.records.extend(parse_reference_page(text, pdf_path.name, page_number, source_language))
         return report
     finally:
         document.close()
@@ -389,9 +544,16 @@ def extract_reference_records(
 
 def merge_reference_records(records: Iterable[dict]) -> list[dict]:
     """Deduplicate imports while retaining every manual/page provenance pointer."""
-    merged: dict[tuple[str, str], dict] = {}
+    merged: dict[tuple[str, str, str], dict] = {}
     for candidate in records:
-        key = (candidate["reference_type"], candidate["normalized_name"])
+        # A translated title can legitimately match a title from another
+        # private manual. Keep sources separate so their original text and
+        # review history are never overwritten by an import from another PDF.
+        key = (
+            candidate["reference_type"],
+            candidate["normalized_name"],
+            candidate.get("source_key", ""),
+        )
         if key not in merged:
             merged[key] = {
                 **candidate,
@@ -408,6 +570,17 @@ def merge_reference_records(records: Iterable[dict]) -> list[dict]:
         if len(candidate.get("full_text", "")) > len(current.get("full_text", "")):
             current["description"] = candidate["description"]
             current["full_text"] = candidate["full_text"]
+            # Keep the source snapshot used for translation in lockstep with
+            # the representative record selected for a multi-page section.
+            for field_name in (
+                "source_name",
+                "source_description",
+                "source_full_text",
+                "source_attributes",
+                "source_text_checksum",
+            ):
+                if field_name in candidate:
+                    current[field_name] = candidate[field_name]
         for name, value in (candidate.get("attributes") or {}).items():
             if value and not current["attributes"].get(name):
                 current["attributes"][name] = value
@@ -467,6 +640,17 @@ def reference_to_card_payload(record: dict) -> dict:
         }
     elif card_type == "feat":
         attributes = {"prerequisito": attributes.get("prerequisito", ""), "benefici": attributes.get("benefici", []), **attributes}
+    elif card_type == "spell":
+        attributes = {
+            "livello": attributes.get("livello", ""),
+            "scuola": attributes.get("scuola", ""),
+            "tempo_lancio": attributes.get("tempo_lancio", ""),
+            "gittata": attributes.get("gittata", ""),
+            "componenti": attributes.get("componenti", ""),
+            "durata": attributes.get("durata", ""),
+            "concentrazione": attributes.get("concentrazione", ""),
+            **attributes,
+        }
     elif card_type == "monster":
         attributes = {
             "classe_armatura": attributes.get("classe_armatura", ""),
@@ -515,4 +699,11 @@ def reference_to_card_payload(record: dict) -> dict:
         "card_type": card_type,
         "source": "biblioteca_privata",
         "reference_type": reference_type,
+        "source_language": record.get("source_language", "it"),
+        "content_language": (
+            "it"
+            if record.get("translation_status") == "translated"
+            else record.get("source_language", "it")
+        ),
+        "source_refs": record.get("source_refs", []),
     }

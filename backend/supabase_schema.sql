@@ -94,7 +94,7 @@ create table if not exists public.private_reference_records (
   id text primary key,
   user_id text not null references public.users(user_id) on delete cascade,
   reference_type text not null check (reference_type in (
-    'class', 'subclass', 'class_feature', 'feat', 'race', 'subrace',
+    'class', 'subclass', 'class_feature', 'spell', 'feat', 'race', 'subrace',
     'monster', 'ability', 'weapon', 'armor', 'shield', 'equipment',
     'tool', 'magic_item', 'vehicle', 'ammunition', 'mount', 'trade_good',
     'service', 'other'
@@ -109,6 +109,15 @@ create table if not exists public.private_reference_records (
   review_flags jsonb not null default '[]'::jsonb,
   review_status text not null default 'pending' check (review_status in ('pending', 'verified', 'needs_review')),
   review_notes text not null default '',
+  source_key text not null default '',
+  source_language text not null default 'it',
+  source_normalized_name text not null default '',
+  source_name text not null default '',
+  source_description text not null default '',
+  source_full_text text not null default '',
+  source_text_checksum text not null default '',
+  translation_status text not null default 'not_required' check (translation_status in ('not_required', 'translated', 'failed')),
+  translation_error text not null default '',
   imported_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, reference_type, normalized_name)
@@ -119,13 +128,37 @@ alter table public.private_reference_records
   drop constraint if exists private_reference_records_reference_type_check;
 alter table public.private_reference_records
   add constraint private_reference_records_reference_type_check check (reference_type in (
-    'class', 'subclass', 'class_feature', 'feat', 'race', 'subrace',
+    'class', 'subclass', 'class_feature', 'spell', 'feat', 'race', 'subrace',
     'monster', 'ability', 'weapon', 'armor', 'shield', 'equipment',
     'tool', 'magic_item', 'vehicle', 'ammunition', 'mount', 'trade_good',
     'service', 'other'
   ));
+alter table public.private_reference_records
+  add column if not exists source_key text not null default '',
+  add column if not exists source_language text not null default 'it',
+  add column if not exists source_normalized_name text not null default '',
+  add column if not exists source_name text not null default '',
+  add column if not exists source_description text not null default '',
+  add column if not exists source_full_text text not null default '',
+  add column if not exists source_text_checksum text not null default '',
+  add column if not exists translation_status text not null default 'not_required',
+  add column if not exists translation_error text not null default '';
+update public.private_reference_records
+  set source_key = coalesce(nullif(source_refs->0->>'filename', ''), source_key),
+      source_normalized_name = coalesce(nullif(source_normalized_name, ''), normalized_name),
+      source_name = coalesce(nullif(source_name, ''), name),
+      source_description = coalesce(nullif(source_description, ''), description),
+      source_full_text = coalesce(nullif(source_full_text, ''), full_text)
+  where source_key = '' or source_normalized_name = '' or source_name = '';
+alter table public.private_reference_records
+  drop constraint if exists private_reference_records_user_id_reference_type_normalized_name_key;
+alter table public.private_reference_records
+  add constraint private_reference_records_user_type_name_source_key
+  unique (user_id, reference_type, normalized_name, source_key);
 create index if not exists private_reference_records_user_name_idx
   on public.private_reference_records (user_id, reference_type, normalized_name);
+create index if not exists private_reference_records_user_source_idx
+  on public.private_reference_records (user_id, source_key, source_normalized_name);
 
 -- Private bucket; FastAPI streams authorized files and public card artwork.
 insert into storage.buckets (id, name, public)

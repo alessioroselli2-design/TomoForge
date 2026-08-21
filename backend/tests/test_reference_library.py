@@ -409,3 +409,294 @@ def test_manual_metadata_uses_the_same_ocr_rule_as_imports():
     assert server.manual_requires_ocr("Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf")
     assert server.manual_requires_ocr("724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf")
     assert not server.manual_requires_ocr("Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf")
+    assert not server.manual_requires_ocr("731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf")
+
+
+def test_spanish_parser_recognizes_classes_feats_and_equipment_without_ocr():
+    page = """BárBaro
+Un feroz guerrero de origen primitivo que puede dejarse llevar por la furia en
+combate. Esta descripción conserva suficientes detalles para identificar la
+clase y permitir una traducción posterior sin utilizar OCR.
+TALENTO DE GUERRA
+Prerequisito: Fuerza 13. Esta dote mejora el combate y concede una ventaja
+concreta que debe conservarse para la revisión del texto fuente.
+ARMAS
+Espada larga 15 po 1d8 cortante 1,5 kg
+ARMADURAS
+Armadura de cuero 10 po CA 11 5 kg
+Escudo 10 po CA +2 3 kg
+"""
+    records = parse_reference_page(page, "Manual del Jugador.pdf", 74, "es")
+    by_name = {record["name"]: record for record in records}
+
+    assert by_name["Bárbaro"]["reference_type"] == "class"
+    assert by_name["Talento De Guerra"]["reference_type"] == "feat"
+    assert by_name["Talento De Guerra"]["attributes"]["prerequisito"] == "Fuerza 13"
+    assert by_name["Espada Larga"]["reference_type"] == "weapon"
+    assert by_name["Espada Larga"]["attributes"]["costo"] == "15 po"
+    assert by_name["Espada Larga"]["attributes"]["tipo_danno"] == "cortante"
+    assert by_name["Armadura De Cuero"]["reference_type"] == "armor"
+    assert by_name["Escudo"]["reference_type"] == "shield"
+    assert by_name["Bárbaro"]["source_refs"] == [{
+        "filename": "Manual del Jugador.pdf", "page": 74, "language": "es",
+    }]
+
+
+def test_spanish_translation_uses_only_structured_fields_and_requires_complete_json(monkeypatch):
+    captured = {}
+
+    class TranslationResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": """
+{"records":[{"id":"ref-es","name":"Barbaro","description":"Un guerriero feroce.","full_text":"Un guerriero feroce con tutto il testo tradotto.","attributes":{"livello":"1"}}]}
+"""}]}}]}
+
+    def fake_post(url, **kwargs):
+        captured["url"] = url
+        captured.update(kwargs)
+        return TranslationResponse()
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+    translated, error = server.translate_spanish_reference_batch([{
+        "id": "ref-es",
+        "source_name": "Bárbaro",
+        "source_description": "Un guerrero feroz.",
+        "source_full_text": "Questo testo sorgente completo viene tradotto.",
+        "source_attributes": {"livello": "1"},
+    }])
+
+    assert error == ""
+    assert translated["ref-es"]["name"] == "Barbaro"
+    assert translated["ref-es"]["attributes"] == {"livello": "1"}
+    prompt = captured["json"]["contents"][0]["parts"][0]["text"]
+    assert "Questo testo sorgente completo viene tradotto" in prompt
+    assert translated["ref-es"]["full_text"] == "Un guerriero feroce con tutto il testo tradotto."
+    assert captured["url"].endswith("/models/gemini-3.6-flash:generateContent")
+
+
+def test_spanish_import_reuses_translation_and_keeps_source_text(monkeypatch, tmp_path):
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    record = make_reference(
+        "Bárbaro",
+        reference_type="class",
+        description="Un guerrero feroz de origen primitivo.",
+        full_text="Un guerrero feroz de origen primitivo que combate con furia.",
+    )
+    collection = MutableMemoryReferences([])
+    calls = []
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(
+        server,
+        "available_reference_manuals",
+        lambda: {"731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": source},
+    )
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
+    )
+
+    def translate(batch):
+        calls.append(batch)
+        return {
+            batch[0]["id"]: {
+                "name": "Barbaro",
+                "description": "Un guerriero feroce di origine primitiva.",
+                "full_text": "Un guerriero feroce di origine primitiva che combatte con furia.",
+                "attributes": {},
+            }
+        }, ""
+
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+    body = server.ReferenceImportInput(
+        filenames=["731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"],
+        translation_processing_confirmed=True,
+        start_page=5,
+        end_page=5,
+    )
+    first = asyncio.run(server.import_private_reference_manuals("owner-1", body))
+    second = asyncio.run(server.import_private_reference_manuals("owner-1", body))
+
+    assert first.imported == 1
+    assert second.updated == 1
+    assert len(calls) == 1
+    stored = collection.rows[0]
+    assert stored["name"] == "Barbaro"
+    assert stored["source_language"] == "es"
+    assert stored["source_name"] == "Bárbaro"
+    assert stored["source_full_text"].startswith("Un guerrero feroz")
+    assert stored["full_text"].startswith("Un guerriero feroce")
+    assert stored["translation_status"] == "translated"
+    assert second.sources[0]["translation_reused"] == 1
+
+
+def test_spanish_translation_failure_is_saved_for_review(monkeypatch, tmp_path):
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    collection = MutableMemoryReferences([])
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(
+        server,
+        "available_reference_manuals",
+        lambda: {"731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": source},
+    )
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[make_reference("Bárbaro", reference_type="class")], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: ({}, "provider_translation_failed"))
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=["731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"],
+            translation_processing_confirmed=True,
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    assert result.flagged_for_review == 1
+    assert result.sources[0]["translation_failed"] == 1
+    assert collection.rows[0]["translation_status"] == "failed"
+    assert collection.rows[0]["translation_error"] == "provider_translation_failed"
+    assert "traduzione_da_verificare" in collection.rows[0]["review_flags"]
+
+
+def test_spanish_manual_rejects_ocr_even_when_the_request_is_confirmed(monkeypatch, tmp_path):
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(
+                filenames=[filename],
+                use_ai_ocr=True,
+                external_processing_confirmed=True,
+                translation_processing_confirmed=True,
+                start_page=5,
+                end_page=6,
+            ),
+        ))
+        assert False, "Expected native Spanish manual to reject OCR"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "testo nativo" in error.detail
+
+
+def test_spanish_translation_requires_consent_before_provider_call(monkeypatch, tmp_path):
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    calls = []
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(filenames=[filename]),
+        ))
+        assert False, "Expected translation consent failure"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "testo estratto" in error.detail
+    assert calls == []
+
+
+def test_spanish_import_requires_a_small_native_page_range(monkeypatch, tmp_path):
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+
+    for body in (
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+        ),
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            start_page=5,
+            end_page=17,
+        ),
+    ):
+        try:
+            asyncio.run(server.import_private_reference_manuals("owner-1", body))
+            assert False, "Expected bounded translation range failure"
+        except server.HTTPException as error:
+            assert error.status_code == 400
+            assert "12 pagine" in error.detail
+
+
+def test_translated_reference_payload_marks_italian_content_language():
+    payload = reference_to_card_payload(make_reference(
+        "Barbaro",
+        reference_type="class",
+        source_language="es",
+        translation_status="translated",
+    ))
+
+    assert payload["source_language"] == "es"
+    assert payload["content_language"] == "it"
+
+
+def test_spanish_spell_parser_extracts_native_quick_fields_for_spell_cards():
+    page = """ABrIr
+Transmutación nivel 2
+Tiempo de lanzamiento: 1 acción
+Alcance: 60 pies
+Componentes: V
+Duración: Instantáneo
+Elige un objeto que puedas ver dentro del alcance. Este conjuro mantiene una
+descripción suficiente para la carta italiana y para revisar el texto fuente.
+"""
+    records = parse_reference_page(page, "Manual del Jugador.pdf", 487, "es")
+
+    assert len(records) == 1
+    assert records[0]["reference_type"] == "spell"
+    assert records[0]["attributes"] == {
+        "scuola": "Transmutación",
+        "livello": "2",
+        "tempo_lancio": "1 acción",
+        "gittata": "60 pies",
+        "componenti": "V",
+        "durata": "Instantáneo",
+    }
+    assert reference_to_card_payload({**records[0], "translation_status": "translated"})["card_type"] == "spell"
+
+
+def test_spanish_spell_parser_keeps_consecutive_spell_blocks_separate():
+    page = """ABrIr
+Transmutación nivel 2
+Tiempo de lanzamiento: 1 acción
+Alcance: 60 pies
+Componentes: V
+Duración: Instantáneo
+Elige una puerta cerrada y ábrela mediante magia.
+ACELErar
+Transmutación nivel 3
+Tiempo de lanzamiento: 1 acción
+Alcance: 30 pies
+Componentes: V, S, M
+Duración: Concentración, hasta 1 minuto
+Elige una criatura voluntaria y duplica su velocidad.
+"""
+    records = parse_reference_page(page, "Manual del Jugador.pdf", 488, "es")
+    by_name = {record["name"]: record for record in records}
+
+    assert set(by_name) == {"Abrir", "Acelerar"}
+    assert "Acelerar" not in by_name["Abrir"]["full_text"]
+    assert "Abrir" not in by_name["Acelerar"]["full_text"]
+    assert by_name["Abrir"]["attributes"]["gittata"] == "60 pies"
+    assert by_name["Acelerar"]["attributes"]["durata"] == "Concentración, hasta 1 minuto"

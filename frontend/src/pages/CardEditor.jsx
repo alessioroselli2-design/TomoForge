@@ -34,6 +34,7 @@ const DEFAULT_ATTRS = {
 
 const inputCls = "bg-input border-border rounded-none font-body focus-visible:ring-gold";
 const LIBRARY_TYPES_BY_CARD = {
+  spell: "spell",
   class: "class,subclass,class_feature",
   race: "race,subrace",
   feat: "feat",
@@ -45,6 +46,7 @@ const LIBRARY_TYPES_BY_CARD = {
 };
 const LIBRARY_TYPE_LABELS = {
   class: "Classe", subclass: "Sottoclasse", class_feature: "Privilegio di classe",
+  spell: "Incantesimo",
   feat: "Talento", race: "Razza", subrace: "Sottorazza", monster: "Mostro",
   ability: "Capacità", weapon: "Arma", armor: "Armatura", shield: "Scudo",
   equipment: "Equipaggiamento", tool: "Strumento", magic_item: "Oggetto magico",
@@ -90,6 +92,12 @@ export default function CardEditor() {
   const [manualEndPage, setManualEndPage] = useState("16");
   const [useManualOcr, setUseManualOcr] = useState(false);
   const [ocrConfirmed, setOcrConfirmed] = useState(false);
+  const [translationConfirmed, setTranslationConfirmed] = useState(false);
+  const [sourceRecord, setSourceRecord] = useState(null);
+  const [loadingSourceRecord, setLoadingSourceRecord] = useState(null);
+  const selectedManualInfo = libraryManuals.find((manual) => manual.filename === selectedManual);
+  const selectedSpanishManual = selectedManualInfo?.source_language === "es";
+  const useSelectedManualOcr = useManualOcr && selectedManualInfo?.source_language !== "es";
 
   useEffect(() => {
     if (!isEdit) return;
@@ -212,6 +220,7 @@ export default function CardEditor() {
         description: res.data.description || card.description,
         story: res.data.story || card.story,
         attributes: { ...(DEFAULT_ATTRS[card.type] || {}), ...(res.data.attributes || {}) },
+        language: res.data.content_language || card.language,
       });
       setReferenceQuery(res.data.name || "");
       setReferenceResults([]);
@@ -220,6 +229,18 @@ export default function CardEditor() {
       toast.error(error.response?.data?.detail || "Impossibile applicare il contenuto");
     } finally {
       setApplyingReference(null);
+    }
+  };
+
+  const showReferenceSource = async (referenceId) => {
+    setLoadingSourceRecord(referenceId);
+    try {
+      const res = await api.get(`/library/${referenceId}`);
+      setSourceRecord(res.data);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile leggere la fonte del record");
+    } finally {
+      setLoadingSourceRecord(null);
     }
   };
 
@@ -242,7 +263,11 @@ export default function CardEditor() {
 
   const importManual = async () => {
     if (!selectedManual) { toast.error("Seleziona un manuale"); return; }
-    if (useManualOcr && !ocrConfirmed) {
+    if (selectedSpanishManual && !translationConfirmed) {
+      toast.error("Conferma l'invio del testo estratto a Gemini per la traduzione");
+      return;
+    }
+    if (useSelectedManualOcr && !ocrConfirmed) {
       toast.error("Conferma l'invio delle pagine selezionate a Gemini per l'OCR");
       return;
     }
@@ -253,10 +278,13 @@ export default function CardEditor() {
       const res = await api.post("/library/import", {
         filenames: [selectedManual],
         start_page: start,
-        ...(useManualOcr ? { end_page: end, use_ai_ocr: true, external_processing_confirmed: true } : {}),
+        ...(selectedSpanishManual ? { end_page: end, translation_processing_confirmed: true } : {}),
+        ...(useSelectedManualOcr ? { end_page: end, use_ai_ocr: true, external_processing_confirmed: true } : {}),
       });
       const report = res.data.sources?.[0];
-      toast.success(`${res.data.imported + res.data.updated} contenuti importati${report?.pages_needing_ocr?.length ? ` · ${report.pages_needing_ocr.length} pagine richiedono OCR` : ""}`);
+      const translated = report?.translated ? ` · ${report.translated} tradotti in italiano` : "";
+      const failed = report?.translation_failed ? ` · ${report.translation_failed} traduzioni da verificare` : "";
+      toast.success(`${res.data.imported + res.data.updated} contenuti importati${translated}${failed}${report?.pages_needing_ocr?.length ? ` · ${report.pages_needing_ocr.length} pagine richiedono OCR` : ""}`);
       await loadLibraryManuals();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Importazione del manuale non riuscita");
@@ -578,7 +606,7 @@ export default function CardEditor() {
                         <SelectContent className="bg-card border-gold-deep/40 rounded-none">
                           {libraryManuals.map((manual) => (
                             <SelectItem key={manual.filename} value={manual.filename} className="font-body text-xs">
-                              {manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ")} · {manual.imported_records} record
+                              {manual.title || manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ")} · {manual.imported_records} record
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -588,35 +616,60 @@ export default function CardEditor() {
                       <Button type="button" onClick={importManual} disabled={manualImporting || !selectedManual}
                         className="w-full rounded-none bg-amber-700 text-white hover:bg-amber-600 font-label text-xs tracking-wide">
                         {manualImporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <BookOpen className="mr-1.5 h-4 w-4" />}
-                        {useManualOcr ? "IMPORTA CON OCR" : "IMPORTA TESTO NATIVO"}
+                        {useSelectedManualOcr ? "IMPORTA CON OCR" : "IMPORTA TESTO NATIVO"}
                       </Button>
                     </div>
                   </div>
+                   {selectedSpanishManual && (
+                     <p className="mt-3 border-l-2 border-sky-500/60 pl-3 font-body text-[11px] leading-relaxed text-sky-100/80">
+                       Fonte spagnola con testo nativo: l’importazione non invia pagine a OCR. I record vengono tradotti in italiano in piccoli gruppi e conservano testo, lingua e pagina originali per la revisione.
+                     </p>
+                   )}
+                   {selectedSpanishManual && (
+                     <div className="mt-3 flex items-start gap-2 border border-sky-700/40 bg-sky-950/20 p-3">
+                       <Switch id="translation-confirmation" checked={translationConfirmed} onCheckedChange={setTranslationConfirmed} />
+                       <Label htmlFor="translation-confirmation" className="font-body text-[11px] leading-relaxed text-sky-100/80">
+                         Confermo di poter inviare a Gemini il solo testo strutturato estratto (non il PDF né immagini di pagina) per tradurlo in italiano. La lingua, il testo e la pagina originali resteranno disponibili per la revisione.
+                       </Label>
+                     </div>
+                   )}
                   <div className="mt-4 flex items-center justify-between gap-3 border-t border-amber-900/50 pt-4">
                     <div>
                       <Label htmlFor="ocr-enabled" className="font-label text-[10px] tracking-widest text-amber-100">OCR GEMINI PER PAGINE SCANSIONATE</Label>
-                      <p className="mt-1 font-body text-[11px] text-muted-foreground">Massimo 12 pagine per volta, ripetibile e verificabile.</p>
+                       <p className="mt-1 font-body text-[11px] text-muted-foreground">
+                         {selectedSpanishManual ? "Non disponibile per la fonte spagnola nativa: nessuna pagina sarà inviata a Gemini." : "Massimo 12 pagine per volta, ripetibile e verificabile."}
+                       </p>
                     </div>
-                    <Switch id="ocr-enabled" checked={useManualOcr} onCheckedChange={setUseManualOcr} />
+                     <Switch
+                       id="ocr-enabled"
+                       checked={useSelectedManualOcr}
+                       disabled={selectedSpanishManual}
+                       onCheckedChange={setUseManualOcr}
+                     />
                   </div>
-                  {useManualOcr && (
+                  {(useSelectedManualOcr || selectedSpanishManual) && (
                     <div className="mt-3 space-y-3 border-l-2 border-amber-700/50 pl-3">
+                      {selectedSpanishManual && (
+                        <p className="font-body text-[11px] leading-relaxed text-sky-100/80">
+                          Scegli fino a 12 pagine per volta: l’importazione resta riprendibile e traduce il testo completo dei record rilevati.
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <Label className="font-label text-[10px] tracking-widest text-gold/80">DA PAGINA</Label>
+                          <Label className="font-label text-[10px] tracking-widest text-gold/80">{selectedSpanishManual ? "DA PAGINA (TRADUZIONE)" : "DA PAGINA"}</Label>
                           <Input type="number" min="1" value={manualStartPage} onChange={(event) => setManualStartPage(event.target.value)} className={`${inputCls} mt-1`} />
                         </div>
                         <div>
-                          <Label className="font-label text-[10px] tracking-widest text-gold/80">A PAGINA</Label>
+                          <Label className="font-label text-[10px] tracking-widest text-gold/80">{selectedSpanishManual ? "A PAGINA (MAX 12)" : "A PAGINA"}</Label>
                           <Input type="number" min="1" value={manualEndPage} onChange={(event) => setManualEndPage(event.target.value)} className={`${inputCls} mt-1`} />
                         </div>
                       </div>
-                      <div className="flex items-start gap-2">
+                      {useSelectedManualOcr && <div className="flex items-start gap-2">
                         <Switch id="ocr-confirmation" checked={ocrConfirmed} onCheckedChange={setOcrConfirmed} />
                         <Label htmlFor="ocr-confirmation" className="font-body text-[11px] leading-relaxed text-muted-foreground">
                           Confermo di poter inviare a Gemini esclusivamente le pagine selezionate per trascriverle. Verificherò i record contrassegnati.
                         </Label>
-                      </div>
+                      </div>}
                     </div>
                   )}
                 </section>
@@ -648,26 +701,51 @@ export default function CardEditor() {
                   {referenceResults.length > 0 && (
                     <div className="mt-3 divide-y divide-border border border-border">
                       {referenceResults.map((record) => (
-                        <button
-                          key={record.id}
-                          type="button"
-                          data-testid={`apply-reference-${record.id}`}
-                          disabled={applyingReference === record.id}
-                          onClick={() => applyReference(record.id)}
-                          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary disabled:opacity-60"
-                        >
-                          <span>
+                        <div key={record.id} className="flex items-center justify-between gap-3 px-3 py-3 transition-colors hover:bg-secondary">
+                          <button
+                            type="button"
+                            data-testid={`apply-reference-${record.id}`}
+                            disabled={applyingReference === record.id}
+                            onClick={() => applyReference(record.id)}
+                            className="min-w-0 flex-1 text-left disabled:opacity-60"
+                          >
                             <span className="block font-heading text-base text-foreground">{record.name}</span>
                             <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
-                              {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.filename} p.${ref.page}`).join(", ")}
-                              {record.needs_review ? " · Da verificare" : ""}
+                              {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.language === "es" ? "Fonte spagnola" : ref.filename} p.${ref.page}`).join(", ")}
+                              {record.translation_status === "failed" ? " · Traduzione da verificare" : ""}
+                              {record.needs_review && record.translation_status !== "failed" ? " · Da verificare" : ""}
                             </span>
-                          </span>
+                          </button>
+                          <button
+                            type="button"
+                            data-testid={`source-reference-${record.id}`}
+                            disabled={loadingSourceRecord === record.id}
+                            onClick={() => showReferenceSource(record.id)}
+                            className="shrink-0 font-label text-[10px] tracking-widest text-sky-300 hover:text-sky-100 disabled:opacity-60"
+                          >
+                            {loadingSourceRecord === record.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "FONTE"}
+                          </button>
                           {applyingReference === record.id
                             ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
                             : <span className="font-label text-[10px] tracking-widest text-gold">APPLICA</span>}
-                        </button>
+                        </div>
                       ))}
+                    </div>
+                  )}
+                  {sourceRecord && (
+                    <div data-testid="reference-source-panel" className="mt-3 border border-sky-700/50 bg-sky-950/20 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-label text-[10px] tracking-widest text-sky-200">FONTE ORIGINALE · {sourceRecord.source_language === "es" ? "SPAGNOLO" : "ITALIANO"}</p>
+                          <p className="mt-1 font-heading text-base text-foreground">{sourceRecord.source_name || sourceRecord.name}</p>
+                        </div>
+                        <button type="button" onClick={() => setSourceRecord(null)} className="font-label text-[10px] tracking-widest text-muted-foreground hover:text-foreground">CHIUDI</button>
+                      </div>
+                      <p className="mt-2 font-body text-[11px] text-muted-foreground">
+                        {(sourceRecord.source_refs || []).map((ref) => `${ref.filename} · pagina ${ref.page}`).join(", ")}
+                        {sourceRecord.translation_status === "failed" ? " · Traduzione non riuscita: verifica il testo prima di applicarlo." : ""}
+                      </p>
+                      <p className="mt-3 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/90">{sourceRecord.source_full_text || sourceRecord.source_description || sourceRecord.full_text}</p>
                     </div>
                   )}
                 </section>

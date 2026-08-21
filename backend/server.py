@@ -4,9 +4,11 @@ import io
 import json
 import logging
 import os
+import re
 import uuid
 import copy
 from datetime import datetime, timezone, timedelta
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, List, Literal, Optional
 from urllib.parse import urlencode
@@ -30,8 +32,11 @@ from spell_library import (
 from reference_library import (
     CARD_TYPE_BY_REFERENCE_TYPE,
     REFERENCE_TYPES,
+    clean_text,
+    compact_text,
     extract_reference_records,
     merge_reference_records,
+    normalize_reference_name,
     reference_to_card_payload,
     search_reference_records,
 )
@@ -73,7 +78,15 @@ REFERENCE_MANUAL_FILENAMES = (
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf",
     "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf",
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
+    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf",
 )
+REFERENCE_MANUAL_METADATA = {
+    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": {
+        "title": "Manual del Jugador",
+        "language": "es",
+        "native_text": True,
+    },
+}
 OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset({
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 })
@@ -445,6 +458,8 @@ class ReferenceImportInput(BaseModel):
     end_page: Optional[int] = Field(default=None, ge=1)
     use_ai_ocr: bool = False
     external_processing_confirmed: bool = False
+    translation_processing_confirmed: bool = False
+    translation_batch_size: int = Field(default=2, ge=1, le=4)
 
 
 class ReferenceImportResult(BaseModel):
@@ -857,6 +872,20 @@ def manual_requires_ocr(filename: str) -> bool:
     )
 
 
+def manual_source_metadata(filename: str) -> dict:
+    """Return only local source metadata; never the source PDF or its text."""
+    return {
+        "title": Path(filename).stem.replace("_", " "),
+        "language": "it",
+        "native_text": not manual_requires_ocr(filename),
+        **REFERENCE_MANUAL_METADATA.get(filename, {}),
+    }
+
+
+def manual_source_language(filename: str) -> str:
+    return manual_source_metadata(filename)["language"]
+
+
 def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     """Transcribe a private scanned page without persisting the page image."""
     pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
@@ -915,6 +944,109 @@ def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     return ""
 
 
+def _gemini_text_from_response(payload: object) -> str:
+    """Extract a single text response from Gemini's public response shape."""
+    if not isinstance(payload, dict):
+        raise ValueError("risposta JSON non oggetto")
+    candidates = payload.get("candidates")
+    candidate = candidates[0] if isinstance(candidates, list) and candidates else {}
+    if not isinstance(candidate, dict):
+        raise ValueError("candidato non valido")
+    content = candidate.get("content")
+    parts = content.get("parts") if isinstance(content, dict) else []
+    if not isinstance(parts, list):
+        raise ValueError("parti non valide")
+    text = "\n".join(
+        part.get("text", "") for part in parts if isinstance(part, dict) and part.get("text")
+    ).strip()
+    if not text:
+        raise ValueError("risposta senza testo")
+    return text
+
+
+def _json_from_model_text(text: str) -> object:
+    """Accept raw JSON or the fenced JSON often returned by text models."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    return json.loads(text)
+
+
+def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, dict], str]:
+    """Translate a small structured Spanish batch without sending PDF pages.
+
+    The caller preserves the source fields before this function runs. Any
+    malformed or incomplete response is returned as a batch failure, allowing
+    the import to store the untouched Spanish record for human review.
+    """
+    if not records:
+        return {}, ""
+    source_records = [
+        {
+            "id": record["id"],
+            "name": record["source_name"],
+            "description": record["source_description"],
+            "full_text": record["source_full_text"],
+            "attributes": record.get("source_attributes", {}),
+        }
+        for record in records
+    ]
+    prompt = (
+        "Traduci dallo spagnolo all'italiano questi record strutturati di un manuale "
+        "di gioco. Traduci soltanto nome, descrizione e valori di attributes; non "
+        "aggiungere regole, non riassumere, non omettere dettagli, non alterare ID, "
+        "dadi, numeri, prezzi o nomi delle chiavi. full_text deve contenere la "
+        "traduzione completa del testo sorgente, senza abbreviazioni. Restituisci esclusivamente JSON "
+        "valido nel formato {\"records\":[{\"id\":\"...\",\"name\":\"...\","
+        "\"description\":\"...\",\"full_text\":\"...\",\"attributes\":{...}}]}. Ogni ID ricevuto deve "
+        "comparire esattamente una volta.\n\n"
+        + json.dumps(source_records, ensure_ascii=False, separators=(",", ":"))
+    )
+    try:
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
+            headers={"x-goog-api-key": require_gemini(), "Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0,
+                    "responseMimeType": "application/json",
+                    "maxOutputTokens": 8192,
+                },
+            },
+            timeout=(15, 120),
+        )
+        response.raise_for_status()
+        decoded = _json_from_model_text(_gemini_text_from_response(response.json()))
+    except (requests.RequestException, ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning("Traduzione Gemini non disponibile per un gruppo di %s record: %s", len(records), exc)
+        return {}, "provider_translation_failed"
+
+    translated_rows = decoded.get("records") if isinstance(decoded, dict) else None
+    if not isinstance(translated_rows, list):
+        return {}, "provider_translation_invalid"
+    expected_ids = {record["id"] for record in records}
+    translated: dict[str, dict] = {}
+    for item in translated_rows:
+        if not isinstance(item, dict) or item.get("id") not in expected_ids:
+            continue
+        name = clean_text(str(item.get("name") or ""))
+        description = clean_text(str(item.get("description") or ""))
+        full_text = clean_text(str(item.get("full_text") or ""))
+        attributes = item.get("attributes")
+        if name and description and full_text and isinstance(attributes, dict):
+            translated[item["id"]] = {
+                "name": name,
+                "description": compact_text(description),
+                "full_text": full_text,
+                "attributes": attributes,
+            }
+    if set(translated) != expected_ids:
+        return {}, "provider_translation_incomplete"
+    return translated, ""
+
+
 async def private_reference_records(user_id: str) -> list[dict]:
     """Load a user's non-spell manual facts only; the source PDFs stay local."""
     collection = getattr(db, "private_reference_records", None)
@@ -938,7 +1070,7 @@ async def find_private_reference(user_id: str, query: str, card_type: Optional[s
 
 
 async def import_private_reference_manuals(user_id: str, body: ReferenceImportInput) -> ReferenceImportResult:
-    """Idempotently import selected supplied manuals without uploading their PDFs."""
+    """Import source records locally, translating Spanish facts in small batches."""
     manuals = available_reference_manuals()
     requested = body.filenames or list(manuals)
     unknown = sorted(set(requested) - set(manuals))
@@ -946,7 +1078,36 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         raise HTTPException(status_code=400, detail="Uno o più manuali richiesti non sono disponibili localmente")
     if body.end_page and body.end_page < body.start_page:
         raise HTTPException(status_code=400, detail="L'intervallo di pagine non è valido")
+    spanish_manuals = [
+        filename for filename in requested
+        if manual_source_language(filename) == "es"
+    ]
+    if spanish_manuals and not body.translation_processing_confirmed:
+        raise HTTPException(
+            status_code=400,
+            detail="Conferma esplicitamente l'invio del testo estratto a Gemini per la traduzione italiana",
+        )
+    if spanish_manuals:
+        if body.end_page is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Per tradurre il manuale spagnolo seleziona un intervallo di massimo 12 pagine",
+            )
+        if body.end_page - body.start_page + 1 > 12:
+            raise HTTPException(
+                status_code=400,
+                detail="La traduzione del manuale spagnolo è limitata a 12 pagine per importazione",
+            )
     if body.use_ai_ocr:
+        spanish_native_manuals = [
+            filename for filename in requested
+            if manual_source_language(filename) == "es"
+        ]
+        if spanish_native_manuals:
+            raise HTTPException(
+                status_code=400,
+                detail="Questo manuale ha testo nativo: l'OCR non è consentito e non verranno inviate pagine a Gemini",
+            )
         if not body.external_processing_confirmed:
             raise HTTPException(
                 status_code=400,
@@ -966,6 +1127,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
     source_reports: list[dict] = []
     ocr_callback = gemini_ocr_manual_page if body.use_ai_ocr else None
     for filename in requested:
+        source_metadata = manual_source_metadata(filename)
         report = await asyncio.to_thread(
             extract_reference_records,
             manuals[filename],
@@ -973,29 +1135,146 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             body.start_page,
             body.end_page,
             manual_requires_ocr(filename),
+            source_metadata["language"],
         )
-        all_records.extend(report.records)
+        for record in report.records:
+            source_name = record["name"]
+            source_description = record["description"]
+            source_full_text = record["full_text"]
+            source_normalized_name = record["normalized_name"]
+            source_checksum = sha256(
+                f"{source_name}\n{source_full_text}".encode("utf-8")
+            ).hexdigest()
+            all_records.append({
+                **record,
+                "source_key": filename,
+                "source_language": source_metadata["language"],
+                "source_normalized_name": source_normalized_name,
+                "source_name": source_name,
+                "source_description": source_description,
+                "source_full_text": source_full_text,
+                "source_attributes": dict(record.get("attributes") or {}),
+                "source_text_checksum": source_checksum,
+            })
         source_reports.append({
             "filename": filename,
+            "title": source_metadata["title"],
+            "source_language": source_metadata["language"],
+            "native_text": source_metadata["native_text"],
             "pages_read": report.pages_read,
             "pages_needing_ocr": report.pages_needing_ocr,
             "records_detected": len(report.records),
+            "translated": 0,
+            "translation_failed": 0,
+            "translation_reused": 0,
         })
 
     collection = getattr(db, "private_reference_records", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Biblioteca privata non disponibile: applica prima la migrazione SQL")
 
-    imported = updated = flagged = skipped = 0
+    existing_records = await private_reference_records(user_id)
+    existing_by_source = {
+        (
+            record.get("reference_type"),
+            record.get("source_key"),
+            record.get("source_normalized_name") or record.get("normalized_name"),
+        ): record
+        for record in existing_records
+    }
+    localized_records: list[dict] = []
+    translation_queue: list[dict] = []
+    report_by_filename = {report["filename"]: report for report in source_reports}
     for record in merge_reference_records(all_records):
+        existing = existing_by_source.get((
+            record["reference_type"],
+            record["source_key"],
+            record["source_normalized_name"],
+        ))
+        if record["source_language"] != "es":
+            localized_records.append({
+                **record,
+                "translation_status": "not_required",
+                "translation_error": "",
+            })
+            continue
+        if (
+            existing
+            and existing.get("translation_status") == "translated"
+            and existing.get("source_text_checksum") == record["source_text_checksum"]
+        ):
+            # Keep a completed translation on repeat imports. This makes a
+            # page-range retry cheap and prevents provider limits from making
+            # an already imported source unusable.
+            localized_records.append({
+                **record,
+                "name": existing["name"],
+                "normalized_name": existing["normalized_name"],
+                "description": existing["description"],
+                "full_text": existing["full_text"],
+                "attributes": dict(existing.get("attributes") or {}),
+                "translation_status": "translated",
+                "translation_error": "",
+            })
+            report_by_filename[record["source_key"]]["translation_reused"] += 1
+            continue
+        translation_queue.append(record)
+
+    translation_batches: list[list[dict]] = []
+    current_batch: list[dict] = []
+    current_size = 0
+    for record in translation_queue:
+        record_size = len(record["source_name"]) + len(record["source_description"]) + len(record["source_full_text"])
+        if current_batch and (
+            len(current_batch) >= body.translation_batch_size
+            or current_size + record_size > 12000
+        ):
+            translation_batches.append(current_batch)
+            current_batch = []
+            current_size = 0
+        current_batch.append(record)
+        current_size += record_size
+    if current_batch:
+        translation_batches.append(current_batch)
+
+    for batch in translation_batches:
+        translated, error = await asyncio.to_thread(translate_spanish_reference_batch, batch)
+        for record in batch:
+            translated_record = translated.get(record["id"])
+            report = report_by_filename[record["source_key"]]
+            if translated_record:
+                name = translated_record["name"]
+                description = translated_record["description"]
+                localized_records.append({
+                    **record,
+                    "name": name,
+                    "normalized_name": normalize_reference_name(name),
+                    "description": description,
+                    "full_text": translated_record["full_text"],
+                    "attributes": translated_record["attributes"],
+                    "translation_status": "translated",
+                    "translation_error": "",
+                })
+                report["translated"] += 1
+            else:
+                localized_records.append({
+                    **record,
+                    "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
+                    "translation_status": "failed",
+                    "translation_error": error or "provider_translation_failed",
+                })
+                report["translation_failed"] += 1
+
+    imported = updated = flagged = skipped = 0
+    for record in localized_records:
         if not record.get("name") or not record.get("full_text"):
             skipped += 1
             continue
-        existing = await collection.find_one({
-            "user_id": user_id,
-            "reference_type": record["reference_type"],
-            "normalized_name": record["normalized_name"],
-        })
+        existing = existing_by_source.get((
+            record["reference_type"],
+            record["source_key"],
+            record["source_normalized_name"],
+        ))
         owned_record_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{user_id}:{record['id']}").hex
         payload = {
             **record,
@@ -1003,14 +1282,17 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             # collide when two separate owners import the same manual.
             "id": f"ref_{owned_record_id}",
             "user_id": user_id,
-            "review_status": "needs_review" if record.get("review_flags") else "pending",
+            "review_status": "needs_review" if record.get("review_flags") or record.get("translation_status") == "failed" else "pending",
             "review_notes": "",
             "updated_at": utc_now(),
         }
         if existing:
-            # Human verification must survive a repeatable import.
-            payload["review_status"] = existing.get("review_status", payload["review_status"])
-            payload["review_notes"] = existing.get("review_notes", "")
+            # Human verification survives an unchanged repeat import. A new
+            # source checksum or a failed translation must return to review.
+            unchanged_source = existing.get("source_text_checksum") == record.get("source_text_checksum")
+            if unchanged_source and record.get("translation_status") != "failed":
+                payload["review_status"] = existing.get("review_status", payload["review_status"])
+                payload["review_notes"] = existing.get("review_notes", "")
             await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
             updated += 1
         else:
@@ -1034,6 +1316,8 @@ def reference_summary(record: dict) -> dict:
         "reference_type": record.get("reference_type", "other"),
         "attributes": record.get("attributes", {}),
         "source_refs": record.get("source_refs", []),
+        "source_language": record.get("source_language", "it"),
+        "translation_status": record.get("translation_status", "not_required"),
         "needs_review": bool(record.get("review_flags")) or record.get("review_status") == "needs_review",
     }
 
@@ -1057,6 +1341,9 @@ async def private_library_manuals(user: User = Depends(require_premium)):
             page_count = None
         manuals.append({
             "filename": filename,
+            "title": manual_source_metadata(filename)["title"],
+            "source_language": manual_source_language(filename),
+            "native_text": manual_source_metadata(filename)["native_text"],
             "page_count": page_count,
             "imported_records": len(source_records),
             "requires_ocr": manual_requires_ocr(filename),
