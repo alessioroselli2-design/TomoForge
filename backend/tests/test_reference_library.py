@@ -12,6 +12,8 @@ from reference_library import (
     parse_reference_page,
     reference_is_trusted,
     reference_review_state,
+    reference_snapshot,
+    reference_snapshot_changed,
     reference_to_card_payload,
     search_reference_records,
 )
@@ -442,6 +444,177 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
         assert False, "Expected a rejected non-linked reference"
     except server.HTTPException as error:
         assert error.status_code == 400
+
+
+def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_character_values(monkeypatch):
+    original = make_reference(
+        "Disciplina di ferro",
+        reference_type="class",
+        attributes={"dado_vita": "d10", "tiri_salvezza": "Forza, Costituzione"},
+        source_text_checksum="versione-originale",
+    )
+    corrected = {
+        **original,
+        "full_text": "Il testo corretto definisce il dado vita d8 e specifica le nuove competenze.",
+        "description": "Regola corretta dal manuale privato.",
+        "attributes": {"dado_vita": "d8", "tiri_salvezza": "Forza, Destrezza"},
+        "source_text_checksum": "versione-corretta",
+    }
+    references = server.MemoryCollection()
+    references.rows.append(original)
+    cards = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="fighter@example.com", name="Fighter")
+
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character",
+        name="Neris",
+        reference_ids=[original["id"]],
+        attributes={
+            "classe": "Disciplina di ferro",
+            "dado_vita": "d12",  # Rolled/house-rule manual choice, never overwrite.
+            "tiri_salvezza": "Forza, Costituzione",
+        },
+    ), user))
+    saved_snapshot = character.reference_snapshots[0]
+    assert saved_snapshot["source_text_checksum"] == "versione-originale"
+    assert reference_snapshot_changed(saved_snapshot, corrected)
+    assert reference_snapshot(corrected)["content_revision"] != saved_snapshot["content_revision"]
+
+    references.rows[0] = corrected
+    report = asyncio.run(server.card_reference_updates(character.id, user))
+    assert report["updated_count"] == 1
+    assert report["updates"][0]["before"]["full_text"] == original["full_text"]
+    assert report["updates"][0]["after"]["full_text"] == corrected["full_text"]
+
+    refreshed = asyncio.run(server.refresh_card_reference_updates(
+        character.id,
+        server.ReferenceUpdateInput(reference_ids=[original["id"]]),
+        user,
+    ))
+    assert refreshed["card"].attributes["dado_vita"] == "d12"
+    assert refreshed["card"].attributes["tiri_salvezza"] == "Forza, Destrezza"
+    assert "dado_vita" in refreshed["protected_fields"][original["id"]]
+    assert refreshed["card"].reference_snapshots[0]["source_text_checksum"] == "versione-corretta"
+    assert asyncio.run(server.card_reference_updates(character.id, user))["updated_count"] == 0
+
+
+def test_untracked_reference_can_be_baselined_without_changing_card_data(monkeypatch):
+    record = make_reference("Passo silenzioso", reference_type="feat", source_text_checksum="prima-versione")
+    cards = server.MemoryCollection()
+    cards.rows.append(server.Card(
+        id="legacy-character",
+        user_id="owner-1",
+        type="character",
+        name="Personaggio storico",
+        attributes={"prerequisito": "Scelta manuale"},
+        reference_ids=[record["id"]],
+        source_refs=record["source_refs"],
+    ).model_dump())
+    references = server.MemoryCollection()
+    references.rows.append(record)
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="legacy@example.com", name="Legacy")
+
+    report = asyncio.run(server.card_reference_updates("legacy-character", user))
+    assert report["untracked_count"] == 1
+    refreshed = asyncio.run(server.refresh_card_reference_updates(
+        "legacy-character",
+        server.ReferenceUpdateInput(reference_ids=[record["id"]]),
+        user,
+    ))
+    assert refreshed["updated_reference_ids"] == []
+    assert refreshed["card"].attributes == {"prerequisito": "Scelta manuale"}
+    assert refreshed["card"].reference_snapshots[0]["reference_id"] == record["id"]
+
+
+def test_attribute_only_source_correction_is_detected_and_keeps_edited_linked_entry(monkeypatch):
+    original = make_reference(
+        "Guardia vigile",
+        reference_type="feat",
+        attributes={"prerequisito": "Saggezza 13"},
+        source_text_checksum="manuale-invariato",
+    )
+    corrected = {
+        **original,
+        "attributes": {"prerequisito": "Saggezza 15"},
+        "source_text_checksum": "manuale-invariato",
+    }
+    references = server.MemoryCollection()
+    references.rows.append(original)
+    cards = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="rogue@example.com", name="Rogue")
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character",
+        name="Mira",
+        reference_ids=[original["id"]],
+        attributes={
+            "prerequisito": "Saggezza 13",
+            "privilegi": [{
+                "reference_id": original["id"],
+                "nome": original["name"],
+                "descrizione": "Nota personale: la mia versione al tavolo.",
+            }],
+        },
+    ), user))
+
+    references.rows[0] = corrected
+    report = asyncio.run(server.card_reference_updates(character.id, user))
+    assert report["updated_count"] == 1
+    assert "attributi" in report["updates"][0]["changed_fields"]
+
+    refreshed = asyncio.run(server.refresh_card_reference_updates(
+        character.id,
+        server.ReferenceUpdateInput(reference_ids=[original["id"]]),
+        user,
+    ))
+    assert refreshed["card"].attributes["prerequisito"] == "Saggezza 15"
+    assert refreshed["card"].attributes["privilegi"][0]["descrizione"] == "Nota personale: la mia versione al tavolo."
+    assert "privilegi" in refreshed["protected_fields"][original["id"]]
+
+
+def test_legacy_snapshot_detects_attribute_correction_when_source_checksum_is_unchanged():
+    original = make_reference(
+        "Memoria arcana",
+        reference_type="feat",
+        attributes={"prerequisito": "Intelligenza 13"},
+        source_text_checksum="sorgente-invariata",
+    )
+    legacy_snapshot = reference_snapshot(original)
+    legacy_snapshot.pop("content_revision")
+    corrected = {
+        **original,
+        "attributes": {"prerequisito": "Intelligenza 15"},
+        "source_text_checksum": "sorgente-invariata",
+    }
+
+    assert reference_snapshot_changed(legacy_snapshot, corrected)
+
+
+def test_public_card_projection_never_exposes_private_reference_snapshots(monkeypatch):
+    record = make_reference(
+        "Trama protetta",
+        full_text="TESTO PRIVATO DEL MANUALE: non deve comparire su una carta condivisa.",
+    )
+    cards = server.MemoryCollection()
+    cards.rows.append(server.Card(
+        id="public-card",
+        user_id="owner-1",
+        type="feat",
+        name="Carta pubblica",
+        description="Testo sintetico della carta.",
+        reference_ids=[record["id"]],
+        reference_snapshots=[server.reference_snapshot_for_card(record, "feat")],
+    ).model_dump())
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards))
+
+    public_card = asyncio.run(server.public_get_card("public-card"))
+    assert public_card["name"] == "Carta pubblica"
+    assert "reference_snapshots" not in public_card
+    assert "reference_ids" not in public_card
+    assert "user_id" not in public_card
+    assert "TESTO PRIVATO DEL MANUALE" not in str(public_card)
 
 
 def test_apply_reference_endpoint_cannot_read_another_users_record(monkeypatch):

@@ -8,6 +8,7 @@ import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from 
 import Navbar from "@/components/Navbar";
 import { PremiumDialog } from "@/components/PremiumDialog";
 import { CardAppearanceControls } from "@/components/CardAppearanceControls";
+import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
 import { useAuth } from "@/context/AuthContext";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import AttributeEditor from "@/components/AttributeEditor";
@@ -157,6 +158,8 @@ export default function CardEditor() {
   const [sourceRecord, setSourceRecord] = useState(null);
   const [loadingSourceRecord, setLoadingSourceRecord] = useState(null);
   const [characterReferences, setCharacterReferences] = useState([]);
+  const [referenceUpdates, setReferenceUpdates] = useState([]);
+  const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
   const selectedManualInfo = libraryManuals.find((manual) => manual.filename === selectedManual);
   const selectedSpanishManual = selectedManualInfo?.source_language === "es";
   const useSelectedManualOcr = useManualOcr && selectedManualInfo?.source_language !== "es";
@@ -180,6 +183,17 @@ export default function CardEditor() {
       }
     })();
   }, [id, isEdit, navigate]);
+
+  const loadReferenceUpdates = useCallback(async () => {
+    if (!isEdit) return;
+    try {
+      const response = await api.get(`/cards/${id}/reference-updates`);
+      setReferenceUpdates(response.data.updates || []);
+    } catch {
+      setReferenceUpdates([]);
+    }
+  }, [id, isEdit]);
+  useEffect(() => { loadReferenceUpdates(); }, [loadReferenceUpdates]);
 
   useEffect(() => {
     if (isEdit || !requestedType || !DEFAULT_ATTRS[requestedType]) return;
@@ -420,6 +434,38 @@ export default function CardEditor() {
       toast.error(error.response?.data?.detail || "Impossibile riprovare la traduzione");
     } finally {
       setRetryingTranslation(null);
+    }
+  };
+
+  const refreshReference = async (referenceId, isUntracked) => {
+    if (!window.confirm(
+      "L’aggiornamento usa l’ultima versione salvata della carta. Salva prima eventuali modifiche manuali non ancora salvate. Continuare?"
+    )) return;
+    setRefreshingReferenceId(referenceId);
+    try {
+      const response = await api.post(`/cards/${id}/reference-updates`, { reference_ids: [referenceId] });
+      const refreshedCard = response.data.card;
+      setCard({
+        ...refreshedCard,
+        attributes: { ...(DEFAULT_ATTRS[refreshedCard.type] || {}), ...(refreshedCard.attributes || {}) },
+        reference_ids: refreshedCard.reference_ids || [],
+        source_refs: refreshedCard.source_refs || [],
+        appearance: { ...DEFAULT_APPEARANCE, ...(refreshedCard.appearance || {}) },
+        back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(refreshedCard.back || {}) },
+      });
+      await loadReferenceUpdates();
+      const protectedCount = (response.data.protected_fields?.[referenceId] || []).length;
+      if (isUntracked) {
+        toast.success("Istantanea della fonte fissata: nessun dato della carta è stato cambiato");
+      } else if (protectedCount) {
+        toast.success(`Fonte aggiornata: ${protectedCount} valori manuali sono rimasti invariati`);
+      } else {
+        toast.success("Dati derivati aggiornati dalla fonte corrente");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
+    } finally {
+      setRefreshingReferenceId(null);
     }
   };
 
@@ -684,6 +730,12 @@ export default function CardEditor() {
                 <p className="mt-2 font-body text-sm text-muted-foreground">Segui i passaggi del laboratorio: la preview resta accanto a te mentre modifichi.</p>
             </div>
              <EditorNavigation />
+
+            <ReferenceUpdatesPanel
+              updates={referenceUpdates}
+              refreshingReferenceId={refreshingReferenceId}
+              onRefresh={refreshReference}
+            />
 
             {/* Type + language */}
              <div id="editor-identity" className="grid scroll-mt-28 grid-cols-1 sm:grid-cols-2 gap-4">

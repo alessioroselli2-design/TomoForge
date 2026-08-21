@@ -11,6 +11,7 @@ import { typeLabel, attrLabel, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
+import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
 import { addCharacterSheetPdfPage, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -194,6 +195,8 @@ export default function CardDetail() {
   const [exportFeedback, setExportFeedback] = useState("");
   const [linkedReferences, setLinkedReferences] = useState([]);
   const [creatingLinked, setCreatingLinked] = useState(false);
+  const [referenceUpdates, setReferenceUpdates] = useState([]);
+  const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
   const exportFrontRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -206,6 +209,16 @@ export default function CardDetail() {
     }
   }, [id, navigate]);
   useEffect(() => { load(); }, [load]);
+
+  const loadReferenceUpdates = useCallback(async () => {
+    try {
+      const response = await api.get(`/cards/${id}/reference-updates`);
+      setReferenceUpdates(response.data.updates || []);
+    } catch {
+      setReferenceUpdates([]);
+    }
+  }, [id]);
+  useEffect(() => { loadReferenceUpdates(); }, [loadReferenceUpdates]);
 
   useEffect(() => {
     if (card?.type !== "character" || !card.reference_ids?.length) {
@@ -236,6 +249,27 @@ export default function CardDetail() {
       toast.success("Carta dissolta");
       navigate("/collezione");
     } catch (e) { toast.error("Eliminazione fallita"); }
+  };
+
+  const refreshReference = async (referenceId, isUntracked) => {
+    setRefreshingReferenceId(referenceId);
+    try {
+      const response = await api.post(`/cards/${id}/reference-updates`, { reference_ids: [referenceId] });
+      setCard(response.data.card);
+      await loadReferenceUpdates();
+      const protectedCount = (response.data.protected_fields?.[referenceId] || []).length;
+      if (isUntracked) {
+        toast.success("Istantanea della fonte fissata: i dati della carta non sono cambiati");
+      } else if (protectedCount) {
+        toast.success(`Fonte aggiornata: ${protectedCount} valori manuali sono rimasti invariati`);
+      } else {
+        toast.success("Dati derivati aggiornati dalla fonte corrente");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
+    } finally {
+      setRefreshingReferenceId(null);
+    }
   };
 
   const shareImage = async () => {
@@ -468,6 +502,12 @@ export default function CardDetail() {
                 )}
               </div>
             )}
+
+            <ReferenceUpdatesPanel
+              updates={referenceUpdates}
+              refreshingReferenceId={refreshingReferenceId}
+              onRefresh={refreshReference}
+            />
 
             {card.type === "character" && (
               <>

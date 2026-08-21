@@ -40,6 +40,9 @@ from reference_library import (
     normalize_reference_name,
     reference_is_trusted,
     reference_review_state,
+    reference_snapshot,
+    reference_snapshot_change_fields,
+    reference_snapshot_changed,
     reference_to_card_payload,
     search_reference_records,
 )
@@ -478,6 +481,7 @@ class Card(BaseModel):
     back: CardBack = Field(default_factory=CardBack)
     reference_ids: list[str] = Field(default_factory=list)
     source_refs: list[dict] = Field(default_factory=list)
+    reference_snapshots: list[dict] = Field(default_factory=list)
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
 
@@ -515,6 +519,10 @@ class CardUpdate(BaseModel):
 
 
 class LinkedCardInput(BaseModel):
+    reference_ids: list[str] = Field(default_factory=list)
+
+
+class ReferenceUpdateInput(BaseModel):
     reference_ids: list[str] = Field(default_factory=list)
 
 
@@ -1190,6 +1198,163 @@ async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -
                 seen_sources.add(key)
                 sources.append(source)
     return requested_ids, sources
+
+
+def reference_snapshot_for_card(record: dict, card_type: str, saved_at: str = "") -> dict:
+    """Record both source text and the values that were derived from it."""
+    snapshot = reference_snapshot(record, saved_at)
+    if card_type != "character":
+        return snapshot
+
+    payload = reference_to_card_payload(record)
+    derived = copy.deepcopy(payload.get("attributes") or {})
+    reference_type = record.get("reference_type")
+    name = record.get("name", "")
+    reference_id = record.get("id", "")
+    if reference_type == "class":
+        derived["classe"] = name
+    elif reference_type in {"race", "subrace"}:
+        derived["razza"] = name
+    elif reference_type == "subclass":
+        derived["sottoclasse"] = name
+    else:
+        list_field = (
+            "privilegi" if reference_type in {"class_feature", "ability", "feat"}
+            else "incantesimi" if reference_type == "spell"
+            else "equipaggiamento" if reference_type in {
+                "weapon", "armor", "shield", "equipment", "tool", "magic_item",
+                "vehicle", "ammunition", "mount", "trade_good", "service",
+            }
+            else ""
+        )
+        if list_field:
+            derived[list_field] = [{
+                "reference_id": reference_id,
+                "nome": name,
+                "descrizione": payload.get("description", ""),
+            }]
+    snapshot["derived_attributes"] = derived
+    snapshot["derived_card_fields"] = {}
+    return snapshot
+
+
+async def reference_records_by_id(user_id: str, reference_ids: list[str]) -> dict[str, dict]:
+    requested = set(reference_ids)
+    return {
+        record["id"]: record
+        for record in await private_reference_records(user_id)
+        if record.get("id") in requested
+    }
+
+
+def reference_snapshots_for_card(
+    existing_snapshots: list[dict],
+    records_by_id: dict[str, dict],
+    reference_ids: list[str],
+    card_type: str,
+    saved_at: str,
+) -> list[dict]:
+    """Keep acknowledged snapshots for existing links; baseline only new links."""
+    existing_by_id = {
+        snapshot.get("reference_id"): snapshot
+        for snapshot in existing_snapshots or []
+        if snapshot.get("reference_id")
+    }
+    snapshots = []
+    for reference_id in reference_ids:
+        if reference_id in existing_by_id:
+            snapshots.append(existing_by_id[reference_id])
+        elif reference_id in records_by_id:
+            snapshots.append(reference_snapshot_for_card(records_by_id[reference_id], card_type, saved_at))
+    return snapshots
+
+
+def _is_empty_card_value(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip()
+    if isinstance(value, (list, dict)):
+        return not value
+    return False
+
+
+def refresh_derived_attributes(attributes: dict, old_snapshot: dict, new_snapshot: dict) -> tuple[dict, list[str]]:
+    """Refresh only values that still equal the prior derived version."""
+    refreshed = copy.deepcopy(attributes or {})
+    protected: list[str] = []
+    old_values = old_snapshot.get("derived_attributes") or {}
+    new_values = new_snapshot.get("derived_attributes") or {}
+    reference_id = old_snapshot.get("reference_id")
+    for field, new_value in new_values.items():
+        old_value = old_values.get(field)
+        current_value = refreshed.get(field)
+        if (
+            isinstance(new_value, list)
+            and all(isinstance(entry, dict) and entry.get("reference_id") == reference_id for entry in new_value)
+        ):
+            current_entries = current_value if isinstance(current_value, list) else []
+            old_entries = old_value if isinstance(old_value, list) else []
+            matching_entries = [
+                entry for entry in current_entries
+                if isinstance(entry, dict) and entry.get("reference_id") == reference_id
+            ]
+            untouched_entries = [
+                entry for entry in current_entries
+                if not (isinstance(entry, dict) and entry.get("reference_id") == reference_id)
+            ]
+            unchanged_entries = [entry for entry in matching_entries if entry in old_entries]
+            manual_entries = [entry for entry in matching_entries if entry not in old_entries]
+            # A removed entry is also an intentional user choice: do not bring
+            # it back merely because the reference source was corrected.
+            if manual_entries or (old_entries and not matching_entries):
+                refreshed[field] = untouched_entries + copy.deepcopy(manual_entries)
+                protected.append(field)
+            else:
+                refreshed[field] = untouched_entries + copy.deepcopy(new_value)
+        elif _is_empty_card_value(current_value) or current_value == old_value:
+            refreshed[field] = copy.deepcopy(new_value)
+        elif current_value != new_value:
+            protected.append(field)
+    return refreshed, protected
+
+
+def reference_update_report(card: dict, records_by_id: dict[str, dict]) -> list[dict]:
+    """Describe current reference changes without modifying the saved card."""
+    snapshots_by_id = {
+        snapshot.get("reference_id"): snapshot
+        for snapshot in card.get("reference_snapshots") or []
+        if snapshot.get("reference_id")
+    }
+    updates = []
+    for reference_id in card.get("reference_ids") or []:
+        snapshot = snapshots_by_id.get(reference_id)
+        record = records_by_id.get(reference_id)
+        if not record:
+            updates.append({
+                "reference_id": reference_id,
+                "status": "missing",
+                "before": snapshot,
+                "after": None,
+                "changed_fields": ["fonte non disponibile"],
+            })
+        elif not snapshot:
+            updates.append({
+                "reference_id": reference_id,
+                "status": "untracked",
+                "before": None,
+                "after": reference_snapshot_for_card(record, card.get("type", "custom")),
+                "changed_fields": [],
+            })
+        elif reference_snapshot_changed(snapshot, record):
+            updates.append({
+                "reference_id": reference_id,
+                "status": "updated",
+                "before": snapshot,
+                "after": reference_snapshot_for_card(record, card.get("type", "custom")),
+                "changed_fields": reference_snapshot_change_fields(snapshot, record),
+            })
+    return updates
 
 
 def remove_unlinked_reference_attributes(attributes: dict, reference_ids: list[str]) -> dict:
@@ -2097,6 +2262,10 @@ async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
     data["reference_ids"] = reference_ids
     data["source_refs"] = source_refs
     data["attributes"] = remove_unlinked_reference_attributes(data.get("attributes", {}), reference_ids)
+    records_by_id = await reference_records_by_id(user.user_id, reference_ids)
+    data["reference_snapshots"] = reference_snapshots_for_card(
+        [], records_by_id, reference_ids, data.get("type", "custom"), utc_now()
+    )
     card = Card(user_id=user.user_id, **data)
     await db.cards.insert_one(card.model_dump())
     return card
@@ -2135,6 +2304,14 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
             updates.get("attributes", card.get("attributes", {})),
             reference_ids,
         )
+        records_by_id = await reference_records_by_id(user.user_id, reference_ids)
+        updates["reference_snapshots"] = reference_snapshots_for_card(
+            card.get("reference_snapshots", []),
+            records_by_id,
+            reference_ids,
+            updates.get("type", card.get("type", "custom")),
+            utc_now(),
+        )
     else:
         # Provenance is always derived server-side. Ignore stale or forged
         # snapshots sent by older clients when the references did not change.
@@ -2143,6 +2320,93 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     await db.cards.update_one({"id": card_id, "user_id": user.user_id}, {"$set": updates})
     card.update(updates)
     return Card(**card)
+
+
+@api_router.get("/cards/{card_id}/reference-updates")
+async def card_reference_updates(card_id: str, user: User = Depends(get_current_user)):
+    """Return changed linked references and their saved/current private snapshots."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    records_by_id = await reference_records_by_id(user.user_id, card.get("reference_ids") or [])
+    updates = reference_update_report(card, records_by_id)
+    return {
+        "updates": updates,
+        "updated_count": sum(update["status"] == "updated" for update in updates),
+        "untracked_count": sum(update["status"] == "untracked" for update in updates),
+    }
+
+
+@api_router.post("/cards/{card_id}/reference-updates")
+async def refresh_card_reference_updates(
+    card_id: str,
+    body: ReferenceUpdateInput,
+    user: User = Depends(get_current_user),
+):
+    """Apply selected current reference values without overwriting manual choices."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    linked_ids = list(dict.fromkeys(card.get("reference_ids") or []))
+    requested_ids = list(dict.fromkeys(body.reference_ids or linked_ids))
+    if not set(requested_ids).issubset(linked_ids):
+        raise HTTPException(status_code=400, detail="Puoi aggiornare solo riferimenti già collegati alla carta")
+    records_by_id = await reference_records_by_id(user.user_id, requested_ids)
+    missing = [reference_id for reference_id in requested_ids if reference_id not in records_by_id]
+    if missing:
+        raise HTTPException(status_code=404, detail="Uno o più riferimenti normativi non sono più disponibili")
+    unverified = [reference_id for reference_id in requested_ids if not reference_is_trusted(records_by_id[reference_id])]
+    if unverified:
+        raise HTTPException(
+            status_code=409,
+            detail="Un riferimento aggiornato è da verificare e non può sostituire dati regolamentari.",
+        )
+
+    snapshots_by_id = {
+        snapshot.get("reference_id"): snapshot
+        for snapshot in card.get("reference_snapshots") or []
+        if snapshot.get("reference_id")
+    }
+    attributes = copy.deepcopy(card.get("attributes") or {})
+    protected_fields: dict[str, list[str]] = {}
+    refreshed_ids = []
+    for reference_id in requested_ids:
+        previous = snapshots_by_id.get(reference_id)
+        current = reference_snapshot_for_card(records_by_id[reference_id], card.get("type", "custom"), utc_now())
+        if previous and reference_snapshot_changed(previous, records_by_id[reference_id]):
+            attributes, protected = refresh_derived_attributes(attributes, previous, current)
+            if protected:
+                protected_fields[reference_id] = protected
+            if card.get("type") != "character":
+                for field, prior_value in (previous.get("derived_card_fields") or {}).items():
+                    next_value = (current.get("derived_card_fields") or {}).get(field)
+                    if card.get(field) == prior_value:
+                        card[field] = next_value
+                    elif card.get(field) != next_value:
+                        protected_fields.setdefault(reference_id, []).append(field)
+            refreshed_ids.append(reference_id)
+        snapshots_by_id[reference_id] = current
+
+    snapshots = [
+        snapshots_by_id[reference_id]
+        for reference_id in linked_ids
+        if reference_id in snapshots_by_id
+    ]
+    updates = {
+        "attributes": attributes,
+        "reference_snapshots": snapshots,
+        "updated_at": utc_now(),
+    }
+    for field in ("name", "description", "story", "language"):
+        if field in card:
+            updates[field] = card[field]
+    await db.cards.update_one({"id": card_id, "user_id": user.user_id}, {"$set": updates})
+    card.update(updates)
+    return {
+        "card": Card(**card),
+        "updated_reference_ids": refreshed_ids,
+        "protected_fields": protected_fields,
+    }
 
 
 @api_router.delete("/cards/{card_id}")
@@ -2205,6 +2469,7 @@ async def create_linked_cards(
             attributes=payload["attributes"],
             reference_ids=[reference_id],
             source_refs=payload["source_refs"],
+            reference_snapshots=[reference_snapshot_for_card(record, payload["card_type"], utc_now())],
         )
         await db.cards.insert_one(card.model_dump())
         created.append(card)
@@ -2213,10 +2478,17 @@ async def create_linked_cards(
 
 @api_router.get("/public/cards/{card_id}")
 async def public_get_card(card_id: str):
-    card = await db.cards.find_one({"id": card_id}, {"user_id": 0})
+    card = await db.cards.find_one({"id": card_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
-    return card
+    # Public cards are deliberately a rendered-card projection, not a copy of
+    # the stored document. In particular, reference snapshots contain private
+    # source text used only by authenticated owners for change comparison.
+    public_fields = (
+        "id", "type", "custom_type", "name", "description", "story", "language",
+        "attributes", "artwork_path", "frame", "appearance", "back",
+    )
+    return {field: card[field] for field in public_fields if field in card}
 
 
 @api_router.get("/public/files/{path:path}")

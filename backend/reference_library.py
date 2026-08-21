@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from hashlib import sha256
 from pathlib import Path
+from copy import deepcopy
+import json
 import re
 import unicodedata
 from typing import Callable, Iterable, Optional
@@ -815,3 +817,88 @@ def reference_to_card_payload(record: dict) -> dict:
         ),
         "source_refs": record.get("source_refs", []),
     }
+
+
+def reference_content_checksum(record: dict) -> str:
+    """Return a stable rendered-content revision for a private reference record.
+
+    The import checksum identifies source text, but a card also depends on
+    translated fields, structured attributes, provenance, and review state.
+    Include each rendered input so a correction to any of them is visible to
+    linked cards.  The source checksum remains part of the revision where it
+    exists, while the snapshot stores it separately for provenance.
+    """
+    stable_content = {
+        "source_text_checksum": record.get("source_text_checksum", ""),
+        "name": record.get("name", ""),
+        "description": record.get("description", ""),
+        "full_text": record.get("full_text", ""),
+        "attributes": record.get("attributes", {}),
+        "source_refs": record.get("source_refs", []),
+        "translation_status": record.get("translation_status", "not_required"),
+        "review_status": record.get("review_status", "pending"),
+        "review_flags": record.get("review_flags", []),
+    }
+    return sha256(
+        json.dumps(stable_content, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def reference_snapshot(record: dict, saved_at: str = "") -> dict:
+    """Create the compact, private source snapshot kept with a derived card."""
+    payload = reference_to_card_payload(record)
+    return {
+        "reference_id": record.get("id", ""),
+        "reference_type": record.get("reference_type", "other"),
+        "name": record.get("name", ""),
+        "description": record.get("description", ""),
+        "full_text": record.get("full_text", ""),
+        "attributes": deepcopy(record.get("attributes") or {}),
+        "source_refs": deepcopy(record.get("source_refs") or []),
+        "source_language": record.get("source_language", "it"),
+        "translation_status": record.get("translation_status", "not_required"),
+        "source_text_checksum": record.get("source_text_checksum", ""),
+        "content_revision": reference_content_checksum(record),
+        "reference_updated_at": record.get("updated_at", ""),
+        "saved_at": saved_at,
+        "derived_attributes": deepcopy(payload.get("attributes") or {}),
+        "derived_card_fields": {
+            "name": payload.get("name", ""),
+            "description": payload.get("description", ""),
+            "story": payload.get("story", ""),
+            "language": payload.get("content_language", "it"),
+        },
+    }
+
+
+def reference_snapshot_changed(snapshot: dict, record: dict) -> bool:
+    """Whether a record now differs from the version acknowledged by a card."""
+    if snapshot.get("content_revision"):
+        return snapshot["content_revision"] != reference_content_checksum(record)
+    # Legacy snapshots already contain the rendered data needed to make an
+    # equivalent revision. Compare those fields directly, not merely the old
+    # import checksum: translations, attributes, and page provenance can all
+    # change while the source text remains the same.
+    current = reference_snapshot(record)
+    rendered_fields = (
+        "name", "description", "full_text", "attributes", "source_refs",
+        "source_language", "translation_status",
+    )
+    if any(snapshot.get(field) != current.get(field) for field in rendered_fields):
+        return True
+    return snapshot.get("source_text_checksum") != current.get("source_text_checksum")
+
+
+def reference_snapshot_change_fields(snapshot: dict, record: dict) -> list[str]:
+    """Summarise changed source sections for comparison UIs."""
+    current = reference_snapshot(record)
+    labels = []
+    if snapshot.get("name") != current["name"]:
+        labels.append("titolo")
+    if snapshot.get("description") != current["description"] or snapshot.get("full_text") != current["full_text"]:
+        labels.append("testo")
+    if snapshot.get("attributes") != current["attributes"]:
+        labels.append("attributi")
+    if snapshot.get("source_refs") != current["source_refs"]:
+        labels.append("riferimenti di pagina")
+    return labels or ["contenuto"]
