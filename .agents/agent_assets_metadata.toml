@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "jEAR_YtxyKiJK_55hBFbt"
+uri = "file://backend/supabase_schema.sql"
+type = "unspecified"
+title = "Schema SQL della biblioteca Supabase"
+description = "File SQL da aprire e copiare nel SQL Editor del progetto Supabase collegato a TomeForge."
+logical_id = "2014bc88-1a7b-404c-a5b8-6961fc2a4b07"
+content_hash = "sha256:b1de210c21333aeba4aa03da67ff3b5a2c4b9f3de30f56efcb71de846464bab4"
+size = 7183
+mtime_ms = 1787261242588
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:e12880ab-b1b9-4cc4-be7a-dd8e2793fbb0/2014bc88-1a7b-404c-a5b8-6961fc2a4b07/c7ed16a8-a6fb-4913-a4d3-6b529813f09f"
+storage_version_token = "1787292951512761"
+content_type = "application/octet-stream"
