@@ -172,4 +172,5 @@ def test_generate_content_falls_back_to_gemini_for_missing_spell(monkeypatch):
     ))
 
     assert payload["name"] == "Nebbia runica"
-    assert "source" not in payload
+    assert payload["source"] == "ai_generated"
+    assert payload["source_status"] == "unavailable"

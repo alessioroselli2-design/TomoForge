@@ -39,6 +39,27 @@ REFERENCE_TYPES = (
     "service",
     "other",
 )
+CHARACTER_CREATION_REFERENCE_TYPES = frozenset({
+    "class",
+    "subclass",
+    "class_feature",
+    "spell",
+    "feat",
+    "race",
+    "subrace",
+    "weapon",
+    "armor",
+    "shield",
+    "equipment",
+    "tool",
+    "magic_item",
+    "vehicle",
+    "ammunition",
+    "mount",
+    "trade_good",
+    "service",
+})
+UNAVAILABLE_TRANSLATION_STATUSES = frozenset({"failed", "processing"})
 CLASS_TITLES = {
     "barbaro", "bardo", "chierico", "druido", "guerriero", "ladro",
     "mago", "monaco", "paladino", "ranger", "stregone", "warlock",
@@ -104,6 +125,32 @@ def compact_text(value: str, maximum: int = MAX_CARD_DESCRIPTION) -> str:
     if len(value) <= maximum:
         return value
     return f"{value[: maximum - 1].rsplit(' ', 1)[0].rstrip(' ,;:')}…"
+
+
+def reference_review_state(record: dict) -> str:
+    """Classify a record as safe to automate, pending review, or unavailable.
+
+    Native text without extraction warnings is usable immediately.  OCR/table
+    warnings and automated translations are deliberately not: a reviewer must
+    explicitly mark those records as verified before they can complete a
+    character sheet or answer a manual-content request.
+    """
+    translation_status = record.get("translation_status", "not_required")
+    review_status = record.get("review_status", "pending")
+    if translation_status in UNAVAILABLE_TRANSLATION_STATUSES:
+        return "review"
+    if review_status == "verified":
+        return "valid"
+    if translation_status == "translated":
+        return "review"
+    if record.get("review_flags") or review_status == "needs_review":
+        return "review"
+    return "valid"
+
+
+def reference_is_trusted(record: dict) -> bool:
+    """Whether a record is safe for deterministic character automation."""
+    return reference_review_state(record) == "valid"
 
 
 def source_reference(source_filename: str, source_page: int, source_language: str) -> dict:
@@ -228,7 +275,43 @@ def _record_type(title: str, body: str) -> str:
 def _attributes(record_type: str, body: str) -> dict:
     flat = clean_text(body)
     attributes: dict = {}
-    if record_type == "spell":
+    if record_type == "class":
+        hit_die = re.search(r"(?:dado\s+vita|hit\s+die)\s*:?\s*(d\s*\d+)", flat, flags=re.IGNORECASE)
+        primary_ability = re.search(
+            r"(?:abilità|caratteristica)\s+primaria\s*:?\s*([^.]{2,120})",
+            flat,
+            flags=re.IGNORECASE,
+        )
+        saving_throws = re.search(
+            r"(?:tiri\s+salvezza|salvezze)\s*:?\s*([^.]{2,160})",
+            flat,
+            flags=re.IGNORECASE,
+        )
+        proficiencies = re.search(
+            r"(?:competenze|proficiencies)\s*:?\s*([^.]{2,220})",
+            flat,
+            flags=re.IGNORECASE,
+        )
+        if hit_die:
+            attributes["dado_vita"] = hit_die.group(1).replace(" ", "")
+        if primary_ability:
+            attributes["abilita_primaria"] = primary_ability.group(1).strip()
+        if saving_throws:
+            attributes["tiri_salvezza"] = saving_throws.group(1).strip()
+        if proficiencies:
+            attributes["competenze"] = proficiencies.group(1).strip()
+    elif record_type in {"race", "subrace"}:
+        patterns = {
+            "bonus_caratteristiche": r"(?:incremento|aumento|bonus)[^.]{0,60}(?:caratteristica|abilità)[^.]{0,140}",
+            "velocita": r"(?:velocità|velocidad)\s*:?\s*([0-9]+(?:[.,][0-9]+)?\s*(?:metri|m|piedi|feet))",
+            "taglia": r"(?:taglia|tamaño)\s*:?\s*([A-Za-zÀ-ÿ]+)",
+            "linguaggi": r"(?:linguaggi|idiomas)\s*:?\s*([^.]{2,160})",
+        }
+        for field, pattern in patterns.items():
+            found = re.search(pattern, flat, flags=re.IGNORECASE)
+            if found:
+                attributes[field] = found.group(1).strip() if found.lastindex else found.group(0).strip()
+    elif record_type == "spell":
         spell_text = body or flat
         spell_header = re.search(
             r"(Abjuración|Adivinación|Conjuración|Encantamiento|Evocación|Ilusión|Nigromancia|Transmutación)"
@@ -527,16 +610,24 @@ def extract_reference_records(
         for page_number in range(first, last + 1):
             page = document[page_number - 1]
             text = "" if force_ocr else page.get_text("text")
+            extracted_with_ocr = force_ocr
             if not text_is_usable(text):
                 if ocr_page is None:
                     report.pages_needing_ocr.append(page_number)
                     continue
                 text = ocr_page(page, page_number)
+                extracted_with_ocr = True
                 if not text_is_usable(text):
                     report.pages_needing_ocr.append(page_number)
                     continue
             report.pages_read += 1
-            report.records.extend(parse_reference_page(text, pdf_path.name, page_number, source_language))
+            records = parse_reference_page(text, pdf_path.name, page_number, source_language)
+            if extracted_with_ocr:
+                for record in records:
+                    record["review_flags"] = sorted(
+                        set(record.get("review_flags") or []) | {"ocr_da_verificare"}
+                    )
+            report.records.extend(records)
         return report
     finally:
         document.close()

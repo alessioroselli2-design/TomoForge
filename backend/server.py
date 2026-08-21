@@ -38,6 +38,8 @@ from reference_library import (
     extract_reference_records,
     merge_reference_records,
     normalize_reference_name,
+    reference_is_trusted,
+    reference_review_state,
     reference_to_card_payload,
     search_reference_records,
 )
@@ -80,6 +82,15 @@ REFERENCE_MANUAL_FILENAMES = (
     "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf",
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf",
+    "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf",
+    "Bardo__1787233073462.pdf",
+    "Chierico_1787233073462.pdf",
+    "Druido__1787233073462.pdf",
+    "Mago__1787233073462.pdf",
+    "Paladino__1787233073462.pdf",
+    "Ranger__1787233073462.pdf",
+    "Stregone__1787233073462.pdf",
+    "Warlock__1787233073462.pdf",
 )
 REFERENCE_MANUAL_METADATA = {
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": {
@@ -95,6 +106,38 @@ OCR_REQUIRED_REFERENCE_PREFIXES = (
     "Manuale_del_giocatore",
     "Calderone-Omnicomprensivo",
 )
+MANUAL_COVERAGE_CATEGORIES = {
+    "Manuale_del_giocatore__1787259882002.pdf": (
+        "class", "subclass", "class_feature", "race", "subrace", "feat", "spell",
+        "weapon", "armor", "shield", "equipment", "tool",
+    ),
+    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": (
+        "class", "subclass", "class_feature", "race", "subrace", "feat", "spell",
+        "weapon", "armor", "shield", "equipment", "tool",
+    ),
+    "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf": (
+        "subclass", "class_feature", "feat", "spell",
+    ),
+    "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf": (
+        "subclass", "class_feature", "feat", "spell", "magic_item",
+    ),
+    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf": (
+        "weapon", "armor", "shield", "equipment", "tool", "magic_item",
+        "vehicle", "ammunition", "mount", "trade_good", "service",
+    ),
+    "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf": ("monster",),
+}
+for _class_manual in (
+    "Bardo__1787233073462.pdf",
+    "Chierico_1787233073462.pdf",
+    "Druido__1787233073462.pdf",
+    "Mago__1787233073462.pdf",
+    "Paladino__1787233073462.pdf",
+    "Ranger__1787233073462.pdf",
+    "Stregone__1787233073462.pdf",
+    "Warlock__1787233073462.pdf",
+):
+    MANUAL_COVERAGE_CATEGORIES[_class_manual] = ("class", "subclass", "class_feature", "spell")
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -1129,6 +1172,15 @@ async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -
     missing = [reference_id for reference_id in requested_ids if reference_id not in records_by_id]
     if missing:
         raise HTTPException(status_code=404, detail="Uno o più riferimenti normativi non sono più disponibili")
+    unverified = [
+        reference_id for reference_id in requested_ids
+        if not reference_is_trusted(records_by_id[reference_id])
+    ]
+    if unverified:
+        raise HTTPException(
+            status_code=409,
+            detail="Uno o più riferimenti sono da verificare e non possono essere collegati come dati certi.",
+        )
     sources: list[dict] = []
     seen_sources: set[str] = set()
     for reference_id in requested_ids:
@@ -1161,7 +1213,7 @@ async def find_private_reference(user_id: str, query: str, card_type: Optional[s
     matches = search_reference_records(records, query, limit=20)
     if card_type:
         matches = [record for record in matches if CARD_TYPE_BY_REFERENCE_TYPE.get(record.get("reference_type")) == card_type]
-    return matches[0] if matches else None
+    return next((record for record in matches if reference_is_trusted(record)), None)
 
 
 async def import_private_reference_manuals(user_id: str, body: ReferenceImportInput) -> ReferenceImportResult:
@@ -1377,7 +1429,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             # collide when two separate owners import the same manual.
             "id": f"ref_{owned_record_id}",
             "user_id": user_id,
-            "review_status": "needs_review" if record.get("review_flags") or record.get("translation_status") == "failed" else "pending",
+            "review_status": "needs_review" if reference_review_state(record) == "review" else "pending",
             "review_notes": "",
             "updated_at": utc_now(),
         }
@@ -1394,7 +1446,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             payload["imported_at"] = utc_now()
             await collection.insert_one(payload)
             imported += 1
-        flagged += bool(record.get("review_flags"))
+        flagged += reference_review_state(payload) == "review"
     return ReferenceImportResult(
         imported=imported,
         updated=updated,
@@ -1563,6 +1615,7 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
 
 
 def reference_summary(record: dict) -> dict:
+    review_state = reference_review_state(record)
     return {
         "id": record["id"],
         "name": record["name"],
@@ -1571,8 +1624,43 @@ def reference_summary(record: dict) -> dict:
         "source_refs": record.get("source_refs", []),
         "source_language": record.get("source_language", "it"),
         "translation_status": record.get("translation_status", "not_required"),
-        "needs_review": bool(record.get("review_flags")) or record.get("review_status") == "needs_review",
+        "review_state": review_state,
+        "is_trusted": review_state == "valid",
+        "needs_review": review_state == "review",
     }
+
+
+def manual_coverage_report(records: list[dict]) -> list[dict]:
+    """Summarise every supplied manual without exposing any source page text."""
+    report: list[dict] = []
+    for filename in available_reference_manuals():
+        categories = MANUAL_COVERAGE_CATEGORIES.get(filename, tuple(REFERENCE_TYPES))
+        source_records = [
+            record for record in records
+            if any(ref.get("filename") == filename for ref in record.get("source_refs", []))
+        ]
+        coverage = []
+        for reference_type in categories:
+            category_records = [
+                record for record in source_records
+                if record.get("reference_type") == reference_type
+            ]
+            valid = sum(reference_is_trusted(record) for record in category_records)
+            to_review = sum(reference_review_state(record) == "review" for record in category_records)
+            coverage.append({
+                "reference_type": reference_type,
+                "valid": valid,
+                "to_review": to_review,
+                "missing": int(not category_records),
+                "records_total": len(category_records),
+            })
+        report.append({
+            "filename": filename,
+            "title": manual_source_metadata(filename)["title"],
+            "source_language": manual_source_language(filename),
+            "categories": coverage,
+        })
+    return report
 
 
 @api_router.get("/library/manuals")
@@ -1604,11 +1692,25 @@ async def private_library_manuals(user: User = Depends(require_premium)):
     return {"manuals": manuals, "ocr_batch_limit": 12}
 
 
+@api_router.get("/library/coverage")
+async def private_library_coverage(user: User = Depends(require_premium)):
+    """Report record readiness by supplied manual and applicable category."""
+    records = await private_reference_records(user.user_id)
+    manuals = manual_coverage_report(records)
+    totals = {
+        "valid": sum(category["valid"] for manual in manuals for category in manual["categories"]),
+        "to_review": sum(category["to_review"] for manual in manuals for category in manual["categories"]),
+        "missing": sum(category["missing"] for manual in manuals for category in manual["categories"]),
+    }
+    return {"manuals": manuals, "totals": totals}
+
+
 @api_router.get("/library")
 async def search_private_library(
     q: str = Query("", max_length=120),
     types: str = Query("", max_length=200),
     review_only: bool = False,
+    include_unverified: bool = False,
     user: User = Depends(get_current_user),
 ):
     requested_types = {value.strip() for value in types.split(",") if value.strip()}
@@ -1618,8 +1720,23 @@ async def search_private_library(
     if requested_types:
         records = [record for record in records if record.get("reference_type") in requested_types]
     if review_only:
-        records = [record for record in records if record.get("review_flags") or record.get("review_status") == "needs_review"]
-    return {"records": [reference_summary(record) for record in records]}
+        records = [record for record in records if reference_review_state(record) == "review"]
+    excluded_unverified = sum(not reference_is_trusted(record) for record in records)
+    if not include_unverified:
+        records = [record for record in records if reference_is_trusted(record)]
+    summaries = [reference_summary(record) for record in records]
+    if summaries:
+        return {
+            "status": "sourced",
+            "records": summaries,
+            "excluded_unverified": excluded_unverified,
+        }
+    return {
+        "status": "unavailable",
+        "records": [],
+        "excluded_unverified": excluded_unverified,
+        "message": "Il contenuto richiesto non è disponibile come fonte verificata nella tua biblioteca.",
+    }
 
 
 @api_router.post("/library/import", response_model=ReferenceImportResult)
@@ -1647,6 +1764,11 @@ async def apply_private_reference(reference_id: str, user: User = Depends(get_cu
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    if not reference_is_trusted(record):
+        raise HTTPException(
+            status_code=409,
+            detail="Questo contenuto è da verificare e non può essere usato come dato certo.",
+        )
     return {**reference_to_card_payload(record), "reference_id": record["id"]}
 
 
@@ -1682,6 +1804,9 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
             "description": f"Una creazione simulata per: {body.prompt}.",
             "story": "Il testo dimostrativo appare senza chiamare OpenAI.",
             "attributes": {"livello": "2", "scuola": "Illusione", "azione": "1 azione", "danno": "2d6 psichico"},
+            "source": "ai_generated",
+            "source_status": "unavailable",
+            "source_message": "Nessuna fonte verificata è disponibile nella biblioteca: questo è contenuto dimostrativo.",
         }
     if body.type == "spell":
         spell = await find_private_spell(user.user_id, body.prompt)
@@ -1723,7 +1848,15 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
         data = parse_ai_json(
             response_data["candidates"][0]["content"]["parts"][0]["text"]
         )
-        return {"name": data.get("name", ""), "description": data.get("description", ""), "story": data.get("story", ""), "attributes": data.get("attributes", {})}
+        return {
+            "name": data.get("name", ""),
+            "description": data.get("description", ""),
+            "story": data.get("story", ""),
+            "attributes": data.get("attributes", {}),
+            "source": "ai_generated",
+            "source_status": "unavailable",
+            "source_message": "Il contenuto richiesto non è disponibile come fonte verificata nella tua biblioteca; il testo generato non è una regola certa.",
+        }
     except HTTPException:
         raise
     except (json.JSONDecodeError, ValueError) as exc:
@@ -2052,6 +2185,11 @@ async def create_linked_cards(
     }
     if len(records_by_id) != len(requested_ids):
         raise HTTPException(status_code=404, detail="Uno o più riferimenti normativi non sono più disponibili")
+    if any(not reference_is_trusted(record) for record in records_by_id.values()):
+        raise HTTPException(
+            status_code=409,
+            detail="I riferimenti da verificare non possono generare carte regolamentari.",
+        )
 
     created = []
     for reference_id in requested_ids:

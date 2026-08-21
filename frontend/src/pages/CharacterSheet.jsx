@@ -92,6 +92,7 @@ export default function CharacterSheet() {
   const [linkedRecords, setLinkedRecords] = useState([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [libraryNotice, setLibraryNotice] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -121,6 +122,7 @@ export default function CharacterSheet() {
   useEffect(() => {
     if (!card || !lookups.length) {
       setLinkedRecords([]);
+      setLibraryNotice("");
       return;
     }
     let active = true;
@@ -131,8 +133,18 @@ export default function CharacterSheet() {
         const unique = new Map();
         responses.flatMap((response) => response.data.records || []).forEach((record) => unique.set(record.id, record));
         setLinkedRecords([...unique.values()].slice(0, 12));
+        const unavailable = responses
+          .filter((response) => response.data.status === "unavailable")
+          .map((response) => response.data.message)
+          .find(Boolean);
+        setLibraryNotice(unavailable || "");
       })
-      .catch(() => { if (active) setLinkedRecords([]); })
+      .catch(() => {
+        if (active) {
+          setLinkedRecords([]);
+          setLibraryNotice("La biblioteca non è disponibile in questo momento: nessun dato è stato applicato.");
+        }
+      })
       .finally(() => { if (active) setLoadingLinks(false); });
     return () => { active = false; };
   }, [card, lookups]);
@@ -335,7 +347,10 @@ export default function CharacterSheet() {
               ))}
             </div>
           ) : (
-            <p className="mt-4 font-body text-sm text-muted-foreground">Aggiungi classe o razza al personaggio per trovare i riferimenti. Se un contenuto non è ancora nella biblioteca, la scheda non lo inventa.</p>
+            <p className="mt-4 font-body text-sm text-muted-foreground">{libraryNotice || "Aggiungi classe o razza al personaggio per trovare i riferimenti. Se un contenuto non è ancora nella biblioteca, la scheda non lo inventa."}</p>
+          )}
+          {linkedRecords.length > 0 && libraryNotice && (
+            <p className="mt-4 border-l-2 border-amber-500/60 pl-3 font-body text-xs leading-relaxed text-amber-100/80">{libraryNotice}</p>
           )}
           {sourceRecords.length > 0 && (
             <p className="mt-4 border-t border-sky-900/60 pt-3 font-body text-[11px] text-sky-100/70">

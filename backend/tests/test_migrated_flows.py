@@ -163,6 +163,9 @@ def test_gemini_content_response_is_mapped_to_card_fields(monkeypatch):
         "description": "Una nebbia protettiva.",
         "story": "Nata tra le rovine.",
         "attributes": {"livello": "2"},
+        "source": "ai_generated",
+        "source_status": "unavailable",
+        "source_message": "Il contenuto richiesto non è disponibile come fonte verificata nella tua biblioteca; il testo generato non è una regola certa.",
     }
     assert request_data["url"].endswith("/models/gemini-3.6-flash:generateContent")
     assert request_data["headers"]["x-goog-api-key"] == "test-gemini-key"

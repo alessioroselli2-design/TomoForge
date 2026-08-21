@@ -255,6 +255,9 @@ export default function CardEditor() {
           : res.data.source === "biblioteca_privata" ? "Dati applicati dalla biblioteca privata"
             : "Contenuto evocato dall'arcano"
       );
+      if (res.data.source_status === "unavailable") {
+        toast.warning(res.data.source_message || "Nessuna fonte verificata è disponibile: il contenuto generato non è una regola certa.");
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || "Generazione fallita");
     } finally {

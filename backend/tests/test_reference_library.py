@@ -2,6 +2,7 @@ import asyncio
 import threading
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 import server
@@ -9,6 +10,8 @@ from reference_library import (
     merge_reference_records,
     normalize_reference_name,
     parse_reference_page,
+    reference_is_trusted,
+    reference_review_state,
     reference_to_card_payload,
     search_reference_records,
 )
@@ -59,6 +62,33 @@ Le sue abilità primarie sono Forza e Destrezza e apprende numerosi privilegi.
     assert records[0]["reference_type"] == "class"
 
 
+def test_reference_parser_extracts_structured_class_and_race_creation_fields():
+    class_record = parse_reference_page(
+        """GUERRIERO
+Il guerriero è un maestro del combattimento. Dado Vita: d10. Abilità primaria:
+Forza o Destrezza. Tiri Salvezza: Forza, Costituzione. Competenze: armature,
+scudi e armi semplici. Questa descrizione contiene abbastanza dettagli verificabili.
+""",
+        "Manuale del giocatore.pdf",
+        45,
+    )[0]
+    race_record = parse_reference_page(
+        """ELFO
+Gli elfi possiedono sensi acuti e un retaggio fatato. Velocità: 9 metri.
+Taglia: Media. Linguaggi: Comune, Elfico. Il tuo punteggio di Destrezza aumenta
+di 2 e questo tratto resta documentato nella fonte del manuale.
+""",
+        "Manuale del giocatore.pdf",
+        22,
+    )[0]
+
+    assert class_record["attributes"]["dado_vita"] == "d10"
+    assert class_record["attributes"]["tiri_salvezza"] == "Forza, Costituzione"
+    assert "armature" in class_record["attributes"]["competenze"]
+    assert race_record["attributes"]["velocita"] == "9 metri"
+    assert race_record["attributes"]["linguaggi"] == "Comune, Elfico"
+
+
 def test_reference_extractor_uses_ocr_callback_for_unreadable_page(tmp_path):
     import fitz
     from reference_library import extract_reference_records
@@ -79,6 +109,8 @@ Prerequisito: Forza 13. Questo talento migliora il combattimento e offre un bene
     assert report.pages_read == 1
     assert report.pages_needing_ocr == []
     assert report.records[0]["reference_type"] == "feat"
+    assert "ocr_da_verificare" in report.records[0]["review_flags"]
+    assert not reference_is_trusted(report.records[0])
 
 
 def test_reference_extractor_flags_only_empty_ocr_page_without_aborting_batch(tmp_path):
@@ -312,6 +344,31 @@ def test_reference_card_payload_maps_feat_without_inventing_rules():
     assert payload["attributes"]["prerequisito"] == "Forza 13"
 
 
+def test_translated_or_flagged_reference_requires_human_verification_before_use():
+    translated = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_language="es",
+        translation_status="translated",
+    )
+    ocr_flagged = make_reference(
+        "Colpo Preciso",
+        reference_type="class_feature",
+        review_flags=["ocr_da_verificare"],
+        review_status="needs_review",
+    )
+
+    assert reference_review_state(translated) == "review"
+    assert reference_review_state(ocr_flagged) == "review"
+    assert not reference_is_trusted(translated)
+    assert not reference_is_trusted(ocr_flagged)
+
+    translated["review_status"] = "verified"
+    ocr_flagged["review_status"] = "verified"
+    assert reference_is_trusted(translated)
+    assert reference_is_trusted(ocr_flagged)
+
+
 class MemoryReferences:
     def __init__(self, rows):
         self.rows = rows
@@ -399,6 +456,44 @@ def test_apply_reference_endpoint_cannot_read_another_users_record(monkeypatch):
         assert error.status_code == 404
 
 
+def test_unverified_references_cannot_be_attached_or_materialized_as_linked_cards(monkeypatch):
+    record = make_reference(
+        "Privilegio OCR",
+        reference_type="class_feature",
+        review_flags=["ocr_da_verificare"],
+        review_status="needs_review",
+    )
+    references = server.MemoryCollection()
+    references.rows.append(record)
+    cards = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
+
+    with pytest.raises(server.HTTPException, match="da verificare") as create_error:
+        asyncio.run(server.create_card(server.CardCreate(
+            type="character",
+            name="Personaggio",
+            reference_ids=[record["id"]],
+        ), user))
+    assert create_error.value.status_code == 409
+
+    character = server.Card(
+        id="character-1",
+        user_id=user.user_id,
+        type="character",
+        name="Personaggio",
+        reference_ids=[record["id"]],
+    )
+    cards.rows.append(character.model_dump())
+    with pytest.raises(server.HTTPException, match="da verificare") as linked_error:
+        asyncio.run(server.create_linked_cards(
+            character.id,
+            server.LinkedCardInput(reference_ids=[record["id"]]),
+            user,
+        ))
+    assert linked_error.value.status_code == 409
+
+
 def test_generate_content_prefers_matching_private_reference_before_gemini(monkeypatch):
     record = make_reference("Tiratore Scelto")
     monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
@@ -412,6 +507,108 @@ def test_generate_content_prefers_matching_private_reference_before_gemini(monke
 
     assert payload["source"] == "biblioteca_privata"
     assert payload["name"] == "Tiratore Scelto"
+
+
+def test_generate_content_labels_manual_content_without_a_trusted_source(monkeypatch):
+    record = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        review_flags=["ocr_da_verificare"],
+        review_status="needs_review",
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        server.requests,
+        "post",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"candidates": [{"content": {"parts": [{
+                "text": '{"name":"Palla evocata","description":"Testo generato.","story":"","attributes":{}}'
+            }]}}]},
+        ),
+    )
+    payload = asyncio.run(server.generate_content(
+        server.GenerateContentInput(type="spell", prompt="Palla di fuoco"),
+        user,
+    ))
+
+    assert payload["source"] == "ai_generated"
+    assert payload["source_status"] == "unavailable"
+    assert "fonte verificata" in payload["source_message"]
+
+
+def test_library_search_returns_sourced_or_explicitly_unavailable(monkeypatch):
+    trusted = make_reference("Palla di Fuoco", reference_type="spell")
+    unverified = make_reference(
+        "Dardo Incantato",
+        reference_type="spell",
+        review_flags=["riga_tabella_da_verificare"],
+        review_status="needs_review",
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([trusted, unverified])))
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
+
+    sourced = asyncio.run(server.search_private_library(q="Palla di fuoco", types="spell", user=user))
+    unavailable = asyncio.run(server.search_private_library(q="Dardo incantato", types="spell", user=user))
+    diagnostic = asyncio.run(server.search_private_library(
+        q="Dardo incantato",
+        types="spell",
+        include_unverified=True,
+        user=user,
+    ))
+
+    assert sourced["status"] == "sourced"
+    assert sourced["records"][0]["is_trusted"] is True
+    assert unavailable["status"] == "unavailable"
+    assert "fonte verificata" in unavailable["message"]
+    assert diagnostic["records"][0]["needs_review"] is True
+
+
+def test_manual_coverage_counts_valid_missing_and_records_to_review(monkeypatch, tmp_path):
+    source = tmp_path / "Manuale.pdf"
+    source.write_bytes(b"manual")
+    records = [
+        make_reference(
+            "Guerriero",
+            reference_type="class",
+            source_refs=[{"filename": "Manuale.pdf", "page": 10}],
+        ),
+        make_reference(
+            "Campione",
+            reference_type="subclass",
+            source_refs=[{"filename": "Manuale.pdf", "page": 11}],
+            review_flags=["sezione_potenzialmente_continua"],
+            review_status="needs_review",
+        ),
+    ]
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Manuale.pdf": source})
+    monkeypatch.setattr(server, "MANUAL_COVERAGE_CATEGORIES", {"Manuale.pdf": ("class", "subclass", "spell")})
+
+    report = server.manual_coverage_report(records)
+    coverage = {item["reference_type"]: item for item in report[0]["categories"]}
+
+    assert coverage["class"] == {"reference_type": "class", "valid": 1, "to_review": 0, "missing": 0, "records_total": 1}
+    assert coverage["subclass"] == {"reference_type": "subclass", "valid": 0, "to_review": 1, "missing": 0, "records_total": 1}
+    assert coverage["spell"] == {"reference_type": "spell", "valid": 0, "to_review": 0, "missing": 1, "records_total": 0}
+
+
+def test_apply_reference_rejects_unverified_records(monkeypatch):
+    record = make_reference(
+        "Rituale Incerto",
+        reference_type="spell",
+        review_flags=["traduzione_da_verificare"],
+        review_status="needs_review",
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
+
+    with pytest.raises(server.HTTPException, match="dato certo") as error:
+        asyncio.run(server.apply_private_reference(record["id"], user))
+
+    assert error.value.status_code == 409
 
 
 def test_same_source_import_uses_distinct_ids_for_distinct_owners(monkeypatch, tmp_path):

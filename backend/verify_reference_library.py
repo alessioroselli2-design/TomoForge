@@ -11,10 +11,11 @@ import argparse
 import json
 import os
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any
 
 from supabase import create_client
+from reference_library import reference_review_state
 
 
 PROBES = {
@@ -24,6 +25,10 @@ PROBES = {
     "tool": "fabbro",
     "magic_item": "perla",
 }
+REQUIRED_CHARACTER_CREATION_TYPES = frozenset({
+    "class", "subclass", "class_feature", "race", "subrace",
+    "feat", "spell", "weapon", "armor", "shield", "equipment", "tool",
+})
 REQUIRED_SOURCE_FILENAMES = (
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 )
@@ -40,7 +45,7 @@ def verify_library(user_id: str) -> dict[str, Any]:
         response = (
             create_client(url, service_key)
             .table("private_reference_records")
-            .select("reference_type,name,normalized_name,review_flags,source_refs")
+            .select("reference_type,name,normalized_name,review_flags,review_status,translation_status,source_refs")
             .eq("user_id", user_id)
             .limit(8000)
             .execute()
@@ -52,6 +57,10 @@ def verify_library(user_id: str) -> dict[str, Any]:
 
     records = response.data or []
     by_type = Counter(record.get("reference_type", "") for record in records)
+    by_state = Counter(reference_review_state(record) for record in records)
+    reviewed_by_type: dict[str, Counter] = defaultdict(Counter)
+    for record in records:
+        reviewed_by_type[record.get("reference_type", "")][reference_review_state(record)] += 1
     source_counts = Counter(
         reference.get("filename")
         for record in records
@@ -85,7 +94,15 @@ def verify_library(user_id: str) -> dict[str, Any]:
     return {
         "status": "ok",
         "records_total": len(records),
-        "flagged_for_review": sum(bool(record.get("review_flags")) for record in records),
+        "flagged_for_review": by_state["review"],
+        "coverage_by_category": {
+            reference_type: {
+                "valid": reviewed_by_type[reference_type]["valid"],
+                "to_review": reviewed_by_type[reference_type]["review"],
+                "missing": int(by_type[reference_type] == 0),
+            }
+            for reference_type in sorted(REQUIRED_CHARACTER_CREATION_TYPES)
+        },
         "required_manual_records": {
             filename: source_counts[filename] for filename in REQUIRED_SOURCE_FILENAMES
         },

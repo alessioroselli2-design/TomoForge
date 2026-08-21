@@ -5,3 +5,4 @@
 - [Private manual OCR](private-manual-ocr.md) — Scan OCR stays opt-in, per-account, and in small confirmed batches; never expose source PDFs or page images.
 - [Live Supabase verification](live-supabase-verification.md) — Completion review may not reflect operational Supabase state; rerun the committed verifier against the target before trusting a schema-absence report.
 - [Rule card hierarchy](rule-card-hierarchy.md) — Use linked modular cards as views over one canonical manual database, not oversized cards with duplicated rule text.
+- [Reference trust gates](reference-trust-gates.md) — OCR and automated translations remain non-authoritative until verified, including direct card-linking flows.
