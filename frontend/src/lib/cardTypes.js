@@ -3,6 +3,8 @@ import { Sparkles, Shield, Users, Sword, Award, Skull, User, Wand2, Package } fr
 export const CARD_TYPES = [
   { id: "spell", label: "Magia", icon: Sparkles },
   { id: "class", label: "Classe", icon: Shield },
+  { id: "subclass", label: "Sottoclasse", icon: Shield },
+  { id: "feature", label: "Privilegio", icon: Award },
   { id: "race", label: "Razza", icon: Users },
   { id: "weapon", label: "Arma", icon: Sword },
   { id: "armor", label: "Armatura", icon: Shield },
@@ -60,9 +62,11 @@ export const QUICK_FIELDS = {
   item: ["categoria", "rarita", "sintonia", "costo", "peso"],
   feat: ["prerequisito"],
   class: ["dado_vita", "abilita_primaria"],
+  subclass: ["dado_vita", "abilita_primaria"],
+  feature: ["livello"],
   race: ["velocita", "taglia"],
   monster: ["classe_armatura", "punti_ferita", "grado_sfida", "velocita"],
-  character: ["classe", "livello", "classe_armatura", "punti_ferita"],
+  character: ["classe", "livello", "classe_armatura", "punti_ferita", "bonus_competenza", "cd_incantesimi"],
 };
 
 export const EMBLEMS = [

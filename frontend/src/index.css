@@ -598,4 +598,15 @@ body {
     .character-sheet-page [class*="border-"] { border-color: #806b4f !important; }
     .tf-sheet-a4 { min-height: 275mm; padding: 8mm !important; break-after: page; page-break-after: always; }
     .tf-sheet-a4:last-of-type { break-after: auto; page-break-after: auto; }
+    body * { visibility: hidden; }
+    [data-testid="character-sheet"],
+    [data-testid="character-sheet"] * { visibility: visible; }
+    [data-testid="character-sheet"] {
+        position: absolute !important;
+        inset: 0 auto auto 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
 }

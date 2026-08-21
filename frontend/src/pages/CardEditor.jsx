@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search } from "lucide-react";
+import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search, Link2, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -22,6 +22,8 @@ import { Switch } from "@/components/ui/switch";
 const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
   class: { dado_vita: "", abilita_primaria: "", tiri_salvezza: "", competenze: "", caratteristiche: [] },
+  subclass: { dado_vita: "", abilita_primaria: "", tiri_salvezza: "", competenze: "", caratteristiche: [] },
+  feature: { livello: "", benefici: [] },
   race: { bonus_caratteristiche: "", velocita: "", taglia: "", linguaggi: "", tratti: [] },
   weapon: { danno: "", tipo_danno: "", proprieta: "", gittata: "", peso: "", costo: "", categoria: "" },
   armor: { classe_armatura: "", forza_minima: "", svantaggio_furtivita: "", peso: "", costo: "", categoria: "" },
@@ -45,6 +47,8 @@ const inputCls = "bg-input border-border rounded-none font-body focus-visible:ri
 const LIBRARY_TYPES_BY_CARD = {
   spell: "spell",
   class: "class,subclass,class_feature",
+  subclass: "subclass",
+  feature: "class_feature,ability",
   race: "race,subrace",
   feat: "feat",
   monster: "monster",
@@ -52,6 +56,7 @@ const LIBRARY_TYPES_BY_CARD = {
   armor: "armor,shield",
   item: "equipment,tool,magic_item,vehicle,ammunition,mount,trade_good,service,other",
   custom: "ability,other",
+  character: "class,subclass,class_feature,spell,feat,race,subrace,weapon,armor,shield,equipment,tool,magic_item,vehicle,ammunition,mount,trade_good,service",
 };
 const LIBRARY_TYPE_LABELS = {
   class: "Classe", subclass: "Sottoclasse", class_feature: "Privilegio di classe",
@@ -61,6 +66,49 @@ const LIBRARY_TYPE_LABELS = {
   equipment: "Equipaggiamento", tool: "Strumento", magic_item: "Oggetto magico",
   vehicle: "Veicolo", ammunition: "Munizioni", mount: "Cavalcatura",
   trade_good: "Merce commerciale", service: "Servizio", other: "Contenuto del manuale",
+};
+
+const hasUserValue = (value) => {
+  if (Array.isArray(value)) return value.some(hasUserValue);
+  if (value && typeof value === "object") return Object.values(value).some(hasUserValue);
+  return value !== undefined && value !== null && String(value).trim() !== "";
+};
+
+const mergeMissingValues = (current = {}, incoming = {}) => {
+  const merged = { ...current };
+  Object.entries(incoming || {}).forEach(([key, value]) => {
+    if (!hasUserValue(merged[key]) && hasUserValue(value)) merged[key] = value;
+  });
+  return merged;
+};
+
+const mergeSourceReferences = (current = [], incoming = []) => {
+  const seen = new Set();
+  return [...current, ...incoming].filter((reference) => {
+    const key = `${reference?.filename || ""}:${reference?.page || ""}:${reference?.language || ""}`;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const addCharacterReference = (attributes, payload) => {
+  const referenceType = payload.reference_type;
+  const name = payload.name || "";
+  const next = mergeMissingValues(attributes, payload.attributes);
+  const addDistinct = (field) => {
+    const current = Array.isArray(next[field]) ? next[field] : [];
+    if (!current.some((item) => (item.reference_id || item.nome) === (payload.reference_id || name))) {
+      next[field] = [...current, { reference_id: payload.reference_id, nome: name, descrizione: payload.description || "" }];
+    }
+  };
+  if (referenceType === "class" && !hasUserValue(next.classe)) next.classe = name;
+  if ((referenceType === "race" || referenceType === "subrace") && !hasUserValue(next.razza)) next.razza = name;
+  if (referenceType === "subclass" && !hasUserValue(next.sottoclasse)) next.sottoclasse = name;
+  if (referenceType === "class_feature" || referenceType === "ability" || referenceType === "feat") addDistinct("privilegi");
+  if (referenceType === "spell") addDistinct("incantesimi");
+  if (["weapon", "armor", "shield", "equipment", "tool", "magic_item", "vehicle", "ammunition", "mount", "trade_good", "service"].includes(referenceType)) addDistinct("equipaggiamento");
+  return next;
 };
 
 export default function CardEditor() {
@@ -77,7 +125,7 @@ export default function CardEditor() {
   const [card, setCard] = useState({
     type: "spell", custom_type: "", name: "", description: "", story: "",
     language: "it", attributes: { ...DEFAULT_ATTRS.spell }, artwork_path: null,
-    frame: "gold",
+    frame: "gold", reference_ids: [], source_refs: [],
     appearance: { ...DEFAULT_APPEARANCE },
     back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
   });
@@ -108,6 +156,7 @@ export default function CardEditor() {
   const [translationConfirmed, setTranslationConfirmed] = useState(false);
   const [sourceRecord, setSourceRecord] = useState(null);
   const [loadingSourceRecord, setLoadingSourceRecord] = useState(null);
+  const [characterReferences, setCharacterReferences] = useState([]);
   const selectedManualInfo = libraryManuals.find((manual) => manual.filename === selectedManual);
   const selectedSpanishManual = selectedManualInfo?.source_language === "es";
   const useSelectedManualOcr = useManualOcr && selectedManualInfo?.source_language !== "es";
@@ -119,6 +168,9 @@ export default function CardEditor() {
         const res = await api.get(`/cards/${id}`);
         setCard({
           ...res.data,
+          attributes: { ...(DEFAULT_ATTRS[res.data.type] || {}), ...(res.data.attributes || {}) },
+          reference_ids: res.data.reference_ids || [],
+          source_refs: res.data.source_refs || [],
           appearance: { ...DEFAULT_APPEARANCE, ...(res.data.appearance || {}) },
           back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(res.data.back || {}) },
         });
@@ -163,6 +215,19 @@ export default function CardEditor() {
     return () => { active = false; };
   }, [isEdit, requestedReferenceId]);
 
+  useEffect(() => {
+    if (card.type !== "character" || !card.reference_ids?.length) {
+      setCharacterReferences([]);
+      return undefined;
+    }
+    let active = true;
+    Promise.all(card.reference_ids.map((referenceId) => api.get(`/library/${referenceId}`)
+      .then((response) => response.data)
+      .catch(() => null)))
+      .then((records) => { if (active) setCharacterReferences(records.filter(Boolean)); });
+    return () => { active = false; };
+  }, [card.type, card.reference_ids]);
+
   const set = (patch) => setCard((c) => ({ ...c, ...patch }));
   const setAppearance = (appearance) => setCard((c) => ({ ...c, appearance }));
   const setBack = (patch) => setCard((c) => ({ ...c, back: { ...c.back, ...patch } }));
@@ -180,10 +245,10 @@ export default function CardEditor() {
         type: card.type, custom_type: card.custom_type, prompt, language: card.language,
       });
       set({
-        name: res.data.name || card.name,
-        description: res.data.description || card.description,
-        story: res.data.story || card.story,
-        attributes: res.data.attributes && Object.keys(res.data.attributes).length ? res.data.attributes : card.attributes,
+        name: card.name || res.data.name,
+        description: card.description || res.data.description,
+        story: card.story || res.data.story,
+        attributes: mergeMissingValues(card.attributes, res.data.attributes),
       });
       toast.success(
         res.data.source === "grimorio" ? "Dati applicati dal Grimorio privato"
@@ -222,10 +287,10 @@ export default function CardEditor() {
     try {
       const res = await api.post(`/spells/${spellId}/apply`);
       set({
-        name: res.data.name || card.name,
-        description: res.data.description || card.description,
-        story: res.data.story || card.story,
-        attributes: { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) },
+        name: card.name || res.data.name,
+        description: card.description || res.data.description,
+        story: card.story || res.data.story,
+        attributes: mergeMissingValues(card.attributes, { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) }),
       });
       setSpellQuery(res.data.name || "");
       setSpellResults([]);
@@ -262,21 +327,55 @@ export default function CardEditor() {
     setApplyingReference(referenceId);
     try {
       const res = await api.post(`/library/${referenceId}/apply`);
-      set({
-        name: res.data.name || card.name,
-        description: res.data.description || card.description,
-        story: res.data.story || card.story,
-        attributes: { ...(DEFAULT_ATTRS[card.type] || {}), ...(res.data.attributes || {}) },
-        language: res.data.content_language || card.language,
-      });
+      const referenceIds = Array.from(new Set([...(card.reference_ids || []), res.data.reference_id || referenceId]));
+      const sourceRefs = mergeSourceReferences(card.source_refs, res.data.source_refs);
+      if (card.type === "character") {
+        set({
+          attributes: addCharacterReference(card.attributes, res.data),
+          reference_ids: referenceIds,
+          source_refs: sourceRefs,
+        });
+        setCharacterReferences((current) => current.some((record) => record.id === res.data.reference_id)
+          ? current
+          : [...current, {
+            id: res.data.reference_id || referenceId,
+            name: res.data.name,
+            reference_type: res.data.reference_type,
+            source_refs: res.data.source_refs || [],
+          }]);
+      } else {
+        set({
+          name: card.name || res.data.name,
+          description: card.description || res.data.description,
+          story: card.story || res.data.story,
+          attributes: mergeMissingValues(card.attributes, { ...(DEFAULT_ATTRS[card.type] || {}), ...(res.data.attributes || {}) }),
+          reference_ids: referenceIds,
+          source_refs: sourceRefs,
+          language: res.data.content_language || card.language,
+        });
+      }
       setReferenceQuery(res.data.name || "");
       setReferenceResults([]);
-      toast.success("Contenuto applicato dalla biblioteca privata");
+      toast.success(card.type === "character" ? "Riferimento aggiunto senza sovrascrivere le tue scelte" : "Contenuto applicato dalla biblioteca privata");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Impossibile applicare il contenuto");
     } finally {
       setApplyingReference(null);
     }
+  };
+
+  const removeCharacterReference = (referenceId) => {
+    const attributes = { ...card.attributes };
+    ["privilegi", "incantesimi", "equipaggiamento"].forEach((field) => {
+      if (Array.isArray(attributes[field])) {
+        attributes[field] = attributes[field].filter((item) => item?.reference_id !== referenceId);
+      }
+    });
+    set({
+      reference_ids: (card.reference_ids || []).filter((id) => id !== referenceId),
+      attributes,
+    });
+    setCharacterReferences((current) => current.filter((record) => record.id !== referenceId));
   };
 
   const showReferenceSource = async (referenceId) => {
@@ -547,6 +646,7 @@ export default function CardEditor() {
         description: card.description, story: card.story, language: card.language,
         attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame,
         appearance: card.appearance, back: card.back,
+        reference_ids: card.reference_ids || [], source_refs: card.source_refs || [],
       };
       if (isEdit) {
         await api.put(`/cards/${id}`, payload);
@@ -756,11 +856,28 @@ export default function CardEditor() {
                 <section id="editor-library" className="scroll-mt-28 border border-gold-deep/50 bg-card p-5">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-gold" />
-                    <h2 className="font-label text-xs tracking-widest text-gold">BIBLIOTECA PRIVATA</h2>
+                    <h2 className="font-label text-xs tracking-widest text-gold">{card.type === "character" ? "BASE NORMATIVA DEL PERSONAGGIO" : "BIBLIOTECA PRIVATA"}</h2>
                   </div>
                   <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
-                    Cerca contenuti già importati dai tuoi manuali. I dati regolamentari compilano la carta senza usare crediti AI.
+                    {card.type === "character"
+                      ? "Aggiungi razza, classe, sottoclasse, privilegi, incantesimi ed equipaggiamento dai manuali importati. Le tue scelte e i tuoi tiri restano prioritari."
+                      : "Cerca contenuti già importati dai tuoi manuali. I dati regolamentari compilano la carta senza usare crediti AI."}
                   </p>
+                  {card.type === "character" && characterReferences.length > 0 && (
+                    <div data-testid="character-references" className="mt-3 border border-sky-700/40 bg-sky-950/20 p-3">
+                      <p className="flex items-center gap-1.5 font-label text-[10px] tracking-widest text-sky-200"><Link2 className="h-3.5 w-3.5" /> RIFERIMENTI COLLEGATI</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {characterReferences.map((record) => (
+                          <span key={record.id} className="inline-flex items-center gap-1 border border-sky-700/50 bg-obsidian/40 px-2 py-1 font-body text-xs text-sky-100">
+                            {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {record.name}
+                            <button type="button" aria-label={`Rimuovi ${record.name}`} onClick={() => removeCharacterReference(record.id)} className="text-sky-300 hover:text-crimson">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="relative mt-3">
                     <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gold/70" />
                     <Input
@@ -804,7 +921,7 @@ export default function CardEditor() {
                           </button>
                           {applyingReference === record.id
                             ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
-                            : <span className="font-label text-[10px] tracking-widest text-gold">APPLICA</span>}
+                            : <span className="font-label text-[10px] tracking-widest text-gold">{card.type === "character" ? "AGGIUNGI" : "APPLICA"}</span>}
                         </div>
                       ))}
                     </div>

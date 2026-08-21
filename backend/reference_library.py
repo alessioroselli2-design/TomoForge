@@ -55,8 +55,8 @@ RACE_TITLES = {
 }
 CARD_TYPE_BY_REFERENCE_TYPE = {
     "class": "class",
-    "subclass": "class",
-    "class_feature": "class",
+    "subclass": "subclass",
+    "class_feature": "feature",
     "spell": "spell",
     "feat": "feat",
     "race": "race",
@@ -629,6 +629,21 @@ def reference_to_card_payload(record: dict) -> dict:
             "caratteristiche": attributes.get("caratteristiche", []),
             **attributes,
         }
+    elif card_type == "subclass":
+        attributes = {
+            "dado_vita": attributes.get("dado_vita", ""),
+            "abilita_primaria": attributes.get("abilita_primaria", ""),
+            "tiri_salvezza": attributes.get("tiri_salvezza", ""),
+            "competenze": attributes.get("competenze", ""),
+            "caratteristiche": attributes.get("caratteristiche", []),
+            **attributes,
+        }
+    elif card_type == "feature":
+        attributes = {
+            "livello": attributes.get("livello", ""),
+            "benefici": attributes.get("benefici", []),
+            **attributes,
+        }
     elif card_type == "race":
         attributes = {
             "bonus_caratteristiche": attributes.get("bonus_caratteristiche", ""),
@@ -692,6 +707,8 @@ def reference_to_card_payload(record: dict) -> dict:
             **attributes,
         }
     return {
+        "reference_id": record.get("id"),
+        "reference_ids": [record["id"]] if record.get("id") else [],
         "name": record.get("name", ""),
         "description": compact_text(record.get("description") or record.get("full_text", "")),
         "story": f"Dati regolamentari dalla biblioteca privata · {record.get('reference_type', 'contenuto')}.",

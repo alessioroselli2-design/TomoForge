@@ -190,6 +190,9 @@ class MemoryCollection:
             elif isinstance(value, dict) and "$lt" in value:
                 if row.get(field) is None or row.get(field) >= value["$lt"]:
                     return False
+            elif isinstance(value, dict) and "$in" in value:
+                if not isinstance(value["$in"], list) or row.get(field) not in value["$in"]:
+                    return False
             elif row.get(field) != value:
                 return False
         return True
@@ -268,6 +271,10 @@ class SupabaseCollection:
                     statement = statement.neq(field, value["$ne"])
                 elif "$lt" in value:
                     statement = statement.lt(field, value["$lt"])
+                elif "$in" in value:
+                    if not isinstance(value["$in"], list):
+                        raise HTTPException(status_code=400, detail=f"Filtro non valido: {field}")
+                    statement = statement.in_(field, value["$in"])
                 else:
                     raise HTTPException(status_code=400, detail=f"Filtro non supportato: {field}")
             else:
@@ -426,6 +433,8 @@ class Card(BaseModel):
     frame: str = "gold"
     appearance: CardAppearance = Field(default_factory=CardAppearance)
     back: CardBack = Field(default_factory=CardBack)
+    reference_ids: list[str] = Field(default_factory=list)
+    source_refs: list[dict] = Field(default_factory=list)
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
 
@@ -442,6 +451,8 @@ class CardCreate(BaseModel):
     frame: str = "gold"
     appearance: Optional[CardAppearance] = None
     back: Optional[CardBack] = None
+    reference_ids: list[str] = Field(default_factory=list)
+    source_refs: list[dict] = Field(default_factory=list)
 
 
 class CardUpdate(BaseModel):
@@ -456,6 +467,12 @@ class CardUpdate(BaseModel):
     frame: Optional[str] = None
     appearance: Optional[CardAppearance] = None
     back: Optional[CardBack] = None
+    reference_ids: Optional[list[str]] = None
+    source_refs: Optional[list[dict]] = None
+
+
+class LinkedCardInput(BaseModel):
+    reference_ids: list[str] = Field(default_factory=list)
 
 
 class RegisterInput(BaseModel):
@@ -744,11 +761,14 @@ async def supabase_session(body: SupabaseSessionInput):
 TYPE_LABELS = {
     "spell": "Magia/Incantesimo", "class": "Classe", "race": "Razza", "weapon": "Arma",
     "armor": "Armatura/Scudo", "item": "Oggetto/Equipaggiamento",
-    "feat": "Talento", "monster": "Mostro/Nemico", "character": "Personaggio", "custom": "Tipo personalizzato",
+    "feat": "Talento", "feature": "Privilegio di classe", "subclass": "Sottoclasse",
+    "monster": "Mostro/Nemico", "character": "Personaggio", "custom": "Tipo personalizzato",
 }
 TYPE_SCHEMAS = {
     "spell": '"attributes": {"livello": "", "scuola": "", "azione": "", "tempo_lancio": "", "gittata": "", "area": "", "componenti": "", "durata": "", "concentrazione": "", "danno": "", "effetto": ""}',
     "class": '"attributes": {"dado_vita": "", "abilita_primaria": "", "tiri_salvezza": "", "competenze": "", "caratteristiche": []}',
+    "subclass": '"attributes": {"dado_vita": "", "abilita_primaria": "", "tiri_salvezza": "", "competenze": "", "caratteristiche": []}',
+    "feature": '"attributes": {"livello": "", "benefici": []}',
     "race": '"attributes": {"bonus_caratteristiche": "", "velocita": "", "taglia": "", "linguaggi": "", "tratti": []}',
     "weapon": '"attributes": {"danno": "", "tipo_danno": "", "proprieta": "", "peso": "", "costo": "", "categoria": ""}',
     "armor": '"attributes": {"classe_armatura": "", "forza_minima": "", "svantaggio_furtivita": "", "peso": "", "costo": "", "categoria": ""}',
@@ -1094,6 +1114,46 @@ async def private_reference_records(user_id: str) -> list[dict]:
             logger.warning("Private reference catalogue schema is not available yet")
             return []
         raise
+
+
+async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -> tuple[list[str], list[dict]]:
+    """Validate selected reference records and derive their immutable provenance."""
+    requested_ids = list(dict.fromkeys(reference_id for reference_id in reference_ids if reference_id))
+    if not requested_ids:
+        return [], []
+    records_by_id = {
+        record["id"]: record
+        for record in await private_reference_records(user_id)
+        if record.get("id") in requested_ids
+    }
+    missing = [reference_id for reference_id in requested_ids if reference_id not in records_by_id]
+    if missing:
+        raise HTTPException(status_code=404, detail="Uno o più riferimenti normativi non sono più disponibili")
+    sources: list[dict] = []
+    seen_sources: set[str] = set()
+    for reference_id in requested_ids:
+        for source in records_by_id[reference_id].get("source_refs", []):
+            key = json.dumps(source, sort_keys=True, ensure_ascii=False)
+            if key not in seen_sources:
+                seen_sources.add(key)
+                sources.append(source)
+    return requested_ids, sources
+
+
+def remove_unlinked_reference_attributes(attributes: dict, reference_ids: list[str]) -> dict:
+    """Keep manual entries while dropping list entries derived from removed records."""
+    allowed_ids = set(reference_ids)
+    reconciled = copy.deepcopy(attributes or {})
+    for field in ("privilegi", "incantesimi", "equipaggiamento"):
+        entries = reconciled.get(field)
+        if isinstance(entries, list):
+            reconciled[field] = [
+                entry for entry in entries
+                if not isinstance(entry, dict)
+                or not entry.get("reference_id")
+                or entry["reference_id"] in allowed_ids
+            ]
+    return reconciled
 
 
 async def find_private_reference(user_id: str, query: str, card_type: Optional[str] = None) -> Optional[dict]:
@@ -1899,7 +1959,12 @@ async def download(path: str, user: User = Depends(get_current_user)):
 
 @api_router.post("/cards", response_model=Card)
 async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
-    card = Card(user_id=user.user_id, **body.model_dump(exclude_none=True))
+    data = body.model_dump(exclude_none=True)
+    reference_ids, source_refs = await resolve_reference_provenance(user.user_id, data.get("reference_ids", []))
+    data["reference_ids"] = reference_ids
+    data["source_refs"] = source_refs
+    data["attributes"] = remove_unlinked_reference_attributes(data.get("attributes", {}), reference_ids)
+    card = Card(user_id=user.user_id, **data)
     await db.cards.insert_one(card.model_dump())
     return card
 
@@ -1929,6 +1994,18 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
     updates = body.model_dump(exclude_none=True)
+    if "reference_ids" in updates:
+        reference_ids, source_refs = await resolve_reference_provenance(user.user_id, updates["reference_ids"])
+        updates["reference_ids"] = reference_ids
+        updates["source_refs"] = source_refs
+        updates["attributes"] = remove_unlinked_reference_attributes(
+            updates.get("attributes", card.get("attributes", {})),
+            reference_ids,
+        )
+    else:
+        # Provenance is always derived server-side. Ignore stale or forged
+        # snapshots sent by older clients when the references did not change.
+        updates.pop("source_refs", None)
     updates["updated_at"] = utc_now()
     await db.cards.update_one({"id": card_id, "user_id": user.user_id}, {"$set": updates})
     card.update(updates)
@@ -1941,6 +2018,59 @@ async def delete_card(card_id: str, user: User = Depends(get_current_user)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Carta non trovata")
     return {"ok": True}
+
+
+@api_router.post("/cards/{card_id}/linked", response_model=List[Card])
+async def create_linked_cards(
+    card_id: str,
+    body: LinkedCardInput,
+    user: User = Depends(get_current_user),
+):
+    """Create printable rule cards from a character's selected references.
+
+    The reference record remains the source of truth: cards only copy its
+    current structured payload and keep both its id and provenance snapshot.
+    """
+    character = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not character:
+        raise HTTPException(status_code=404, detail="Personaggio non trovato")
+    if character.get("type") != "character":
+        raise HTTPException(status_code=400, detail="Le carte collegate partono da un personaggio")
+
+    persisted_ids = list(dict.fromkeys(character.get("reference_ids") or []))
+    requested_ids = body.reference_ids or persisted_ids
+    requested_ids = list(dict.fromkeys(requested_ids))
+    if not requested_ids:
+        raise HTTPException(status_code=400, detail="Il personaggio non ha riferimenti normativi selezionati")
+    if not set(requested_ids).issubset(persisted_ids):
+        raise HTTPException(status_code=400, detail="Puoi creare carte solo dai riferimenti già collegati al personaggio")
+
+    records_by_id = {
+        record["id"]: record
+        for record in await private_reference_records(user.user_id)
+        if record.get("id") in requested_ids
+    }
+    if len(records_by_id) != len(requested_ids):
+        raise HTTPException(status_code=404, detail="Uno o più riferimenti normativi non sono più disponibili")
+
+    created = []
+    for reference_id in requested_ids:
+        record = records_by_id[reference_id]
+        payload = reference_to_card_payload(record)
+        card = Card(
+            user_id=user.user_id,
+            type=payload["card_type"],
+            name=payload["name"],
+            description=payload["description"],
+            story=payload["story"],
+            language=payload["content_language"],
+            attributes=payload["attributes"],
+            reference_ids=[reference_id],
+            source_refs=payload["source_refs"],
+        )
+        await db.cards.insert_one(card.model_dump())
+        created.append(card)
+    return created
 
 
 @api_router.get("/public/cards/{card_id}")

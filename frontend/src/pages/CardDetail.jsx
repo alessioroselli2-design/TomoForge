@@ -4,14 +4,14 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import {
-  ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2, ImageDown,
+  ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2, ImageDown, Link2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { typeLabel, attrLabel, DEFAULT_APPEARANCE } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
-import { addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
+import { addCharacterSheetPdfPage, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -131,6 +131,60 @@ const SpellSlots = ({ card, onUpdate }) => {
   );
 };
 
+const sheetValue = (value) => value !== undefined && value !== null && String(value).trim() ? value : "—";
+const compactNames = (items = []) => (items || [])
+  .map((item) => typeof item === "string" ? item : item?.nome || item?.name)
+  .filter(Boolean)
+  .join(" · ") || "—";
+
+const CharacterSheetPreview = ({ card }) => {
+  const a = card.attributes || {};
+  return (
+    <section data-testid="character-sheet" className="border-2 border-[#8c6a2e] bg-[#f5edd7] p-5 text-[#34220e] shadow-xl">
+      <div className="border border-[#b69347] p-4">
+        <p className="text-center font-label text-[10px] tracking-[0.25em] text-[#765925]">TOMEFORGE</p>
+        <h2 className="mt-1 text-center font-display text-2xl text-[#34220e]">Scheda del personaggio</h2>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
+          <SheetCell label="Nome" value={sheetValue(card.name)} className="sm:col-span-2" />
+          <SheetCell label="Livello" value={sheetValue(a.livello)} />
+          <SheetCell label="Classe armatura" value={sheetValue(a.classe_armatura)} />
+          <SheetCell label="Razza" value={sheetValue(a.razza)} />
+          <SheetCell label="Classe" value={sheetValue(a.classe)} />
+          <SheetCell label="Sottoclasse" value={sheetValue(a.sottoclasse)} />
+          <SheetCell label="Punti ferita" value={sheetValue(a.punti_ferita)} />
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {ABILITIES.map((key) => (
+            <div key={key} className="border border-[#8c6a2e] bg-[#34220e] py-2 text-center">
+              <span className="block font-label text-[9px] tracking-widest text-[#f5d77a]">{key.toUpperCase()}</span>
+              <strong className="font-body text-lg text-[#fff8e7]">{sheetValue(a[key])}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <SheetCell label="Privilegi" value={compactNames(a.privilegi?.length ? a.privilegi : a.abilita_sottoclasse)} multiline />
+          <SheetCell label="Incantesimi" value={compactNames(a.incantesimi)} multiline />
+          <SheetCell label="Equipaggiamento" value={compactNames(a.equipaggiamento)} multiline />
+          <SheetCell label="Competenze / note" value={sheetValue(a.competenze || card.description)} multiline />
+        </div>
+        <div className="mt-4 border-t border-[#b69347] pt-3">
+          <p className="font-label text-[9px] tracking-widest text-[#765925]">FONTI NORMATIVE COLLEGATE</p>
+          <p className="mt-1 font-body text-xs leading-relaxed text-[#51401f]">
+            {(card.source_refs || []).map((reference) => `${reference.filename || "Manuale"} · p. ${reference.page || "?"}`).join("  |  ") || "Nessuna fonte normativa collegata."}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const SheetCell = ({ label, value, className = "", multiline = false }) => (
+  <div className={`border border-[#b69347] bg-[#fff8e7]/60 p-2 ${className}`}>
+    <span className="block font-label text-[8px] tracking-widest text-[#765925]">{label.toUpperCase()}</span>
+    <span className={`mt-1 block font-body text-sm font-semibold text-[#34220e] ${multiline ? "min-h-[42px] leading-snug" : "truncate"}`}>{value}</span>
+  </div>
+);
+
 export default function CardDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -138,6 +192,8 @@ export default function CardDetail() {
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
   const [exportFeedback, setExportFeedback] = useState("");
+  const [linkedReferences, setLinkedReferences] = useState([]);
+  const [creatingLinked, setCreatingLinked] = useState(false);
   const exportFrontRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -150,6 +206,19 @@ export default function CardDetail() {
     }
   }, [id, navigate]);
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (card?.type !== "character" || !card.reference_ids?.length) {
+      setLinkedReferences([]);
+      return undefined;
+    }
+    let active = true;
+    Promise.all(card.reference_ids.map((referenceId) => api.get(`/library/${referenceId}`)
+      .then((response) => response.data)
+      .catch(() => null)))
+      .then((records) => { if (active) setLinkedReferences(records.filter(Boolean)); });
+    return () => { active = false; };
+  }, [card?.type, card?.reference_ids]);
 
   const persistAttrs = async (attributes) => {
     setCard((c) => ({ ...c, attributes }));
@@ -208,6 +277,54 @@ export default function CardDetail() {
       toast.success("Carta A4 generata");
     } catch (e) { toast.error("Generazione carta A4 fallita"); }
     finally { setBusy(false); }
+  };
+
+  const exportCharacterSheet = async () => {
+    setBusy(true);
+    try {
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      await addCharacterSheetPdfPage(pdf, card);
+      pdf.save(`scheda-${card.name || "personaggio"}.pdf`);
+      setExportFeedback("Scheda completa A4 generata.");
+      toast.success("Scheda PDF generata");
+    } catch (e) { toast.error("Generazione della scheda fallita"); }
+    finally { setBusy(false); }
+  };
+
+  const printCharacterSheet = async () => {
+    // Open the print target immediately to avoid browser popup blocking while
+    // the fixed A4 canvas is being rendered.
+    const printWindow = window.open("", "_blank");
+    setBusy(true);
+    try {
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      await addCharacterSheetPdfPage(pdf, card);
+      const url = URL.createObjectURL(pdf.output("blob"));
+      if (printWindow) {
+        printWindow.location.href = url;
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        pdf.save(`scheda-${card.name || "personaggio"}.pdf`);
+        toast.message("Il browser ha bloccato la finestra: usa il PDF scaricato per stampare.");
+      }
+    } catch (e) {
+      printWindow?.close();
+      toast.error("Preparazione della stampa fallita");
+    } finally { setBusy(false); }
+  };
+
+  const createLinkedCards = async (referenceIds) => {
+    if (!referenceIds.length) return;
+    setCreatingLinked(true);
+    try {
+      const response = await api.post(`/cards/${id}/linked`, { reference_ids: referenceIds });
+      const count = response.data?.length || 0;
+      toast.success(`${count} ${count === 1 ? "carta collegata creata" : "carte collegate create"}`);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile creare le carte collegate");
+    } finally {
+      setCreatingLinked(false);
+    }
   };
 
   if (!card) {
@@ -310,6 +427,18 @@ export default function CardDetail() {
                   className="justify-start rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-wide transition-colors">
                   {busy ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-2" />} FOGLIO A4 FRONTE / RETRO
                 </Button>
+                {card.type === "character" && (
+                  <>
+                    <Button data-testid="character-sheet-pdf-btn" onClick={exportCharacterSheet} disabled={busy} variant="outline"
+                      className="justify-start rounded-none border-[#b69347] bg-[#f5edd7] text-[#34220e] hover:bg-[#eaddba] font-label text-[11px] tracking-wide transition-colors">
+                      <FileText className="w-3.5 h-3.5 mr-2 text-[#765925]" /> SCHEDA COMPLETA A4
+                    </Button>
+                    <Button data-testid="character-sheet-print-btn" onClick={printCharacterSheet} disabled={busy} variant="outline"
+                      className="justify-start rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
+                      <Printer className="w-3.5 h-3.5 mr-2" /> STAMPA SCHEDA A4
+                    </Button>
+                  </>
+                )}
               </div>
               <p className="mt-3 font-body text-[11px] leading-relaxed text-muted-foreground">
                 Il foglio A4 mantiene la dimensione Standard e il retro allineato per la stampa fronte/retro.
@@ -340,7 +469,49 @@ export default function CardDetail() {
               </div>
             )}
 
-            {card.type === "character" && <SpellSlots card={card} onUpdate={updateSlots} />}
+            {card.type === "character" && (
+              <>
+                <CharacterSheetPreview card={card} />
+                <section data-testid="linked-rule-cards" className="border border-sky-700/50 bg-sky-950/15 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="flex items-center gap-1.5 font-label text-[10px] tracking-widest text-sky-200"><Link2 className="h-3.5 w-3.5" /> CARTE DAI RIFERIMENTI</p>
+                      <h2 className="mt-1 font-heading text-2xl text-foreground">Carte pronte dal tuo personaggio</h2>
+                      <p className="mt-1 max-w-2xl font-body text-xs leading-relaxed text-muted-foreground">
+                        Ogni carta usa lo stesso record normativo e le stesse fonti della scheda. Nessun contenuto viene inventato o generato con l’AI.
+                      </p>
+                    </div>
+                    {linkedReferences.length > 1 && (
+                      <Button data-testid="create-all-linked-cards" onClick={() => createLinkedCards(linkedReferences.map((record) => record.id))} disabled={creatingLinked}
+                        className="rounded-none bg-sky-700 text-white hover:bg-sky-600 font-label text-[10px] tracking-wide">
+                        {creatingLinked ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Link2 className="mr-1.5 h-3.5 w-3.5" />} CREA TUTTE
+                      </Button>
+                    )}
+                  </div>
+                  {linkedReferences.length ? (
+                    <div className="mt-4 divide-y divide-sky-900/60 border border-sky-900/60">
+                      {linkedReferences.map((record) => (
+                        <div key={record.id} className="flex items-center justify-between gap-3 px-3 py-3">
+                          <span className="min-w-0">
+                            <strong className="block font-heading text-base text-foreground">{record.name}</strong>
+                            <small className="block font-body text-[11px] text-muted-foreground">
+                              {typeLabel(record.reference_type === "class_feature" ? "feature" : record.reference_type)} · {(record.source_refs || []).map((reference) => `${reference.filename} p.${reference.page}`).join(", ")}
+                            </small>
+                          </span>
+                          <Button data-testid={`create-linked-card-${record.id}`} onClick={() => createLinkedCards([record.id])} disabled={creatingLinked} variant="outline"
+                            className="shrink-0 rounded-none border-sky-700/60 bg-transparent text-sky-200 hover:bg-sky-950 font-label text-[10px] tracking-wide">
+                            CREA CARTA
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-4 font-body text-sm text-muted-foreground">Apri “Modifica” e collega i record dalla base normativa per creare razza, classe, sottoclasse, privilegi, incantesimi ed equipaggiamento.</p>
+                  )}
+                </section>
+                <SpellSlots card={card} onUpdate={updateSlots} />
+              </>
+            )}
 
             {(detailed || Object.keys(card.attributes || {}).length > 0) && <StatBlock card={card} />}
           </div>

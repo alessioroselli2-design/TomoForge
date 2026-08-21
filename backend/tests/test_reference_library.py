@@ -232,6 +232,19 @@ def test_equipment_card_payloads_map_to_their_dedicated_card_types():
     assert item["card_type"] == "item"
 
 
+def test_subclass_and_class_feature_keep_dedicated_printable_card_types():
+    subclass = reference_to_card_payload(make_reference("Maestro della battaglia", reference_type="subclass"))
+    feature = reference_to_card_payload(make_reference(
+        "Superiorità in combattimento",
+        reference_type="class_feature",
+        attributes={"livello": "3", "benefici": ["Manovre"]},
+    ))
+
+    assert subclass["card_type"] == "subclass"
+    assert feature["card_type"] == "feature"
+    assert feature["attributes"]["benefici"] == ["Manovre"]
+
+
 def test_magic_items_tools_and_vehicles_receive_equipment_categories():
     page = """MANTELLO DI PROTEZIONE
 Oggetto meraviglioso, raro (richiede sintonia). Finché lo indossi, ottieni un bonus
@@ -322,6 +335,56 @@ class MutableMemoryReferences(MemoryReferences):
                 row.update(update.get("$set", update))
                 count += 1
         return server.UpdateResult(count)
+
+
+def test_character_references_derive_source_refs_and_create_only_selected_rule_cards(monkeypatch):
+    record = make_reference("Tiratore scelto")
+    references = server.MemoryCollection()
+    references.rows.append(record)
+    cards = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
+
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character",
+        name="Artemis",
+        reference_ids=[record["id"]],
+        source_refs=[{"filename": "Falsa fonte.pdf", "page": 1}],
+        attributes={
+            "privilegi": [
+                {"reference_id": record["id"], "nome": "Tiratore scelto"},
+                {"nome": "Scelta manuale"},
+            ],
+        },
+    ), user))
+    assert character.source_refs == record["source_refs"]
+
+    linked = asyncio.run(server.create_linked_cards(
+        character.id,
+        server.LinkedCardInput(reference_ids=[record["id"]]),
+        user,
+    ))
+    assert len(linked) == 1
+    assert linked[0].reference_ids == [record["id"]]
+    assert linked[0].source_refs == record["source_refs"]
+
+    updated = asyncio.run(server.update_card(
+        character.id,
+        server.CardUpdate(reference_ids=[]),
+        user,
+    ))
+    assert updated.source_refs == []
+    assert updated.attributes["privilegi"] == [{"nome": "Scelta manuale"}]
+
+    try:
+        asyncio.run(server.create_linked_cards(
+            character.id,
+            server.LinkedCardInput(reference_ids=["ref-non-collegato"]),
+            user,
+        ))
+        assert False, "Expected a rejected non-linked reference"
+    except server.HTTPException as error:
+        assert error.status_code == 400
 
 
 def test_apply_reference_endpoint_cannot_read_another_users_record(monkeypatch):

@@ -593,3 +593,118 @@ export async function addSingleCardA4PdfPages(pdf, element, card) {
   const back = await addPrintSheetCard(pdf, null, card, SINGLE_CARD_A4_BOUNDS, true);
   return { front, back };
 }
+
+// A character sheet is intentionally a separate fixed-coordinate renderer:
+// unlike a trading card it needs the whole A4 surface and must remain stable
+// when saved as a browser PDF on desktop or mobile.
+export const CHARACTER_SHEET_CANVAS_SIZE = Object.freeze({ width: 794, height: 1123, scale: 2 });
+
+const sheetValue = (value, fallback = "—") => hasSheetValue(value) ? String(value) : fallback;
+const hasSheetValue = (value) => value !== undefined && value !== null && String(value).trim() !== "";
+
+const sheetTextLines = (items = []) => items
+  .map((item) => typeof item === "string" ? item : item?.nome || item?.name || "")
+  .filter(Boolean)
+  .join(" · ") || "—";
+
+const sheetBox = (ctx, x, y, width, height, label, value, color = "#d4af37") => {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, width, height);
+  ctx.fillStyle = color;
+  ctx.font = "700 9px 'Cinzel', Georgia, serif";
+  ctx.fillText(label.toUpperCase(), x + 10, y + 15, width - 20);
+  ctx.fillStyle = "#201b15";
+  ctx.font = "600 16px 'Spectral', Georgia, serif";
+  drawWrappedText(ctx, String(value || "—"), x + 10, y + 35, width - 20, 17, Math.max(1, Math.floor((height - 28) / 17)));
+};
+
+export async function renderCharacterSheetCanvas(card) {
+  if (document.fonts?.ready) await document.fonts.ready;
+  const { width, height, scale } = CHARACTER_SHEET_CANVAS_SIZE;
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+
+  const attrs = card.attributes || {};
+  ctx.fillStyle = "#f5edd7";
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = "#5f4720";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(18, 18, width - 36, height - 36);
+  ctx.strokeStyle = "#b69347";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(27, 27, width - 54, height - 54);
+
+  ctx.fillStyle = "#34220e";
+  ctx.font = "700 30px 'Cinzel Decorative', Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.fillText("SCHEDA DEL PERSONAGGIO", width / 2, 70);
+  ctx.font = "italic 15px 'Spectral', Georgia, serif";
+  ctx.fillStyle = "#765925";
+  ctx.fillText("TomeForge · dati regolamentari e scelte dell'avventuriero", width / 2, 94);
+  ctx.textAlign = "left";
+
+  sheetBox(ctx, 48, 118, 382, 58, "Nome", sheetValue(card.name));
+  sheetBox(ctx, 444, 118, 302, 58, "Livello", sheetValue(attrs.livello));
+  sheetBox(ctx, 48, 188, 224, 58, "Razza", sheetValue(attrs.razza));
+  sheetBox(ctx, 284, 188, 224, 58, "Classe", sheetValue(attrs.classe));
+  sheetBox(ctx, 520, 188, 226, 58, "Sottoclasse", sheetValue(attrs.sottoclasse));
+
+  const abilityY = 268;
+  const abilityWidth = 111;
+  ABILITIES.forEach((ability, index) => {
+    const x = 48 + index * (abilityWidth + 6);
+    ctx.fillStyle = "#34220e";
+    ctx.fillRect(x, abilityY, abilityWidth, 77);
+    ctx.strokeStyle = "#b69347";
+    ctx.strokeRect(x, abilityY, abilityWidth, 77);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f5d77a";
+    ctx.font = "700 11px 'Cinzel', Georgia, serif";
+    ctx.fillText(ability.toUpperCase(), x + abilityWidth / 2, abilityY + 22);
+    ctx.fillStyle = "#fff8e7";
+    ctx.font = "700 30px 'Spectral', Georgia, serif";
+    ctx.fillText(sheetValue(attrs[ability]), x + abilityWidth / 2, abilityY + 57);
+  });
+  ctx.textAlign = "left";
+
+  sheetBox(ctx, 48, 365, 168, 60, "Classe armatura", sheetValue(attrs.classe_armatura));
+  sheetBox(ctx, 228, 365, 168, 60, "Punti ferita", sheetValue(attrs.punti_ferita));
+  sheetBox(ctx, 408, 365, 168, 60, "Bonus competenza", sheetValue(attrs.bonus_competenza));
+  sheetBox(ctx, 588, 365, 158, 60, "CD incantesimi", sheetValue(attrs.cd_incantesimi));
+
+  sheetBox(ctx, 48, 448, 338, 118, "Competenze", sheetValue(attrs.competenze));
+  sheetBox(ctx, 408, 448, 338, 118, "Slot incantesimi", (attrs.slot_incantesimi || [])
+    .map((slot) => `L${slot?.livello || "?"}: ${Math.max(0, Number(slot?.totale || 0) - Number(slot?.usati || 0))}/${slot?.totale || 0}`)
+    .join(" · ") || "—");
+  sheetBox(ctx, 48, 586, 338, 140, "Privilegi", sheetTextLines(attrs.privilegi?.length ? attrs.privilegi : attrs.abilita_sottoclasse));
+  sheetBox(ctx, 408, 586, 338, 140, "Incantesimi", sheetTextLines(attrs.incantesimi));
+  sheetBox(ctx, 48, 746, 338, 140, "Equipaggiamento", sheetTextLines(attrs.equipaggiamento));
+  sheetBox(ctx, 408, 746, 338, 140, "Note / tratti", sheetValue(attrs.tratti || card.description));
+
+  ctx.strokeStyle = "#b69347";
+  ctx.strokeRect(48, 908, 698, 138);
+  ctx.fillStyle = "#765925";
+  ctx.font = "700 10px 'Cinzel', Georgia, serif";
+  ctx.fillText("FONTI NORMATIVE COLLEGATE", 60, 928);
+  ctx.fillStyle = "#34220e";
+  ctx.font = "14px 'Spectral', Georgia, serif";
+  const sources = (card.source_refs || []).map((reference) => `${reference.filename || "Manuale"} · p. ${reference.page || "?"}`).join("  |  ") || "Nessuna fonte normativa collegata.";
+  drawWrappedText(ctx, sources, 60, 953, 674, 18, 4);
+
+  ctx.fillStyle = "#765925";
+  ctx.font = "italic 11px 'Spectral', Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.fillText("I valori inseriti o tirati dall'avventuriero non vengono sostituiti dai riferimenti.", width / 2, 1081);
+  ctx.textAlign = "left";
+  return canvas;
+}
+
+export async function addCharacterSheetPdfPage(pdf, card) {
+  const sheet = await renderCharacterSheetCanvas(card);
+  pdf.addImage(sheet.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
+  return sheet;
+}
