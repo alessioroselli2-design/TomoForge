@@ -121,6 +121,8 @@ export default function CardEditor() {
   const isEdit = !!id;
   const requestedType = searchParams.get("type");
   const requestedReferenceId = searchParams.get("referenceId");
+  const requestedReviewTypes = searchParams.get("reviewTypes");
+  const requestedReviewManual = searchParams.get("reviewManual");
   const fileRef = useRef(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
 
@@ -231,6 +233,14 @@ export default function CardEditor() {
     })();
     return () => { active = false; };
   }, [isEdit, requestedReferenceId]);
+
+  useEffect(() => {
+    if (isEdit || !requestedReviewTypes) return;
+    setReviewTypes(requestedReviewTypes);
+    setReviewManual(requestedReviewManual || "");
+    setReferenceQuery("");
+    window.setTimeout(() => document.getElementById("editor-library")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }, [isEdit, requestedReviewManual, requestedReviewTypes]);
 
   useEffect(() => {
     if (card.type !== "character" || !card.reference_ids?.length) {

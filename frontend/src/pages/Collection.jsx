@@ -8,9 +8,11 @@ import { api } from "@/lib/api";
 import { CARD_TYPES } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
 import { CardFront } from "@/components/TradingCard";
+import LibraryCoverageReadiness from "@/components/LibraryCoverageReadiness";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/context/AuthContext";
 import { addPrintSheetCard } from "@/lib/cardExport";
 import { getPrintSheetPositions, PRINT_FORMATS } from "@/lib/printFormats";
 
@@ -19,6 +21,7 @@ const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240
 export default function Collection() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { user } = useAuth();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -46,6 +49,14 @@ export default function Collection() {
   const chosenCards = cards.filter((c) => selected.includes(c.id));
   const totalSteps = chosenCards.length * (includeBack ? 2 : 1);
   const perPage = PRINT_FORMATS[format].cols * PRINT_FORMATS[format].rows;
+
+  const openCoverageReviews = (types, sourceFilename) => {
+    const params = new URLSearchParams({
+      reviewTypes: types,
+      ...(sourceFilename ? { reviewManual: sourceFilename } : {}),
+    });
+    navigate(`/crea?${params.toString()}`);
+  };
 
   const exportPrintSheet = async () => {
     if (!chosenCards.length) {
@@ -183,6 +194,12 @@ export default function Collection() {
             </button>
           </div>
         </section>
+
+        {user?.is_premium && (
+          <section className="mt-6" aria-label="Stato della biblioteca privata">
+            <LibraryCoverageReadiness onOpenReviews={openCoverageReviews} />
+          </section>
+        )}
 
         {/* Controls */}
         <div className="mt-8 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
