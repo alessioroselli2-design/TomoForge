@@ -36,8 +36,11 @@ export const ATTR_LABELS = {
   for: "FOR", des: "DES", cos: "COS", int: "INT", sag: "SAG", car: "CAR",
   resistenze: "Resistenze", vulnerabilita: "Vulnerabilità", immunita: "Immunità",
   sensi: "Sensi", grado_sfida: "Grado Sfida", azioni: "Azioni",
-  classe: "Classe", razza: "Razza", bonus_competenza: "Bonus competenza",
+  classe: "Classe", sottoclasse: "Sottoclasse", razza: "Razza", sottorazza: "Sottorazza", background: "Background",
+  bonus_competenza: "Bonus competenza", velocita: "Velocità", linguaggi: "Linguaggi",
   cd_incantesimi: "CD incantesimi", abilita_sottoclasse: "Abilità sottoclasse",
+  privilegi: "Privilegi", incantesimi: "Incantesimi", equipaggiamento: "Equipaggiamento", talenti: "Talenti",
+  pf_attuali: "PF attuali", pf_temporanei: "PF temporanei", dadi_vita: "Dadi vita",
   slot_incantesimi: "Slot incantesimi", nome: "Nome", descrizione: "Descrizione",
   totale: "Totale", usati: "Usati",
 };

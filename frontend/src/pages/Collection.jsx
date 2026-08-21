@@ -160,7 +160,7 @@ export default function Collection() {
               <span><strong className="block text-lg text-gold">{new Set(cards.map((card) => card.type)).size}</strong> TIPI</span>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-4">
             <button data-testid="quick-create" onClick={() => navigate("/crea")}
               className="group flex items-center justify-between border border-gold-deep/50 bg-obsidian/50 px-4 py-3 text-left transition-colors hover:border-gold hover:bg-gold/10">
               <span><strong className="block font-label text-[11px] tracking-widest text-gold">FORGIA UNA CARTA</strong><small className="mt-1 block font-body text-xs text-muted-foreground">Parti da un tipo e dai vita all’idea.</small></span>
@@ -170,6 +170,11 @@ export default function Collection() {
               className="group flex items-center justify-between border border-gold-deep/50 bg-obsidian/50 px-4 py-3 text-left transition-colors hover:border-gold hover:bg-gold/10">
               <span><strong className="block font-label text-[11px] tracking-widest text-gold">EVOCA CON L’AI</strong><small className="mt-1 block font-body text-xs text-muted-foreground">Contenuto e artwork in un solo laboratorio.</small></span>
               <Wand2 className="h-5 w-5 text-gold transition-transform group-hover:-rotate-12" />
+            </button>
+            <button data-testid="quick-character" onClick={() => navigate("/crea?type=character")}
+              className="group flex items-center justify-between border border-sky-700/50 bg-sky-950/20 px-4 py-3 text-left transition-colors hover:border-sky-300 hover:bg-sky-900/30">
+              <span><strong className="block font-label text-[11px] tracking-widest text-sky-200">CREA PERSONAGGIO</strong><small className="mt-1 block font-body text-xs text-muted-foreground">Salva i dati per carta e scheda.</small></span>
+              <FileText className="h-5 w-5 text-sky-200 transition-transform group-hover:scale-110" />
             </button>
             <button data-testid="quick-print" onClick={() => setSelectMode(true)}
               className="group flex items-center justify-between border border-gold-deep/50 bg-obsidian/50 px-4 py-3 text-left transition-colors hover:border-gold hover:bg-gold/10">

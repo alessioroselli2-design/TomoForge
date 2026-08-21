@@ -289,6 +289,12 @@ export default function CardDetail() {
               </AlertDialog>
 
             </div>
+              {card.type === "character" && (
+                <Button data-testid="character-sheet-btn" onClick={() => navigate(`/carta/${id}/scheda`)}
+                  className="mt-2 w-full rounded-none bg-sky-700 text-white hover:bg-sky-600 font-label text-[11px] tracking-wide transition-colors">
+                  <FileText className="w-3.5 h-3.5 mr-1.5" /> APRI SCHEDA PERSONAGGIO
+                </Button>
+              )}
             <div className="mt-4 border border-gold-deep/40 bg-card/50 p-3">
               <p className="font-label text-[10px] tracking-[0.18em] text-gold">ESPORTA O STAMPA</p>
               <div className="mt-3 grid grid-cols-1 gap-2">

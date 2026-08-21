@@ -560,4 +560,10 @@ body {
     .no-print { display: none !important; }
     body { background: white !important; color: black !important; }
     .print-sheet { box-shadow: none !important; }
+    .character-sheet-page { max-width: none !important; padding: 0 !important; color: #17130e !important; }
+    .character-sheet-page * { color: #17130e !important; background: transparent !important; box-shadow: none !important; }
+    .character-sheet-page .text-gold,
+    .character-sheet-page .tf-gold-text { color: #6b4612 !important; }
+    .character-sheet-page .border,
+    .character-sheet-page [class*="border-"] { border-color: #806b4f !important; }
 }

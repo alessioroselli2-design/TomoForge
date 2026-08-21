@@ -7,6 +7,7 @@ import Landing from "@/pages/Landing";
 import Collection from "@/pages/Collection";
 import CardEditor from "@/pages/CardEditor";
 import CardDetail from "@/pages/CardDetail";
+import CharacterSheet from "@/pages/CharacterSheet";
 import PublicCard from "@/pages/PublicCard";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
@@ -36,6 +37,7 @@ function AppRouter() {
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/carta/:id/modifica" element={<Protected><CardEditor /></Protected>} />
+      <Route path="/carta/:id/scheda" element={<Protected><CharacterSheet /></Protected>} />
       <Route path="/carta/:id" element={<Protected><CardDetail /></Protected>} />
       <Route path="/payment/success" element={<Protected><PaymentSuccess /></Protected>} />
       <Route path="/payment/cancel" element={<Protected><PaymentCancel /></Protected>} />

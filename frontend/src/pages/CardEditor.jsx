@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search } from "lucide-react";
@@ -28,7 +28,13 @@ const DEFAULT_ATTRS = {
   item: { categoria: "", costo: "", peso: "", proprieta: "", rarita: "", sintonia: "" },
   feat: { prerequisito: "", benefici: [] },
   monster: { classe_armatura: "", punti_ferita: "", velocita: "", for: "", des: "", cos: "", int: "", sag: "", car: "", tiri_salvezza: "", resistenze: "", vulnerabilita: "", immunita: "", sensi: "", linguaggi: "", grado_sfida: "", azioni: [{ nome: "", descrizione: "" }] },
-  character: { classe: "", razza: "", livello: "", for: "", des: "", cos: "", int: "", sag: "", car: "", bonus_competenza: "", classe_armatura: "", punti_ferita: "", cd_incantesimi: "", competenze: "", abilita_sottoclasse: [], slot_incantesimi: [] },
+  character: {
+    classe: "", sottoclasse: "", razza: "", sottorazza: "", background: "", livello: "",
+    for: "", des: "", cos: "", int: "", sag: "", car: "", bonus_competenza: "",
+    classe_armatura: "", punti_ferita: "", pf_attuali: "", pf_temporanei: "", dadi_vita: "",
+    velocita: "", linguaggi: "", cd_incantesimi: "", competenze: "", abilita_sottoclasse: [],
+    privilegi: [], incantesimi: [], equipaggiamento: [], talenti: [], slot_incantesimi: [],
+  },
   custom: {},
 };
 
@@ -57,8 +63,11 @@ const LIBRARY_TYPE_LABELS = {
 export default function CardEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const isEdit = !!id;
+  const requestedType = searchParams.get("type");
+  const requestedReferenceId = searchParams.get("referenceId");
   const fileRef = useRef(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
 
@@ -116,6 +125,40 @@ export default function CardEditor() {
       }
     })();
   }, [id, isEdit, navigate]);
+
+  useEffect(() => {
+    if (isEdit || !requestedType || !DEFAULT_ATTRS[requestedType]) return;
+    setCard((current) => ({
+      ...current,
+      type: requestedType,
+      attributes: { ...DEFAULT_ATTRS[requestedType] },
+    }));
+  }, [isEdit, requestedType]);
+
+  useEffect(() => {
+    if (isEdit || !requestedReferenceId) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await api.post(`/library/${requestedReferenceId}/apply`);
+        if (!active) return;
+        const nextType = res.data.card_type || "custom";
+        setCard((current) => ({
+          ...current,
+          type: nextType,
+          name: res.data.name || current.name,
+          description: res.data.description || current.description,
+          story: res.data.story || current.story,
+          language: res.data.content_language || current.language,
+          attributes: { ...(DEFAULT_ATTRS[nextType] || {}), ...(res.data.attributes || {}) },
+        }));
+        toast.success("Contenuto della biblioteca pronto per la carta");
+      } catch (error) {
+        if (active) toast.error(error.response?.data?.detail || "Impossibile preparare il contenuto della biblioteca");
+      }
+    })();
+    return () => { active = false; };
+  }, [isEdit, requestedReferenceId]);
 
   const set = (patch) => setCard((c) => ({ ...c, ...patch }));
   const setAppearance = (appearance) => setCard((c) => ({ ...c, appearance }));
