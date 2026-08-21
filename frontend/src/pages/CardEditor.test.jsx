@@ -63,13 +63,22 @@ jest.mock("@/components/ui/label", () => ({
   Label: ({ children, ...props }) => <label {...props}>{children}</label>,
 }));
 
-jest.mock("@/components/ui/select", () => ({
-  Select: ({ children }) => <div>{children}</div>,
-  SelectContent: ({ children }) => <div>{children}</div>,
-  SelectItem: ({ children, ...props }) => <div {...props}>{children}</div>,
-  SelectTrigger: ({ children, ...props }) => <button {...props}>{children}</button>,
-  SelectValue: ({ children }) => <span>{children}</span>,
-}));
+jest.mock("@/components/ui/select", () => {
+  const React = require("react");
+  const SelectContext = React.createContext(null);
+  return {
+    Select: ({ children, onValueChange }) => (
+      <SelectContext.Provider value={onValueChange}>{children}</SelectContext.Provider>
+    ),
+    SelectContent: ({ children }) => <div>{children}</div>,
+    SelectItem: ({ children, ...props }) => <div {...props}>{children}</div>,
+    SelectTrigger: ({ children, ...props }) => {
+      const onValueChange = React.useContext(SelectContext);
+      return <button {...props} onClick={() => onValueChange?.("class")}>{children}</button>;
+    },
+    SelectValue: ({ children }) => <span>{children}</span>,
+  };
+});
 
 jest.mock("@/components/ui/accordion", () => ({
   Accordion: ({ children }) => <div>{children}</div>,
@@ -149,5 +158,41 @@ describe("CardEditor review scope", () => {
       },
     });
     expect(container.textContent).toContain("Classe da rivedere");
+  });
+
+  it("keeps the review scope when the card type changes", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class%2Cfeat&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    const typeSelect = container.querySelector('[data-testid="type-select"]');
+    expect(typeSelect).not.toBeNull();
+
+    await act(async () => {
+      typeSelect.click();
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    const libraryCalls = api.get.mock.calls.filter(([path]) => path === "/library");
+    expect(libraryCalls).toHaveLength(2);
+    expect(libraryCalls[1]).toEqual(["/library", {
+      params: {
+        types: "class,feat",
+        review_only: true,
+        include_unverified: true,
+        source_filename: "manuale del giocatore.pdf",
+      },
+    }]);
   });
 });
