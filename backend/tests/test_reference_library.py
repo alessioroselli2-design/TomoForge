@@ -740,6 +740,63 @@ def test_library_search_returns_sourced_or_explicitly_unavailable(monkeypatch):
     assert diagnostic["records"][0]["needs_review"] is True
 
 
+def test_library_review_search_scopes_manuals_and_filters_before_result_limit(monkeypatch, tmp_path):
+    manual_a = tmp_path / "Manuale-A.pdf"
+    manual_b = tmp_path / "Manuale-B.pdf"
+    manual_a.write_bytes(b"manual a")
+    manual_b.write_bytes(b"manual b")
+    verified_records = [
+        make_reference(
+            f"Archivio {index:02}",
+            reference_type="class",
+            source_refs=[{"filename": "Manuale-A.pdf", "page": index + 1}],
+        )
+        for index in range(45)
+    ]
+    review_in_a = make_reference(
+        "Zeta da verificare",
+        reference_type="class",
+        source_refs=[{"filename": "Manuale-A.pdf", "page": 99}],
+        review_flags=["ocr_da_verificare"],
+        review_status="needs_review",
+    )
+    review_in_b = make_reference(
+        "Altra revisione",
+        reference_type="class",
+        source_refs=[{"filename": "Manuale-B.pdf", "page": 12}],
+        review_flags=["ocr_da_verificare"],
+        review_status="needs_review",
+    )
+    monkeypatch.setattr(
+        server,
+        "available_reference_manuals",
+        lambda: {"Manuale-A.pdf": manual_a, "Manuale-B.pdf": manual_b},
+    )
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(private_reference_records=MemoryReferences([
+            *verified_records,
+            review_in_a,
+            review_in_b,
+            {**review_in_a, "id": "other-owner-record", "user_id": "owner-2"},
+        ])),
+    )
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
+
+    result = asyncio.run(server.search_private_library(
+        q="",
+        types="class",
+        review_only=True,
+        include_unverified=True,
+        source_filename="Manuale-A.pdf",
+        user=user,
+    ))
+
+    assert [record["id"] for record in result["records"]] == [review_in_a["id"]]
+    assert result["records"][0]["needs_review"] is True
+
+
 def test_manual_coverage_counts_valid_missing_and_records_to_review(monkeypatch, tmp_path):
     source = tmp_path / "Manuale.pdf"
     source.write_bytes(b"manual")

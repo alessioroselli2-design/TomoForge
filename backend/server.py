@@ -1876,16 +1876,28 @@ async def search_private_library(
     types: str = Query("", max_length=200),
     review_only: bool = False,
     include_unverified: bool = False,
+    source_filename: str = Query("", max_length=300),
     user: User = Depends(get_current_user),
 ):
+    # Direct service tests invoke this route without FastAPI dependency
+    # resolution, which leaves a Query object in optional parameters.
+    source_filename = source_filename if isinstance(source_filename, str) else ""
     requested_types = {value.strip() for value in types.split(",") if value.strip()}
     if requested_types - set(REFERENCE_TYPES):
         raise HTTPException(status_code=400, detail="Tipo di contenuto non valido")
-    records = search_reference_records(await private_reference_records(user.user_id), q, limit=40)
+    if source_filename and source_filename not in available_reference_manuals():
+        raise HTTPException(status_code=400, detail="Manuale non disponibile nella biblioteca privata")
+    records = await private_reference_records(user.user_id)
     if requested_types:
         records = [record for record in records if record.get("reference_type") in requested_types]
+    if source_filename:
+        records = [
+            record for record in records
+            if any(ref.get("filename") == source_filename for ref in record.get("source_refs", []))
+        ]
     if review_only:
         records = [record for record in records if reference_review_state(record) == "review"]
+    records = search_reference_records(records, q, limit=40)
     excluded_unverified = sum(not reference_is_trusted(record) for record in records)
     if not include_unverified:
         records = [record for record in records if reference_is_trusted(record)]

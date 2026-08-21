@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import { PremiumDialog } from "@/components/PremiumDialog";
 import { CardAppearanceControls } from "@/components/CardAppearanceControls";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
+import LibraryCoverageReadiness from "@/components/LibraryCoverageReadiness";
 import { useAuth } from "@/context/AuthContext";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import AttributeEditor from "@/components/AttributeEditor";
@@ -142,6 +143,8 @@ export default function CardEditor() {
   const [searchingSpells, setSearchingSpells] = useState(false);
   const [applyingSpell, setApplyingSpell] = useState(null);
   const [referenceQuery, setReferenceQuery] = useState("");
+  const [reviewTypes, setReviewTypes] = useState("");
+  const [reviewManual, setReviewManual] = useState("");
   const [referenceResults, setReferenceResults] = useState([]);
   const [searchingReferences, setSearchingReferences] = useState(false);
   const [applyingReference, setApplyingReference] = useState(null);
@@ -321,7 +324,7 @@ export default function CardEditor() {
 
   useEffect(() => {
     const types = LIBRARY_TYPES_BY_CARD[card.type];
-    if (!types || !referenceQuery.trim()) {
+    if ((!types && !reviewTypes) || (!referenceQuery.trim() && !reviewTypes)) {
       setReferenceResults([]);
       setSearchingReferences(false);
       return undefined;
@@ -329,7 +332,14 @@ export default function CardEditor() {
     const timer = window.setTimeout(async () => {
       setSearchingReferences(true);
       try {
-        const res = await api.get("/library", { params: { q: referenceQuery, types } });
+        const res = await api.get("/library", {
+          params: {
+            ...(referenceQuery.trim() ? { q: referenceQuery } : {}),
+            types: reviewTypes || types,
+            ...(reviewTypes ? { review_only: true, include_unverified: true } : {}),
+            ...(reviewManual ? { source_filename: reviewManual } : {}),
+          },
+        });
         setReferenceResults(res.data.records || []);
       } catch (error) {
         setReferenceResults([]);
@@ -338,7 +348,14 @@ export default function CardEditor() {
       }
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [card.type, referenceQuery]);
+  }, [card.type, referenceQuery, reviewManual, reviewTypes]);
+
+  const openCoverageReviews = (types, sourceFilename) => {
+    setReviewTypes(types);
+    setReviewManual(sourceFilename || "");
+    setReferenceQuery("");
+    window.setTimeout(() => document.getElementById("editor-library")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  };
 
   const applyReference = async (referenceId) => {
     setApplyingReference(referenceId);
@@ -907,6 +924,10 @@ export default function CardEditor() {
                 </section>
               )}
 
+              {user?.is_premium && (
+                <LibraryCoverageReadiness onOpenReviews={openCoverageReviews} />
+              )}
+
               {LIBRARY_TYPES_BY_CARD[card.type] && (
                 <section id="editor-library" className="scroll-mt-28 border border-gold-deep/50 bg-card p-5">
                   <div className="flex items-center gap-2">
@@ -938,14 +959,22 @@ export default function CardEditor() {
                     <Input
                       data-testid="reference-search"
                       value={referenceQuery}
-                      onChange={(event) => setReferenceQuery(event.target.value)}
+                      onChange={(event) => { setReferenceQuery(event.target.value); setReviewTypes(""); setReviewManual(""); }}
                       placeholder={card.type === "class" ? "Es. Guerriero, Arciere Arcano…" : card.type === "monster" ? "Es. Beholder" : "Cerca nella biblioteca"}
                       className={`${inputCls} pl-9`}
                     />
                     {searchingReferences && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gold" />}
                   </div>
-                  {referenceQuery.trim() && !searchingReferences && referenceResults.length === 0 && (
-                    <p className="mt-3 font-body text-xs text-muted-foreground">Nessun contenuto corrispondente nella tua biblioteca.</p>
+                  {reviewTypes && (
+                    <p className="mt-2 flex items-center justify-between border-l-2 border-amber-500/70 bg-amber-950/20 px-3 py-2 font-body text-[11px] text-amber-100/80">
+                      <span>Record del tuo account contrassegnati per revisione.</span>
+                      <button type="button" onClick={() => { setReviewTypes(""); setReviewManual(""); }} className="font-label text-[9px] tracking-widest text-gold hover:text-amber-200">MOSTRA TUTTI</button>
+                    </p>
+                  )}
+                  {(referenceQuery.trim() || reviewTypes) && !searchingReferences && referenceResults.length === 0 && (
+                    <p className="mt-3 font-body text-xs text-muted-foreground">
+                      {reviewTypes ? "Nessun record da verificare per queste categorie." : "Nessun contenuto corrispondente nella tua biblioteca."}
+                    </p>
                   )}
                   {referenceResults.length > 0 && (
                     <div className="mt-3 divide-y divide-border border border-border">
