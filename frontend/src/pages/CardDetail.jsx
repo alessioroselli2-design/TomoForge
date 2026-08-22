@@ -13,7 +13,7 @@ import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
 import { CardHistoryPanel } from "@/components/CardHistoryPanel";
-import { addCharacterSheetPdfPage, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
+import { addCharacterSheetPdfPages, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -339,7 +339,7 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      await addCharacterSheetPdfPage(pdf, card);
+      await addCharacterSheetPdfPages(pdf, card);
       pdf.save(`scheda-${card.name || "personaggio"}.pdf`);
       setExportFeedback("Scheda completa A4 generata.");
       toast.success("Scheda PDF generata");
@@ -354,7 +354,7 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      await addCharacterSheetPdfPage(pdf, card);
+      await addCharacterSheetPdfPages(pdf, card);
       const url = URL.createObjectURL(pdf.output("blob"));
       if (printWindow) {
         printWindow.location.href = url;

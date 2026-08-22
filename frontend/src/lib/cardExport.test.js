@@ -1,5 +1,6 @@
 import {
   CARD_CANVAS_SIZE,
+  addCharacterSheetPdfPages,
   addPrintSheetCard,
   addSingleCardA4PdfPages,
   addSingleCardPdfPages,
@@ -327,5 +328,56 @@ describe("card export renderers", () => {
     expect(pdf.addPage).toHaveBeenCalledTimes(1);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 73.25, 104.05, 63.5, 88.9);
     expect(pdf.addImage).toHaveBeenCalledTimes(2);
+  });
+
+  it("moves every long character-sheet list entry to additional A4 pages", async () => {
+    const card = {
+      id: "long-character-sheet",
+      type: "character",
+      name: "Personaggio con inventario esteso",
+      attributes: {
+        ...abilities,
+        privilegi: Array.from({ length: 24 }, (_, index) => `Privilegio ${index + 1}`),
+        incantesimi: Array.from({ length: 24 }, (_, index) => `Incantesimo ${index + 1}`),
+        equipaggiamento: Array.from({ length: 24 }, (_, index) => `Equipaggiamento ${index + 1}`),
+      },
+    };
+    const pdf = {
+      addImage: jest.fn(),
+      addPage: jest.fn(),
+    };
+
+    const pages = await addCharacterSheetPdfPages(pdf, card);
+    const text = canvases
+      .flatMap((canvas) => canvas.operations)
+      .filter((entry) => entry.name === "fillText")
+      .map((entry) => entry.text)
+      .join(" ");
+
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pdf.addImage).toHaveBeenCalledTimes(pages.length);
+    expect(pdf.addPage).toHaveBeenCalledTimes(pages.length - 1);
+    expect(text).toContain("Privilegio 24");
+    expect(text).toContain("Incantesimo 24");
+    expect(text).toContain("Equipaggiamento 24");
+  });
+
+  it("keeps a short character sheet on one A4 page", async () => {
+    const card = {
+      id: "short-character-sheet",
+      type: "character",
+      name: "Personaggio breve",
+      attributes: { ...abilities, privilegi: ["Privilegio"], incantesimi: ["Incantesimo"], equipaggiamento: ["Equipaggiamento"] },
+    };
+    const pdf = {
+      addImage: jest.fn(),
+      addPage: jest.fn(),
+    };
+
+    const pages = await addCharacterSheetPdfPages(pdf, card);
+
+    expect(pages).toHaveLength(1);
+    expect(pdf.addPage).not.toHaveBeenCalled();
+    expect(pdf.addImage).toHaveBeenCalledTimes(1);
   });
 });

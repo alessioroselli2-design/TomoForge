@@ -168,7 +168,7 @@ const colorToRgb = (hex) => {
     : [127, 29, 29];
 };
 
-const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) => {
+const wrapTextLines = (ctx, text, maxWidth) => {
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
@@ -199,7 +199,13 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
     }
   });
   if (line) lines.push(line);
-  lines.slice(0, maxLines).forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
+  return lines;
+};
+
+const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) => {
+  wrapTextLines(ctx, text, maxWidth)
+    .slice(0, maxLines)
+    .forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
 };
 
 const drawBackEmblem = (ctx, emblem, cx, cy, accent) => {
@@ -602,8 +608,14 @@ export const CHARACTER_SHEET_CANVAS_SIZE = Object.freeze({ width: 794, height: 1
 const sheetValue = (value, fallback = "—") => hasSheetValue(value) ? String(value) : fallback;
 const hasSheetValue = (value) => value !== undefined && value !== null && String(value).trim() !== "";
 
-const sheetTextLines = (items = []) => items
-  .map((item) => typeof item === "string" ? item : item?.nome || item?.name || "")
+const sheetListItems = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return value.split(/\n|,/);
+  return [];
+};
+
+const sheetTextLines = (items = []) => sheetListItems(items)
+  .map((item) => typeof item === "string" ? item.trim() : item?.nome || item?.name || "")
   .filter(Boolean)
   .join(" · ") || "—";
 
@@ -619,7 +631,27 @@ const sheetBox = (ctx, x, y, width, height, label, value, color = "#d4af37") => 
   drawWrappedText(ctx, String(value || "—"), x + 10, y + 35, width - 20, 17, Math.max(1, Math.floor((height - 28) / 17)));
 };
 
-export async function renderCharacterSheetCanvas(card) {
+const sheetListLines = (ctx, value, width) => {
+  ctx.font = "600 16px 'Spectral', Georgia, serif";
+  return wrapTextLines(ctx, sheetTextLines(value), width);
+};
+
+const drawSheetBoxLines = (ctx, x, y, width, height, label, lines, color = "#d4af37") => {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, width, height);
+  ctx.fillStyle = color;
+  ctx.font = "700 9px 'Cinzel', Georgia, serif";
+  ctx.fillText(label.toUpperCase(), x + 10, y + 15, width - 20);
+  ctx.fillStyle = "#201b15";
+  ctx.font = "600 16px 'Spectral', Georgia, serif";
+  const maxLines = Math.max(1, Math.floor((height - 28) / 17));
+  lines.slice(0, maxLines).forEach((line, index) => {
+    ctx.fillText(line, x + 10, y + 35 + index * 17, width - 20);
+  });
+};
+
+const createCharacterSheetCanvas = async (card) => {
   if (document.fonts?.ready) await document.fonts.ready;
   const { width, height, scale } = CHARACTER_SHEET_CANVAS_SIZE;
   const canvas = document.createElement("canvas");
@@ -680,9 +712,38 @@ export async function renderCharacterSheetCanvas(card) {
   sheetBox(ctx, 408, 448, 338, 118, "Slot incantesimi", (attrs.slot_incantesimi || [])
     .map((slot) => `L${slot?.livello || "?"}: ${Math.max(0, Number(slot?.totale || 0) - Number(slot?.usati || 0))}/${slot?.totale || 0}`)
     .join(" · ") || "—");
-  sheetBox(ctx, 48, 586, 338, 140, "Privilegi", sheetTextLines(attrs.privilegi?.length ? attrs.privilegi : attrs.abilita_sottoclasse));
-  sheetBox(ctx, 408, 586, 338, 140, "Incantesimi", sheetTextLines(attrs.incantesimi));
-  sheetBox(ctx, 48, 746, 338, 140, "Equipaggiamento", sheetTextLines(attrs.equipaggiamento));
+  const listSections = [
+    {
+      label: "Privilegi",
+      value: attrs.privilegi?.length ? attrs.privilegi : attrs.abilita_sottoclasse,
+      x: 48,
+      y: 586,
+      width: 338,
+      height: 140,
+    },
+    {
+      label: "Incantesimi",
+      value: attrs.incantesimi,
+      x: 408,
+      y: 586,
+      width: 338,
+      height: 140,
+    },
+    {
+      label: "Equipaggiamento",
+      value: attrs.equipaggiamento,
+      x: 48,
+      y: 746,
+      width: 338,
+      height: 140,
+    },
+  ].map((section) => ({
+    ...section,
+    lines: sheetListLines(ctx, section.value, section.width - 20),
+  }));
+  listSections.forEach((section) => {
+    drawSheetBoxLines(ctx, section.x, section.y, section.width, section.height, section.label, section.lines);
+  });
   sheetBox(ctx, 408, 746, 338, 140, "Note / tratti", sheetValue(attrs.tratti || card.description));
 
   ctx.strokeStyle = "#b69347";
@@ -700,7 +761,135 @@ export async function renderCharacterSheetCanvas(card) {
   ctx.textAlign = "center";
   ctx.fillText("I valori inseriti o tirati dall'avventuriero non vengono sostituiti dai riferimenti.", width / 2, 1081);
   ctx.textAlign = "left";
+  return { canvas, listSections };
+};
+
+const drawSheetFrame = (ctx, title, subtitle) => {
+  const { width, height } = CHARACTER_SHEET_CANVAS_SIZE;
+  ctx.fillStyle = "#f5edd7";
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = "#5f4720";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(18, 18, width - 36, height - 36);
+  ctx.strokeStyle = "#b69347";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(27, 27, width - 54, height - 54);
+  ctx.fillStyle = "#34220e";
+  ctx.font = "700 30px 'Cinzel Decorative', Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.fillText(title, width / 2, 70);
+  ctx.font = "italic 15px 'Spectral', Georgia, serif";
+  ctx.fillStyle = "#765925";
+  ctx.fillText(subtitle, width / 2, 94);
+  ctx.textAlign = "left";
+};
+
+const createCharacterSheetOverflowCanvas = (card, sections, pageNumber) => {
+  const { width, height, scale } = CHARACTER_SHEET_CANVAS_SIZE;
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  drawSheetFrame(ctx, "CONTENUTI AGGIUNTIVI", `${card.name || "Personaggio"} · pagina ${pageNumber}`);
+
+  const contentX = 48;
+  const contentWidth = width - 96;
+  const contentBottom = height - 77;
+  const lineHeight = 20;
+  const sectionHeaderHeight = 30;
+  let y = 132;
+  ctx.font = "600 16px 'Spectral', Georgia, serif";
+
+  sections.forEach((section) => {
+    if (!section.lines.length) return;
+    if (y + sectionHeaderHeight + lineHeight > contentBottom) {
+      y = contentBottom;
+      return;
+    }
+    ctx.fillStyle = "#765925";
+    ctx.font = "700 12px 'Cinzel', Georgia, serif";
+    ctx.fillText(section.label.toUpperCase(), contentX, y, contentWidth);
+    y += sectionHeaderHeight;
+    ctx.fillStyle = "#201b15";
+    ctx.font = "600 16px 'Spectral', Georgia, serif";
+    section.lines.forEach((line) => {
+      if (y + lineHeight > contentBottom) return;
+      ctx.fillText(line, contentX + 12, y, contentWidth - 12);
+      y += lineHeight;
+    });
+  });
+
+  ctx.fillStyle = "#765925";
+  ctx.font = "italic 11px 'Spectral', Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Continua nella pagina successiva se sono presenti altre voci.", width / 2, height - 42);
+  ctx.textAlign = "left";
   return canvas;
+};
+
+const paginateSheetOverflow = (sections) => {
+  const contentBottom = CHARACTER_SHEET_CANVAS_SIZE.height - 77;
+  const lineHeight = 20;
+  const sectionHeaderHeight = 30;
+  const pages = [];
+  let page = [];
+  let y = 132;
+
+  const pushPage = () => {
+    if (page.length) pages.push(page);
+    page = [];
+    y = 132;
+  };
+
+  sections.forEach((section) => {
+    let remaining = section.lines;
+    while (remaining.length) {
+      if (y + sectionHeaderHeight + lineHeight > contentBottom) pushPage();
+      const availableLines = Math.floor((contentBottom - y - sectionHeaderHeight) / lineHeight);
+      if (availableLines < 1) {
+        pushPage();
+        continue;
+      }
+      const lines = remaining.slice(0, availableLines);
+      page.push({ label: section.label, lines });
+      y += sectionHeaderHeight + lines.length * lineHeight;
+      remaining = remaining.slice(lines.length);
+      if (remaining.length && y + sectionHeaderHeight + lineHeight > contentBottom) pushPage();
+    }
+  });
+  pushPage();
+  return pages;
+};
+
+export async function renderCharacterSheetCanvases(card) {
+  if (document.fonts?.ready) await document.fonts.ready;
+  const { canvas, listSections } = await createCharacterSheetCanvas(card);
+  const overflowSections = listSections.map((section) => {
+    const maxLines = Math.max(1, Math.floor((section.height - 28) / 17));
+    return { label: section.label, lines: section.lines.slice(maxLines) };
+  }).filter((section) => section.lines.length);
+  if (!overflowSections.length) return [canvas];
+
+  const overflowPages = paginateSheetOverflow(overflowSections);
+  return [
+    canvas,
+    ...overflowPages.map((sections, index) => createCharacterSheetOverflowCanvas(card, sections, index + 2)),
+  ];
+}
+
+export async function renderCharacterSheetCanvas(card) {
+  const [canvas] = await renderCharacterSheetCanvases(card);
+  return canvas;
+}
+
+export async function addCharacterSheetPdfPages(pdf, card) {
+  const sheets = await renderCharacterSheetCanvases(card);
+  sheets.forEach((sheet, index) => {
+    if (index) pdf.addPage();
+    pdf.addImage(sheet.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
+  });
+  return sheets;
 }
 
 export async function addCharacterSheetPdfPage(pdf, card) {
