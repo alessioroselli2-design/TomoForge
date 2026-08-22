@@ -177,20 +177,18 @@ class SupabaseCursor:
         self.collection = collection
         self.query = query
         self.projection = projection
-        self.order_field: Optional[str] = None
-        self.order_desc = False
+        self.order_fields: list[tuple[str, bool]] = []
 
     def sort(self, field: str, direction: int) -> "SupabaseCursor":
-        self.order_field = field
-        self.order_desc = direction < 0
+        self.order_fields.append((field, direction < 0))
         return self
 
     async def to_list(self, limit: int) -> list[dict]:
         client = self.collection.client
         statement = client.table(self.collection.name).select("*")
         statement = self.collection.apply_filters(statement, self.query)
-        if self.order_field:
-            statement = statement.order(self.order_field, desc=self.order_desc)
+        for field, descending in self.order_fields:
+            statement = statement.order(field, desc=descending)
         result = statement.limit(limit).execute()
         return [self.collection.apply_projection(row, self.projection) for row in (result.data or [])]
 
@@ -211,12 +209,15 @@ class MemoryCursor:
     def __init__(self, rows: list[dict], projection: Optional[dict]):
         self.rows = rows
         self.projection = projection
+        self.order_fields: list[tuple[str, int]] = []
 
     def sort(self, field: str, direction: int) -> "MemoryCursor":
-        self.rows.sort(key=lambda row: row.get(field, ""), reverse=direction < 0)
+        self.order_fields.append((field, direction))
         return self
 
     async def to_list(self, limit: int) -> list[dict]:
+        for field, direction in reversed(self.order_fields):
+            self.rows.sort(key=lambda row: row.get(field, ""), reverse=direction < 0)
         return [
             {key: value for key, value in row.items() if not self.projection or self.projection.get(key, 1) != 0}
             for row in self.rows[:limit]
@@ -2152,7 +2153,25 @@ def reference_summary(record: dict) -> dict:
     }
 
 
-def reference_review_details(record: dict) -> dict:
+async def private_reference_review_history(user_id: str, reference_id: str) -> list[dict]:
+    """Load the append-only audit trail for one owner-controlled record."""
+    collection = getattr(db, "private_reference_review_history", None)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL")
+    try:
+        return await collection.find(
+            {"user_id": user_id, "reference_id": reference_id}
+        ).sort("reviewed_at", -1).sort("id", -1).to_list(500)
+    except Exception as exc:
+        if "private_reference_review_history" in str(exc):
+            raise HTTPException(
+                status_code=503,
+                detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL",
+            ) from exc
+        raise
+
+
+async def reference_review_details(record: dict) -> dict:
     """Return the private side-by-side material needed to review one record.
 
     This projection is only used by the authenticated owner review flow. The
@@ -2190,6 +2209,7 @@ def reference_review_details(record: dict) -> dict:
         "original": original,
         "translation": translation,
         "manual": copy.deepcopy(record.get("source_refs") or []),
+        "review_history": await private_reference_review_history(record["user_id"], record["id"]),
     }
 
 
@@ -2442,7 +2462,7 @@ async def get_private_reference_review(
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
-    return reference_review_details(record)
+    return await reference_review_details(record)
 
 
 @api_router.post("/library/{reference_id}/apply")
@@ -2475,12 +2495,47 @@ async def review_private_reference(
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    review_notes = body.review_notes.strip()
+    review_entry = {
+        "id": f"review_{uuid.uuid4().hex}",
+        "reference_id": record["id"],
+        "user_id": user.user_id,
+        "reviewer_id": user.user_id,
+        "reviewer_name": user.name,
+        "reviewer_email": user.email,
+        "reviewed_at": utc_now(),
+        "review_status": body.review_status,
+        "review_notes": review_notes,
+    }
+    history_collection = getattr(db, "private_reference_review_history", None)
+    if history_collection is None:
+        raise HTTPException(status_code=503, detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL")
+    try:
+        # A single INSERT is append-only at the database level: concurrent
+        # reviewers cannot erase an already persisted decision.
+        await history_collection.insert_one(review_entry)
+    except Exception as exc:
+        if "private_reference_review_history" in str(exc):
+            raise HTTPException(
+                status_code=503,
+                detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL",
+            ) from exc
+        raise
     await db.private_reference_records.update_one(
         {"id": reference_id, "user_id": user.user_id},
-        {"$set": {**body.model_dump(), "updated_at": utc_now()}},
+        {"$set": {
+            "review_status": body.review_status,
+            "review_notes": review_notes,
+            "updated_at": utc_now(),
+        }},
     )
     updated = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
-    return {"ok": True, **reference_review_details(updated or {**record, **body.model_dump()})}
+    fallback = {
+        **record,
+        "review_status": body.review_status,
+        "review_notes": review_notes,
+    }
+    return {"ok": True, **await reference_review_details(updated or fallback)}
 
 
 @api_router.post("/ai/generate-content")

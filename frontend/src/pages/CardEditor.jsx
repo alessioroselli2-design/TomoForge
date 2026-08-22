@@ -465,7 +465,10 @@ export default function CardEditor() {
   const showReferenceSource = async (referenceId, needsReview = false) => {
     setLoadingSourceRecord(referenceId);
     try {
-      const res = await api.get(`/library/${referenceId}${needsReview ? "/review" : ""}`);
+      // Premium owners can open the private review projection for every
+      // record, including already verified translations, so the audit trail
+      // remains visible after the decision removes the review flag.
+      const res = await api.get(`/library/${referenceId}${user?.is_premium ? "/review" : (needsReview ? "/review" : "")}`);
       setSourceRecord(res.data);
       setReviewNotes(res.data.review_notes || "");
     } catch (error) {
@@ -1278,6 +1281,46 @@ export default function CardEditor() {
                           </div>
                         </div>
                       )}
+                      <div data-testid="reference-review-history" className="mt-4 border-t border-sky-700/30 pt-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-label text-[9px] tracking-widest text-sky-200">CRONOLOGIA DELLE VERIFICHE</p>
+                          <span className="font-body text-[10px] text-muted-foreground">
+                            {(sourceRecord.review_history || []).length} {(sourceRecord.review_history || []).length === 1 ? "decisione" : "decisioni"}
+                          </span>
+                        </div>
+                        {(sourceRecord.review_history || []).length === 0 ? (
+                          <p className="mt-2 font-body text-xs text-muted-foreground">Nessuna verifica registrata per questo record.</p>
+                        ) : (
+                          <div className="mt-2 space-y-2">
+                            {(sourceRecord.review_history || []).map((entry, index) => {
+                              const verified = entry.review_status === "verified";
+                              const reviewer = entry.reviewer_name || entry.reviewer_email || "Proprietario";
+                              const reviewedAt = entry.reviewed_at
+                                ? new Date(entry.reviewed_at).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })
+                                : "Data non disponibile";
+                              return (
+                                <article
+                                  key={`${entry.reviewed_at || "review"}-${index}`}
+                                  className="border border-border/70 bg-background/30 px-3 py-2"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                                    <span className={`font-label text-[9px] tracking-widest ${verified ? "text-emerald-300" : "text-amber-200"}`}>
+                                      {verified ? "CONFERMATA" : "DA RIVEDERE"}
+                                    </span>
+                                    <time dateTime={entry.reviewed_at || undefined} className="font-body text-[10px] text-muted-foreground">{reviewedAt}</time>
+                                  </div>
+                                  <p className="mt-1 font-body text-[11px] text-foreground/85">
+                                    {reviewer}{entry.reviewer_email && entry.reviewer_email !== reviewer ? ` · ${entry.reviewer_email}` : ""}
+                                  </p>
+                                  {entry.review_notes && (
+                                    <p className="mt-1 whitespace-pre-wrap font-body text-xs leading-relaxed text-muted-foreground">{entry.review_notes}</p>
+                                  )}
+                                </article>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <p className="mt-3 font-body text-xs leading-relaxed text-muted-foreground">
                         Questo confronto è visibile solo al proprietario autenticato del manuale. PDF e immagini di pagina restano privati.
                       </p>

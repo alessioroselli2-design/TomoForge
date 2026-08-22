@@ -143,6 +143,14 @@ describe("CardEditor review scope", () => {
             review_reason: "Traduzione automatica non ancora verificata da una persona.",
             original: { name: "Clase original", full_text: "Testo originale spagnolo." },
             translation: { name: "Classe da rivedere", full_text: "Testo tradotto in italiano." },
+            review_history: [{
+              reviewer_id: "owner-1",
+              reviewer_name: "Mago",
+              reviewer_email: "mago@example.com",
+              reviewed_at: "2026-08-22T11:00:00+00:00",
+              review_status: "needs_review",
+              review_notes: "Controllare il termine tecnico.",
+            }],
           },
         });
       }
@@ -160,6 +168,21 @@ describe("CardEditor review scope", () => {
         review_notes: "Confrontata con il manuale.",
         needs_review: false,
         is_trusted: true,
+        review_history: [{
+          reviewer_id: "owner-1",
+          reviewer_name: "Mago",
+          reviewer_email: "mago@example.com",
+          reviewed_at: "2026-08-22T11:05:00+00:00",
+          review_status: "verified",
+          review_notes: "Confrontata con il manuale.",
+        }, {
+          reviewer_id: "owner-1",
+          reviewer_name: "Mago",
+          reviewer_email: "mago@example.com",
+          reviewed_at: "2026-08-22T11:00:00+00:00",
+          review_status: "needs_review",
+          review_notes: "Controllare il termine tecnico.",
+        }],
       },
     });
     container = document.createElement("div");
@@ -261,6 +284,8 @@ describe("CardEditor review scope", () => {
     expect(container.textContent).toContain("Testo originale spagnolo.");
     expect(container.textContent).toContain("Testo tradotto in italiano.");
     expect(container.textContent).toContain("manuale del giocatore.pdf · pagina 12");
+    expect(container.querySelector('[data-testid="reference-review-history"]')).not.toBeNull();
+    expect(container.textContent).toContain("Controllare il termine tecnico.");
 
     await act(async () => {
       container.querySelector('[data-testid="approve-reference"]').click();
@@ -271,5 +296,8 @@ describe("CardEditor review scope", () => {
       review_status: "verified",
       review_notes: "",
     });
+    expect(container.querySelector('[data-testid="reference-review-panel"]')).toBeNull();
+    expect(container.textContent).toContain("Confrontata con il manuale.");
+    expect(container.textContent).toContain("2 decisioni");
   });
 });

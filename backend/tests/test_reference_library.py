@@ -1241,7 +1241,15 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
         review_status="pending",
     )
     collection = MutableMemoryReferences([record])
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    review_history = server.MemoryCollection()
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(
+            private_reference_records=collection,
+            private_reference_review_history=review_history,
+        ),
+    )
     owner = server.User(
         user_id="owner-1",
         email="mago@example.com",
@@ -1279,6 +1287,11 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     ))
     assert rejected["needs_review"] is True
     assert rejected["review_notes"].startswith("Controllare")
+    assert rejected["review_history"][0]["reviewer_id"] == owner.user_id
+    assert rejected["review_history"][0]["reviewer_name"] == owner.name
+    assert rejected["review_history"][0]["review_status"] == "needs_review"
+    assert rejected["review_history"][0]["review_notes"] == "Controllare il termine tecnico nella seconda frase."
+    assert rejected["review_history"][0]["reviewed_at"]
     with pytest.raises(server.HTTPException, match="dato certo"):
         asyncio.run(server.apply_private_reference(record["id"], owner))
 
@@ -1293,7 +1306,75 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     assert approved["is_trusted"] is True
     assert approved["review_status"] == "verified"
     assert approved["review_notes"].startswith("Confrontata")
+    assert len(approved["review_history"]) == 2
+    assert approved["review_history"][0]["review_status"] == "verified"
+    assert approved["review_history"][1]["review_status"] == "needs_review"
+    assert approved["review_history"][1]["review_notes"].startswith("Controllare")
+    assert len(review_history.rows) == 2
     assert asyncio.run(server.apply_private_reference(record["id"], owner))["name"] == "Barbaro"
+
+
+def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
+    class BarrierReferences(MutableMemoryReferences):
+        def __init__(self, rows):
+            super().__init__(rows)
+            self.initial_readers = 0
+            self.read_barrier = asyncio.Event()
+
+        async def find_one(self, query):
+            if self.initial_readers < 2:
+                snapshot = await super().find_one(query)
+                self.initial_readers += 1
+                if self.initial_readers == 2:
+                    self.read_barrier.set()
+                await self.read_barrier.wait()
+                return snapshot
+            return await super().find_one(query)
+
+    record = make_reference(
+        "Barbaro",
+        reference_type="class",
+        source_language="es",
+        translation_status="translated",
+    )
+    references = BarrierReferences([record])
+    review_history = server.MemoryCollection()
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(
+            private_reference_records=references,
+            private_reference_review_history=review_history,
+        ),
+    )
+    owner = server.User(
+        user_id="owner-1",
+        email="mago@example.com",
+        name="Mago",
+        premium_manual=True,
+    )
+
+    async def submit(status, notes):
+        return await server.review_private_reference(
+            record["id"],
+            server.ReferenceReviewInput(review_status=status, review_notes=notes),
+            owner,
+        )
+
+    async def submit_together():
+        await asyncio.gather(
+            submit("needs_review", "Controllare il nome."),
+            submit("verified", "Confrontata riga per riga."),
+        )
+
+    asyncio.run(submit_together())
+
+    details = asyncio.run(server.get_private_reference_review(record["id"], owner))
+    assert {entry["review_status"] for entry in details["review_history"]} == {"needs_review", "verified"}
+    assert {entry["review_notes"] for entry in details["review_history"]} == {
+        "Controllare il nome.",
+        "Confrontata riga per riga.",
+    }
 
 
 def test_same_source_import_uses_distinct_ids_for_distinct_owners(monkeypatch, tmp_path):

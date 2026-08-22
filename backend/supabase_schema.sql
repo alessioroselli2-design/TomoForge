@@ -180,6 +180,23 @@ create index if not exists private_reference_records_user_name_idx
 create index if not exists private_reference_records_user_source_idx
   on public.private_reference_records (user_id, source_key, source_normalized_name);
 
+-- Append-only, owner-scoped audit trail for private-reference review decisions.
+-- Keep it separate from the current review state so simultaneous decisions
+-- cannot overwrite one another while a manual is being reimported.
+create table if not exists public.private_reference_review_history (
+  id text primary key,
+  reference_id text not null references public.private_reference_records(id) on delete cascade,
+  user_id text not null references public.users(user_id) on delete cascade,
+  reviewer_id text not null references public.users(user_id) on delete cascade,
+  reviewer_name text not null default '',
+  reviewer_email text not null default '',
+  review_status text not null check (review_status in ('pending', 'verified', 'needs_review')),
+  review_notes text not null default '',
+  reviewed_at timestamptz not null default now()
+);
+create index if not exists private_reference_review_history_owner_record_idx
+  on public.private_reference_review_history (user_id, reference_id, reviewed_at desc, id desc);
+
 -- Private bucket; FastAPI streams authorized files and public card artwork.
 insert into storage.buckets (id, name, public)
 values ('tomeforge-assets', 'tomeforge-assets', false)
@@ -191,8 +208,10 @@ alter table public.files enable row level security;
 alter table public.payment_transactions enable row level security;
 alter table public.private_spells enable row level security;
 alter table public.private_reference_records enable row level security;
+alter table public.private_reference_review_history enable row level security;
 
 -- The browser has no direct access to this catalogue. FastAPI uses the service
 -- role and enforces ownership on every read/write.
 revoke all on table public.private_spells from anon, authenticated;
 revoke all on table public.private_reference_records from anon, authenticated;
+revoke all on table public.private_reference_review_history from anon, authenticated;
