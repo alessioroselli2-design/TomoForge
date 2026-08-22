@@ -2141,12 +2141,55 @@ def reference_summary(record: dict) -> dict:
         "attributes": record.get("attributes", {}),
         "source_refs": record.get("source_refs", []),
         "source_language": record.get("source_language", "it"),
+        "source_name": record.get("source_name", ""),
         "translation_status": record.get("translation_status", "not_required"),
         "review_status": record.get("review_status", "pending"),
+        "review_notes": record.get("review_notes", ""),
         "review_reason": reference_review_reason(record),
         "review_state": review_state,
         "is_trusted": review_state == "valid",
         "needs_review": review_state == "review",
+    }
+
+
+def reference_review_details(record: dict) -> dict:
+    """Return the private side-by-side material needed to review one record.
+
+    This projection is only used by the authenticated owner review flow. The
+    regular library search and card APIs continue to expose summaries without
+    extracted manual text.
+    """
+    summary = reference_summary(record)
+    source_language = record.get("source_language", "it")
+    original = {
+        "name": record.get("source_name") or (record.get("name") if source_language != "es" else ""),
+        "description": record.get("source_description") or (
+            record.get("description") if source_language != "es" else ""
+        ),
+        "full_text": record.get("source_full_text") or (
+            record.get("full_text") if source_language != "es" else ""
+        ),
+        "attributes": copy.deepcopy(
+            record.get("source_attributes")
+            or (record.get("attributes") if source_language != "es" else {})
+            or {}
+        ),
+    }
+    translation = {
+        "name": record.get("name", ""),
+        "description": record.get("description", ""),
+        "full_text": record.get("full_text", ""),
+        "attributes": copy.deepcopy(record.get("attributes") or {}),
+    }
+    return {
+        **summary,
+        "source_name": original["name"],
+        "source_description": original["description"],
+        "source_full_text": original["full_text"],
+        "source_attributes": original["attributes"],
+        "original": original,
+        "translation": translation,
+        "manual": copy.deepcopy(record.get("source_refs") or []),
     }
 
 
@@ -2391,6 +2434,17 @@ async def get_private_reference(reference_id: str, user: User = Depends(get_curr
     return reference_summary(record)
 
 
+@api_router.get("/library/{reference_id}/review")
+async def get_private_reference_review(
+    reference_id: str,
+    user: User = Depends(require_premium),
+):
+    record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
+    return reference_review_details(record)
+
+
 @api_router.post("/library/{reference_id}/apply")
 async def apply_private_reference(reference_id: str, user: User = Depends(get_current_user)):
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
@@ -2416,7 +2470,7 @@ async def retry_private_reference_translation_endpoint(
 async def review_private_reference(
     reference_id: str,
     body: ReferenceReviewInput,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_premium),
 ):
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
@@ -2425,7 +2479,8 @@ async def review_private_reference(
         {"id": reference_id, "user_id": user.user_id},
         {"$set": {**body.model_dump(), "updated_at": utc_now()}},
     )
-    return {"ok": True, "id": reference_id, **body.model_dump()}
+    updated = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
+    return {"ok": True, **reference_review_details(updated or {**record, **body.model_dump()})}
 
 
 @api_router.post("/ai/generate-content")

@@ -10,6 +10,7 @@ jest.mock("@/lib/api", () => ({
   api: {
     get: jest.fn(),
     post: jest.fn(),
+    patch: jest.fn(),
   },
 }));
 
@@ -117,11 +118,49 @@ describe("CardEditor review scope", () => {
               name: "Classe da rivedere",
               reference_type: "class",
               source_refs: [{ filename: "manuale del giocatore.pdf", page: 12 }],
+              source_language: "es",
+              source_name: "Clase original",
+              translation_status: "translated",
+              needs_review: true,
+              is_trusted: false,
             }],
           },
         });
       }
+      if (path === "/library/review-1/review") {
+        return Promise.resolve({
+          data: {
+            id: "review-1",
+            name: "Classe da rivedere",
+            source_language: "es",
+            source_name: "Clase original",
+            source_refs: [{ filename: "manuale del giocatore.pdf", page: 12, language: "es" }],
+            translation_status: "translated",
+            review_status: "pending",
+            review_notes: "",
+            needs_review: true,
+            is_trusted: false,
+            review_reason: "Traduzione automatica non ancora verificata da una persona.",
+            original: { name: "Clase original", full_text: "Testo originale spagnolo." },
+            translation: { name: "Classe da rivedere", full_text: "Testo tradotto in italiano." },
+          },
+        });
+      }
       return Promise.resolve({ data: {} });
+    });
+    api.patch.mockResolvedValue({
+      data: {
+        id: "review-1",
+        name: "Classe da rivedere",
+        source_language: "es",
+        source_name: "Clase original",
+        source_refs: [{ filename: "manuale del giocatore.pdf", page: 12, language: "es" }],
+        translation_status: "translated",
+        review_status: "verified",
+        review_notes: "Confrontata con il manuale.",
+        needs_review: false,
+        is_trusted: true,
+      },
     });
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -194,5 +233,43 @@ describe("CardEditor review scope", () => {
         source_filename: "manuale del giocatore.pdf",
       },
     }]);
+  });
+
+  it("compares a Spanish original with its translation and confirms it from review", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    await act(async () => {
+      container.querySelector('[data-testid="source-reference-review-1"]').click();
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/library/review-1/review");
+    expect(container.querySelector('[data-testid="reference-review-panel"]')).not.toBeNull();
+    expect(container.textContent).toContain("Testo originale spagnolo.");
+    expect(container.textContent).toContain("Testo tradotto in italiano.");
+    expect(container.textContent).toContain("manuale del giocatore.pdf · pagina 12");
+
+    await act(async () => {
+      container.querySelector('[data-testid="approve-reference"]').click();
+      await Promise.resolve();
+    });
+
+    expect(api.patch).toHaveBeenCalledWith("/library/review-1/review", {
+      review_status: "verified",
+      review_notes: "",
+    });
   });
 });

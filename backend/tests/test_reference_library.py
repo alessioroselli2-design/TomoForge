@@ -1224,6 +1224,78 @@ def test_apply_reference_rejects_unverified_records(monkeypatch):
     assert error.value.status_code == 409
 
 
+def test_translation_review_shows_private_comparison_and_unlocks_only_after_confirmation(monkeypatch):
+    record = make_reference(
+        "Barbaro",
+        reference_type="class",
+        source_language="es",
+        source_name="Bárbaro",
+        source_description="Un guerrero feroz.",
+        source_full_text="Un guerrero feroz que combate con furia.",
+        source_attributes={"dado_vita": "d12"},
+        description="Un guerriero feroce.",
+        full_text="Un guerriero feroce che combatte con furia.",
+        attributes={"dado_vita": "d12"},
+        source_refs=[{"filename": "Manual del Jugador.pdf", "page": 46, "language": "es"}],
+        translation_status="translated",
+        review_status="pending",
+    )
+    collection = MutableMemoryReferences([record])
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    owner = server.User(
+        user_id="owner-1",
+        email="mago@example.com",
+        name="Mago",
+        premium_manual=True,
+    )
+    other_user = server.User(
+        user_id="owner-2",
+        email="other@example.com",
+        name="Other",
+        premium_manual=True,
+    )
+
+    with pytest.raises(server.HTTPException, match="dato certo"):
+        asyncio.run(server.apply_private_reference(record["id"], owner))
+
+    details = asyncio.run(server.get_private_reference_review(record["id"], owner))
+    assert details["original"]["name"] == "Bárbaro"
+    assert details["original"]["full_text"] == "Un guerrero feroz que combate con furia."
+    assert details["translation"]["name"] == "Barbaro"
+    assert details["translation"]["full_text"] == "Un guerriero feroce che combatte con furia."
+    assert details["manual"] == [{"filename": "Manual del Jugador.pdf", "page": 46, "language": "es"}]
+
+    with pytest.raises(server.HTTPException) as other_owner:
+        asyncio.run(server.get_private_reference_review(record["id"], other_user))
+    assert other_owner.value.status_code == 404
+
+    rejected = asyncio.run(server.review_private_reference(
+        record["id"],
+        server.ReferenceReviewInput(
+            review_status="needs_review",
+            review_notes="Controllare il termine tecnico nella seconda frase.",
+        ),
+        owner,
+    ))
+    assert rejected["needs_review"] is True
+    assert rejected["review_notes"].startswith("Controllare")
+    with pytest.raises(server.HTTPException, match="dato certo"):
+        asyncio.run(server.apply_private_reference(record["id"], owner))
+
+    approved = asyncio.run(server.review_private_reference(
+        record["id"],
+        server.ReferenceReviewInput(
+            review_status="verified",
+            review_notes="Confrontata con il manuale alla pagina indicata.",
+        ),
+        owner,
+    ))
+    assert approved["is_trusted"] is True
+    assert approved["review_status"] == "verified"
+    assert approved["review_notes"].startswith("Confrontata")
+    assert asyncio.run(server.apply_private_reference(record["id"], owner))["name"] == "Barbaro"
+
+
 def test_same_source_import_uses_distinct_ids_for_distinct_owners(monkeypatch, tmp_path):
     source = tmp_path / "Manuale.pdf"
     source.write_bytes(b"not-read")

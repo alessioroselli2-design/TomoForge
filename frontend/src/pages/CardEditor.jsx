@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search, Link2, X } from "lucide-react";
+import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search, Link2, X, CheckCircle2, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -171,6 +171,9 @@ export default function CardEditor() {
   const [translationConfirmed, setTranslationConfirmed] = useState(false);
   const [sourceRecord, setSourceRecord] = useState(null);
   const [loadingSourceRecord, setLoadingSourceRecord] = useState(null);
+  const [reviewingReference, setReviewingReference] = useState(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [coverageRefreshKey, setCoverageRefreshKey] = useState(0);
   const [characterReferences, setCharacterReferences] = useState([]);
   const [referenceUpdates, setReferenceUpdates] = useState([]);
   const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
@@ -459,11 +462,12 @@ export default function CardEditor() {
     setCharacterReferences((current) => current.filter((record) => record.id !== referenceId));
   };
 
-  const showReferenceSource = async (referenceId) => {
+  const showReferenceSource = async (referenceId, needsReview = false) => {
     setLoadingSourceRecord(referenceId);
     try {
-      const res = await api.get(`/library/${referenceId}`);
+      const res = await api.get(`/library/${referenceId}${needsReview ? "/review" : ""}`);
       setSourceRecord(res.data);
+      setReviewNotes(res.data.review_notes || "");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Impossibile leggere la fonte del record");
     } finally {
@@ -483,8 +487,11 @@ export default function CardEditor() {
         reference_type: updatedRecord.reference_type,
         attributes: updatedRecord.attributes || {},
         source_refs: updatedRecord.source_refs || [],
+        source_name: updatedRecord.source_name || "",
         source_language: updatedRecord.source_language || "it",
         translation_status: updatedRecord.translation_status,
+        review_status: updatedRecord.review_status,
+        review_notes: updatedRecord.review_notes || "",
         needs_review: updatedRecord.needs_review,
         review_reason: updatedRecord.review_reason,
         review_state: updatedRecord.review_state,
@@ -492,6 +499,7 @@ export default function CardEditor() {
       };
       setSourceRecord((current) => current?.id === referenceId ? updatedRecord : current);
       setReferenceResults((current) => current.map((record) => record.id === referenceId ? { ...record, ...summary } : record));
+      setReviewNotes(updatedRecord.review_notes || "");
       if (updatedRecord.translation_status === "translated") {
         toast.success("Traduzione riprovata e completata");
       } else {
@@ -501,6 +509,36 @@ export default function CardEditor() {
       toast.error(error.response?.data?.detail || "Impossibile riprovare la traduzione");
     } finally {
       setRetryingTranslation(null);
+    }
+  };
+
+  const reviewReference = async (reviewStatus) => {
+    if (!sourceRecord?.id) return;
+    setReviewingReference(reviewStatus);
+    try {
+      const response = await api.patch(`/library/${sourceRecord.id}/review`, {
+        review_status: reviewStatus,
+        review_notes: reviewNotes.trim(),
+      });
+      const updatedRecord = response.data;
+      setSourceRecord(updatedRecord);
+      setReviewNotes(updatedRecord.review_notes || "");
+      setCoverageRefreshKey((current) => current + 1);
+      if (reviewStatus === "verified") {
+        setReferenceResults((current) => current.filter((record) => record.id !== updatedRecord.id));
+        toast.success("Traduzione confermata: il record è ora utilizzabile");
+      } else {
+        setReferenceResults((current) => current.map((record) => (
+          record.id === updatedRecord.id
+            ? { ...record, ...updatedRecord, needs_review: true, is_trusted: false }
+            : record
+        )));
+        toast.success("Record mantenuto in revisione con la tua nota");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile salvare la revisione");
+    } finally {
+      setReviewingReference(null);
     }
   };
 
@@ -1070,7 +1108,7 @@ export default function CardEditor() {
               )}
 
               {user?.is_premium && (
-                <LibraryCoverageReadiness onOpenReviews={openCoverageReviews} />
+                <LibraryCoverageReadiness onOpenReviews={openCoverageReviews} refreshKey={coverageRefreshKey} />
               )}
 
               {LIBRARY_TYPES_BY_CARD[card.type] && (
@@ -1135,6 +1173,7 @@ export default function CardEditor() {
                             <span className="block font-heading text-base text-foreground">{record.name}</span>
                             <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
                               {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.language === "es" ? "Fonte spagnola" : ref.filename} p.${ref.page}`).join(", ")}
+                              {record.source_language === "es" && record.source_name ? ` · Originale: ${record.source_name}` : ""}
                               {record.is_trusted === false ? ` · BLOCCATO: ${record.review_reason || "da verificare"}` : " · Fonte verificata"}
                             </span>
                           </button>
@@ -1142,7 +1181,7 @@ export default function CardEditor() {
                             type="button"
                             data-testid={`source-reference-${record.id}`}
                             disabled={loadingSourceRecord === record.id}
-                            onClick={() => showReferenceSource(record.id)}
+                            onClick={() => showReferenceSource(record.id, record.needs_review)}
                             className="shrink-0 font-label text-[10px] tracking-widest text-sky-300 hover:text-sky-100 disabled:opacity-60"
                           >
                             {loadingSourceRecord === record.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "FONTE"}
@@ -1186,8 +1225,61 @@ export default function CardEditor() {
                           ? ` · BLOCCATO: ${sourceRecord.review_reason || "verifica necessaria prima dell’uso."}`
                           : " · Fonte verificata e utilizzabile."}
                       </p>
+                      {sourceRecord.needs_review && (
+                        <div data-testid="reference-review-panel" className="mt-4 border-t border-sky-700/50 pt-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="font-label text-[10px] tracking-widest text-amber-200">{sourceRecord.source_language === "es" ? "REVISIONE DELLA TRADUZIONE" : "REVISIONE DEL CONTENUTO"}</p>
+                            <span className="font-body text-[11px] text-amber-100/70">Il record resta bloccato finché non lo confermi.</span>
+                          </div>
+                          <div className="grid gap-3 lg:grid-cols-2">
+                            <article data-testid="reference-original" className="border border-amber-700/40 bg-amber-950/15 p-3">
+                              <p className="font-label text-[9px] tracking-widest text-amber-200">ORIGINALE · {sourceRecord.source_language === "es" ? "SPAGNOLO" : "FONTE"}</p>
+                              <h3 className="mt-1 font-heading text-base text-foreground">{sourceRecord.original?.name || sourceRecord.source_name || "Testo originale"}</h3>
+                              <p className="mt-2 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/85">{sourceRecord.original?.full_text || sourceRecord.source_full_text || "Testo originale non disponibile."}</p>
+                            </article>
+                            <article data-testid="reference-translation" className="border border-sky-700/40 bg-sky-950/15 p-3">
+                              <p className="font-label text-[9px] tracking-widest text-sky-200">TRADUZIONE · ITALIANO</p>
+                              <h3 className="mt-1 font-heading text-base text-foreground">{sourceRecord.translation?.name || sourceRecord.name}</h3>
+                              <p className="mt-2 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/85">{sourceRecord.translation?.full_text || sourceRecord.full_text || "Traduzione non disponibile."}</p>
+                            </article>
+                          </div>
+                          <label className="mt-3 block font-label text-[9px] tracking-widest text-muted-foreground" htmlFor={`review-notes-${sourceRecord.id}`}>NOTA DELLA REVISIONE</label>
+                          <Textarea
+                            id={`review-notes-${sourceRecord.id}`}
+                            data-testid="reference-review-notes"
+                            value={reviewNotes}
+                            onChange={(event) => setReviewNotes(event.target.value)}
+                            placeholder="Indica cosa hai verificato o cosa deve essere corretto…"
+                            maxLength={3000}
+                            className={`${inputCls} mt-1 min-h-[72px]`}
+                          />
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              data-testid="approve-reference"
+                              disabled={reviewingReference !== null}
+                              onClick={() => reviewReference("verified")}
+                              className="rounded-none bg-emerald-700 font-label text-[10px] tracking-widest text-white hover:bg-emerald-600"
+                            >
+                              {reviewingReference === "verified" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}
+                              {sourceRecord.source_language === "es" ? "CONFERMA TRADUZIONE" : "CONFERMA CONTENUTO"}
+                            </Button>
+                            <Button
+                              type="button"
+                              data-testid="reject-reference"
+                              disabled={reviewingReference !== null}
+                              onClick={() => reviewReference("needs_review")}
+                              variant="outline"
+                              className="rounded-none border-crimson/60 bg-transparent font-label text-[10px] tracking-widest text-red-200 hover:bg-crimson/15"
+                            >
+                              {reviewingReference === "needs_review" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <XCircle className="mr-1.5 h-3.5 w-3.5" />}
+                              {sourceRecord.source_language === "es" ? "RIFIUTA TRADUZIONE" : "RIFIUTA CONTENUTO"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                       <p className="mt-3 font-body text-xs leading-relaxed text-muted-foreground">
-                        Vengono mostrati solo manuale e pagina: il PDF e il testo sorgente restano privati.
+                        Questo confronto è visibile solo al proprietario autenticato del manuale. PDF e immagini di pagina restano privati.
                       </p>
                     </div>
                   )}

@@ -24,7 +24,7 @@ function StatePill({ tone, children }) {
   return <span className={`inline-flex items-center gap-1 border px-2 py-1 font-label text-[9px] tracking-widest ${styles[tone] || styles.neutral}`}>{children}</span>;
 }
 
-export default function LibraryCoverageReadiness({ onOpenReviews }) {
+export default function LibraryCoverageReadiness({ onOpenReviews, refreshKey = 0 }) {
   const [manuals, setManuals] = useState([]);
   const [totals, setTotals] = useState({ valid: 0, to_review: 0, missing: 0 });
   const [status, setStatus] = useState("loading");
@@ -42,7 +42,7 @@ export default function LibraryCoverageReadiness({ onOpenReviews }) {
     }
   }, []);
 
-  useEffect(() => { loadCoverage(); }, [loadCoverage]);
+  useEffect(() => { loadCoverage(); }, [loadCoverage, refreshKey]);
 
   const classifiedRecords = useMemo(() => totals.valid + totals.to_review, [totals]);
   if (status === "loading") {
