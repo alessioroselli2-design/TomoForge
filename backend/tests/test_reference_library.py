@@ -541,6 +541,42 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
         assert error.status_code == 400
 
 
+def test_linked_card_creation_removes_partial_set_when_persistence_fails(monkeypatch):
+    first = make_reference("Tiratore scelto")
+    second = make_reference("Sentinella")
+    references = server.MemoryCollection()
+    references.rows.extend([first, second])
+
+    class FailingLinkedCardCollection(server.MemoryCollection):
+        async def insert_many(self, documents):
+            # Simulate a backend failure after its first child row was written.
+            await self.insert_one(documents[0])
+            raise RuntimeError("Errore di persistenza della seconda carta")
+
+    cards = FailingLinkedCardCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character",
+        name="Artemis",
+        reference_ids=[first["id"], second["id"]],
+    ), user))
+
+    with pytest.raises(RuntimeError, match="Errore di persistenza"):
+        asyncio.run(server.create_linked_cards(
+            character.id,
+            server.LinkedCardInput(
+                reference_ids=[first["id"], second["id"]],
+                version=character.version,
+            ),
+            user,
+        ))
+
+    assert [card for card in cards.rows if card["type"] != "character"] == []
+    restored_character = asyncio.run(server.get_card(character.id, user))
+    assert restored_character.version == character.version
+
+
 def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_character_values(monkeypatch):
     original = make_reference(
         "Disciplina di ferro",

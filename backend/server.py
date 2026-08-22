@@ -256,6 +256,13 @@ class MemoryCollection:
     async def insert_one(self, document: dict) -> None:
         self.rows.append(copy.deepcopy(document))
 
+    async def insert_many(self, documents: list[dict]) -> None:
+        # Copy every document before changing the collection so the in-memory
+        # implementation has the same all-or-nothing behavior as Supabase's
+        # multi-row insert.
+        copies = [copy.deepcopy(document) for document in documents]
+        self.rows.extend(copies)
+
     async def update_one(self, query: dict, update: dict) -> UpdateResult:
         changes = update.get("$set", update)
         count = 0
@@ -339,6 +346,13 @@ class SupabaseCollection:
 
     async def insert_one(self, document: dict) -> None:
         self.client.table(self.name).insert(document).execute()
+
+    async def insert_many(self, documents: list[dict]) -> None:
+        if documents:
+            # PostgREST sends this as one PostgreSQL INSERT statement. A
+            # constraint or persistence error therefore rolls back the whole
+            # set instead of leaving earlier rows behind.
+            self.client.table(self.name).insert(documents).execute()
 
     async def update_one(self, query: dict, update: dict) -> UpdateResult:
         changes = update.get("$set", update)
@@ -1468,6 +1482,29 @@ async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_
         )
     card.update(saved_updates)
     return card
+
+
+async def insert_cards_atomically(cards: list[Card]) -> None:
+    """Persist a linked-card set without exposing a partially written set.
+
+    SupabaseCollection uses one bulk INSERT, which is atomic at the database
+    level. The compensating deletes also protect callers backed by a simpler
+    collection (and make failures injected by tests deterministic) if that
+    collection wrote some rows before raising.
+    """
+    documents = [card.model_dump() for card in cards]
+    if not documents:
+        return
+
+    try:
+        await db.cards.insert_many(documents)
+    except Exception:
+        for document in documents:
+            try:
+                await db.cards.delete_one({"id": document["id"]})
+            except Exception:
+                logger.exception("Failed to clean up a partially persisted linked card")
+        raise
 
 
 def character_default_fields(record: dict) -> tuple[tuple[str, Any], ...]:
@@ -3059,6 +3096,8 @@ async def create_linked_cards(
     # Creating linked cards is based on the character's selected references.
     # Reserve the version before inserting any child cards so two screens
     # cannot both materialize different views of a stale character.
+    original_version = int(character.get("version", 0) or 0)
+    original_updated_at = character.get("updated_at")
     await save_card_versioned(
         character,
         user.user_id,
@@ -3083,8 +3122,32 @@ async def create_linked_cards(
             source_refs=payload["source_refs"],
             reference_snapshots=[reference_snapshot_for_card(record, payload["card_type"], utc_now())],
         )
-        await db.cards.insert_one(card.model_dump())
         created.append(card)
+
+    try:
+        await insert_cards_atomically(created)
+    except Exception:
+        # The reservation prevents a concurrent mutation while the child
+        # cards are being written. If persistence fails, release it only if
+        # the reservation is still ours; never overwrite a later concurrent
+        # change.
+        rollback_updates = {"version": original_version}
+        if original_updated_at is not None:
+            rollback_updates["updated_at"] = original_updated_at
+        try:
+            await db.cards.update_one(
+                {
+                    "id": character["id"],
+                    "user_id": user.user_id,
+                    "version": original_version + 1,
+                },
+                {"$set": rollback_updates},
+            )
+            character.update(rollback_updates)
+        except Exception:
+            logger.exception("Failed to roll back character version after linked-card failure")
+        raise
+
     return [card_response(card.model_dump()) for card in created]
 
 
