@@ -3,6 +3,24 @@ import pytest
 import verify_reference_library as verifier
 
 
+class FakeHttpResponse:
+    status = 200
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def read(self):
+        import json
+
+        return json.dumps(self.payload).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+
 class FakeQuery:
     def __init__(self, rows=None, error=None):
         self.rows = rows or []
@@ -91,3 +109,75 @@ def test_verify_library_requires_dungeon_master_provenance(monkeypatch):
 
     with pytest.raises(RuntimeError, match="Manuale del Dungeon Master"):
         verifier.verify_library("owner-1")
+
+
+def test_verify_card_payload_uses_authenticated_owner_flow(monkeypatch):
+    rows = make_rows()
+    rows[0]["id"] = "reference-1"
+    monkeypatch.setenv("SESSION_SECRET", "test-session-secret-with-at-least-32-bytes")
+    seen_request = {}
+
+    def fake_urlopen(request, timeout):
+        seen_request["url"] = request.full_url
+        seen_request["authorization"] = request.get_header("Authorization")
+        seen_request["timeout"] = timeout
+        return FakeHttpResponse({
+            "reference_id": "reference-1",
+            "reference_ids": ["reference-1"],
+            "card_type": "weapon",
+            "rule_source": {
+                "source_kind": "reference",
+                "source_id": "reference-1",
+            },
+        })
+
+    monkeypatch.setattr(verifier.urllib.request, "urlopen", fake_urlopen)
+
+    report = verifier.verify_card_payload("owner-1", rows, "http://api.example/api/")
+
+    assert report == {
+        "status": "ok",
+        "reference_type": "weapon",
+        "reference_link_retained": True,
+        "provenance_retained": True,
+        "card_persisted": False,
+    }
+    assert seen_request["url"] == "http://api.example/api/library/reference-1/apply"
+    assert seen_request["authorization"].startswith("Bearer ")
+    assert seen_request["timeout"] == 45
+
+
+@pytest.mark.parametrize(
+    ("payload_overrides", "error"),
+    [
+        ({"rule_source": {}}, "provenienza da riferimento"),
+        (
+            {"rule_source": {"source_kind": "reference", "source_id": "other-reference"}},
+            "provenienza diversa",
+        ),
+        ({"card_type": "custom"}, "tipo della regola"),
+    ],
+)
+def test_verify_card_payload_rejects_detached_provenance_or_wrong_type(
+    monkeypatch,
+    payload_overrides,
+    error,
+):
+    rows = make_rows()
+    rows[0]["id"] = "reference-1"
+    monkeypatch.setenv("SESSION_SECRET", "test-session-secret-with-at-least-32-bytes")
+    payload = {
+        "reference_id": "reference-1",
+        "reference_ids": ["reference-1"],
+        "card_type": "weapon",
+        "rule_source": {"source_kind": "reference", "source_id": "reference-1"},
+    }
+    payload.update(payload_overrides)
+    monkeypatch.setattr(
+        verifier.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: FakeHttpResponse(payload),
+    )
+
+    with pytest.raises(RuntimeError, match=error):
+        verifier.verify_card_payload("owner-1", rows, "http://api.example/api")

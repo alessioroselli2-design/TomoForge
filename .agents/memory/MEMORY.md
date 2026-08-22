@@ -9,3 +9,4 @@
 - [Private review comparisons](private-review-comparisons.md) — Source and translated text is visible only in the authenticated owner-review flow, never routine library or card APIs.
 - [Translation review history](translation-review-history.md) — Preserve an owner-only audit trail for every translation-review decision without source material.
 - [Manual preload lease ownership](manual-preload-lease-ownership.md) — Durable manual jobs must retain their claimant lease through every checkpoint and recover only expired leases.
+- [Supabase production migration access](supabase-production-migration-access.md) — External schema DDL needs a scoped PostgreSQL pooler role, not the application service key.
