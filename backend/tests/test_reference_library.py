@@ -331,6 +331,78 @@ def test_reference_merge_deduplicates_but_preserves_sources_and_review_flags():
     assert merged[0]["review_flags"] == ["ocr_da_verificare"]
 
 
+def test_reference_merge_deduplicates_identical_native_rules_across_manuals():
+    first = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_key="Manuale-del-Giocatore.pdf",
+        source_language="it",
+        source_refs=[{"filename": "Manuale-del-Giocatore.pdf", "page": 241}],
+        attributes={"livello": "3", "scuola": "Evocazione"},
+    )
+    second = make_reference(
+        "Palla di fuoco",
+        reference_type="spell",
+        source_key="Guida-di-Xanathar.pdf",
+        source_language="it",
+        source_refs=[{"filename": "Guida-di-Xanathar.pdf", "page": 155}],
+        attributes={"livello": "3", "scuola": "Evocazione"},
+    )
+
+    merged = merge_reference_records([first, second])
+
+    assert len(merged) == 1
+    assert merged[0]["source_refs"] == [
+        {"filename": "Manuale-del-Giocatore.pdf", "page": 241},
+        {"filename": "Guida-di-Xanathar.pdf", "page": 155},
+    ]
+
+
+def test_reference_merge_keeps_rule_variants_from_different_manuals_separate():
+    first = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_key="Manuale-del-Giocatore.pdf",
+        source_language="it",
+        full_text="Una sfera infuocata infligge 8d6 danni da fuoco.",
+        attributes={"livello": "3", "danni": "8d6"},
+    )
+    revised = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_key="Manuale-rivisto.pdf",
+        source_language="it",
+        full_text="Una sfera infuocata infligge 10d6 danni da fuoco.",
+        attributes={"livello": "3", "danni": "10d6"},
+    )
+
+    assert len(merge_reference_records([first, revised])) == 2
+
+
+def test_reference_search_hides_existing_cross_manual_duplicates():
+    first = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_key="Manuale-del-Giocatore.pdf",
+        source_language="it",
+        source_refs=[{"filename": "Manuale-del-Giocatore.pdf", "page": 241}],
+        attributes={"livello": "3", "scuola": "Evocazione"},
+    )
+    second = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_key="Guida-di-Xanathar.pdf",
+        source_language="it",
+        source_refs=[{"filename": "Guida-di-Xanathar.pdf", "page": 155}],
+        attributes={"livello": "3", "scuola": "Evocazione"},
+    )
+
+    matches = search_reference_records([first, second], "palla di fuoco")
+
+    assert len(matches) == 1
+    assert len(matches[0]["source_refs"]) == 2
+
+
 def test_reference_search_is_accent_case_and_typo_tolerant():
     records = [make_reference("Maestro delle Armi"), make_reference("Fortunato")]
     matches = search_reference_records(records, "màestr armi")

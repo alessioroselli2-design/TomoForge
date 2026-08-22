@@ -38,6 +38,7 @@ from reference_library import (
     extract_reference_records,
     merge_reference_records,
     normalize_reference_name,
+    reference_content_fingerprint,
     reference_is_trusted,
     reference_review_state,
     reference_snapshot,
@@ -1494,15 +1495,39 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         ): record
         for record in existing_records
     }
-    localized_records: list[dict] = []
-    translation_queue: list[dict] = []
-    report_by_filename = {report["filename"]: report for report in source_reports}
-    for record in merge_reference_records(all_records):
-        existing = existing_by_source.get((
+    existing_by_content = {
+        (
+            record.get("reference_type"),
+            record.get("normalized_name") or normalize_reference_name(record.get("name", "")),
+            record.get("source_language", "it"),
+            reference_content_fingerprint(record),
+        ): record
+        for record in existing_records
+        if record.get("reference_type") and (record.get("name") or record.get("normalized_name"))
+    }
+
+    def existing_for_import(record: dict) -> Optional[dict]:
+        source_match = existing_by_source.get((
             record["reference_type"],
             record["source_key"],
             record["source_normalized_name"],
         ))
+        if source_match:
+            return source_match
+        if record.get("source_language") == "es" or record.get("review_flags"):
+            return None
+        return existing_by_content.get((
+            record["reference_type"],
+            record["normalized_name"],
+            record.get("source_language", "it"),
+            reference_content_fingerprint(record),
+        ))
+
+    localized_records: list[dict] = []
+    translation_queue: list[dict] = []
+    report_by_filename = {report["filename"]: report for report in source_reports}
+    for record in merge_reference_records(all_records):
+        existing = existing_for_import(record)
         if record["source_language"] != "es":
             localized_records.append({
                 **record,
@@ -1582,11 +1607,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         if not record.get("name") or not record.get("full_text"):
             skipped += 1
             continue
-        existing = existing_by_source.get((
-            record["reference_type"],
-            record["source_key"],
-            record["source_normalized_name"],
-        ))
+        existing = existing_for_import(record)
         owned_record_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{user_id}:{record['id']}").hex
         payload = {
             **record,
@@ -1599,6 +1620,17 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             "updated_at": utc_now(),
         }
         if existing:
+            payload["source_refs"] = list(existing.get("source_refs") or [])
+            payload["source_refs"].extend(
+                ref for ref in record.get("source_refs", [])
+                if ref not in payload["source_refs"]
+            )
+            # Retain the first source as the stable owner of the canonical
+            # record. Additional manuals remain visible through source_refs.
+            payload["source_key"] = existing.get("source_key") or record["source_key"]
+            payload["source_normalized_name"] = (
+                existing.get("source_normalized_name") or record["source_normalized_name"]
+            )
             # Human verification survives an unchanged repeat import. A new
             # source checksum or a failed translation must return to review.
             unchanged_source = existing.get("source_text_checksum") == record.get("source_text_checksum")
@@ -1606,10 +1638,22 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 payload["review_status"] = existing.get("review_status", payload["review_status"])
                 payload["review_notes"] = existing.get("review_notes", "")
             await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
+            existing_by_content[(
+                payload["reference_type"],
+                payload["normalized_name"],
+                payload.get("source_language", "it"),
+                reference_content_fingerprint(payload),
+            )] = {**existing, **payload}
             updated += 1
         else:
             payload["imported_at"] = utc_now()
             await collection.insert_one(payload)
+            existing_by_content[(
+                payload["reference_type"],
+                payload["normalized_name"],
+                payload.get("source_language", "it"),
+                reference_content_fingerprint(payload),
+            )] = payload
             imported += 1
         flagged += reference_review_state(payload) == "review"
     return ReferenceImportResult(

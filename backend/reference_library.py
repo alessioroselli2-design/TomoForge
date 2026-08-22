@@ -129,6 +129,28 @@ def compact_text(value: str, maximum: int = MAX_CARD_DESCRIPTION) -> str:
     return f"{value[: maximum - 1].rsplit(' ', 1)[0].rstrip(' ,;:')}…"
 
 
+def reference_content_fingerprint(record: dict) -> str:
+    """Identify identical source content without losing a rule's provenance.
+
+    The fingerprint deliberately includes type, normalized title, source
+    language, structured attributes, and the original source wording. Matching
+    names alone are never enough: a revised rule must remain a separate entry.
+    """
+    source_text = record.get("source_full_text") or record.get("full_text") or ""
+    source_attributes = record.get("source_attributes")
+    if source_attributes is None:
+        source_attributes = record.get("attributes") or {}
+    canonical = {
+        "reference_type": record.get("reference_type", ""),
+        "normalized_name": record.get("normalized_name") or normalize_reference_name(record.get("name", "")),
+        "source_language": record.get("source_language", "it"),
+        "full_text": clean_text(source_text),
+        "attributes": source_attributes,
+    }
+    serialized = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return sha256(serialized.encode("utf-8")).hexdigest()
+
+
 def reference_review_state(record: dict) -> str:
     """Classify a record as safe to automate, pending review, or unavailable.
 
@@ -636,18 +658,44 @@ def extract_reference_records(
 
 
 def merge_reference_records(records: Iterable[dict]) -> list[dict]:
-    """Deduplicate imports while retaining every manual/page provenance pointer."""
-    merged: dict[tuple[str, str, str], dict] = {}
+    """Deduplicate identical native content while retaining every source pointer.
+
+    A repeated rule from different manuals is merged only when its original
+    wording and extracted facts match exactly. OCR and translated source text
+    remains source-scoped until a reviewer can confirm it, avoiding an
+    accidental merge of two editions or translations.
+    """
+    merged: dict[tuple[str, str, str, str], dict] = {}
+    source_groups: dict[tuple[str, str, str], tuple[str, str, str, str]] = {}
+    content_groups: dict[tuple[str, str, str, str], tuple[str, str, str, str]] = {}
     for candidate in records:
-        # A translated title can legitimately match a title from another
-        # private manual. Keep sources separate so their original text and
-        # review history are never overwritten by an import from another PDF.
-        key = (
+        source_key = candidate.get("source_key", "")
+        source_group = (
             candidate["reference_type"],
             candidate["normalized_name"],
-            candidate.get("source_key", ""),
+            source_key,
         )
-        if key not in merged:
+        source_language = candidate.get("source_language", "it")
+        content_group = (
+            candidate["reference_type"],
+            candidate["normalized_name"],
+            source_language,
+            reference_content_fingerprint(candidate),
+        )
+        # A source-local merge preserves the prior multi-page parsing
+        # behavior. Cross-manual merges are intentionally limited to native
+        # content: translations and OCR need their own review history.
+        can_merge_across_manuals = source_language != "es" and not candidate.get("review_flags")
+        key = source_groups.get(source_group)
+        if key is None and can_merge_across_manuals:
+            key = content_groups.get(content_group)
+        if key is None:
+            key = content_group if can_merge_across_manuals else (
+                candidate["reference_type"],
+                candidate["normalized_name"],
+                source_language,
+                f"{content_group[-1]}:{source_key}",
+            )
             merged[key] = {
                 **candidate,
                 "attributes": dict(candidate.get("attributes") or {}),
@@ -655,8 +703,12 @@ def merge_reference_records(records: Iterable[dict]) -> list[dict]:
                 "review_flags": list(candidate.get("review_flags") or []),
                 "tags": list(candidate.get("tags") or []),
             }
-            continue
+            if can_merge_across_manuals:
+                content_groups[content_group] = key
+        source_groups[source_group] = key
         current = merged[key]
+        if current is candidate:
+            continue
         current["source_refs"].extend(ref for ref in candidate.get("source_refs", []) if ref not in current["source_refs"])
         current["review_flags"] = sorted(set(current["review_flags"]) | set(candidate.get("review_flags") or []))
         current["tags"] = sorted(set(current["tags"]) | set(candidate.get("tags") or []))
@@ -686,6 +738,10 @@ def search_reference_records(
     reference_type: Optional[str] = None,
     limit: int = 15,
 ) -> list[dict]:
+    # Older imports may already contain an identical entry for each manual.
+    # Present the canonical merged view even before a later re-import updates
+    # those stored records.
+    records = merge_reference_records(records)
     needle = normalize_reference_name(query)
     ranked: list[tuple[float, dict]] = []
     for record in records:
