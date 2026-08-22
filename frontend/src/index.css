@@ -580,6 +580,11 @@ body {
     border-color: rgba(105, 80, 41, 0.55) !important;
 }
 
+.tf-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 @layer base {
     * { @apply border-border; }
     body { @apply bg-background text-foreground; }
@@ -587,24 +592,87 @@ body {
 }
 
 @media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
     .no-print { display: none !important; }
-    body { background: white !important; color: black !important; }
+    body { margin: 0 !important; background: white !important; color: black !important; }
     .print-sheet { box-shadow: none !important; }
-    .character-sheet-page { max-width: none !important; padding: 0 !important; color: #17130e !important; }
+    .character-sheet-page {
+        width: 210mm !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: #17130e !important;
+    }
     .character-sheet-page * { color: #17130e !important; background: transparent !important; box-shadow: none !important; }
     .character-sheet-page .text-gold,
     .character-sheet-page .tf-gold-text { color: #6b4612 !important; }
     .character-sheet-page .border,
     .character-sheet-page [class*="border-"] { border-color: #806b4f !important; }
-    .tf-sheet-a4 { min-height: 275mm; padding: 8mm !important; break-after: page; page-break-after: always; }
-    .tf-sheet-a4:last-of-type { break-after: auto; page-break-after: auto; }
+    .character-sheet-page .tf-sheet-a4 {
+        box-sizing: border-box;
+        width: 210mm !important;
+        min-height: 297mm;
+        margin: 0 !important;
+        padding: 6mm !important;
+        break-after: page;
+        page-break-after: always;
+    }
+    .character-sheet-page .tf-sheet-a4 + .tf-sheet-a4 {
+        break-after: auto;
+        page-break-after: auto;
+    }
+    .character-sheet-page .tf-sheet-a4 section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        padding: 3mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 > header {
+        padding: 5mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 .tf-print-abilities {
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        gap: 2.5mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 .tf-print-front-columns {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) !important;
+        gap: 4mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 .tf-print-back-columns {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr) !important;
+        gap: 4mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 4mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 ul {
+        margin-top: 2mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 ul > li + li {
+        margin-top: 1mm !important;
+    }
+    .character-sheet-page .tf-sheet-a4 p,
+    .character-sheet-page .tf-sheet-a4 li {
+        font-size: 10px !important;
+        line-height: 1.3 !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    .character-sheet-page {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
     body * { visibility: hidden; }
     [data-testid="character-sheet"],
     [data-testid="character-sheet"] * { visibility: visible; }
     [data-testid="character-sheet"] {
         position: absolute !important;
         inset: 0 auto auto 0 !important;
-        width: 100% !important;
+        width: 210mm !important;
+        max-width: none !important;
         margin: 0 !important;
         border: 0 !important;
         box-shadow: none !important;

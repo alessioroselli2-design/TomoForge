@@ -74,7 +74,7 @@ const ValueList = ({ title, values, empty = "Nessun dato inserito." }) => (
     {values.length ? (
       <ul className="mt-3 space-y-2">
         {values.map((item, index) => (
-          <li key={`${String(item)}-${index}`} className="border-l-2 border-gold-deep/60 pl-3 font-body text-sm leading-relaxed text-foreground/90">
+          <li key={`${String(item)}-${index}`} className="tf-wrap-anywhere border-l-2 border-gold-deep/60 pl-3 font-body text-sm leading-relaxed text-foreground/90">
             {typeof item === "object"
               ? <><strong className="text-gold">{item.nome || item.name || "Voce"}</strong>{item.descrizione || item.description ? ` — ${item.descrizione || item.description}` : ""}</>
               : item}
@@ -185,7 +185,7 @@ export default function CharacterSheet() {
   return (
     <div className="min-h-screen bg-obsidian">
       <Navbar />
-      <main className="character-sheet-page mx-auto max-w-6xl px-4 py-8 sm:px-8">
+      <main data-testid="character-sheet" className="character-sheet-page mx-auto max-w-6xl px-4 py-8 sm:px-8">
         <div className="no-print flex flex-wrap items-center justify-between gap-3">
           <button onClick={() => navigate(`/carta/${id}`)} className="flex items-center gap-1.5 font-label text-xs tracking-widest text-muted-foreground transition-colors hover:text-gold">
             <ArrowLeft className="h-4 w-4" /> TORNA AL PERSONAGGIO
@@ -205,9 +205,9 @@ export default function CharacterSheet() {
           <p className="font-label text-[10px] tracking-[0.3em] text-gold/70">SCHEDA DEL PERSONAGGIO</p>
           <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
-              <h1 className="font-display text-4xl tf-gold-text sm:text-6xl">{card.name || "Personaggio senza nome"}</h1>
-              <p className="mt-2 font-body text-base text-foreground/80">{identity || "Aggiungi razza e classe per completare l’identità."}</p>
-              <p className="mt-1 font-body text-sm text-muted-foreground">Background: {attributes.background || "—"} · Allineamento: {attributes.allineamento || "—"}</p>
+               <h1 className="tf-wrap-anywhere font-display text-4xl tf-gold-text sm:text-6xl">{card.name || "Personaggio senza nome"}</h1>
+               <p className="tf-wrap-anywhere mt-2 font-body text-base text-foreground/80">{identity || "Aggiungi razza e classe per completare l’identità."}</p>
+               <p className="tf-wrap-anywhere mt-1 font-body text-sm text-muted-foreground">Background: {attributes.background || "—"} · Allineamento: {attributes.allineamento || "—"}</p>
             </div>
             <div className="grid grid-cols-3 divide-x divide-gold-deep/50 border border-gold-deep/50 bg-obsidian/55 text-center">
               <div className="px-4 py-3"><p className="font-label text-[9px] tracking-widest text-gold/75">LIVELLO</p><p className="mt-1 font-heading text-2xl text-foreground">{level}</p></div>
@@ -217,7 +217,7 @@ export default function CharacterSheet() {
           </div>
         </header>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="tf-print-abilities mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {ABILITIES.map(([key, short, label]) => (
             <div key={key} className="border border-gold-deep/55 bg-card p-4 text-center">
               <p className="font-label text-[10px] tracking-[0.22em] text-gold">{short}</p>
@@ -227,7 +227,7 @@ export default function CharacterSheet() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+        <div className="tf-print-columns tf-print-front-columns mt-6 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
           <div className="space-y-6">
             <section className="border border-gold-deep/45 bg-card/75 p-5">
               <h2 className="font-label text-xs tracking-[0.18em] text-gold">VALORI DI GIOCO</h2>
@@ -242,7 +242,7 @@ export default function CharacterSheet() {
                 ].map(([label, value]) => (
                   <div key={label} className="border border-border/80 bg-obsidian/45 px-3 py-3">
                     <p className="font-label text-[9px] tracking-widest text-gold/70">{label.toUpperCase()}</p>
-                    <p className="mt-1 font-body text-base text-foreground">{value}</p>
+                    <p className="tf-wrap-anywhere mt-1 font-body text-base text-foreground">{value}</p>
                   </div>
                 ))}
               </div>
@@ -259,9 +259,9 @@ export default function CharacterSheet() {
             <section className="border border-gold-deep/45 bg-card/75 p-5">
               <h2 className="font-label text-xs tracking-[0.18em] text-gold">ADDESTRAMENTO E COMPETENZE NELL’EQUIPAGGIAMENTO</h2>
               <div className="mt-3 space-y-2 font-body text-sm">
-                <p><strong>Armature:</strong> {attributes.competenza_armature || "—"}</p>
-                <p><strong>Armi:</strong> {attributes.competenze_armi || "—"}</p>
-                <p><strong>Strumenti:</strong> {attributes.strumenti || "—"}</p>
+                <p className="tf-wrap-anywhere"><strong>Armature:</strong> {attributes.competenza_armature || "—"}</p>
+                <p className="tf-wrap-anywhere"><strong>Armi:</strong> {attributes.competenze_armi || "—"}</p>
+                <p className="tf-wrap-anywhere"><strong>Strumenti:</strong> {attributes.strumenti || "—"}</p>
               </div>
             </section>
           </div>
@@ -269,7 +269,7 @@ export default function CharacterSheet() {
         </section>
 
         <section className="tf-sheet-a4 mt-7">
-          <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+          <div className="tf-print-columns tf-print-back-columns grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
             <div className="space-y-6">
               <section className="border border-gold-deep/45 bg-card/75 p-5">
                 <h2 className="font-label text-xs tracking-[0.18em] text-gold">CARATTERISTICA DA INCANTATORE</h2>
@@ -307,13 +307,13 @@ export default function CharacterSheet() {
               <ValueList title="STORIA E TRATTI CARATTERIALI" values={[card.description, card.story].filter(Boolean)} empty="Aggiungi note, storia e tratti al personaggio." />
               <section className="border border-gold-deep/45 bg-card/75 p-5">
                 <h2 className="font-label text-xs tracking-[0.18em] text-gold">LINGUE</h2>
-                <p className="mt-3 font-body text-sm leading-relaxed text-foreground/90">{asList(attributes.linguaggi).join(" · ") || "Nessuna lingua inserita."}</p>
+                <p className="tf-wrap-anywhere mt-3 font-body text-sm leading-relaxed text-foreground/90">{asList(attributes.linguaggi).join(" · ") || "Nessuna lingua inserita."}</p>
               </section>
               <ValueList title="EQUIPAGGIAMENTO" values={asList(attributes.equipaggiamento)} empty="Aggiungi l’equipaggiamento del personaggio." />
               <section className="border border-gold-deep/45 bg-card/75 p-5">
                 <h2 className="font-label text-xs tracking-[0.18em] text-gold">DENARI E SINTONIA</h2>
-                <p className="mt-3 font-body text-sm"><strong>Denari:</strong> {attributes.denari || "—"}</p>
-                <p className="mt-2 font-body text-sm"><strong>Sintonia:</strong> {asList(attributes.sintonia).join(" · ") || "—"}</p>
+                <p className="tf-wrap-anywhere mt-3 font-body text-sm"><strong>Denari:</strong> {attributes.denari || "—"}</p>
+                <p className="tf-wrap-anywhere mt-2 font-body text-sm"><strong>Sintonia:</strong> {asList(attributes.sintonia).join(" · ") || "—"}</p>
               </section>
             </div>
           </div>
@@ -360,10 +360,10 @@ export default function CharacterSheet() {
         </section>
 
         {(card.description || card.story) && (
-          <section className="mt-6 border border-gold-deep/45 bg-card/75 p-5">
+          <section className="no-print mt-6 border border-gold-deep/45 bg-card/75 p-5">
             <h2 className="font-label text-xs tracking-[0.18em] text-gold">NOTE DEL PERSONAGGIO</h2>
-            {card.description && <p className="mt-3 whitespace-pre-wrap font-body leading-relaxed text-foreground/90">{card.description}</p>}
-            {card.story && <p className="mt-3 whitespace-pre-wrap border-t border-border/70 pt-3 font-body text-sm leading-relaxed text-muted-foreground">{card.story}</p>}
+            {card.description && <p className="tf-wrap-anywhere mt-3 whitespace-pre-wrap font-body leading-relaxed text-foreground/90">{card.description}</p>}
+            {card.story && <p className="tf-wrap-anywhere mt-3 whitespace-pre-wrap border-t border-border/70 pt-3 font-body text-sm leading-relaxed text-muted-foreground">{card.story}</p>}
           </section>
         )}
       </main>

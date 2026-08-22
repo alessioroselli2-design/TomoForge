@@ -182,7 +182,7 @@ const CharacterSheetPreview = ({ card }) => {
 const SheetCell = ({ label, value, className = "", multiline = false }) => (
   <div className={`border border-[#b69347] bg-[#fff8e7]/60 p-2 ${className}`}>
     <span className="block font-label text-[8px] tracking-widest text-[#765925]">{label.toUpperCase()}</span>
-    <span className={`mt-1 block font-body text-sm font-semibold text-[#34220e] ${multiline ? "min-h-[42px] leading-snug" : "truncate"}`}>{value}</span>
+    <span className={`tf-wrap-anywhere mt-1 block font-body text-sm font-semibold text-[#34220e] ${multiline ? "min-h-[42px] leading-snug" : "leading-snug"}`}>{value}</span>
   </div>
 );
 
