@@ -2204,6 +2204,44 @@ def manual_coverage_report(records: list[dict]) -> list[dict]:
     return report
 
 
+def manual_import_progress(filename: str, records: list[dict], page_count: Optional[int]) -> dict:
+    """Summarise import state without exposing extracted manual text."""
+    source_records = [
+        record for record in records
+        if any(ref.get("filename") == filename for ref in record.get("source_refs", []))
+    ]
+    imported_pages = sorted({
+        ref.get("page")
+        for record in source_records
+        for ref in record.get("source_refs", [])
+        if ref.get("filename") == filename and isinstance(ref.get("page"), int)
+    })
+    translated = sum(record.get("translation_status") == "translated" for record in source_records)
+    failed = sum(record.get("translation_status") == "failed" for record in source_records)
+    processing = sum(record.get("translation_status") == TRANSLATION_PROCESSING_STATUS for record in source_records)
+    to_review = sum(reference_review_state(record) == "review" for record in source_records)
+    ready = sum(reference_is_trusted(record) for record in source_records)
+    translation_pending = failed + processing + sum(
+        record.get("source_language") == "es"
+        and record.get("translation_status", "not_required") not in {"translated", "failed", TRANSLATION_PROCESSING_STATUS}
+        for record in source_records
+    )
+    translation_total = translated + translation_pending
+    return {
+        "records_total": len(source_records),
+        "records_ready": ready,
+        "records_translated": translated,
+        "records_to_review": to_review,
+        "records_failed": failed,
+        "records_processing": processing,
+        "translation_total": translation_total,
+        "translation_progress": round((translated / translation_total) * 100) if translation_total else 0,
+        "imported_pages": imported_pages,
+        "pages_with_records": len(imported_pages),
+        "page_progress": round((len(imported_pages) / page_count) * 100) if page_count else 0,
+    }
+
+
 @api_router.get("/library/manuals")
 async def private_library_manuals(user: User = Depends(require_premium)):
     """Return local import metadata only, never the manual files or page text."""
@@ -2221,6 +2259,7 @@ async def private_library_manuals(user: User = Depends(require_premium)):
             document.close()
         except Exception:
             page_count = None
+        progress = manual_import_progress(filename, records, page_count)
         manuals.append({
             "filename": filename,
             "title": manual_source_metadata(filename)["title"],
@@ -2229,6 +2268,7 @@ async def private_library_manuals(user: User = Depends(require_premium)):
             "page_count": page_count,
             "imported_records": len(source_records),
             "requires_ocr": manual_requires_ocr(filename),
+            **progress,
         })
     return {"manuals": manuals, "ocr_batch_limit": 12}
 

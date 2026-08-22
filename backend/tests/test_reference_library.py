@@ -1695,6 +1695,39 @@ def test_spanish_manual_rejects_ocr_even_when_the_request_is_confirmed(monkeypat
         assert "testo nativo" in error.detail
 
 
+def test_manual_import_progress_reports_pages_translation_and_review_states():
+    records = [
+        make_reference(
+            "Barbaro",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual del Jugador.pdf", "page": 5, "language": "es"}],
+            translation_status="translated",
+        ),
+        make_reference(
+            "Guerrero",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual del Jugador.pdf", "page": 6, "language": "es"}],
+            translation_status="failed",
+            review_flags=["traduzione_da_verificare"],
+            review_status="needs_review",
+        ),
+    ]
+
+    progress = server.manual_import_progress("Manual del Jugador.pdf", records, 10)
+
+    assert progress["records_total"] == 2
+    assert progress["records_translated"] == 1
+    assert progress["records_failed"] == 1
+    assert progress["records_to_review"] == 2
+    assert progress["records_ready"] == 0
+    assert progress["pages_with_records"] == 2
+    assert progress["imported_pages"] == [5, 6]
+    assert progress["translation_progress"] == 50
+    assert progress["page_progress"] == 20
+
+
 def test_spanish_translation_requires_consent_before_provider_call(monkeypatch, tmp_path):
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")

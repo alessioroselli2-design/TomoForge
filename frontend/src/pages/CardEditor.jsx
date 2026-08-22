@@ -561,7 +561,7 @@ export default function CardEditor() {
       const res = await api.get("/library/manuals");
       const manuals = res.data.manuals || [];
       setLibraryManuals(manuals);
-      setSelectedManual((current) => current || manuals[0]?.filename || "");
+      setSelectedManual((current) => current || manuals.find((manual) => manual.source_language === "es")?.filename || manuals[0]?.filename || "");
     } catch (error) {
       setLibraryManuals([]);
     } finally {
@@ -583,6 +583,14 @@ export default function CardEditor() {
     }
     const start = Math.max(1, Number.parseInt(manualStartPage, 10) || 1);
     const end = Math.max(start, Number.parseInt(manualEndPage, 10) || start);
+    if (selectedSpanishManual && end - start + 1 > 12) {
+      toast.error("La traduzione del manuale spagnolo è limitata a 12 pagine per importazione");
+      return;
+    }
+    if (selectedSpanishManual && selectedManualInfo?.page_count && start > selectedManualInfo.page_count) {
+      toast.error(`Il manuale contiene ${selectedManualInfo.page_count} pagine: scegli un intervallo valido`);
+      return;
+    }
     setManualImporting(true);
     try {
       const res = await api.post("/library/import", {
@@ -939,7 +947,7 @@ export default function CardEditor() {
                         <SelectContent className="bg-card border-gold-deep/40 rounded-none">
                           {libraryManuals.map((manual) => (
                             <SelectItem key={manual.filename} value={manual.filename} className="font-body text-xs">
-                              {manual.title || manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ")} · {manual.imported_records} record
+                              {manual.title || manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ")} · {manual.source_language === "es" ? "testo nativo spagnolo" : manual.requires_ocr ? "scansione OCR" : "testo nativo"} · {manual.imported_records} record
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -958,6 +966,59 @@ export default function CardEditor() {
                        Fonte spagnola con testo nativo: l’importazione non invia pagine a OCR. I record vengono tradotti in italiano in piccoli gruppi e conservano testo, lingua e pagina originali per la revisione.
                      </p>
                    )}
+                    {selectedManualInfo && (
+                      <div data-testid="manual-import-progress" className="mt-3 border border-amber-700/35 bg-obsidian/35 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-label text-[10px] tracking-widest text-amber-100">
+                              {selectedSpanishManual ? "MANUALE SPAGNOLO DISPONIBILE" : "STATO DEL MANUALE"}
+                            </p>
+                            <p className="mt-1 font-body text-[11px] text-muted-foreground">
+                              {selectedSpanishManual
+                                ? `Testo nativo · ${selectedManualInfo.page_count || "—"} pagine · nessun PDF o OCR inviato a Gemini`
+                                : `${selectedManualInfo.page_count || "—"} pagine · ${selectedManualInfo.requires_ocr ? "OCR disponibile solo su richiesta" : "testo nativo locale"}`}
+                            </p>
+                          </div>
+                          <span className="font-label text-[10px] tracking-widest text-gold">
+                            {selectedManualInfo.pages_with_records || 0}/{selectedManualInfo.page_count || "—"} PAGINE CON RECORD
+                          </span>
+                        </div>
+                        <div className="mt-3 h-1.5 overflow-hidden bg-secondary" aria-label="Avanzamento importazione">
+                          <div
+                            className="h-full bg-amber-500 transition-all"
+                            style={{ width: `${Math.min(100, selectedManualInfo.page_progress || 0)}%` }}
+                          />
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          <div className="border border-emerald-800/50 bg-emerald-950/20 px-2 py-2">
+                            <p className="font-label text-[9px] tracking-widest text-emerald-300">PRONTI</p>
+                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_ready || 0}</p>
+                          </div>
+                          <div className="border border-sky-800/50 bg-sky-950/20 px-2 py-2">
+                            <p className="font-label text-[9px] tracking-widest text-sky-200">TRADOTTI</p>
+                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_translated || 0}</p>
+                          </div>
+                          <div className="border border-amber-800/50 bg-amber-950/20 px-2 py-2">
+                            <p className="font-label text-[9px] tracking-widest text-amber-200">DA VERIFICARE</p>
+                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_to_review || 0}</p>
+                          </div>
+                          <div className="border border-red-900/60 bg-red-950/20 px-2 py-2">
+                            <p className="font-label text-[9px] tracking-widest text-red-300">ERRORI</p>
+                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_failed || 0}</p>
+                          </div>
+                        </div>
+                        {(selectedManualInfo.records_to_review > 0 || selectedManualInfo.records_failed > 0) && (
+                          <button
+                            type="button"
+                            data-testid="open-manual-review-records"
+                            onClick={() => openCoverageReviews(Object.keys(LIBRARY_TYPE_LABELS).join(","), selectedManual)}
+                            className="mt-3 font-label text-[10px] tracking-widest text-gold hover:text-amber-200"
+                          >
+                            APRI RECORD DA VERIFICARE E RITENTA GLI ERRORI
+                          </button>
+                        )}
+                      </div>
+                    )}
                    {selectedSpanishManual && (
                      <div className="mt-3 flex items-start gap-2 border border-sky-700/40 bg-sky-950/20 p-3">
                        <Switch id="translation-confirmation" checked={translationConfirmed} onCheckedChange={setTranslationConfirmed} />
