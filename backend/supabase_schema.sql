@@ -35,6 +35,8 @@ create table if not exists public.cards (
   reference_ids jsonb not null default '[]'::jsonb,
   source_refs jsonb not null default '[]'::jsonb,
   reference_snapshots jsonb not null default '[]'::jsonb,
+  change_history jsonb not null default '[]'::jsonb,
+  version integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -45,7 +47,9 @@ alter table public.cards
 alter table public.cards
   add column if not exists reference_ids jsonb not null default '[]'::jsonb,
   add column if not exists source_refs jsonb not null default '[]'::jsonb,
-  add column if not exists reference_snapshots jsonb not null default '[]'::jsonb;
+  add column if not exists reference_snapshots jsonb not null default '[]'::jsonb,
+  add column if not exists change_history jsonb not null default '[]'::jsonb,
+  add column if not exists version integer not null default 0;
 
 create table if not exists public.files (
   id text primary key,

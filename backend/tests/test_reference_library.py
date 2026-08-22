@@ -571,6 +571,122 @@ def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_chara
     assert asyncio.run(server.card_reference_updates(character.id, user))["updated_count"] == 0
 
 
+def test_card_history_keeps_manual_and_user_changes_separate_and_account_scoped(monkeypatch):
+    cards = server.MemoryCollection()
+    reference = make_reference(
+        "Guerriero",
+        reference_type="class",
+        attributes={"dado_vita": "d10", "tiri_salvezza": "Forza, Costituzione"},
+    )
+    references = server.MemoryCollection()
+    references.rows.append(reference)
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    owner = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
+    other_user = server.User(user_id="owner-2", email="other@example.com", name="Other")
+
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character",
+        name="Neris",
+        reference_ids=[reference["id"]],
+        attributes={"classe": "Guerriero", "punti_ferita": "18", "dadi_vita": "d10"},
+    ), owner))
+    user_saved = asyncio.run(server.update_card(
+        character.id,
+        server.CardUpdate(attributes={"classe": "Guerriero", "punti_ferita": "18", "dadi_vita": "d12", "pf_attuali": "14"}),
+        owner,
+    ))
+    assert user_saved.change_history[-1]["source"] == "user"
+    assert user_saved.change_history[-1]["changed_fields"] == ["attributes"]
+
+    manual_saved = asyncio.run(server.complete_card_from_manuals(
+        character.id,
+        server.ManualCompletionInput(version=user_saved.version),
+        owner,
+    ))
+    assert manual_saved.change_history[-1]["source"] == "manual"
+    assert manual_saved.change_history[-1]["action"] == "manual_completion"
+
+    undone = asyncio.run(server.undo_card_change(
+        character.id, server.CardVersionInput(version=manual_saved.version), owner,
+    ))
+    assert undone["card"].attributes["dadi_vita"] == "d12"
+    assert undone["card"].attributes["pf_attuali"] == "14"
+    assert "tiri_salvezza" not in undone["card"].attributes
+    assert undone["history"][-1]["undone"] is True
+
+    redone = asyncio.run(server.redo_card_change(
+        character.id, server.CardVersionInput(version=undone["card"].version), owner,
+    ))
+    assert redone["card"].attributes["tiri_salvezza"] == "Forza, Costituzione"
+    assert redone["card"].attributes["pf_attuali"] == "14"
+
+    try:
+        asyncio.run(server.card_history(character.id, other_user))
+        assert False, "Expected the other account not to access this card history"
+    except server.HTTPException as error:
+        assert error.status_code == 404
+
+
+def test_card_history_redo_follows_undo_order_and_drops_stale_branches(monkeypatch):
+    cards = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=server.MemoryCollection()))
+    user = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character", name="Neris", attributes={"pf_attuali": "18"},
+    ), user))
+
+    first = asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "14"}, version=character.version), user))
+    second = asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "9"}, version=first.version), user))
+    assert first.version == 1
+    assert second.version == 2
+
+    undo_second = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=second.version), user))
+    assert undo_second["card"].attributes["pf_attuali"] == "14"
+    undo_first = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=undo_second["card"].version), user))
+    assert undo_first["card"].attributes["pf_attuali"] == "18"
+    redo_first = asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=undo_first["card"].version), user))
+    assert redo_first["card"].attributes["pf_attuali"] == "14"
+    redo_second = asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=redo_first["card"].version), user))
+    assert redo_second["card"].attributes["pf_attuali"] == "9"
+
+    undo_for_branch = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=redo_second["card"].version), user))
+    asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "7"}, version=undo_for_branch["card"].version), user))
+    try:
+        asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=undo_for_branch["card"].version + 1), user))
+        assert False, "Expected a new edit to invalidate the redo branch"
+    except server.HTTPException as error:
+        assert error.status_code == 409
+
+
+def test_card_update_rejects_a_stale_editor_version_without_changing_history(monkeypatch):
+    cards = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=server.MemoryCollection()))
+    user = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
+    character = asyncio.run(server.create_card(server.CardCreate(
+        type="character", name="Neris", attributes={"pf_attuali": "18", "tiri_salvezza": "Forza"},
+    ), user))
+    stale_version = character.version
+    saved = asyncio.run(server.update_card(
+        character.id,
+        server.CardUpdate(attributes={"pf_attuali": "14", "tiri_salvezza": "Forza"}, version=stale_version),
+        user,
+    ))
+
+    try:
+        asyncio.run(server.update_card(
+            character.id,
+            server.CardUpdate(attributes={"pf_attuali": "18", "tiri_salvezza": "Destrezza"}, version=stale_version),
+            user,
+        ))
+        assert False, "Expected the stale save to be rejected"
+    except server.HTTPException as error:
+        assert error.status_code == 409
+
+    persisted = asyncio.run(server.get_card(character.id, user))
+    assert persisted.attributes == {"pf_attuali": "14", "tiri_salvezza": "Forza"}
+    assert persisted.change_history == saved.change_history
+
+
 def test_untracked_reference_can_be_baselined_without_changing_card_data(monkeypatch):
     record = make_reference("Passo silenzioso", reference_type="feat", source_text_checksum="prima-versione")
     cards = server.MemoryCollection()

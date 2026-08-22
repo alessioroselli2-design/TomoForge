@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, FileText, Loader2, Pencil, Printer, Sparkles } fro
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
+import { CardHistoryPanel } from "@/components/CardHistoryPanel";
 import { Button } from "@/components/ui/button";
 
 const ABILITIES = [
@@ -38,34 +39,20 @@ const derivedProficiency = (level) => {
   return parsed && parsed > 0 ? `+${2 + Math.floor((Math.min(parsed, 20) - 1) / 4)}` : "—";
 };
 
-const hasValue = (value) => {
-  if (Array.isArray(value)) return value.length > 0;
-  return value !== undefined && value !== null && String(value).trim() !== "";
-};
+const fieldLabel = (field) => ({
+  dadi_vita: "Dadi vita",
+  competenze: "Competenze",
+  tiri_salvezza: "Tiri salvezza",
+  velocita: "Velocità",
+  linguaggi: "Linguaggi",
+  tratti_razza: "Tratti della specie",
+  abilita_sottoclasse: "Privilegi di sottoclasse",
+}[field] || field.replaceAll("_", " "));
 
-const copyIfMissing = (target, key, value) => {
-  if (!hasValue(target[key]) && hasValue(value)) target[key] = value;
-};
-
-const manualDefaults = (records, attributes) => {
-  const next = { ...attributes };
-  records.forEach((record) => {
-    const source = record.attributes || {};
-    if (record.reference_type === "class") {
-      copyIfMissing(next, "dadi_vita", source.dado_vita);
-      copyIfMissing(next, "competenze", source.competenze);
-      copyIfMissing(next, "tiri_salvezza", source.tiri_salvezza);
-    }
-    if (record.reference_type === "race" || record.reference_type === "subrace") {
-      copyIfMissing(next, "velocita", source.velocita);
-      copyIfMissing(next, "linguaggi", source.linguaggi);
-      copyIfMissing(next, "tratti_razza", source.tratti);
-    }
-    if (record.reference_type === "subclass") {
-      copyIfMissing(next, "abilita_sottoclasse", source.caratteristiche || source.privilegi);
-    }
-  });
-  return next;
+const displayValue = (value) => {
+  if (value === undefined || value === null || value === "") return "—";
+  if (Array.isArray(value)) return value.map((entry) => (typeof entry === "object" ? entry.nome || entry.name || "voce" : entry)).join(", ") || "—";
+  return String(value);
 };
 
 const ValueList = ({ title, values, empty = "Nessun dato inserito." }) => (
@@ -93,6 +80,9 @@ export default function CharacterSheet() {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [libraryNotice, setLibraryNotice] = useState("");
+  const [manualPreview, setManualPreview] = useState(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [previewingManual, setPreviewingManual] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -163,22 +153,50 @@ export default function CharacterSheet() {
   const capabilities = [...asList(attributes.abilita_sottoclasse), ...asList(attributes.privilegi)];
   const sourceRecords = linkedRecords.filter((record) => record.source_refs?.length);
 
-  const completeFromManuals = async () => {
-    const nextAttributes = manualDefaults(linkedRecords, attributes);
-    const changed = Object.keys(nextAttributes).some((key) => nextAttributes[key] !== attributes[key]);
-    if (!changed) {
-      toast.message("Non ci sono nuovi dati certi da applicare dai manuali disponibili");
-      return;
+  const previewManualCompletion = async () => {
+    setPreviewingManual(true);
+    try {
+      const { data } = await api.get(`/cards/${id}/manual-completion-preview`);
+      if (!(data.changes || []).length) {
+        toast.message("Non ci sono nuovi dati certi da applicare dai manuali disponibili");
+        return;
+      }
+      setManualPreview(data);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Impossibile calcolare l’aggiornamento dai manuali");
+    } finally {
+      setPreviewingManual(false);
     }
+  };
+
+  const completeFromManuals = async () => {
+    if (!manualPreview) return;
     setCompleting(true);
     try {
-      const { data } = await api.put(`/cards/${id}`, { attributes: nextAttributes });
+      const { data } = await api.post(`/cards/${id}/manual-completion`, { version: manualPreview.version });
       setCard(data);
-      toast.success("Applicati solo i dati deterministici trovati nei manuali");
+      setManualPreview(null);
+      toast.success("Applicati i dati certi: tiri, PF e scelte restano protetti");
     } catch (error) {
+      if (error.response?.status === 409) await load();
       toast.error(error.response?.data?.detail || "Impossibile aggiornare la scheda");
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const restoreHistory = async (action) => {
+    setHistoryBusy(true);
+    try {
+      const { data } = await api.post(`/cards/${id}/history/${action}`, { version: card.version });
+      setCard(data.card);
+      setManualPreview(null);
+      toast.success(action === "undo" ? "Ultima modifica annullata" : "Modifica ripristinata");
+    } catch (error) {
+      if (error.response?.status === 409) await load();
+      toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+    } finally {
+      setHistoryBusy(false);
     }
   };
 
@@ -327,8 +345,8 @@ export default function CharacterSheet() {
             </div>
             <div className="flex items-center gap-2">
               {loadingLinks && <Loader2 className="h-4 w-4 animate-spin text-sky-200" />}
-              <Button size="sm" data-testid="complete-sheet-from-manuals" onClick={completeFromManuals} disabled={loadingLinks || completing || !linkedRecords.length} className="rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600">
-                {completing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <BookOpen className="mr-1 h-3 w-3" />} COMPLETA DAI MANUALI
+              <Button size="sm" data-testid="complete-sheet-from-manuals" onClick={previewManualCompletion} disabled={loadingLinks || completing || previewingManual || !linkedRecords.length} className="rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600">
+                {(completing || previewingManual) ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <BookOpen className="mr-1 h-3 w-3" />} COMPLETA DAI MANUALI
               </Button>
             </div>
           </div>
@@ -358,6 +376,43 @@ export default function CharacterSheet() {
             </p>
           )}
         </section>
+
+        {manualPreview && (
+          <section data-testid="manual-update-preview" className="no-print mt-6 border border-sky-600/65 bg-sky-950/25 p-5">
+            <p className="font-label text-[10px] tracking-[0.2em] text-sky-200">ANTEPRIMA AGGIORNAMENTO NORMATIVO</p>
+            <h2 className="mt-1 font-heading text-2xl text-foreground">Verifica cosa cambierà</h2>
+            <p className="mt-1 font-body text-xs leading-relaxed text-muted-foreground">
+              Verranno aggiunti solo i campi certi ancora vuoti. I tiri, i PF e le scelte già inserite non verranno sostituiti.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {manualPreview.changes.map((change) => (
+                <li key={change.field} className="border border-sky-900/60 bg-obsidian/45 px-3 py-2 font-body text-xs">
+                  <strong className="text-sky-100">{fieldLabel(change.field)}:</strong>
+                  <span className="ml-2 text-muted-foreground">{displayValue(change.before)}</span>
+                  <span className="mx-2 text-sky-300">→</span>
+                  <span className="text-foreground">{displayValue(change.after)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button data-testid="confirm-manual-update" onClick={completeFromManuals} disabled={completing} className="rounded-none bg-sky-700 font-label text-[10px] tracking-wide text-white hover:bg-sky-600">
+                {completing && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} APPLICA MODIFICHE
+              </Button>
+              <Button data-testid="cancel-manual-update" variant="outline" onClick={() => setManualPreview(null)} disabled={completing} className="rounded-none border-sky-700/60 bg-transparent font-label text-[10px] tracking-wide text-sky-100 hover:bg-sky-950">
+                ANNULLA
+              </Button>
+            </div>
+          </section>
+        )}
+
+        <div className="no-print mt-6">
+          <CardHistoryPanel
+            history={card.change_history || []}
+            busy={historyBusy}
+            onUndo={() => restoreHistory("undo")}
+            onRedo={() => restoreHistory("redo")}
+          />
+        </div>
 
         {(card.description || card.story) && (
           <section className="no-print mt-6 border border-gold-deep/45 bg-card/75 p-5">

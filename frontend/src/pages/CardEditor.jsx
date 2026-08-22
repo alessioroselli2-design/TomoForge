@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import { PremiumDialog } from "@/components/PremiumDialog";
 import { CardAppearanceControls } from "@/components/CardAppearanceControls";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
+import { CardHistoryPanel } from "@/components/CardHistoryPanel";
 import LibraryCoverageReadiness from "@/components/LibraryCoverageReadiness";
 import { useAuth } from "@/context/AuthContext";
 import { CardFront, CardBack } from "@/components/TradingCard";
@@ -165,29 +166,33 @@ export default function CardEditor() {
   const [characterReferences, setCharacterReferences] = useState([]);
   const [referenceUpdates, setReferenceUpdates] = useState([]);
   const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
   const selectedManualInfo = libraryManuals.find((manual) => manual.filename === selectedManual);
   const selectedSpanishManual = selectedManualInfo?.source_language === "es";
   const useSelectedManualOcr = useManualOcr && selectedManualInfo?.source_language !== "es";
 
+  const hydrateCard = useCallback((savedCard) => ({
+    ...savedCard,
+    attributes: { ...(DEFAULT_ATTRS[savedCard.type] || {}), ...(savedCard.attributes || {}) },
+    reference_ids: savedCard.reference_ids || [],
+    source_refs: savedCard.source_refs || [],
+    appearance: { ...DEFAULT_APPEARANCE, ...(savedCard.appearance || {}) },
+    back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(savedCard.back || {}) },
+  }), []);
+
+  const reloadCard = useCallback(async () => {
+    try {
+      const res = await api.get(`/cards/${id}`);
+      setCard(hydrateCard(res.data));
+    } catch (e) {
+      toast.error("Carta non trovata");
+      navigate("/collezione");
+    }
+  }, [hydrateCard, id, navigate]);
+
   useEffect(() => {
-    if (!isEdit) return;
-    (async () => {
-      try {
-        const res = await api.get(`/cards/${id}`);
-        setCard({
-          ...res.data,
-          attributes: { ...(DEFAULT_ATTRS[res.data.type] || {}), ...(res.data.attributes || {}) },
-          reference_ids: res.data.reference_ids || [],
-          source_refs: res.data.source_refs || [],
-          appearance: { ...DEFAULT_APPEARANCE, ...(res.data.appearance || {}) },
-          back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(res.data.back || {}) },
-        });
-      } catch (e) {
-        toast.error("Carta non trovata");
-        navigate("/collezione");
-      }
-    })();
-  }, [id, isEdit, navigate]);
+    if (isEdit) reloadCard();
+  }, [isEdit, reloadCard]);
 
   const loadReferenceUpdates = useCallback(async () => {
     if (!isEdit) return;
@@ -470,16 +475,9 @@ export default function CardEditor() {
     )) return;
     setRefreshingReferenceId(referenceId);
     try {
-      const response = await api.post(`/cards/${id}/reference-updates`, { reference_ids: [referenceId] });
+      const response = await api.post(`/cards/${id}/reference-updates`, { reference_ids: [referenceId], version: card.version });
       const refreshedCard = response.data.card;
-      setCard({
-        ...refreshedCard,
-        attributes: { ...(DEFAULT_ATTRS[refreshedCard.type] || {}), ...(refreshedCard.attributes || {}) },
-        reference_ids: refreshedCard.reference_ids || [],
-        source_refs: refreshedCard.source_refs || [],
-        appearance: { ...DEFAULT_APPEARANCE, ...(refreshedCard.appearance || {}) },
-        back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(refreshedCard.back || {}) },
-      });
+      setCard(hydrateCard(refreshedCard));
       await loadReferenceUpdates();
       const protectedCount = (response.data.protected_fields?.[referenceId] || []).length;
       if (isUntracked) {
@@ -490,9 +488,26 @@ export default function CardEditor() {
         toast.success("Dati derivati aggiornati dalla fonte corrente");
       }
     } catch (error) {
+      if (error.response?.status === 409) await reloadCard();
       toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
     } finally {
       setRefreshingReferenceId(null);
+    }
+  };
+
+  const restoreHistory = async (action) => {
+    setHistoryBusy(true);
+    try {
+      const response = await api.post(`/cards/${id}/history/${action}`, { version: card.version });
+      const restoredCard = response.data.card;
+      setCard(hydrateCard(restoredCard));
+      await loadReferenceUpdates();
+      toast.success(action === "undo" ? "Ultima modifica annullata" : "Modifica ripristinata");
+    } catch (error) {
+      if (error.response?.status === 409) await reloadCard();
+      toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+    } finally {
+      setHistoryBusy(false);
     }
   };
 
@@ -723,6 +738,7 @@ export default function CardEditor() {
         attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame,
         appearance: card.appearance, back: card.back,
         reference_ids: card.reference_ids || [], source_refs: card.source_refs || [],
+        version: card.version,
       };
       if (isEdit) {
         await api.put(`/cards/${id}`, payload);
@@ -734,7 +750,8 @@ export default function CardEditor() {
         navigate(`/carta/${res.data.id}`);
       }
     } catch (e) {
-      toast.error("Salvataggio fallito");
+      if (e.response?.status === 409) await reloadCard();
+      toast.error(e.response?.data?.detail || "Salvataggio fallito");
     } finally {
       setSaving(false);
     }
@@ -762,6 +779,12 @@ export default function CardEditor() {
               updates={referenceUpdates}
               refreshingReferenceId={refreshingReferenceId}
               onRefresh={refreshReference}
+            />
+            <CardHistoryPanel
+              history={card.change_history || []}
+              busy={historyBusy}
+              onUndo={() => restoreHistory("undo")}
+              onRedo={() => restoreHistory("redo")}
             />
 
             {/* Type + language */}

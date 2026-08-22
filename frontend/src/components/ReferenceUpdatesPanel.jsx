@@ -9,6 +9,13 @@ const snapshotText = (snapshot) => (
   snapshot?.full_text || snapshot?.description || "Nessun testo strutturato disponibile."
 );
 
+const formatValue = (value) => {
+  if (value === undefined || value === null || value === "") return "—";
+  if (Array.isArray(value)) return value.map((entry) => (typeof entry === "object" ? entry.nome || entry.name || "voce" : entry)).join(", ") || "—";
+  if (typeof value === "object") return value.nome || value.name || "valore strutturato";
+  return String(value);
+};
+
 export function ReferenceUpdatesPanel({ updates = [], refreshingReferenceId, onRefresh }) {
   if (!updates.length) return null;
 
@@ -74,6 +81,25 @@ export function ReferenceUpdatesPanel({ updates = [], refreshingReferenceId, onR
                       {snapshotText(current)}
                     </p>
                   </div>
+                </div>
+              )}
+
+              {!isMissing && !isUntracked && (update.changed_fields || []).length > 0 && (
+                <div className="mt-3 border border-amber-800/50 bg-amber-950/15 p-3">
+                  <p className="font-label text-[10px] tracking-widest text-amber-200">CAMBIAMENTI CHE SARANNO VALUTATI</p>
+                  <ul className="mt-2 space-y-1.5 font-body text-xs text-foreground/85">
+                    {(update.changed_fields || []).map((field) => (
+                      <li key={field}>
+                        <strong className="text-amber-100">{field}:</strong>{" "}
+                        <span className="text-muted-foreground">{formatValue(before?.derived_attributes?.[field])}</span>
+                        {" → "}
+                        <span className="text-sky-100">{formatValue(current?.derived_attributes?.[field])}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 font-body text-[11px] text-muted-foreground">
+                    Se un valore della scheda è stato modificato manualmente, resterà invariato anche dopo l’aggiornamento.
+                  </p>
                 </div>
               )}
 

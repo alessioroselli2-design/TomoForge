@@ -483,6 +483,8 @@ class Card(BaseModel):
     reference_ids: list[str] = Field(default_factory=list)
     source_refs: list[dict] = Field(default_factory=list)
     reference_snapshots: list[dict] = Field(default_factory=list)
+    change_history: list[dict] = Field(default_factory=list)
+    version: int = 0
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
 
@@ -517,6 +519,7 @@ class CardUpdate(BaseModel):
     back: Optional[CardBack] = None
     reference_ids: Optional[list[str]] = None
     source_refs: Optional[list[dict]] = None
+    version: int = 0
 
 
 class LinkedCardInput(BaseModel):
@@ -525,6 +528,16 @@ class LinkedCardInput(BaseModel):
 
 class ReferenceUpdateInput(BaseModel):
     reference_ids: list[str] = Field(default_factory=list)
+    version: int = 0
+
+
+class ManualCompletionInput(BaseModel):
+    """The server derives the eligible fields from the card's own identity."""
+    version: int = 0
+
+
+class CardVersionInput(BaseModel):
+    version: int = 0
 
 
 class RegisterInput(BaseModel):
@@ -1278,6 +1291,146 @@ def _is_empty_card_value(value: Any) -> bool:
     if isinstance(value, (list, dict)):
         return not value
     return False
+
+
+CARD_HISTORY_LIMIT = 20
+CARD_HISTORY_FIELDS = (
+    "type", "custom_type", "name", "description", "story", "language",
+    "attributes", "artwork_path", "frame", "appearance", "back",
+    "reference_ids", "source_refs", "reference_snapshots",
+)
+
+
+def card_change_patch(before: dict, after: dict) -> tuple[dict, dict, list[str]]:
+    """Return small before/after patches rather than duplicating whole cards."""
+    previous: dict = {}
+    current: dict = {}
+    changed: list[str] = []
+    for field in CARD_HISTORY_FIELDS:
+        before_value = before.get(field)
+        after_value = after.get(field)
+        if before_value != after_value:
+            previous[field] = copy.deepcopy(before_value)
+            current[field] = copy.deepcopy(after_value)
+            changed.append(field)
+    return previous, current, changed
+
+
+def append_card_history(
+    history: list[dict],
+    before: dict,
+    after: dict,
+    source: Literal["user", "manual"],
+    action: Literal["update", "reference_update", "manual_completion"],
+    reference_ids: Optional[list[str]] = None,
+) -> list[dict]:
+    """Append an account-owned card change, dropping redo entries after a new edit."""
+    previous, current, changed = card_change_patch(before, after)
+    if not changed:
+        return copy.deepcopy(history or [])
+    entry = {
+        "id": str(uuid.uuid4()),
+        "source": source,
+        "action": action,
+        "created_at": utc_now(),
+        "changed_fields": changed,
+        "before": previous,
+        "after": current,
+        "undone": False,
+    }
+    if reference_ids:
+        entry["reference_ids"] = list(dict.fromkeys(reference_ids))
+    active_history = [item for item in (history or []) if not item.get("undone")]
+    return (active_history + [entry])[-CARD_HISTORY_LIMIT:]
+
+
+def card_history_view(history: list[dict]) -> list[dict]:
+    """Keep history responses explicit while never exposing internal card ownership."""
+    return copy.deepcopy(history or [])
+
+
+def apply_history_entry(card: dict, entry: dict, direction: Literal["before", "after"]) -> dict:
+    restored = copy.deepcopy(card)
+    for field, value in (entry.get(direction) or {}).items():
+        restored[field] = copy.deepcopy(value)
+    return restored
+
+
+async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_version: int) -> dict:
+    """Save only if this is still the version the caller read, avoiding lost edits."""
+    stored_version = int(card.get("version", 0) or 0)
+    if expected_version != stored_version:
+        raise HTTPException(
+            status_code=409,
+            detail="La scheda è stata modificata altrove. Ricaricala prima di salvare o aggiornare le regole.",
+        )
+    saved_updates = {**updates, "version": stored_version + 1}
+    result = await db.cards.update_one(
+        {"id": card["id"], "user_id": user_id, "version": stored_version},
+        {"$set": saved_updates},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=409,
+            detail="La scheda è stata modificata altrove. Ricaricala prima di salvare o aggiornare le regole.",
+        )
+    card.update(saved_updates)
+    return card
+
+
+def character_manual_defaults(records: list[dict], attributes: dict) -> dict:
+    """Mirror only deterministic, missing character fields from trusted records."""
+    completed = copy.deepcopy(attributes or {})
+    for record in records:
+        source = record.get("attributes") or {}
+        reference_type = record.get("reference_type")
+        fields = (
+            (("dadi_vita", source.get("dado_vita")), ("competenze", source.get("competenze")), ("tiri_salvezza", source.get("tiri_salvezza")))
+            if reference_type == "class"
+            else (("velocita", source.get("velocita")), ("linguaggi", source.get("linguaggi")), ("tratti_razza", source.get("tratti")))
+            if reference_type in {"race", "subrace"}
+            else (("abilita_sottoclasse", source.get("caratteristiche") or source.get("privilegi")),)
+            if reference_type == "subclass"
+            else ()
+        )
+        for field, value in fields:
+            if _is_empty_card_value(completed.get(field)) and not _is_empty_card_value(value):
+                completed[field] = copy.deepcopy(value)
+    return completed
+
+
+async def manual_completion_preview_for_card(card: dict, user_id: str) -> tuple[dict, list[dict], list[str]]:
+    """Resolve exact, trusted manual records from the saved character identity."""
+    attributes = card.get("attributes") or {}
+    lookups = (
+        (attributes.get("classe"), {"class"}),
+        (attributes.get("sottoclasse"), {"subclass"}),
+        (attributes.get("razza"), {"race", "subrace"}),
+        (attributes.get("sottorazza"), {"subrace"}),
+    )
+    records: list[dict] = []
+    seen_ids: set[str] = set()
+    available = await private_reference_records(user_id)
+    for query, allowed_types in lookups:
+        normalized_query = normalize_reference_name(str(query or ""))
+        if not normalized_query:
+            continue
+        for record in available:
+            if (
+                record.get("reference_type") in allowed_types
+                and record.get("normalized_name") == normalized_query
+                and reference_is_trusted(record)
+                and record.get("id") not in seen_ids
+            ):
+                records.append(record)
+                seen_ids.add(record["id"])
+    completed = character_manual_defaults(records, attributes)
+    changes = [
+        {"field": field, "before": copy.deepcopy(attributes.get(field)), "after": copy.deepcopy(completed[field])}
+        for field in completed
+        if completed[field] != attributes.get(field)
+    ]
+    return completed, changes, [record["id"] for record in records]
 
 
 def refresh_derived_attributes(attributes: dict, old_snapshot: dict, new_snapshot: dict) -> tuple[dict, list[str]]:
@@ -2351,7 +2504,9 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
+    before_card = copy.deepcopy(card)
     updates = body.model_dump(exclude_none=True)
+    expected_version = updates.pop("version")
     if "reference_ids" in updates:
         reference_ids, source_refs = await resolve_reference_provenance(user.user_id, updates["reference_ids"])
         updates["reference_ids"] = reference_ids
@@ -2373,8 +2528,16 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
         # snapshots sent by older clients when the references did not change.
         updates.pop("source_refs", None)
     updates["updated_at"] = utc_now()
-    await db.cards.update_one({"id": card_id, "user_id": user.user_id}, {"$set": updates})
-    card.update(updates)
+    after_card = copy.deepcopy(card)
+    after_card.update(updates)
+    updates["change_history"] = append_card_history(
+        card.get("change_history", []),
+        before_card,
+        after_card,
+        "user",
+        "update",
+    )
+    await save_card_versioned(card, user.user_id, updates, expected_version)
     return Card(**card)
 
 
@@ -2393,6 +2556,52 @@ async def card_reference_updates(card_id: str, user: User = Depends(get_current_
     }
 
 
+@api_router.post("/cards/{card_id}/manual-completion", response_model=Card)
+async def complete_card_from_manuals(
+    card_id: str,
+    body: ManualCompletionInput,
+    user: User = Depends(get_current_user),
+):
+    """Save a server-derived manual completion as a distinct, undoable event."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    if card.get("type") != "character":
+        raise HTTPException(status_code=400, detail="Il completamento dai manuali è disponibile solo per i personaggi")
+
+    before_card = copy.deepcopy(card)
+    after_card = copy.deepcopy(card)
+    completed_attributes, _changes, source_ids = await manual_completion_preview_for_card(card, user.user_id)
+    after_card["attributes"] = completed_attributes
+    history = append_card_history(
+        card.get("change_history", []),
+        before_card,
+        after_card,
+        "manual",
+        "manual_completion",
+        source_ids,
+    )
+    updates = {
+        "attributes": after_card["attributes"],
+        "change_history": history,
+        "updated_at": utc_now(),
+    }
+    await save_card_versioned(card, user.user_id, updates, body.version)
+    return Card(**card)
+
+
+@api_router.get("/cards/{card_id}/manual-completion-preview")
+async def card_manual_completion_preview(card_id: str, user: User = Depends(get_current_user)):
+    """Calculate the exact trusted fields that a manual completion would add."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    if card.get("type") != "character":
+        raise HTTPException(status_code=400, detail="Il completamento dai manuali è disponibile solo per i personaggi")
+    attributes, changes, reference_ids = await manual_completion_preview_for_card(card, user.user_id)
+    return {"attributes": attributes, "changes": changes, "reference_ids": reference_ids, "version": card.get("version", 0)}
+
+
 @api_router.post("/cards/{card_id}/reference-updates")
 async def refresh_card_reference_updates(
     card_id: str,
@@ -2403,6 +2612,7 @@ async def refresh_card_reference_updates(
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
+    before_card = copy.deepcopy(card)
     linked_ids = list(dict.fromkeys(card.get("reference_ids") or []))
     requested_ids = list(dict.fromkeys(body.reference_ids or linked_ids))
     if not set(requested_ids).issubset(linked_ids):
@@ -2441,7 +2651,9 @@ async def refresh_card_reference_updates(
                     elif card.get(field) != next_value:
                         protected_fields.setdefault(reference_id, []).append(field)
             refreshed_ids.append(reference_id)
-        snapshots_by_id[reference_id] = current
+            snapshots_by_id[reference_id] = current
+        elif not previous:
+            snapshots_by_id[reference_id] = current
 
     snapshots = [
         snapshots_by_id[reference_id]
@@ -2456,13 +2668,92 @@ async def refresh_card_reference_updates(
     for field in ("name", "description", "story", "language"):
         if field in card:
             updates[field] = card[field]
-    await db.cards.update_one({"id": card_id, "user_id": user.user_id}, {"$set": updates})
-    card.update(updates)
+    after_card = copy.deepcopy(card)
+    after_card.update(updates)
+    updates["change_history"] = append_card_history(
+        card.get("change_history", []),
+        before_card,
+        after_card,
+        "manual",
+        "reference_update",
+        requested_ids,
+    )
+    await save_card_versioned(card, user.user_id, updates, body.version)
     return {
         "card": Card(**card),
         "updated_reference_ids": refreshed_ids,
         "protected_fields": protected_fields,
     }
+
+
+@api_router.get("/cards/{card_id}/history")
+async def card_history(card_id: str, user: User = Depends(get_current_user)):
+    """Return the short, account-scoped audit trail for a card."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    history = card_history_view(card.get("change_history", []))
+    return {
+        "history": history,
+        "can_undo": any(not entry.get("undone") for entry in history),
+        "can_redo": any(entry.get("undone") for entry in history),
+    }
+
+
+@api_router.post("/cards/{card_id}/history/undo")
+async def undo_card_change(
+    card_id: str,
+    body: CardVersionInput,
+    user: User = Depends(get_current_user),
+):
+    """Undo the latest saved user or manual change without crossing accounts."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    history = copy.deepcopy(card.get("change_history") or [])
+    target = next((entry for entry in reversed(history) if not entry.get("undone")), None)
+    if not target:
+        raise HTTPException(status_code=409, detail="Non ci sono modifiche da annullare")
+
+    restored = apply_history_entry(card, target, "before")
+    target["undone"] = True
+    updates = {
+        field: restored[field]
+        for field in target.get("before", {})
+        if field in restored
+    }
+    updates["change_history"] = history
+    updates["updated_at"] = utc_now()
+    await save_card_versioned(card, user.user_id, updates, body.version)
+    return {"card": Card(**card), "history": card_history_view(history), "entry": target}
+
+
+@api_router.post("/cards/{card_id}/history/redo")
+async def redo_card_change(
+    card_id: str,
+    body: CardVersionInput,
+    user: User = Depends(get_current_user),
+):
+    """Restore the most recently undone change while the redo branch is intact."""
+    card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+    if not card:
+        raise HTTPException(status_code=404, detail="Carta non trovata")
+    history = copy.deepcopy(card.get("change_history") or [])
+    target = next((entry for entry in history if entry.get("undone")), None)
+    if not target:
+        raise HTTPException(status_code=409, detail="Non ci sono modifiche da ripristinare")
+
+    restored = apply_history_entry(card, target, "after")
+    target["undone"] = False
+    updates = {
+        field: restored[field]
+        for field in target.get("after", {})
+        if field in restored
+    }
+    updates["change_history"] = history
+    updates["updated_at"] = utc_now()
+    await save_card_versioned(card, user.user_id, updates, body.version)
+    return {"card": Card(**card), "history": card_history_view(history), "entry": target}
 
 
 @api_router.delete("/cards/{card_id}")

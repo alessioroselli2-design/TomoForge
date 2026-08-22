@@ -12,6 +12,7 @@ import Navbar from "@/components/Navbar";
 import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
+import { CardHistoryPanel } from "@/components/CardHistoryPanel";
 import { addCharacterSheetPdfPage, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -197,6 +198,7 @@ export default function CardDetail() {
   const [creatingLinked, setCreatingLinked] = useState(false);
   const [referenceUpdates, setReferenceUpdates] = useState([]);
   const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
   const exportFrontRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -235,8 +237,13 @@ export default function CardDetail() {
 
   const persistAttrs = async (attributes) => {
     setCard((c) => ({ ...c, attributes }));
-    try { await api.put(`/cards/${id}`, { attributes }); }
-    catch (e) { toast.error("Salvataggio slot fallito"); }
+    try {
+      const response = await api.put(`/cards/${id}`, { attributes, version: card.version });
+      setCard(response.data);
+    } catch (e) {
+      if (e.response?.status === 409) await load();
+      toast.error(e.response?.data?.detail || "Salvataggio slot fallito");
+    }
   };
 
   const updateSlots = (slots) => {
@@ -254,7 +261,7 @@ export default function CardDetail() {
   const refreshReference = async (referenceId, isUntracked) => {
     setRefreshingReferenceId(referenceId);
     try {
-      const response = await api.post(`/cards/${id}/reference-updates`, { reference_ids: [referenceId] });
+      const response = await api.post(`/cards/${id}/reference-updates`, { reference_ids: [referenceId], version: card.version });
       setCard(response.data.card);
       await loadReferenceUpdates();
       const protectedCount = (response.data.protected_fields?.[referenceId] || []).length;
@@ -269,6 +276,21 @@ export default function CardDetail() {
       toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
     } finally {
       setRefreshingReferenceId(null);
+    }
+  };
+
+  const restoreHistory = async (action) => {
+    setHistoryBusy(true);
+    try {
+      const response = await api.post(`/cards/${id}/history/${action}`, { version: card.version });
+      setCard(response.data.card);
+      await loadReferenceUpdates();
+      toast.success(action === "undo" ? "Ultima modifica annullata" : "Modifica ripristinata");
+    } catch (error) {
+      if (error.response?.status === 409) await load();
+      toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+    } finally {
+      setHistoryBusy(false);
     }
   };
 
@@ -507,6 +529,12 @@ export default function CardDetail() {
               updates={referenceUpdates}
               refreshingReferenceId={refreshingReferenceId}
               onRefresh={refreshReference}
+            />
+            <CardHistoryPanel
+              history={card.change_history || []}
+              busy={historyBusy}
+              onUndo={() => restoreHistory("undo")}
+              onRedo={() => restoreHistory("redo")}
             />
 
             {card.type === "character" && (
