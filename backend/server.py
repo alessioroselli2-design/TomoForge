@@ -527,25 +527,26 @@ class CardUpdate(BaseModel):
     spell_ids: Optional[list[str]] = None
     rule_sources: Optional[list[dict]] = None
     source_refs: Optional[list[dict]] = None
-    version: int = 0
+    version: int = Field(..., ge=0)
 
 
 class LinkedCardInput(BaseModel):
     reference_ids: list[str] = Field(default_factory=list)
+    version: int = Field(..., ge=0)
 
 
 class ReferenceUpdateInput(BaseModel):
     reference_ids: list[str] = Field(default_factory=list)
-    version: int = 0
+    version: int = Field(..., ge=0)
 
 
 class ManualCompletionInput(BaseModel):
     """The server derives the eligible fields from the card's own identity."""
-    version: int = 0
+    version: int = Field(..., ge=0)
 
 
 class CardVersionInput(BaseModel):
-    version: int = 0
+    version: int = Field(..., ge=0)
 
 
 class RegisterInput(BaseModel):
@@ -2956,9 +2957,23 @@ async def redo_card_change(
 
 
 @api_router.delete("/cards/{card_id}")
-async def delete_card(card_id: str, user: User = Depends(get_current_user)):
-    result = await db.cards.delete_one({"id": card_id, "user_id": user.user_id})
+async def delete_card(
+    card_id: str,
+    body: CardVersionInput,
+    user: User = Depends(get_current_user),
+):
+    result = await db.cards.delete_one({
+        "id": card_id,
+        "user_id": user.user_id,
+        "version": body.version,
+    })
     if result.deleted_count == 0:
+        current = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
+        if current:
+            raise HTTPException(
+                status_code=409,
+                detail="La scheda è stata modificata altrove. Ricaricala prima di eliminarla.",
+            )
         raise HTTPException(status_code=404, detail="Carta non trovata")
     return {"ok": True}
 
@@ -3000,6 +3015,16 @@ async def create_linked_cards(
             status_code=409,
             detail="I riferimenti da verificare non possono generare carte regolamentari.",
         )
+
+    # Creating linked cards is based on the character's selected references.
+    # Reserve the version before inserting any child cards so two screens
+    # cannot both materialize different views of a stale character.
+    await save_card_versioned(
+        character,
+        user.user_id,
+        {"updated_at": utc_now()},
+        body.version,
+    )
 
     created = []
     for reference_id in requested_ids:

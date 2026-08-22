@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 import server
 from reference_library import (
@@ -501,7 +502,7 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
 
     linked = asyncio.run(server.create_linked_cards(
         character.id,
-        server.LinkedCardInput(reference_ids=[record["id"]]),
+        server.LinkedCardInput(reference_ids=[record["id"]], version=character.version),
         user,
     ))
     assert len(linked) == 1
@@ -509,9 +510,10 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
     assert linked[0].source_refs == record["source_refs"]
     assert linked[0].rule_sources[0]["name"] == record["name"]
 
+    current_character = asyncio.run(server.get_card(character.id, user))
     updated = asyncio.run(server.update_card(
         character.id,
-        server.CardUpdate(reference_ids=[], version=character.version),
+        server.CardUpdate(reference_ids=[], version=current_character.version),
         user,
     ))
     assert updated.source_refs == []
@@ -531,7 +533,7 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
     try:
         asyncio.run(server.create_linked_cards(
             character.id,
-            server.LinkedCardInput(reference_ids=["ref-non-collegato"]),
+            server.LinkedCardInput(reference_ids=["ref-non-collegato"], version=updated.version),
             user,
         ))
         assert False, "Expected a rejected non-linked reference"
@@ -583,7 +585,7 @@ def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_chara
 
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         character.id,
-        server.ReferenceUpdateInput(reference_ids=[original["id"]]),
+        server.ReferenceUpdateInput(reference_ids=[original["id"]], version=character.version),
         user,
     ))
     assert refreshed["card"].attributes["dado_vita"] == "d12"
@@ -614,7 +616,10 @@ def test_card_history_keeps_manual_and_user_changes_separate_and_account_scoped(
     ), owner))
     user_saved = asyncio.run(server.update_card(
         character.id,
-        server.CardUpdate(attributes={"classe": "Guerriero", "punti_ferita": "18", "dadi_vita": "d12", "pf_attuali": "14"}),
+        server.CardUpdate(
+            attributes={"classe": "Guerriero", "punti_ferita": "18", "dadi_vita": "d12", "pf_attuali": "14"},
+            version=character.version,
+        ),
         owner,
     ))
     assert user_saved.change_history[-1]["source"] == "user"
@@ -709,6 +714,138 @@ def test_card_update_rejects_a_stale_editor_version_without_changing_history(mon
     assert persisted.change_history == saved.change_history
 
 
+def test_card_mutation_requests_require_a_non_negative_read_version():
+    for model, payload in (
+        (server.CardUpdate, {"name": "Carta"}),
+        (server.LinkedCardInput, {"reference_ids": []}),
+        (server.ReferenceUpdateInput, {"reference_ids": []}),
+        (server.ManualCompletionInput, {}),
+        (server.CardVersionInput, {}),
+    ):
+        with pytest.raises(ValidationError):
+            model(**payload)
+        with pytest.raises(ValidationError):
+            model(**{**payload, "version": -1})
+
+
+def test_versioned_card_mutations_reject_stale_concurrent_actions(monkeypatch):
+    """Every mutation path must reject the second action from the same read."""
+    reference = make_reference("Tiratore scelto")
+    cards = server.MemoryCollection()
+    references = server.MemoryCollection()
+    references.rows.append(reference)
+    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    user = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
+
+    def assert_conflict(awaitable):
+        with pytest.raises(server.HTTPException) as error:
+            asyncio.run(awaitable)
+        assert error.value.status_code == 409
+
+    manual_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Manuale"), user))
+    completed = asyncio.run(server.complete_card_from_manuals(
+        manual_card.id,
+        server.ManualCompletionInput(version=manual_card.version),
+        user,
+    ))
+    assert_conflict(server.complete_card_from_manuals(
+        manual_card.id,
+        server.ManualCompletionInput(version=manual_card.version),
+        user,
+    ))
+    assert asyncio.run(server.get_card(manual_card.id, user)).version == completed.version
+
+    reference_card = asyncio.run(server.create_card(server.CardCreate(
+        type="character", name="Riferimenti", reference_ids=[reference["id"]],
+    ), user))
+    refreshed = asyncio.run(server.refresh_card_reference_updates(
+        reference_card.id,
+        server.ReferenceUpdateInput(reference_ids=[reference["id"]], version=reference_card.version),
+        user,
+    ))
+    assert_conflict(server.refresh_card_reference_updates(
+        reference_card.id,
+        server.ReferenceUpdateInput(reference_ids=[reference["id"]], version=reference_card.version),
+        user,
+    ))
+    assert asyncio.run(server.get_card(reference_card.id, user)).version == refreshed["card"].version
+
+    undo_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Cronologia"), user))
+    changed = asyncio.run(server.update_card(
+        undo_card.id,
+        server.CardUpdate(attributes={"pf_attuali": "12"}, version=undo_card.version),
+        user,
+    ))
+    changed_again = asyncio.run(server.update_card(
+        undo_card.id,
+        server.CardUpdate(attributes={"pf_attuali": "8"}, version=changed.version),
+        user,
+    ))
+    assert_conflict(server.undo_card_change(
+        undo_card.id,
+        server.CardVersionInput(version=changed.version),
+        user,
+    ))
+    assert asyncio.run(server.get_card(undo_card.id, user)).version == changed_again.version
+
+    redo_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Ripristino"), user))
+    changed_for_redo = asyncio.run(server.update_card(
+        redo_card.id,
+        server.CardUpdate(attributes={"pf_attuali": "12"}, version=redo_card.version),
+        user,
+    ))
+    undone_for_redo = asyncio.run(server.undo_card_change(
+        redo_card.id,
+        server.CardVersionInput(version=changed_for_redo.version),
+        user,
+    ))
+    refreshed_for_redo = asyncio.run(server.refresh_card_reference_updates(
+        redo_card.id,
+        server.ReferenceUpdateInput(version=undone_for_redo["card"].version),
+        user,
+    ))
+    assert_conflict(server.redo_card_change(
+        redo_card.id,
+        server.CardVersionInput(version=undone_for_redo["card"].version),
+        user,
+    ))
+    assert asyncio.run(server.get_card(redo_card.id, user)).version == refreshed_for_redo["card"].version
+
+    linked_character = asyncio.run(server.create_card(server.CardCreate(
+        type="character", name="Carte collegate", reference_ids=[reference["id"]],
+    ), user))
+    linked = asyncio.run(server.create_linked_cards(
+        linked_character.id,
+        server.LinkedCardInput(reference_ids=[reference["id"]], version=linked_character.version),
+        user,
+    ))
+    assert len(linked) == 1
+    assert_conflict(server.create_linked_cards(
+        linked_character.id,
+        server.LinkedCardInput(reference_ids=[reference["id"]], version=linked_character.version),
+        user,
+    ))
+    assert len(cards.rows) == 6
+
+    delete_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Da eliminare"), user))
+    updated_for_delete = asyncio.run(server.update_card(
+        delete_card.id,
+        server.CardUpdate(name="Ancora qui", version=delete_card.version),
+        user,
+    ))
+    assert_conflict(server.delete_card(
+        delete_card.id,
+        server.CardVersionInput(version=delete_card.version),
+        user,
+    ))
+    assert asyncio.run(server.get_card(delete_card.id, user)).name == "Ancora qui"
+    assert asyncio.run(server.delete_card(
+        delete_card.id,
+        server.CardVersionInput(version=updated_for_delete.version),
+        user,
+    )) == {"ok": True}
+
+
 def test_untracked_reference_can_be_baselined_without_changing_card_data(monkeypatch):
     record = make_reference("Passo silenzioso", reference_type="feat", source_text_checksum="prima-versione")
     cards = server.MemoryCollection()
@@ -730,7 +867,7 @@ def test_untracked_reference_can_be_baselined_without_changing_card_data(monkeyp
     assert report["untracked_count"] == 1
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         "legacy-character",
-        server.ReferenceUpdateInput(reference_ids=[record["id"]]),
+        server.ReferenceUpdateInput(reference_ids=[record["id"]], version=0),
         user,
     ))
     assert refreshed["updated_reference_ids"] == []
@@ -776,7 +913,7 @@ def test_attribute_only_source_correction_is_detected_and_keeps_edited_linked_en
 
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         character.id,
-        server.ReferenceUpdateInput(reference_ids=[original["id"]]),
+        server.ReferenceUpdateInput(reference_ids=[original["id"]], version=character.version),
         user,
     ))
     assert refreshed["card"].attributes["prerequisito"] == "Saggezza 15"
@@ -871,7 +1008,7 @@ def test_unverified_references_cannot_be_attached_or_materialized_as_linked_card
     with pytest.raises(server.HTTPException, match="da verificare") as linked_error:
         asyncio.run(server.create_linked_cards(
             character.id,
-            server.LinkedCardInput(reference_ids=[record["id"]]),
+            server.LinkedCardInput(reference_ids=[record["id"]], version=character.version),
             user,
         ))
     assert linked_error.value.status_code == 409

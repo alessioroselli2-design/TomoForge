@@ -185,8 +185,12 @@ export default function CharacterSheet() {
       setManualPreview(null);
       toast.success("Applicati i dati certi: tiri, PF e scelte restano protetti");
     } catch (error) {
-      if (error.response?.status === 409) await load();
-      toast.error(error.response?.data?.detail || "Impossibile aggiornare la scheda");
+      if (error.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile aggiornare la scheda");
+      }
     } finally {
       setCompleting(false);
     }
@@ -200,8 +204,12 @@ export default function CharacterSheet() {
       setManualPreview(null);
       toast.success(action === "undo" ? "Ultima modifica annullata" : "Modifica ripristinata");
     } catch (error) {
-      if (error.response?.status === 409) await load();
-      toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+      if (error.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+      }
     } finally {
       setHistoryBusy(false);
     }

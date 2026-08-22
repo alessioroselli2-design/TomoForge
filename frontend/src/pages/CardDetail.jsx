@@ -241,8 +241,12 @@ export default function CardDetail() {
       const response = await api.put(`/cards/${id}`, { attributes, version: card.version });
       setCard(response.data);
     } catch (e) {
-      if (e.response?.status === 409) await load();
-      toast.error(e.response?.data?.detail || "Salvataggio slot fallito");
+      if (e.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(e.response?.data?.detail || "Salvataggio slot fallito");
+      }
     }
   };
 
@@ -252,10 +256,17 @@ export default function CardDetail() {
 
   const remove = async () => {
     try {
-      await api.delete(`/cards/${id}`);
+      await api.delete(`/cards/${id}`, { data: { version: card.version } });
       toast.success("Carta dissolta");
       navigate("/collezione");
-    } catch (e) { toast.error("Eliminazione fallita"); }
+    } catch (e) {
+      if (e.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica prima di eliminarla.");
+      } else {
+        toast.error(e.response?.data?.detail || "Eliminazione fallita");
+      }
+    }
   };
 
   const refreshReference = async (referenceId, isUntracked) => {
@@ -273,7 +284,12 @@ export default function CardDetail() {
         toast.success("Dati derivati aggiornati dalla fonte corrente");
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
+      if (error.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
+      }
     } finally {
       setRefreshingReferenceId(null);
     }
@@ -287,8 +303,12 @@ export default function CardDetail() {
       await loadReferenceUpdates();
       toast.success(action === "undo" ? "Ultima modifica annullata" : "Modifica ripristinata");
     } catch (error) {
-      if (error.response?.status === 409) await load();
-      toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+      if (error.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+      }
     } finally {
       setHistoryBusy(false);
     }
@@ -373,11 +393,17 @@ export default function CardDetail() {
     if (!referenceIds.length) return;
     setCreatingLinked(true);
     try {
-      const response = await api.post(`/cards/${id}/linked`, { reference_ids: referenceIds });
+      const response = await api.post(`/cards/${id}/linked`, { reference_ids: referenceIds, version: card.version });
       const count = response.data?.length || 0;
+      await load();
       toast.success(`${count} ${count === 1 ? "carta collegata creata" : "carte collegate create"}`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Impossibile creare le carte collegate");
+      if (error.response?.status === 409) {
+        await load();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Riprova dalla versione aggiornata.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile creare le carte collegate");
+      }
     } finally {
       setCreatingLinked(false);
     }

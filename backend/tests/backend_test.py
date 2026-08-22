@@ -148,7 +148,7 @@ class TestCards:
 
         # UPDATE
         r = s.put(f"{API}/cards/{cid}", headers=auth_headers,
-                  json={"name": "TEST_Palla di Fuoco Aggiornata"}, timeout=15)
+                  json={"name": "TEST_Palla di Fuoco Aggiornata", "version": card["version"]}, timeout=15)
         assert r.status_code == 200
         assert r.json()["name"] == "TEST_Palla di Fuoco Aggiornata"
 
@@ -157,7 +157,7 @@ class TestCards:
         assert r.json()["name"] == "TEST_Palla di Fuoco Aggiornata"
 
         # DELETE
-        r = s.delete(f"{API}/cards/{cid}", headers=auth_headers, timeout=15)
+        r = s.delete(f"{API}/cards/{cid}", headers=auth_headers, json={"version": r.json()["version"]}, timeout=15)
         assert r.status_code == 200
 
         # verify gone

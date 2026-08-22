@@ -523,8 +523,12 @@ export default function CardEditor() {
         toast.success("Dati derivati aggiornati dalla fonte corrente");
       }
     } catch (error) {
-      if (error.response?.status === 409) await reloadCard();
-      toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
+      if (error.response?.status === 409) {
+        await reloadCard();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile aggiornare la fonte collegata");
+      }
     } finally {
       setRefreshingReferenceId(null);
     }
@@ -539,8 +543,12 @@ export default function CardEditor() {
       await loadReferenceUpdates();
       toast.success(action === "undo" ? "Ultima modifica annullata" : "Modifica ripristinata");
     } catch (error) {
-      if (error.response?.status === 409) await reloadCard();
-      toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+      if (error.response?.status === 409) {
+        await reloadCard();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(error.response?.data?.detail || "Impossibile aggiornare la cronologia");
+      }
     } finally {
       setHistoryBusy(false);
     }
@@ -785,8 +793,12 @@ export default function CardEditor() {
         navigate(`/carta/${res.data.id}`);
       }
     } catch (e) {
-      if (e.response?.status === 409) await reloadCard();
-      toast.error(e.response?.data?.detail || "Salvataggio fallito");
+      if (e.response?.status === 409) {
+        await reloadCard();
+        toast.error("La scheda era cambiata in un’altra schermata: ho ricaricato la versione salvata. Verifica i dati prima di riprovare.");
+      } else {
+        toast.error(e.response?.data?.detail || "Salvataggio fallito");
+      }
     } finally {
       setSaving(false);
     }
