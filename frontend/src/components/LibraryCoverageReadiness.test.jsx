@@ -107,5 +107,6 @@ describe("LibraryCoverageReadiness", () => {
       await Promise.resolve();
     });
     expect(container.querySelector('[data-testid="library-coverage-empty"]')).not.toBeNull();
+    expect(container.textContent).toContain("precaricati automaticamente");
   });
 });

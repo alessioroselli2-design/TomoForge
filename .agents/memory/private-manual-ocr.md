@@ -3,8 +3,8 @@ name: Private manual OCR
 description: Privacy and safety rules for extracting structured records from personal manual scans.
 ---
 
-OCR of owner-supplied manuals must remain per-account, require an explicit acknowledgement before external processing, and be limited to small, resumable page batches.
+OCR of owner-supplied manuals runs automatically per account in small, resumable page batches; no per-manual acknowledgement is shown.
 
-**Why:** The original manuals and their rendered pages are private source material. Sending a whole scanned manual to an external model without a clear acknowledgement creates an avoidable disclosure and cost risk, while large synchronous jobs are hard to verify or recover.
+**Why:** The project owner explicitly wants the supplied manuals to be ready without any import, page-selection, or consent steps. Small batches still bound cost and make recovery possible.
 
-**How to apply:** Keep PDF binaries and page images local to the import path, persist only structured records and page references, and require one selected manual plus a bounded page range for external OCR. Surface uncertain extraction with review flags rather than silently treating it as canonical.
+**How to apply:** Keep PDF binaries and page images local to the import path, persist only structured records and page references, and let the automatic queue invoke OCR as needed. Do not restore consent panels or manual page-range controls.

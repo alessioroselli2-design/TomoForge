@@ -69,7 +69,7 @@ export default function LibraryCoverageReadiness({ onOpenReviews, refreshKey = 0
     return (
       <section data-testid="library-coverage-empty" className="border border-gold-deep/40 bg-card p-5">
         <p className="font-label text-[10px] tracking-widest text-gold">PRONTEZZA DELLA BIBLIOTECA</p>
-        <p className="mt-2 font-body text-sm text-muted-foreground">Importa un manuale per vedere quali categorie sono affidabili, da verificare o ancora assenti.</p>
+        <p className="mt-2 font-body text-sm text-muted-foreground">I tuoi manuali vengono precaricati automaticamente. Una volta completato il primo ciclo vedrai qui quali categorie sono pronte, da verificare o ancora in attesa.</p>
       </section>
     );
   }

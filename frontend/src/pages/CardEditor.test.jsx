@@ -99,6 +99,162 @@ jest.mock("@/components/ui/switch", () => ({
   ),
 }));
 
+describe("CardEditor preload dashboard", () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Element.prototype.scrollIntoView = jest.fn();
+    api.post.mockResolvedValue({ data: {} });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  it("shows preload status per manual and fires POST /library/preload once", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_giocatore.pdf",
+              title: "Manuale del Giocatore",
+              source_language: "it",
+              page_count: 320,
+              requires_ocr: false,
+              job: { status: "completed", percent: 100, records_imported: 42, records_updated: 3, records_flagged: 5 },
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/library/preload");
+    expect(container.querySelector('[data-testid="preload-dashboard"]')).not.toBeNull();
+    expect(container.textContent).toContain("Manuale del Giocatore");
+    expect(container.textContent).toContain("COMPLETATO");
+    expect(container.textContent).toContain("Non devi selezionare pagine o confermare passaggi");
+  });
+
+  it("starts a Spanish manual automatically without rendering a consent step", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_es.pdf",
+              title: "Manual Español",
+              source_language: "es",
+              page_count: 100,
+              requires_ocr: false,
+              job: null,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(container.querySelector('[data-testid="grant-translation-consent-manuale_es.pdf"]')).toBeNull();
+    expect(container.textContent).not.toContain("CONSENSO RICHIESTO");
+    expect(api.post).toHaveBeenCalledWith("/library/preload");
+  });
+
+  it("shows retry button when a job has failed", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_err.pdf",
+              title: "Manuale Errore",
+              source_language: "it",
+              requires_ocr: false,
+              job: { status: "failed", last_error: "Timeout durante l'estrazione." },
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(container.querySelector('[data-testid="retry-preload-manuale_err.pdf"]')).not.toBeNull();
+    expect(container.textContent).toContain("ERRORE");
+    expect(container.textContent).toContain("Timeout durante l'estrazione.");
+
+    await act(async () => {
+      container.querySelector('[data-testid="retry-preload-manuale_err.pdf"]').click();
+      await Promise.resolve();
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/library/preload", {
+      filename: "manuale_err.pdf",
+      retry: true,
+    });
+  });
+});
+
 describe("CardEditor review scope", () => {
   let container;
   let root;
@@ -106,6 +262,7 @@ describe("CardEditor review scope", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Element.prototype.scrollIntoView = jest.fn();
+    api.post.mockResolvedValue({ data: {} });
     api.get.mockImplementation((path) => {
       if (path === "/library/manuals") {
         return Promise.resolve({ data: { manuals: [] } });

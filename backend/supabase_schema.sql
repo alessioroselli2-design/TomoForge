@@ -180,6 +180,65 @@ create index if not exists private_reference_records_user_name_idx
 create index if not exists private_reference_records_user_source_idx
   on public.private_reference_records (user_id, source_key, source_normalized_name);
 
+-- One durable, owner-scoped queue per locally supplied manual.  It retains only
+-- processing metadata and counters; source PDF bytes and extracted page text
+-- stay outside Supabase.
+create table if not exists public.private_manual_import_jobs (
+  id text primary key,
+  user_id text not null references public.users(user_id) on delete cascade,
+  filename text not null,
+  source_language text not null default 'it',
+  source_fingerprint text not null default '',
+  status text not null default 'queued' check (status in (
+    'queued', 'processing', 'waiting_translation_consent', 'waiting_ocr_consent',
+    'completed', 'failed'
+  )),
+  current_page integer not null default 1,
+  page_count integer not null default 0,
+  translation_processing_confirmed boolean not null default false,
+  external_processing_confirmed boolean not null default false,
+  lease_id text not null default '',
+  lease_expires_at bigint not null default 0,
+  attempt_count integer not null default 0,
+  last_error text not null default '',
+  pages_needing_ocr jsonb not null default '[]'::jsonb,
+  records_imported integer not null default 0,
+  records_updated integer not null default 0,
+  records_flagged integer not null default 0,
+  records_skipped integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  completed_at timestamptz,
+  unique (user_id, filename)
+);
+alter table public.private_manual_import_jobs
+  add column if not exists source_language text not null default 'it',
+  add column if not exists source_fingerprint text not null default '',
+  add column if not exists status text not null default 'queued',
+  add column if not exists current_page integer not null default 1,
+  add column if not exists page_count integer not null default 0,
+  add column if not exists translation_processing_confirmed boolean not null default false,
+  add column if not exists external_processing_confirmed boolean not null default false,
+  add column if not exists lease_id text not null default '',
+  add column if not exists lease_expires_at bigint not null default 0,
+  add column if not exists attempt_count integer not null default 0,
+  add column if not exists last_error text not null default '',
+  add column if not exists pages_needing_ocr jsonb not null default '[]'::jsonb,
+  add column if not exists records_imported integer not null default 0,
+  add column if not exists records_updated integer not null default 0,
+  add column if not exists records_flagged integer not null default 0,
+  add column if not exists records_skipped integer not null default 0,
+  add column if not exists completed_at timestamptz;
+alter table public.private_manual_import_jobs
+  drop constraint if exists private_manual_import_jobs_status_check;
+alter table public.private_manual_import_jobs
+  add constraint private_manual_import_jobs_status_check check (status in (
+    'queued', 'processing', 'waiting_translation_consent', 'waiting_ocr_consent',
+    'completed', 'failed'
+  ));
+create index if not exists private_manual_import_jobs_owner_status_idx
+  on public.private_manual_import_jobs (user_id, status, updated_at);
+
 -- Append-only, owner-scoped audit trail for private-reference review decisions.
 -- Keep it separate from the current review state so simultaneous decisions
 -- cannot overwrite one another while a manual is being reimported.
@@ -208,10 +267,12 @@ alter table public.files enable row level security;
 alter table public.payment_transactions enable row level security;
 alter table public.private_spells enable row level security;
 alter table public.private_reference_records enable row level security;
+alter table public.private_manual_import_jobs enable row level security;
 alter table public.private_reference_review_history enable row level security;
 
 -- The browser has no direct access to this catalogue. FastAPI uses the service
 -- role and enforces ownership on every read/write.
 revoke all on table public.private_spells from anon, authenticated;
 revoke all on table public.private_reference_records from anon, authenticated;
+revoke all on table public.private_manual_import_jobs from anon, authenticated;
 revoke all on table public.private_reference_review_history from anon, authenticated;

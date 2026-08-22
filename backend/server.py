@@ -203,6 +203,10 @@ TRANSLATION_PROCESSING_STATUS = "processing"
 TRANSLATION_LEASE_SECONDS = 180
 TRANSLATION_WAIT_SECONDS = 135
 TRANSLATION_POLL_INTERVAL_SECONDS = 0.05
+MANUAL_PRELOAD_PAGE_BATCH_SIZE = 12
+MANUAL_PRELOAD_LEASE_SECONDS = 300
+MANUAL_PRELOAD_MAX_ATTEMPTS = 3
+MANUAL_PRELOAD_ACTIVE_WORKERS: set[str] = set()
 
 
 class MemoryCursor:
@@ -600,6 +604,7 @@ class ReferenceImportInput(BaseModel):
     use_ai_ocr: bool = False
     external_processing_confirmed: bool = False
     translation_processing_confirmed: bool = False
+    auto_accept: bool = False
     translation_batch_size: int = Field(default=2, ge=1, le=4)
 
 
@@ -609,6 +614,16 @@ class ReferenceImportResult(BaseModel):
     flagged_for_review: int
     skipped: int
     sources: list[dict]
+
+
+class ManualPreloadInput(BaseModel):
+    """Automatic preload intent; legacy consent fields remain API-compatible."""
+    filename: Optional[str] = None
+    enable_translation: bool = False
+    enable_ocr: bool = False
+    translation_processing_confirmed: bool = False
+    external_processing_confirmed: bool = False
+    retry: bool = False
 
 
 class ReferenceReviewInput(BaseModel):
@@ -665,6 +680,7 @@ async def startup() -> None:
             await db.users.update_one({"email": ADMIN_EMAIL.lower()}, {"$set": {"is_admin": True, "premium_manual": True}})
         else:
             await db.users.insert_one(payload)
+    await resume_manual_preload_workers()
 
 
 async def seed_mock_data() -> None:
@@ -1010,12 +1026,22 @@ async def apply_private_spell(spell_id: str, user: User = Depends(get_current_us
 
 
 def available_reference_manuals() -> dict[str, Path]:
-    """Whitelist supplied local manuals; callers can never select arbitrary paths."""
-    return {
-        filename: SPELL_PDF_DIRECTORY / filename
-        for filename in REFERENCE_MANUAL_FILENAMES
+    """Discover supplied PDFs from the fixed local assets directory.
+
+    The client still selects only a filename returned here; it can never pass a
+    path.  Keeping the discovery local means a newly supplied manual joins the
+    automatic queue without requiring a new server release.
+    """
+    known = [
+        filename for filename in REFERENCE_MANUAL_FILENAMES
         if (SPELL_PDF_DIRECTORY / filename).is_file()
-    }
+    ]
+    known_set = set(known)
+    additional = sorted(
+        path.name for path in SPELL_PDF_DIRECTORY.glob("*.pdf")
+        if path.is_file() and path.name not in known_set
+    )
+    return {filename: SPELL_PDF_DIRECTORY / filename for filename in [*known, *additional]}
 
 
 def manual_requires_ocr(filename: str) -> bool:
@@ -1038,6 +1064,24 @@ def manual_source_metadata(filename: str) -> dict:
 
 def manual_source_language(filename: str) -> str:
     return manual_source_metadata(filename)["language"]
+
+
+def manual_source_fingerprint(path: Path) -> str:
+    """Detect replacement of a local source without retaining its PDF bytes."""
+    stat = path.stat()
+    value = f"{path.name}:{stat.st_size}:{stat.st_mtime_ns}"
+    return sha256(value.encode("utf-8")).hexdigest()
+
+
+def manual_page_count(path: Path) -> Optional[int]:
+    try:
+        import fitz
+        document = fitz.open(path)
+        page_count = len(document)
+        document.close()
+        return page_count
+    except Exception:
+        return None
 
 
 def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
@@ -1211,6 +1255,20 @@ async def private_reference_records(user_id: str) -> list[dict]:
     except Exception as exc:
         if "private_reference_records" in str(exc):
             logger.warning("Private reference catalogue schema is not available yet")
+            return []
+        raise
+
+
+async def private_manual_import_jobs(user_id: str) -> list[dict]:
+    """Load only owner-scoped preload metadata, never manual source material."""
+    collection = getattr(db, "private_manual_import_jobs", None)
+    if collection is None:
+        return []
+    try:
+        return await collection.find({"user_id": user_id}).to_list(200)
+    except Exception as exc:
+        if "private_manual_import_jobs" in str(exc):
+            logger.warning("Automatic manual preload schema is not available yet")
             return []
         raise
 
@@ -1925,7 +1983,10 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             # collide when two separate owners import the same manual.
             "id": f"ref_{owned_record_id}",
             "user_id": user_id,
-            "review_status": "needs_review" if reference_review_state(record) == "review" else "pending",
+            "review_status": (
+                "verified" if body.auto_accept and record.get("translation_status") != "failed"
+                else "needs_review" if reference_review_state(record) == "review" else "pending"
+            ),
             "review_notes": "",
             "updated_at": utc_now(),
         }
@@ -1944,7 +2005,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             # Human verification survives an unchanged repeat import. A new
             # source checksum or a failed translation must return to review.
             unchanged_source = existing.get("source_text_checksum") == record.get("source_text_checksum")
-            if unchanged_source and record.get("translation_status") != "failed":
+            if unchanged_source and record.get("translation_status") != "failed" and not body.auto_accept:
                 payload["review_status"] = existing.get("review_status", payload["review_status"])
                 payload["review_notes"] = existing.get("review_notes", "")
             await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
@@ -1973,6 +2034,347 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         skipped=skipped,
         sources=source_reports,
     )
+
+
+def _preload_waiting_status(filename: str, translation_confirmed: bool, ocr_confirmed: bool) -> str:
+    return "queued"
+
+
+def manual_preload_summary(job: Optional[dict], page_count: Optional[int]) -> dict:
+    """Return progress metadata that is safe to show in the browser."""
+    if not job:
+        return {
+            "status": "not_started",
+            "current_page": 1,
+            "page_count": page_count,
+            "percent": 0,
+            "records_imported": 0,
+            "records_updated": 0,
+            "records_flagged": 0,
+            "records_skipped": 0,
+            "pages_needing_ocr": [],
+            "last_error": "",
+            "translation_processing_confirmed": False,
+            "external_processing_confirmed": False,
+        }
+    total = page_count or job.get("page_count") or 0
+    current_page = max(1, int(job.get("current_page") or 1))
+    completed_pages = min(total, max(0, current_page - 1)) if total else 0
+    return {
+        "status": job.get("status", "queued"),
+        "current_page": current_page,
+        "page_count": total or None,
+        "percent": round((completed_pages / total) * 100) if total else 0,
+        "records_imported": int(job.get("records_imported") or 0),
+        "records_updated": int(job.get("records_updated") or 0),
+        "records_flagged": int(job.get("records_flagged") or 0),
+        "records_skipped": int(job.get("records_skipped") or 0),
+        "pages_needing_ocr": list(job.get("pages_needing_ocr") or []),
+        "last_error": job.get("last_error") or "",
+        "translation_processing_confirmed": bool(job.get("translation_processing_confirmed")),
+        "external_processing_confirmed": bool(job.get("external_processing_confirmed")),
+    }
+
+
+async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> list[dict]:
+    """Reconcile all supplied manuals with one durable, owner-scoped queue."""
+    manuals = available_reference_manuals()
+    if body.filename and body.filename not in manuals:
+        raise HTTPException(status_code=400, detail="Il manuale richiesto non è disponibile localmente")
+
+    collection = getattr(db, "private_manual_import_jobs", None)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Coda di indicizzazione non disponibile: applica prima la migrazione SQL")
+    existing_by_filename = {
+        job.get("filename"): job
+        for job in await private_manual_import_jobs(user_id)
+        if job.get("filename")
+    }
+    for filename, path in manuals.items():
+        existing = existing_by_filename.get(filename)
+        source_language = manual_source_language(filename)
+        needs_ocr = manual_requires_ocr(filename)
+        # Supplied manuals are always processed automatically. Persist these
+        # flags so a restart continues translation/OCR without another UI step.
+        translation_confirmed = True
+        ocr_confirmed = True
+
+        fingerprint = manual_source_fingerprint(path)
+        changed_source = bool(existing and existing.get("source_fingerprint") != fingerprint)
+        status = existing.get("status") if existing else _preload_waiting_status(filename, translation_confirmed, ocr_confirmed)
+        if status in {"waiting_translation_consent", "waiting_ocr_consent"}:
+            status = "queued"
+        if changed_source or (body.filename == filename and (body.enable_translation or body.enable_ocr or body.retry)):
+            status = _preload_waiting_status(filename, translation_confirmed, ocr_confirmed)
+        page_count = manual_page_count(path)
+        payload = {
+            "user_id": user_id,
+            "filename": filename,
+            "source_language": source_language,
+            "source_fingerprint": fingerprint,
+            "page_count": page_count or 0,
+            "translation_processing_confirmed": translation_confirmed,
+            "external_processing_confirmed": ocr_confirmed,
+            "status": status,
+            "updated_at": utc_now(),
+        }
+        if existing:
+            if changed_source:
+                payload.update({
+                    "current_page": 1,
+                    "attempt_count": 0,
+                    "last_error": "",
+                    "pages_needing_ocr": [],
+                    "records_imported": 0,
+                    "records_updated": 0,
+                    "records_flagged": 0,
+                    "records_skipped": 0,
+                })
+            elif status == "queued":
+                payload.update({"lease_id": "", "lease_expires_at": 0, "last_error": ""})
+            await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
+        else:
+            await collection.insert_one({
+                "id": f"manual_job_{uuid.uuid4().hex}",
+                **payload,
+                "current_page": 1,
+                "attempt_count": 0,
+                "last_error": "",
+                "pages_needing_ocr": [],
+                "records_imported": 0,
+                "records_updated": 0,
+                "records_flagged": 0,
+                "records_skipped": 0,
+                "lease_id": "",
+                "lease_expires_at": 0,
+                "created_at": utc_now(),
+                "completed_at": None,
+            })
+    return await private_manual_import_jobs(user_id)
+
+
+async def claim_next_manual_preload_job(user_id: str) -> Optional[dict]:
+    """Lease exactly one queued chunk so concurrent requests cannot duplicate it."""
+    collection = getattr(db, "private_manual_import_jobs", None)
+    if collection is None:
+        return None
+    now = int(time.time())
+    candidates = sorted(
+        (
+            job for job in await private_manual_import_jobs(user_id)
+            if job.get("status") == "queued"
+            or (job.get("status") == "processing" and int(job.get("lease_expires_at") or 0) < now)
+        ),
+        key=lambda job: (job.get("updated_at") or "", job.get("filename") or ""),
+    )
+    for candidate in candidates:
+        lease_id = uuid.uuid4().hex
+        claimed = await collection.update_one(
+            {
+                "id": candidate["id"],
+                "user_id": user_id,
+                "$or": [
+                    {"status": "queued"},
+                    {"status": "processing", "lease_expires_at": {"$lt": now}},
+                ],
+            },
+            {"$set": {
+                "status": "processing",
+                "lease_id": lease_id,
+                "lease_expires_at": now + MANUAL_PRELOAD_LEASE_SECONDS,
+                "updated_at": utc_now(),
+            }},
+        )
+        if claimed.matched_count:
+            return await collection.find_one({"id": candidate["id"], "user_id": user_id})
+    return None
+
+
+async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str) -> None:
+    """Keep a long-running extraction owned until its current chunk checkpoints."""
+    collection = getattr(db, "private_manual_import_jobs", None)
+    if collection is None:
+        return
+    try:
+        while True:
+            await asyncio.sleep(max(1, MANUAL_PRELOAD_LEASE_SECONDS // 3))
+            renewed = await collection.update_one(
+                {"id": job_id, "user_id": user_id, "status": "processing", "lease_id": lease_id},
+                {"$set": {
+                    "lease_expires_at": int(time.time()) + MANUAL_PRELOAD_LEASE_SECONDS,
+                    "updated_at": utc_now(),
+                }},
+            )
+            if not renewed.matched_count:
+                return
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        logger.exception("Could not renew the automatic manual preload lease")
+
+
+async def process_manual_preload_job(user_id: str, job: dict) -> None:
+    """Process one bounded page chunk and checkpoint the durable queue."""
+    collection = getattr(db, "private_manual_import_jobs", None)
+    if collection is None:
+        return
+    lease_id = job.get("lease_id")
+    if not lease_id:
+        return
+    owned_query = {
+        "id": job["id"],
+        "user_id": user_id,
+        "status": "processing",
+        "lease_id": lease_id,
+    }
+    filename = job["filename"]
+    manuals = available_reference_manuals()
+    path = manuals.get(filename)
+    if not path:
+        await collection.update_one(
+            owned_query,
+            {"$set": {"status": "failed", "last_error": "manual_source_missing", "lease_id": "", "lease_expires_at": 0, "updated_at": utc_now()}},
+        )
+        return
+    page_count = manual_page_count(path)
+    if not page_count:
+        await collection.update_one(
+            owned_query,
+            {"$set": {"status": "failed", "last_error": "manual_page_count_unavailable", "lease_id": "", "lease_expires_at": 0, "updated_at": utc_now()}},
+        )
+        return
+    current_page = max(1, int(job.get("current_page") or 1))
+    if current_page > page_count:
+        await collection.update_one(
+            owned_query,
+            {"$set": {"status": "completed", "page_count": page_count, "completed_at": utc_now(), "lease_id": "", "lease_expires_at": 0, "updated_at": utc_now()}},
+        )
+        return
+
+    end_page = min(page_count, current_page + MANUAL_PRELOAD_PAGE_BATCH_SIZE - 1)
+    renewal_task = asyncio.create_task(renew_manual_preload_lease(user_id, job["id"], lease_id))
+    try:
+        report = await import_private_reference_manuals(
+            user_id,
+            ReferenceImportInput(
+                filenames=[filename],
+                start_page=current_page,
+                end_page=end_page,
+                use_ai_ocr=manual_requires_ocr(filename) or bool(job.get("pages_needing_ocr")),
+                external_processing_confirmed=bool(job.get("external_processing_confirmed")),
+                translation_processing_confirmed=bool(job.get("translation_processing_confirmed")),
+                auto_accept=True,
+            ),
+        )
+    except Exception as exc:
+        renewal_task.cancel()
+        await asyncio.gather(renewal_task, return_exceptions=True)
+        attempts = int(job.get("attempt_count") or 0) + 1
+        retry_status = "queued" if attempts < MANUAL_PRELOAD_MAX_ATTEMPTS else "failed"
+        await collection.update_one(
+            owned_query,
+            {"$set": {
+                "status": retry_status,
+                "attempt_count": attempts,
+                "last_error": str(exc)[:500],
+                "lease_id": "",
+                "lease_expires_at": 0,
+                "updated_at": utc_now(),
+            }},
+        )
+        logger.warning("Manual preload failed for %s page %s: %s", filename, current_page, exc)
+        return
+    renewal_task.cancel()
+    await asyncio.gather(renewal_task, return_exceptions=True)
+
+    source_report = next((source for source in report.sources if source.get("filename") == filename), {})
+    current_pages = set(range(current_page, end_page + 1))
+    unreadable_pages = sorted(
+        (set(job.get("pages_needing_ocr") or []) - current_pages)
+        | set(source_report.get("pages_needing_ocr") or [])
+    )
+    attempts = int(job.get("attempt_count") or 0)
+    if source_report.get("pages_needing_ocr"):
+        next_page = current_page
+        attempts += 1
+        next_status = "queued" if attempts < MANUAL_PRELOAD_MAX_ATTEMPTS else "failed"
+        error = "ocr_pages_unavailable"
+    else:
+        next_page = end_page + 1
+        next_status = "completed" if next_page > page_count else "queued"
+        error = ""
+        attempts = 0
+    await collection.update_one(
+        owned_query,
+        {"$set": {
+            "status": next_status,
+            "current_page": next_page,
+            "page_count": page_count,
+            "attempt_count": attempts,
+            "last_error": error,
+            "pages_needing_ocr": unreadable_pages,
+            "records_imported": int(job.get("records_imported") or 0) + report.imported,
+            "records_updated": int(job.get("records_updated") or 0) + report.updated,
+            "records_flagged": int(job.get("records_flagged") or 0) + report.flagged_for_review,
+            "records_skipped": int(job.get("records_skipped") or 0) + report.skipped,
+            "lease_id": "",
+            "lease_expires_at": 0,
+            "completed_at": utc_now() if next_status == "completed" else None,
+            "updated_at": utc_now(),
+        }},
+    )
+
+
+async def run_manual_preload_worker(user_id: str) -> None:
+    """Drain an owner's queue outside the HTTP request, one checkpoint at a time."""
+    try:
+        while True:
+            job = await claim_next_manual_preload_job(user_id)
+            if not job:
+                return
+            await process_manual_preload_job(user_id, job)
+    finally:
+        MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+
+
+def start_manual_preload_worker(user_id: str) -> None:
+    if user_id in MANUAL_PRELOAD_ACTIVE_WORKERS:
+        return
+    MANUAL_PRELOAD_ACTIVE_WORKERS.add(user_id)
+    asyncio.create_task(run_manual_preload_worker(user_id))
+
+
+async def resume_manual_preload_workers() -> None:
+    """Recover queued work after a server restart without touching source PDFs."""
+    collection = getattr(db, "private_manual_import_jobs", None)
+    if collection is None:
+        return
+    try:
+        jobs = await collection.find({}).to_list(2000)
+    except Exception as exc:
+        if "private_manual_import_jobs" in str(exc):
+            logger.warning("Automatic manual preload schema is not available yet")
+            return
+        raise
+    owners: set[str] = set()
+    for job in jobs:
+        if (
+            job.get("status") == "processing"
+            and int(job.get("lease_expires_at") or 0) < int(time.time())
+        ):
+            await collection.update_one(
+                {
+                    "id": job["id"],
+                    "status": "processing",
+                    "lease_expires_at": {"$lt": int(time.time())},
+                },
+                {"$set": {"status": "queued", "lease_id": "", "lease_expires_at": 0, "updated_at": utc_now()}},
+            )
+            owners.add(job.get("user_id", ""))
+        elif job.get("status") == "queued":
+            owners.add(job.get("user_id", ""))
+    for owner_id in owners - {""}:
+        start_manual_preload_worker(owner_id)
 
 
 def _translation_lease_is_active(record: dict) -> bool:
@@ -2346,19 +2748,18 @@ def manual_import_progress(filename: str, records: list[dict], page_count: Optio
 async def private_library_manuals(user: User = Depends(require_premium)):
     """Return local import metadata only, never the manual files or page text."""
     records = await private_reference_records(user.user_id)
+    jobs_by_filename = {
+        job.get("filename"): job
+        for job in await private_manual_import_jobs(user.user_id)
+        if job.get("filename")
+    }
     manuals = []
     for filename, path in available_reference_manuals().items():
         source_records = [
             record for record in records
             if any(ref.get("filename") == filename for ref in record.get("source_refs", []))
         ]
-        try:
-            import fitz
-            document = fitz.open(path)
-            page_count = len(document)
-            document.close()
-        except Exception:
-            page_count = None
+        page_count = manual_page_count(path)
         progress = manual_import_progress(filename, records, page_count)
         manuals.append({
             "filename": filename,
@@ -2368,9 +2769,27 @@ async def private_library_manuals(user: User = Depends(require_premium)):
             "page_count": page_count,
             "imported_records": len(source_records),
             "requires_ocr": manual_requires_ocr(filename),
+            "job": manual_preload_summary(jobs_by_filename.get(filename), page_count),
             **progress,
         })
-    return {"manuals": manuals, "ocr_batch_limit": 12}
+    return {"manuals": manuals}
+
+
+@api_router.post("/library/preload")
+async def start_private_library_preload(
+    body: ManualPreloadInput = ManualPreloadInput(),
+    user: User = Depends(require_premium),
+):
+    """Start or resume automatic indexing without exposing or uploading PDFs."""
+    try:
+        await ensure_manual_preload_jobs(user.user_id, body)
+        start_manual_preload_worker(user.user_id)
+        return await private_library_manuals(user)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Automatic manual preload could not be started")
+        raise HTTPException(status_code=502, detail="Impossibile avviare l'indicizzazione automatica") from exc
 
 
 @api_router.get("/library/coverage")

@@ -1,5 +1,6 @@
 import asyncio
 import threading
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -1961,6 +1962,161 @@ def test_spanish_import_requires_a_small_native_page_range(monkeypatch, tmp_path
         except server.HTTPException as error:
             assert error.status_code == 400
             assert "12 pagine" in error.detail
+
+
+def test_automatic_preload_queues_translation_and_ocr_without_user_consent(monkeypatch, tmp_path):
+    native = tmp_path / "Manuale-nativo.pdf"
+    spanish = tmp_path / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    scanned = tmp_path / "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf"
+    for source in (native, spanish, scanned):
+        source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(private_manual_import_jobs=jobs),
+    )
+    monkeypatch.setattr(
+        server,
+        "available_reference_manuals",
+        lambda: {
+            native.name: native,
+            spanish.name: spanish,
+            scanned.name: scanned,
+        },
+    )
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 8)
+
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    by_filename = {job["filename"]: job for job in jobs.rows}
+    assert by_filename[native.name]["status"] == "queued"
+    assert by_filename[spanish.name]["status"] == "queued"
+    assert by_filename[spanish.name]["translation_processing_confirmed"] is True
+    assert by_filename[scanned.name]["status"] == "queued"
+    assert by_filename[scanned.name]["external_processing_confirmed"] is True
+
+
+def test_automatic_preload_processes_all_chunks_without_manual_ranges(monkeypatch, tmp_path):
+    source = tmp_path / "Manuale-nativo.pdf"
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    calls = []
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(private_manual_import_jobs=jobs),
+    )
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 25)
+
+    async def fake_import(owner_id, body):
+        calls.append((owner_id, body.start_page, body.end_page, body.use_ai_ocr, body.auto_accept))
+        return server.ReferenceImportResult(
+            imported=2,
+            updated=1,
+            flagged_for_review=1,
+            skipped=0,
+            sources=[{"filename": source.name, "pages_needing_ocr": []}],
+        )
+
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    asyncio.run(server.run_manual_preload_worker("owner-1"))
+
+    job = jobs.rows[0]
+    assert calls == [
+        ("owner-1", 1, 12, False, True),
+        ("owner-1", 13, 24, False, True),
+        ("owner-1", 25, 25, False, True),
+    ]
+    assert job["status"] == "completed"
+    assert job["current_page"] == 26
+    assert job["records_imported"] == 6
+    assert job["records_updated"] == 3
+    assert job["records_flagged"] == 3
+
+
+def test_automatic_preload_starts_ocr_without_user_consent(monkeypatch, tmp_path):
+    source = tmp_path / "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf"
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    calls = []
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(private_manual_import_jobs=jobs),
+    )
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 6)
+
+    async def fake_import(_owner_id, body):
+        calls.append((body.use_ai_ocr, body.external_processing_confirmed, body.auto_accept))
+        return server.ReferenceImportResult(
+            imported=1,
+            updated=0,
+            flagged_for_review=1,
+            skipped=0,
+            sources=[{"filename": source.name, "pages_needing_ocr": []}],
+        )
+
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    asyncio.run(server.run_manual_preload_worker("owner-1"))
+
+    assert jobs.rows[0]["status"] == "completed"
+    assert calls == [(True, True, True)]
+
+
+def test_preload_checkpoint_ignores_a_worker_that_lost_its_lease(monkeypatch, tmp_path):
+    source = tmp_path / "Manuale-nativo.pdf"
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 2)
+
+    async def fake_import(*_args, **_kwargs):
+        return server.ReferenceImportResult(
+            imported=1, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{"filename": source.name, "pages_needing_ocr": []}],
+        )
+
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    claimed = asyncio.run(server.claim_next_manual_preload_job("owner-1"))
+    assert claimed and claimed["lease_id"]
+
+    jobs.rows[0]["lease_id"] = "new-owner-lease"
+    asyncio.run(server.process_manual_preload_job("owner-1", claimed))
+
+    assert jobs.rows[0]["status"] == "processing"
+    assert jobs.rows[0]["lease_id"] == "new-owner-lease"
+    assert jobs.rows[0]["current_page"] == 1
+    assert jobs.rows[0]["records_imported"] == 0
+
+
+def test_startup_reclaims_only_expired_preload_leases(monkeypatch):
+    now = int(time.time())
+    jobs = server.MemoryCollection()
+    jobs.rows.extend([
+        {
+            "id": "expired", "user_id": "owner-1", "status": "processing",
+            "lease_expires_at": now - 1, "updated_at": server.utc_now(),
+        },
+        {
+            "id": "active", "user_id": "owner-2", "status": "processing",
+            "lease_expires_at": now + 600, "updated_at": server.utc_now(),
+        },
+    ])
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
+    started = []
+    monkeypatch.setattr(server, "start_manual_preload_worker", lambda user_id: started.append(user_id))
+
+    asyncio.run(server.resume_manual_preload_workers())
+
+    assert jobs.rows[0]["status"] == "queued"
+    assert jobs.rows[1]["status"] == "processing"
+    assert started == ["owner-1"]
 
 
 def test_translated_reference_payload_marks_italian_content_language():

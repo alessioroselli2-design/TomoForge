@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search, Link2, X, CheckCircle2, XCircle } from "lucide-react";
+import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search, Link2, X, CheckCircle2, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -161,14 +161,9 @@ export default function CardEditor() {
   const [applyingReference, setApplyingReference] = useState(null);
   const [libraryManuals, setLibraryManuals] = useState([]);
   const [loadingManuals, setLoadingManuals] = useState(false);
-  const [manualImporting, setManualImporting] = useState(false);
   const [retryingTranslation, setRetryingTranslation] = useState(null);
-  const [selectedManual, setSelectedManual] = useState("");
-  const [manualStartPage, setManualStartPage] = useState("5");
-  const [manualEndPage, setManualEndPage] = useState("16");
-  const [useManualOcr, setUseManualOcr] = useState(false);
-  const [ocrConfirmed, setOcrConfirmed] = useState(false);
-  const [translationConfirmed, setTranslationConfirmed] = useState(false);
+  const [preloadFired, setPreloadFired] = useState(false);
+  const [retryingPreload, setRetryingPreload] = useState(null);
   const [sourceRecord, setSourceRecord] = useState(null);
   const [loadingSourceRecord, setLoadingSourceRecord] = useState(null);
   const [reviewingReference, setReviewingReference] = useState(null);
@@ -178,9 +173,7 @@ export default function CardEditor() {
   const [referenceUpdates, setReferenceUpdates] = useState([]);
   const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
   const [historyBusy, setHistoryBusy] = useState(false);
-  const selectedManualInfo = libraryManuals.find((manual) => manual.filename === selectedManual);
-  const selectedSpanishManual = selectedManualInfo?.source_language === "es";
-  const useSelectedManualOcr = useManualOcr && selectedManualInfo?.source_language !== "es";
+  const preloadWasActive = useRef(false);
 
   const hydrateCard = useCallback((savedCard) => ({
     ...savedCard,
@@ -600,10 +593,8 @@ export default function CardEditor() {
     setLoadingManuals(true);
     try {
       const res = await api.get("/library/manuals");
-      const manuals = res.data.manuals || [];
-      setLibraryManuals(manuals);
-      setSelectedManual((current) => current || manuals.find((manual) => manual.source_language === "es")?.filename || manuals[0]?.filename || "");
-    } catch (error) {
+      setLibraryManuals(res.data.manuals || []);
+    } catch {
       setLibraryManuals([]);
     } finally {
       setLoadingManuals(false);
@@ -612,43 +603,45 @@ export default function CardEditor() {
 
   useEffect(() => { loadLibraryManuals(); }, [loadLibraryManuals]);
 
-  const importManual = async () => {
-    if (!selectedManual) { toast.error("Seleziona un manuale"); return; }
-    if (selectedSpanishManual && !translationConfirmed) {
-      toast.error("Conferma l'invio del testo estratto a Gemini per la traduzione");
-      return;
-    }
-    if (useSelectedManualOcr && !ocrConfirmed) {
-      toast.error("Conferma l'invio delle pagine selezionate a Gemini per l'OCR");
-      return;
-    }
-    const start = Math.max(1, Number.parseInt(manualStartPage, 10) || 1);
-    const end = Math.max(start, Number.parseInt(manualEndPage, 10) || start);
-    if (selectedSpanishManual && end - start + 1 > 12) {
-      toast.error("La traduzione del manuale spagnolo è limitata a 12 pagine per importazione");
-      return;
-    }
-    if (selectedSpanishManual && selectedManualInfo?.page_count && start > selectedManualInfo.page_count) {
-      toast.error(`Il manuale contiene ${selectedManualInfo.page_count} pagine: scegli un intervallo valido`);
-      return;
-    }
-    setManualImporting(true);
+  // Auto-fire preload once after manuals are loaded for premium users
+  useEffect(() => {
+    if (!user?.is_premium || preloadFired || loadingManuals) return;
+    if (libraryManuals.length === 0) return;
+    setPreloadFired(true);
+    api.post("/library/preload")
+      .then((response) => {
+        if (Array.isArray(response.data?.manuals)) {
+          setLibraryManuals(response.data.manuals);
+          setCoverageRefreshKey((current) => current + 1);
+        }
+      })
+      .catch(() => {});
+  }, [user?.is_premium, preloadFired, loadingManuals, libraryManuals.length]);
+
+  // Poll while any manual job is queued or processing
+  useEffect(() => {
+    const active = libraryManuals.some((m) => m.job && (m.job.status === "queued" || m.job.status === "processing"));
+    if (!active) return undefined;
+    const id = window.setTimeout(() => { loadLibraryManuals(); }, 3000);
+    return () => window.clearTimeout(id);
+  }, [libraryManuals, loadLibraryManuals]);
+
+  useEffect(() => {
+    const active = libraryManuals.some((manual) => ["queued", "processing"].includes(manual.job?.status));
+    if (preloadWasActive.current && !active) setCoverageRefreshKey((current) => current + 1);
+    preloadWasActive.current = active;
+  }, [libraryManuals]);
+
+  const firePreloadForManual = async (filename, opts = {}) => {
+    setRetryingPreload(filename);
     try {
-      const res = await api.post("/library/import", {
-        filenames: [selectedManual],
-        start_page: start,
-        ...(selectedSpanishManual ? { end_page: end, translation_processing_confirmed: true } : {}),
-        ...(useSelectedManualOcr ? { end_page: end, use_ai_ocr: true, external_processing_confirmed: true } : {}),
-      });
-      const report = res.data.sources?.[0];
-      const translated = report?.translated ? ` · ${report.translated} tradotti in italiano` : "";
-      const failed = report?.translation_failed ? ` · ${report.translation_failed} traduzioni da verificare` : "";
-      toast.success(`${res.data.imported + res.data.updated} contenuti importati${translated}${failed}${report?.pages_needing_ocr?.length ? ` · ${report.pages_needing_ocr.length} pagine richiedono OCR` : ""}`);
+      await api.post("/library/preload", { filename, ...opts });
       await loadLibraryManuals();
+      setCoverageRefreshKey((current) => current + 1);
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Importazione del manuale non riuscita");
+      toast.error(error.response?.data?.detail || "Precaricamento non avviato");
     } finally {
-      setManualImporting(false);
+      setRetryingPreload(null);
     }
   };
 
@@ -972,143 +965,14 @@ export default function CardEditor() {
              )}
 
               {user?.is_premium && (
-                <section id="editor-library-import" className="scroll-mt-28 border border-amber-700/45 bg-amber-950/10 p-5">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-amber-300" />
-                    <h2 className="font-label text-xs tracking-widest text-amber-200">CUSTODIA DEI MANUALI</h2>
-                  </div>
-                  <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
-                    Importa i riferimenti strutturati dai PDF locali del tuo account. I PDF non vengono caricati nello storage né resi pubblici.
-                  </p>
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <Label className="font-label text-[10px] tracking-widest text-gold/80">MANUALE</Label>
-                      <Select value={selectedManual} onValueChange={setSelectedManual} disabled={loadingManuals || !libraryManuals.length}>
-                        <SelectTrigger className={`${inputCls} mt-1`}><SelectValue placeholder="Caricamento manuali…" /></SelectTrigger>
-                        <SelectContent className="bg-card border-gold-deep/40 rounded-none">
-                          {libraryManuals.map((manual) => (
-                            <SelectItem key={manual.filename} value={manual.filename} className="font-body text-xs">
-                              {manual.title || manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ")} · {manual.source_language === "es" ? "testo nativo spagnolo" : manual.requires_ocr ? "scansione OCR" : "testo nativo"} · {manual.imported_records} record
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-end">
-                      <Button type="button" onClick={importManual} disabled={manualImporting || !selectedManual}
-                        className="w-full rounded-none bg-amber-700 text-white hover:bg-amber-600 font-label text-xs tracking-wide">
-                        {manualImporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <BookOpen className="mr-1.5 h-4 w-4" />}
-                        {useSelectedManualOcr ? "IMPORTA CON OCR" : "IMPORTA TESTO NATIVO"}
-                      </Button>
-                    </div>
-                  </div>
-                   {selectedSpanishManual && (
-                     <p className="mt-3 border-l-2 border-sky-500/60 pl-3 font-body text-[11px] leading-relaxed text-sky-100/80">
-                       Fonte spagnola con testo nativo: l’importazione non invia pagine a OCR. I record vengono tradotti in italiano in piccoli gruppi e conservano testo, lingua e pagina originali per la revisione.
-                     </p>
-                   )}
-                    {selectedManualInfo && (
-                      <div data-testid="manual-import-progress" className="mt-3 border border-amber-700/35 bg-obsidian/35 p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <p className="font-label text-[10px] tracking-widest text-amber-100">
-                              {selectedSpanishManual ? "MANUALE SPAGNOLO DISPONIBILE" : "STATO DEL MANUALE"}
-                            </p>
-                            <p className="mt-1 font-body text-[11px] text-muted-foreground">
-                              {selectedSpanishManual
-                                ? `Testo nativo · ${selectedManualInfo.page_count || "—"} pagine · nessun PDF o OCR inviato a Gemini`
-                                : `${selectedManualInfo.page_count || "—"} pagine · ${selectedManualInfo.requires_ocr ? "OCR disponibile solo su richiesta" : "testo nativo locale"}`}
-                            </p>
-                          </div>
-                          <span className="font-label text-[10px] tracking-widest text-gold">
-                            {selectedManualInfo.pages_with_records || 0}/{selectedManualInfo.page_count || "—"} PAGINE CON RECORD
-                          </span>
-                        </div>
-                        <div className="mt-3 h-1.5 overflow-hidden bg-secondary" aria-label="Avanzamento importazione">
-                          <div
-                            className="h-full bg-amber-500 transition-all"
-                            style={{ width: `${Math.min(100, selectedManualInfo.page_progress || 0)}%` }}
-                          />
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                          <div className="border border-emerald-800/50 bg-emerald-950/20 px-2 py-2">
-                            <p className="font-label text-[9px] tracking-widest text-emerald-300">PRONTI</p>
-                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_ready || 0}</p>
-                          </div>
-                          <div className="border border-sky-800/50 bg-sky-950/20 px-2 py-2">
-                            <p className="font-label text-[9px] tracking-widest text-sky-200">TRADOTTI</p>
-                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_translated || 0}</p>
-                          </div>
-                          <div className="border border-amber-800/50 bg-amber-950/20 px-2 py-2">
-                            <p className="font-label text-[9px] tracking-widest text-amber-200">DA VERIFICARE</p>
-                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_to_review || 0}</p>
-                          </div>
-                          <div className="border border-red-900/60 bg-red-950/20 px-2 py-2">
-                            <p className="font-label text-[9px] tracking-widest text-red-300">ERRORI</p>
-                            <p className="mt-1 font-heading text-xl text-foreground">{selectedManualInfo.records_failed || 0}</p>
-                          </div>
-                        </div>
-                        {(selectedManualInfo.records_to_review > 0 || selectedManualInfo.records_failed > 0) && (
-                          <button
-                            type="button"
-                            data-testid="open-manual-review-records"
-                            onClick={() => openCoverageReviews(Object.keys(LIBRARY_TYPE_LABELS).join(","), selectedManual)}
-                            className="mt-3 font-label text-[10px] tracking-widest text-gold hover:text-amber-200"
-                          >
-                            APRI RECORD DA VERIFICARE E RITENTA GLI ERRORI
-                          </button>
-                        )}
-                      </div>
-                    )}
-                   {selectedSpanishManual && (
-                     <div className="mt-3 flex items-start gap-2 border border-sky-700/40 bg-sky-950/20 p-3">
-                       <Switch id="translation-confirmation" checked={translationConfirmed} onCheckedChange={setTranslationConfirmed} />
-                       <Label htmlFor="translation-confirmation" className="font-body text-[11px] leading-relaxed text-sky-100/80">
-                         Confermo di poter inviare a Gemini il solo testo strutturato estratto (non il PDF né immagini di pagina) per tradurlo in italiano. La lingua, il testo e la pagina originali resteranno disponibili per la revisione.
-                       </Label>
-                     </div>
-                   )}
-                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-amber-900/50 pt-4">
-                    <div>
-                      <Label htmlFor="ocr-enabled" className="font-label text-[10px] tracking-widest text-amber-100">OCR GEMINI PER PAGINE SCANSIONATE</Label>
-                       <p className="mt-1 font-body text-[11px] text-muted-foreground">
-                         {selectedSpanishManual ? "Non disponibile per la fonte spagnola nativa: nessuna pagina sarà inviata a Gemini." : "Massimo 12 pagine per volta, ripetibile e verificabile."}
-                       </p>
-                    </div>
-                     <Switch
-                       id="ocr-enabled"
-                       checked={useSelectedManualOcr}
-                       disabled={selectedSpanishManual}
-                       onCheckedChange={setUseManualOcr}
-                     />
-                  </div>
-                  {(useSelectedManualOcr || selectedSpanishManual) && (
-                    <div className="mt-3 space-y-3 border-l-2 border-amber-700/50 pl-3">
-                      {selectedSpanishManual && (
-                        <p className="font-body text-[11px] leading-relaxed text-sky-100/80">
-                          Scegli fino a 12 pagine per volta: l’importazione resta riprendibile e traduce il testo completo dei record rilevati.
-                        </p>
-                      )}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="font-label text-[10px] tracking-widest text-gold/80">{selectedSpanishManual ? "DA PAGINA (TRADUZIONE)" : "DA PAGINA"}</Label>
-                          <Input type="number" min="1" value={manualStartPage} onChange={(event) => setManualStartPage(event.target.value)} className={`${inputCls} mt-1`} />
-                        </div>
-                        <div>
-                          <Label className="font-label text-[10px] tracking-widest text-gold/80">{selectedSpanishManual ? "A PAGINA (MAX 12)" : "A PAGINA"}</Label>
-                          <Input type="number" min="1" value={manualEndPage} onChange={(event) => setManualEndPage(event.target.value)} className={`${inputCls} mt-1`} />
-                        </div>
-                      </div>
-                      {useSelectedManualOcr && <div className="flex items-start gap-2">
-                        <Switch id="ocr-confirmation" checked={ocrConfirmed} onCheckedChange={setOcrConfirmed} />
-                        <Label htmlFor="ocr-confirmation" className="font-body text-[11px] leading-relaxed text-muted-foreground">
-                          Confermo di poter inviare a Gemini esclusivamente le pagine selezionate per trascriverle. Verificherò i record contrassegnati.
-                        </Label>
-                      </div>}
-                    </div>
-                  )}
-                </section>
-              )}
+                 <ManualPreloadDashboard
+                   manuals={libraryManuals}
+                   loading={loadingManuals}
+                   retryingPreload={retryingPreload}
+                   onRetry={firePreloadForManual}
+                   onOpenReviews={openCoverageReviews}
+                 />
+               )}
 
               {user?.is_premium && (
                 <LibraryCoverageReadiness onOpenReviews={openCoverageReviews} refreshKey={coverageRefreshKey} />
@@ -1500,6 +1364,171 @@ export default function CardEditor() {
         </div>
       </main>
     </div>
+  );
+}
+
+// ─── Manual Preload Dashboard ────────────────────────────────────────────────
+// Shows auto-preload status per manual. Fires POST /library/preload once on
+// mount (handled in parent). Translation and OCR start automatically. When a
+// job has failed, a retry button re-fires POST /library/preload.
+// SOURCE PDFs ARE NEVER SHOWN OR UPLOADED.
+
+const JOB_STATUS_LABEL = {
+  queued: "IN CODA",
+  processing: "ELABORAZIONE IN CORSO",
+  completed: "COMPLETATO",
+  failed: "ERRORE",
+};
+
+const JOB_STATUS_COLOR = {
+  queued: "text-sky-300",
+  processing: "text-amber-200",
+  completed: "text-emerald-300",
+  failed: "text-red-300",
+};
+
+function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, onOpenReviews }) {
+  if (loading && !manuals.length) {
+    return (
+      <section data-testid="preload-dashboard-loading" className="scroll-mt-28 border border-amber-700/40 bg-amber-950/10 p-5">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-amber-300" />
+          <h2 className="font-label text-xs tracking-widest text-amber-200">PRECARICAMENTO MANUALI</h2>
+        </div>
+        <div className="mt-3 h-3 w-48 animate-pulse bg-secondary" />
+      </section>
+    );
+  }
+
+  if (!manuals.length) return null;
+
+  return (
+    <section id="editor-library-import" data-testid="preload-dashboard" className="scroll-mt-28 border border-amber-700/45 bg-amber-950/10 p-5">
+      <div className="flex items-center gap-2">
+        <BookOpen className="h-4 w-4 text-amber-300" />
+        <h2 className="font-label text-xs tracking-widest text-amber-200">PRECARICAMENTO AUTOMATICO DEI MANUALI</h2>
+      </div>
+      <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
+        I riferimenti strutturati vengono estratti, tradotti e indicizzati automaticamente dai manuali privati del tuo account.
+        Non devi selezionare pagine o confermare passaggi: qui puoi solo seguire l’avanzamento e riprovare un errore.
+      </p>
+
+      <div className="mt-4 space-y-3">
+        {manuals.map((manual) => {
+          const job = manual.job || {};
+          const isSpanish = manual.source_language === "es";
+          const needsOcr = manual.requires_ocr;
+          const isActive = job.status === "queued" || job.status === "processing";
+          const isFailed = job.status === "failed";
+          const isDone = job.status === "completed";
+          const percent = Number(job.percent || 0);
+          const title = manual.title || manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ");
+
+          return (
+            <div key={manual.filename} data-testid={`preload-manual-${manual.filename}`} className="border border-amber-700/35 bg-obsidian/35 p-3">
+              {/* Header */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-heading text-sm text-foreground">{title}</p>
+                  <p className="mt-0.5 font-body text-[11px] text-muted-foreground">
+                    {isSpanish ? "Testo nativo spagnolo · traduzione automatica" : needsOcr ? "Scansione OCR richiesta" : "Testo nativo"}
+                    {manual.page_count ? ` · ${manual.page_count} pagine` : ""}
+                  </p>
+                </div>
+                {job.status && (
+                  <span className={`font-label text-[10px] tracking-widest ${JOB_STATUS_COLOR[job.status] || "text-muted-foreground"}`}>
+                    {JOB_STATUS_LABEL[job.status] || job.status.toUpperCase()}
+                  </span>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              {(isActive || isDone) && (
+                <div className="mt-2">
+                  <div className="h-1.5 overflow-hidden bg-secondary" aria-label="Avanzamento precaricamento">
+                    <div
+                      className={`h-full transition-all ${isActive ? "bg-amber-500" : "bg-emerald-500"}`}
+                      style={{ width: `${isDone ? 100 : percent}%` }}
+                    />
+                  </div>
+                  {isActive && (
+                    <p className="mt-1 font-body text-[11px] text-muted-foreground">
+                      {job.current_page && job.page_count ? `Pagina ${job.current_page}/${job.page_count}` : `${percent}%`}
+                      {job.records_imported ? ` · ${job.records_imported} importati` : ""}
+                      {job.records_updated ? ` · ${job.records_updated} aggiornati` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Done stats */}
+              {isDone && (
+                <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  <div className="border border-emerald-800/50 bg-emerald-950/20 px-2 py-1.5">
+                    <p className="font-label text-[9px] tracking-widest text-emerald-300">IMPORTATI</p>
+                    <p className="mt-0.5 font-heading text-lg text-foreground">{job.records_imported || 0}</p>
+                  </div>
+                  <div className="border border-sky-800/50 bg-sky-950/20 px-2 py-1.5">
+                    <p className="font-label text-[9px] tracking-widest text-sky-200">AGGIORNATI</p>
+                    <p className="mt-0.5 font-heading text-lg text-foreground">{job.records_updated || 0}</p>
+                  </div>
+                  <div className="border border-amber-800/50 bg-amber-950/20 px-2 py-1.5">
+                    <p className="font-label text-[9px] tracking-widest text-amber-200">DA VERIFICARE</p>
+                    <p className="mt-0.5 font-heading text-lg text-foreground">{job.records_flagged || 0}</p>
+                  </div>
+                  {Array.isArray(job.pages_needing_ocr) && job.pages_needing_ocr.length > 0 && (
+                    <div className="border border-red-900/60 bg-red-950/20 px-2 py-1.5">
+                      <p className="font-label text-[9px] tracking-widest text-red-300">PAGINE OCR MANCANTI</p>
+                      <p className="mt-0.5 font-heading text-lg text-foreground">{job.pages_needing_ocr.length}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Failed error */}
+              {isFailed && (
+                <div className="mt-2 flex items-start gap-2 border border-red-900/50 bg-red-950/15 p-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-red-300" />
+                  <div className="flex-1">
+                    <p className="font-body text-[11px] text-red-200">{job.last_error || "Errore durante il precaricamento. Riprova."}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Retry button when failed */}
+              {isFailed && (
+                <Button
+                  type="button"
+                  data-testid={`retry-preload-${manual.filename}`}
+                  disabled={retryingPreload === manual.filename}
+                  onClick={() => onRetry(manual.filename, {
+                    retry: true,
+                  })}
+                  className="mt-2 rounded-none bg-amber-700 font-label text-[10px] tracking-widest text-white hover:bg-amber-600"
+                >
+                  {retryingPreload === manual.filename
+                    ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                  RIPROVA PRECARICAMENTO
+                </Button>
+              )}
+
+              {/* Open review records when done and there are flagged items */}
+              {isDone && job.records_flagged > 0 && (
+                <button
+                  type="button"
+                  data-testid={`open-preload-reviews-${manual.filename}`}
+                  onClick={() => onOpenReviews(Object.keys(LIBRARY_TYPE_LABELS).join(","), manual.filename)}
+                  className="mt-2 block font-label text-[10px] tracking-widest text-gold hover:text-amber-200"
+                >
+                  APRI RECORD DA VERIFICARE
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
