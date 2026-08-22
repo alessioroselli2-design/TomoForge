@@ -6,7 +6,7 @@ const sourceLabel = (snapshot) => (snapshot?.source_refs || [])
   .join(" · ") || "Fonte senza pagina indicata";
 
 const snapshotText = (snapshot) => (
-  snapshot?.full_text || snapshot?.description || "Nessun testo strutturato disponibile."
+  snapshot?.description || "Testo sorgente mantenuto privato; consulta manuale e pagina collegati."
 );
 
 const formatValue = (value) => {

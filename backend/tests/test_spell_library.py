@@ -99,6 +99,13 @@ def test_spell_payload_preserves_rules_and_compacts_card_copy():
     assert payload["attributes"]["concentrazione"] == "No"
     assert len(payload["description"]) <= 620
     assert "Mago, Stregone" in payload["story"]
+    assert payload["rule_source"] == {
+        "source_kind": "spell",
+        "source_id": spell["id"],
+        "name": "Palla di Fuoco",
+        "reference_type": "spell",
+        "source_refs": spell["source_refs"],
+    }
 
 
 class MemorySpells:

@@ -40,7 +40,9 @@ from reference_library import (
     normalize_reference_name,
     reference_content_fingerprint,
     reference_is_trusted,
+    reference_review_reason,
     reference_review_state,
+    reference_rule_source,
     reference_snapshot,
     reference_snapshot_change_fields,
     reference_snapshot_changed,
@@ -481,6 +483,8 @@ class Card(BaseModel):
     appearance: CardAppearance = Field(default_factory=CardAppearance)
     back: CardBack = Field(default_factory=CardBack)
     reference_ids: list[str] = Field(default_factory=list)
+    spell_ids: list[str] = Field(default_factory=list)
+    rule_sources: list[dict] = Field(default_factory=list)
     source_refs: list[dict] = Field(default_factory=list)
     reference_snapshots: list[dict] = Field(default_factory=list)
     change_history: list[dict] = Field(default_factory=list)
@@ -502,6 +506,8 @@ class CardCreate(BaseModel):
     appearance: Optional[CardAppearance] = None
     back: Optional[CardBack] = None
     reference_ids: list[str] = Field(default_factory=list)
+    spell_ids: list[str] = Field(default_factory=list)
+    rule_sources: list[dict] = Field(default_factory=list)
     source_refs: list[dict] = Field(default_factory=list)
 
 
@@ -518,6 +524,8 @@ class CardUpdate(BaseModel):
     appearance: Optional[CardAppearance] = None
     back: Optional[CardBack] = None
     reference_ids: Optional[list[str]] = None
+    spell_ids: Optional[list[str]] = None
+    rule_sources: Optional[list[dict]] = None
     source_refs: Optional[list[dict]] = None
     version: int = 0
 
@@ -873,8 +881,8 @@ async def private_spell_records(user_id: str) -> list[dict]:
 
 
 async def find_private_spell(user_id: str, query: str) -> Optional[dict]:
-    matches = search_spell_records(await private_spell_records(user_id), query, limit=1)
-    return matches[0] if matches else None
+    matches = search_spell_records(await private_spell_records(user_id), query, limit=20)
+    return next((spell for spell in matches if reference_is_trusted(spell)), None)
 
 
 async def import_private_spell_pdfs(user_id: str) -> SpellImportResult:
@@ -931,7 +939,12 @@ def spell_summary(spell: dict) -> dict:
         "classes": spell.get("classes", []),
         "casting_time": spell.get("casting_time", ""),
         "range": spell.get("range", ""),
-        "needs_review": bool(spell.get("review_flags")),
+        "source_refs": spell.get("source_refs", []),
+        "review_status": spell.get("review_status", "pending"),
+        "review_state": reference_review_state(spell),
+        "is_trusted": reference_is_trusted(spell),
+        "needs_review": not reference_is_trusted(spell),
+        "review_reason": reference_review_reason(spell),
     }
 
 
@@ -964,7 +977,7 @@ async def get_private_spell(spell_id: str, user: User = Depends(get_current_user
     spell = await db.private_spells.find_one({"id": spell_id, "user_id": user.user_id})
     if not spell:
         raise HTTPException(status_code=404, detail="Incantesimo non trovato nel tuo Grimorio")
-    return spell
+    return spell_summary(spell)
 
 
 @api_router.post("/spells/{spell_id}/apply")
@@ -972,6 +985,11 @@ async def apply_private_spell(spell_id: str, user: User = Depends(get_current_us
     spell = await db.private_spells.find_one({"id": spell_id, "user_id": user.user_id})
     if not spell:
         raise HTTPException(status_code=404, detail="Incantesimo non trovato nel tuo Grimorio")
+    if not reference_is_trusted(spell):
+        raise HTTPException(
+            status_code=409,
+            detail=reference_review_reason(spell) or "Questo incantesimo è da verificare e non può essere usato come dato certo.",
+        )
     return {**spell_to_card_payload(spell), "spell_id": spell["id"]}
 
 
@@ -1214,6 +1232,79 @@ async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -
     return requested_ids, sources
 
 
+async def resolve_spell_provenance(user_id: str, spell_ids: list[str]) -> tuple[list[str], list[dict]]:
+    """Validate private Grimorio entries and derive their manual/page links."""
+    requested_ids = list(dict.fromkeys(spell_id for spell_id in spell_ids if spell_id))
+    if not requested_ids:
+        return [], []
+    records_by_id = {
+        spell["id"]: spell
+        for spell in await private_spell_records(user_id)
+        if spell.get("id") in requested_ids
+    }
+    missing = [spell_id for spell_id in requested_ids if spell_id not in records_by_id]
+    if missing:
+        raise HTTPException(status_code=404, detail="Uno o più incantesimi del Grimorio non sono più disponibili")
+    unverified = [spell_id for spell_id in requested_ids if not reference_is_trusted(records_by_id[spell_id])]
+    if unverified:
+        reason = reference_review_reason(records_by_id[unverified[0]])
+        raise HTTPException(
+            status_code=409,
+            detail=reason or "Uno o più incantesimi sono da verificare e non possono essere collegati come dati certi.",
+        )
+    sources: list[dict] = []
+    seen_sources: set[str] = set()
+    for spell_id in requested_ids:
+        for source in records_by_id[spell_id].get("source_refs", []):
+            key = json.dumps(source, sort_keys=True, ensure_ascii=False)
+            if key not in seen_sources:
+                seen_sources.add(key)
+                sources.append(source)
+    return requested_ids, sources
+
+
+def merge_source_refs(*source_groups: list[dict]) -> list[dict]:
+    """Merge already-validated source metadata without trusting client input."""
+    sources: list[dict] = []
+    seen_sources: set[str] = set()
+    for source_group in source_groups:
+        for source in source_group:
+            key = json.dumps(source, sort_keys=True, ensure_ascii=False)
+            if key not in seen_sources:
+                seen_sources.add(key)
+                sources.append(source)
+    return sources
+
+
+async def rule_sources_for_card(user_id: str, reference_ids: list[str], spell_ids: list[str]) -> list[dict]:
+    """Build one safe manual/page entry for every server-validated linked rule."""
+    references = {
+        record["id"]: record
+        for record in await private_reference_records(user_id)
+        if record.get("id") in reference_ids
+    }
+    spells = {
+        spell["id"]: spell
+        for spell in await private_spell_records(user_id)
+        if spell.get("id") in spell_ids
+    }
+    return [
+        reference_rule_source(references[reference_id])
+        for reference_id in reference_ids
+        if reference_id in references
+    ] + [
+        {
+            "source_kind": "spell",
+            "source_id": spell_id,
+            "name": spells[spell_id].get("name", ""),
+            "reference_type": "spell",
+            "source_refs": spells[spell_id].get("source_refs", []),
+        }
+        for spell_id in spell_ids
+        if spell_id in spells
+    ]
+
+
 def reference_snapshot_for_card(record: dict, card_type: str, saved_at: str = "") -> dict:
     """Record both source text and the values that were derived from it."""
     snapshot = reference_snapshot(record, saved_at)
@@ -1297,7 +1388,7 @@ CARD_HISTORY_LIMIT = 20
 CARD_HISTORY_FIELDS = (
     "type", "custom_type", "name", "description", "story", "language",
     "attributes", "artwork_path", "frame", "appearance", "back",
-    "reference_ids", "source_refs", "reference_snapshots",
+    "reference_ids", "spell_ids", "rule_sources", "source_refs", "reference_snapshots",
 )
 
 
@@ -1346,7 +1437,7 @@ def append_card_history(
 
 def card_history_view(history: list[dict]) -> list[dict]:
     """Keep history responses explicit while never exposing internal card ownership."""
-    return copy.deepcopy(history or [])
+    return public_card_payload({"change_history": history or []})["change_history"]
 
 
 def apply_history_entry(card: dict, entry: dict, direction: Literal["before", "after"]) -> dict:
@@ -1378,22 +1469,31 @@ async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_
     return card
 
 
+def character_default_fields(record: dict) -> tuple[tuple[str, Any], ...]:
+    source = record.get("attributes") or {}
+    reference_type = record.get("reference_type")
+    if reference_type == "class":
+        return (
+            ("dadi_vita", source.get("dado_vita")),
+            ("competenze", source.get("competenze")),
+            ("tiri_salvezza", source.get("tiri_salvezza")),
+        )
+    if reference_type in {"race", "subrace"}:
+        return (
+            ("velocita", source.get("velocita")),
+            ("linguaggi", source.get("linguaggi")),
+            ("tratti_razza", source.get("tratti")),
+        )
+    if reference_type == "subclass":
+        return (("abilita_sottoclasse", source.get("caratteristiche") or source.get("privilegi")),)
+    return ()
+
+
 def character_manual_defaults(records: list[dict], attributes: dict) -> dict:
     """Mirror only deterministic, missing character fields from trusted records."""
     completed = copy.deepcopy(attributes or {})
     for record in records:
-        source = record.get("attributes") or {}
-        reference_type = record.get("reference_type")
-        fields = (
-            (("dadi_vita", source.get("dado_vita")), ("competenze", source.get("competenze")), ("tiri_salvezza", source.get("tiri_salvezza")))
-            if reference_type == "class"
-            else (("velocita", source.get("velocita")), ("linguaggi", source.get("linguaggi")), ("tratti_razza", source.get("tratti")))
-            if reference_type in {"race", "subrace"}
-            else (("abilita_sottoclasse", source.get("caratteristiche") or source.get("privilegi")),)
-            if reference_type == "subclass"
-            else ()
-        )
-        for field, value in fields:
+        for field, value in character_default_fields(record):
             if _is_empty_card_value(completed.get(field)) and not _is_empty_card_value(value):
                 completed[field] = copy.deepcopy(value)
     return completed
@@ -1411,7 +1511,14 @@ async def manual_completion_preview_for_card(card: dict, user_id: str) -> tuple[
     records: list[dict] = []
     seen_ids: set[str] = set()
     available = await private_reference_records(user_id)
-    for query, allowed_types in lookups:
+    linked_ids = set(card.get("reference_ids") or [])
+    if linked_ids:
+        records = [
+            record for record in available
+            if record.get("id") in linked_ids and reference_is_trusted(record)
+        ]
+        seen_ids = {record["id"] for record in records}
+    for query, allowed_types in (() if linked_ids else lookups):
         normalized_query = normalize_reference_name(str(query or ""))
         if not normalized_query:
             continue
@@ -1424,9 +1531,20 @@ async def manual_completion_preview_for_card(card: dict, user_id: str) -> tuple[
             ):
                 records.append(record)
                 seen_ids.add(record["id"])
-    completed = character_manual_defaults(records, attributes)
+    completed = copy.deepcopy(attributes)
+    field_sources: dict[str, dict] = {}
+    for record in records:
+        for field, value in character_default_fields(record):
+            if _is_empty_card_value(completed.get(field)) and not _is_empty_card_value(value):
+                completed[field] = copy.deepcopy(value)
+                field_sources[field] = reference_rule_source(record)
     changes = [
-        {"field": field, "before": copy.deepcopy(attributes.get(field)), "after": copy.deepcopy(completed[field])}
+        {
+            "field": field,
+            "before": copy.deepcopy(attributes.get(field)),
+            "after": copy.deepcopy(completed[field]),
+            "rule_source": field_sources.get(field),
+        }
         for field in completed
         if completed[field] != attributes.get(field)
     ]
@@ -1986,10 +2104,70 @@ def reference_summary(record: dict) -> dict:
         "source_refs": record.get("source_refs", []),
         "source_language": record.get("source_language", "it"),
         "translation_status": record.get("translation_status", "not_required"),
+        "review_status": record.get("review_status", "pending"),
+        "review_reason": reference_review_reason(record),
         "review_state": review_state,
         "is_trusted": review_state == "valid",
         "needs_review": review_state == "review",
     }
+
+
+def public_reference_snapshot(snapshot: dict) -> dict:
+    """Project a private comparison snapshot to rule identity and provenance."""
+    allowed = {
+        "reference_id",
+        "name",
+        "reference_type",
+        "source_refs",
+        "source_text_checksum",
+        "content_revision",
+        "saved_at",
+        "derived_attributes",
+    }
+    return {
+        key: copy.deepcopy(value)
+        for key, value in (snapshot or {}).items()
+        if key in allowed
+    }
+
+
+def public_card_payload(card: dict) -> dict:
+    """Strip raw manual extracts from every card-shaped response.
+
+    Snapshots and history retain their private comparison data server-side, but
+    browser clients only need the linked manual/page metadata and derived card
+    fields. This recursively handles old history entries as well as current
+    snapshots created before this guard existed.
+    """
+    def redact(value):
+        if isinstance(value, list):
+            return [redact(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        if value.get("reference_id") and any(
+            key in value for key in ("source_text_checksum", "content_revision", "saved_at")
+        ):
+            return public_reference_snapshot(value)
+        return {
+            key: redact(item)
+            for key, item in value.items()
+            if key not in {"full_text", "source_full_text", "source_description", "source_attributes"}
+        }
+
+    return redact(copy.deepcopy(card))
+
+
+def public_reference_update(update: dict) -> dict:
+    """Use the same redaction policy for the source-update comparison route."""
+    result = public_card_payload(update)
+    for key in ("before", "after"):
+        if result.get(key):
+            result[key] = public_reference_snapshot(result[key])
+    return result
+
+
+def card_response(card: dict) -> Card:
+    return Card(**public_card_payload(card))
 
 
 def manual_coverage_report(records: list[dict]) -> list[dict]:
@@ -2130,7 +2308,9 @@ async def get_private_reference(reference_id: str, user: User = Depends(get_curr
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
-    return record
+    # Manual/page provenance is enough to assess a rule. Never send source
+    # pages or their full extracted text to the browser.
+    return reference_summary(record)
 
 
 @api_router.post("/library/{reference_id}/apply")
@@ -2151,7 +2331,7 @@ async def retry_private_reference_translation_endpoint(
     reference_id: str,
     user: User = Depends(require_premium),
 ):
-    return await retry_private_reference_translation(user.user_id, reference_id)
+    return reference_summary(await retry_private_reference_translation(user.user_id, reference_id))
 
 
 @api_router.patch("/library/{reference_id}/review")
@@ -2467,9 +2647,12 @@ async def download(path: str, user: User = Depends(get_current_user)):
 @api_router.post("/cards", response_model=Card)
 async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
     data = body.model_dump(exclude_none=True)
-    reference_ids, source_refs = await resolve_reference_provenance(user.user_id, data.get("reference_ids", []))
+    reference_ids, reference_sources = await resolve_reference_provenance(user.user_id, data.get("reference_ids", []))
+    spell_ids, spell_sources = await resolve_spell_provenance(user.user_id, data.get("spell_ids", []))
     data["reference_ids"] = reference_ids
-    data["source_refs"] = source_refs
+    data["spell_ids"] = spell_ids
+    data["source_refs"] = merge_source_refs(reference_sources, spell_sources)
+    data["rule_sources"] = await rule_sources_for_card(user.user_id, reference_ids, spell_ids)
     data["attributes"] = remove_unlinked_reference_attributes(data.get("attributes", {}), reference_ids)
     records_by_id = await reference_records_by_id(user.user_id, reference_ids)
     data["reference_snapshots"] = reference_snapshots_for_card(
@@ -2477,7 +2660,7 @@ async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
     )
     card = Card(user_id=user.user_id, **data)
     await db.cards.insert_one(card.model_dump())
-    return card
+    return card_response(card.model_dump())
 
 
 @api_router.get("/cards", response_model=List[Card])
@@ -2488,7 +2671,7 @@ async def list_cards(type: Optional[str] = None, search: Optional[str] = None, u
     if search:
         needle = search.casefold()
         cards = [card for card in cards if needle in card.get("name", "").casefold()]
-    return [Card(**card) for card in cards]
+    return [card_response(card) for card in cards]
 
 
 @api_router.get("/cards/{card_id}", response_model=Card)
@@ -2496,7 +2679,7 @@ async def get_card(card_id: str, user: User = Depends(get_current_user)):
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
-    return Card(**card)
+    return card_response(card)
 
 
 @api_router.put("/cards/{card_id}", response_model=Card)
@@ -2507,10 +2690,17 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     before_card = copy.deepcopy(card)
     updates = body.model_dump(exclude_none=True)
     expected_version = updates.pop("version")
-    if "reference_ids" in updates:
-        reference_ids, source_refs = await resolve_reference_provenance(user.user_id, updates["reference_ids"])
+    if "reference_ids" in updates or "spell_ids" in updates:
+        reference_ids, reference_sources = await resolve_reference_provenance(
+            user.user_id, updates.get("reference_ids", card.get("reference_ids", []))
+        )
+        spell_ids, spell_sources = await resolve_spell_provenance(
+            user.user_id, updates.get("spell_ids", card.get("spell_ids", []))
+        )
         updates["reference_ids"] = reference_ids
-        updates["source_refs"] = source_refs
+        updates["spell_ids"] = spell_ids
+        updates["source_refs"] = merge_source_refs(reference_sources, spell_sources)
+        updates["rule_sources"] = await rule_sources_for_card(user.user_id, reference_ids, spell_ids)
         updates["attributes"] = remove_unlinked_reference_attributes(
             updates.get("attributes", card.get("attributes", {})),
             reference_ids,
@@ -2527,6 +2717,7 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
         # Provenance is always derived server-side. Ignore stale or forged
         # snapshots sent by older clients when the references did not change.
         updates.pop("source_refs", None)
+        updates.pop("rule_sources", None)
     updates["updated_at"] = utc_now()
     after_card = copy.deepcopy(card)
     after_card.update(updates)
@@ -2538,7 +2729,7 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
         "update",
     )
     await save_card_versioned(card, user.user_id, updates, expected_version)
-    return Card(**card)
+    return card_response(card)
 
 
 @api_router.get("/cards/{card_id}/reference-updates")
@@ -2550,7 +2741,7 @@ async def card_reference_updates(card_id: str, user: User = Depends(get_current_
     records_by_id = await reference_records_by_id(user.user_id, card.get("reference_ids") or [])
     updates = reference_update_report(card, records_by_id)
     return {
-        "updates": updates,
+        "updates": [public_reference_update(update) for update in updates],
         "updated_count": sum(update["status"] == "updated" for update in updates),
         "untracked_count": sum(update["status"] == "untracked" for update in updates),
     }
@@ -2587,7 +2778,7 @@ async def complete_card_from_manuals(
         "updated_at": utc_now(),
     }
     await save_card_versioned(card, user.user_id, updates, body.version)
-    return Card(**card)
+    return card_response(card)
 
 
 @api_router.get("/cards/{card_id}/manual-completion-preview")
@@ -2680,7 +2871,7 @@ async def refresh_card_reference_updates(
     )
     await save_card_versioned(card, user.user_id, updates, body.version)
     return {
-        "card": Card(**card),
+        "card": card_response(card),
         "updated_reference_ids": refreshed_ids,
         "protected_fields": protected_fields,
     }
@@ -2725,7 +2916,11 @@ async def undo_card_change(
     updates["change_history"] = history
     updates["updated_at"] = utc_now()
     await save_card_versioned(card, user.user_id, updates, body.version)
-    return {"card": Card(**card), "history": card_history_view(history), "entry": target}
+    return {
+        "card": card_response(card),
+        "history": card_history_view(history),
+        "entry": card_history_view([target])[0],
+    }
 
 
 @api_router.post("/cards/{card_id}/history/redo")
@@ -2753,7 +2948,11 @@ async def redo_card_change(
     updates["change_history"] = history
     updates["updated_at"] = utc_now()
     await save_card_versioned(card, user.user_id, updates, body.version)
-    return {"card": Card(**card), "history": card_history_view(history), "entry": target}
+    return {
+        "card": card_response(card),
+        "history": card_history_view(history),
+        "entry": card_history_view([target])[0],
+    }
 
 
 @api_router.delete("/cards/{card_id}")
@@ -2815,12 +3014,13 @@ async def create_linked_cards(
             language=payload["content_language"],
             attributes=payload["attributes"],
             reference_ids=[reference_id],
+            rule_sources=[reference_rule_source(record)],
             source_refs=payload["source_refs"],
             reference_snapshots=[reference_snapshot_for_card(record, payload["card_type"], utc_now())],
         )
         await db.cards.insert_one(card.model_dump())
         created.append(card)
-    return created
+    return [card_response(card.model_dump()) for card in created]
 
 
 @api_router.get("/public/cards/{card_id}")

@@ -8,3 +8,9 @@ Records sourced through OCR, automatic translation, or extraction warnings must 
 **Why:** A filter only on search is bypassable by a client that submits a known reference identifier; OCR output can otherwise silently become a character fact despite being visibly uncertain.
 
 **How to apply:** Preserve uncertainty at ingestion, classify it centrally, and enforce the classification at every route that turns a reference into a persisted card or character value. Reports should count these records as needing review rather than missing.
+
+Card provenance must remain server-derived per linked rule, including spells, rather than as only a shared list of manuals. Snapshot and history responses may expose that rule name, source identifier, manual, and page, but never extracted source text.
+
+**Why:** An aggregate source list cannot establish which page supports a given applied rule, while raw snapshots can disclose private manual extracts through card history and update flows.
+
+**How to apply:** Rebuild per-rule provenance whenever links change, include it in undo/redo state, and use an explicit public snapshot projection for every card-shaped response.

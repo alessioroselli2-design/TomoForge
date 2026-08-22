@@ -489,6 +489,15 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
         },
     ), user))
     assert character.source_refs == record["source_refs"]
+    assert character.rule_sources == [{
+        "source_kind": "reference",
+        "source_id": record["id"],
+        "name": record["name"],
+        "reference_type": record["reference_type"],
+        "source_refs": record["source_refs"],
+    }]
+    assert "description" not in character.reference_snapshots[0]
+    assert "full_text" not in character.reference_snapshots[0]
 
     linked = asyncio.run(server.create_linked_cards(
         character.id,
@@ -498,14 +507,26 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
     assert len(linked) == 1
     assert linked[0].reference_ids == [record["id"]]
     assert linked[0].source_refs == record["source_refs"]
+    assert linked[0].rule_sources[0]["name"] == record["name"]
 
     updated = asyncio.run(server.update_card(
         character.id,
-        server.CardUpdate(reference_ids=[]),
+        server.CardUpdate(reference_ids=[], version=character.version),
         user,
     ))
     assert updated.source_refs == []
+    assert updated.rule_sources == []
     assert updated.attributes["privilegi"] == [{"nome": "Scelta manuale"}]
+    restored = asyncio.run(server.undo_card_change(
+        character.id,
+        server.CardVersionInput(version=updated.version),
+        user,
+    ))
+    assert restored["card"].reference_ids == [record["id"]]
+    assert restored["card"].rule_sources[0]["source_id"] == record["id"]
+    snapshot = restored["entry"]["before"]["reference_snapshots"][0]
+    assert "description" not in snapshot
+    assert "full_text" not in snapshot
 
     try:
         asyncio.run(server.create_linked_cards(
@@ -556,8 +577,9 @@ def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_chara
     references.rows[0] = corrected
     report = asyncio.run(server.card_reference_updates(character.id, user))
     assert report["updated_count"] == 1
-    assert report["updates"][0]["before"]["full_text"] == original["full_text"]
-    assert report["updates"][0]["after"]["full_text"] == corrected["full_text"]
+    assert "full_text" not in report["updates"][0]["before"]
+    assert "full_text" not in report["updates"][0]["after"]
+    assert "testo" in report["updates"][0]["changed_fields"]
 
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         character.id,

@@ -95,6 +95,14 @@ const mergeSourceReferences = (current = [], incoming = []) => {
   });
 };
 
+const mergeRuleSources = (current = [], incoming = []) => {
+  const byId = new Map((current || []).map((source) => [`${source.source_kind}:${source.source_id}`, source]));
+  (incoming || []).filter(Boolean).forEach((source) => {
+    byId.set(`${source.source_kind}:${source.source_id}`, source);
+  });
+  return [...byId.values()];
+};
+
 const addCharacterReference = (attributes, payload) => {
   const referenceType = payload.reference_type;
   const name = payload.name || "";
@@ -130,7 +138,7 @@ export default function CardEditor() {
   const [card, setCard] = useState({
     type: "spell", custom_type: "", name: "", description: "", story: "",
     language: "it", attributes: { ...DEFAULT_ATTRS.spell }, artwork_path: null,
-    frame: "gold", reference_ids: [], source_refs: [],
+    frame: "gold", reference_ids: [], spell_ids: [], rule_sources: [], source_refs: [],
     appearance: { ...DEFAULT_APPEARANCE },
     back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
   });
@@ -175,6 +183,8 @@ export default function CardEditor() {
     ...savedCard,
     attributes: { ...(DEFAULT_ATTRS[savedCard.type] || {}), ...(savedCard.attributes || {}) },
     reference_ids: savedCard.reference_ids || [],
+    spell_ids: savedCard.spell_ids || [],
+    rule_sources: savedCard.rule_sources || [],
     source_refs: savedCard.source_refs || [],
     appearance: { ...DEFAULT_APPEARANCE, ...(savedCard.appearance || {}) },
     back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(savedCard.back || {}) },
@@ -230,6 +240,9 @@ export default function CardEditor() {
           story: res.data.story || current.story,
           language: res.data.content_language || current.language,
           attributes: { ...(DEFAULT_ATTRS[nextType] || {}), ...(res.data.attributes || {}) },
+          reference_ids: Array.from(new Set([...(current.reference_ids || []), ...(res.data.reference_ids || [])])),
+          rule_sources: mergeRuleSources(current.rule_sources, [res.data.rule_source]),
+          source_refs: mergeSourceReferences(current.source_refs, res.data.source_refs || []),
         }));
         toast.success("Contenuto della biblioteca pronto per la carta");
       } catch (error) {
@@ -281,6 +294,18 @@ export default function CardEditor() {
         description: card.description || res.data.description,
         story: card.story || res.data.story,
         attributes: mergeMissingValues(card.attributes, res.data.attributes),
+        reference_ids: res.data.source === "biblioteca_privata"
+          ? Array.from(new Set([...(card.reference_ids || []), ...(res.data.reference_ids || [])]))
+          : card.reference_ids,
+        spell_ids: res.data.source === "grimorio"
+          ? Array.from(new Set([...(card.spell_ids || []), ...(res.data.reference_ids || [])]))
+          : card.spell_ids,
+        rule_sources: ["biblioteca_privata", "grimorio"].includes(res.data.source)
+          ? mergeRuleSources(card.rule_sources, [res.data.rule_source])
+          : card.rule_sources,
+        source_refs: ["biblioteca_privata", "grimorio"].includes(res.data.source)
+          ? mergeSourceReferences(card.source_refs, res.data.source_refs || [])
+          : card.source_refs,
       });
       toast.success(
         res.data.source === "grimorio" ? "Dati applicati dal Grimorio privato"
@@ -326,6 +351,9 @@ export default function CardEditor() {
         description: card.description || res.data.description,
         story: card.story || res.data.story,
         attributes: mergeMissingValues(card.attributes, { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) }),
+        spell_ids: Array.from(new Set([...(card.spell_ids || []), res.data.spell_id || res.data.reference_id || spellId])),
+        rule_sources: mergeRuleSources(card.rule_sources, [res.data.rule_source]),
+        source_refs: mergeSourceReferences(card.source_refs, res.data.source_refs || []),
       });
       setSpellQuery(res.data.name || "");
       setSpellResults([]);
@@ -378,10 +406,12 @@ export default function CardEditor() {
       const res = await api.post(`/library/${referenceId}/apply`);
       const referenceIds = Array.from(new Set([...(card.reference_ids || []), res.data.reference_id || referenceId]));
       const sourceRefs = mergeSourceReferences(card.source_refs, res.data.source_refs);
+      const ruleSources = mergeRuleSources(card.rule_sources, [res.data.rule_source]);
       if (card.type === "character") {
         set({
           attributes: addCharacterReference(card.attributes, res.data),
           reference_ids: referenceIds,
+          rule_sources: ruleSources,
           source_refs: sourceRefs,
         });
         setCharacterReferences((current) => current.some((record) => record.id === res.data.reference_id)
@@ -399,6 +429,7 @@ export default function CardEditor() {
           story: card.story || res.data.story,
           attributes: mergeMissingValues(card.attributes, { ...(DEFAULT_ATTRS[card.type] || {}), ...(res.data.attributes || {}) }),
           reference_ids: referenceIds,
+          rule_sources: ruleSources,
           source_refs: sourceRefs,
           language: res.data.content_language || card.language,
         });
@@ -422,6 +453,7 @@ export default function CardEditor() {
     });
     set({
       reference_ids: (card.reference_ids || []).filter((id) => id !== referenceId),
+      rule_sources: (card.rule_sources || []).filter((source) => source.source_id !== referenceId),
       attributes,
     });
     setCharacterReferences((current) => current.filter((record) => record.id !== referenceId));
@@ -453,7 +485,10 @@ export default function CardEditor() {
         source_refs: updatedRecord.source_refs || [],
         source_language: updatedRecord.source_language || "it",
         translation_status: updatedRecord.translation_status,
-        needs_review: Boolean(updatedRecord.review_flags?.length) || updatedRecord.review_status === "needs_review",
+        needs_review: updatedRecord.needs_review,
+        review_reason: updatedRecord.review_reason,
+        review_state: updatedRecord.review_state,
+        is_trusted: updatedRecord.is_trusted,
       };
       setSourceRecord((current) => current?.id === referenceId ? updatedRecord : current);
       setReferenceResults((current) => current.map((record) => record.id === referenceId ? { ...record, ...summary } : record));
@@ -737,7 +772,7 @@ export default function CardEditor() {
         description: card.description, story: card.story, language: card.language,
         attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame,
         appearance: card.appearance, back: card.back,
-        reference_ids: card.reference_ids || [], source_refs: card.source_refs || [],
+        reference_ids: card.reference_ids || [], spell_ids: card.spell_ids || [], rule_sources: card.rule_sources || [], source_refs: card.source_refs || [],
         version: card.version,
       };
       if (isEdit) {
@@ -851,7 +886,7 @@ export default function CardEditor() {
                          key={spell.id}
                          type="button"
                          data-testid={`apply-spell-${spell.id}`}
-                         disabled={applyingSpell === spell.id}
+                         disabled={applyingSpell === spell.id || spell.is_trusted === false}
                          onClick={() => applySpell(spell.id)}
                          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary disabled:opacity-60"
                        >
@@ -860,10 +895,14 @@ export default function CardEditor() {
                            <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
                              {spell.level === "Trucchetto" ? spell.level : `${spell.level || "?"}° livello`} · {spell.school || "Scuola non rilevata"} · {(spell.classes || []).join(", ")}
                            </span>
+                           <span className="mt-1 block font-body text-[11px] text-sky-100/75">
+                             {(spell.source_refs || []).map((ref) => `${ref.filename || "Manuale"} p.${ref.page || "?"}`).join(" · ")}
+                             {spell.is_trusted === false && ` · BLOCCATO: ${spell.review_reason || "da verificare"}`}
+                           </span>
                          </span>
                          {applyingSpell === spell.id
                            ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
-                           : <span className="font-label text-[10px] tracking-widest text-gold">APPLICA</span>}
+                           : <span className={`font-label text-[10px] tracking-widest ${spell.is_trusted === false ? "text-amber-200" : "text-gold"}`}>{spell.is_trusted === false ? "BLOCCATO" : "APPLICA"}</span>}
                        </button>
                      ))}
                    </div>
@@ -1016,15 +1055,14 @@ export default function CardEditor() {
                           <button
                             type="button"
                             data-testid={`apply-reference-${record.id}`}
-                            disabled={applyingReference === record.id}
+                            disabled={applyingReference === record.id || record.is_trusted === false}
                             onClick={() => applyReference(record.id)}
                             className="min-w-0 flex-1 text-left disabled:opacity-60"
                           >
                             <span className="block font-heading text-base text-foreground">{record.name}</span>
                             <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
                               {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.language === "es" ? "Fonte spagnola" : ref.filename} p.${ref.page}`).join(", ")}
-                              {record.translation_status === "failed" ? " · Traduzione da verificare" : ""}
-                              {record.needs_review && record.translation_status !== "failed" ? " · Da verificare" : ""}
+                              {record.is_trusted === false ? ` · BLOCCATO: ${record.review_reason || "da verificare"}` : " · Fonte verificata"}
                             </span>
                           </button>
                           <button
@@ -1038,7 +1076,9 @@ export default function CardEditor() {
                           </button>
                           {applyingReference === record.id
                             ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
-                            : <span className="font-label text-[10px] tracking-widest text-gold">{card.type === "character" ? "AGGIUNGI" : "APPLICA"}</span>}
+                            : <span className={`font-label text-[10px] tracking-widest ${record.is_trusted === false ? "text-amber-200" : "text-gold"}`}>
+                              {record.is_trusted === false ? "BLOCCATO" : card.type === "character" ? "AGGIUNGI" : "APPLICA"}
+                            </span>}
                         </div>
                       ))}
                     </div>
@@ -1069,9 +1109,13 @@ export default function CardEditor() {
                       </div>
                       <p className="mt-2 font-body text-[11px] text-muted-foreground">
                         {(sourceRecord.source_refs || []).map((ref) => `${ref.filename} · pagina ${ref.page}`).join(", ")}
-                        {sourceRecord.translation_status === "failed" ? ` · Traduzione non riuscita${sourceRecord.translation_error ? ` (${sourceRecord.translation_error})` : ""}: verifica il testo prima di applicarlo.` : ""}
+                        {sourceRecord.is_trusted === false
+                          ? ` · BLOCCATO: ${sourceRecord.review_reason || "verifica necessaria prima dell’uso."}`
+                          : " · Fonte verificata e utilizzabile."}
                       </p>
-                      <p className="mt-3 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/90">{sourceRecord.source_full_text || sourceRecord.source_description || sourceRecord.full_text}</p>
+                      <p className="mt-3 font-body text-xs leading-relaxed text-muted-foreground">
+                        Vengono mostrati solo manuale e pagina: il PDF e il testo sorgente restano privati.
+                      </p>
                     </div>
                   )}
                 </section>

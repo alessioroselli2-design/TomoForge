@@ -222,6 +222,15 @@ def spell_to_card_payload(spell: dict) -> dict:
     """Map a source spell to the card fields without changing canonical facts."""
     duration = spell.get("duration", "")
     return {
+        "reference_id": spell.get("id"),
+        "reference_ids": [spell["id"]] if spell.get("id") else [],
+        "rule_source": {
+            "source_kind": "spell",
+            "source_id": spell.get("id", ""),
+            "name": spell.get("name", ""),
+            "reference_type": "spell",
+            "source_refs": spell.get("source_refs", []),
+        },
         "name": spell.get("name", ""),
         "description": compact_text(spell.get("description", "")),
         "story": f"Dati regolamentari dal Grimorio privato · {', '.join(spell.get('classes', []))}.",
@@ -239,4 +248,7 @@ def spell_to_card_payload(spell: dict) -> dict:
             "effetto": "",
         },
         "source": "grimorio",
+        "source_refs": spell.get("source_refs", []),
+        "source_language": spell.get("source_language", "it"),
+        "content_language": spell.get("content_language", spell.get("source_language", "it")),
     }

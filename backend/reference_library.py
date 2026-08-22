@@ -172,6 +172,31 @@ def reference_review_state(record: dict) -> str:
     return "valid"
 
 
+REVIEW_FLAG_MESSAGES = {
+    "ocr_da_verificare": "Trascrizione OCR non verificata da una persona.",
+    "riga_tabella_da_verificare": "Riga di tabella estratta automaticamente e non ancora verificata.",
+    "sezione_potenzialmente_continua": "La sezione potrebbe continuare nella pagina successiva.",
+    "traduzione_da_verificare": "Traduzione automatica non ancora verificata.",
+}
+
+
+def reference_review_reason(record: dict) -> str:
+    """Return a user-facing explanation for why a reference cannot be used."""
+    translation_status = record.get("translation_status", "not_required")
+    if translation_status == "processing":
+        return "Traduzione automatica ancora in corso: attendi la verifica prima di usare questa regola."
+    if translation_status == "failed":
+        return "Traduzione automatica non riuscita: verifica il contenuto prima di usarlo."
+    if translation_status == "translated":
+        return "Traduzione automatica non ancora verificata da una persona."
+    for flag in record.get("review_flags") or []:
+        if flag in REVIEW_FLAG_MESSAGES:
+            return REVIEW_FLAG_MESSAGES[flag]
+    if record.get("review_status") == "needs_review":
+        return "Questo contenuto richiede una verifica prima di poter essere usato."
+    return ""
+
+
 def reference_is_trusted(record: dict) -> bool:
     """Whether a record is safe for deterministic character automation."""
     return reference_review_state(record) == "valid"
@@ -183,6 +208,17 @@ def source_reference(source_filename: str, source_page: int, source_language: st
     if source_language != "it":
         reference["language"] = source_language
     return reference
+
+
+def reference_rule_source(record: dict) -> dict:
+    """Safe, durable provenance shown beside a specific rule."""
+    return {
+        "source_kind": "reference",
+        "source_id": record.get("id", ""),
+        "name": record.get("name", ""),
+        "reference_type": record.get("reference_type", "other"),
+        "source_refs": record.get("source_refs", []),
+    }
 
 
 def text_is_usable(value: str) -> bool:
@@ -858,6 +894,7 @@ def reference_to_card_payload(record: dict) -> dict:
     return {
         "reference_id": record.get("id"),
         "reference_ids": [record["id"]] if record.get("id") else [],
+        "rule_source": reference_rule_source(record),
         "name": record.get("name", ""),
         "description": compact_text(record.get("description") or record.get("full_text", "")),
         "story": f"Dati regolamentari dalla biblioteca privata · {record.get('reference_type', 'contenuto')}.",

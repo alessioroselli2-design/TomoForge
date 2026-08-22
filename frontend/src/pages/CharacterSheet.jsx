@@ -110,18 +110,24 @@ export default function CharacterSheet() {
   ].filter((entry) => String(entry.query || "").trim()), [attributes.classe, attributes.sottoclasse, attributes.razza, attributes.sottorazza]);
 
   useEffect(() => {
-    if (!card || !lookups.length) {
+    if (!card || (!lookups.length && !(card.reference_ids || []).length)) {
       setLinkedRecords([]);
       setLibraryNotice("");
       return;
     }
     let active = true;
     setLoadingLinks(true);
-    Promise.all(lookups.map((entry) => api.get("/library", { params: { q: entry.query, types: entry.types } })))
+    const linkedIds = card.reference_ids || [];
+    const requests = linkedIds.length
+      ? linkedIds.map((referenceId) => api.get(`/library/${referenceId}`))
+      : lookups.map((entry) => api.get("/library", {
+        params: { q: entry.query, types: entry.types, include_unverified: true },
+      }));
+    Promise.all(requests)
       .then((responses) => {
         if (!active) return;
         const unique = new Map();
-        responses.flatMap((response) => response.data.records || []).forEach((record) => unique.set(record.id, record));
+        responses.flatMap((response) => response.data.records || [response.data]).forEach((record) => unique.set(record.id, record));
         setLinkedRecords([...unique.values()].slice(0, 12));
         const unavailable = responses
           .filter((response) => response.data.status === "unavailable")
@@ -152,6 +158,7 @@ export default function CharacterSheet() {
   ].filter(Boolean).join(" · ");
   const capabilities = [...asList(attributes.abilita_sottoclasse), ...asList(attributes.privilegi)];
   const sourceRecords = linkedRecords.filter((record) => record.source_refs?.length);
+  const trustedLinkedRecords = linkedRecords.filter((record) => record.is_trusted !== false);
 
   const previewManualCompletion = async () => {
     setPreviewingManual(true);
@@ -345,7 +352,7 @@ export default function CharacterSheet() {
             </div>
             <div className="flex items-center gap-2">
               {loadingLinks && <Loader2 className="h-4 w-4 animate-spin text-sky-200" />}
-              <Button size="sm" data-testid="complete-sheet-from-manuals" onClick={previewManualCompletion} disabled={loadingLinks || completing || previewingManual || !linkedRecords.length} className="rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600">
+              <Button size="sm" data-testid="complete-sheet-from-manuals" onClick={previewManualCompletion} disabled={loadingLinks || completing || previewingManual || !trustedLinkedRecords.length} className="rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600">
                 {(completing || previewingManual) ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <BookOpen className="mr-1 h-3 w-3" />} COMPLETA DAI MANUALI
               </Button>
             </div>
@@ -356,9 +363,14 @@ export default function CharacterSheet() {
                 <div key={record.id} className="flex items-center justify-between gap-3 border border-sky-900/70 bg-obsidian/45 p-3">
                   <div className="min-w-0">
                     <p className="font-heading text-base text-foreground">{record.name}</p>
-                    <p className="mt-0.5 truncate font-body text-[11px] text-muted-foreground">{record.reference_type?.replaceAll("_", " ")}</p>
+                    <p className="mt-0.5 font-body text-[11px] text-muted-foreground">
+                      {record.reference_type?.replaceAll("_", " ")} · {(record.source_refs || []).map((ref) => `${ref.filename || "Manuale"} p.${ref.page || "?"}`).join(" · ")}
+                    </p>
+                    <p className={`mt-1 font-body text-[11px] ${record.is_trusted === false ? "text-amber-200" : "text-sky-100/75"}`}>
+                      {record.is_trusted === false ? `BLOCCATO: ${record.review_reason || "da verificare prima dell’uso."}` : "Fonte verificata"}
+                    </p>
                   </div>
-                  <Button size="sm" onClick={() => navigate(`/crea?referenceId=${encodeURIComponent(record.id)}`)} className="shrink-0 rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600">
+                  <Button size="sm" disabled={record.is_trusted === false} onClick={() => navigate(`/crea?referenceId=${encodeURIComponent(record.id)}`)} className="shrink-0 rounded-none bg-sky-700 text-[10px] font-label tracking-wide text-white hover:bg-sky-600 disabled:bg-slate-700">
                     <Sparkles className="mr-1 h-3 w-3" /> CARTA
                   </Button>
                 </div>
@@ -391,6 +403,11 @@ export default function CharacterSheet() {
                   <span className="ml-2 text-muted-foreground">{displayValue(change.before)}</span>
                   <span className="mx-2 text-sky-300">→</span>
                   <span className="text-foreground">{displayValue(change.after)}</span>
+                  {change.rule_source && (
+                    <span className="mt-1 block text-sky-100/75">
+                      Fonte verificata per {change.rule_source.name}: {(change.rule_source.source_refs || []).map((ref) => `${ref.filename || "Manuale"} p.${ref.page || "?"}`).join(" · ")}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

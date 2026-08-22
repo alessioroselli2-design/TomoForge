@@ -25,6 +25,16 @@ const getFrameColors = (frame, appearance = {}) => {
   return FRAME_STYLES.find((style) => style.id === frame)?.colors || FRAME_STYLES[0].colors;
 };
 
+const sourceLabel = (sources = []) => sources
+  .map((source) => `${source.filename || "Manuale"} · p.${source.page || "?"}`)
+  .filter((source, index, all) => all.indexOf(source) === index)
+  .join(" | ");
+
+const ruleSourceLabel = (rules = []) => rules
+  .map((rule) => `${rule.name || "Regola"} — ${sourceLabel(rule.source_refs || [])}`)
+  .filter((rule, index, all) => all.indexOf(rule) === index)
+  .join(" | ");
+
 const foilFrameStyle = (frame, appearance) => {
   const colors = getFrameColors(frame, appearance);
   const primary = colors[0];
@@ -137,6 +147,11 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
           <div className="tf-description-panel">
             <p className={`font-body text-[10px] italic ${exportMode ? "tf-export-description" : "text-foreground/90 leading-snug line-clamp-2 pr-12"}`}>{card.description}</p>
           </div>
+        )}
+        {(card.rule_sources?.length > 0 || card.source_refs?.length > 0) && (
+          <p className={`relative z-10 mt-1 px-3 pb-2 font-label text-[7px] tracking-wide ${exportMode ? "tf-export-stat-label" : "text-sky-100/75"}`}>
+            FONTE · {card.rule_sources?.length ? ruleSourceLabel(card.rule_sources) : sourceLabel(card.source_refs)}
+          </p>
         )}
       </div>
       {/* footer with QR */}
