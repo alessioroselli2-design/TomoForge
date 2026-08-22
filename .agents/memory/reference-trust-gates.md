@@ -14,3 +14,9 @@ Card provenance must remain server-derived per linked rule, including spells, ra
 **Why:** An aggregate source list cannot establish which page supports a given applied rule, while raw snapshots can disclose private manual extracts through card history and update flows.
 
 **How to apply:** Rebuild per-rule provenance whenever links change, include it in undo/redo state, and use an explicit public snapshot projection for every card-shaped response.
+
+When the Spanish Manual del Jugador and the Italian edition cover the same 5e player rules, treat the Spanish source as the preferred canonical input: it has native readable text, while the Italian source may require OCR. Keep the Spanish original beside the Italian translation; use the Italian edition as supplementary validation rather than allowing it to replace the preferred source.
+
+**Why:** The project owner explicitly selected the Spanish edition as the most reliable and practical base, and the current file-quality metadata confirms that it is native text while the Italian player manual is OCR-gated.
+
+**How to apply:** Automatic indexing should prioritize the Spanish manual for overlapping rules, retain all page-level provenance, and report Italian-only or Spanish-missing coverage separately.
