@@ -2083,12 +2083,22 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         # are not retried — a single-record 429 is already the worst case.
         individual_errors: dict[str, str] = {}
         if error == "provider_rate_limited" and len(batch) > 1:
+            # Short-circuit: if the first individual retry is still rate-limited
+            # the provider is very likely to reject all remaining records too.
+            # Mark subsequent records directly instead of wasting N-1 extra calls.
+            provider_still_limited = False
             for record in batch:
+                if provider_still_limited:
+                    individual_errors[record["id"]] = "provider_rate_limited"
+                    continue
                 ind_translated, ind_error = await asyncio.to_thread(
                     translate_spanish_reference_batch, [record]
                 )
                 if ind_translated.get(record["id"]):
                     translated[record["id"]] = ind_translated[record["id"]]
+                elif ind_error == "provider_rate_limited":
+                    individual_errors[record["id"]] = "provider_rate_limited"
+                    provider_still_limited = True
                 else:
                     individual_errors[record["id"]] = ind_error or "provider_rate_limited"
 

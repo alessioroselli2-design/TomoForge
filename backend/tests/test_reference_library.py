@@ -2169,6 +2169,66 @@ def test_rate_limited_batch_individual_retry_content_error_marks_record_for_revi
     assert result.sources[0]["translated"] == 0
 
 
+def test_rate_limited_batch_short_circuits_remaining_records_after_first_individual_429(monkeypatch, tmp_path):
+    """When the first individual retry in a batch returns 429, remaining records must be
+    marked provider_rate_limited directly — no extra API calls for them."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    barbaro = make_reference("Bárbaro", reference_type="class")
+    ladron = make_reference("Ladrón", reference_type="class")
+    guerrero = make_reference("Guerrero", reference_type="class")
+
+    call_count = [0]
+
+    def mock_translate(batch):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # Whole-batch call: rate-limited.
+            return {}, "provider_rate_limited"
+        # First individual retry (Bárbaro): still rate-limited → triggers short-circuit.
+        return {}, "provider_rate_limited"
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[barbaro, ladron, guerrero], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            translation_batch_size=3,  # keep all 3 records in one batch
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    # 1 batch call + 1 individual retry for Bárbaro → short-circuit, no calls for the other two.
+    assert call_count[0] == 2, (
+        f"Expected 2 translate calls (1 batch + 1 individual), got {call_count[0]}"
+    )
+
+    stored_by_source_name = {row["source_name"]: row for row in collection.rows}
+    for name in ("Bárbaro", "Ladrón", "Guerrero"):
+        row = stored_by_source_name[name]
+        assert row["translation_status"] == "failed", f"{name} should be failed"
+        assert row["translation_error"] == "provider_rate_limited", f"{name} should be provider_rate_limited"
+        assert "traduzione_da_verificare" not in row.get("review_flags", []), (
+            f"{name} should not have review flag"
+        )
+
+    assert result.sources[0]["translation_rate_limited"] == 3
+    assert result.sources[0]["translated"] == 0
+    assert result.sources[0]["translation_failed"] == 0
+
+
 def test_rate_limit_retry_uses_backoff_delays_and_escalates_to_review_when_exhausted(monkeypatch):
     """_retry_rate_limited_translations retries each delay slot and adds the review flag when exhausted."""
     records = server.MemoryCollection()
