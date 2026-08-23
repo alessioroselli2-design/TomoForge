@@ -4103,3 +4103,153 @@ def test_preload_worker_accumulates_pages_needing_ocr_across_chunks(monkeypatch,
         "pages_needing_ocr must merge prior unresolved pages with newly failed ones"
     )
     assert final_job["records_imported"] == 8   # 5 previous + 3 new
+
+
+# ---------------------------------------------------------------------------
+# OCR guard tests – HTTP-layer enforcement before any page reaches Gemini
+# ---------------------------------------------------------------------------
+
+def _make_gemini_must_not_be_called():
+    """Return a requests.post replacement that raises if Gemini is invoked."""
+    def _forbidden(*args, **kwargs):
+        raise AssertionError(
+            "requests.post must not be called: a guard should have rejected the request "
+            "before any page image was sent to Gemini."
+        )
+    return _forbidden
+
+
+def test_ocr_import_blocks_missing_consent_before_any_page_reaches_gemini(
+    monkeypatch, tmp_path
+):
+    """use_ai_ocr=True without external_processing_confirmed must raise HTTP 400
+    before any call to requests.post (i.e. before any page is sent to Gemini)."""
+    source = tmp_path / "Manuale-Scansionato.pdf"
+    source.write_bytes(b"scan")
+    filename = source.name
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
+
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(
+                filenames=[filename],
+                use_ai_ocr=True,
+                external_processing_confirmed=False,
+                start_page=1,
+                end_page=5,
+            ),
+        ))
+        assert False, "Expected HTTP 400 when external_processing_confirmed is missing"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "Gemini" in error.detail or "esplicitamente" in error.detail or "pagine selezionate" in error.detail
+
+
+def test_ocr_import_blocks_spanish_manual_before_any_page_reaches_gemini(
+    monkeypatch, tmp_path
+):
+    """use_ai_ocr=True on a Spanish (native-text) manual must raise HTTP 400 and
+    must not dispatch any page to Gemini, even when all consent flags are set."""
+    source = tmp_path / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    source.write_bytes(b"native-text")
+    filename = source.name
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
+
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(
+                filenames=[filename],
+                use_ai_ocr=True,
+                external_processing_confirmed=True,
+                translation_processing_confirmed=True,
+                start_page=5,
+                end_page=10,
+            ),
+        ))
+        assert False, "Expected HTTP 400 for OCR on a native-text Spanish manual"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "testo nativo" in error.detail
+
+
+def test_ocr_import_blocks_oversized_range_before_any_page_reaches_gemini(
+    monkeypatch, tmp_path
+):
+    """use_ai_ocr=True with more than 12 pages (or no end_page) must raise HTTP 400
+    before dispatching any page to Gemini."""
+    source = tmp_path / "Manuale-Scansionato.pdf"
+    source.write_bytes(b"scan")
+    filename = source.name
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
+
+    # No end_page at all
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(
+                filenames=[filename],
+                use_ai_ocr=True,
+                external_processing_confirmed=True,
+                start_page=1,
+                end_page=None,
+            ),
+        ))
+        assert False, "Expected HTTP 400 when end_page is absent for OCR import"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "12" in error.detail or "intervallo" in error.detail
+
+    # end_page set but range exceeds 12 pages
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(
+                filenames=[filename],
+                use_ai_ocr=True,
+                external_processing_confirmed=True,
+                start_page=1,
+                end_page=14,
+            ),
+        ))
+        assert False, "Expected HTTP 400 when OCR range exceeds 12 pages"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "12" in error.detail
+
+
+def test_ocr_import_blocks_multiple_manuals_before_any_page_reaches_gemini(
+    monkeypatch, tmp_path
+):
+    """use_ai_ocr=True with more than one manual filename must raise HTTP 400
+    before any page is sent to Gemini."""
+    source_a = tmp_path / "Manuale-A.pdf"
+    source_b = tmp_path / "Manuale-B.pdf"
+    source_a.write_bytes(b"scan-a")
+    source_b.write_bytes(b"scan-b")
+    monkeypatch.setattr(
+        server,
+        "available_reference_manuals",
+        lambda: {source_a.name: source_a, source_b.name: source_b},
+    )
+    monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
+
+    try:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-1",
+            server.ReferenceImportInput(
+                filenames=[source_a.name, source_b.name],
+                use_ai_ocr=True,
+                external_processing_confirmed=True,
+                start_page=1,
+                end_page=5,
+            ),
+        ))
+        assert False, "Expected HTTP 400 when OCR is requested for multiple manuals"
+    except server.HTTPException as error:
+        assert error.status_code == 400
+        assert "solo manuale" in error.detail or "un solo" in error.detail
