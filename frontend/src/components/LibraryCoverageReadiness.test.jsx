@@ -399,4 +399,63 @@ describe("LibraryCoverageReadiness", () => {
     expect(list).not.toBeNull();
     expect(list.textContent).toContain("Impossibile caricare");
   });
+
+  it("retries the category record fetch when the user collapses and re-expands after an error", async () => {
+    api.get
+      .mockResolvedValueOnce({ data: coverage })                                            // 1: coverage
+      .mockRejectedValueOnce(new Error("network error"))                                   // 2: first expand → fails
+      .mockResolvedValueOnce({ data: { records: reviewRecords, status: "sourced" } });     // 3: retry → succeeds
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    // Open the manual row
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    const expandBtn = container.querySelector(
+      '[data-testid="expand-category-manuale-giocatore.pdf-class"]'
+    );
+
+    // First expand → triggers fetch that fails
+    await act(async () => {
+      expandBtn.click();
+      await Promise.resolve();
+    });
+
+    // Error message must be visible
+    const list = container.querySelector(
+      '[data-testid="category-records-list-manuale-giocatore.pdf-class"]'
+    );
+    expect(list).not.toBeNull();
+    expect(list.textContent).toContain("Impossibile caricare");
+
+    // Collapse the category (cache guard key was deleted on error)
+    await act(async () => {
+      expandBtn.click();
+    });
+
+    // Re-expand → must trigger a new API call
+    await act(async () => {
+      expandBtn.click();
+      await Promise.resolve();
+    });
+
+    // Three api.get calls total: coverage + first (failed) + retry (success)
+    expect(api.get).toHaveBeenCalledTimes(3);
+
+    // Records are now rendered correctly
+    const retryList = container.querySelector(
+      '[data-testid="category-records-list-manuale-giocatore.pdf-class"]'
+    );
+    expect(retryList).not.toBeNull();
+    expect(retryList.textContent).toContain("Barbaro");
+    expect(retryList.textContent).toContain("Ladro");
+    expect(retryList.textContent).not.toContain("Impossibile caricare");
+  });
 });
