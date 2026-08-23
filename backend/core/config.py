@@ -100,24 +100,26 @@ OCR_REQUIRED_REFERENCE_PREFIXES = (
 )
 MANUAL_COVERAGE_CATEGORIES = {
     "Manuale_del_giocatore__1787259882002.pdf": (
-        "class", "subclass", "class_feature", "race", "subrace", "feat", "spell",
-        "weapon", "armor", "shield", "equipment", "tool",
+        "class", "subclass", "class_feature", "ability",
+        "race", "subrace", "feat", "spell",
+        "weapon", "armor", "shield", "equipment", "tool", "other",
     ),
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": (
-        "class", "subclass", "class_feature", "race", "subrace", "feat", "spell",
-        "weapon", "armor", "shield", "equipment", "tool",
+        "class", "subclass", "class_feature", "ability",
+        "race", "subrace", "feat", "spell",
+        "weapon", "armor", "shield", "equipment", "tool", "other",
     ),
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf": (
-        "subclass", "class_feature", "feat", "spell",
+        "subclass", "class_feature", "ability", "feat", "spell", "magic_item", "other",
     ),
     "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf": (
-        "subclass", "class_feature", "feat", "spell", "magic_item",
+        "subclass", "class_feature", "ability", "feat", "spell", "magic_item", "other",
     ),
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf": (
         "weapon", "armor", "shield", "equipment", "tool", "magic_item",
-        "vehicle", "ammunition", "mount", "trade_good", "service",
+        "vehicle", "ammunition", "mount", "trade_good", "service", "other",
     ),
-    "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf": ("monster",),
+    "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf": ("monster", "other"),
 }
 for _class_manual in (
     "Bardo__1787233073462.pdf",
