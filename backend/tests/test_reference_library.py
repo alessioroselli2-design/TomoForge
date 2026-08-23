@@ -93,6 +93,111 @@ di 2 e questo tratto resta documentato nella fonte del manuale.
     assert race_record["attributes"]["linguaggi"] == "Comune, Elfico"
 
 
+def test_reference_parser_recognizes_spanish_feats_and_subraces_from_small_caps_titles():
+    feat_record = parse_reference_page(
+        """MENtE AGUda
+Requisitos: Inteligencia 13 o más. Posees una mente con una capacidad asombrosa
+para percibir el paso del tiempo, orientarse y recordar hasta el más mínimo detalle.
+Obtienes los beneficios siguientes: tu puntuación de Inteligencia aumenta en 1.
+""",
+        "Manual del Jugador.pdf",
+        345,
+        "es",
+    )[0]
+    subrace_record = parse_reference_page(
+        """ENaNo dE Las CoLINas
+Como enano de las colinas, posees sentidos agudos, una profunda intuición y
+una resistencia notable. Tu puntuación de Sabiduría aumenta en 1 y tus puntos
+de golpe máximos aumentan en 1 cada vez que subes de nivel.
+""",
+        "Manual del Jugador.pdf",
+        32,
+        "es",
+    )[0]
+
+    assert feat_record["reference_type"] == "feat"
+    assert feat_record["attributes"]["prerequisito"] == "Inteligencia 13 o más"
+    assert subrace_record["reference_type"] == "subrace"
+    assert subrace_record["source_refs"] == [{
+        "filename": "Manual del Jugador.pdf",
+        "page": 32,
+        "language": "es",
+    }]
+
+
+def test_reference_parser_skips_sparse_spanish_index_entries_that_match_feat_titles():
+    index_page = "\n".join([
+        "Página 955",
+        "Acechador",
+        "Actor",
+        "Afortunado",
+        "Alerta",
+        "Alineamiento",
+        "Alquimia",
+        "Alterar el propio aspecto",
+        "Amistad",
+        "Ancestro Dragón",
+        "Animar objetos",
+        "Antipatía",
+        "Apariencia",
+        "Aprender conjuros",
+        "Armaduras",
+        "Armas",
+        "Arquetipos",
+        "Atributos",
+        "Atacante salvaje",
+        "Atleta",
+        "Aura de vida",
+        "Aventuras",
+        "Avance de personajes",
+        "Azote de magos",
+        "Bardo",
+        "Bendición",
+        "Bola de fuego",
+    ])
+
+    records = parse_reference_page(index_page, "Manual del Jugador.pdf", 955, "es")
+
+    assert not [record for record in records if record["reference_type"] == "feat"]
+
+
+def test_reference_extractor_joins_spanish_feat_heading_with_its_next_page(tmp_path):
+    import fitz
+    from reference_library import extract_reference_records
+
+    pdf_path = tmp_path / "manual-del-jugador.pdf"
+    document = fitz.open()
+    first = document.new_page()
+    first.insert_text(
+        (72, 72),
+        """La descripción previa conserva suficiente texto nativo para que la página
+pueda procesarse, pero no contiene otra regla ni otro encabezado reconocible.
+LÍDER INSPIRADOR""",
+    )
+    second = document.new_page()
+    second.insert_text(
+        (72, 72),
+        """Requisitos: Carisma 13 o más. Puedes invertir diez minutos en inspirar a
+tus compañeros, apuntalando su voluntad para luchar y continuar la aventura.
+Obtienes los beneficios siguientes: cada aliado recibe puntos de golpe temporales.
+LIGERAMENTE ACORAZADO
+Has entrenado tu cuerpo para llevar armaduras ligeras sin perder movilidad.""",
+    )
+    document.save(pdf_path)
+    document.close()
+
+    report = extract_reference_records(pdf_path, source_language="es")
+    leader = next(record for record in report.records if record["name"] == "Líder Inspirador")
+
+    assert leader["reference_type"] == "feat"
+    assert leader["source_refs"] == [{
+        "filename": "manual-del-jugador.pdf",
+        "page": 1,
+        "language": "es",
+    }]
+    assert "sezione_potenzialmente_continua" not in leader["review_flags"]
+
+
 def test_reference_extractor_uses_ocr_callback_for_unreadable_page(tmp_path):
     import fitz
     from reference_library import extract_reference_records
@@ -1511,6 +1616,155 @@ def test_spanish_translation_uses_only_structured_fields_and_requires_complete_j
     assert captured["url"].endswith("/models/gemini-3.6-flash:generateContent")
 
 
+def test_spanish_translation_uses_openai_only_after_gemini_failure(monkeypatch):
+    calls = []
+
+    class GeminiFailure:
+        def raise_for_status(self):
+            raise server.requests.HTTPError("429 Too Many Requests")
+
+    class OpenAIResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [{
+                    "message": {
+                        "content": (
+                            '{"records":[{"id":"ref-es","name":"Talento di guerra",'
+                            '"description":"Un talento.","full_text":"Un talento completo.",'
+                            '"attributes":{"prerequisito":"Forza 13"}}]}'
+                        ),
+                    },
+                }],
+            }
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return GeminiFailure() if "generativelanguage.googleapis.com" in url else OpenAIResponse()
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-test-key")
+    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-test-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+
+    translated, error = server.translate_spanish_reference_batch([{
+        "id": "ref-es",
+        "source_name": "Talento de guerra",
+        "source_description": "Un talento.",
+        "source_full_text": "Un talento completo.",
+        "source_attributes": {"prerequisito": "Fuerza 13"},
+    }])
+
+    assert error == ""
+    assert translated["ref-es"]["name"] == "Talento di guerra"
+    assert [url for url, _kwargs in calls] == [
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+        "https://api.openai.com/v1/chat/completions",
+    ]
+    assert "Un talento completo." in calls[1][1]["json"]["messages"][1]["content"]
+
+
+def test_automatic_preload_marks_successful_translations_verified(monkeypatch, tmp_path):
+    """Auto-preload (auto_accept=True) promotes successful translations to verified/valid."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    record = make_reference(
+        "Talento de guerra",
+        source_language="es",
+        source_refs=[{"filename": filename, "page": 335, "language": "es"}],
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(
+        server,
+        "translate_spanish_reference_batch",
+        lambda batch: ({
+            batch[0]["id"]: {
+                "name": "Talento di guerra",
+                "description": "Un talento.",
+                "full_text": "Un talento completo tradotto.",
+                "attributes": {},
+            },
+        }, ""),
+    )
+
+    asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            start_page=335,
+            end_page=335,
+            translation_processing_confirmed=True,
+            auto_accept=True,
+        ),
+    ))
+
+    stored = collection.rows[0]
+    assert stored["translation_status"] == "translated"
+    # Auto-accept preload must promote successful translations to verified so
+    # the library verifier can find valid probes without manual human review.
+    assert stored["review_status"] == "verified"
+    assert reference_review_state(stored) == "valid"
+
+
+def test_manual_import_keeps_translations_pending_review(monkeypatch, tmp_path):
+    """Manual imports (auto_accept=False) keep translations in needs_review for human confirmation."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    record = make_reference(
+        "Talento de guerra",
+        source_language="es",
+        source_refs=[{"filename": filename, "page": 335, "language": "es"}],
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(
+        server,
+        "translate_spanish_reference_batch",
+        lambda batch: ({
+            batch[0]["id"]: {
+                "name": "Talento di guerra",
+                "description": "Un talento.",
+                "full_text": "Un talento completo tradotto.",
+                "attributes": {},
+            },
+        }, ""),
+    )
+
+    asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            start_page=335,
+            end_page=335,
+            translation_processing_confirmed=True,
+            auto_accept=False,
+        ),
+    ))
+
+    stored = collection.rows[0]
+    assert stored["translation_status"] == "translated"
+    # Manual import must keep translations in needs_review; a person must
+    # explicitly verify them before they count as authoritative references.
+    assert stored["review_status"] == "needs_review"
+    assert reference_review_state(stored) == "review"
+
+
 def test_spanish_import_reuses_translation_and_keeps_source_text(monkeypatch, tmp_path):
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")
@@ -1996,6 +2250,29 @@ def test_automatic_preload_queues_translation_and_ocr_without_user_consent(monke
     assert by_filename[scanned.name]["external_processing_confirmed"] is True
 
 
+def test_automatic_preload_can_queue_only_the_requested_manual(monkeypatch, tmp_path):
+    spanish = tmp_path / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    other = tmp_path / "Manuale-Altro.pdf"
+    spanish.write_bytes(b"manual")
+    other.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
+    monkeypatch.setattr(
+        server,
+        "available_reference_manuals",
+        lambda: {spanish.name: spanish, other.name: other},
+    )
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1018)
+
+    asyncio.run(server.ensure_manual_preload_jobs(
+        "owner-1",
+        server.ManualPreloadInput(filename=spanish.name),
+    ))
+
+    assert [job["filename"] for job in jobs.rows] == [spanish.name]
+    assert jobs.rows[0]["translation_processing_confirmed"] is True
+
+
 def test_automatic_preload_processes_all_chunks_without_manual_ranges(monkeypatch, tmp_path):
     source = tmp_path / "Manuale-nativo.pdf"
     source.write_bytes(b"manual")
@@ -2067,6 +2344,37 @@ def test_automatic_preload_starts_ocr_without_user_consent(monkeypatch, tmp_path
     assert calls == [(True, True, True)]
 
 
+def test_spanish_preload_skips_unreadable_cover_pages_and_continues(monkeypatch, tmp_path):
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    source = tmp_path / filename
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 2)
+
+    calls = []
+
+    async def fake_import(_user_id, body):
+        calls.append(body.use_ai_ocr)
+        return server.ReferenceImportResult(
+            imported=0, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{"filename": filename, "pages_needing_ocr": [1]}],
+        )
+
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs(
+        "owner-1",
+        server.ManualPreloadInput(filename=filename),
+    ))
+    asyncio.run(server.run_manual_preload_worker("owner-1"))
+
+    assert jobs.rows[0]["status"] == "completed"
+    assert jobs.rows[0]["current_page"] == 3
+    assert jobs.rows[0]["pages_needing_ocr"] == [1]
+    assert calls == [False]
+
+
 def test_preload_checkpoint_ignores_a_worker_that_lost_its_lease(monkeypatch, tmp_path):
     source = tmp_path / "Manuale-nativo.pdf"
     source.write_bytes(b"manual")
@@ -2116,6 +2424,34 @@ def test_startup_reclaims_only_expired_preload_leases(monkeypatch):
 
     assert jobs.rows[0]["status"] == "queued"
     assert jobs.rows[1]["status"] == "processing"
+    assert started == ["owner-1"]
+
+
+def test_startup_requeues_completed_manual_when_its_parser_revision_changes(monkeypatch, tmp_path):
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    source = tmp_path / filename
+    source.write_bytes(b"native-text")
+    jobs = server.MemoryCollection()
+    jobs.rows.append({
+        "id": "completed-spanish-manual",
+        "user_id": "owner-1",
+        "filename": filename,
+        "status": "completed",
+        "source_fingerprint": "previous-parser-revision",
+        "current_page": 1018,
+        "records_imported": 803,
+    })
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1018)
+    started = []
+    monkeypatch.setattr(server, "start_manual_preload_worker", lambda user_id: started.append(user_id))
+
+    asyncio.run(server.resume_manual_preload_workers())
+
+    assert jobs.rows[0]["status"] == "queued"
+    assert jobs.rows[0]["current_page"] == 1
+    assert jobs.rows[0]["source_fingerprint"] == server.manual_source_fingerprint(source)
     assert started == ["owner-1"]
 
 

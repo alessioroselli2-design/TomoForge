@@ -126,6 +126,7 @@ create table if not exists public.private_reference_records (
   source_name text not null default '',
   source_description text not null default '',
   source_full_text text not null default '',
+  source_attributes jsonb not null default '{}'::jsonb,
   source_text_checksum text not null default '',
   translation_status text not null default 'not_required' check (translation_status in ('not_required', 'translated', 'failed', 'processing')),
   translation_error text not null default '',
@@ -153,6 +154,7 @@ alter table public.private_reference_records
   add column if not exists source_name text not null default '',
   add column if not exists source_description text not null default '',
   add column if not exists source_full_text text not null default '',
+  add column if not exists source_attributes jsonb not null default '{}'::jsonb,
   add column if not exists source_text_checksum text not null default '',
   add column if not exists translation_status text not null default 'not_required',
   add column if not exists translation_error text not null default '',
@@ -172,6 +174,8 @@ update public.private_reference_records
   where source_key = '' or source_normalized_name = '' or source_name = '';
 alter table public.private_reference_records
   drop constraint if exists private_reference_records_user_id_reference_type_normalized_name_key;
+alter table public.private_reference_records
+  drop constraint if exists private_reference_records_user_id_reference_type_normalized_key;
 alter table public.private_reference_records
   add constraint private_reference_records_user_type_name_source_key
   unique (user_id, reference_type, normalized_name, source_key);

@@ -23,6 +23,10 @@ from reference_library import CARD_TYPE_BY_REFERENCE_TYPE, reference_review_stat
 
 
 PROBES = {
+    "feat": "acechador",
+    "race": "enano",
+    "subrace": "enano de las colinas",
+    "spell": "bola de fuego",
     "weapon": "adamantio",
     "armor": "fumigante",
     "shield": "espressione",
@@ -36,6 +40,8 @@ REQUIRED_CHARACTER_CREATION_TYPES = frozenset({
 REQUIRED_SOURCE_FILENAMES = (
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 )
+PLAYER_HANDBOOK_FILENAME = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+PLAYER_HANDBOOK_PROBE_TYPES = frozenset({"feat", "race", "subrace", "spell"})
 
 
 def verify_card_payload(
@@ -134,21 +140,29 @@ def verify_library(user_id: str) -> dict[str, Any]:
     if not url or not service_key:
         raise RuntimeError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY sono richieste")
 
+    client = create_client(url, service_key)
+    records: list[dict[str, Any]] = []
+    page_size = 1000
+    offset = 0
     try:
-        response = (
-            create_client(url, service_key)
-            .table("private_reference_records")
-            .select("id,reference_type,name,normalized_name,review_flags,review_status,translation_status,source_refs")
-            .eq("user_id", user_id)
-            .limit(8000)
-            .execute()
-        )
+        while True:
+            response = (
+                client
+                .table("private_reference_records")
+                .select("id,reference_type,name,normalized_name,source_normalized_name,review_flags,review_status,translation_status,source_refs")
+                .eq("user_id", user_id)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = response.data or []
+            records.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
     except Exception as exc:
         raise RuntimeError(
             "La tabella private_reference_records non è disponibile: applica prima backend/supabase_schema.sql"
         ) from exc
-
-    records = response.data or []
     by_type = Counter(record.get("reference_type", "") for record in records)
     by_state = Counter(reference_review_state(record) for record in records)
     reviewed_by_type: dict[str, Counter] = defaultdict(Counter)
@@ -163,10 +177,12 @@ def verify_library(user_id: str) -> dict[str, Any]:
     missing_sources = [
         filename for filename in REQUIRED_SOURCE_FILENAMES if source_counts[filename] == 0
     ]
-    if missing_sources:
+    # DMG absence is reported in required_manual_records but does not block
+    # the PHB category checks (feat/race/subrace/spell), which are independent.
+    if source_counts[PLAYER_HANDBOOK_FILENAME] == 0:
         raise RuntimeError(
-            "Manca la provenienza richiesta dal Manuale del Dungeon Master: "
-            + ", ".join(missing_sources)
+            "Manca la provenienza richiesta dal Manuale del Giocatore spagnolo: "
+            + PLAYER_HANDBOOK_FILENAME
         )
     probes: dict[str, dict[str, Any]] = {}
     for reference_type, needle in PROBES.items():
@@ -174,14 +190,39 @@ def verify_library(user_id: str) -> dict[str, Any]:
             record
             for record in records
             if record.get("reference_type") == reference_type
-            and needle in (record.get("normalized_name") or "").casefold()
+            and (
+                needle in (record.get("normalized_name") or "").casefold()
+                or needle in (record.get("source_normalized_name") or "").casefold()
+            )
         ]
         if not matches:
             raise RuntimeError(f"Manca il controllo di ricerca per {reference_type}: {needle}")
+        valid_matches = [
+            record for record in matches
+            if reference_review_state(record) == "valid"
+        ]
+        if not valid_matches:
+            raise RuntimeError(
+                f"Manca un controllo affidabile per {reference_type}: {needle}"
+            )
+        if reference_type in PLAYER_HANDBOOK_PROBE_TYPES:
+            player_handbook_matches = [
+                record for record in valid_matches
+                if any(
+                    reference.get("filename") == PLAYER_HANDBOOK_FILENAME
+                    for reference in record.get("source_refs", [])
+                )
+            ]
+            if not player_handbook_matches:
+                raise RuntimeError(
+                    "Manca la provenienza dal Manuale del Giocatore spagnolo "
+                    f"per {reference_type}: {needle}"
+                )
+            valid_matches = player_handbook_matches
         probes[reference_type] = {
             "count": by_type[reference_type],
-            "match": matches[0]["name"],
-            "needs_review": bool(matches[0].get("review_flags")),
+            "match": valid_matches[0]["name"],
+            "needs_review": bool(valid_matches[0].get("review_flags")),
         }
 
     return {
@@ -192,13 +233,13 @@ def verify_library(user_id: str) -> dict[str, Any]:
             reference_type: {
                 "valid": reviewed_by_type[reference_type]["valid"],
                 "to_review": reviewed_by_type[reference_type]["review"],
-                "missing": int(by_type[reference_type] == 0),
+                "missing": int(reviewed_by_type[reference_type]["valid"] == 0),
             }
             for reference_type in sorted(REQUIRED_CHARACTER_CREATION_TYPES)
         },
         "required_manual_records": {
             filename: source_counts[filename] for filename in REQUIRED_SOURCE_FILENAMES
-        },
+        } | {PLAYER_HANDBOOK_FILENAME: source_counts[PLAYER_HANDBOOK_FILENAME]},
         "probes": probes,
     }
 

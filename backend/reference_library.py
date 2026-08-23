@@ -76,6 +76,61 @@ RACE_TITLES = {
     "draconido", "elfo", "enano", "gnomo", "humano", "mediano",
     "semielfo", "semiorco", "tiefling",
 }
+SPANISH_SUBRACE_TITLES = frozenset({
+    "enano de las colinas",
+    "enano de las montanas",
+    "alto elfo",
+    "elfo de los bosques",
+    "elfo oscuro drow",
+    "piesligeros",
+    "robustos",
+    "gnomo de los bosques",
+    "gnomo de las rocas",
+})
+SPANISH_FEAT_TITLES = frozenset({
+    "acechador",
+    "actor",
+    "afortunado",
+    "alerta",
+    "apresador",
+    "atacante a la carga",
+    "atacante salvaje",
+    "atleta",
+    "azote de magos",
+    "centinela",
+    "combatiente con dos armas",
+    "combatiente montado",
+    "duelista defensivo",
+    "duro",
+    "experto en ballestas",
+    "explorador de mazmorras",
+    "habilidoso",
+    "iniciado en la magia",
+    "lanzador en combate",
+    "lanzador preciso",
+    "lanzador ritual",
+    "lider inspirador",
+    "ligeramente acorazado",
+    "linguista",
+    "maestro de armas",
+    "maestro en armaduras medias",
+    "maestro en armaduras pesadas",
+    "maestro en armas de asta",
+    "maestro en armas pesadas",
+    "maestro en escudos",
+    "maton de taberna",
+    "mente aguda",
+    "moderadamente acorazado",
+    "movil",
+    "muy acorazado",
+    "observador",
+    "resiliente",
+    "resistente",
+    "sanador",
+    "tirador de primera",
+    "versado en las armas",
+    "versado en un elemento",
+})
 CARD_TYPE_BY_REFERENCE_TYPE = {
     "class": "class",
     "subclass": "subclass",
@@ -240,7 +295,13 @@ def _title_from_line(value: str) -> Optional[str]:
     # race titles before applying the conservative heading heuristic below.
     title_key = normalize_reference_name(value)
     if (
-        title_key in CLASS_TITLES | SPANISH_CLASS_TITLES | RACE_TITLES
+        title_key in (
+            CLASS_TITLES
+            | SPANISH_CLASS_TITLES
+            | RACE_TITLES
+            | SPANISH_SUBRACE_TITLES
+            | SPANISH_FEAT_TITLES
+        )
         and value == value.strip(" .:;,")
     ):
         return value.title()
@@ -260,8 +321,12 @@ def _record_type(title: str, body: str) -> str:
     normalized_title = normalize_reference_name(title)
     if normalized_title in CLASS_TITLES | SPANISH_CLASS_TITLES:
         return "class"
+    if normalized_title in SPANISH_SUBRACE_TITLES:
+        return "subrace"
     if normalized_title in RACE_TITLES:
         return "race"
+    if normalized_title in SPANISH_FEAT_TITLES:
+        return "feat"
     if normalized_title in {"oggetti magici", "oggetto magico", "objetos magicos", "objeto magico"}:
         return "magic_item"
     if normalized_title in {"armature", "armatura", "armature e scudi", "armaduras", "armadura"}:
@@ -306,8 +371,10 @@ def _record_type(title: str, body: str) -> str:
         "talento" in sample or "incremento" in sample or "dote" in sample or "mejora" in sample
     ):
         return "feat"
-    if any(token in sample for token in ("tratti razziali", "rasgos raciales", "sottorazza", "subraza")):
-        return "subrace" if "sottorazza" in sample or "subraza" in sample else "race"
+    if any(token in sample for token in ("tratti razziali", "rasgos raciales")):
+        return "race"
+    if normalized_title.startswith(("sottorazza ", "subraza ")):
+        return "subrace"
     if any(token in title_key for token in (
         "archetipo", "arquetipo", "collegio", "colegio", "cammino", "camino",
         "dominio", "circolo", "circulo", "giuramento", "juramento", "tradizione",
@@ -397,7 +464,11 @@ def _attributes(record_type: str, body: str) -> dict:
         if re.search(r"Concentración", spell_text, flags=re.IGNORECASE):
             attributes["concentrazione"] = "Sì"
     elif record_type == "feat":
-        match = re.search(r"Prerequisito\s*:\s*([^.]{2,180})", flat, flags=re.IGNORECASE)
+        match = re.search(
+            r"(?:Prerequisito|Requisitos?)\s*:\s*([^.]{2,180})",
+            flat,
+            flags=re.IGNORECASE,
+        )
         attributes["prerequisito"] = match.group(1).strip() if match else ""
     elif record_type == "monster":
         patterns = {
@@ -596,6 +667,21 @@ def _equipment_row_records(
     return rows
 
 
+def _is_sparse_index_page(lines: list[str], source_language: str) -> bool:
+    """Recognize the Spanish manual's short alphabetical index pages."""
+    content_lines = [
+        line for line in lines
+        if line and not normalize_reference_name(line).startswith("pagina ")
+    ]
+    if source_language != "es" or len(content_lines) < 8:
+        return False
+    long_entries = sum(len(line) >= 40 for line in content_lines)
+    return (
+        (len(content_lines) >= 25 and long_entries <= 2)
+        or (max(map(len, content_lines)) <= 40 and long_entries == 0)
+    )
+
+
 def parse_reference_page(
     text: str,
     source_filename: str,
@@ -608,6 +694,10 @@ def parse_reference_page(
     following page. This preserves provenance without inventing missing rules.
     """
     lines = [line.strip() for line in (text or "").splitlines()]
+    # The Spanish manual's alphabetical index repeats rule titles but contains
+    # no rule text. Do not turn those short index entries into second copies of
+    # feats, races, or subraces with misleading provenance.
+    is_sparse_index_page = _is_sparse_index_page(lines, source_language)
     headings = [(index, title) for index, line in enumerate(lines) if (title := _title_from_line(line))]
     spell_records = _spanish_spell_records(text, source_filename, source_page, source_language)
     spell_names = {record["normalized_name"] for record in spell_records}
@@ -618,6 +708,8 @@ def parse_reference_page(
         raw_body = "\n".join(body_lines)
         body = clean_text(" ".join(body_lines))
         record_type = _record_type(title, body)
+        if is_sparse_index_page and record_type in {"feat", "race", "subrace"}:
+            continue
         equipment_rows = _equipment_row_records(
             raw_body, record_type, source_filename, source_page, source_language
         )
@@ -664,6 +756,7 @@ def extract_reference_records(
 
     document = fitz.open(pdf_path)
     report = ReferenceImportReport(source_filename=pdf_path.name)
+    pending_spanish_feat: Optional[tuple[str, int]] = None
     try:
         first = max(start_page, 1)
         last = min(end_page or len(document), len(document))
@@ -681,6 +774,40 @@ def extract_reference_records(
                     report.pages_needing_ocr.append(page_number)
                     continue
             report.pages_read += 1
+            lines = [line.strip() for line in text.splitlines()]
+            if pending_spanish_feat:
+                title, title_page = pending_spanish_feat
+                next_heading = next(
+                    (
+                        index
+                        for index, line in enumerate(lines)
+                        if _title_from_line(line)
+                    ),
+                    len(lines),
+                )
+                continuation = "\n".join(lines[:next_heading])
+                continued_records = parse_reference_page(
+                    f"{title}\n{continuation}",
+                    pdf_path.name,
+                    title_page,
+                    source_language,
+                )
+                continued = next(
+                    (
+                        record
+                        for record in continued_records
+                        if record["normalized_name"] == normalize_reference_name(title)
+                    ),
+                    None,
+                )
+                if continued:
+                    continued["review_flags"] = [
+                        flag
+                        for flag in continued.get("review_flags", [])
+                        if flag != "sezione_potenzialmente_continua"
+                    ]
+                    report.records.append(continued)
+                pending_spanish_feat = None
             records = parse_reference_page(text, pdf_path.name, page_number, source_language)
             if extracted_with_ocr:
                 for record in records:
@@ -688,6 +815,18 @@ def extract_reference_records(
                         set(record.get("review_flags") or []) | {"ocr_da_verificare"}
                     )
             report.records.extend(records)
+            if source_language == "es" and not _is_sparse_index_page(lines, source_language):
+                parsed_names = {record["normalized_name"] for record in records}
+                for line in reversed(lines):
+                    title = _title_from_line(line)
+                    if not title:
+                        continue
+                    if (
+                        normalize_reference_name(title) in SPANISH_FEAT_TITLES
+                        and normalize_reference_name(title) not in parsed_names
+                    ):
+                        pending_spanish_feat = (title, page_number)
+                    break
         return report
     finally:
         document.close()

@@ -105,6 +105,12 @@ REFERENCE_MANUAL_METADATA = {
         "native_text": True,
     },
 }
+# A parser revision is part of a source fingerprint only when a supplied
+# manual needs a targeted re-index. This lets completed owner queues pick up
+# improved recognition without needlessly rerunning unrelated manuals.
+REFERENCE_MANUAL_PARSER_REVISIONS = {
+    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": "character-options-v2",
+}
 OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset({
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 })
@@ -1070,6 +1076,9 @@ def manual_source_fingerprint(path: Path) -> str:
     """Detect replacement of a local source without retaining its PDF bytes."""
     stat = path.stat()
     value = f"{path.name}:{stat.st_size}:{stat.st_mtime_ns}"
+    parser_revision = REFERENCE_MANUAL_PARSER_REVISIONS.get(path.name)
+    if parser_revision:
+        value = f"{value}:parser:{parser_revision}"
     return sha256(value.encode("utf-8")).hexdigest()
 
 
@@ -1162,6 +1171,19 @@ def _gemini_text_from_response(payload: object) -> str:
     return text
 
 
+def _openai_text_from_response(payload: object) -> str:
+    """Extract one chat-completion message without accepting partial output."""
+    if not isinstance(payload, dict):
+        raise ValueError("risposta OpenAI non oggetto")
+    choices = payload.get("choices")
+    choice = choices[0] if isinstance(choices, list) and choices else {}
+    message = choice.get("message") if isinstance(choice, dict) else {}
+    content = message.get("content") if isinstance(message, dict) else ""
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("risposta OpenAI senza testo")
+    return content.strip()
+
+
 def _json_from_model_text(text: str) -> object:
     """Accept raw JSON or the fenced JSON often returned by text models."""
     text = text.strip()
@@ -1169,6 +1191,38 @@ def _json_from_model_text(text: str) -> object:
         text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*```$", "", text)
     return json.loads(text)
+
+
+def _openai_translation_response(prompt: str) -> object:
+    """Use the user-approved fallback only when Gemini cannot serve a batch."""
+    if not OPENAI_API_KEY:
+        raise RuntimeError("fallback OpenAI non configurato")
+    response = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": OPENAI_TEXT_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Restituisci esclusivamente il JSON richiesto. "
+                        "Non aggiungere testo introduttivo o markdown."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0,
+            "max_tokens": 8192,
+        },
+        timeout=(15, 120),
+    )
+    response.raise_for_status()
+    return _json_from_model_text(_openai_text_from_response(response.json()))
 
 
 def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, dict], str]:
@@ -1218,8 +1272,20 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
         response.raise_for_status()
         decoded = _json_from_model_text(_gemini_text_from_response(response.json()))
     except (requests.RequestException, ValueError, TypeError, json.JSONDecodeError) as exc:
-        logger.warning("Traduzione Gemini non disponibile per un gruppo di %s record: %s", len(records), exc)
-        return {}, "provider_translation_failed"
+        logger.warning(
+            "Traduzione Gemini non disponibile per un gruppo di %s record: %s; provo OpenAI autorizzato",
+            len(records),
+            exc,
+        )
+        try:
+            decoded = _openai_translation_response(prompt)
+        except (requests.RequestException, RuntimeError, ValueError, TypeError, json.JSONDecodeError) as fallback_exc:
+            logger.warning(
+                "Traduzione OpenAI non disponibile per un gruppo di %s record: %s",
+                len(records),
+                fallback_exc,
+            )
+            return {}, "provider_translation_failed"
 
     translated_rows = decoded.get("records") if isinstance(decoded, dict) else None
     if not isinstance(translated_rows, list):
@@ -1850,6 +1916,10 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             "translation_reused": 0,
         })
 
+    # A page range can repeat a source-local heading (notably equipment table
+    # labels). Collapse those copies before looking up or inserting so the
+    # source-aware database uniqueness rule is never used as control flow.
+    all_records = merge_reference_records(all_records)
     collection = getattr(db, "private_reference_records", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Biblioteca privata non disponibile: applica prima la migrazione SQL")
@@ -1862,6 +1932,29 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             record.get("source_normalized_name") or record.get("normalized_name"),
         ): record
         for record in existing_records
+    }
+    existing_by_source_name = {
+        (
+            record.get("source_key"),
+            record.get("source_normalized_name") or record.get("normalized_name"),
+        ): record
+        for record in existing_records
+        if record.get("source_key") and (
+            record.get("source_normalized_name") or record.get("normalized_name")
+        )
+    }
+    # Older imports may predate source_normalized_name or contain a parser
+    # label that differs from the canonical stored name. Keep a direct view
+    # of the database uniqueness key so a re-import updates that row instead
+    # of letting a duplicate-key error interrupt the whole preload chunk.
+    existing_by_storage_key = {
+        (
+            record.get("reference_type"),
+            record.get("source_key"),
+            record.get("normalized_name") or normalize_reference_name(record.get("name", "")),
+        ): record
+        for record in existing_records
+        if record.get("reference_type") and record.get("source_key")
     }
     existing_by_content = {
         (
@@ -1882,6 +1975,23 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         ))
         if source_match:
             return source_match
+        # Parsing improvements can correctly reclassify a record (for
+        # example, from a generic heading to a feat) while its source section
+        # is otherwise unchanged. Reuse that owner record so its provenance,
+        # translation, review history, and any existing links remain intact.
+        source_name_match = existing_by_source_name.get((
+            record["source_key"],
+            record["source_normalized_name"],
+        ))
+        if source_name_match:
+            return source_name_match
+        stored_name_match = existing_by_storage_key.get((
+            record["reference_type"],
+            record["source_key"],
+            record["normalized_name"],
+        ))
+        if stored_name_match:
+            return stored_name_match
         if record.get("source_language") == "es" or record.get("review_flags"):
             return None
         return existing_by_content.get((
@@ -1984,48 +2094,188 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             "id": f"ref_{owned_record_id}",
             "user_id": user_id,
             "review_status": (
+                # Auto-preload (auto_accept=True) marks successfully-translated
+                # records as verified so they become immediately usable as
+                # library probes. Manual imports and failed translations always
+                # go to needs_review for human confirmation.
                 "verified" if body.auto_accept and record.get("translation_status") != "failed"
                 else "needs_review" if reference_review_state(record) == "review" else "pending"
             ),
             "review_notes": "",
             "updated_at": utc_now(),
         }
+        def _merge_into_existing(base: dict, incoming: dict, rec: dict) -> None:
+            """Apply incoming payload onto a known-existing record in all caches."""
+            incoming["id"] = base["id"]
+            incoming["source_refs"] = list(base.get("source_refs") or [])
+            incoming["source_refs"].extend(
+                ref for ref in rec.get("source_refs", [])
+                if ref not in incoming["source_refs"]
+            )
+            incoming["source_key"] = base.get("source_key") or incoming["source_key"]
+            incoming["source_normalized_name"] = (
+                base.get("source_normalized_name") or incoming["source_normalized_name"]
+            )
+            unchanged_source = base.get("source_text_checksum") == rec.get("source_text_checksum")
+            if unchanged_source and rec.get("translation_status") != "failed" and not body.auto_accept:
+                incoming["review_status"] = base.get("review_status", incoming["review_status"])
+                incoming["review_notes"] = base.get("review_notes", "")
+
+        def _refresh_lookup_caches(stored: dict, merged: dict) -> None:
+            """Keep all in-memory lookup caches current after each write."""
+            combined = {**stored, **merged}
+            existing_by_storage_key[(
+                merged["reference_type"],
+                merged.get("source_key", ""),
+                merged["normalized_name"],
+            )] = combined
+            existing_by_source[(
+                merged["reference_type"],
+                merged.get("source_key", ""),
+                merged.get("source_normalized_name") or merged["normalized_name"],
+            )] = combined
+            existing_by_source_name[(
+                merged.get("source_key", ""),
+                merged.get("source_normalized_name") or merged["normalized_name"],
+            )] = combined
+            existing_by_content[(
+                merged["reference_type"],
+                merged["normalized_name"],
+                merged.get("source_language", "it"),
+                reference_content_fingerprint(merged),
+            )] = combined
+
         if existing:
-            payload["source_refs"] = list(existing.get("source_refs") or [])
-            payload["source_refs"].extend(
-                ref for ref in record.get("source_refs", [])
-                if ref not in payload["source_refs"]
-            )
-            # Retain the first source as the stable owner of the canonical
-            # record. Additional manuals remain visible through source_refs.
-            payload["source_key"] = existing.get("source_key") or record["source_key"]
-            payload["source_normalized_name"] = (
-                existing.get("source_normalized_name") or record["source_normalized_name"]
-            )
+            _merge_into_existing(existing, payload, record)
             # Human verification survives an unchanged repeat import. A new
             # source checksum or a failed translation must return to review.
-            unchanged_source = existing.get("source_text_checksum") == record.get("source_text_checksum")
-            if unchanged_source and record.get("translation_status") != "failed" and not body.auto_accept:
-                payload["review_status"] = existing.get("review_status", payload["review_status"])
-                payload["review_notes"] = existing.get("review_notes", "")
-            await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
-            existing_by_content[(
-                payload["reference_type"],
-                payload["normalized_name"],
-                payload.get("source_language", "it"),
-                reference_content_fingerprint(payload),
-            )] = {**existing, **payload}
-            updated += 1
+            # Auto-accept (preload) overrides the stored status so a previously
+            # failed translation can be promoted to verified on a successful retry.
+            try:
+                await collection.update_one({"id": existing["id"], "user_id": user_id}, {"$set": payload})
+                _refresh_lookup_caches(existing, payload)
+                updated += 1
+            except Exception as upd_exc:
+                if "23505" not in str(upd_exc):
+                    raise
+                # Updating normalized_name to the Italian form collides with a
+                # record already stored from a previous batch. Find the target
+                # record, merge source_refs into it, then remove the stale
+                # Spanish-named row so the DB stays consistent.
+                target_rows = (
+                    collection.client
+                    .table("private_reference_records")
+                    .select("*")
+                    .eq("user_id", user_id)
+                    .eq("reference_type", payload["reference_type"])
+                    .eq("normalized_name", payload["normalized_name"])
+                    .eq("source_key", payload.get("source_key", ""))
+                    .limit(1)
+                    .execute()
+                )
+                if target_rows.data:
+                    target = target_rows.data[0]
+                    merged_refs = list(target.get("source_refs") or [])
+                    for ref in (existing.get("source_refs") or []) + (record.get("source_refs") or []):
+                        if ref not in merged_refs:
+                            merged_refs.append(ref)
+                    await collection.update_one(
+                        {"id": target["id"], "user_id": user_id},
+                        {"$set": {"source_refs": merged_refs, "updated_at": utc_now()}},
+                    )
+                    # Remove the stale Spanish-named record so the unique key
+                    # is held only by the correctly-named Italian record.
+                    if existing["id"] != target["id"]:
+                        await collection.delete_one({"id": existing["id"], "user_id": user_id})
+                    _refresh_lookup_caches(target, {**target, "source_refs": merged_refs})
+                    updated += 1
+                else:
+                    # Cannot locate the conflicting row; skip to avoid crash.
+                    skipped += 1
         else:
             payload["imported_at"] = utc_now()
-            await collection.insert_one(payload)
-            existing_by_content[(
-                payload["reference_type"],
-                payload["normalized_name"],
-                payload.get("source_language", "it"),
-                reference_content_fingerprint(payload),
-            )] = payload
-            imported += 1
+            try:
+                await collection.insert_one(payload)
+                _refresh_lookup_caches({}, payload)
+                imported += 1
+            except Exception as insert_exc:
+                # A duplicate-key error (23505) means a previous batch already
+                # stored a record that the in-memory cache missed (e.g. because
+                # source_normalized_name differs between occurrences, or the
+                # same source section ID was emitted by two parser pages).
+                # Recover by fetching the true existing row and updating it.
+                if "23505" not in str(insert_exc):
+                    raise
+                dup: Optional[dict] = None
+                # 1. Primary-key match: same generated id
+                pk_rows = (
+                    collection.client
+                    .table("private_reference_records")
+                    .select("*")
+                    .eq("id", payload["id"])
+                    .eq("user_id", user_id)
+                    .limit(1)
+                    .execute()
+                )
+                if pk_rows.data:
+                    dup = pk_rows.data[0]
+                # 2. Unique-name constraint: same (type, name, source_key)
+                if dup is None:
+                    name_rows = (
+                        collection.client
+                        .table("private_reference_records")
+                        .select("*")
+                        .eq("user_id", user_id)
+                        .eq("reference_type", payload["reference_type"])
+                        .eq("normalized_name", payload["normalized_name"])
+                        .eq("source_key", payload.get("source_key", ""))
+                        .limit(1)
+                        .execute()
+                    )
+                    if name_rows.data:
+                        dup = name_rows.data[0]
+                if dup is None:
+                    raise  # Cannot locate the conflicting row — re-raise
+                _merge_into_existing(dup, payload, record)
+                try:
+                    await collection.update_one(
+                        {"id": dup["id"], "user_id": user_id}, {"$set": payload}
+                    )
+                    _refresh_lookup_caches(dup, payload)
+                    updated += 1
+                except Exception as upd2_exc:
+                    if "23505" not in str(upd2_exc):
+                        raise
+                    # Chain conflict: the Italian name being written to this row
+                    # already belongs to a third record. Merge source_refs into
+                    # that target and drop the stale intermediate row.
+                    target2_rows = (
+                        collection.client
+                        .table("private_reference_records")
+                        .select("*")
+                        .eq("user_id", user_id)
+                        .eq("reference_type", payload["reference_type"])
+                        .eq("normalized_name", payload["normalized_name"])
+                        .eq("source_key", payload.get("source_key", ""))
+                        .limit(1)
+                        .execute()
+                    )
+                    if target2_rows.data:
+                        t2 = target2_rows.data[0]
+                        merged_refs = list(t2.get("source_refs") or [])
+                        for ref in (dup.get("source_refs") or []) + (record.get("source_refs") or []):
+                            if ref not in merged_refs:
+                                merged_refs.append(ref)
+                        await collection.update_one(
+                            {"id": t2["id"], "user_id": user_id},
+                            {"$set": {"source_refs": merged_refs, "updated_at": utc_now()}},
+                        )
+                        if dup["id"] != t2["id"]:
+                            await collection.delete_one({"id": dup["id"], "user_id": user_id})
+                        _refresh_lookup_caches(t2, {**t2, "source_refs": merged_refs})
+                        updated += 1
+                    else:
+                        skipped += 1
         flagged += reference_review_state(payload) == "review"
     return ReferenceImportResult(
         imported=imported,
@@ -2081,6 +2331,11 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> 
     manuals = available_reference_manuals()
     if body.filename and body.filename not in manuals:
         raise HTTPException(status_code=400, detail="Il manuale richiesto non è disponibile localmente")
+    selected_manuals = (
+        {body.filename: manuals[body.filename]}
+        if body.filename
+        else manuals
+    )
 
     collection = getattr(db, "private_manual_import_jobs", None)
     if collection is None:
@@ -2090,7 +2345,7 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> 
         for job in await private_manual_import_jobs(user_id)
         if job.get("filename")
     }
-    for filename, path in manuals.items():
+    for filename, path in selected_manuals.items():
         existing = existing_by_filename.get(filename)
         source_language = manual_source_language(filename)
         needs_ocr = manual_requires_ocr(filename)
@@ -2260,7 +2515,7 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
                 filenames=[filename],
                 start_page=current_page,
                 end_page=end_page,
-                use_ai_ocr=manual_requires_ocr(filename) or bool(job.get("pages_needing_ocr")),
+                use_ai_ocr=manual_requires_ocr(filename),
                 external_processing_confirmed=bool(job.get("external_processing_confirmed")),
                 translation_processing_confirmed=bool(job.get("translation_processing_confirmed")),
                 auto_accept=True,
@@ -2294,7 +2549,7 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
         | set(source_report.get("pages_needing_ocr") or [])
     )
     attempts = int(job.get("attempt_count") or 0)
-    if source_report.get("pages_needing_ocr"):
+    if source_report.get("pages_needing_ocr") and manual_requires_ocr(filename):
         next_page = current_page
         attempts += 1
         next_status = "queued" if attempts < MANUAL_PRELOAD_MAX_ATTEMPTS else "failed"
@@ -2345,7 +2600,7 @@ def start_manual_preload_worker(user_id: str) -> None:
 
 
 async def resume_manual_preload_workers() -> None:
-    """Recover queued work after a server restart without touching source PDFs."""
+    """Recover queued work and completed parser revisions after a restart."""
     collection = getattr(db, "private_manual_import_jobs", None)
     if collection is None:
         return
@@ -2357,7 +2612,38 @@ async def resume_manual_preload_workers() -> None:
             return
         raise
     owners: set[str] = set()
+    manuals = available_reference_manuals()
     for job in jobs:
+        filename = job.get("filename")
+        path = manuals.get(filename)
+        if (
+            job.get("status") == "completed"
+            and path
+            and job.get("source_fingerprint") != manual_source_fingerprint(path)
+        ):
+            reset = await collection.update_one(
+                {"id": job["id"], "user_id": job.get("user_id"), "status": "completed"},
+                {"$set": {
+                    "status": "queued",
+                    "source_fingerprint": manual_source_fingerprint(path),
+                    "page_count": manual_page_count(path) or 0,
+                    "current_page": 1,
+                    "attempt_count": 0,
+                    "last_error": "",
+                    "pages_needing_ocr": [],
+                    "records_imported": 0,
+                    "records_updated": 0,
+                    "records_flagged": 0,
+                    "records_skipped": 0,
+                    "lease_id": "",
+                    "lease_expires_at": 0,
+                    "completed_at": None,
+                    "updated_at": utc_now(),
+                }},
+            )
+            if reset.matched_count:
+                owners.add(job.get("user_id", ""))
+            continue
         if (
             job.get("status") == "processing"
             and int(job.get("lease_expires_at") or 0) < int(time.time())
