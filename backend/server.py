@@ -189,13 +189,13 @@ class SupabaseCursor:
         self.order_fields.append((field, direction < 0))
         return self
 
-    async def to_list(self, limit: int) -> list[dict]:
+    async def to_list(self, limit: int, offset: int = 0) -> list[dict]:
         client = self.collection.client
         statement = client.table(self.collection.name).select("*")
         statement = self.collection.apply_filters(statement, self.query)
         for field, descending in self.order_fields:
             statement = statement.order(field, desc=descending)
-        result = statement.limit(limit).execute()
+        result = statement.range(offset, offset + limit - 1).execute()
         return [self.collection.apply_projection(row, self.projection) for row in (result.data or [])]
 
 
@@ -213,6 +213,8 @@ MANUAL_PRELOAD_PAGE_BATCH_SIZE = 12
 MANUAL_PRELOAD_LEASE_SECONDS = 300
 MANUAL_PRELOAD_MAX_ATTEMPTS = 3
 MANUAL_PRELOAD_ACTIVE_WORKERS: set[str] = set()
+# Seconds to wait between successive retries after a provider rate-limit (429).
+TRANSLATION_RATE_LIMIT_RETRY_DELAYS: tuple[int, ...] = (30, 60, 120)
 
 
 class MemoryCursor:
@@ -225,12 +227,12 @@ class MemoryCursor:
         self.order_fields.append((field, direction))
         return self
 
-    async def to_list(self, limit: int) -> list[dict]:
+    async def to_list(self, limit: int, offset: int = 0) -> list[dict]:
         for field, direction in reversed(self.order_fields):
             self.rows.sort(key=lambda row: row.get(field, ""), reverse=direction < 0)
         return [
             {key: value for key, value in row.items() if not self.projection or self.projection.get(key, 1) != 0}
-            for row in self.rows[:limit]
+            for row in self.rows[offset:offset + limit]
         ]
 
 
@@ -1225,12 +1227,24 @@ def _openai_translation_response(prompt: str) -> object:
     return _json_from_model_text(_openai_text_from_response(response.json()))
 
 
+def _is_provider_rate_limited(exc: Exception) -> bool:
+    """Return True when *exc* signals an HTTP 429 rate-limit from a provider."""
+    return (
+        isinstance(exc, requests.HTTPError)
+        and getattr(getattr(exc, "response", None), "status_code", None) == 429
+    )
+
+
 def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, dict], str]:
     """Translate a small structured Spanish batch without sending PDF pages.
 
     The caller preserves the source fields before this function runs. Any
     malformed or incomplete response is returned as a batch failure, allowing
     the import to store the untouched Spanish record for human review.
+
+    When both providers respond with HTTP 429 the error code is
+    ``"provider_rate_limited"`` so callers can distinguish a temporary limit
+    from a permanent content failure and schedule a deferred retry.
     """
     if not records:
         return {}, ""
@@ -1272,6 +1286,7 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
         response.raise_for_status()
         decoded = _json_from_model_text(_gemini_text_from_response(response.json()))
     except (requests.RequestException, ValueError, TypeError, json.JSONDecodeError) as exc:
+        primary_rate_limited = _is_provider_rate_limited(exc)
         logger.warning(
             "Traduzione Gemini non disponibile per un gruppo di %s record: %s; provo OpenAI autorizzato",
             len(records),
@@ -1285,6 +1300,11 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
                 len(records),
                 fallback_exc,
             )
+            # Distinguish a temporary rate limit from a permanent content
+            # failure so the caller can schedule a deferred retry instead of
+            # immediately flagging the record for human review.
+            if primary_rate_limited or _is_provider_rate_limited(fallback_exc):
+                return {}, "provider_rate_limited"
             return {}, "provider_translation_failed"
 
     translated_rows = decoded.get("records") if isinstance(decoded, dict) else None
@@ -1913,6 +1933,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             "records_detected": len(report.records),
             "translated": 0,
             "translation_failed": 0,
+            "translation_rate_limited": 0,
             "translation_reused": 0,
         })
 
@@ -2071,6 +2092,16 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                     "translation_error": "",
                 })
                 report["translated"] += 1
+            elif error == "provider_rate_limited":
+                # A temporary rate-limit leaves the source fields intact and
+                # does NOT add the human-review flag because the record will be
+                # retried automatically by the preload worker with backoff.
+                localized_records.append({
+                    **record,
+                    "translation_status": "failed",
+                    "translation_error": "provider_rate_limited",
+                })
+                report["translation_rate_limited"] += 1
             else:
                 localized_records.append({
                     **record,
@@ -2468,6 +2499,112 @@ async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str) -
         logger.exception("Could not renew the automatic manual preload lease")
 
 
+_RATE_LIMIT_DRAIN_PAGE_SIZE = 200  # records per page when draining the retry queue
+
+
+async def _drain_rate_limited_ids(
+    records_collection: Any,
+    query: dict,
+) -> list[str]:
+    """Return IDs of all records matching *query*, paginating to avoid fixed caps.
+
+    A stable ``ORDER BY id ASC`` sort is applied before offset pagination so
+    that each page is deterministic regardless of the underlying storage order.
+    Without a stable sort, SQL/PostgREST pages may overlap or skip rows as
+    concurrent updates change row positions.
+    """
+    ids: list[str] = []
+    offset = 0
+    while True:
+        page = await records_collection.find(query).sort("id", 1).to_list(
+            _RATE_LIMIT_DRAIN_PAGE_SIZE, offset
+        )
+        ids.extend(r["id"] for r in page)
+        if len(page) < _RATE_LIMIT_DRAIN_PAGE_SIZE:
+            break
+        offset += _RATE_LIMIT_DRAIN_PAGE_SIZE
+    return ids
+
+
+async def _retry_rate_limited_translations(
+    user_id: str,
+    source_filename: str,
+    records_collection: Any,
+    delays: tuple[int, ...] = TRANSLATION_RATE_LIMIT_RETRY_DELAYS,
+) -> int:
+    """Retry rate-limited records from *source_filename* with exponential back-off.
+
+    Each delay slot collects *all* still-pending IDs via offset pagination,
+    then retries every one.  Records that still carry
+    ``translation_error="provider_rate_limited"`` after all attempts are
+    promoted to human review by adding ``traduzione_da_verificare`` so the
+    queue always terminates with a definitive outcome instead of silently
+    parking.
+
+    Returns the count of records that could not be translated in any attempt.
+    """
+    rate_limit_query = {
+        "user_id": user_id,
+        "source_key": source_filename,
+        "translation_error": "provider_rate_limited",
+    }
+    for attempt, delay in enumerate(delays):
+        logger.info(
+            "Traduzione con rate-limit: attesa %ss prima del tentativo %s/%s per %s",
+            delay, attempt + 1, len(delays), source_filename,
+        )
+        await asyncio.sleep(delay)
+
+        # Collect every pending ID before starting retries so that records
+        # which succeed and disappear from the query do not shift the page
+        # window for records that have not yet been attempted.
+        pending_ids = await _drain_rate_limited_ids(records_collection, rate_limit_query)
+        if not pending_ids:
+            return 0
+
+        for record_id in pending_ids:
+            try:
+                await retry_private_reference_translation(user_id, record_id)
+            except Exception as exc:
+                logger.warning(
+                    "Retry rate-limit per %s fallito: %s", record_id, exc
+                )
+
+        # Re-check after this slot to exit early if all records resolved,
+        # avoiding unnecessary waits.
+        remaining_ids = await _drain_rate_limited_ids(records_collection, rate_limit_query)
+        if not remaining_ids:
+            return 0
+
+    # After exhausting all delay slots, collect whatever is still stuck via
+    # full pagination and elevate each one to human review — this is the
+    # definitive terminal outcome so the queue does not park indefinitely.
+    still_limited_ids = await _drain_rate_limited_ids(records_collection, rate_limit_query)
+    for record_id in still_limited_ids:
+        record = await records_collection.find_one({"id": record_id, "user_id": user_id})
+        if not record:
+            continue
+        new_flags = sorted(
+            set(record.get("review_flags") or []) | {"traduzione_da_verificare"}
+        )
+        await records_collection.update_one(
+            {
+                "id": record_id,
+                "user_id": user_id,
+                "translation_error": "provider_rate_limited",
+            },
+            {
+                "$set": {
+                    "review_flags": new_flags,
+                    "review_status": "needs_review",
+                    "translation_error": "provider_rate_limited_exhausted",
+                    "updated_at": utc_now(),
+                }
+            },
+        )
+    return len(still_limited_ids)
+
+
 async def process_manual_preload_job(user_id: str, job: dict) -> None:
     """Process one bounded page chunk and checkpoint the durable queue."""
     collection = getattr(db, "private_manual_import_jobs", None)
@@ -2543,6 +2680,28 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
     await asyncio.gather(renewal_task, return_exceptions=True)
 
     source_report = next((source for source in report.sources if source.get("filename") == filename), {})
+
+    # If the provider returned 429 for any record, retry them with back-off
+    # while still holding the job lease.  The job's last_error advertises the
+    # recovery state so callers can see it is in progress.
+    translation_rate_limited = int(source_report.get("translation_rate_limited") or 0)
+    records_collection = getattr(db, "private_reference_records", None)
+    if translation_rate_limited and records_collection is not None:
+        await collection.update_one(
+            owned_query,
+            {"$set": {"last_error": "translation_rate_limited", "updated_at": utc_now()}},
+        )
+        rate_limit_renewal = asyncio.create_task(
+            renew_manual_preload_lease(user_id, job["id"], lease_id)
+        )
+        try:
+            await _retry_rate_limited_translations(
+                user_id, filename, records_collection
+            )
+        finally:
+            rate_limit_renewal.cancel()
+            await asyncio.gather(rate_limit_renewal, return_exceptions=True)
+
     current_pages = set(range(current_page, end_page + 1))
     unreadable_pages = sorted(
         (set(job.get("pages_needing_ocr") or []) - current_pages)
@@ -2778,22 +2937,42 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
         "translation_lease_id": lease_id,
     }
     if not translated_record:
-        # Keep all source-derived fields untouched and retain the review flag.
-        # The conditional filter also avoids overwriting a concurrent success.
-        await collection.update_one(
-            processing_query,
-            {
-                "$set": {
-                    "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
-                    "review_status": "needs_review",
-                    "translation_status": "failed",
-                    "translation_error": error or "provider_translation_failed",
-                    "translation_lease_id": "",
-                    "translation_lease_expires_at": 0,
-                    "updated_at": utc_now(),
-                }
-            },
-        )
+        final_error = error or "provider_translation_failed"
+        # A rate-limit is a temporary provider signal, not a content problem.
+        # Preserve the error code WITHOUT adding the review flag so the
+        # automatic backoff loop (_retry_rate_limited_translations) can detect
+        # it on subsequent passes and escalate only after all attempts are gone.
+        if final_error == "provider_rate_limited":
+            await collection.update_one(
+                processing_query,
+                {
+                    "$set": {
+                        "translation_status": "failed",
+                        "translation_error": "provider_rate_limited",
+                        "translation_lease_id": "",
+                        "translation_lease_expires_at": 0,
+                        "updated_at": utc_now(),
+                    }
+                },
+            )
+        else:
+            # Keep all source-derived fields untouched and retain the review
+            # flag.  The conditional filter also avoids overwriting a concurrent
+            # success.
+            await collection.update_one(
+                processing_query,
+                {
+                    "$set": {
+                        "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
+                        "review_status": "needs_review",
+                        "translation_status": "failed",
+                        "translation_error": final_error,
+                        "translation_lease_id": "",
+                        "translation_lease_expires_at": 0,
+                        "updated_at": utc_now(),
+                    }
+                },
+            )
         return await collection.find_one({"id": reference_id, "user_id": user_id}) or record
 
     remaining_review_flags = sorted(

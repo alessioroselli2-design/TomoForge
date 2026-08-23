@@ -1856,6 +1856,400 @@ def test_spanish_translation_failure_is_saved_for_review(monkeypatch, tmp_path):
     assert "traduzione_da_verificare" in collection.rows[0]["review_flags"]
 
 
+def test_translate_spanish_batch_returns_rate_limited_when_both_providers_return_429(monkeypatch):
+    """HTTP 429 from both providers must yield 'provider_rate_limited', not 'provider_translation_failed'."""
+    from requests import HTTPError
+
+    class RateLimitedResponse:
+        status_code = 429
+        def raise_for_status(self):
+            err = HTTPError("429 Too Many Requests")
+            err.response = self
+            raise err
+
+    def fake_post(url, **kwargs):
+        return RateLimitedResponse()
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+
+    translated, error = server.translate_spanish_reference_batch([{
+        "id": "ref-es",
+        "source_name": "Bárbaro",
+        "source_description": "Un guerrero.",
+        "source_full_text": "Texto completo.",
+        "source_attributes": {},
+    }])
+
+    assert translated == {}
+    assert error == "provider_rate_limited"
+
+
+def test_translate_spanish_batch_rate_limited_when_gemini_429_and_openai_fails(monkeypatch):
+    """Gemini 429 + any OpenAI failure → 'provider_rate_limited' (primary provider was rate-limited)."""
+    from requests import HTTPError
+
+    class Gemini429:
+        status_code = 429
+        def raise_for_status(self):
+            err = HTTPError("429 Too Many Requests")
+            err.response = self
+            raise err
+
+    class OpenAIGenericFailure:
+        def raise_for_status(self):
+            raise HTTPError("500 Internal Server Error")
+
+    def fake_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return Gemini429()
+        return OpenAIGenericFailure()
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+
+    translated, error = server.translate_spanish_reference_batch([{
+        "id": "ref-es",
+        "source_name": "Bárbaro",
+        "source_description": "Un guerrero.",
+        "source_full_text": "Texto completo.",
+        "source_attributes": {},
+    }])
+
+    assert translated == {}
+    assert error == "provider_rate_limited"
+
+
+def test_translate_spanish_batch_rate_limited_when_openai_429_after_gemini_fails(monkeypatch):
+    """OpenAI 429 after a non-rate-limit Gemini failure → 'provider_rate_limited'."""
+    from requests import HTTPError
+
+    class GeminiGenericFailure:
+        def raise_for_status(self):
+            raise HTTPError("500 Internal Server Error")
+
+    class OpenAI429:
+        status_code = 429
+        def raise_for_status(self):
+            err = HTTPError("429 Too Many Requests")
+            err.response = self
+            raise err
+
+    def fake_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return GeminiGenericFailure()
+        return OpenAI429()
+
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+
+    translated, error = server.translate_spanish_reference_batch([{
+        "id": "ref-es",
+        "source_name": "Bárbaro",
+        "source_description": "Un guerrero.",
+        "source_full_text": "Texto completo.",
+        "source_attributes": {},
+    }])
+
+    assert translated == {}
+    assert error == "provider_rate_limited"
+
+
+def test_spanish_translation_rate_limit_saves_record_without_review_flag(monkeypatch, tmp_path):
+    """A rate-limited import must NOT add traduzione_da_verificare; the record stays pending retry."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(
+            records=[make_reference("Bárbaro", reference_type="class")], pages_read=1, pages_needing_ocr=[]
+        ),
+    )
+    monkeypatch.setattr(
+        server, "translate_spanish_reference_batch",
+        lambda batch: ({}, "provider_rate_limited"),
+    )
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    stored = collection.rows[0]
+    # Rate-limited records must not be immediately sent to human review.
+    assert stored["translation_status"] == "failed"
+    assert stored["translation_error"] == "provider_rate_limited"
+    assert "traduzione_da_verificare" not in stored.get("review_flags", [])
+    # Report counter separates rate limits from permanent failures.
+    assert result.sources[0]["translation_rate_limited"] == 1
+    assert result.sources[0]["translation_failed"] == 0
+
+
+def test_rate_limit_retry_uses_backoff_delays_and_escalates_to_review_when_exhausted(monkeypatch):
+    """_retry_rate_limited_translations retries each delay slot and adds the review flag when exhausted."""
+    records = server.MemoryCollection()
+    records.rows.append({
+        "id": "ref-owned-barbaro",
+        "user_id": "owner-1",
+        "source_key": "manual.pdf",
+        "translation_status": "failed",
+        "translation_error": "provider_rate_limited",
+        "review_flags": [],
+        "review_status": "pending",
+    })
+
+    slept: list[float] = []
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+
+    retry_calls: list[str] = []
+
+    async def fake_retry(user_id, record_id):
+        retry_calls.append(record_id)
+        # Simulate continued rate-limiting by not changing the record's status.
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+
+    remaining = asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records,
+            delays=(1, 2, 3),  # small test delays
+        )
+    )
+
+    # All three delay slots must have been attempted.
+    assert slept == [1, 2, 3]
+    # The record must have been retried once per slot.
+    assert retry_calls == ["ref-owned-barbaro", "ref-owned-barbaro", "ref-owned-barbaro"]
+    # After exhausting retries the record must be escalated to human review.
+    stored = records.rows[0]
+    assert "traduzione_da_verificare" in stored.get("review_flags", [])
+    assert stored["translation_error"] == "provider_rate_limited_exhausted"
+    assert stored["review_status"] == "needs_review"
+    assert remaining == 1
+
+
+def test_rate_limit_retry_stops_early_when_record_succeeds(monkeypatch):
+    """If a retry succeeds, subsequent delay slots are skipped."""
+    records = server.MemoryCollection()
+    records.rows.append({
+        "id": "ref-owned-barbaro",
+        "user_id": "owner-1",
+        "source_key": "manual.pdf",
+        "translation_status": "failed",
+        "translation_error": "provider_rate_limited",
+        "review_flags": [],
+    })
+
+    slept: list[float] = []
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+
+    async def fake_retry(user_id, record_id):
+        # Simulate success: clear the rate-limit error from the collection.
+        for row in records.rows:
+            if row["id"] == record_id:
+                row["translation_error"] = ""
+                row["translation_status"] = "translated"
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+
+    remaining = asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records,
+            delays=(1, 2, 3),
+        )
+    )
+
+    # Only the first delay slot should have been used.
+    assert slept == [1]
+    assert remaining == 0
+    stored = records.rows[0]
+    assert "traduzione_da_verificare" not in stored.get("review_flags", [])
+
+
+def test_preload_worker_sets_rate_limit_status_and_triggers_retry(monkeypatch, tmp_path):
+    """When import reports rate-limited records the worker sets last_error and triggers retry."""
+    source = tmp_path / "Manuale.pdf"
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    records = server.MemoryCollection()
+    records.rows.append({
+        "id": "ref-owned-barbaro",
+        "user_id": "owner-1",
+        "source_key": source.name,
+        "translation_status": "failed",
+        "translation_error": "provider_rate_limited",
+        "review_flags": [],
+    })
+
+    async def fake_import(_user_id, body):
+        return server.ReferenceImportResult(
+            imported=0, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{
+                "filename": source.name,
+                "pages_needing_ocr": [],
+                "translation_rate_limited": 1,
+            }],
+        )
+
+    retry_calls: list[str] = []
+
+    async def fake_retry_rate_limited(user_id, filename, collection, delays=None):
+        retry_calls.append(filename)
+        return 0
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(
+        private_manual_import_jobs=jobs,
+        private_reference_records=records,
+    ))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1)
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    monkeypatch.setattr(server, "_retry_rate_limited_translations", fake_retry_rate_limited)
+
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    asyncio.run(server.run_manual_preload_worker("owner-1"))
+
+    assert retry_calls == [source.name]
+    job = jobs.rows[0]
+    # Job must complete normally after the retry function returns.
+    assert job["status"] == "completed"
+
+
+def test_rate_limit_retry_processes_all_records_beyond_page_boundary(monkeypatch):
+    """_retry_rate_limited_translations must process every record, even when the
+    total exceeds one drain page (>200) and storage order is not sequential.
+
+    The stable id-sorted pagination must avoid gaps or duplicates regardless of
+    insertion order — this catches the case where an unsorted SQL/PostgREST
+    page boundary would skip rows between fetches.
+    """
+    # Create 600 rate-limited records inserted in REVERSE id order to ensure
+    # that storage order != sorted order, exposing any sort-stability bug.
+    records = server.MemoryCollection()
+    for i in range(599, -1, -1):  # inserted as ref-0599 … ref-0000
+        records.rows.append({
+            "id": f"ref-{i:04d}",
+            "user_id": "owner-1",
+            "source_key": "manual.pdf",
+            "translation_status": "failed",
+            "translation_error": "provider_rate_limited",
+            "review_flags": [],
+            "review_status": "pending",
+        })
+
+    retried: list[str] = []
+
+    async def fake_sleep(_s):
+        pass
+
+    async def fake_retry(user_id, record_id):
+        retried.append(record_id)
+        # All retries keep failing with rate-limit to exercise exhaustion path.
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+
+    remaining = asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records, delays=(1,)
+        )
+    )
+
+    # Every record must have been retried exactly once.
+    assert len(retried) == 600, f"Only {len(retried)} of 600 records were retried"
+    assert len(set(retried)) == 600, "Duplicate retries detected"
+    # Retries must have been issued in stable id-sorted order (not insertion order).
+    assert retried == sorted(retried), "Retries were not in stable id-sorted order"
+    # Every record must be escalated to human review after exhaustion.
+    still_parked = [
+        r for r in records.rows if r.get("translation_error") == "provider_rate_limited"
+    ]
+    assert still_parked == [], f"{len(still_parked)} records remain silently rate-limited"
+    assert remaining == 600
+    # All must carry the review flag.
+    for row in records.rows:
+        assert "traduzione_da_verificare" in row.get("review_flags", [])
+
+
+def test_repeated_429_during_backoff_never_adds_review_flag_before_exhaustion(monkeypatch):
+    """Each 429 during backoff retries must leave traduzione_da_verificare absent;
+    only final exhaustion by _retry_rate_limited_translations may add it."""
+    record = {
+        **make_reference(
+            "Bárbaro",
+            reference_type="class",
+            source_language="es",
+            source_key="manual.pdf",
+            source_name="Bárbaro",
+            source_description="Un guerrero feroz.",
+            source_full_text="Un guerrero feroz que combate con furia.",
+            source_attributes={},
+            translation_status="failed",
+            translation_error="provider_rate_limited",
+            review_flags=[],
+            review_status="pending",
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    records = server.MemoryCollection()
+    records.rows.append(record.copy())
+
+    # Provider always rate-limits — simulates the worst case.
+    monkeypatch.setattr(
+        server,
+        "translate_spanish_reference_batch",
+        lambda batch: ({}, "provider_rate_limited"),
+    )
+
+    slept: list[float] = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+        # After each sleep, verify the record still has NO review flag —
+        # the backoff window must not escalate prematurely.
+        stored = records.rows[0]
+        assert "traduzione_da_verificare" not in stored.get("review_flags", []), (
+            f"traduzione_da_verificare appeared prematurely after sleep {s}"
+        )
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=records))
+
+    remaining = asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records, delays=(1, 2)
+        )
+    )
+
+    # Both delay slots must have fired.
+    assert slept == [1, 2]
+    # After exhaustion the record must be escalated to human review.
+    stored = records.rows[0]
+    assert "traduzione_da_verificare" in stored.get("review_flags", [])
+    assert stored["translation_error"] == "provider_rate_limited_exhausted"
+    assert stored["review_status"] == "needs_review"
+    assert remaining == 1
+
+
 def test_retry_single_failed_spanish_translation_preserves_source_fields(monkeypatch):
     source = {
         **make_reference(
