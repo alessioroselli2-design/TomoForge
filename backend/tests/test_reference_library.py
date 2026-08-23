@@ -1613,7 +1613,7 @@ def test_spanish_translation_uses_only_structured_fields_and_requires_complete_j
     prompt = captured["json"]["contents"][0]["parts"][0]["text"]
     assert "Questo testo sorgente completo viene tradotto" in prompt
     assert translated["ref-es"]["full_text"] == "Un guerriero feroce con tutto il testo tradotto."
-    assert captured["url"].endswith("/models/gemini-3.6-flash:generateContent")
+    assert captured["url"].endswith("/models/gemini-2.0-flash:generateContent")
 
 
 def test_spanish_translation_uses_openai_only_after_gemini_failure(monkeypatch):
@@ -1659,7 +1659,7 @@ def test_spanish_translation_uses_openai_only_after_gemini_failure(monkeypatch):
     assert error == ""
     assert translated["ref-es"]["name"] == "Talento di guerra"
     assert [url for url, _kwargs in calls] == [
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         "https://api.openai.com/v1/chat/completions",
     ]
     assert "Un talento completo." in calls[1][1]["json"]["messages"][1]["content"]
