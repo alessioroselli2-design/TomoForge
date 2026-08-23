@@ -1021,3 +1021,163 @@ describe("CardEditor review scope", () => {
     expect(container.querySelector('[data-testid="retry-reference-translation-verified-badge-1"]')).toBeNull();
   });
 });
+
+describe("CardEditor spell apply guard", () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Element.prototype.scrollIntoView = jest.fn();
+    api.post.mockResolvedValue({ data: {} });
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  it("disables the apply button for a spell with is_trusted: false", async () => {
+    api.get.mockImplementation((path, config) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/spells") {
+        return Promise.resolve({
+          data: {
+            spells: [{
+              id: "spell-blocked-1",
+              name: "Incantesimo Bloccato",
+              level: "3",
+              school: "Evocazione",
+              classes: ["Mago"],
+              source_refs: [{ filename: "manuale.pdf", page: 42 }],
+              is_trusted: false,
+              review_reason: "Traduzione non ancora verificata",
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?type=spell"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const spellSearch = container.querySelector('[data-testid="spell-search"]');
+    expect(spellSearch).not.toBeNull();
+
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+    await act(async () => {
+      nativeInputValueSetter.call(spellSearch, "Bloccato");
+      spellSearch.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    const applyBtn = container.querySelector('[data-testid="apply-spell-spell-blocked-1"]');
+    expect(applyBtn).not.toBeNull();
+    expect(applyBtn.disabled).toBe(true);
+    expect(container.textContent).toContain("BLOCCATO");
+    expect(container.textContent).toContain("Traduzione non ancora verificata");
+    expect(api.post).not.toHaveBeenCalledWith("/spells/spell-blocked-1/apply");
+  });
+
+  it("calls POST /spells/{id}/apply when clicking the apply button for a trusted spell", async () => {
+    api.get.mockImplementation((path, config) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/spells") {
+        return Promise.resolve({
+          data: {
+            spells: [{
+              id: "spell-trusted-1",
+              name: "Palla di Fuoco",
+              level: "3",
+              school: "Evocazione",
+              classes: ["Mago", "Stregone"],
+              source_refs: [{ filename: "manuale.pdf", page: 55 }],
+              is_trusted: true,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    api.post.mockImplementation((path) => {
+      if (path === "/spells/spell-trusted-1/apply") {
+        return Promise.resolve({
+          data: {
+            name: "Palla di Fuoco",
+            description: "Lancia una palla di fuoco.",
+            story: "",
+            attributes: { livello: "3", scuola: "Evocazione" },
+            spell_id: "spell-trusted-1",
+            rule_source: { source_kind: "spell", source_id: "spell-trusted-1" },
+            source_refs: [{ filename: "manuale.pdf", page: 55, language: "it" }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?type=spell"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const spellSearch = container.querySelector('[data-testid="spell-search"]');
+    expect(spellSearch).not.toBeNull();
+
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+    await act(async () => {
+      nativeInputValueSetter.call(spellSearch, "Palla");
+      spellSearch.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    const applyBtn = container.querySelector('[data-testid="apply-spell-spell-trusted-1"]');
+    expect(applyBtn).not.toBeNull();
+    expect(applyBtn.disabled).toBe(false);
+    expect(container.textContent).toContain("APPLICA");
+
+    await act(async () => {
+      applyBtn.click();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/spells/spell-trusted-1/apply");
+  });
+});
