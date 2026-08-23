@@ -3237,6 +3237,79 @@ def test_manual_import_progress_reports_pages_translation_and_review_states():
     assert progress["page_progress"] == 20
 
 
+def test_manual_import_progress_exposes_translation_pending_and_failed_counters():
+    """records_translation_pending counts rate-limited failures (including exhausted
+    retries) not yet verified by a human.  records_translation_failed counts hard
+    failures.  Both counters exclude records already manually verified.
+
+    The exhausted state (provider_rate_limited_exhausted) is the terminal value
+    written by _retry_rate_limited_translations once a completed job has run
+    through all automatic retry slots — it is the primary state the badge must
+    detect on completed jobs."""
+    records = [
+        # exhausted retries after job completion — must count as pending
+        make_reference(
+            "Barbaro",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual.pdf", "page": 1, "language": "es"}],
+            translation_status="failed",
+            translation_error="provider_rate_limited_exhausted",
+            review_status="needs_review",
+            review_flags=["traduzione_da_verificare"],
+        ),
+        # mid-job rate-limited state — also counts as pending
+        make_reference(
+            "Paladino",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual.pdf", "page": 2, "language": "es"}],
+            translation_status="failed",
+            translation_error="provider_rate_limited",
+            review_status="pending",
+        ),
+        # exhausted but already verified by the user — must NOT count
+        make_reference(
+            "Guerrero",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual.pdf", "page": 3, "language": "es"}],
+            translation_status="failed",
+            translation_error="provider_rate_limited_exhausted",
+            review_status="verified",
+        ),
+        # hard failure — counts as failed
+        make_reference(
+            "Druida",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual.pdf", "page": 4, "language": "es"}],
+            translation_status="failed",
+            translation_error="provider_translation_failed",
+            review_status="pending",
+        ),
+        # successfully translated — neither counter
+        make_reference(
+            "Mago",
+            reference_type="class",
+            source_language="es",
+            source_refs=[{"filename": "Manual.pdf", "page": 5, "language": "es"}],
+            translation_status="translated",
+            review_status="pending",
+        ),
+    ]
+
+    progress = server.manual_import_progress("Manual.pdf", records, 10)
+
+    assert progress["records_translation_pending"] == 2, (
+        "Both the exhausted-retry and mid-job rate-limited records should be counted; "
+        "the verified one must be excluded"
+    )
+    assert progress["records_translation_failed"] == 1, (
+        "Only the unverified hard-failure record should be counted as failed"
+    )
+
+
 def test_spanish_translation_requires_consent_before_provider_call(monkeypatch, tmp_path):
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")

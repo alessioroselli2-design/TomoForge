@@ -618,9 +618,14 @@ export default function CardEditor() {
       .catch(() => {});
   }, [user?.is_premium, preloadFired, loadingManuals, libraryManuals.length]);
 
-  // Poll while any manual job is queued or processing
+  // Poll while any manual job is active OR has unresolved pending translations
+  // (so the badge disappears as soon as the user verifies the last pending record).
   useEffect(() => {
-    const active = libraryManuals.some((m) => m.job && (m.job.status === "queued" || m.job.status === "processing"));
+    const active = libraryManuals.some(
+      (m) =>
+        (m.job && (m.job.status === "queued" || m.job.status === "processing")) ||
+        (m.records_translation_pending > 0)
+    );
     if (!active) return undefined;
     const id = window.setTimeout(() => { loadLibraryManuals(); }, 3000);
     return () => window.clearTimeout(id);
@@ -1531,6 +1536,31 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
                       <p className="mt-0.5 font-heading text-lg text-foreground">{job.pages_needing_ocr.length}</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Translation pending badge — shown on completed jobs when records
+                  exhausted all automatic retries and need manual verification */}
+              {isDone && manual.records_translation_pending > 0 && (
+                <div
+                  data-testid={`translation-pending-badge-${manual.filename}`}
+                  className="mt-2 flex items-start gap-2 border border-amber-700/60 bg-amber-950/20 px-2 py-1.5"
+                >
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                  <div className="flex-1">
+                    <p className="font-label text-[9px] tracking-widest text-amber-300">
+                      TRADUZIONE IN ATTESA — {manual.records_translation_pending}{" "}
+                      {manual.records_translation_pending === 1 ? "RECORD" : "RECORD"}
+                    </p>
+                    <p className="mt-0.5 font-body text-[11px] text-amber-200/80">
+                      {manual.records_translation_pending}{" "}
+                      {manual.records_translation_pending === 1
+                        ? "record non è stato tradotto automaticamente"
+                        : "record non sono stati tradotti automaticamente"}
+                      {" — "}
+                      verificali manualmente per renderli disponibili.
+                    </p>
+                  </div>
                 </div>
               )}
 

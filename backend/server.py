@@ -3299,6 +3299,24 @@ def manual_import_progress(filename: str, records: list[dict], page_count: Optio
         for record in source_records
     )
     translation_total = translated + translation_pending
+    # Records whose translation stalled due to provider rate-limits and have not
+    # yet been manually verified.  Includes both the mid-job temporary state
+    # ("provider_rate_limited") and the terminal exhausted state produced by
+    # _retry_rate_limited_translations ("provider_rate_limited_exhausted") after
+    # a completed job exhausts all automatic retry attempts.
+    records_translation_pending = sum(
+        record.get("translation_status") == "failed"
+        and record.get("translation_error") in {"provider_rate_limited", "provider_rate_limited_exhausted"}
+        and not reference_is_trusted(record)
+        for record in source_records
+    )
+    # Records with a hard translation failure (not rate-limited, not yet manually verified).
+    records_translation_failed = sum(
+        record.get("translation_status") == "failed"
+        and record.get("translation_error") not in {None, "", "provider_rate_limited", "provider_rate_limited_exhausted"}
+        and not reference_is_trusted(record)
+        for record in source_records
+    )
     return {
         "records_total": len(source_records),
         "records_ready": ready,
@@ -3311,6 +3329,8 @@ def manual_import_progress(filename: str, records: list[dict], page_count: Optio
         "imported_pages": imported_pages,
         "pages_with_records": len(imported_pages),
         "page_progress": round((len(imported_pages) / page_count) * 100) if page_count else 0,
+        "records_translation_pending": records_translation_pending,
+        "records_translation_failed": records_translation_failed,
     }
 
 
