@@ -13,9 +13,12 @@ from hashlib import sha256
 from pathlib import Path
 from copy import deepcopy
 import json
+import logging
 import re
 import unicodedata
 from typing import Callable, Iterable, Optional
+
+logger = logging.getLogger("tomeforge")
 
 
 REFERENCE_TYPES = (
@@ -775,8 +778,21 @@ def extract_reference_records(
                 text = ocr_page(page, page_number)
                 extracted_with_ocr = True
                 if not text_is_usable(text):
-                    report.pages_needing_ocr.append(page_number)
-                    continue
+                    stripped = text.strip() if text else ""
+                    if not stripped:
+                        # OCR returned nothing — page genuinely unavailable
+                        # (API error, completely blank page, etc.)
+                        report.pages_needing_ocr.append(page_number)
+                        continue
+                    # OCR returned something below the quality threshold
+                    # (e.g. artwork page, copyright symbols, short header).
+                    # Accept it rather than blocking the whole job — records
+                    # will carry the ocr_da_verificare review flag.
+                    logger.warning(
+                        "OCR pagina %s: testo sotto soglia qualità (len=%s) — accettato con flag review",
+                        page_number,
+                        len(stripped),
+                    )
             report.pages_read += 1
             lines = [line.strip() for line in text.splitlines()]
             if pending_spanish_feat:

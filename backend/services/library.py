@@ -211,6 +211,15 @@ def openai_ocr_manual_page(page: Any, page_number: int) -> str:
             .strip()
         )
         if transcription:
+            letters = sum(c.isalpha() for c in transcription)
+            printable = sum(c.isprintable() for c in transcription)
+            logger.info(
+                "OCR OpenAI pagina %s: len=%d alpha=%.0f%% printable=%.0f%%",
+                page_number,
+                len(transcription),
+                100 * letters / max(len(transcription), 1),
+                100 * printable / max(len(transcription), 1),
+            )
             return transcription
         logger.warning("OCR OpenAI senza testo per pagina %s", page_number)
     except (ValueError, TypeError, IndexError, AttributeError) as exc:
