@@ -353,6 +353,54 @@ describe("CardEditor preload dashboard", () => {
 
     expect(container.querySelector('[data-testid="translation-retry-countdown"]')).toBeNull();
   });
+
+  it("fires preload immediately for a non-Italian manual requiring OCR without any translation consent gate", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "scansione_es.pdf",
+              title: "Manuale Scansione Spagnolo",
+              source_language: "es",
+              page_count: 80,
+              requires_ocr: true,
+              job: null,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // No consent gate must block the import flow
+    expect(container.querySelector('[data-testid="grant-translation-consent-scansione_es.pdf"]')).toBeNull();
+    expect(container.textContent).not.toContain("CONSENSO RICHIESTO");
+    // Preload fires automatically — the flow does not stop for user confirmation
+    expect(api.post).toHaveBeenCalledWith("/library/preload");
+    // Dashboard is rendered — the user sees status immediately
+    expect(container.querySelector('[data-testid="preload-dashboard"]')).not.toBeNull();
+    expect(container.textContent).toContain("Manuale Scansione Spagnolo");
+  });
 });
 
 describe("CardEditor review scope", () => {
@@ -764,5 +812,212 @@ describe("CardEditor review scope", () => {
 
     const { toast } = require("sonner");
     expect(toast.success).toHaveBeenCalledWith("Contenuto applicato dalla biblioteca privata");
+  });
+
+  it("apply button is disabled for a record with is_trusted false (needs_review)", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "untrusted-1",
+              name: "Classe non verificata",
+              reference_type: "class",
+              source_refs: [{ filename: "manuale del giocatore.pdf", page: 3 }],
+              source_language: "es",
+              source_name: "Clase original",
+              translation_status: "translated",
+              review_status: "needs_review",
+              needs_review: true,
+              is_trusted: false,
+              review_reason: "Traduzione automatica non ancora verificata.",
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    const applyBtn = container.querySelector('[data-testid="apply-reference-untrusted-1"]');
+    expect(applyBtn).not.toBeNull();
+    expect(applyBtn.disabled).toBe(true);
+    expect(container.textContent).toContain("BLOCCATO");
+    expect(container.textContent).not.toContain("APPLICA");
+    expect(api.post).not.toHaveBeenCalledWith("/library/untrusted-1/apply");
+  });
+
+  it("shows 'Traduzione non disponibile' in the source panel when translation_status is failed and text is absent", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "failed-trans-1",
+              name: "Classe traduzione fallita",
+              reference_type: "class",
+              source_refs: [{ filename: "manuale del giocatore.pdf", page: 7 }],
+              source_language: "es",
+              source_name: "Clase traduccion fallida",
+              translation_status: "failed",
+              review_status: "needs_review",
+              needs_review: true,
+              is_trusted: false,
+            }],
+          },
+        });
+      }
+      if (path === "/library/failed-trans-1/review") {
+        return Promise.resolve({
+          data: {
+            id: "failed-trans-1",
+            name: "Classe traduzione fallita",
+            source_language: "es",
+            source_name: "Clase traduccion fallida",
+            source_refs: [{ filename: "manuale del giocatore.pdf", page: 7, language: "es" }],
+            translation_status: "failed",
+            review_status: "needs_review",
+            needs_review: true,
+            is_trusted: false,
+            review_reason: "Traduzione automatica fallita.",
+            original: { name: "Clase traduccion fallida", full_text: "Testo spagnolo originale." },
+            translation: null,
+            full_text: null,
+            review_history: [],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    await act(async () => {
+      container.querySelector('[data-testid="source-reference-failed-trans-1"]').click();
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/library/failed-trans-1/review");
+    expect(container.querySelector('[data-testid="reference-source-panel"]')).not.toBeNull();
+    const translationArticle = container.querySelector('[data-testid="reference-translation"]');
+    expect(translationArticle).not.toBeNull();
+    expect(translationArticle.textContent).toContain("Traduzione non disponibile.");
+  });
+
+  it("shows translation-failed-verified-notice badge when review_status is verified and translation_status is failed", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "verified-badge-1",
+              name: "Classe Verificata Errore",
+              reference_type: "class",
+              source_refs: [{ filename: "manuale del giocatore.pdf", page: 2 }],
+              source_language: "es",
+              source_name: "Clase verificada",
+              translation_status: "failed",
+              translation_error: "provider_rate_limited",
+              review_status: "verified",
+              needs_review: false,
+              is_trusted: true,
+            }],
+          },
+        });
+      }
+      if (path === "/library/verified-badge-1/review") {
+        return Promise.resolve({
+          data: {
+            id: "verified-badge-1",
+            name: "Classe Verificata Errore",
+            source_language: "es",
+            source_name: "Clase verificada",
+            source_refs: [{ filename: "manuale del giocatore.pdf", page: 2, language: "es" }],
+            translation_status: "failed",
+            translation_error: "provider_rate_limited",
+            review_status: "verified",
+            review_notes: "Verificata manualmente.",
+            needs_review: false,
+            is_trusted: true,
+            review_reason: null,
+            original: { name: "Clase verificada", full_text: "Testo spagnolo." },
+            translation: { name: "Classe Verificata Errore", full_text: "Testo italiano verificato." },
+            review_history: [{
+              reviewer_id: "owner-1",
+              reviewer_name: "Mago",
+              reviewer_email: "mago@example.com",
+              reviewed_at: "2026-08-22T12:00:00+00:00",
+              review_status: "verified",
+              review_notes: "Verificata manualmente.",
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    await act(async () => {
+      container.querySelector('[data-testid="source-reference-verified-badge-1"]').click();
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/library/verified-badge-1/review");
+    expect(container.querySelector('[data-testid="reference-source-panel"]')).not.toBeNull();
+    const badge = container.querySelector('[data-testid="translation-failed-verified-notice"]');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toContain("La traduzione automatica ha avuto un errore ma il tuo contenuto manuale è confermato.");
+    // Retry translation button must NOT appear for verified records
+    expect(container.querySelector('[data-testid="retry-reference-translation-verified-badge-1"]')).toBeNull();
   });
 });
