@@ -37,6 +37,7 @@ from core.config import (
     GEMINI_TEXT_MODEL,
     MANUAL_COVERAGE_CATEGORIES,
     OPENAI_API_KEY,
+    OPENAI_OCR_MODEL,
     OPENAI_TEXT_MODEL,
     REFERENCE_MANUAL_FILENAMES,
     REFERENCE_MANUAL_METADATA,
@@ -111,8 +112,11 @@ def manual_page_count(path: Path) -> Optional[int]:
         return None
 
 
-def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
+def openai_ocr_manual_page(page: Any, page_number: int) -> str:
     """Transcribe a private scanned page without persisting the page image."""
+    if not OPENAI_API_KEY:
+        logger.warning("OCR OpenAI non configurato: OPENAI_API_KEY mancante")
+        return ""
     pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
     image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
     prompt = (
@@ -122,47 +126,56 @@ def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     )
     try:
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
-            headers={"x-goog-api-key": require_gemini(), "Content-Type": "application/json"},
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            },
             json={
-                "contents": [{"parts": [
-                    {"text": prompt},
-                    {"inline_data": {"mime_type": "image/png", "data": image_b64}},
-                ]}],
-                "generationConfig": {"temperature": 0, "maxOutputTokens": 8192},
+                "model": OPENAI_OCR_MODEL,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {
+                                "url": f"data:image/png;base64,{image_b64}",
+                                "detail": "high",
+                            }},
+                        ],
+                    }
+                ],
+                "temperature": 0,
+                "max_tokens": 4096,
             },
             timeout=(15, 180),
         )
         response.raise_for_status()
     except requests.HTTPError as exc:
         status_code = getattr(exc.response, "status_code", None)
-        logger.warning("OCR Gemini non disponibile per pagina %s (HTTP %s)", page_number, status_code or "errore")
+        logger.warning("OCR OpenAI non disponibile per pagina %s (HTTP %s)", page_number, status_code or "errore")
         return ""
     except requests.RequestException as exc:
-        logger.warning("OCR Gemini non raggiungibile per pagina %s: %s", page_number, exc)
+        logger.warning("OCR OpenAI non raggiungibile per pagina %s: %s", page_number, exc)
         return ""
     try:
         payload = response.json()
-        if not isinstance(payload, dict):
-            raise ValueError("risposta JSON non oggetto")
-        candidates = payload.get("candidates")
-        candidate = candidates[0] if isinstance(candidates, list) and candidates else {}
-        if not isinstance(candidate, dict):
-            raise ValueError("candidato OCR non valido")
-        content = candidate.get("content")
-        parts = content.get("parts") if isinstance(content, dict) else []
-        if not isinstance(parts, list):
-            raise ValueError("parti OCR non valide")
-        transcription = "\n".join(
-            part.get("text", "") for part in parts if isinstance(part, dict) and part.get("text")
-        ).strip()
+        transcription = (
+            payload.get("choices", [{}])[0]
+            .get("message", {})
+            .get("content", "")
+            .strip()
+        )
         if transcription:
             return transcription
-        finish_reason = candidate.get("finishReason", "sconosciuto")
-        logger.warning("OCR Gemini senza testo per pagina %s (motivo: %s)", page_number, finish_reason)
+        logger.warning("OCR OpenAI senza testo per pagina %s", page_number)
     except (ValueError, TypeError, IndexError, AttributeError) as exc:
-        logger.warning("OCR Gemini ha restituito una risposta non leggibile per pagina %s: %s", page_number, exc)
+        logger.warning("OCR OpenAI ha restituito una risposta non leggibile per pagina %s: %s", page_number, exc)
     return ""
+
+
+# Keep the old name as an alias so existing references continue to work
+gemini_ocr_manual_page = openai_ocr_manual_page
 
 
 def _gemini_text_from_response(payload: object) -> str:
@@ -397,12 +410,12 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         if spanish_native_manuals:
             raise HTTPException(
                 status_code=400,
-                detail="Questo manuale ha testo nativo: l'OCR non è consentito e non verranno inviate pagine a Gemini",
+                detail="Questo manuale ha testo nativo: l'OCR non è consentito e non verranno inviate pagine a OpenAI",
             )
         if not body.external_processing_confirmed:
             raise HTTPException(
                 status_code=400,
-                detail="Conferma esplicitamente l'invio delle sole pagine selezionate a Gemini per l'OCR",
+                detail="Conferma esplicitamente l'invio delle sole pagine selezionate a OpenAI per l'OCR",
             )
         if len(requested) != 1:
             raise HTTPException(status_code=400, detail="L'OCR può elaborare un solo manuale per volta")
@@ -412,7 +425,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 detail="Per l'OCR seleziona un piccolo intervallo di pagine (massimo 12) così l'importazione resta verificabile",
             )
         if body.end_page - body.start_page + 1 > 12:
-            raise HTTPException(status_code=400, detail="L'OCR Gemini è limitato a 12 pagine per importazione")
+            raise HTTPException(status_code=400, detail="L'OCR OpenAI è limitato a 12 pagine per importazione")
 
     all_records: list[dict] = []
     source_reports: list[dict] = []

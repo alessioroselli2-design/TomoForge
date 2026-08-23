@@ -21,6 +21,7 @@ MOCK_USER_PASSWORD = "tomeforge-demo"
 SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "tomeforge-assets")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
+OPENAI_OCR_MODEL = os.getenv("OPENAI_OCR_MODEL", "gpt-4o")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
 # Artwork cleanup is an optional, per-generation feature. Deployments can disable
 # it entirely with ARTWORK_CLEANUP_ENABLED=false to avoid the extra edit pass.
