@@ -3838,3 +3838,268 @@ def test_retry_rate_limited_without_job_updater_does_not_raise(monkeypatch):
         )
     )
     assert remaining == 1  # record still rate-limited → escalated
+
+
+# ── OCR end-to-end tests ──────────────────────────────────────────────────────
+
+
+def test_gemini_ocr_returns_transcription_for_valid_response(monkeypatch, tmp_path):
+    """gemini_ocr_manual_page must return the OCR text when Gemini responds with a
+    well-formed payload, and extract_reference_records must mark those records as
+    ocr_da_verificare so they require human verification before use."""
+    import fitz
+    from reference_library import extract_reference_records
+
+    ocr_text = (
+        "TALENTO DELLA PRECISIONE\n"
+        "Prerequisito: Destrezza 13. Questo talento migliora la precisione in combattimento"
+        " e offre un beneficio verificabile che non viene inventato dal modello.\n"
+    )
+    valid_payload = {
+        "candidates": [{"content": {"parts": [{"text": ocr_text}]}}]
+    }
+
+    monkeypatch.setattr(server.requests, "post", lambda *a, **k: _OcrResponse(payload=valid_payload))
+    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+
+    returned = server.gemini_ocr_manual_page(_OcrPage(), 5)
+
+    assert returned == ocr_text.strip()
+    assert "TALENTO DELLA PRECISIONE" in returned
+
+    # Records produced from OCR text must carry the unverified flag.
+    pdf_path = tmp_path / "scan.pdf"
+    doc = fitz.open()
+    doc.new_page()   # empty page → forces OCR callback
+    doc.save(pdf_path)
+    doc.close()
+
+    report = extract_reference_records(pdf_path, ocr_page=lambda _page, _num: ocr_text)
+
+    assert report.pages_read == 1
+    assert report.pages_needing_ocr == []
+    assert len(report.records) == 1
+    assert report.records[0]["reference_type"] == "feat"
+    assert "ocr_da_verificare" in report.records[0]["review_flags"]
+    assert not reference_is_trusted(report.records[0])
+
+
+def test_preload_worker_resumes_job_from_waiting_ocr_consent(monkeypatch, tmp_path):
+    """ensure_manual_preload_jobs must promote a waiting_ocr_consent job to queued,
+    and run_manual_preload_worker must then process it through to completion."""
+    source = tmp_path / "Manuale_del_giocatore__scan.pdf"
+    source.write_bytes(b"%PDF-1.4\n%%EOF")
+    filename = source.name
+
+    jobs = server.MemoryCollection()
+    jobs.rows.append({
+        "id": "job-ocr-consent-1",
+        "user_id": "owner-1",
+        "filename": filename,
+        "status": "waiting_ocr_consent",
+        "source_fingerprint": "fp-stable",   # matches mock → no changed_source
+        "current_page": 1,
+        "page_count": 2,
+        "attempt_count": 0,
+        "last_error": "",
+        "pages_needing_ocr": [],
+        "records_imported": 0,
+        "records_updated": 0,
+        "records_flagged": 0,
+        "records_skipped": 0,
+        "lease_id": "",
+        "lease_expires_at": 0,
+        "translation_processing_confirmed": True,
+        "external_processing_confirmed": True,
+        "updated_at": "2026-08-01T00:00:00+00:00",
+    })
+
+    async def fake_import(_user_id, body):
+        return server.ReferenceImportResult(
+            imported=2, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{"filename": filename, "pages_needing_ocr": [], "translation_rate_limited": 0}],
+        )
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(
+        private_manual_import_jobs=jobs,
+        private_reference_records=server.MemoryCollection(),
+    ))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 2)
+    monkeypatch.setattr(server, "manual_source_fingerprint", lambda _path: "fp-stable")
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+
+    assert jobs.rows[0]["status"] == "queued", (
+        "waiting_ocr_consent must be promoted to queued by ensure_manual_preload_jobs"
+    )
+
+    asyncio.run(server.run_manual_preload_worker("owner-1"))
+
+    final_job = jobs.rows[0]
+    assert final_job["status"] == "completed"
+    assert final_job["records_imported"] == 2
+
+
+def test_extract_reference_records_handles_ocr_only_manual_with_mixed_pages(tmp_path):
+    """A manual where some pages are readable, one succeeds via OCR, and one fails OCR
+    must report pages_read, pages_needing_ocr, and OCR-flagged records correctly."""
+    import fitz
+    from reference_library import extract_reference_records
+
+    pdf_path = tmp_path / "dm-guide-scan.pdf"
+    doc = fitz.open()
+
+    # Page 1: readable text layer
+    p1 = doc.new_page()
+    p1.insert_text(
+        (72, 72),
+        "MOSTRO ESEMPLARE\n"
+        "Il dungeon master usa questi mostri come sfida per i giocatori nella campagna.\n"
+        "Il testo contiene abbastanza dettagli verificabili da produrre un record valido.\n",
+    )
+    # Page 2: empty (OCR will succeed)
+    doc.new_page()
+    # Page 3: empty (OCR will fail)
+    doc.new_page()
+    doc.save(pdf_path)
+    doc.close()
+
+    def ocr_callback(page, page_number):
+        if page_number == 2:
+            return (
+                "TRAPPOLA NASCOSTA\n"
+                "Prerequisito: Destrezza 13. La trappola si attiva solo al tocco e offre"
+                " un effetto verificabile che il DM può usare in scena.\n"
+            )
+        return ""   # page 3 fails OCR
+
+    report = extract_reference_records(pdf_path, ocr_page=ocr_callback)
+
+    assert report.pages_read == 2             # page 1 (native) + page 2 (OCR)
+    assert report.pages_needing_ocr == [3]    # page 3 failed OCR
+
+    names = [r["name"] for r in report.records]
+    assert any("Trappola" in n for n in names), "OCR-sourced record from page 2 must be extracted"
+
+    ocr_records = [r for r in report.records if "ocr_da_verificare" in r["review_flags"]]
+    assert len(ocr_records) >= 1, "Records extracted via OCR must carry ocr_da_verificare"
+
+    native_records = [r for r in report.records if "ocr_da_verificare" not in r["review_flags"]]
+    assert len(native_records) >= 1, "Records from the native text layer must NOT carry ocr_da_verificare"
+
+
+def test_preload_worker_marks_job_failed_after_max_ocr_attempts(monkeypatch, tmp_path):
+    """process_manual_preload_job must set status=failed and last_error=ocr_pages_unavailable
+    when an OCR-only manual exhausts all permitted retry attempts."""
+    source = tmp_path / "dm-guide-scan.pdf"
+    source.write_bytes(b"%PDF-1.4\n%%EOF")
+    filename = source.name
+    lease_id = "lease-retry-exhausted"
+
+    jobs = server.MemoryCollection()
+    jobs.rows.append({
+        "id": "job-ocr-max-1",
+        "user_id": "owner-1",
+        "filename": filename,
+        "status": "processing",
+        "source_fingerprint": "fp-dm",
+        "current_page": 1,
+        "page_count": 3,
+        "attempt_count": server.MANUAL_PRELOAD_MAX_ATTEMPTS - 1,  # one more failure → failed
+        "last_error": "ocr_pages_unavailable",
+        "pages_needing_ocr": [1],
+        "records_imported": 0,
+        "records_updated": 0,
+        "records_flagged": 0,
+        "records_skipped": 0,
+        "lease_id": lease_id,
+        "lease_expires_at": int(time.time()) + 300,
+        "translation_processing_confirmed": True,
+        "external_processing_confirmed": True,
+        "updated_at": "2026-08-01T00:00:00+00:00",
+    })
+
+    async def fake_import(_user_id, body):
+        # The OCR page still fails — simulates a page that cannot be transcribed.
+        return server.ReferenceImportResult(
+            imported=0, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{"filename": filename, "pages_needing_ocr": [1], "translation_rate_limited": 0}],
+        )
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(
+        private_manual_import_jobs=jobs,
+        private_reference_records=server.MemoryCollection(),
+    ))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 3)
+    monkeypatch.setattr(server, "manual_requires_ocr", lambda _fn: True)
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+
+    asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0])))
+
+    final_job = jobs.rows[0]
+    assert final_job["status"] == "failed", (
+        "Job must be failed after exhausting MANUAL_PRELOAD_MAX_ATTEMPTS OCR retries"
+    )
+    assert final_job["last_error"] == "ocr_pages_unavailable"
+    assert 1 in final_job["pages_needing_ocr"]
+
+
+def test_preload_worker_accumulates_pages_needing_ocr_across_chunks(monkeypatch, tmp_path):
+    """pages_needing_ocr must accumulate correctly: pages from previous chunks that lie
+    outside the current batch are preserved, and newly unreadable pages are added."""
+    source = tmp_path / "dm-guide-scan.pdf"
+    source.write_bytes(b"%PDF-1.4\n%%EOF")
+    filename = source.name
+    lease_id = "lease-accumulate"
+
+    jobs = server.MemoryCollection()
+    jobs.rows.append({
+        "id": "job-ocr-accum-1",
+        "user_id": "owner-1",
+        "filename": filename,
+        "status": "processing",
+        "source_fingerprint": "fp-dm2",
+        "current_page": 13,            # starting a new batch at page 13
+        "page_count": 30,
+        "attempt_count": 0,
+        "last_error": "",
+        "pages_needing_ocr": [1, 2],   # leftovers from earlier batches
+        "records_imported": 5,
+        "records_updated": 0,
+        "records_flagged": 0,
+        "records_skipped": 0,
+        "lease_id": lease_id,
+        "lease_expires_at": int(time.time()) + 300,
+        "translation_processing_confirmed": True,
+        "external_processing_confirmed": True,
+        "updated_at": "2026-08-01T00:00:00+00:00",
+    })
+
+    async def fake_import(_user_id, body):
+        # Page 13 (inside the current batch) also fails OCR.
+        return server.ReferenceImportResult(
+            imported=3, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{"filename": filename, "pages_needing_ocr": [13], "translation_rate_limited": 0}],
+        )
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(
+        private_manual_import_jobs=jobs,
+        private_reference_records=server.MemoryCollection(),
+    ))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 30)
+    monkeypatch.setattr(server, "manual_requires_ocr", lambda _fn: True)
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+
+    asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0])))
+
+    final_job = jobs.rows[0]
+    # Pages 1 and 2 are outside the current batch (13–24) → preserved.
+    # Page 13 newly failed within the batch → added.
+    assert sorted(final_job["pages_needing_ocr"]) == [1, 2, 13], (
+        "pages_needing_ocr must merge prior unresolved pages with newly failed ones"
+    )
+    assert final_job["records_imported"] == 8   # 5 previous + 3 new
