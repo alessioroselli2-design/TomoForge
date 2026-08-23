@@ -213,13 +213,17 @@ def reference_review_state(record: dict) -> str:
     warnings and automated translations are deliberately not: a reviewer must
     explicitly mark those records as verified before they can complete a
     character sheet or answer a manual-content request.
+
+    An explicit human verification (review_status="verified") always overrides
+    automatic status checks — including a failed translation — because the
+    reviewer has personally confirmed the content is correct.
     """
     translation_status = record.get("translation_status", "not_required")
     review_status = record.get("review_status", "pending")
-    if translation_status in UNAVAILABLE_TRANSLATION_STATUSES:
-        return "review"
     if review_status == "verified":
         return "valid"
+    if translation_status in UNAVAILABLE_TRANSLATION_STATUSES:
+        return "review"
     if translation_status == "translated":
         return "review"
     if record.get("review_flags") or review_status == "needs_review":

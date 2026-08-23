@@ -550,6 +550,44 @@ def test_translated_or_flagged_reference_requires_human_verification_before_use(
     assert reference_is_trusted(ocr_flagged)
 
 
+def test_verified_review_status_overrides_failed_translation_status():
+    """A record manually verified by a human is trusted even when the automated
+    translation failed — the reviewer has personally confirmed the content."""
+    record = make_reference(
+        "Guerriero",
+        reference_type="class",
+        source_language="es",
+        source_name="Guerrero",
+        translation_status="failed",
+        review_status="verified",
+    )
+
+    assert reference_review_state(record) == "valid"
+    assert reference_is_trusted(record)
+
+
+def test_apply_reference_endpoint_accepts_verified_record_with_failed_translation(monkeypatch):
+    """POST /library/{id}/apply must succeed for a record that has
+    review_status='verified' and translation_status='failed'.
+    The human verification overrides the translation failure."""
+    record = make_reference(
+        "Guerriero",
+        reference_type="class",
+        source_language="es",
+        source_name="Guerrero",
+        description="Un combattente marziale esperto.",
+        translation_status="failed",
+        review_status="verified",
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
+
+    result = asyncio.run(server.apply_private_reference(record["id"], user))
+
+    assert result["name"] == "Guerriero"
+    assert result["reference_id"] == record["id"]
+
+
 class MemoryReferences:
     def __init__(self, rows):
         self.rows = rows

@@ -635,4 +635,134 @@ describe("CardEditor review scope", () => {
     expect(container.textContent).toContain("Confrontata con il manuale.");
     expect(container.textContent).toContain("2 decisioni");
   });
+
+  it("shows Fonte verificata (not BLOCCATO) for a record with verified review_status and failed translation_status", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "verified-failed-1",
+              name: "Classe Verificata Traduzione Fallita",
+              reference_type: "class",
+              source_refs: [{ filename: "manuale del giocatore.pdf", page: 10 }],
+              source_language: "es",
+              source_name: "Clase verificada",
+              translation_status: "failed",
+              review_status: "verified",
+              needs_review: false,
+              is_trusted: true,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    expect(container.textContent).toContain("Classe Verificata Traduzione Fallita");
+    expect(container.textContent).toContain("Fonte verificata");
+    expect(container.textContent).not.toContain("BLOCCATO");
+
+    const applyBtn = container.querySelector('[data-testid="apply-reference-verified-failed-1"]');
+    expect(applyBtn).not.toBeNull();
+    expect(applyBtn.disabled).toBe(false);
+
+    const applyLabel = applyBtn.closest('[data-testid="apply-reference-verified-failed-1"]')
+      ?.parentElement?.textContent;
+    expect(applyLabel).not.toContain("BLOCCATO");
+  });
+
+  it("clicking APPLICA on a verified+failed record calls POST /library/{id}/apply and succeeds", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "verified-failed-1",
+              name: "Classe Verificata Traduzione Fallita",
+              reference_type: "class",
+              source_refs: [{ filename: "manuale del giocatore.pdf", page: 10 }],
+              source_language: "es",
+              source_name: "Clase verificada",
+              translation_status: "failed",
+              review_status: "verified",
+              needs_review: false,
+              is_trusted: true,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    api.post.mockImplementation((path) => {
+      if (path === "/library/verified-failed-1/apply") {
+        return Promise.resolve({
+          data: {
+            reference_id: "verified-failed-1",
+            name: "Classe Verificata Traduzione Fallita",
+            card_type: "class",
+            reference_type: "class",
+            attributes: {},
+            description: "Descrizione della classe.",
+            story: "",
+            source_refs: [{ filename: "manuale del giocatore.pdf", page: 10, language: "es" }],
+            rule_source: { source_kind: "library", source_id: "verified-failed-1" },
+            content_language: "it",
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    const applyBtn = container.querySelector('[data-testid="apply-reference-verified-failed-1"]');
+    expect(applyBtn).not.toBeNull();
+    expect(applyBtn.disabled).toBe(false);
+
+    await act(async () => {
+      applyBtn.click();
+      await Promise.resolve();
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/library/verified-failed-1/apply");
+
+    const { toast } = require("sonner");
+    expect(toast.success).toHaveBeenCalledWith("Contenuto applicato dalla biblioteca privata");
+  });
 });
