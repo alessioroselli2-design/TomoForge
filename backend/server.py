@@ -2584,6 +2584,10 @@ async def _retry_rate_limited_translations(
         record = await records_collection.find_one({"id": record_id, "user_id": user_id})
         if not record:
             continue
+        # Do not escalate records the user has already verified: their manual
+        # review decision overrides the automatic recovery path entirely.
+        if record.get("review_status") == "verified":
+            continue
         new_flags = sorted(
             set(record.get("review_flags") or []) | {"traduzione_da_verificare"}
         )
@@ -2592,6 +2596,10 @@ async def _retry_rate_limited_translations(
                 "id": record_id,
                 "user_id": user_id,
                 "translation_error": "provider_rate_limited",
+                # Defense-in-depth: even with the continue guard above, a
+                # concurrent verification between the read and this write is
+                # blocked at the DB level by this predicate.
+                "review_status": {"$ne": "verified"},
             },
             {
                 "$set": {
@@ -2872,14 +2880,23 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
         # An abandoned request can be reclaimed only after its persisted lease
         # expires. The conditional update below makes that recovery atomic.
 
+    # A user-verified record must never be overwritten by an automatic retry.
+    # The human review decision is authoritative; return the record as-is so
+    # the caller treats it as already resolved without contacting any provider.
+    if record.get("review_status") == "verified":
+        return record
+
     # Claim the failed row atomically. Only the request that changes the
     # status can contact Gemini; expired claims can be safely recovered.
+    # The review_status guard makes the claim itself a no-op for verified
+    # records even when verification races the initial read above.
     now = int(time.time())
     lease_id = uuid.uuid4().hex
     claim = await collection.update_one(
         {
             "id": reference_id,
             "user_id": user_id,
+            "review_status": {"$ne": "verified"},
             "$or": [
                 {"translation_status": "failed"},
                 {
@@ -2935,6 +2952,11 @@ async def retry_private_reference_translation(user_id: str, reference_id: str) -
         "user_id": user_id,
         "translation_status": TRANSLATION_PROCESSING_STATUS,
         "translation_lease_id": lease_id,
+        # Guard against a concurrent user verification that arrived after the
+        # claim succeeded but before the provider returned.  A zero-row update
+        # leaves the user-verified content intact; the subsequent find_one will
+        # return the current (verified) record to the caller.
+        "review_status": {"$ne": "verified"},
     }
     if not translated_record:
         final_error = error or "provider_translation_failed"

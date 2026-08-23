@@ -2250,6 +2250,143 @@ def test_repeated_429_during_backoff_never_adds_review_flag_before_exhaustion(mo
     assert remaining == 1
 
 
+def test_retry_rate_limited_does_not_overwrite_user_verified_translation(monkeypatch):
+    """_retry_rate_limited_translations must not touch records the user has verified.
+
+    Scenario: the provider rate-limits a record, but before the automatic
+    backoff loop can retry it the user manually reviews and verifies the
+    translation.  The retry loop must skip both the provider call and the
+    exhaustion escalation so the human decision survives the recovery cycle.
+    """
+    verified_name = "Barbaro (verificato dall'utente)"
+    verified_description = "Descrizione verificata manualmente."
+    record = make_reference(
+        "Bárbaro",
+        reference_type="class",
+        source_language="es",
+        source_key="manual.pdf",
+        source_name="Bárbaro",
+        source_description="Un guerrero feroz.",
+        source_full_text="Un guerrero feroz que combate con furia.",
+        source_attributes={},
+        translation_status="failed",
+        translation_error="provider_rate_limited",
+        review_status="verified",
+        review_flags=[],
+    )
+    # Simulate content that was set when the user verified the record.
+    record["id"] = "ref-owned-barbaro"
+    record["name"] = verified_name
+    record["description"] = verified_description
+    records = server.MemoryCollection()
+    records.rows.append(record.copy())
+
+    translate_calls: list = []
+    monkeypatch.setattr(
+        server,
+        "translate_spanish_reference_batch",
+        lambda batch: (translate_calls.append(batch) or ({}, "")),
+    )
+
+    async def fake_sleep(_s):
+        pass
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=records))
+
+    remaining = asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records, delays=(0,)
+        )
+    )
+
+    # The translation provider must not have been contacted for a verified record.
+    assert translate_calls == [], "translate_spanish_reference_batch was called for a verified record"
+    # The user-verified content must survive the backoff cycle unchanged.
+    stored = records.rows[0]
+    assert stored["review_status"] == "verified", "User verification was overwritten"
+    assert stored["name"] == verified_name, "Verified translation name was overwritten"
+    assert stored["description"] == verified_description, "Verified description was overwritten"
+    # The record must not be escalated to needs_review by the exhaustion path.
+    assert "traduzione_da_verificare" not in stored.get("review_flags", []), (
+        "Exhaustion path added review flag to a user-verified record"
+    )
+    # The return value reflects records still carrying the rate-limit error.
+    # The verified record is not escalated but still counts as unresolved from
+    # the system's perspective — the important guarantee is content preservation.
+    assert isinstance(remaining, int)
+
+
+def test_retry_translation_finalization_skips_record_verified_during_provider_call(monkeypatch):
+    """retry_private_reference_translation must not overwrite a verification that
+    races the provider call.
+
+    Scenario:
+    1. Record has translation_status='failed' and review_status='pending'.
+    2. retry_private_reference_translation claims it (sets status=processing).
+    3. While the provider call is in flight the user verifies the record —
+       review_status becomes 'verified' and the name is set to the approved
+       value; the processing status and lease_id are left untouched by the
+       user action.
+    4. The provider returns a translation result.
+    5. The finalization update predicate includes review_status != 'verified',
+       so it matches zero rows and the user-verified content is preserved.
+    """
+    user_verified_name = "Barbaro (approvato dall'utente)"
+    provider_name = "Barbaro (traduzione automatica)"
+
+    record = {
+        **make_reference(
+            "Bárbaro",
+            reference_type="class",
+            source_language="es",
+            source_key="manual.pdf",
+            source_name="Bárbaro",
+            source_description="Un guerrero feroz.",
+            source_full_text="Un guerrero feroz que combate con furia.",
+            source_attributes={},
+            translation_status="failed",
+            translation_error="provider_rate_limited",
+            review_status="pending",
+            review_flags=[],
+        ),
+        "id": "ref-owned-barbaro",
+    }
+    records = server.MemoryCollection()
+    records.rows.append(record.copy())
+
+    def translate_and_verify(batch):
+        # Simulate the user verifying the record while the provider is working.
+        # Only review_status and name are updated — the pipeline fields
+        # (translation_status=processing, lease_id) remain as the claim set them
+        # because the user action does not touch the processing pipeline.
+        for row in records.rows:
+            if row["id"] == batch[0]["id"]:
+                row["review_status"] = "verified"
+                row["name"] = user_verified_name
+        return {
+            batch[0]["id"]: {
+                "name": provider_name,
+                "description": "Traduzione automatica.",
+                "full_text": "Testo tradotto automaticamente.",
+                "attributes": {},
+            }
+        }, ""
+
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate_and_verify)
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=records))
+
+    asyncio.run(server.retry_private_reference_translation("owner-1", "ref-owned-barbaro"))
+
+    stored = records.rows[0]
+    assert stored["review_status"] == "verified", (
+        "Concurrent user verification was overwritten by the retry finalization"
+    )
+    assert stored["name"] == user_verified_name, (
+        f"Provider result overwrote verified name; got {stored['name']!r}"
+    )
+
+
 def test_retry_single_failed_spanish_translation_preserves_source_fields(monkeypatch):
     source = {
         **make_reference(
