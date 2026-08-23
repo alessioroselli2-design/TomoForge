@@ -101,7 +101,7 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> 
         fingerprint = manual_source_fingerprint(path)
         changed_source = bool(existing and existing.get("source_fingerprint") != fingerprint)
         status = existing.get("status") if existing else _preload_waiting_status(filename, translation_confirmed, ocr_confirmed)
-        if status in {"waiting_translation_consent", "waiting_ocr_consent"}:
+        if status == "waiting_translation_consent":
             status = "queued"
         if changed_source or (body.filename == filename and (body.enable_translation or body.enable_ocr or body.retry)):
             status = _preload_waiting_status(filename, translation_confirmed, ocr_confirmed)

@@ -3884,63 +3884,6 @@ def test_gemini_ocr_returns_transcription_for_valid_response(monkeypatch, tmp_pa
     assert not reference_is_trusted(report.records[0])
 
 
-def test_preload_worker_resumes_job_from_waiting_ocr_consent(monkeypatch, tmp_path):
-    """ensure_manual_preload_jobs must promote a waiting_ocr_consent job to queued,
-    and run_manual_preload_worker must then process it through to completion."""
-    source = tmp_path / "Manuale_del_giocatore__scan.pdf"
-    source.write_bytes(b"%PDF-1.4\n%%EOF")
-    filename = source.name
-
-    jobs = server.MemoryCollection()
-    jobs.rows.append({
-        "id": "job-ocr-consent-1",
-        "user_id": "owner-1",
-        "filename": filename,
-        "status": "waiting_ocr_consent",
-        "source_fingerprint": "fp-stable",   # matches mock → no changed_source
-        "current_page": 1,
-        "page_count": 2,
-        "attempt_count": 0,
-        "last_error": "",
-        "pages_needing_ocr": [],
-        "records_imported": 0,
-        "records_updated": 0,
-        "records_flagged": 0,
-        "records_skipped": 0,
-        "lease_id": "",
-        "lease_expires_at": 0,
-        "translation_processing_confirmed": True,
-        "external_processing_confirmed": True,
-        "updated_at": "2026-08-01T00:00:00+00:00",
-    })
-
-    async def fake_import(_user_id, body):
-        return server.ReferenceImportResult(
-            imported=2, updated=0, flagged_for_review=0, skipped=0,
-            sources=[{"filename": filename, "pages_needing_ocr": [], "translation_rate_limited": 0}],
-        )
-
-    monkeypatch.setattr(server, "db", SimpleNamespace(
-        private_manual_import_jobs=jobs,
-        private_reference_records=server.MemoryCollection(),
-    ))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 2)
-    monkeypatch.setattr(server, "manual_source_fingerprint", lambda _path: "fp-stable")
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
-
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
-
-    assert jobs.rows[0]["status"] == "queued", (
-        "waiting_ocr_consent must be promoted to queued by ensure_manual_preload_jobs"
-    )
-
-    asyncio.run(server.run_manual_preload_worker("owner-1"))
-
-    final_job = jobs.rows[0]
-    assert final_job["status"] == "completed"
-    assert final_job["records_imported"] == 2
-
 
 def test_extract_reference_records_handles_ocr_only_manual_with_mixed_pages(tmp_path):
     """A manual where some pages are readable, one succeeds via OCR, and one fails OCR
