@@ -400,6 +400,64 @@ describe("LibraryCoverageReadiness", () => {
     expect(list.textContent).toContain("Impossibile caricare");
   });
 
+  it("AGGIORNA button re-fetches coverage and updates the panel", async () => {
+    const refreshedCoverage = {
+      manuals: [{
+        filename: "manuale-giocatore.pdf",
+        title: "Manuale del Giocatore",
+        source_language: "it",
+        categories: [
+          { reference_type: "class", valid: 7, to_review: 0, missing: 0, records_total: 7 },
+        ],
+      }],
+      totals: { valid: 7, to_review: 0, missing: 0, translation_pending: 0 },
+    };
+
+    api.get
+      .mockResolvedValueOnce({ data: coverage })           // 1: initial load
+      .mockResolvedValueOnce({ data: refreshedCoverage }); // 2: after AGGIORNA
+
+    const onTotalsChange = jest.fn();
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness onTotalsChange={onTotalsChange} />));
+      await Promise.resolve();
+    });
+
+    // Initial state: 2 valid, 1 to_review
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Cosa puoi usare con fiducia");
+    expect(onTotalsChange).toHaveBeenCalledTimes(1);
+    expect(onTotalsChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ valid: 2, to_review: 1 })
+    );
+
+    // Click AGGIORNA
+    const aggiornaBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent.includes("AGGIORNA")
+    );
+    expect(aggiornaBtn).not.toBeNull();
+
+    await act(async () => {
+      aggiornaBtn.click();
+      await Promise.resolve();
+    });
+
+    // Second fetch fired
+    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(api.get).toHaveBeenLastCalledWith("/library/coverage");
+
+    // onTotalsChange called again with refreshed totals
+    expect(onTotalsChange).toHaveBeenCalledTimes(2);
+    expect(onTotalsChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ valid: 7, to_review: 0, missing: 0 })
+    );
+
+    // Panel still shows the ready state with updated data
+    expect(container.textContent).toContain("Cosa puoi usare con fiducia");
+    expect(container.querySelector('[data-testid="library-coverage"]')).not.toBeNull();
+  });
+
   it("reloads coverage when the parent increments refreshKey", async () => {
     const updatedCoverage = {
       manuals: [{
