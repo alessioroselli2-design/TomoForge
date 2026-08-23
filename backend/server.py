@@ -71,7 +71,7 @@ OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
 ARTWORK_CLEANUP_ENABLED = os.getenv("ARTWORK_CLEANUP_ENABLED", "true").lower() not in {"0", "false", "no", "off"}
 ARTWORK_CLEANUP_MODEL = os.getenv("ARTWORK_CLEANUP_MODEL", OPENAI_IMAGE_MODEL)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.6-flash")
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
 SEGMIND_API_KEY = os.getenv("SEGMIND_API_KEY")
 SEGMIND_IMAGE_MODEL = os.getenv("SEGMIND_IMAGE_MODEL", "flux-dev")
 JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SESSION_SECRET")
@@ -2156,7 +2156,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 _refresh_lookup_caches(existing, payload)
                 updated += 1
             except Exception as upd_exc:
-                if "23505" not in str(upd_exc):
+                if "23505" not in str(upd_exc) and "duplicate key" not in str(upd_exc).lower():
                     raise
                 # Updating normalized_name to the Italian form collides with a
                 # record already stored from a previous batch. Find the target
@@ -2204,7 +2204,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 # source_normalized_name differs between occurrences, or the
                 # same source section ID was emitted by two parser pages).
                 # Recover by fetching the true existing row and updating it.
-                if "23505" not in str(insert_exc):
+                if "23505" not in str(insert_exc) and "duplicate key" not in str(insert_exc).lower():
                     raise
                 dup: Optional[dict] = None
                 # 1. Primary-key match: same generated id
@@ -2244,7 +2244,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                     _refresh_lookup_caches(dup, payload)
                     updated += 1
                 except Exception as upd2_exc:
-                    if "23505" not in str(upd2_exc):
+                    if "23505" not in str(upd2_exc) and "duplicate key" not in str(upd2_exc).lower():
                         raise
                     # Chain conflict: the Italian name being written to this row
                     # already belongs to a third record. Merge source_refs into
