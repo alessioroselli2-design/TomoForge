@@ -1483,6 +1483,72 @@ def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
     }
 
 
+def test_verifying_a_record_clears_its_translation_error(monkeypatch):
+    """review_private_reference must clear translation_error when status becomes 'verified'."""
+    record = make_reference(
+        "Barbaro",
+        reference_type="class",
+        source_language="es",
+        translation_status="translated",
+        translation_error="provider_rate_limited",
+        review_status="pending",
+    )
+    collection = MutableMemoryReferences([record])
+    review_history = server.MemoryCollection()
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(
+            private_reference_records=collection,
+            private_reference_review_history=review_history,
+        ),
+    )
+    owner = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
+
+    asyncio.run(server.review_private_reference(
+        record["id"],
+        server.ReferenceReviewInput(review_status="verified", review_notes=""),
+        owner,
+    ))
+
+    stored = collection.rows[0]
+    assert stored["review_status"] == "verified"
+    assert stored.get("translation_error", "") == ""
+
+
+def test_needs_review_status_does_not_clear_translation_error(monkeypatch):
+    """Only 'verified' should clear translation_error; 'needs_review' must leave it intact."""
+    record = make_reference(
+        "Barbaro",
+        reference_type="class",
+        source_language="es",
+        translation_status="translated",
+        translation_error="provider_rate_limited",
+        review_status="pending",
+    )
+    collection = MutableMemoryReferences([record])
+    review_history = server.MemoryCollection()
+    monkeypatch.setattr(
+        server,
+        "db",
+        SimpleNamespace(
+            private_reference_records=collection,
+            private_reference_review_history=review_history,
+        ),
+    )
+    owner = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
+
+    asyncio.run(server.review_private_reference(
+        record["id"],
+        server.ReferenceReviewInput(review_status="needs_review", review_notes="Da ricontrollare."),
+        owner,
+    ))
+
+    stored = collection.rows[0]
+    assert stored["review_status"] == "needs_review"
+    assert stored.get("translation_error") == "provider_rate_limited"
+
+
 def test_same_source_import_uses_distinct_ids_for_distinct_owners(monkeypatch, tmp_path):
     source = tmp_path / "Manuale.pdf"
     source.write_bytes(b"not-read")

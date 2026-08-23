@@ -3488,19 +3488,24 @@ async def review_private_reference(
                 detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL",
             ) from exc
         raise
+    update_fields: dict = {
+        "review_status": body.review_status,
+        "review_notes": review_notes,
+        "updated_at": utc_now(),
+    }
+    if body.review_status == "verified":
+        # A verified record is trusted by the owner; any lingering rate-limit
+        # error is no longer meaningful and would confuse error counts and the
+        # backoff retry loop.
+        update_fields["translation_error"] = ""
     await db.private_reference_records.update_one(
         {"id": reference_id, "user_id": user.user_id},
-        {"$set": {
-            "review_status": body.review_status,
-            "review_notes": review_notes,
-            "updated_at": utc_now(),
-        }},
+        {"$set": update_fields},
     )
     updated = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     fallback = {
         **record,
-        "review_status": body.review_status,
-        "review_notes": review_notes,
+        **update_fields,
     }
     return {"ok": True, **await reference_review_details(updated or fallback)}
 
