@@ -1998,6 +1998,177 @@ def test_spanish_translation_rate_limit_saves_record_without_review_flag(monkeyp
     assert result.sources[0]["translation_failed"] == 0
 
 
+def test_rate_limited_batch_retries_each_record_individually_and_saves_successes(monkeypatch, tmp_path):
+    """When a multi-record batch is rate-limited, each record is retried alone.
+
+    Records the provider can handle individually are saved as 'translated';
+    only those that are still limited stay as 'provider_rate_limited'.
+    """
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    barbaro = make_reference("Bárbaro", reference_type="class")
+    ladron = make_reference("Ladrón", reference_type="class")
+    barbaro_id = barbaro["id"]
+    ladron_id = ladron["id"]
+
+    # The batch (2 records) is rate-limited; individual retries: Bárbaro succeeds,
+    # Ladrón is still rate-limited.  Use an ordered iterator so the mock is
+    # independent of which record is retried first.
+    responses = iter([
+        ({}, "provider_rate_limited"),
+        ({barbaro_id: {
+            "name": "Barbaro",
+            "description": "Un guerriero feroce.",
+            "full_text": "Il barbaro combatte con rabbia selvaggia.",
+            "attributes": {},
+        }}, ""),
+        ({}, "provider_rate_limited"),
+    ])
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[barbaro, ladron], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: next(responses))
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    stored_by_source_name = {
+        row["source_name"]: row for row in collection.rows
+    }
+    barbaro_row = stored_by_source_name["Bárbaro"]
+    ladron_row = stored_by_source_name["Ladrón"]
+
+    # The individually retried record that succeeded must be saved as translated.
+    assert barbaro_row["translation_status"] == "translated", (
+        "Bárbaro should be translated after its individual retry succeeded"
+    )
+    assert barbaro_row["name"] == "Barbaro"
+    assert "traduzione_da_verificare" not in barbaro_row.get("review_flags", [])
+
+    # The record still limited after its individual retry stays as rate-limited.
+    assert ladron_row["translation_status"] == "failed"
+    assert ladron_row["translation_error"] == "provider_rate_limited"
+    assert "traduzione_da_verificare" not in ladron_row.get("review_flags", [])
+
+    # Report must count each outcome separately.
+    assert result.sources[0]["translated"] == 1
+    assert result.sources[0]["translation_rate_limited"] == 1
+    assert result.sources[0]["translation_failed"] == 0
+
+
+def test_rate_limited_singleton_batch_is_not_retried_individually(monkeypatch, tmp_path):
+    """A single-record batch that is rate-limited is not retried (no gain from splitting 1→1)."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    barbaro = make_reference("Bárbaro", reference_type="class")
+
+    call_count = [0]
+
+    def mock_translate(batch):
+        call_count[0] += 1
+        return {}, "provider_rate_limited"
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[barbaro], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    # Provider must be called exactly once — no individual-retry overhead for singletons.
+    assert call_count[0] == 1, f"Expected 1 translate call, got {call_count[0]}"
+    stored = collection.rows[0]
+    assert stored["translation_status"] == "failed"
+    assert stored["translation_error"] == "provider_rate_limited"
+    assert result.sources[0]["translation_rate_limited"] == 1
+
+
+def test_rate_limited_batch_individual_retry_content_error_marks_record_for_review(monkeypatch, tmp_path):
+    """When an individual retry fails with a content error (not rate-limit), the record gets
+    the traduzione_da_verificare review flag just like any other translation failure."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    barbaro = make_reference("Bárbaro", reference_type="class")
+    ladron = make_reference("Ladrón", reference_type="class")
+
+    # Batch is rate-limited; Bárbaro individual retry has a content error;
+    # Ladrón individual retry is still rate-limited.
+    responses = iter([
+        ({}, "provider_rate_limited"),
+        ({}, "provider_translation_failed"),
+        ({}, "provider_rate_limited"),
+    ])
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[barbaro, ladron], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: next(responses))
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    stored_by_source_name = {
+        row["source_name"]: row for row in collection.rows
+    }
+    barbaro_row = stored_by_source_name["Bárbaro"]
+    ladron_row = stored_by_source_name["Ladrón"]
+
+    # Content failure on individual retry → flagged for human review.
+    assert barbaro_row["translation_status"] == "failed"
+    assert barbaro_row["translation_error"] == "provider_translation_failed"
+    assert "traduzione_da_verificare" in barbaro_row.get("review_flags", [])
+
+    # Rate-limit on individual retry → no review flag, eligible for backoff retry.
+    assert ladron_row["translation_status"] == "failed"
+    assert ladron_row["translation_error"] == "provider_rate_limited"
+    assert "traduzione_da_verificare" not in ladron_row.get("review_flags", [])
+
+    assert result.sources[0]["translation_rate_limited"] == 1
+    assert result.sources[0]["translation_failed"] == 1
+    assert result.sources[0]["translated"] == 0
+
+
 def test_rate_limit_retry_uses_backoff_delays_and_escalates_to_review_when_exhausted(monkeypatch):
     """_retry_rate_limited_translations retries each delay slot and adds the review flag when exhausted."""
     records = server.MemoryCollection()

@@ -2075,9 +2075,29 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
 
     for batch in translation_batches:
         translated, error = await asyncio.to_thread(translate_spanish_reference_batch, batch)
+
+        # When a multi-record batch is rate-limited, immediately retry each
+        # record individually so that records the provider can handle are saved
+        # as 'translated' rather than being marked 'provider_rate_limited' due
+        # to contention from other records in the same batch.  Singleton batches
+        # are not retried — a single-record 429 is already the worst case.
+        individual_errors: dict[str, str] = {}
+        if error == "provider_rate_limited" and len(batch) > 1:
+            for record in batch:
+                ind_translated, ind_error = await asyncio.to_thread(
+                    translate_spanish_reference_batch, [record]
+                )
+                if ind_translated.get(record["id"]):
+                    translated[record["id"]] = ind_translated[record["id"]]
+                else:
+                    individual_errors[record["id"]] = ind_error or "provider_rate_limited"
+
         for record in batch:
             translated_record = translated.get(record["id"])
             report = report_by_filename[record["source_key"]]
+            # Use the per-record error from the individual retry when available;
+            # fall back to the batch-level error for non-retried batches.
+            record_error = individual_errors.get(record["id"], error)
             if translated_record:
                 name = translated_record["name"]
                 description = translated_record["description"]
@@ -2092,7 +2112,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                     "translation_error": "",
                 })
                 report["translated"] += 1
-            elif error == "provider_rate_limited":
+            elif record_error == "provider_rate_limited":
                 # A temporary rate-limit leaves the source fields intact and
                 # does NOT add the human-review flag because the record will be
                 # retried automatically by the preload worker with backoff.
@@ -2107,7 +2127,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                     **record,
                     "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
                     "translation_status": "failed",
-                    "translation_error": error or "provider_translation_failed",
+                    "translation_error": record_error or "provider_translation_failed",
                 })
                 report["translation_failed"] += 1
 
