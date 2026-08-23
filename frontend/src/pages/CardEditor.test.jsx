@@ -401,6 +401,86 @@ describe("CardEditor preload dashboard", () => {
     expect(container.querySelector('[data-testid="preload-dashboard"]')).not.toBeNull();
     expect(container.textContent).toContain("Manuale Scansione Spagnolo");
   });
+
+  it("switches from the progress bar to COMPLETATO after the polling interval fires", async () => {
+    jest.useFakeTimers();
+
+    let manualsCallCount = 0;
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        manualsCallCount += 1;
+        if (manualsCallCount === 1) {
+          return Promise.resolve({
+            data: {
+              manuals: [{
+                filename: "manuale_poll.pdf",
+                title: "Manuale Polling",
+                source_language: "it",
+                page_count: 200,
+                requires_ocr: false,
+                job: { status: "processing", percent: 40, current_page: 80, page_count: 200 },
+              }],
+            },
+          });
+        }
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_poll.pdf",
+              title: "Manuale Polling",
+              source_language: "it",
+              page_count: 200,
+              requires_ocr: false,
+              job: { status: "completed", percent: 100, records_imported: 30, records_updated: 2, records_flagged: 4 },
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    // Flush microtasks so the initial loadLibraryManuals and preload POST settle
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await Promise.resolve(); });
+
+    // The initial state should show the job as in-progress
+    expect(container.textContent).toContain("ELABORAZIONE IN CORSO");
+
+    // Advance the 3000 ms polling setTimeout so loadLibraryManuals fires again
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    // Flush the promise chain from the second API call
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await Promise.resolve(); });
+
+    jest.useRealTimers();
+
+    // Dashboard now shows the completed state
+    expect(container.textContent).toContain("COMPLETATO");
+    expect(container.textContent).not.toContain("ELABORAZIONE IN CORSO");
+
+    // records_imported and records_flagged counts are visible
+    expect(container.textContent).toContain("30"); // records_imported
+    expect(container.textContent).toContain("4");  // records_flagged
+  });
 });
 
 describe("CardEditor review scope", () => {
