@@ -1380,6 +1380,46 @@ const JOB_STATUS_LABEL = {
   failed: "ERRORE",
 };
 
+/**
+ * Shows a live countdown to the next translation retry when the provider has
+ * rate-limited the job. Refreshes every second; clears automatically when
+ * retryAt is not set or is already in the past.
+ */
+function TranslationRetryCountdown({ retryAt, attempt }) {
+  const [secsLeft, setSecsLeft] = useState(() => {
+    if (!retryAt) return null;
+    return Math.max(0, Math.round((new Date(retryAt) - Date.now()) / 1000));
+  });
+
+  useEffect(() => {
+    if (!retryAt) { setSecsLeft(null); return; }
+    const tick = () => {
+      const s = Math.max(0, Math.round((new Date(retryAt) - Date.now()) / 1000));
+      setSecsLeft(s);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [retryAt]);
+
+  if (secsLeft === null) return null;
+
+  return (
+    <div
+      data-testid="translation-retry-countdown"
+      className="mt-2 flex items-center gap-2 border border-amber-800/50 bg-amber-950/15 px-2 py-1.5"
+    >
+      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-300" />
+      <p className="font-body text-[11px] text-amber-200">
+        {secsLeft > 0
+          ? `Traduzione in ripresa, prossimo tentativo tra ${secsLeft}s`
+          : "Traduzione in ripresa…"}
+        {attempt > 0 ? ` (tentativo ${attempt})` : ""}
+      </p>
+    </div>
+  );
+}
+
 const JOB_STATUS_COLOR = {
   queued: "text-sky-300",
   processing: "text-amber-200",
@@ -1483,6 +1523,14 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Translation rate-limit countdown */}
+              {job.translation_retry_at && (
+                <TranslationRetryCountdown
+                  retryAt={job.translation_retry_at}
+                  attempt={job.translation_retry_attempt || 0}
+                />
               )}
 
               {/* Failed error */}

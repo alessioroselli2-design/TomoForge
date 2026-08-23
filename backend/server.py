@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, List, Literal, Optional
+from typing import Any, Awaitable, Callable, List, Literal, Optional
 from urllib.parse import urlencode
 
 import bcrypt
@@ -2357,6 +2357,8 @@ def manual_preload_summary(job: Optional[dict], page_count: Optional[int]) -> di
             "last_error": "",
             "translation_processing_confirmed": False,
             "external_processing_confirmed": False,
+            "translation_retry_at": None,
+            "translation_retry_attempt": 0,
         }
     total = page_count or job.get("page_count") or 0
     current_page = max(1, int(job.get("current_page") or 1))
@@ -2374,6 +2376,8 @@ def manual_preload_summary(job: Optional[dict], page_count: Optional[int]) -> di
         "last_error": job.get("last_error") or "",
         "translation_processing_confirmed": bool(job.get("translation_processing_confirmed")),
         "external_processing_confirmed": bool(job.get("external_processing_confirmed")),
+        "translation_retry_at": job.get("translation_retry_at") or None,
+        "translation_retry_attempt": int(job.get("translation_retry_attempt") or 0),
     }
 
 
@@ -2551,6 +2555,7 @@ async def _retry_rate_limited_translations(
     source_filename: str,
     records_collection: Any,
     delays: tuple[int, ...] = TRANSLATION_RATE_LIMIT_RETRY_DELAYS,
+    job_updater: Optional[Callable[[int, str], Awaitable[None]]] = None,
 ) -> int:
     """Retry rate-limited records from *source_filename* with exponential back-off.
 
@@ -2561,6 +2566,11 @@ async def _retry_rate_limited_translations(
     queue always terminates with a definitive outcome instead of silently
     parking.
 
+    When *job_updater* is provided it is called before each sleep with
+    ``(attempt_number, retry_at_iso)`` so the caller can persist the next
+    retry time and current attempt index to the job document for display in
+    the queue UI.
+
     Returns the count of records that could not be translated in any attempt.
     """
     rate_limit_query = {
@@ -2569,6 +2579,9 @@ async def _retry_rate_limited_translations(
         "translation_error": "provider_rate_limited",
     }
     for attempt, delay in enumerate(delays):
+        retry_at = (datetime.now(timezone.utc) + timedelta(seconds=delay)).isoformat()
+        if job_updater is not None:
+            await job_updater(attempt, retry_at)
         logger.info(
             "Traduzione con rate-limit: attesa %ss prima del tentativo %s/%s per %s",
             delay, attempt + 1, len(delays), source_filename,
@@ -2722,9 +2735,22 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
         rate_limit_renewal = asyncio.create_task(
             renew_manual_preload_lease(user_id, job["id"], lease_id)
         )
+
+        async def _update_retry_state(attempt: int, retry_at: str) -> None:
+            await collection.update_one(
+                owned_query,
+                {
+                    "$set": {
+                        "translation_retry_at": retry_at,
+                        "translation_retry_attempt": attempt + 1,
+                        "updated_at": utc_now(),
+                    }
+                },
+            )
+
         try:
             await _retry_rate_limited_translations(
-                user_id, filename, records_collection
+                user_id, filename, records_collection, job_updater=_update_retry_state
             )
         finally:
             rate_limit_renewal.cancel()

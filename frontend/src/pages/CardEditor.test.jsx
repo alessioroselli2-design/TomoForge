@@ -253,6 +253,106 @@ describe("CardEditor preload dashboard", () => {
       retry: true,
     });
   });
+
+  it("shows translation retry countdown when translation_retry_at is set", async () => {
+    const retryAt = new Date(Date.now() + 45000).toISOString(); // 45 s in the future
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_rl.pdf",
+              title: "Manuale Rate-Limited",
+              source_language: "es",
+              requires_ocr: false,
+              job: {
+                status: "processing",
+                last_error: "translation_rate_limited",
+                translation_retry_at: retryAt,
+                translation_retry_attempt: 1,
+                percent: 50,
+                current_page: 5,
+                page_count: 10,
+              },
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const countdown = container.querySelector('[data-testid="translation-retry-countdown"]');
+    expect(countdown).not.toBeNull();
+    expect(countdown.textContent).toMatch(/Traduzione in ripresa/);
+    expect(countdown.textContent).toContain("tentativo 1");
+  });
+
+  it("does not show translation retry countdown when translation_retry_at is absent", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_ok.pdf",
+              title: "Manuale OK",
+              source_language: "it",
+              requires_ocr: false,
+              job: {
+                status: "processing",
+                last_error: "",
+                translation_retry_at: null,
+                translation_retry_attempt: 0,
+                percent: 60,
+                current_page: 6,
+                page_count: 10,
+              },
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(container.querySelector('[data-testid="translation-retry-countdown"]')).toBeNull();
+  });
 });
 
 describe("CardEditor review scope", () => {

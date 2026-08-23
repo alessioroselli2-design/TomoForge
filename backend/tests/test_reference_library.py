@@ -2283,7 +2283,7 @@ def test_preload_worker_sets_rate_limit_status_and_triggers_retry(monkeypatch, t
 
     retry_calls: list[str] = []
 
-    async def fake_retry_rate_limited(user_id, filename, collection, delays=None):
+    async def fake_retry_rate_limited(user_id, filename, collection, delays=None, job_updater=None):
         retry_calls.append(filename)
         return 0
 
@@ -2304,7 +2304,52 @@ def test_preload_worker_sets_rate_limit_status_and_triggers_retry(monkeypatch, t
     # Job must complete normally after the retry function returns.
     assert job["status"] == "completed"
 
+def test_retry_rate_limited_calls_job_updater_before_each_sleep(monkeypatch):
+    """_retry_rate_limited_translations must call job_updater with (attempt, retry_at) before sleeping."""
+    records = server.MemoryCollection()
+    records.rows.append({
+        "id": "ref-owned-barbaro",
+        "user_id": "owner-1",
+        "source_key": "manual.pdf",
+        "translation_status": "failed",
+        "translation_error": "provider_rate_limited",
+        "review_flags": [],
+        "review_status": "pending",
+    })
 
+    slept: list[float] = []
+    updater_calls: list[tuple] = []
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+
+    async def fake_retry(user_id, record_id):
+        pass  # Keep record rate-limited to exercise all delay slots.
+
+    async def fake_updater(attempt: int, retry_at: str) -> None:
+        # retry_at must be an ISO timestamp and updater must fire BEFORE the sleep.
+        updater_calls.append((attempt, retry_at, len(slept)))
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+
+    asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records,
+            delays=(10, 20),
+            job_updater=fake_updater,
+        )
+    )
+
+    # Updater must be called once per delay slot, before the corresponding sleep.
+    assert len(updater_calls) == 2
+    assert updater_calls[0][0] == 0  # attempt index 0
+    assert updater_calls[0][2] == 0  # fired before first sleep
+    assert updater_calls[1][0] == 1  # attempt index 1
+    assert updater_calls[1][2] == 1  # fired before second sleep (after first sleep)
+    # retry_at must be a non-empty ISO string.
+    for _attempt, retry_at, _sleep_count in updater_calls:
+        assert "T" in retry_at, f"retry_at not an ISO timestamp: {retry_at!r}"
 def test_rate_limit_retry_processes_all_records_beyond_page_boundary(monkeypatch):
     """_retry_rate_limited_translations must process every record, even when the
     total exceeds one drain page (>200) and storage order is not sequential.
@@ -3218,3 +3263,123 @@ Elige una criatura voluntaria y duplica su velocidad.
     assert "Abrir" not in by_name["Acelerar"]["full_text"]
     assert by_name["Abrir"]["attributes"]["gittata"] == "60 pies"
     assert by_name["Acelerar"]["attributes"]["durata"] == "Concentración, hasta 1 minuto"
+
+def test_manual_preload_summary_exposes_translation_retry_fields():
+    """manual_preload_summary must include translation_retry_at and translation_retry_attempt."""
+    # no-job case: fields must default to None / 0.
+    summary = server.manual_preload_summary(None, 10)
+    assert summary["translation_retry_at"] is None
+    assert summary["translation_retry_attempt"] == 0
+
+    # job without retry info: fields must still default safely.
+    job_no_retry = {
+        "status": "processing",
+        "current_page": 2,
+        "page_count": 5,
+        "records_imported": 10,
+        "records_updated": 0,
+        "records_flagged": 0,
+        "records_skipped": 0,
+        "pages_needing_ocr": [],
+        "last_error": "translation_rate_limited",
+        "translation_processing_confirmed": True,
+        "external_processing_confirmed": False,
+    }
+    summary_no_retry = server.manual_preload_summary(job_no_retry, 5)
+    assert summary_no_retry["translation_retry_at"] is None
+    assert summary_no_retry["translation_retry_attempt"] == 0
+
+    # job with retry info: fields must be propagated.
+    retry_ts = "2026-08-23T12:00:30+00:00"
+    job_with_retry = {
+        **job_no_retry,
+        "translation_retry_at": retry_ts,
+        "translation_retry_attempt": 2,
+    }
+    summary_with_retry = server.manual_preload_summary(job_with_retry, 5)
+    assert summary_with_retry["translation_retry_at"] == retry_ts
+    assert summary_with_retry["translation_retry_attempt"] == 2
+
+def test_preload_worker_writes_retry_state_to_job(monkeypatch, tmp_path):
+    """process_manual_preload_job must write translation_retry_at/attempt to the job
+    before each backoff sleep so the summary endpoint can expose them."""
+    source = tmp_path / "Manuale.pdf"
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    records = server.MemoryCollection()
+    records.rows.append({
+        "id": "ref-owned-barbaro",
+        "user_id": "owner-1",
+        "source_key": source.name,
+        "translation_status": "failed",
+        "translation_error": "provider_rate_limited",
+        "review_flags": [],
+    })
+
+    async def fake_import(_user_id, body):
+        return server.ReferenceImportResult(
+            imported=0, updated=0, flagged_for_review=0, skipped=0,
+            sources=[{
+                "filename": source.name,
+                "pages_needing_ocr": [],
+                "translation_rate_limited": 1,
+            }],
+        )
+
+    updater_snapshots: list[dict] = []
+
+    async def capturing_retry(user_id, filename, collection, delays=None, job_updater=None):
+        # Call the updater once as the real function would (attempt 0).
+        if job_updater is not None:
+            await job_updater(0, "2026-08-23T12:00:30+00:00")
+            # Capture the job state immediately after the updater fires.
+            if jobs.rows:
+                updater_snapshots.append(dict(jobs.rows[0]))
+        return 0
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(
+        private_manual_import_jobs=jobs,
+        private_reference_records=records,
+    ))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1)
+    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    monkeypatch.setattr(server, "_retry_rate_limited_translations", capturing_retry)
+
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    asyncio.run(server.run_manual_preload_worker("owner-1"))
+
+    assert updater_snapshots, "job_updater was never called"
+    snap = updater_snapshots[0]
+    assert snap.get("translation_retry_at") == "2026-08-23T12:00:30+00:00"
+    assert snap.get("translation_retry_attempt") == 1  # attempt 0 → stored as 1
+
+def test_retry_rate_limited_without_job_updater_does_not_raise(monkeypatch):
+    """Omitting job_updater (None) must work without errors."""
+    records = server.MemoryCollection()
+    records.rows.append({
+        "id": "ref-owned-r",
+        "user_id": "owner-1",
+        "source_key": "manual.pdf",
+        "translation_status": "failed",
+        "translation_error": "provider_rate_limited",
+        "review_flags": [],
+        "review_status": "pending",
+    })
+
+    async def fake_sleep(_s):
+        pass
+
+    async def fake_retry(_uid, _rid):
+        pass
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+
+    # Must not raise even though job_updater is not provided.
+    remaining = asyncio.run(
+        server._retry_rate_limited_translations(
+            "owner-1", "manual.pdf", records, delays=(1,)
+        )
+    )
+    assert remaining == 1  # record still rate-limited → escalated
