@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Check, ChevronDown, ChevronUp, CircleDashed, RefreshCw, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertCircle, AlertTriangle, Check, ChevronDown, ChevronUp, CircleDashed, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -24,9 +25,9 @@ function StatePill({ tone, children }) {
   return <span className={`inline-flex items-center gap-1 border px-2 py-1 font-label text-[9px] tracking-widest ${styles[tone] || styles.neutral}`}>{children}</span>;
 }
 
-export default function LibraryCoverageReadiness({ onOpenReviews, refreshKey = 0 }) {
+export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange, refreshKey = 0 }) {
   const [manuals, setManuals] = useState([]);
-  const [totals, setTotals] = useState({ valid: 0, to_review: 0, missing: 0 });
+  const [totals, setTotals] = useState({ valid: 0, to_review: 0, missing: 0, translation_pending: 0 });
   const [status, setStatus] = useState("loading");
   const [expanded, setExpanded] = useState(null);
 
@@ -34,13 +35,15 @@ export default function LibraryCoverageReadiness({ onOpenReviews, refreshKey = 0
     setStatus("loading");
     try {
       const response = await api.get("/library/coverage");
+      const newTotals = response.data?.totals || { valid: 0, to_review: 0, missing: 0, translation_pending: 0 };
       setManuals(response.data?.manuals || []);
-      setTotals(response.data?.totals || { valid: 0, to_review: 0, missing: 0 });
+      setTotals(newTotals);
+      onTotalsChange?.(newTotals);
       setStatus("ready");
     } catch {
       setStatus("error");
     }
-  }, []);
+  }, [onTotalsChange]);
 
   useEffect(() => { loadCoverage(); }, [loadCoverage, refreshKey]);
 
@@ -87,6 +90,30 @@ export default function LibraryCoverageReadiness({ onOpenReviews, refreshKey = 0
           <div key={key} className="border-r border-border/70 px-3 py-3 last:border-r-0"><p className="font-label text-[9px] tracking-widest text-muted-foreground">{label}</p><p className="mt-1 font-heading text-2xl text-foreground">{totals[key]}</p><StatePill tone={tone}>{key === "missing" ? "DA IMPORTARE" : classifiedRecords ? `${Math.round((totals[key] / classifiedRecords) * 100)}%` : "0%"}</StatePill></div>
         ))}
       </div>
+
+      {/* Translation pending strip — shown when records stalled on rate-limits
+          have not yet been manually verified. Links to the import dashboard
+          where the user can complete the verification. */}
+      {totals.translation_pending > 0 && (
+        <div
+          data-testid="coverage-translation-pending-strip"
+          className="mt-3 flex items-start gap-2 border border-amber-700/55 bg-amber-950/20 px-3 py-2"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+          <p className="flex-1 font-body text-[11px] leading-relaxed text-amber-200">
+            <strong className="font-label text-[9px] tracking-widest">{totals.translation_pending} TRADUZION{totals.translation_pending === 1 ? "E" : "I"} IN SOSPESO</strong>
+            {" — "}
+            {totals.translation_pending === 1
+              ? "Un record non è stato tradotto automaticamente."
+              : `${totals.translation_pending} record non sono stati tradotti automaticamente.`}
+            {" "}Verificali manualmente per renderli disponibili.{" "}
+            <Link to="/crea#editor-library-import" className="font-label text-[9px] tracking-widest text-amber-300 underline-offset-2 hover:text-amber-100">
+              VAI ALL'IMPORTAZIONE →
+            </Link>
+          </p>
+        </div>
+      )}
+
       <div className="mt-4 space-y-2">
         {manuals.map((manual) => {
           const ready = totalFor(manual, "valid"); const review = totalFor(manual, "to_review"); const missing = totalFor(manual, "missing");
@@ -101,7 +128,25 @@ export default function LibraryCoverageReadiness({ onOpenReviews, refreshKey = 0
                 {(manual.categories || []).map((category) => {
                   const cReady = sum(category, "valid"); const cReview = sum(category, "to_review"); const cMissing = sum(category, "missing");
                   const usefulness = cReady ? "UTILIZZABILE" : cReview ? "RICHIEDE REVISIONE" : "NON DISPONIBILE";
-                  return <div key={category.reference_type} className="flex items-center gap-2 border border-border/60 px-2.5 py-2"><span className="min-w-0 flex-1 truncate font-body text-xs text-foreground">{categoryNames[category.reference_type] || category.reference_type}</span><span className={`font-label text-[9px] tracking-widest ${cReady ? "text-emerald-300" : cReview ? "text-amber-200" : "text-red-300"}`}>{usefulness}</span><span className="font-body text-[11px] text-muted-foreground">{cReady} pronti · {cReview} da rivedere{cMissing ? " · nessun record" : ""}</span>{cReview > 0 && <button type="button" onClick={() => onOpenReviews?.(category.reference_type, manual.filename)} className="font-label text-[9px] tracking-widest text-gold hover:text-amber-200">REVISIONI</button>}</div>;
+                  return (
+                    <div key={category.reference_type} className="flex flex-col gap-1 border border-border/60 px-2.5 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate font-body text-xs text-foreground">{categoryNames[category.reference_type] || category.reference_type}</span>
+                        <span className={`font-label text-[9px] tracking-widest ${cReady ? "text-emerald-300" : cReview ? "text-amber-200" : "text-red-300"}`}>{usefulness}</span>
+                        <span className="font-body text-[11px] text-muted-foreground">{cReady} pronti · {cReview} da rivedere{cMissing ? " · nessun record" : ""}</span>
+                        {cReview > 0 && <button type="button" onClick={() => onOpenReviews?.(category.reference_type, manual.filename)} className="font-label text-[9px] tracking-widest text-gold hover:text-amber-200">REVISIONI</button>}
+                      </div>
+                      {/* For empty categories, suggest where to import records from */}
+                      {cMissing > 0 && !cReady && !cReview && (
+                        <p className="font-body text-[10px] text-muted-foreground">
+                          Nessun record importato da questo manuale.{" "}
+                          <Link to="/crea#editor-library-import" className="text-gold/70 hover:text-gold">
+                            Avvia importazione →
+                          </Link>
+                        </p>
+                      )}
+                    </div>
+                  );
                 })}
               </div>
               {onOpenReviews && review > 0 && <Button type="button" onClick={() => onOpenReviews((manual.categories || []).filter((c) => c.to_review).map((c) => c.reference_type).join(","), manual.filename)} className="mt-3 rounded-none bg-amber-700 px-3 font-label text-[10px] tracking-widest text-white hover:bg-amber-600">APRI RECORD DA RIVEDERE</Button>}

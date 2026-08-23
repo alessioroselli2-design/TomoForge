@@ -24,6 +24,7 @@ export default function Collection() {
   const { user } = useAuth();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [libraryBlockers, setLibraryBlockers] = useState(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selectMode, setSelectMode] = useState(false);
@@ -197,7 +198,28 @@ export default function Collection() {
 
         {user?.is_premium && (
           <section className="mt-6" aria-label="Stato della biblioteca privata">
-            <LibraryCoverageReadiness onOpenReviews={openCoverageReviews} />
+            {/* Compact blocker summary — visible once coverage data has loaded */}
+            {libraryBlockers !== null && (libraryBlockers.to_review > 0 || libraryBlockers.translation_pending > 0 || libraryBlockers.missing > 0) && (
+              <div
+                data-testid="library-blocker-summary"
+                className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 border border-amber-700/45 bg-amber-950/15 px-4 py-2.5"
+              >
+                <span className="font-label text-[9px] tracking-widest text-amber-300">BIBLIOTECA NON ANCORA COMPLETA</span>
+                {libraryBlockers.to_review > 0 && (
+                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.to_review} da rivedere</span>
+                )}
+                {libraryBlockers.translation_pending > 0 && (
+                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.translation_pending} traduzion{libraryBlockers.translation_pending === 1 ? "e" : "i"} in sospeso</span>
+                )}
+                {libraryBlockers.missing > 0 && (
+                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.missing} categor{libraryBlockers.missing === 1 ? "ia" : "ie"} senza record</span>
+                )}
+              </div>
+            )}
+            <LibraryCoverageReadiness
+              onOpenReviews={openCoverageReviews}
+              onTotalsChange={setLibraryBlockers}
+            />
           </section>
         )}
 

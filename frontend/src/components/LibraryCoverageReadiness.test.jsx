@@ -1,5 +1,6 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
 import { api } from "@/lib/api";
 import LibraryCoverageReadiness from "./LibraryCoverageReadiness";
 
@@ -20,8 +21,14 @@ const coverage = {
       { reference_type: "feat", valid: 0, to_review: 0, missing: 1, records_total: 0 },
     ],
   }],
-  totals: { valid: 2, to_review: 1, missing: 1 },
+  totals: { valid: 2, to_review: 1, missing: 1, translation_pending: 0 },
 };
+
+// Wrap in MemoryRouter because the component renders <Link> for import
+// suggestions and the pending-translation strip.
+function renderInRouter(element) {
+  return <MemoryRouter>{element}</MemoryRouter>;
+}
 
 describe("LibraryCoverageReadiness", () => {
   let container;
@@ -44,7 +51,7 @@ describe("LibraryCoverageReadiness", () => {
     const onOpenReviews = jest.fn();
 
     await act(async () => {
-      root.render(<LibraryCoverageReadiness onOpenReviews={onOpenReviews} />);
+      root.render(renderInRouter(<LibraryCoverageReadiness onOpenReviews={onOpenReviews} />));
       await Promise.resolve();
     });
 
@@ -74,7 +81,7 @@ describe("LibraryCoverageReadiness", () => {
     api.get.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ data: coverage });
 
     await act(async () => {
-      root.render(<LibraryCoverageReadiness />);
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
       await Promise.resolve();
     });
 
@@ -93,20 +100,91 @@ describe("LibraryCoverageReadiness", () => {
     api.get.mockImplementationOnce(() => new Promise(() => {}));
 
     await act(async () => {
-      root.render(<LibraryCoverageReadiness />);
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
       await Promise.resolve();
     });
     expect(container.querySelector('[data-testid="library-coverage-loading"]')).not.toBeNull();
 
     await act(async () => root.unmount());
     root = createRoot(container);
-    api.get.mockResolvedValueOnce({ data: { manuals: [], totals: { valid: 0, to_review: 0, missing: 0 } } });
+    api.get.mockResolvedValueOnce({ data: { manuals: [], totals: { valid: 0, to_review: 0, missing: 0, translation_pending: 0 } } });
 
     await act(async () => {
-      root.render(<LibraryCoverageReadiness />);
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
       await Promise.resolve();
     });
     expect(container.querySelector('[data-testid="library-coverage-empty"]')).not.toBeNull();
     expect(container.textContent).toContain("precaricati automaticamente");
+  });
+
+  it("calls onTotalsChange with the totals when coverage loads", async () => {
+    api.get.mockResolvedValue({ data: coverage });
+    const onTotalsChange = jest.fn();
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness onTotalsChange={onTotalsChange} />));
+      await Promise.resolve();
+    });
+
+    expect(onTotalsChange).toHaveBeenCalledTimes(1);
+    expect(onTotalsChange).toHaveBeenCalledWith(
+      expect.objectContaining({ valid: 2, to_review: 1, missing: 1, translation_pending: 0 })
+    );
+  });
+
+  it("shows an amber strip when translation_pending > 0 and links to the import dashboard", async () => {
+    const dataWithPending = {
+      ...coverage,
+      totals: { valid: 2, to_review: 0, missing: 0, translation_pending: 3 },
+    };
+    api.get.mockResolvedValue({ data: dataWithPending });
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    const strip = container.querySelector('[data-testid="coverage-translation-pending-strip"]');
+    expect(strip).not.toBeNull();
+    expect(strip.textContent).toContain("3 TRADUZIONI IN SOSPESO");
+    // Link must point to the import dashboard
+    const link = strip.querySelector("a");
+    expect(link).not.toBeNull();
+    expect(link.getAttribute("href")).toBe("/crea#editor-library-import");
+  });
+
+  it("does not show the pending strip when translation_pending is zero", async () => {
+    api.get.mockResolvedValue({ data: coverage }); // translation_pending: 0
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-testid="coverage-translation-pending-strip"]')).toBeNull();
+  });
+
+  it("shows an import link for empty categories when the manual row is expanded", async () => {
+    api.get.mockResolvedValue({ data: coverage });
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    // Expand the manual row
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    // The "Talenti" (feat) category has missing=1, no valid/to_review —
+    // it should show an "Avvia importazione" link.
+    const importLinks = [...container.querySelectorAll("a")].filter(
+      (a) => a.textContent.includes("importazione")
+    );
+    expect(importLinks.length).toBeGreaterThan(0);
+    expect(importLinks[0].getAttribute("href")).toBe("/crea#editor-library-import");
   });
 });

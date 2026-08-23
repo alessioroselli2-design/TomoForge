@@ -1384,6 +1384,60 @@ def test_manual_coverage_counts_valid_missing_and_records_to_review(monkeypatch,
     assert coverage["spell"] == {"reference_type": "spell", "valid": 0, "to_review": 0, "missing": 1, "records_total": 0}
 
 
+def test_coverage_endpoint_includes_translation_pending_in_totals(monkeypatch, tmp_path):
+    """GET /library/coverage totals must include translation_pending for rate-limited records."""
+    source = tmp_path / "Manuale.pdf"
+    source.write_bytes(b"manual")
+    records = [
+        make_reference(
+            "Guerriero",
+            reference_type="class",
+            source_refs=[{"filename": "Manuale.pdf", "page": 10}],
+            review_status="pending",
+        ),
+        # Rate-limited, not yet verified — must count as translation_pending.
+        make_reference(
+            "Barbaro",
+            reference_type="class",
+            source_refs=[{"filename": "Manuale.pdf", "page": 11}],
+            translation_status="failed",
+            translation_error="provider_rate_limited",
+            review_status="pending",
+        ),
+        # Rate-limited but already verified — must NOT count as translation_pending.
+        make_reference(
+            "Ladro",
+            reference_type="class",
+            source_refs=[{"filename": "Manuale.pdf", "page": 12}],
+            translation_status="failed",
+            translation_error="provider_rate_limited",
+            review_status="verified",
+        ),
+        # Exhausted rate-limit, not verified — must also count.
+        make_reference(
+            "Mago",
+            reference_type="class",
+            source_refs=[{"filename": "Manuale.pdf", "page": 13}],
+            translation_status="failed",
+            translation_error="provider_rate_limited_exhausted",
+            review_status="needs_review",
+        ),
+    ]
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Manuale.pdf": source})
+    monkeypatch.setattr(server, "MANUAL_COVERAGE_CATEGORIES", {"Manuale.pdf": ("class",)})
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences(records)))
+
+    owner = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
+    response = asyncio.run(server.private_library_coverage(owner))
+
+    totals = response["totals"]
+    # Barbaro + Mago → 2 unverified rate-limited; Ladro is verified → excluded.
+    assert totals["translation_pending"] == 2
+    assert "to_review" in totals
+    assert "valid" in totals
+    assert "missing" in totals
+
+
 def test_apply_reference_rejects_unverified_records(monkeypatch):
     record = make_reference(
         "Rituale Incerto",

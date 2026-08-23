@@ -3387,10 +3387,21 @@ async def private_library_coverage(user: User = Depends(require_premium)):
     """Report record readiness by supplied manual and applicable category."""
     records = await private_reference_records(user.user_id)
     manuals = manual_coverage_report(records)
+    # Count records whose translation stalled (rate-limited or exhausted) and
+    # have not yet been manually verified.  This number feeds the global
+    # "blockers" badge in the UI so the user knows the library is not fully
+    # ready even when the import job status shows "completed".
+    translation_pending = sum(
+        1 for record in records
+        if record.get("translation_status") == "failed"
+        and record.get("translation_error") in {"provider_rate_limited", "provider_rate_limited_exhausted"}
+        and not reference_is_trusted(record)
+    )
     totals = {
         "valid": sum(category["valid"] for manual in manuals for category in manual["categories"]),
         "to_review": sum(category["to_review"] for manual in manuals for category in manual["categories"]),
         "missing": sum(category["missing"] for manual in manuals for category in manual["categories"]),
+        "translation_pending": translation_pending,
     }
     return {"manuals": manuals, "totals": totals}
 

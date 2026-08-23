@@ -1600,15 +1600,17 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
                 </Button>
               )}
 
-              {/* Open review records when done and there are flagged items */}
-              {isDone && job.records_flagged > 0 && (
+              {/* Open review records when done and there are flagged or
+                  translation-pending items — guides the user to the review
+                  queue so they can complete the library. */}
+              {isDone && (job.records_flagged > 0 || manual.records_translation_pending > 0) && (
                 <button
                   type="button"
                   data-testid={`open-preload-reviews-${manual.filename}`}
                   onClick={() => onOpenReviews(Object.keys(LIBRARY_TYPE_LABELS).join(","), manual.filename)}
                   className="mt-2 block font-label text-[10px] tracking-widest text-gold hover:text-amber-200"
                 >
-                  APRI RECORD DA VERIFICARE
+                  COMPLETA LA REVISIONE
                 </button>
               )}
             </div>
