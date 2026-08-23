@@ -515,6 +515,84 @@ describe("CardEditor review scope", () => {
     }]);
   });
 
+  it("hides the retry translation button for a record with review_status verified", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({ data: { manuals: [] } });
+      }
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "verified-1",
+              name: "Classe verificata",
+              reference_type: "class",
+              source_refs: [{ filename: "manuale del giocatore.pdf", page: 5 }],
+              source_language: "es",
+              source_name: "Clase verificada",
+              translation_status: "failed",
+              needs_review: false,
+              review_status: "verified",
+              is_trusted: true,
+            }],
+          },
+        });
+      }
+      if (path === "/library/verified-1/review") {
+        return Promise.resolve({
+          data: {
+            id: "verified-1",
+            name: "Classe verificata",
+            source_language: "es",
+            source_name: "Clase verificada",
+            source_refs: [{ filename: "manuale del giocatore.pdf", page: 5, language: "es" }],
+            translation_status: "failed",
+            review_status: "verified",
+            review_notes: "Confermata manualmente.",
+            needs_review: false,
+            is_trusted: true,
+            review_reason: null,
+            original: { name: "Clase verificada", full_text: "Testo originale." },
+            translation: { name: "Classe verificata", full_text: "Testo tradotto." },
+            review_history: [{
+              reviewer_id: "owner-1",
+              reviewer_name: "Mago",
+              reviewer_email: "mago@example.com",
+              reviewed_at: "2026-08-22T12:00:00+00:00",
+              review_status: "verified",
+              review_notes: "Confermata manualmente.",
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?reviewTypes=class&reviewManual=manuale%20del%20giocatore.pdf"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    await act(async () => {
+      container.querySelector('[data-testid="source-reference-verified-1"]').click();
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/library/verified-1/review");
+    expect(container.querySelector('[data-testid="reference-source-panel"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="retry-reference-translation-verified-1"]')).toBeNull();
+  });
+
   it("compares a Spanish original with its translation and confirms it from review", async () => {
     await act(async () => {
       root.render(

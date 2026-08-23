@@ -1070,7 +1070,7 @@ export default function CardEditor() {
                           <p className="mt-1 font-heading text-base text-foreground">{sourceRecord.source_name || sourceRecord.name}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
-                          {sourceRecord.translation_status === "failed" && (
+                          {sourceRecord.translation_status === "failed" && sourceRecord.review_status !== "verified" && (
                             <button
                               type="button"
                               data-testid={`retry-reference-translation-${sourceRecord.id}`}
