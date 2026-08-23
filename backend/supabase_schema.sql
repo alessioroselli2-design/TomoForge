@@ -210,6 +210,8 @@ create table if not exists public.private_manual_import_jobs (
   records_updated integer not null default 0,
   records_flagged integer not null default 0,
   records_skipped integer not null default 0,
+  translation_retry_at timestamptz,
+  translation_retry_attempt integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   completed_at timestamptz,
@@ -232,6 +234,8 @@ alter table public.private_manual_import_jobs
   add column if not exists records_updated integer not null default 0,
   add column if not exists records_flagged integer not null default 0,
   add column if not exists records_skipped integer not null default 0,
+  add column if not exists translation_retry_at timestamptz,
+  add column if not exists translation_retry_attempt integer not null default 0,
   add column if not exists completed_at timestamptz;
 alter table public.private_manual_import_jobs
   drop constraint if exists private_manual_import_jobs_status_check;

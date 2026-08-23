@@ -3354,6 +3354,16 @@ def test_preload_worker_writes_retry_state_to_job(monkeypatch, tmp_path):
     assert snap.get("translation_retry_at") == "2026-08-23T12:00:30+00:00"
     assert snap.get("translation_retry_attempt") == 1  # attempt 0 → stored as 1
 
+    # After the retry loop finishes, the stale backoff state must be cleared so
+    # manual_preload_summary never shows a countdown for a completed retry cycle.
+    final_job = jobs.rows[0]
+    assert final_job.get("translation_retry_at") is None, (
+        "translation_retry_at should be cleared after retry loop completes"
+    )
+    assert int(final_job.get("translation_retry_attempt") or 0) == 0, (
+        "translation_retry_attempt should be reset to 0 after retry loop completes"
+    )
+
 def test_retry_rate_limited_without_job_updater_does_not_raise(monkeypatch):
     """Omitting job_updater (None) must work without errors."""
     records = server.MemoryCollection()

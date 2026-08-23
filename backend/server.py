@@ -2787,6 +2787,11 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
             "records_skipped": int(job.get("records_skipped") or 0) + report.skipped,
             "lease_id": "",
             "lease_expires_at": 0,
+            # Clear any stale retry-backoff state from the translation retry loop
+            # so manual_preload_summary never surfaces an in-progress countdown
+            # for a retry cycle that has already completed or was never needed.
+            "translation_retry_at": None,
+            "translation_retry_attempt": 0,
             "completed_at": utc_now() if next_status == "completed" else None,
             "updated_at": utc_now(),
         }},
