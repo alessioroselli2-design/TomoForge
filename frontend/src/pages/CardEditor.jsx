@@ -1089,9 +1089,18 @@ export default function CardEditor() {
                       <p className="mt-2 font-body text-[11px] text-muted-foreground">
                         {(sourceRecord.source_refs || []).map((ref) => `${ref.filename} · pagina ${ref.page}`).join(", ")}
                         {sourceRecord.is_trusted === false
-                          ? ` · BLOCCATO: ${sourceRecord.review_reason || "verifica necessaria prima dell’uso."}`
+                          ? ` · BLOCCATO: ${sourceRecord.review_reason || "verifica necessaria prima dell'uso."}`
                           : " · Fonte verificata e utilizzabile."}
                       </p>
+                      {sourceRecord.translation_status === "failed" && sourceRecord.review_status === "verified" && (
+                        <p
+                          data-testid="translation-failed-verified-notice"
+                          className="mt-2 flex items-start gap-1.5 font-body text-[11px] leading-relaxed text-amber-200/80"
+                        >
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                          La traduzione automatica ha avuto un errore ma il tuo contenuto manuale è confermato.
+                        </p>
+                      )}
                       {sourceRecord.needs_review && (
                         <div data-testid="reference-review-panel" className="mt-4 border-t border-sky-700/50 pt-4">
                           <div className="mb-3 flex items-center justify-between gap-3">
