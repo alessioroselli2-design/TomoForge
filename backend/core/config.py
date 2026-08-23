@@ -57,11 +57,34 @@ REFERENCE_MANUAL_FILENAMES = (
     "Warlock__1787233073462.pdf",
 )
 REFERENCE_MANUAL_METADATA = {
+    "Manuale_del_giocatore__1787259882002.pdf": {
+        "title": "Manuale del Giocatore",
+    },
+    "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf": {
+        "title": "Guida Onnicomprensiva di Xanathar",
+    },
+    "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf": {
+        "title": "Calderone Omnicomprensivo di Tasha",
+    },
+    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf": {
+        "title": "Manuale del Dungeon Master",
+    },
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": {
         "title": "Manual del Jugador",
         "language": "es",
         "native_text": True,
     },
+    "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf": {
+        "title": "Manuale dei Mostri",
+    },
+    "Bardo__1787233073462.pdf": {"title": "Bardo"},
+    "Chierico_1787233073462.pdf": {"title": "Chierico"},
+    "Druido__1787233073462.pdf": {"title": "Druido"},
+    "Mago__1787233073462.pdf": {"title": "Mago"},
+    "Paladino__1787233073462.pdf": {"title": "Paladino"},
+    "Ranger__1787233073462.pdf": {"title": "Ranger"},
+    "Stregone__1787233073462.pdf": {"title": "Stregone"},
+    "Warlock__1787233073462.pdf": {"title": "Warlock"},
 }
 # A parser revision is part of a source fingerprint only when a supplied
 # manual needs a targeted re-index.
@@ -106,7 +129,12 @@ for _class_manual in (
     "Stregone__1787233073462.pdf",
     "Warlock__1787233073462.pdf",
 ):
-    MANUAL_COVERAGE_CATEGORIES[_class_manual] = ("class", "subclass", "class_feature", "spell")
+    # Class-specific manuals import privileges/features mainly as "class_feature",
+    # "ability", or "other" depending on how cleanly the parser can classify each
+    # block. Include all relevant types so the coverage panel reflects actual records.
+    MANUAL_COVERAGE_CATEGORIES[_class_manual] = (
+        "class", "subclass", "class_feature", "ability", "spell", "other",
+    )
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
