@@ -579,6 +579,11 @@ def test_apply_reference_endpoint_accepts_verified_record_with_failed_translatio
         translation_status="failed",
         review_status="verified",
     )
+    # is_trusted must be True — the endpoint gate relies on it, not on translation_status
+    assert reference_is_trusted(record), (
+        "reference_is_trusted must return True when review_status='verified', "
+        "even when translation_status='failed'"
+    )
     monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
 
@@ -586,6 +591,33 @@ def test_apply_reference_endpoint_accepts_verified_record_with_failed_translatio
 
     assert result["name"] == "Guerriero"
     assert result["reference_id"] == record["id"]
+
+
+def test_apply_reference_endpoint_rejects_unverified_record_with_failed_translation(monkeypatch):
+    """POST /library/{id}/apply must return HTTP 409 when translation_status='failed'
+    and the record has NOT been manually verified (review_status != 'verified').
+    This proves the endpoint enforces the is_trusted gate, not a bypass of it."""
+    record = make_reference(
+        "Guerriero Non Verificato",
+        reference_type="class",
+        source_language="es",
+        source_name="Guerrero",
+        description="Un combattente marziale non ancora verificato.",
+        translation_status="failed",
+        review_status="pending",
+    )
+    # is_trusted must be False — a failed translation without human sign-off is blocked
+    assert not reference_is_trusted(record), (
+        "reference_is_trusted must return False when translation_status='failed' "
+        "and review_status is not 'verified'"
+    )
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
+
+    with pytest.raises(server.HTTPException, match="dato certo") as error:
+        asyncio.run(server.apply_private_reference(record["id"], user))
+
+    assert error.value.status_code == 409
 
 
 class MemoryReferences:
