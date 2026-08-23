@@ -756,17 +756,26 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 if "23505" not in str(insert_exc) and "duplicate key" not in str(insert_exc).lower():
                     raise
                 dup: Optional[dict] = None
+                # Search by PK without filtering on user_id: the constraint
+                # violation tells us the ID exists; we need to find it even if
+                # a previous import saved it under a mismatched user_id.
                 pk_rows = (
                     collection.client
                     .table("private_reference_records")
                     .select("*")
                     .eq("id", payload["id"])
-                    .eq("user_id", user_id)
                     .limit(1)
                     .execute()
                 )
                 if pk_rows.data:
-                    dup = pk_rows.data[0]
+                    existing_row = pk_rows.data[0]
+                    # Accept only if the conflicting record belongs to this user;
+                    # a cross-user ID collision means we cannot safely overwrite it.
+                    if existing_row.get("user_id") == user_id:
+                        dup = existing_row
+                    else:
+                        skipped += 1
+                        continue
                 if dup is None:
                     name_rows = (
                         collection.client
@@ -782,7 +791,10 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                     if name_rows.data:
                         dup = name_rows.data[0]
                 if dup is None:
-                    raise
+                    # Cannot locate the conflicting row — skip this record so the
+                    # rest of the import batch continues instead of aborting.
+                    skipped += 1
+                    continue
                 _merge_into_existing(dup, payload, record)
                 try:
                     await collection.update_one(
