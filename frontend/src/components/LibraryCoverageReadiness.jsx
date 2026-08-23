@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, AlertTriangle, Check, ChevronDown, ChevronUp, CircleDashed, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, ChevronDown, ChevronUp, CircleDashed, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +12,11 @@ const categoryNames = {
   trade_good: "Merci", service: "Servizi", other: "Altro",
 };
 
+const CATEGORY_PREVIEW_LIMIT = 5;
+
 const sum = (category, key) => Number(category?.[key] || 0);
 const totalFor = (manual, key) => (manual.categories || []).reduce((total, category) => total + sum(category, key), 0);
+const catCacheKey = (filename, type) => `${filename}\x00${type}`;
 
 function StatePill({ tone, children }) {
   const styles = {
@@ -31,8 +34,20 @@ export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange
   const [status, setStatus] = useState("loading");
   const [expanded, setExpanded] = useState(null);
 
+  // Category-level record list: null | { filename, type }
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  // "filename\0type" -> { loading: bool, records: [], error: bool }
+  const [categoryRecords, setCategoryRecords] = useState({});
+  // Tracks which keys have already been fetched so we never double-fetch
+  const fetchedCategoryKeys = useRef(new Set());
+
   const loadCoverage = useCallback(async () => {
     setStatus("loading");
+    // Reset category cache whenever coverage is reloaded so stale records
+    // don't linger after the user clicks "AGGIORNA".
+    setExpandedCategory(null);
+    setCategoryRecords({});
+    fetchedCategoryKeys.current = new Set();
     try {
       const response = await api.get("/library/coverage");
       const newTotals = response.data?.totals || { valid: 0, to_review: 0, missing: 0, translation_pending: 0 };
@@ -47,7 +62,38 @@ export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange
 
   useEffect(() => { loadCoverage(); }, [loadCoverage, refreshKey]);
 
+  const toggleCategory = useCallback(async (filename, type) => {
+    const isOpen = expandedCategory?.filename === filename && expandedCategory?.type === type;
+    setExpandedCategory(isOpen ? null : { filename, type });
+
+    if (isOpen) return;
+
+    const key = catCacheKey(filename, type);
+    // Guard: do not re-fetch if we already started a request for this key
+    if (fetchedCategoryKeys.current.has(key)) return;
+    fetchedCategoryKeys.current.add(key);
+
+    setCategoryRecords(prev => ({ ...prev, [key]: { loading: true, records: [], error: false } }));
+    try {
+      const resp = await api.get("/library", {
+        params: { types: type, source_filename: filename, review_only: true, include_unverified: true },
+      });
+      setCategoryRecords(prev => ({
+        ...prev,
+        [key]: { loading: false, records: resp.data?.records || [], error: false },
+      }));
+    } catch {
+      // Allow re-try on error by removing the key from the guard set
+      fetchedCategoryKeys.current.delete(key);
+      setCategoryRecords(prev => ({
+        ...prev,
+        [key]: { loading: false, records: [], error: true },
+      }));
+    }
+  }, [expandedCategory]);
+
   const classifiedRecords = useMemo(() => totals.valid + totals.to_review, [totals]);
+
   if (status === "loading") {
     return (
       <section data-testid="library-coverage-loading" className="border border-gold-deep/40 bg-card p-5">
@@ -76,6 +122,7 @@ export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange
       </section>
     );
   }
+
   return (
     <section data-testid="library-coverage" className="border border-gold-deep/50 bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -85,15 +132,14 @@ export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange
         </div>
         <button type="button" onClick={loadCoverage} className="flex items-center gap-1.5 font-label text-[10px] tracking-widest text-muted-foreground hover:text-gold"><RefreshCw className="h-3.5 w-3.5" />AGGIORNA</button>
       </div>
+
       <div className="mt-4 grid grid-cols-3 border-y border-border/70">
         {[["valid", "RECORD PRONTI", "ready"], ["to_review", "RECORD DA RIVEDERE", "review"], ["missing", "CATEGORIE SENZA RECORD", "missing"]].map(([key, label, tone]) => (
           <div key={key} className="border-r border-border/70 px-3 py-3 last:border-r-0"><p className="font-label text-[9px] tracking-widest text-muted-foreground">{label}</p><p className="mt-1 font-heading text-2xl text-foreground">{totals[key]}</p><StatePill tone={tone}>{key === "missing" ? "DA IMPORTARE" : classifiedRecords ? `${Math.round((totals[key] / classifiedRecords) * 100)}%` : "0%"}</StatePill></div>
         ))}
       </div>
 
-      {/* Translation pending strip — shown when records stalled on rate-limits
-          have not yet been manually verified. Links to the import dashboard
-          where the user can complete the verification. */}
+      {/* Translation pending strip */}
       {totals.translation_pending > 0 && (
         <div
           data-testid="coverage-translation-pending-strip"
@@ -116,42 +162,158 @@ export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange
 
       <div className="mt-4 space-y-2">
         {manuals.map((manual) => {
-          const ready = totalFor(manual, "valid"); const review = totalFor(manual, "to_review"); const missing = totalFor(manual, "missing");
+          const ready = totalFor(manual, "valid");
+          const review = totalFor(manual, "to_review");
+          const missing = totalFor(manual, "missing");
           const isOpen = expanded === manual.filename;
-          return <div key={manual.filename} className="border border-border/80 bg-obsidian/25">
-            <button type="button" onClick={() => setExpanded(isOpen ? null : manual.filename)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-secondary/40">
-              <CircleDashed className="h-4 w-4 shrink-0 text-gold/80" /><span className="min-w-0 flex-1"><strong className="block truncate font-heading text-base text-foreground">{manual.title || "Manuale importato"}</strong><small className="font-body text-[11px] text-muted-foreground">{manual.source_language?.toUpperCase() || "—"} · {ready + review} record classificati · {missing} categorie senza record</small></span>
-              <span className="hidden gap-1.5 sm:flex"><StatePill tone="ready"><Check className="h-3 w-3" />{ready}</StatePill><StatePill tone="review">{review}</StatePill><StatePill tone="missing">{missing}</StatePill></span>{isOpen ? <ChevronUp className="h-4 w-4 text-gold" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {isOpen && <div className="border-t border-border/70 px-3 pb-3 pt-2">
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                {(manual.categories || []).map((category) => {
-                  const cReady = sum(category, "valid"); const cReview = sum(category, "to_review"); const cMissing = sum(category, "missing");
-                  const usefulness = cReady ? "UTILIZZABILE" : cReview ? "RICHIEDE REVISIONE" : "NON DISPONIBILE";
-                  return (
-                    <div key={category.reference_type} className="flex flex-col gap-1 border border-border/60 px-2.5 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="min-w-0 flex-1 truncate font-body text-xs text-foreground">{categoryNames[category.reference_type] || category.reference_type}</span>
-                        <span className={`font-label text-[9px] tracking-widest ${cReady ? "text-emerald-300" : cReview ? "text-amber-200" : "text-red-300"}`}>{usefulness}</span>
-                        <span className="font-body text-[11px] text-muted-foreground">{cReady} pronti · {cReview} da rivedere{cMissing ? " · nessun record" : ""}</span>
-                        {cReview > 0 && <button type="button" onClick={() => onOpenReviews?.(category.reference_type, manual.filename)} className="font-label text-[9px] tracking-widest text-gold hover:text-amber-200">REVISIONI</button>}
-                      </div>
-                      {/* For empty categories, suggest where to import records from */}
-                      {cMissing > 0 && !cReady && !cReview && (
-                        <p className="font-body text-[10px] text-muted-foreground">
-                          Nessun record importato da questo manuale.{" "}
-                          <Link to="/crea#editor-library-import" className="text-gold/70 hover:text-gold">
-                            Avvia importazione →
-                          </Link>
-                        </p>
+          return (
+            <div key={manual.filename} className="border border-border/80 bg-obsidian/25">
+              <button
+                type="button"
+                onClick={() => setExpanded(isOpen ? null : manual.filename)}
+                className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-secondary/40"
+              >
+                <CircleDashed className="h-4 w-4 shrink-0 text-gold/80" />
+                <span className="min-w-0 flex-1">
+                  <strong className="block truncate font-heading text-base text-foreground">{manual.title || "Manuale importato"}</strong>
+                  <small className="font-body text-[11px] text-muted-foreground">
+                    {manual.source_language?.toUpperCase() || "—"} · {ready + review} record classificati · {missing} categorie senza record
+                  </small>
+                </span>
+                <span className="hidden gap-1.5 sm:flex">
+                  <StatePill tone="ready"><Check className="h-3 w-3" />{ready}</StatePill>
+                  <StatePill tone="review">{review}</StatePill>
+                  <StatePill tone="missing">{missing}</StatePill>
+                </span>
+                {isOpen ? <ChevronUp className="h-4 w-4 text-gold" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+
+              {isOpen && (
+                <div className="border-t border-border/70 px-3 pb-3 pt-2">
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    {(manual.categories || []).map((category) => {
+                      const cReady = sum(category, "valid");
+                      const cReview = sum(category, "to_review");
+                      const cMissing = sum(category, "missing");
+                      const usefulness = cReady ? "UTILIZZABILE" : cReview ? "RICHIEDE REVISIONE" : "NON DISPONIBILE";
+                      const isCatOpen = expandedCategory?.filename === manual.filename && expandedCategory?.type === category.reference_type;
+                      const catData = categoryRecords[catCacheKey(manual.filename, category.reference_type)];
+                      return (
+                        <div
+                          key={category.reference_type}
+                          className="flex flex-col gap-1 border border-border/60 px-2.5 py-2"
+                        >
+                          {/* Category header row */}
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-0 flex-1 truncate font-body text-xs text-foreground">
+                              {categoryNames[category.reference_type] || category.reference_type}
+                            </span>
+                            <span className={`font-label text-[9px] tracking-widest ${cReady ? "text-emerald-300" : cReview ? "text-amber-200" : "text-red-300"}`}>
+                              {usefulness}
+                            </span>
+                            <span className="font-body text-[11px] text-muted-foreground">
+                              {cReady} pronti · {cReview} da rivedere{cMissing ? " · nessun record" : ""}
+                            </span>
+                            {cReview > 0 && (
+                              <button
+                                type="button"
+                                data-testid={`expand-category-${manual.filename}-${category.reference_type}`}
+                                onClick={() => toggleCategory(manual.filename, category.reference_type)}
+                                className="font-label text-[9px] tracking-widest text-gold hover:text-amber-200"
+                                aria-expanded={isCatOpen}
+                              >
+                                {isCatOpen
+                                  ? <ChevronUp className="inline h-3 w-3" />
+                                  : <ChevronDown className="inline h-3 w-3" />}
+                                {" "}REVISIONI
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Inline record list for "RICHIEDE REVISIONE" categories */}
+                          {cReview > 0 && isCatOpen && (
+                            <div
+                              data-testid={`category-records-list-${manual.filename}-${category.reference_type}`}
+                              className="mt-1 border-t border-border/50 pt-1.5"
+                            >
+                              {catData?.loading && (
+                                <p className="flex items-center gap-1.5 font-body text-[11px] text-muted-foreground">
+                                  <Loader2 className="h-3 w-3 animate-spin" />Caricamento record…
+                                </p>
+                              )}
+                              {catData?.error && (
+                                <p className="font-body text-[11px] text-red-300">Impossibile caricare i record.</p>
+                              )}
+                              {catData && !catData.loading && !catData.error && catData.records.length === 0 && (
+                                <p className="font-body text-[11px] text-muted-foreground">Nessun record da verificare trovato.</p>
+                              )}
+                              {catData && !catData.loading && !catData.error && catData.records.length > 0 && (
+                                <ul className="space-y-0.5">
+                                  {catData.records.slice(0, CATEGORY_PREVIEW_LIMIT).map((record) => (
+                                    <li
+                                      key={record.id}
+                                      data-testid={`category-record-item-${record.id}`}
+                                      className="flex items-center justify-between gap-2"
+                                    >
+                                      <span className="min-w-0 flex-1 truncate font-body text-[11px] text-foreground">
+                                        {record.name}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenReviews?.(category.reference_type, manual.filename)}
+                                        className="shrink-0 font-label text-[9px] tracking-widest text-gold hover:text-amber-200"
+                                      >
+                                        Rivedi →
+                                      </button>
+                                    </li>
+                                  ))}
+                                  {catData.records.length > CATEGORY_PREVIEW_LIMIT && (
+                                    <li>
+                                      <button
+                                        type="button"
+                                        data-testid={`category-records-overflow-${manual.filename}-${category.reference_type}`}
+                                        onClick={() => onOpenReviews?.(category.reference_type, manual.filename)}
+                                        className="font-body text-[11px] text-muted-foreground hover:text-gold"
+                                      >
+                                        e altri {catData.records.length - CATEGORY_PREVIEW_LIMIT} →
+                                      </button>
+                                    </li>
+                                  )}
+                                </ul>
+                              )}
+                            </div>
+                          )}
+
+                          {/* For empty categories, suggest where to import records from */}
+                          {cMissing > 0 && !cReady && !cReview && (
+                            <p className="font-body text-[10px] text-muted-foreground">
+                              Nessun record importato da questo manuale.{" "}
+                              <Link to="/crea#editor-library-import" className="text-gold/70 hover:text-gold">
+                                Avvia importazione →
+                              </Link>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {onOpenReviews && review > 0 && (
+                    <Button
+                      type="button"
+                      onClick={() => onOpenReviews(
+                        (manual.categories || []).filter((c) => c.to_review).map((c) => c.reference_type).join(","),
+                        manual.filename,
                       )}
-                    </div>
-                  );
-                })}
-              </div>
-              {onOpenReviews && review > 0 && <Button type="button" onClick={() => onOpenReviews((manual.categories || []).filter((c) => c.to_review).map((c) => c.reference_type).join(","), manual.filename)} className="mt-3 rounded-none bg-amber-700 px-3 font-label text-[10px] tracking-widest text-white hover:bg-amber-600">APRI RECORD DA RIVEDERE</Button>}
-            </div>}
-          </div>;
+                      className="mt-3 rounded-none bg-amber-700 px-3 font-label text-[10px] tracking-widest text-white hover:bg-amber-600"
+                    >
+                      APRI RECORD DA RIVEDERE
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
         })}
       </div>
     </section>

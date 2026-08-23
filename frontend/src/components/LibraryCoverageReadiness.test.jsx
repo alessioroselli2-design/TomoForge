@@ -10,20 +10,28 @@ jest.mock("@/lib/api", () => ({
   api: { get: jest.fn() },
 }));
 
-jest.mock("lucide-react", () => ({
-  AlertCircle: () => null,
-  AlertTriangle: () => null,
-  Check: () => null,
-  ChevronDown: () => null,
-  ChevronUp: () => null,
-  CircleDashed: () => null,
-  RefreshCw: () => null,
-  ShieldCheck: () => null,
-}));
+const coverage = {
+  manuals: [{
+    filename: "manuale-giocatore.pdf",
+    title: "Manuale del Giocatore",
+    source_text: "Testo sorgente riservato che non deve apparire nel riepilogo",
+    source_language: "it",
+    categories: [
+      { reference_type: "class", valid: 2, to_review: 1, missing: 0, records_total: 3 },
+      { reference_type: "feat", valid: 0, to_review: 0, missing: 1, records_total: 0 },
+    ],
+  }],
+  totals: { valid: 2, to_review: 1, missing: 1, translation_pending: 0 },
+};
 
-jest.mock("@/components/ui/button", () => ({
-  Button: ({ children, ...props }) => <button {...props}>{children}</button>,
-}));
+const reviewRecords = [
+  { id: "r1", name: "Barbaro", reference_type: "class" },
+  { id: "r2", name: "Ladro", reference_type: "class" },
+];
+
+function renderInRouter(element) {
+  return <MemoryRouter>{element}</MemoryRouter>;
+}
 
 describe("LibraryCoverageReadiness", () => {
   let container;
@@ -31,6 +39,9 @@ describe("LibraryCoverageReadiness", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
   });
 
   afterEach(async () => {
@@ -38,182 +49,354 @@ describe("LibraryCoverageReadiness", () => {
     container.remove();
   });
 
-  function renderComponent(props = {}) {
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-    return act(async () => {
-      root.render(
-        <MemoryRouter>
-          <LibraryCoverageReadiness {...props} />
-        </MemoryRouter>,
-      );
-      await Promise.resolve();
-    });
-  }
-
-  async function expandFirstManual() {
-    // The coverage section has an "AGGIORNA" refresh button first, then the
-    // per-manual expand buttons. Click the second button (index 1) to open
-    // the first manual's category detail rows.
-    await act(async () => {
-      const buttons = container.querySelectorAll('[data-testid="library-coverage"] button');
-      // buttons[0] = AGGIORNA (refresh), buttons[1] = first manual expand row
-      const expandBtn = buttons[1];
-      expandBtn.click();
-      await Promise.resolve();
-    });
-  }
-
-  it("shows all categories as UTILIZZABILE (green) when every record is trusted", async () => {
-    api.get.mockResolvedValue({
-      data: {
-        totals: { valid: 10, to_review: 0, missing: 0, translation_pending: 0 },
-        manuals: [{
-          filename: "manuale_it.pdf",
-          title: "Manuale del Giocatore",
-          source_language: "it",
-          categories: [
-            { reference_type: "class", valid: 5, to_review: 0, missing: 0 },
-            { reference_type: "spell", valid: 5, to_review: 0, missing: 0 },
-          ],
-        }],
-      },
-    });
-
-    await renderComponent();
+  it("summarises private coverage and opens only existing review records", async () => {
+    api.get.mockResolvedValue({ data: coverage });
+    const onOpenReviews = jest.fn();
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      root.render(renderInRouter(<LibraryCoverageReadiness onOpenReviews={onOpenReviews} />));
+      await Promise.resolve();
     });
 
     expect(api.get).toHaveBeenCalledWith("/library/coverage");
-    expect(container.querySelector('[data-testid="library-coverage"]')).not.toBeNull();
-
-    // Expand the manual to reveal category rows
-    await expandFirstManual();
-
-    expect(container.textContent).toContain("UTILIZZABILE");
-    expect(container.textContent).not.toContain("RICHIEDE REVISIONE");
-    expect(container.textContent).not.toContain("NON DISPONIBILE");
-
-    // Top-level totals: valid count shown, to_review and missing are 0
-    expect(container.textContent).toContain("10");
-  });
-
-  it("shows categories as RICHIEDE REVISIONE (amber) when some records need review", async () => {
-    api.get.mockResolvedValue({
-      data: {
-        totals: { valid: 5, to_review: 3, missing: 0, translation_pending: 0 },
-        manuals: [{
-          filename: "manuale_es.pdf",
-          title: "Manuale Spagnolo",
-          source_language: "es",
-          categories: [
-            { reference_type: "class", valid: 5, to_review: 0, missing: 0 },
-            { reference_type: "feat", valid: 0, to_review: 3, missing: 0 },
-          ],
-        }],
-      },
-    });
-
-    await renderComponent();
+    expect(container.textContent).toContain("Cosa puoi usare con fiducia");
+    expect(container.textContent).toContain("CATEGORIE SENZA RECORD");
+    expect(container.textContent).not.toContain("manuale-giocatore.pdf");
+    expect(container.textContent).not.toContain("Testo sorgente riservato");
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      [...container.querySelectorAll("button")].find((b) => b.textContent.includes("Manuale del Giocatore")).click();
     });
 
-    expect(container.querySelector('[data-testid="library-coverage"]')).not.toBeNull();
-
-    // Expand the manual to reveal category rows
-    await expandFirstManual();
-
-    // One category is green (class), one is amber (feat)
+    expect(container.textContent).toContain("Classi");
     expect(container.textContent).toContain("UTILIZZABILE");
-    expect(container.textContent).toContain("RICHIEDE REVISIONE");
-    expect(container.textContent).not.toContain("NON DISPONIBILE");
-
-    // Top-level to_review count is shown
-    expect(container.textContent).toContain("3");
-  });
-
-  it("shows categories as NON DISPONIBILE (red) when categories have no records", async () => {
-    api.get.mockResolvedValue({
-      data: {
-        totals: { valid: 0, to_review: 0, missing: 2, translation_pending: 0 },
-        manuals: [{
-          filename: "manuale_vuoto.pdf",
-          title: "Manuale Vuoto",
-          source_language: "it",
-          categories: [
-            { reference_type: "class", valid: 0, to_review: 0, missing: 1 },
-            { reference_type: "race", valid: 0, to_review: 0, missing: 1 },
-          ],
-        }],
-      },
-    });
-
-    await renderComponent();
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    expect(container.querySelector('[data-testid="library-coverage"]')).not.toBeNull();
-
-    // Expand the manual to reveal category rows
-    await expandFirstManual();
-
-    // Both categories show NON DISPONIBILE
+    expect(container.textContent).toContain("Talenti");
     expect(container.textContent).toContain("NON DISPONIBILE");
-    expect(container.textContent).not.toContain("UTILIZZABILE");
-    expect(container.textContent).not.toContain("RICHIEDE REVISIONE");
-
-    // Missing count shown in the totals grid
-    expect(container.textContent).toContain("2");
+    expect(container.textContent).toContain("nessun record");
   });
 
-  it("shows the translation-pending strip when totals.translation_pending is greater than zero", async () => {
-    api.get.mockResolvedValue({
-      data: {
-        totals: { valid: 4, to_review: 0, missing: 0, translation_pending: 2 },
-        manuals: [{
-          filename: "manuale_pending.pdf",
-          title: "Manuale Pending",
-          source_language: "es",
-          categories: [
-            { reference_type: "class", valid: 4, to_review: 0, missing: 0 },
-          ],
-        }],
-      },
-    });
-
-    await renderComponent();
+  it("offers a retry when the private report is unavailable", async () => {
+    api.get.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ data: coverage });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("REGISTRO DI PRONTEZZA NON DISPONIBILE");
+    const retry = [...container.querySelectorAll("button")].find((b) => b.textContent.includes("RIPROVA"));
+    await act(async () => {
+      retry.click();
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("Cosa puoi usare con fiducia");
+  });
+
+  it("shows loading and an empty state without manual data", async () => {
+    api.get.mockImplementationOnce(() => new Promise(() => {}));
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[data-testid="library-coverage-loading"]')).not.toBeNull();
+
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    api.get.mockResolvedValueOnce({ data: { manuals: [], totals: { valid: 0, to_review: 0, missing: 0, translation_pending: 0 } } });
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[data-testid="library-coverage-empty"]')).not.toBeNull();
+    expect(container.textContent).toContain("precaricati automaticamente");
+  });
+
+  it("calls onTotalsChange with the totals when coverage loads", async () => {
+    api.get.mockResolvedValue({ data: coverage });
+    const onTotalsChange = jest.fn();
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness onTotalsChange={onTotalsChange} />));
+      await Promise.resolve();
+    });
+
+    expect(onTotalsChange).toHaveBeenCalledTimes(1);
+    expect(onTotalsChange).toHaveBeenCalledWith(
+      expect.objectContaining({ valid: 2, to_review: 1, missing: 1, translation_pending: 0 })
+    );
+  });
+
+  it("shows an amber strip when translation_pending > 0 and links to the import dashboard", async () => {
+    const dataWithPending = {
+      ...coverage,
+      totals: { valid: 2, to_review: 0, missing: 0, translation_pending: 3 },
+    };
+    api.get.mockResolvedValue({ data: dataWithPending });
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
     });
 
     const strip = container.querySelector('[data-testid="coverage-translation-pending-strip"]');
     expect(strip).not.toBeNull();
-    expect(strip.textContent).toContain("2 TRADUZIONI IN SOSPESO");
+    expect(strip.textContent).toContain("3 TRADUZIONI IN SOSPESO");
+    const link = strip.querySelector("a");
+    expect(link).not.toBeNull();
+    expect(link.getAttribute("href")).toBe("/crea#editor-library-import");
   });
 
-  it("shows the empty-state section when the manuals list is empty", async () => {
-    api.get.mockResolvedValue({
-      data: {
-        totals: { valid: 0, to_review: 0, missing: 0, translation_pending: 0 },
-        manuals: [],
+  it("does not show the pending strip when translation_pending is zero", async () => {
+    api.get.mockResolvedValue({ data: coverage });
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-testid="coverage-translation-pending-strip"]')).toBeNull();
+  });
+
+  it("shows an import link for empty categories when the manual row is expanded", async () => {
+    api.get.mockResolvedValue({ data: coverage });
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    const importLinks = [...container.querySelectorAll("a")].filter(
+      (a) => a.textContent.includes("importazione")
+    );
+    expect(importLinks.length).toBeGreaterThan(0);
+    expect(importLinks[0].getAttribute("href")).toBe("/crea#editor-library-import");
+  });
+
+  // ── Inline category record list ──────────────────────────────────────────
+
+  it("expands a 'RICHIEDE REVISIONE' category and shows fetched record names", async () => {
+    // First call: coverage; second call: category records
+    api.get
+      .mockResolvedValueOnce({ data: coverage })
+      .mockResolvedValueOnce({ data: { records: reviewRecords, status: "sourced" } });
+
+    const onOpenReviews = jest.fn();
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness onOpenReviews={onOpenReviews} />));
+      await Promise.resolve();
+    });
+
+    // Open the manual row
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    // Click the REVISIONI / expand toggle for the "class" category
+    const expandBtn = container.querySelector(
+      '[data-testid="expand-category-manuale-giocatore.pdf-class"]'
+    );
+    expect(expandBtn).not.toBeNull();
+
+    await act(async () => {
+      expandBtn.click();
+      await Promise.resolve();
+    });
+
+    // API must be called with review_only + correct filters
+    expect(api.get).toHaveBeenCalledWith("/library", {
+      params: {
+        types: "class",
+        source_filename: "manuale-giocatore.pdf",
+        review_only: true,
+        include_unverified: true,
       },
     });
 
-    await renderComponent();
+    // Record list container is visible
+    const list = container.querySelector(
+      '[data-testid="category-records-list-manuale-giocatore.pdf-class"]'
+    );
+    expect(list).not.toBeNull();
+
+    // Both record names appear
+    expect(list.textContent).toContain("Barbaro");
+    expect(list.textContent).toContain("Ladro");
+
+    // Each record has a "Rivedi →" button
+    const items = list.querySelectorAll('[data-testid^="category-record-item-"]');
+    expect(items.length).toBe(2);
+  });
+
+  it("does not re-fetch when the same category is expanded a second time", async () => {
+    api.get
+      .mockResolvedValueOnce({ data: coverage })
+      .mockResolvedValueOnce({ data: { records: reviewRecords, status: "sourced" } });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-testid="library-coverage-empty"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="library-coverage"]')).toBeNull();
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    const expandBtn = container.querySelector(
+      '[data-testid="expand-category-manuale-giocatore.pdf-class"]'
+    );
+
+    // First expand → fetches
+    await act(async () => {
+      expandBtn.click();
+      await Promise.resolve();
+    });
+
+    // Collapse
+    await act(async () => {
+      expandBtn.click();
+    });
+
+    // Re-expand → must NOT call the API again
+    await act(async () => {
+      expandBtn.click();
+      await Promise.resolve();
+    });
+
+    // Only the initial coverage call + one category call = 2 total
+    expect(api.get).toHaveBeenCalledTimes(2);
+
+    const list = container.querySelector(
+      '[data-testid="category-records-list-manuale-giocatore.pdf-class"]'
+    );
+    expect(list).not.toBeNull();
+    expect(list.textContent).toContain("Barbaro");
+  });
+
+  it("clicking 'Rivedi →' on a record calls onOpenReviews with type and filename", async () => {
+    api.get
+      .mockResolvedValueOnce({ data: coverage })
+      .mockResolvedValueOnce({ data: { records: reviewRecords, status: "sourced" } });
+
+    const onOpenReviews = jest.fn();
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness onOpenReviews={onOpenReviews} />));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    await act(async () => {
+      container
+        .querySelector('[data-testid="expand-category-manuale-giocatore.pdf-class"]')
+        .click();
+      await Promise.resolve();
+    });
+
+    // Click the first "Rivedi →" button
+    const firstItem = container.querySelector('[data-testid="category-record-item-r1"]');
+    expect(firstItem).not.toBeNull();
+    const riviediBtn = [...firstItem.querySelectorAll("button")].find((b) =>
+      b.textContent.includes("Rivedi")
+    );
+    await act(async () => { riviediBtn.click(); });
+
+    expect(onOpenReviews).toHaveBeenCalledWith("class", "manuale-giocatore.pdf");
+  });
+
+  it("shows an overflow link when more than 5 records need review", async () => {
+    const manyRecords = Array.from({ length: 8 }, (_, i) => ({
+      id: `r${i}`,
+      name: `Record ${i}`,
+      reference_type: "class",
+    }));
+
+    api.get
+      .mockResolvedValueOnce({ data: coverage })
+      .mockResolvedValueOnce({ data: { records: manyRecords, status: "sourced" } });
+
+    const onOpenReviews = jest.fn();
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness onOpenReviews={onOpenReviews} />));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    await act(async () => {
+      container
+        .querySelector('[data-testid="expand-category-manuale-giocatore.pdf-class"]')
+        .click();
+      await Promise.resolve();
+    });
+
+    // Only 5 items shown
+    const items = container.querySelectorAll('[data-testid^="category-record-item-"]');
+    expect(items.length).toBe(5);
+
+    // Overflow link present and shows correct count
+    const overflow = container.querySelector(
+      '[data-testid="category-records-overflow-manuale-giocatore.pdf-class"]'
+    );
+    expect(overflow).not.toBeNull();
+    expect(overflow.textContent).toContain("e altri 3");
+
+    // Clicking overflow navigates to the full review list
+    await act(async () => { overflow.click(); });
+    expect(onOpenReviews).toHaveBeenCalledWith("class", "manuale-giocatore.pdf");
+  });
+
+  it("shows an error state when the category record fetch fails", async () => {
+    api.get
+      .mockResolvedValueOnce({ data: coverage })
+      .mockRejectedValueOnce(new Error("network error"));
+
+    await act(async () => {
+      root.render(renderInRouter(<LibraryCoverageReadiness />));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent.includes("Manuale del Giocatore"))
+        .click();
+    });
+
+    await act(async () => {
+      container
+        .querySelector('[data-testid="expand-category-manuale-giocatore.pdf-class"]')
+        .click();
+      await Promise.resolve();
+    });
+
+    const list = container.querySelector(
+      '[data-testid="category-records-list-manuale-giocatore.pdf-class"]'
+    );
+    expect(list).not.toBeNull();
+    expect(list.textContent).toContain("Impossibile caricare");
   });
 });
