@@ -6,13 +6,21 @@ import {
   typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE, FRAME_STYLES, TITLE_EFFECTS,
 } from "@/lib/cardTypes";
 import { useI18n } from "@/lib/i18n";
+import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 
 const EMBLEM_ICONS = {
   flame: Flame, skull: Skull, dragon: Sparkles, sword: Sword,
   moon: Moon, eye: Eye, shield: Shield, star: Star,
 };
 
-const PLACEHOLDER = "https://images.unsplash.com/photo-1769221909977-dafd61c79a3d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxkYXJrJTIwZmFudGFzeSUyMGNoYXJhY3RlciUyMHBvcnRyYWl0fGVufDB8fHx8MTc4NzAzMjcyOXww&ixlib=rb-4.1.0&q=85";
+const PLACEHOLDER = artworkPlaceholder;
+
+const handleArtworkError = (e) => {
+  if (!e.currentTarget.dataset.fallback) {
+    e.currentTarget.dataset.fallback = "1";
+    e.currentTarget.src = artworkPlaceholder;
+  }
+};
 
 const isScalar = (v) => typeof v === "string" || typeof v === "number";
 
@@ -89,9 +97,10 @@ const QuickStats = ({ card, exportMode }) => {
   );
 };
 
-export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) => {
+export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
   const { t } = useI18n();
   const TypeIcon = typeIcon(card.type);
+  const hasArtwork = !!(imgUrl || card.artwork_path);
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
   const qrValue = `${window.location.origin}/p/${card.id}`;
   const frame = card.frame || "gold";
@@ -137,8 +146,15 @@ export const CardFront = React.forwardRef(({ card, exportMode, imgUrl }, ref) =>
       </div>
       <hr className="tf-divider mx-3" aria-hidden="true" />
       {/* artwork */}
-      <div className="flex-none mx-3 mt-2 border border-gold-deep/60 overflow-hidden bg-obsidian" style={{ aspectRatio: "1.35" }}>
-        <img src={img} alt={card.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
+      <div className="relative flex-none mx-3 mt-2 border border-gold-deep/60 overflow-hidden bg-obsidian" style={{ aspectRatio: "1.35" }}>
+        <img src={img} alt={card.name} className="w-full h-full object-cover" crossOrigin="anonymous" onError={handleArtworkError} />
+        {editorMode && !hasArtwork && (
+          <div className="absolute inset-0 flex flex-col items-center justify-end pb-2 pointer-events-none">
+            <p className="font-label text-[7px] tracking-widest text-gold/60 text-center px-2 leading-tight">
+              USA &ldquo;GENERA ARTWORK&rdquo; O &ldquo;CARICA IMMAGINE&rdquo;
+            </p>
+          </div>
+        )}
       </div>
       {/* body */}
       <div className="min-h-0 flex-1 px-3 py-2 overflow-hidden">

@@ -1361,7 +1361,7 @@ export default function CardEditor() {
             <div className="lg:sticky lg:top-24 h-fit lg:max-h-[calc(100vh-7rem)]">
             <p className="font-label text-xs tracking-widest text-gold/70 mb-3 text-center">ANTEPRIMA</p>
             <motion.div layout className="mx-auto" style={{ width: 280, aspectRatio: "2.5/3.5" }}>
-              {showBack ? <CardBack card={card} /> : <CardFront card={card} />}
+              {showBack ? <CardBack card={card} /> : <CardFront card={card} editorMode />}
             </motion.div>
             <div className="flex justify-center mt-4">
               <button data-testid="preview-flip" onClick={() => setShowBack((s) => !s)}

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 200" width="270" height="200">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1c1410"/>
+      <stop offset="100%" stop-color="#0c0a09"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d4af37" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#d4af37" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="270" height="200" fill="url(#bg)"/>
+  <rect width="270" height="200" fill="url(#glow)"/>
+
+  <!-- Outer decorative border -->
+  <rect x="10" y="10" width="250" height="180" fill="none" stroke="#d4af37" stroke-width="0.6" stroke-opacity="0.25" rx="1"/>
+  <rect x="14" y="14" width="242" height="172" fill="none" stroke="#d4af37" stroke-width="0.3" stroke-opacity="0.15" rx="1"/>
+
+  <!-- Corner ornaments -->
+  <text x="12" y="26" font-size="10" fill="#d4af37" fill-opacity="0.35" font-family="serif">✦</text>
+  <text x="250" y="26" font-size="10" fill="#d4af37" fill-opacity="0.35" font-family="serif">✦</text>
+  <text x="12" y="198" font-size="10" fill="#d4af37" fill-opacity="0.35" font-family="serif">✦</text>
+  <text x="250" y="198" font-size="10" fill="#d4af37" fill-opacity="0.35" font-family="serif">✦</text>
+
+  <!-- Central arcane circle -->
+  <circle cx="135" cy="96" r="48" fill="none" stroke="#d4af37" stroke-width="0.8" stroke-opacity="0.3"/>
+  <circle cx="135" cy="96" r="42" fill="none" stroke="#d4af37" stroke-width="0.4" stroke-opacity="0.18" stroke-dasharray="4 3"/>
+  <circle cx="135" cy="96" r="33" fill="none" stroke="#d4af37" stroke-width="0.5" stroke-opacity="0.22"/>
+
+  <!-- Inner rune marks on circle -->
+  <line x1="135" y1="48" x2="135" y2="54" stroke="#d4af37" stroke-width="1" stroke-opacity="0.4"/>
+  <line x1="135" y1="138" x2="135" y2="144" stroke="#d4af37" stroke-width="1" stroke-opacity="0.4"/>
+  <line x1="87" y1="96" x2="93" y2="96" stroke="#d4af37" stroke-width="1" stroke-opacity="0.4"/>
+  <line x1="177" y1="96" x2="183" y2="96" stroke="#d4af37" stroke-width="1" stroke-opacity="0.4"/>
+
+  <!-- Arcane symbol: simplified eye / sigil -->
+  <ellipse cx="135" cy="96" rx="14" ry="8" fill="none" stroke="#d4af37" stroke-width="0.8" stroke-opacity="0.45"/>
+  <circle cx="135" cy="96" r="4" fill="none" stroke="#d4af37" stroke-width="0.8" stroke-opacity="0.45"/>
+  <circle cx="135" cy="96" r="1.5" fill="#d4af37" fill-opacity="0.35"/>
+
+  <!-- Four-pointed star at centre -->
+  <path d="M135 84 L136.5 94.5 L147 96 L136.5 97.5 L135 108 L133.5 97.5 L123 96 L133.5 94.5 Z"
+        fill="#d4af37" fill-opacity="0.18"/>
+
+  <!-- Caption text: primary -->
+  <text x="135" y="158" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="9.5" letter-spacing="2" fill="#d4af37" fill-opacity="0.65">
+    ARTWORK NON ANCORA GENERATO
+  </text>
+
+  <!-- Decorative line above text -->
+  <line x1="70" y1="148" x2="200" y2="148" stroke="#d4af37" stroke-width="0.4" stroke-opacity="0.25"/>
+</svg>
