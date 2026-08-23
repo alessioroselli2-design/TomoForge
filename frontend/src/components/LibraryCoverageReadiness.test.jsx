@@ -400,6 +400,58 @@ describe("LibraryCoverageReadiness", () => {
     expect(list.textContent).toContain("Impossibile caricare");
   });
 
+  it("reloads coverage when the parent increments refreshKey", async () => {
+    const updatedCoverage = {
+      manuals: [{
+        filename: "manuale-giocatore.pdf",
+        title: "Manuale del Giocatore",
+        source_language: "it",
+        categories: [
+          { reference_type: "class", valid: 5, to_review: 0, missing: 0, records_total: 5 },
+        ],
+      }],
+      totals: { valid: 5, to_review: 0, missing: 0, translation_pending: 0 },
+    };
+
+    api.get
+      .mockResolvedValueOnce({ data: coverage })           // 1: initial load (refreshKey=0)
+      .mockResolvedValueOnce({ data: updatedCoverage });   // 2: reload (refreshKey=1)
+
+    const onTotalsChange = jest.fn();
+
+    // Initial render with refreshKey=0
+    await act(async () => {
+      root.render(renderInRouter(
+        <LibraryCoverageReadiness refreshKey={0} onTotalsChange={onTotalsChange} />
+      ));
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Cosa puoi usare con fiducia");
+    expect(onTotalsChange).toHaveBeenCalledTimes(1);
+    expect(onTotalsChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ valid: 2, to_review: 1, missing: 1 })
+    );
+
+    // Parent increments refreshKey → must trigger a second coverage fetch
+    await act(async () => {
+      root.render(renderInRouter(
+        <LibraryCoverageReadiness refreshKey={1} onTotalsChange={onTotalsChange} />
+      ));
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledTimes(2);
+    // onTotalsChange called again with the new totals
+    expect(onTotalsChange).toHaveBeenCalledTimes(2);
+    expect(onTotalsChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ valid: 5, to_review: 0, missing: 0 })
+    );
+    // Panel still renders correctly after reload
+    expect(container.textContent).toContain("Cosa puoi usare con fiducia");
+  });
+
   it("retries the category record fetch when the user collapses and re-expands after an error", async () => {
     api.get
       .mockResolvedValueOnce({ data: coverage })                                            // 1: coverage
