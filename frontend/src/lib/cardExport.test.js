@@ -380,4 +380,96 @@ describe("card export renderers", () => {
     expect(pdf.addPage).not.toHaveBeenCalled();
     expect(pdf.addImage).toHaveBeenCalledTimes(1);
   });
+
+  it("renders cleanly with the SVG placeholder when artwork_path is null", async () => {
+    // Simulate the export element's img being the SVG placeholder that loaded successfully.
+    // The placeholder SVG is 270×200 — naturalWidth > 0 means the canvas draws it normally.
+    const svgArtwork = { complete: true, naturalWidth: 270, naturalHeight: 200 };
+    const qr = { toDataURL: () => "data:image/png;base64,qr" };
+    const element = {
+      querySelectorAll: () => [svgArtwork],
+      querySelector: (selector) => (selector === "img" ? svgArtwork : selector === "canvas" ? qr : null),
+    };
+    const card = {
+      id: "no-artwork-spell",
+      type: "spell",
+      name: "Tempesta Arcana",
+      artwork_path: null,
+      attributes: { livello: "3" },
+    };
+
+    const canvas = await renderCardCanvas(element, card);
+
+    // Canvas completes and has correct physical dimensions.
+    expect(canvas.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
+    expect(canvas.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
+
+    // The dark artwork background rect is painted before the image is drawn.
+    const artworkPanel = canvas.operations.find(
+      (op) => op.name === "fillRect" && op.x === 12 && op.y === 53 && op.w === 316 && op.h === 234,
+    );
+    expect(artworkPanel).toBeDefined();
+
+    // The placeholder image (naturalWidth > 0, complete) must be drawn onto the canvas.
+    const artworkDraw = canvas.operations.find(
+      (op) => op.name === "drawImage" && op.args[0] === svgArtwork,
+    );
+    expect(artworkDraw).toBeDefined();
+    expect(artworkDraw.args[1]).toBe(12);   // artX
+    expect(artworkDraw.args[2]).toBe(53);   // artY
+    expect(artworkDraw.args[3]).toBe(316);  // artW
+    expect(artworkDraw.args[4]).toBe(234);  // artH
+
+    // Card title must be present in the output text.
+    const text = canvas.operations
+      .filter((op) => op.name === "fillText")
+      .map((op) => op.text)
+      .join(" ");
+    expect(text).toContain("Tempesta Arcana");
+  });
+
+  it("falls back to the dark artwork panel without throwing when the artwork image fails to load", async () => {
+    // Simulate an img whose load failed: complete is true but naturalWidth is 0.
+    // This mirrors what happens if the browser fetches the SVG and it is rejected
+    // (e.g. a CORS tainted-canvas error would be caught by the try/catch, but when
+    // naturalWidth is 0 the guard short-circuits before drawImage is even attempted).
+    const brokenArtwork = { complete: true, naturalWidth: 0 };
+    const qr = { toDataURL: () => "data:image/png;base64,qr" };
+    const element = {
+      querySelectorAll: () => [brokenArtwork],
+      querySelector: (selector) => (selector === "img" ? brokenArtwork : selector === "canvas" ? qr : null),
+    };
+    const card = {
+      id: "broken-artwork-item",
+      type: "item",
+      name: "Spada dell'Oblio",
+      artwork_path: null,
+      attributes: { livello: "2" },
+    };
+
+    const canvas = await renderCardCanvas(element, card);
+
+    // Canvas must complete without throwing even when the artwork is unavailable.
+    expect(canvas.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
+    expect(canvas.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
+
+    // The dark artwork panel is painted as a safe visual fallback.
+    const artworkPanel = canvas.operations.find(
+      (op) => op.name === "fillRect" && op.x === 12 && op.y === 53 && op.w === 316 && op.h === 234,
+    );
+    expect(artworkPanel).toBeDefined();
+
+    // No artwork drawImage was attempted — only the QR drawImage (at y≠53) is allowed.
+    const artworkDraw = canvas.operations.find(
+      (op) => op.name === "drawImage" && op.args[2] === 53,
+    );
+    expect(artworkDraw).toBeUndefined();
+
+    // Card name must still appear in the rendered output.
+    const text = canvas.operations
+      .filter((op) => op.name === "fillText")
+      .map((op) => op.text)
+      .join(" ");
+    expect(text).toContain("Spada dell'Oblio");
+  });
 });
