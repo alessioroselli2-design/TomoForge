@@ -112,8 +112,52 @@ def manual_page_count(path: Path) -> Optional[int]:
         return None
 
 
+def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
+    """Transcribe a private scanned page using Gemini Vision without persisting the image."""
+    if not GEMINI_API_KEY:
+        logger.warning("OCR Gemini non configurato: GEMINI_API_KEY mancante")
+        return ""
+    pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
+    image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
+    prompt = (
+        "Trascrivi fedelmente questa pagina di un manuale di gioco in italiano. "
+        "Mantieni titoli in MAIUSCOLO, paragrafi e tabelle leggibili. Non riassumere, "
+        "non inventare testo, non aggiungere commenti: restituisci solo la trascrizione."
+    )
+    try:
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
+            headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
+            json={
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {"inline_data": {"mime_type": "image/png", "data": image_b64}},
+                        ]
+                    }
+                ],
+                "generationConfig": {"temperature": 0, "maxOutputTokens": 4096},
+            },
+            timeout=(15, 180),
+        )
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        status_code = getattr(exc.response, "status_code", None)
+        logger.warning("OCR Gemini non disponibile per pagina %s (HTTP %s)", page_number, status_code or "errore")
+        return ""
+    except requests.RequestException as exc:
+        logger.warning("OCR Gemini non raggiungibile per pagina %s: %s", page_number, exc)
+        return ""
+    try:
+        return _gemini_text_from_response(response.json())
+    except (ValueError, TypeError, IndexError, AttributeError) as exc:
+        logger.warning("OCR Gemini ha restituito una risposta non leggibile per pagina %s: %s", page_number, exc)
+    return ""
+
+
 def openai_ocr_manual_page(page: Any, page_number: int) -> str:
-    """Transcribe a private scanned page without persisting the page image."""
+    """Transcribe a private scanned page using OpenAI Vision without persisting the image."""
     if not OPENAI_API_KEY:
         logger.warning("OCR OpenAI non configurato: OPENAI_API_KEY mancante")
         return ""
@@ -172,10 +216,6 @@ def openai_ocr_manual_page(page: Any, page_number: int) -> str:
     except (ValueError, TypeError, IndexError, AttributeError) as exc:
         logger.warning("OCR OpenAI ha restituito una risposta non leggibile per pagina %s: %s", page_number, exc)
     return ""
-
-
-# Keep the old name as an alias so existing references continue to work
-gemini_ocr_manual_page = openai_ocr_manual_page
 
 
 def _gemini_text_from_response(payload: object) -> str:
@@ -429,7 +469,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
 
     all_records: list[dict] = []
     source_reports: list[dict] = []
-    ocr_callback = gemini_ocr_manual_page if body.use_ai_ocr else None
+    ocr_callback = openai_ocr_manual_page if body.use_ai_ocr else None
     for filename in requested:
         source_metadata = manual_source_metadata(filename)
         report = await asyncio.to_thread(

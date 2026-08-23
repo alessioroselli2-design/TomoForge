@@ -7,6 +7,10 @@ packages = ["cargo", "freetype", "gumbo", "harfbuzz", "jbig2dec", "libiconv", "l
 [agent]
 expertMode = true
 
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "scripts/start-production.sh"]
+
 [workflows]
 runButton = "Project"
 

@@ -1732,6 +1732,61 @@ def test_ocr_import_requires_server_side_confirmation_and_one_manual(monkeypatch
         assert error.status_code == 400
 
 
+def test_ocr_import_sends_pages_to_openai_not_gemini(monkeypatch, tmp_path):
+    """OCR imports must route pages to OpenAI — the provider named in the consent notice —
+    and must never send them to Gemini (generativelanguage.googleapis.com)."""
+    import fitz
+
+    # A scan-only PDF: the page has no text layer, so extract_reference_records will
+    # invoke the OCR callback for it.
+    pdf_path = tmp_path / "Manuale_del_giocatore__1787259882002.pdf"
+    doc = fitz.open()
+    doc.new_page()  # empty page → forces OCR callback
+    doc.save(pdf_path)
+    doc.close()
+
+    called_urls: list = []
+
+    class _OpenAIResponse:
+        def raise_for_status(self): pass
+        def json(self):
+            return {
+                "choices": [{"message": {"content": "TALENTO DI PROVA\nTesto verificabile della prova."}}]
+            }
+
+    def fake_post(url, **kwargs):
+        called_urls.append(url)
+        return _OpenAIResponse()
+
+    monkeypatch.setattr(server.requests, "post", fake_post)
+    monkeypatch.setattr(server, "OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {pdf_path.name: pdf_path})
+    monkeypatch.setattr(
+        server, "db",
+        SimpleNamespace(private_reference_records=MutableMemoryReferences([])),
+    )
+
+    asyncio.run(server.import_private_reference_manuals(
+        "owner-ocr",
+        server.ReferenceImportInput(
+            filenames=[pdf_path.name],
+            use_ai_ocr=True,
+            start_page=1,
+            end_page=1,
+            external_processing_confirmed=True,
+        ),
+    ))
+
+    assert called_urls, "OCR import must invoke an HTTP endpoint"
+    for url in called_urls:
+        assert "openai.com" in url, (
+            f"OCR import must send pages to OpenAI (consented provider), not: {url}"
+        )
+    assert not any("googleapis.com" in url for url in called_urls), (
+        "OCR import must not send pages to Gemini when the user consented to OpenAI"
+    )
+
+
 def test_manual_metadata_uses_the_same_ocr_rule_as_imports():
     assert server.manual_requires_ocr("Manuale_del_giocatore__1787259882002.pdf")
     assert server.manual_requires_ocr("Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf")
