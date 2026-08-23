@@ -2295,6 +2295,128 @@ def test_rate_limited_batch_short_circuits_remaining_records_after_first_individ
     assert result.sources[0]["translation_failed"] == 0
 
 
+def test_subsequent_batches_skipped_when_provider_still_limited_after_individual_retry(monkeypatch, tmp_path):
+    """When the individual-retry short-circuit confirms the provider is still rate-limiting,
+    all remaining batches must be marked without any further provider calls."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    # Three records that will end up in two batches of 1+2 via translation_batch_size=1.
+    # Actually, to create 2 batches cleanly, use batch_size=2: first batch has 2 records,
+    # second batch has 1 record.
+    barbaro = make_reference("Bárbaro", reference_type="class")
+    ladron = make_reference("Ladrón", reference_type="class")
+    guerrero = make_reference("Guerrero", reference_type="class")
+
+    call_count = [0]
+
+    def mock_translate(batch):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # First batch (Bárbaro + Ladrón): rate-limited.
+            return {}, "provider_rate_limited"
+        if call_count[0] == 2:
+            # Individual retry for Bárbaro: still rate-limited → sets provider_exhausted.
+            return {}, "provider_rate_limited"
+        # Any further call would be an error — the second batch must be skipped.
+        raise AssertionError(f"Unexpected translate call #{call_count[0]}")
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[barbaro, ladron, guerrero], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            translation_batch_size=2,  # batch 1: [Bárbaro, Ladrón], batch 2: [Guerrero]
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    # 1 batch call + 1 individual retry for Bárbaro; Ladrón short-circuited within batch 1,
+    # Guerrero's entire second batch skipped → only 2 calls total.
+    assert call_count[0] == 2, (
+        f"Expected 2 translate calls, got {call_count[0]}: "
+        "batch 1 + 1 individual retry; batch 2 must be skipped entirely."
+    )
+
+    stored_by_source_name = {row["source_name"]: row for row in collection.rows}
+    for name in ("Bárbaro", "Ladrón", "Guerrero"):
+        row = stored_by_source_name[name]
+        assert row["translation_status"] == "failed", f"{name} should be failed"
+        assert row["translation_error"] == "provider_rate_limited", f"{name} should be provider_rate_limited"
+        assert "traduzione_da_verificare" not in row.get("review_flags", []), (
+            f"{name} should not have review flag"
+        )
+
+    assert result.sources[0]["translation_rate_limited"] == 3
+    assert result.sources[0]["translated"] == 0
+    assert result.sources[0]["translation_failed"] == 0
+
+
+def test_subsequent_batches_skipped_when_singleton_batch_is_rate_limited(monkeypatch, tmp_path):
+    """A rate-limited singleton batch (no individual retry possible) must set provider_exhausted
+    so all subsequent batches are skipped without extra API calls."""
+    source = tmp_path / "Manual-del-Jugador.pdf"
+    source.write_bytes(b"native-text")
+    filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+    collection = MutableMemoryReferences([])
+    barbaro = make_reference("Bárbaro", reference_type="class")
+    ladron = make_reference("Ladrón", reference_type="class")
+
+    call_count = [0]
+
+    def mock_translate(batch):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # First batch (singleton Bárbaro): rate-limited → provider_exhausted.
+            return {}, "provider_rate_limited"
+        raise AssertionError(f"Unexpected translate call #{call_count[0]} — second batch must be skipped")
+
+    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
+    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        server,
+        "extract_reference_records",
+        lambda *args: SimpleNamespace(records=[barbaro, ladron], pages_read=1, pages_needing_ocr=[]),
+    )
+    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            translation_processing_confirmed=True,
+            translation_batch_size=1,  # force two singleton batches
+            start_page=5,
+            end_page=5,
+        ),
+    ))
+
+    assert call_count[0] == 1, (
+        f"Expected exactly 1 translate call, got {call_count[0]}: second singleton batch must be skipped."
+    )
+
+    stored_by_source_name = {row["source_name"]: row for row in collection.rows}
+    for name in ("Bárbaro", "Ladrón"):
+        row = stored_by_source_name[name]
+        assert row["translation_status"] == "failed"
+        assert row["translation_error"] == "provider_rate_limited"
+        assert "traduzione_da_verificare" not in row.get("review_flags", [])
+
+    assert result.sources[0]["translation_rate_limited"] == 2
+    assert result.sources[0]["translated"] == 0
+
+
 def test_rate_limit_retry_uses_backoff_delays_and_escalates_to_review_when_exhausted(monkeypatch):
     """_retry_rate_limited_translations retries each delay slot and adds the review flag when exhausted."""
     records = server.MemoryCollection()

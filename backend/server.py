@@ -2073,34 +2073,56 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
     if current_batch:
         translation_batches.append(current_batch)
 
-    for batch in translation_batches:
-        translated, error = await asyncio.to_thread(translate_spanish_reference_batch, batch)
+    # Set to True when the provider has confirmed it is still rate-limiting
+    # (singleton 429, or individual-retry short-circuit).  All remaining
+    # batches are then marked directly without spending extra API calls.
+    provider_exhausted = False
 
-        # When a multi-record batch is rate-limited, immediately retry each
-        # record individually so that records the provider can handle are saved
-        # as 'translated' rather than being marked 'provider_rate_limited' due
-        # to contention from other records in the same batch.  Singleton batches
-        # are not retried — a single-record 429 is already the worst case.
+    for batch in translation_batches:
         individual_errors: dict[str, str] = {}
-        if error == "provider_rate_limited" and len(batch) > 1:
-            # Short-circuit: if the first individual retry is still rate-limited
-            # the provider is very likely to reject all remaining records too.
-            # Mark subsequent records directly instead of wasting N-1 extra calls.
-            provider_still_limited = False
+
+        if provider_exhausted:
+            # Provider is known to be rate-limiting: skip the call entirely and
+            # mark every record in this batch as rate-limited so the preload
+            # worker's backoff loop can retry them all together later.
+            translated: dict = {}
+            error = "provider_rate_limited"
             for record in batch:
+                individual_errors[record["id"]] = "provider_rate_limited"
+        else:
+            translated, error = await asyncio.to_thread(translate_spanish_reference_batch, batch)
+
+            # When a multi-record batch is rate-limited, immediately retry each
+            # record individually so that records the provider can handle are saved
+            # as 'translated' rather than being marked 'provider_rate_limited' due
+            # to contention from other records in the same batch.  Singleton batches
+            # are not retried — a single-record 429 is already the worst case.
+            if error == "provider_rate_limited" and len(batch) > 1:
+                # Short-circuit: if the first individual retry is still rate-limited
+                # the provider is very likely to reject all remaining records too.
+                # Mark subsequent records directly instead of wasting N-1 extra calls.
+                provider_still_limited = False
+                for record in batch:
+                    if provider_still_limited:
+                        individual_errors[record["id"]] = "provider_rate_limited"
+                        continue
+                    ind_translated, ind_error = await asyncio.to_thread(
+                        translate_spanish_reference_batch, [record]
+                    )
+                    if ind_translated.get(record["id"]):
+                        translated[record["id"]] = ind_translated[record["id"]]
+                    elif ind_error == "provider_rate_limited":
+                        individual_errors[record["id"]] = "provider_rate_limited"
+                        provider_still_limited = True
+                    else:
+                        individual_errors[record["id"]] = ind_error or "provider_rate_limited"
+
                 if provider_still_limited:
-                    individual_errors[record["id"]] = "provider_rate_limited"
-                    continue
-                ind_translated, ind_error = await asyncio.to_thread(
-                    translate_spanish_reference_batch, [record]
-                )
-                if ind_translated.get(record["id"]):
-                    translated[record["id"]] = ind_translated[record["id"]]
-                elif ind_error == "provider_rate_limited":
-                    individual_errors[record["id"]] = "provider_rate_limited"
-                    provider_still_limited = True
-                else:
-                    individual_errors[record["id"]] = ind_error or "provider_rate_limited"
+                    provider_exhausted = True
+            elif error == "provider_rate_limited":
+                # Singleton batch confirmed still rate-limited — no individual
+                # retry is possible, so subsequent batches can be skipped too.
+                provider_exhausted = True
 
         for record in batch:
             translated_record = translated.get(record["id"])
