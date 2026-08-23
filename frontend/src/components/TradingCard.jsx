@@ -15,7 +15,8 @@ const EMBLEM_ICONS = {
 
 const PLACEHOLDER = artworkPlaceholder;
 
-const handleArtworkError = (e) => {
+// Module-level fallback guard: used when state-based handler is unavailable.
+const silentArtworkFallback = (e) => {
   if (!e.currentTarget.dataset.fallback) {
     e.currentTarget.dataset.fallback = "1";
     e.currentTarget.src = artworkPlaceholder;
@@ -99,9 +100,18 @@ const QuickStats = ({ card, exportMode }) => {
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
   const { t } = useI18n();
+  const [artworkError, setArtworkError] = React.useState(false);
   const TypeIcon = typeIcon(card.type);
   const hasArtwork = !!(imgUrl || card.artwork_path);
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
+
+  const handleArtworkError = React.useCallback((e) => {
+    if (!e.currentTarget.dataset.fallback) {
+      e.currentTarget.dataset.fallback = "1";
+      e.currentTarget.src = artworkPlaceholder;
+      if (hasArtwork) setArtworkError(true);
+    }
+  }, [hasArtwork]);
   const qrValue = `${window.location.origin}/p/${card.id}`;
   const frame = card.frame || "gold";
   const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
@@ -153,6 +163,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
             <p className="font-label text-[7px] tracking-widest text-gold/60 text-center px-2 leading-tight">
               USA &ldquo;GENERA ARTWORK&rdquo; O &ldquo;CARICA IMMAGINE&rdquo;
             </p>
+          </div>
+        )}
+        {artworkError && !exportMode && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/60 py-1 pointer-events-none">
+            <span className="font-label text-[7px] tracking-wide text-amber-300/90 text-center leading-tight px-1">
+              ⚠ Artwork non disponibile — ricarica o rigenera
+            </span>
           </div>
         )}
       </div>
