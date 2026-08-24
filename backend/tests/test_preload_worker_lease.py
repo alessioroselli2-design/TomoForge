@@ -529,3 +529,60 @@ def test_start_worker_after_previous_worker_finishes(monkeypatch):
             preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
 
     asyncio.run(_exercise())
+
+
+# ---------------------------------------------------------------------------
+# Test 9: a crashed worker clears the registry and can be started again
+# ---------------------------------------------------------------------------
+
+def test_start_worker_after_previous_worker_crashes(monkeypatch):
+    """A worker exception must not permanently block a later start."""
+    user_id = "crashed-worker-user"
+    first_worker_started = asyncio.Event()
+    second_worker_started = asyncio.Event()
+    claim_count = 0
+    created_tasks = []
+
+    async def _fake_claim(_user_id, *, db=None):
+        nonlocal claim_count
+        claim_count += 1
+        if claim_count == 1:
+            first_worker_started.set()
+            raise RuntimeError("transient preload failure")
+        second_worker_started.set()
+        return None
+
+    original_create_task = asyncio.create_task
+
+    def _create_task(coro):
+        task = original_create_task(coro)
+        created_tasks.append(task)
+        return task
+
+    monkeypatch.setattr(preload_mod, "claim_next_manual_preload_job", _fake_claim)
+    monkeypatch.setattr(preload_mod.asyncio, "create_task", _create_task)
+
+    async def _exercise():
+        preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+        try:
+            preload_mod.start_manual_preload_worker(user_id)
+            await first_worker_started.wait()
+
+            try:
+                await created_tasks[0]
+            except RuntimeError as exc:
+                assert str(exc) == "transient preload failure"
+            else:
+                raise AssertionError("The first worker should have crashed")
+
+            assert user_id not in preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS
+
+            preload_mod.start_manual_preload_worker(user_id)
+            await second_worker_started.wait()
+            assert len(created_tasks) == 2
+            await created_tasks[1]
+        finally:
+            await asyncio.gather(*created_tasks, return_exceptions=True)
+            preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+
+    asyncio.run(_exercise())
