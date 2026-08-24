@@ -2,6 +2,7 @@ import asyncio
 import threading
 import time
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -4071,6 +4072,55 @@ def _make_gemini_must_not_be_called():
             "before any page image was sent to Gemini."
         )
     return _forbidden
+
+
+def test_http_ocr_import_requires_consent_even_with_active_preload_worker(
+    monkeypatch, tmp_path
+):
+    """An active preload worker must not grant consent to a user-facing import."""
+    from core.db import get_db
+
+    source = tmp_path / "Manuale-Scansionato.pdf"
+    source.write_bytes(b"scan")
+    filename = source.name
+    test_db = SimpleNamespace(
+        private_manual_import_jobs=server.MemoryCollection(),
+        private_reference_records=server.MemoryCollection(),
+    )
+    requests_post = Mock(name="requests_post")
+
+    async def premium_user():
+        return server.User(
+            user_id="owner-1",
+            email="mago@example.com",
+            name="Mago",
+            premium_manual=True,
+        )
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(server.requests, "post", requests_post)
+    server.app.dependency_overrides[server.get_current_user] = premium_user
+    server.app.dependency_overrides[get_db] = lambda: test_db
+    preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.add("owner-1")
+    try:
+        with TestClient(server.app) as client:
+            response = client.post(
+                "/api/library/import",
+                json={
+                    "filenames": [filename],
+                    "start_page": 1,
+                    "end_page": 5,
+                    "use_ai_ocr": True,
+                },
+            )
+    finally:
+        server.app.dependency_overrides.pop(server.get_current_user, None)
+        server.app.dependency_overrides.pop(get_db, None)
+        preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard("owner-1")
+
+    assert response.status_code == 400
+    assert "esplicitamente" in response.json()["detail"]
+    requests_post.assert_not_called()
 
 
 def test_ocr_import_blocks_missing_consent_before_any_page_reaches_gemini(
