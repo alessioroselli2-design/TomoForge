@@ -470,6 +470,18 @@ def _attributes(record_type: str, body: str) -> dict:
                 attributes[field] = found.group(1).strip()
         if re.search(r"Concentración", spell_text, flags=re.IGNORECASE):
             attributes["concentrazione"] = "Sì"
+        damage = re.search(
+            r"\b(?P<dice>\d+\s*d\s*\d+(?:\s*[+-]\s*\d+)?)\s+"
+            r"(?:danni?|puntos?\s+de\s+daño|puntos?\s+di\s+danno)\s+"
+            r"(?:da|de)\s+(?P<kind>[A-Za-zÀ-ÿ]+)",
+            spell_text,
+            flags=re.IGNORECASE,
+        )
+        if damage:
+            attributes["danno"] = (
+                f"{damage.group('dice').replace(' ', '')} danni da "
+                f"{damage.group('kind').casefold()}"
+            )
     elif record_type == "feat":
         match = re.search(
             r"(?:Prerequisito|Requisitos?)\s*:\s*([^.]{2,180})",
@@ -953,7 +965,23 @@ def search_reference_records(
         elif needle in haystack:
             score = 0.82
         else:
-            score = SequenceMatcher(None, needle, candidate).ratio()
+            needle_tokens = needle.split()
+            candidate_tokens = candidate.split()
+            if len(needle_tokens) > 1:
+                token_scores = [
+                    max(
+                        SequenceMatcher(None, token, candidate_token).ratio()
+                        for candidate_token in candidate_tokens
+                    )
+                    for token in needle_tokens
+                ]
+                # A shared suffix such as "di fuoco" must not make an
+                # unrelated first word look like a valid spell name.
+                if any(token_score < 0.72 for token_score in token_scores):
+                    continue
+                score = sum(token_scores) / len(token_scores)
+            else:
+                score = SequenceMatcher(None, needle, candidate).ratio()
             if score < 0.64:
                 continue
         ranked.append((score, record))
@@ -1000,14 +1028,21 @@ def reference_to_card_payload(record: dict) -> dict:
     elif card_type == "feat":
         attributes = {"prerequisito": attributes.get("prerequisito", ""), "benefici": attributes.get("benefici", []), **attributes}
     elif card_type == "spell":
+        # Earlier imports stored the core spell metadata but did not extract
+        # damage. Re-read the private text when applying a record so existing
+        # cards receive that field too, without altering the source material.
+        extracted_attributes = _attributes("spell", record.get("full_text", ""))
+        attributes = {**extracted_attributes, **attributes}
         attributes = {
             "livello": attributes.get("livello", ""),
             "scuola": attributes.get("scuola", ""),
+            "azione": attributes.get("azione", attributes.get("tempo_lancio", "")),
             "tempo_lancio": attributes.get("tempo_lancio", ""),
             "gittata": attributes.get("gittata", ""),
             "componenti": attributes.get("componenti", ""),
             "durata": attributes.get("durata", ""),
             "concentrazione": attributes.get("concentrazione", ""),
+            "danno": attributes.get("danno", ""),
             **attributes,
         }
     elif card_type == "monster":
@@ -1056,7 +1091,11 @@ def reference_to_card_payload(record: dict) -> dict:
         "rule_source": reference_rule_source(record),
         "name": record.get("name", ""),
         "description": compact_text(record.get("description") or record.get("full_text", "")),
-        "story": f"Dati regolamentari dalla biblioteca privata · {record.get('reference_type', 'contenuto')}.",
+        "story": (
+            compact_text(record.get("description") or record.get("full_text", ""))
+            if card_type == "spell"
+            else f"Dati regolamentari dalla biblioteca privata · {record.get('reference_type', 'contenuto')}."
+        ),
         "attributes": attributes,
         "card_type": card_type,
         "source": "biblioteca_privata",

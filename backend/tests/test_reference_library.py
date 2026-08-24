@@ -520,6 +520,42 @@ def test_reference_search_is_accent_case_and_typo_tolerant():
     assert [record["name"] for record in matches] == ["Maestro delle Armi"]
 
 
+def test_reference_search_does_not_match_a_different_name_with_shared_suffix():
+    records = [
+        make_reference("Lama di Fuoco", reference_type="spell"),
+        make_reference("Foglia di Fuoco", reference_type="spell"),
+    ]
+
+    matches = search_reference_records(records, "lama di fuoco", reference_type="spell")
+
+    assert [record["name"] for record in matches] == ["Lama di Fuoco"]
+
+
+def test_spell_payload_derives_damage_and_card_action_from_imported_text():
+    payload = reference_to_card_payload(make_reference(
+        "Lama infuocata",
+        reference_type="spell",
+        attributes={
+            "livello": "2",
+            "scuola": "Evocazione",
+            "tempo_lancio": "1 azione aggiuntiva",
+            "gittata": "Lanciatore",
+            "componenti": "V, S, M",
+            "durata": "Concentrazione, fino a 10 minuti",
+            "concentrazione": "Sì",
+        },
+        full_text=(
+            "Evocazione livello 2. Tempo di lancio: 1 azione aggiuntiva. "
+            "Se colpisci, l'obiettivo subisce 3d6 danni da fuoco."
+        ),
+    ))
+
+    assert payload["attributes"]["azione"] == "1 azione aggiuntiva"
+    assert payload["attributes"]["tempo_lancio"] == "1 azione aggiuntiva"
+    assert payload["attributes"]["danno"] == "3d6 danni da fuoco"
+    assert payload["story"] == payload["description"]
+
+
 def test_reference_card_payload_maps_feat_without_inventing_rules():
     payload = reference_to_card_payload(make_reference("Tiratore Scelto"))
 
