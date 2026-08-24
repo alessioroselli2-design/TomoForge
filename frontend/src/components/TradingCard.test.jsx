@@ -122,4 +122,23 @@ describe("CardFront artwork placeholder", () => {
       srcSetter.mockRestore();
     }
   });
+
+  it("clears the artwork error when a new image URL is assigned", async () => {
+    const card = { id: "c6", type: "spell", name: "Rinascita", artwork_path: "uploads/broken.jpg" };
+    await act(async () => {
+      root.render(<CardFront card={card} editorMode imgUrl="https://cdn.example.com/broken.jpg" />);
+    });
+
+    const img = container.querySelector("img");
+    await act(async () => {
+      img.dispatchEvent(new Event("error"));
+    });
+    expect(container.textContent).toContain("Artwork non disponibile");
+
+    await act(async () => {
+      root.render(<CardFront card={card} editorMode imgUrl="https://cdn.example.com/fixed.jpg" />);
+    });
+    expect(container.textContent).not.toContain("Artwork non disponibile");
+    expect(img.src).toContain("fixed.jpg");
+  });
 });

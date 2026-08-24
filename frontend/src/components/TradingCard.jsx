@@ -101,6 +101,9 @@ const QuickStats = ({ card, exportMode }) => {
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
   const { t } = useI18n();
   const [artworkError, setArtworkError] = React.useState(false);
+  React.useEffect(() => {
+    setArtworkError(false);
+  }, [imgUrl, card.artwork_path]);
   const TypeIcon = typeIcon(card.type);
   const hasArtwork = !!(imgUrl || card.artwork_path);
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
