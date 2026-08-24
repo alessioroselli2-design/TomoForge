@@ -169,9 +169,12 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
           </div>
         )}
         {artworkError && !exportMode && (
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/60 py-1 pointer-events-none">
+          <div
+            className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/60 py-1 pointer-events-none"
+            role="alert"
+          >
             <span className="font-label text-[7px] tracking-wide text-amber-300/90 text-center leading-tight px-1">
-              ⚠ Artwork non disponibile — ricarica o rigenera
+              <span aria-hidden="true">⚠</span> Artwork non disponibile — ricarica o rigenera
             </span>
           </div>
         )}
