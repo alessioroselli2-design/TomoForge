@@ -8,6 +8,8 @@ directly as kwargs.
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 import os
 
 import requests  # noqa: F401 – exposed as server.requests for test patching
@@ -147,7 +149,19 @@ import routers.public as _public_router
 import routers.admin as _admin_router
 import routers.payments as _payments_router
 
-app = FastAPI(title="TomeForge API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Run startup recovery while keeping the app compatible with FastAPI updates."""
+    from core.config import MOCK_DATA
+
+    if MOCK_DATA:
+        await seed_mock_data()
+    await resume_manual_preload_workers()
+    yield
+
+
+app = FastAPI(title="TomeForge API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -173,15 +187,6 @@ app.include_router(_media_router.router, prefix=_API)
 app.include_router(_public_router.router, prefix=_API)
 app.include_router(_admin_router.router, prefix=_API)
 app.include_router(_payments_router.router, prefix=_API)
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    from core.config import MOCK_DATA
-    from services.preload import resume_manual_preload_workers
-    if MOCK_DATA:
-        await seed_mock_data()
-    await resume_manual_preload_workers()
 
 
 # ---------------------------------------------------------------------------
