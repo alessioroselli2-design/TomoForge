@@ -187,7 +187,9 @@ class SupabaseCollection:
     async def update_one(self, query: dict, update: dict) -> UpdateResult:
         changes = update.get("$set", update)
         statement = self.apply_filters(self.client.table(self.name).update(changes), query)
-        result = statement.select("id").execute()
+        # `users` is keyed by `user_id`; every other collection currently
+        # exposes the conventional `id` primary key.
+        result = statement.select("user_id" if self.name == "users" else "id").execute()
         return UpdateResult(len(result.data or []))
 
     async def delete_one(self, query: dict) -> UpdateResult:
