@@ -98,7 +98,7 @@ def manual_source_fingerprint(path: Path) -> str:
 
 def manual_page_count(path: Path) -> Optional[int]:
     try:
-        import fitz
+        import pymupdf as fitz
         document = fitz.open(path)
         page_count = len(document)
         document.close()
@@ -112,7 +112,8 @@ def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     if not GEMINI_API_KEY:
         logger.warning("OCR Gemini non configurato: GEMINI_API_KEY mancante")
         return ""
-    pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
+    import pymupdf as fitz
+    pixmap = page.get_pixmap(matrix=fitz.Matrix(1.45, 1.45), alpha=False)
     image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
     prompt = (
         "Trascrivi fedelmente questa pagina di un manuale di gioco in italiano. "
@@ -156,7 +157,8 @@ def openai_ocr_manual_page(page: Any, page_number: int) -> str:
     if not OPENAI_API_KEY:
         logger.warning("OCR OpenAI non configurato: OPENAI_API_KEY mancante")
         return ""
-    pixmap = page.get_pixmap(matrix=__import__("fitz").Matrix(1.45, 1.45), alpha=False)
+    import pymupdf as fitz
+    pixmap = page.get_pixmap(matrix=fitz.Matrix(1.45, 1.45), alpha=False)
     image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
     prompt = (
         "Trascrivi fedelmente questa pagina di un manuale di gioco in italiano. "

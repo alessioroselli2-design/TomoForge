@@ -165,7 +165,7 @@ def test_reference_parser_skips_sparse_spanish_index_entries_that_match_feat_tit
 
 
 def test_reference_extractor_joins_spanish_feat_heading_with_its_next_page(tmp_path):
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     pdf_path = tmp_path / "manual-del-jugador.pdf"
@@ -202,7 +202,7 @@ Has entrenado tu cuerpo para llevar armaduras ligeras sin perder movilidad.""",
 
 
 def test_reference_extractor_uses_ocr_callback_for_unreadable_page(tmp_path):
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     pdf_path = tmp_path / "scan.pdf"
@@ -226,7 +226,7 @@ Prerequisito: Forza 13. Questo talento migliora il combattimento e offre un bene
 
 
 def test_reference_extractor_flags_only_empty_ocr_page_without_aborting_batch(tmp_path):
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     pdf_path = tmp_path / "scan-empty-ocr.pdf"
@@ -243,7 +243,7 @@ def test_reference_extractor_flags_only_empty_ocr_page_without_aborting_batch(tm
 
 
 def test_reference_extractor_can_require_ocr_for_broken_text_layer(tmp_path):
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     pdf_path = tmp_path / "broken-text.pdf"
@@ -261,7 +261,7 @@ def test_reference_extractor_can_require_ocr_for_broken_text_layer(tmp_path):
 
 
 def test_reference_extractor_continues_after_one_failed_ocr_page(tmp_path):
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     pdf_path = tmp_path / "scan-partial-ocr.pdf"
@@ -1703,7 +1703,7 @@ def test_ocr_import_requires_server_side_confirmation_and_one_manual(monkeypatch
 def test_ocr_import_sends_pages_to_openai_not_gemini(monkeypatch, tmp_path):
     """OCR imports must route pages to OpenAI — the provider named in the consent notice —
     and must never send them to Gemini (generativelanguage.googleapis.com)."""
-    import fitz
+    import pymupdf as fitz
 
     # A scan-only PDF: the page has no text layer, so extract_reference_records will
     # invoke the OCR callback for it.
@@ -3903,7 +3903,7 @@ def test_gemini_ocr_returns_transcription_for_valid_response(monkeypatch, tmp_pa
     """gemini_ocr_manual_page must return the OCR text when Gemini responds with a
     well-formed payload, and extract_reference_records must mark those records as
     ocr_da_verificare so they require human verification before use."""
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     ocr_text = (
@@ -3944,7 +3944,7 @@ def test_gemini_ocr_returns_transcription_for_valid_response(monkeypatch, tmp_pa
 def test_extract_reference_records_handles_ocr_only_manual_with_mixed_pages(tmp_path):
     """A manual where some pages are readable, one succeeds via OCR, and one fails OCR
     must report pages_read, pages_needing_ocr, and OCR-flagged records correctly."""
-    import fitz
+    import pymupdf as fitz
     from reference_library import extract_reference_records
 
     pdf_path = tmp_path / "dm-guide-scan.pdf"
@@ -4311,7 +4311,7 @@ def test_valid_ocr_import_sends_each_selected_page_once_and_persists_review_flag
     OCR-derived records are persisted, but every one remains blocked behind the
     human-review flag until someone verifies the transcription.
     """
-    import fitz
+    import pymupdf as fitz
 
     source = tmp_path / "Manuale-Scansionato.pdf"
     document = fitz.open()

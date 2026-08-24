@@ -757,7 +757,7 @@ def extract_reference_records(
 ) -> ReferenceImportReport:
     """Read native text, invoking an optional private OCR callback only as needed."""
     try:
-        import fitz
+        import pymupdf as fitz
     except ImportError as exc:  # pragma: no cover - deployment setup
         raise RuntimeError("PyMuPDF non è installato: aggiungi PyMuPDF alle dipendenze backend.") from exc
 

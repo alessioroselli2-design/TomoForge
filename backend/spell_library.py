@@ -160,7 +160,7 @@ def parse_spell_page(text: str, source_filename: str, source_page: int, source_c
 def extract_spell_records(pdf_path: Path) -> list[dict]:
     """Extract structured spell records from one supplied, text-native PDF."""
     try:
-        import fitz
+        import pymupdf as fitz
     except ImportError as exc:  # pragma: no cover - exercised in deployment setup
         raise RuntimeError("PyMuPDF non è installato: aggiungi PyMuPDF alle dipendenze backend.") from exc
 
