@@ -1131,15 +1131,13 @@ describe("CardEditor spell apply guard", () => {
       if (path === "/library/manuals") {
         return Promise.resolve({ data: { manuals: [] } });
       }
-      if (path === "/spells") {
+      if (path === "/library" && config?.params?.types === "spell") {
         return Promise.resolve({
           data: {
-            spells: [{
+            records: [{
               id: "spell-blocked-1",
               name: "Incantesimo Bloccato",
-              level: "3",
-              school: "Evocazione",
-              classes: ["Mago"],
+              attributes: { livello: "3", scuola: "Evocazione" },
               source_refs: [{ filename: "manuale.pdf", page: 42 }],
               is_trusted: false,
               review_reason: "Traduzione non ancora verificata",
@@ -1180,23 +1178,21 @@ describe("CardEditor spell apply guard", () => {
     expect(applyBtn.disabled).toBe(true);
     expect(container.textContent).toContain("BLOCCATO");
     expect(container.textContent).toContain("Traduzione non ancora verificata");
-    expect(api.post).not.toHaveBeenCalledWith("/spells/spell-blocked-1/apply");
+    expect(api.post).not.toHaveBeenCalledWith("/library/spell-blocked-1/apply");
   });
 
-  it("calls POST /spells/{id}/apply when clicking the apply button for a trusted spell", async () => {
+  it("calls POST /library/{id}/apply when clicking the apply button for a trusted spell", async () => {
     api.get.mockImplementation((path, config) => {
       if (path === "/library/manuals") {
         return Promise.resolve({ data: { manuals: [] } });
       }
-      if (path === "/spells") {
+      if (path === "/library" && config?.params?.types === "spell") {
         return Promise.resolve({
           data: {
-            spells: [{
+            records: [{
               id: "spell-trusted-1",
               name: "Palla di Fuoco",
-              level: "3",
-              school: "Evocazione",
-              classes: ["Mago", "Stregone"],
+              attributes: { livello: "3", scuola: "Evocazione" },
               source_refs: [{ filename: "manuale.pdf", page: 55 }],
               is_trusted: true,
             }],
@@ -1207,14 +1203,14 @@ describe("CardEditor spell apply guard", () => {
     });
 
     api.post.mockImplementation((path) => {
-      if (path === "/spells/spell-trusted-1/apply") {
+      if (path === "/library/spell-trusted-1/apply") {
         return Promise.resolve({
           data: {
             name: "Palla di Fuoco",
             description: "Lancia una palla di fuoco.",
             story: "",
             attributes: { livello: "3", scuola: "Evocazione" },
-            spell_id: "spell-trusted-1",
+            reference_id: "spell-trusted-1",
             rule_source: { source_kind: "spell", source_id: "spell-trusted-1" },
             source_refs: [{ filename: "manuale.pdf", page: 55, language: "it" }],
           },
@@ -1258,6 +1254,6 @@ describe("CardEditor spell apply guard", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    expect(api.post).toHaveBeenCalledWith("/spells/spell-trusted-1/apply");
+    expect(api.post).toHaveBeenCalledWith("/library/spell-trusted-1/apply");
   });
 });

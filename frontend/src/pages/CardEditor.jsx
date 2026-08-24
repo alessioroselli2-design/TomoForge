@@ -327,8 +327,14 @@ export default function CardEditor() {
     const timer = window.setTimeout(async () => {
       setSearchingSpells(true);
       try {
-        const res = await api.get("/spells", { params: { q: spellQuery } });
-        setSpellResults(res.data.spells || []);
+        const res = await api.get("/library", {
+          params: {
+            q: spellQuery,
+            types: "spell",
+            include_unverified: true,
+          },
+        });
+        setSpellResults(res.data.records || []);
       } catch (error) {
         setSpellResults([]);
       } finally {
@@ -341,7 +347,7 @@ export default function CardEditor() {
   const applySpell = async (spellId) => {
     setApplyingSpell(spellId);
     try {
-      const res = await api.post(`/spells/${spellId}/apply`);
+      const res = await api.post(`/library/${spellId}/apply`);
       set({
         name: card.name || res.data.name,
         description: card.description || res.data.description,
@@ -940,8 +946,13 @@ export default function CardEditor() {
                  )}
                  {spellResults.length > 0 && (
                    <div className="mt-3 divide-y divide-border border border-border">
-                     {spellResults.map((spell) => (
-                       <button
+                      {spellResults.map((spell) => {
+                        const attributes = spell.attributes || {};
+                        const level = spell.level || attributes.livello || "";
+                        const school = spell.school || attributes.scuola || "";
+                        const classes = spell.classes || attributes.classi || [];
+                        return (
+                        <button
                          key={spell.id}
                          type="button"
                          data-testid={`apply-spell-${spell.id}`}
@@ -952,7 +963,7 @@ export default function CardEditor() {
                          <span>
                            <span className="block font-heading text-base text-foreground">{spell.name}</span>
                            <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
-                             {spell.level === "Trucchetto" ? spell.level : `${spell.level || "?"}° livello`} · {spell.school || "Scuola non rilevata"} · {(spell.classes || []).join(", ")}
+                              {level === "Trucchetto" ? level : `${level || "?"}° livello`} · {school || "Scuola non rilevata"}{classes.length > 0 && ` · ${classes.join(", ")}`}
                            </span>
                            <span className="mt-1 block font-body text-[11px] text-sky-100/75">
                              {(spell.source_refs || []).map((ref) => `${ref.filename || "Manuale"} p.${ref.page || "?"}`).join(" · ")}
@@ -963,7 +974,8 @@ export default function CardEditor() {
                            ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
                            : <span className={`font-label text-[10px] tracking-widest ${spell.is_trusted === false ? "text-amber-200" : "text-gold"}`}>{spell.is_trusted === false ? "BLOCCATO" : "APPLICA"}</span>}
                        </button>
-                     ))}
+                        );
+                      })}
                    </div>
                  )}
                </section>
