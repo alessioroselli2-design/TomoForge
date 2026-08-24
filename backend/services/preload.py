@@ -23,10 +23,6 @@ MANUAL_PRELOAD_ACTIVE_WORKERS: set[str] = set()
 _RATE_LIMIT_DRAIN_PAGE_SIZE = 200
 
 
-def _preload_waiting_status(filename: str, translation_confirmed: bool, ocr_confirmed: bool) -> str:
-    return "queued"
-
-
 def manual_preload_summary(job: Optional[dict], page_count: Optional[int]) -> dict:
     """Return progress metadata that is safe to show in the browser."""
     if not job:
@@ -95,17 +91,14 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
     for filename, path in selected_manuals.items():
         existing = existing_by_filename.get(filename)
         source_language = manual_source_language(filename)
-        needs_ocr = manual_requires_ocr(filename)
         translation_confirmed = True
         ocr_confirmed = True
 
         fingerprint = manual_source_fingerprint(path)
         changed_source = bool(existing and existing.get("source_fingerprint") != fingerprint)
-        status = existing.get("status") if existing else _preload_waiting_status(filename, translation_confirmed, ocr_confirmed)
-        if status == "waiting_translation_consent":
-            status = "queued"
+        status = existing.get("status") if existing else "queued"
         if changed_source or (body.filename == filename and (body.enable_translation or body.enable_ocr or body.retry)):
-            status = _preload_waiting_status(filename, translation_confirmed, ocr_confirmed)
+            status = "queued"
         page_count = manual_page_count(path)
         payload = {
             "user_id": user_id,
@@ -485,6 +478,26 @@ async def resume_manual_preload_workers(*, db=None) -> None:
     owners: set[str] = set()
     manuals = available_reference_manuals()
     for job in jobs:
+        if job.get("status") == "waiting_translation_consent":
+            recovered = await collection.update_one(
+                {
+                    "id": job["id"],
+                    "user_id": job.get("user_id"),
+                    "status": "waiting_translation_consent",
+                },
+                {"$set": {
+                    "status": "queued",
+                    "lease_id": "",
+                    "lease_expires_at": 0,
+                    "last_error": "",
+                    "translation_retry_at": None,
+                    "translation_retry_attempt": 0,
+                    "updated_at": utc_now(),
+                }},
+            )
+            if recovered.matched_count:
+                owners.add(job.get("user_id", ""))
+            continue
         filename = job.get("filename")
         path = manuals.get(filename)
         if (

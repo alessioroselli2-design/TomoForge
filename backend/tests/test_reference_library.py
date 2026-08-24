@@ -3627,6 +3627,52 @@ def test_startup_reclaims_only_expired_preload_leases(monkeypatch):
     assert started == ["owner-1"]
 
 
+def test_startup_requeues_legacy_translation_consent_job_for_processing(monkeypatch, tmp_path):
+    source = tmp_path / "Manuale-nativo.pdf"
+    source.write_bytes(b"manual")
+    jobs = server.MemoryCollection()
+    jobs.rows.append({
+        "id": "legacy-translation-consent",
+        "user_id": "owner-1",
+        "filename": source.name,
+        "status": "waiting_translation_consent",
+        "lease_id": "stale-lease",
+        "lease_expires_at": int(time.time()) + 600,
+        "last_error": "stale-error",
+        "translation_retry_at": "2026-08-24T08:00:00+00:00",
+        "translation_retry_attempt": 2,
+    })
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 1)
+    monkeypatch.setattr(preload_mod, "start_manual_preload_worker", lambda user_id, *, db=None: None)
+
+    async def fake_import(_user_id, body, *, db=None):
+        assert body.start_page == 1
+        assert body.end_page == 1
+        return server.ReferenceImportResult(
+            imported=1,
+            updated=0,
+            flagged_for_review=0,
+            skipped=0,
+            sources=[{"filename": source.name, "pages_needing_ocr": []}],
+        )
+
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+
+    asyncio.run(server.resume_manual_preload_workers(db=_test_db))
+    assert jobs.rows[0]["status"] == "queued"
+    assert jobs.rows[0]["lease_id"] == ""
+    assert jobs.rows[0]["lease_expires_at"] == 0
+    assert jobs.rows[0]["last_error"] == ""
+    assert jobs.rows[0]["translation_retry_at"] is None
+    assert jobs.rows[0]["translation_retry_attempt"] == 0
+
+    asyncio.run(server.run_manual_preload_worker("owner-1", db=_test_db))
+    assert jobs.rows[0]["status"] == "completed"
+
+
 def test_startup_requeues_completed_manual_when_its_parser_revision_changes(monkeypatch, tmp_path):
     filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
     source = tmp_path / filename

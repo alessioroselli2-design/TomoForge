@@ -194,8 +194,7 @@ create table if not exists public.private_manual_import_jobs (
   source_language text not null default 'it',
   source_fingerprint text not null default '',
   status text not null default 'queued' check (status in (
-    'queued', 'processing', 'waiting_translation_consent',
-    'completed', 'failed'
+    'queued', 'processing', 'completed', 'failed'
   )),
   current_page integer not null default 1,
   page_count integer not null default 0,
@@ -237,18 +236,23 @@ alter table public.private_manual_import_jobs
   add column if not exists translation_retry_at timestamptz,
   add column if not exists translation_retry_attempt integer not null default 0,
   add column if not exists completed_at timestamptz;
--- Retire the waiting_ocr_consent state: promote any lingering rows to queued
--- before the constraint is tightened so existing imports can resume normally.
+-- Retire consent-waiting states: promote lingering rows to queued before the
+-- constraint is tightened so existing imports can resume normally.
 update public.private_manual_import_jobs
-  set status = 'queued', updated_at = now()
-where status = 'waiting_ocr_consent';
+  set status = 'queued',
+      lease_id = '',
+      lease_expires_at = 0,
+      last_error = '',
+      translation_retry_at = null,
+      translation_retry_attempt = 0,
+      updated_at = now()
+where status in ('waiting_ocr_consent', 'waiting_translation_consent');
 
 alter table public.private_manual_import_jobs
   drop constraint if exists private_manual_import_jobs_status_check;
 alter table public.private_manual_import_jobs
   add constraint private_manual_import_jobs_status_check check (status in (
-    'queued', 'processing', 'waiting_translation_consent',
-    'completed', 'failed'
+    'queued', 'processing', 'completed', 'failed'
   ));
 create index if not exists private_manual_import_jobs_owner_status_idx
   on public.private_manual_import_jobs (user_id, status, updated_at);
