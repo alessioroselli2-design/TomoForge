@@ -13,6 +13,7 @@ import uuid
 from types import SimpleNamespace
 
 import server
+import services.preload as preload_mod
 
 
 _USER_ID = "lease-test-user"
@@ -211,3 +212,132 @@ def test_expired_lease_is_reclaimable(monkeypatch):
     assert result["lease_expires_at"] > int(time.time()), (
         "New lease expiry must be set to a future timestamp"
     )
+
+
+# ---------------------------------------------------------------------------
+# Test 4: a renewal stops when another worker replaces its lease
+# ---------------------------------------------------------------------------
+
+def test_lease_renewal_stops_after_ownership_is_lost(monkeypatch):
+    """A renewal task must exit when its lease_id no longer matches the row."""
+    first_sleep_started = asyncio.Event()
+    release_first_sleep = asyncio.Event()
+
+    async def _controlled_sleep(_delay):
+        first_sleep_started.set()
+        await release_first_sleep.wait()
+
+    monkeypatch.setattr(
+        preload_mod,
+        "asyncio",
+        SimpleNamespace(
+            CancelledError=asyncio.CancelledError,
+            sleep=_controlled_sleep,
+        ),
+    )
+
+    original_lease_id = "first-worker-lease"
+    replacement_lease_id = "recovered-worker-lease"
+    original_expiry = 123
+    job = _make_job(
+        status="processing",
+        lease_id=original_lease_id,
+        lease_expires_at=original_expiry,
+    )
+    fake_db, collection = _fake_db(job)
+
+    async def _exercise():
+        renewal_task = asyncio.create_task(
+            preload_mod.renew_manual_preload_lease(
+                _USER_ID,
+                job["id"],
+                original_lease_id,
+                db=fake_db,
+            )
+        )
+        await first_sleep_started.wait()
+
+        # Simulate recovery by another worker before the original worker's
+        # first renewal attempt reaches the compare-and-set query.
+        collection.rows[0]["lease_id"] = replacement_lease_id
+        collection.rows[0]["lease_expires_at"] = 456
+        release_first_sleep.set()
+
+        # The coroutine should return normally after its guarded update misses.
+        result = await asyncio.wait_for(renewal_task, timeout=1)
+        return result
+
+    assert asyncio.run(_exercise()) is None
+    assert collection.update_matched_counts == [0], (
+        "The old worker must not renew a lease it no longer owns"
+    )
+    assert collection.rows[0]["lease_id"] == replacement_lease_id
+    assert collection.rows[0]["lease_expires_at"] == 456
+
+
+# ---------------------------------------------------------------------------
+# Test 5: a matching lease continues to renew
+# ---------------------------------------------------------------------------
+
+def test_lease_renewal_continues_while_ownership_matches(monkeypatch):
+    """A renewal task must extend a lease while its lease_id remains current."""
+    first_sleep_started = asyncio.Event()
+    second_sleep_started = asyncio.Event()
+    release_first_sleep = asyncio.Event()
+    hold_second_sleep = asyncio.Event()
+    sleep_calls = 0
+
+    async def _controlled_sleep(_delay):
+        nonlocal sleep_calls
+        sleep_calls += 1
+        if sleep_calls == 1:
+            first_sleep_started.set()
+            await release_first_sleep.wait()
+        else:
+            second_sleep_started.set()
+            await hold_second_sleep.wait()
+
+    monkeypatch.setattr(
+        preload_mod,
+        "asyncio",
+        SimpleNamespace(
+            CancelledError=asyncio.CancelledError,
+            sleep=_controlled_sleep,
+        ),
+    )
+
+    lease_id = "current-worker-lease"
+    original_expiry = 123
+    job = _make_job(
+        status="processing",
+        lease_id=lease_id,
+        lease_expires_at=original_expiry,
+    )
+    fake_db, collection = _fake_db(job)
+
+    async def _exercise():
+        renewal_task = asyncio.create_task(
+            preload_mod.renew_manual_preload_lease(
+                _USER_ID,
+                job["id"],
+                lease_id,
+                db=fake_db,
+            )
+        )
+        await first_sleep_started.wait()
+        release_first_sleep.set()
+        await second_sleep_started.wait()
+
+        # The task is still alive in its next interval, proving the matching
+        # lease did not cause the renewal loop to stop.
+        assert not renewal_task.done()
+        renewed_expiry = collection.rows[0]["lease_expires_at"]
+
+        renewal_task.cancel()
+        await asyncio.gather(renewal_task, return_exceptions=True)
+        return renewed_expiry
+
+    renewed_expiry = asyncio.run(_exercise())
+    assert collection.update_matched_counts == [1]
+    assert collection.rows[0]["lease_id"] == lease_id
+    assert renewed_expiry > original_expiry
