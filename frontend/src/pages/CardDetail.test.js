@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { addSingleCardA4PdfPages } from "@/lib/cardExport";
 import CardDetail from "./CardDetail";
@@ -57,6 +58,7 @@ jest.mock("sonner", () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),
+    warning: jest.fn(),
   },
 }));
 
@@ -152,6 +154,35 @@ describe("CardDetail A4 export action", () => {
     expect(pdf.addPage).toHaveBeenCalledTimes(1);
     expect(pdf.save).toHaveBeenCalledWith(
       "carta-Tempesta del Drago Cremisi-a4-fronte-retro.pdf",
+    );
+  });
+
+  it("warns when the A4 export front has no artwork", async () => {
+    addSingleCardA4PdfPages.mockImplementation(async (activePdf) => {
+      activePdf.addImage("front", "PNG", 0, 0, 190, 277);
+      activePdf.addPage();
+      activePdf.addImage("back", "PNG", 0, 0, 190, 277);
+      return { front: { artworkDrawn: false }, back: {} };
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/carta/card-123"]}>
+          <Routes>
+            <Route path="/carta/:id" element={<CardDetail />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      container.querySelector('[data-testid="sheet-btn"]').click();
+      await Promise.resolve();
+    });
+
+    expect(toast.warning).toHaveBeenCalledWith(
+      "Artwork mancante — la carta esportata mostra un pannello vuoto. Prova a ricaricare o caricare di nuovo l’immagine.",
     );
   });
 });

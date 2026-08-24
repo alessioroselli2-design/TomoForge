@@ -134,6 +134,7 @@ describe("card export renderers", () => {
     };
 
     const canvas = await renderCardCanvas(makeExportElement(), card);
+    expect(canvas.artworkDrawn).toBe(true);
     const text = canvas.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
     const descriptionPanel = canvas.operations
       .filter((entry) => entry.name === "fillRect" && entry.x === 12 && entry.w === 250)
@@ -452,6 +453,7 @@ describe("card export renderers", () => {
     // Canvas must complete without throwing even when the artwork is unavailable.
     expect(canvas.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
     expect(canvas.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
+    expect(canvas.artworkDrawn).toBe(false);
 
     // The dark artwork panel is painted as a safe visual fallback.
     const artworkPanel = canvas.operations.find(

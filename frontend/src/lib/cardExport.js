@@ -327,8 +327,12 @@ export async function renderCardCanvas(element, card) {
   const artX = 12, artY = 53, artW = 316, artH = 234;
   ctx.fillStyle = "#090f10";
   ctx.fillRect(artX, artY, artW, artH);
+  let artworkDrawn = false;
   try {
-    if (artwork?.complete && artwork.naturalWidth) ctx.drawImage(artwork, artX, artY, artW, artH);
+    if (artwork?.complete && artwork.naturalWidth) {
+      ctx.drawImage(artwork, artX, artY, artW, artH);
+      artworkDrawn = true;
+    }
   } catch {
     // Keep the dark artwork panel if a cross-origin image cannot be drawn.
   }
@@ -407,6 +411,7 @@ export async function renderCardCanvas(element, card) {
     ctx.fillRect(274, 405, 54, 54);
     ctx.drawImage(qr, 278, 409, 46, 46);
   }
+  canvas.artworkDrawn = artworkDrawn;
   return canvas;
 }
 

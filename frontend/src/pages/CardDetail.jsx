@@ -138,6 +138,11 @@ const compactNames = (items = []) => (items || [])
   .map((item) => typeof item === "string" ? item : item?.nome || item?.name)
   .filter(Boolean)
   .join(" · ") || "—";
+const warnIfArtworkMissing = (canvas) => {
+  if (canvas?.artworkDrawn === false) {
+    toast.warning("Artwork mancante — la carta esportata mostra un pannello vuoto. Prova a ricaricare o caricare di nuovo l’immagine.");
+  }
+};
 
 const CharacterSheetPreview = ({ card }) => {
   const a = card.attributes || {};
@@ -319,6 +324,7 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const canvas = await createCardPng(exportFrontRef.current, card);
+      warnIfArtworkMissing(canvas);
       const link = document.createElement("a");
       link.download = `${card.name || "carta"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -334,7 +340,8 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [63.5, 88.9] });
-      await addSingleCardPdfPages(pdf, exportFrontRef.current, card);
+      const exportResult = await addSingleCardPdfPages(pdf, exportFrontRef.current, card);
+      warnIfArtworkMissing(exportResult?.front);
       pdf.save(`${card.name || "carta"}-fronte-retro.pdf`);
       setExportFeedback("PDF fronte/retro generato.");
       toast.success("PDF generato");
@@ -347,7 +354,8 @@ export default function CardDetail() {
     setBusy(true);
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      await addSingleCardA4PdfPages(pdf, exportFrontRef.current, card);
+      const exportResult = await addSingleCardA4PdfPages(pdf, exportFrontRef.current, card);
+      warnIfArtworkMissing(exportResult?.front);
       pdf.save(`carta-${card.name || "personaggio"}-a4-fronte-retro.pdf`);
       setExportFeedback("Foglio A4 fronte/retro generato.");
       toast.success("Carta A4 generata");
