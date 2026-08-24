@@ -62,21 +62,19 @@ def _fake_db(job: dict):
 def _patch_claim(monkeypatch, fake_db, collection):
     """Wire monkeypatches so claim_next_manual_preload_job uses fake_db.
 
-    - db propagation goes through the server module's _ATTR_TARGETS mechanism,
-      so patching server.db also updates services.preload.db.
     - private_manual_import_jobs is imported lazily inside the function body, so
       patch it directly on the services.library module.
+    - db is patched on services.preload directly (claim_next_manual_preload_job
+      uses it to access private_manual_import_jobs collection).
 
     The reader snapshots rows BEFORE yielding so that both concurrent callers
     capture the pre-claim (queued) state and both then attempt update_one.
     This is the critical difference from a naive sleep-then-read approach: it
     guarantees the race reaches the atomic compare-and-swap guard.
     """
-    monkeypatch.setattr(server, "db", fake_db)
-
+    import services.preload as preload_mod
     import services.library as lib_mod
-
-    async def _read_jobs(user_id):
+    async def _read_jobs(user_id, *, db=None):
         # Snapshot BEFORE the cooperative yield so every concurrent caller
         # captures the same pre-claim state.  The yield that follows lets the
         # event loop interleave callers so both construct their candidate lists
@@ -115,8 +113,8 @@ def test_only_one_worker_claims_a_queued_job_when_two_race(monkeypatch):
 
     async def _two_concurrent():
         return await asyncio.gather(
-            server.claim_next_manual_preload_job(_USER_ID),
-            server.claim_next_manual_preload_job(_USER_ID),
+            server.claim_next_manual_preload_job(_USER_ID, db=fake_db),
+            server.claim_next_manual_preload_job(_USER_ID, db=fake_db),
         )
 
     r1, r2 = asyncio.run(_two_concurrent())
@@ -171,7 +169,7 @@ def test_active_lease_blocks_second_claim(monkeypatch):
     fake_db, collection = _fake_db(job)
     _patch_claim(monkeypatch, fake_db, collection)
 
-    result = asyncio.run(server.claim_next_manual_preload_job(_USER_ID))
+    result = asyncio.run(server.claim_next_manual_preload_job(_USER_ID, db=fake_db))
 
     assert result is None, "A job with an unexpired lease must not be re-claimed"
 
@@ -204,7 +202,7 @@ def test_expired_lease_is_reclaimable(monkeypatch):
     fake_db, collection = _fake_db(job)
     _patch_claim(monkeypatch, fake_db, collection)
 
-    result = asyncio.run(server.claim_next_manual_preload_job(_USER_ID))
+    result = asyncio.run(server.claim_next_manual_preload_job(_USER_ID, db=fake_db))
 
     assert result is not None, "An expired-lease job must be reclaimable"
     assert result["status"] == "processing", "Recovered job must enter processing state"

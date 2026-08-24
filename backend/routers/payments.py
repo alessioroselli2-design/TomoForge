@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from core.auth import get_current_user
 from core.config import STRIPE_WEBHOOK_SECRET, utc_now
-from core.db import db
+from core.db import db, get_db, SupabaseDatabase
 from schemas.payments import CheckoutRequest
 from schemas.users import User
 from services.payments import (
@@ -20,7 +20,7 @@ logger = logging.getLogger("tomeforge")
 
 
 @router.post("/payments/checkout")
-async def create_checkout(req: CheckoutRequest, user: User = Depends(get_current_user)):
+async def create_checkout(req: CheckoutRequest, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     require_stripe()
     prices = stripe.Price.list(lookup_keys=[req.lookup_key], active=True, limit=1).data
     if not prices:
@@ -43,7 +43,7 @@ async def create_checkout(req: CheckoutRequest, user: User = Depends(get_current
 
 
 @router.get("/payments/status/{session_id}")
-async def payment_status(session_id: str, user: User = Depends(get_current_user)):
+async def payment_status(session_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     record = await db.payment_transactions.find_one({"session_id": session_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Transazione non trovata")
@@ -58,7 +58,7 @@ async def payment_status(session_id: str, user: User = Depends(get_current_user)
                 updates["stripe_subscription_id"] = subscription_id
             await db.payment_transactions.update_one({"session_id": session_id, "user_id": user.user_id}, {"$set": updates})
             if payment == "paid" and subscription_id:
-                await sync_subscription_entitlement(subscription_id, user.user_id)
+                await sync_subscription_entitlement(subscription_id, user.user_id, db=db)
             record.update(updates)
         except stripe.error.StripeError:
             logger.warning("Stripe status reconciliation failed for checkout session %s", session_id, exc_info=True)
@@ -66,7 +66,7 @@ async def payment_status(session_id: str, user: User = Depends(get_current_user)
 
 
 @router.post("/stripe/webhook")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, db: SupabaseDatabase = Depends(get_db)):
     require_stripe()
     try:
         event = stripe.Webhook.construct_event(await request.body(), request.headers.get("stripe-signature", ""), STRIPE_WEBHOOK_SECRET)
@@ -88,13 +88,13 @@ async def stripe_webhook(request: Request):
             await db.payment_transactions.update_one({"session_id": session_id}, {"$set": updates})
             if subscription_id:
                 metadata = stripe_field(resource, "metadata", {}) or {}
-                await sync_subscription_entitlement(subscription_id, stripe_field(metadata, "user_id"))
+                await sync_subscription_entitlement(subscription_id, stripe_field(metadata, "user_id"), db=db)
         elif event_type in {"invoice.paid", "invoice.payment_succeeded"}:
             subscription_id = stripe_field(resource, "subscription")
             if subscription_id:
-                await sync_subscription_entitlement(subscription_id)
+                await sync_subscription_entitlement(subscription_id, db=db)
         elif event_type == "customer.subscription.deleted":
-            await revoke_subscription_entitlement(resource)
+            await revoke_subscription_entitlement(resource, db=db)
     except stripe.error.StripeError:
         logger.exception("Stripe lifecycle sync failed for event %s", event_type)
         raise HTTPException(status_code=502, detail="Impossibile sincronizzare l'abbonamento Stripe")

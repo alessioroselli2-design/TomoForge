@@ -11,7 +11,7 @@ from core.config import (
     ADMIN_EMAIL, ADMIN_PASSWORD, MOCK_DATA, MOCK_USER_EMAIL, MOCK_USER_PASSWORD,
     SUPABASE_ANON_KEY, SUPABASE_URL, utc_now,
 )
-from core.db import db, supabase_auth_client
+from core.db import db, get_db, supabase_auth_client, SupabaseDatabase
 from schemas.users import LoginInput, RegisterInput, SupabaseSessionInput, User
 
 router = APIRouter()
@@ -47,7 +47,7 @@ async def health() -> dict:
 
 
 @router.post("/auth/register")
-async def register(body: RegisterInput):
+async def register(body: RegisterInput, db: SupabaseDatabase = Depends(get_db)):
     existing = await db.users.find_one({"email": body.email.lower()})
     if not existing:
         pass
@@ -67,7 +67,7 @@ async def register(body: RegisterInput):
 
 
 @router.post("/auth/login")
-async def login(body: LoginInput):
+async def login(body: LoginInput, db: SupabaseDatabase = Depends(get_db)):
     from fastapi import HTTPException
     document = await db.users.find_one({"email": body.email.lower()})
     if not document or not document.get("password_hash") or not verify_password(body.password, document["password_hash"]):
@@ -101,7 +101,7 @@ async def google_start(redirect_to: str):
 
 
 @router.post("/auth/supabase-session")
-async def supabase_session(body: SupabaseSessionInput):
+async def supabase_session(body: SupabaseSessionInput, db: SupabaseDatabase = Depends(get_db)):
     """Exchange a verified Supabase OAuth token for TomeForge's session token."""
     from fastapi import HTTPException
     try:

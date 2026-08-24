@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import server
+import services.payments as payments_mod
 
 
 class FakeUsers:
@@ -27,10 +28,9 @@ def test_subscription_sync_uses_stripe_period_end(monkeypatch):
         current_period_end=end,
         items=SimpleNamespace(data=[]),
     )
-    monkeypatch.setattr(server, "db", fake_db)
     monkeypatch.setattr(server.stripe.Subscription, "retrieve", lambda subscription_id: subscription)
 
-    synced_user = asyncio.run(server.sync_subscription_entitlement("sub_123"))
+    synced_user = asyncio.run(server.sync_subscription_entitlement("sub_123", db=fake_db))
 
     assert synced_user == "user_123"
     query, update = fake_db.users.updates[0]
@@ -41,9 +41,8 @@ def test_subscription_sync_uses_stripe_period_end(monkeypatch):
 
 def test_subscription_cancellation_revokes_automatic_entitlement(monkeypatch):
     fake_db = FakeDatabase()
-    monkeypatch.setattr(server, "db", fake_db)
 
-    revoked_user = asyncio.run(server.revoke_subscription_entitlement({"metadata": {"user_id": "user_456"}}))
+    revoked_user = asyncio.run(server.revoke_subscription_entitlement({"metadata": {"user_id": "user_456"}}, db=fake_db))
 
     assert revoked_user == "user_456"
     query, update = fake_db.users.updates[0]

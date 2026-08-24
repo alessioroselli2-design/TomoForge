@@ -8,6 +8,9 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import server
+import services.library as lib_mod
+import services.cards as cards_mod
+import services.preload as preload_mod
 from reference_library import (
     merge_reference_records,
     normalize_reference_name,
@@ -322,7 +325,7 @@ def test_gemini_ocr_returns_empty_for_http_transport_and_malformed_responses(mon
         return next_response
 
     monkeypatch.setattr(server.requests, "post", fake_post)
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "test-key")
 
     for _ in range(5):
         assert server.gemini_ocr_manual_page(_OcrPage(), 7) == ""
@@ -584,10 +587,11 @@ def test_apply_reference_endpoint_accepts_verified_record_with_failed_translatio
         "reference_is_trusted must return True when review_status='verified', "
         "even when translation_status='failed'"
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([record]))
+
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
 
-    result = asyncio.run(server.apply_private_reference(record["id"], user))
+    result = asyncio.run(server.apply_private_reference(record["id"], user, db=_test_db))
 
     assert result["name"] == "Guerriero"
     assert result["reference_id"] == record["id"]
@@ -611,11 +615,12 @@ def test_apply_reference_endpoint_rejects_unverified_record_with_failed_translat
         "reference_is_trusted must return False when translation_status='failed' "
         "and review_status is not 'verified'"
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([record]))
+
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
 
     with pytest.raises(server.HTTPException, match="dato certo") as error:
-        asyncio.run(server.apply_private_reference(record["id"], user))
+        asyncio.run(server.apply_private_reference(record["id"], user, db=_test_db))
 
     assert error.value.status_code == 409
 
@@ -650,7 +655,8 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
     references = server.MemoryCollection()
     references.rows.append(record)
     cards = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
 
     character = asyncio.run(server.create_card(server.CardCreate(
@@ -664,7 +670,7 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
                 {"nome": "Scelta manuale"},
             ],
         },
-    ), user))
+    ), user, db=_test_db))
     assert character.source_refs == record["source_refs"]
     assert character.rule_sources == [{
         "source_kind": "reference",
@@ -679,27 +685,24 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
     linked = asyncio.run(server.create_linked_cards(
         character.id,
         server.LinkedCardInput(reference_ids=[record["id"]], version=character.version),
-        user,
-    ))
+        user, db=_test_db))
     assert len(linked) == 1
     assert linked[0].reference_ids == [record["id"]]
     assert linked[0].source_refs == record["source_refs"]
     assert linked[0].rule_sources[0]["name"] == record["name"]
 
-    current_character = asyncio.run(server.get_card(character.id, user))
+    current_character = asyncio.run(server.get_card(character.id, user, db=_test_db))
     updated = asyncio.run(server.update_card(
         character.id,
         server.CardUpdate(reference_ids=[], version=current_character.version),
-        user,
-    ))
+        user, db=_test_db))
     assert updated.source_refs == []
     assert updated.rule_sources == []
     assert updated.attributes["privilegi"] == [{"nome": "Scelta manuale"}]
     restored = asyncio.run(server.undo_card_change(
         character.id,
         server.CardVersionInput(version=updated.version),
-        user,
-    ))
+        user, db=_test_db))
     assert restored["card"].reference_ids == [record["id"]]
     assert restored["card"].rule_sources[0]["source_id"] == record["id"]
     snapshot = restored["entry"]["before"]["reference_snapshots"][0]
@@ -710,8 +713,7 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
         asyncio.run(server.create_linked_cards(
             character.id,
             server.LinkedCardInput(reference_ids=["ref-non-collegato"], version=updated.version),
-            user,
-        ))
+            user, db=_test_db))
         assert False, "Expected a rejected non-linked reference"
     except server.HTTPException as error:
         assert error.status_code == 400
@@ -730,13 +732,14 @@ def test_linked_card_creation_removes_partial_set_when_persistence_fails(monkeyp
             raise RuntimeError("Errore di persistenza della seconda carta")
 
     cards = FailingLinkedCardCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
     character = asyncio.run(server.create_card(server.CardCreate(
         type="character",
         name="Artemis",
         reference_ids=[first["id"], second["id"]],
-    ), user))
+    ), user, db=_test_db))
 
     with pytest.raises(RuntimeError, match="Errore di persistenza"):
         asyncio.run(server.create_linked_cards(
@@ -745,11 +748,10 @@ def test_linked_card_creation_removes_partial_set_when_persistence_fails(monkeyp
                 reference_ids=[first["id"], second["id"]],
                 version=character.version,
             ),
-            user,
-        ))
+            user, db=_test_db))
 
     assert [card for card in cards.rows if card["type"] != "character"] == []
-    restored_character = asyncio.run(server.get_card(character.id, user))
+    restored_character = asyncio.run(server.get_card(character.id, user, db=_test_db))
     assert restored_character.version == character.version
 
 
@@ -770,7 +772,8 @@ def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_chara
     references = server.MemoryCollection()
     references.rows.append(original)
     cards = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="fighter@example.com", name="Fighter")
 
     character = asyncio.run(server.create_card(server.CardCreate(
@@ -782,14 +785,14 @@ def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_chara
             "dado_vita": "d12",  # Rolled/house-rule manual choice, never overwrite.
             "tiri_salvezza": "Forza, Costituzione",
         },
-    ), user))
+    ), user, db=_test_db))
     saved_snapshot = character.reference_snapshots[0]
     assert saved_snapshot["source_text_checksum"] == "versione-originale"
     assert reference_snapshot_changed(saved_snapshot, corrected)
     assert reference_snapshot(corrected)["content_revision"] != saved_snapshot["content_revision"]
 
     references.rows[0] = corrected
-    report = asyncio.run(server.card_reference_updates(character.id, user))
+    report = asyncio.run(server.card_reference_updates(character.id, user, db=_test_db))
     assert report["updated_count"] == 1
     assert "full_text" not in report["updates"][0]["before"]
     assert "full_text" not in report["updates"][0]["after"]
@@ -798,13 +801,12 @@ def test_reference_snapshots_detect_a_corrected_source_and_preserve_manual_chara
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         character.id,
         server.ReferenceUpdateInput(reference_ids=[original["id"]], version=character.version),
-        user,
-    ))
+        user, db=_test_db))
     assert refreshed["card"].attributes["dado_vita"] == "d12"
     assert refreshed["card"].attributes["tiri_salvezza"] == "Forza, Destrezza"
     assert "dado_vita" in refreshed["protected_fields"][original["id"]]
     assert refreshed["card"].reference_snapshots[0]["source_text_checksum"] == "versione-corretta"
-    assert asyncio.run(server.card_reference_updates(character.id, user))["updated_count"] == 0
+    assert asyncio.run(server.card_reference_updates(character.id, user, db=_test_db))["updated_count"] == 0
 
 
 def test_card_history_keeps_manual_and_user_changes_separate_and_account_scoped(monkeypatch):
@@ -816,7 +818,8 @@ def test_card_history_keeps_manual_and_user_changes_separate_and_account_scoped(
     )
     references = server.MemoryCollection()
     references.rows.append(reference)
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     owner = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
     other_user = server.User(user_id="owner-2", email="other@example.com", name="Other")
 
@@ -825,42 +828,38 @@ def test_card_history_keeps_manual_and_user_changes_separate_and_account_scoped(
         name="Neris",
         reference_ids=[reference["id"]],
         attributes={"classe": "Guerriero", "punti_ferita": "18", "dadi_vita": "d10"},
-    ), owner))
+    ), owner, db=_test_db))
     user_saved = asyncio.run(server.update_card(
         character.id,
         server.CardUpdate(
             attributes={"classe": "Guerriero", "punti_ferita": "18", "dadi_vita": "d12", "pf_attuali": "14"},
             version=character.version,
         ),
-        owner,
-    ))
+        owner, db=_test_db))
     assert user_saved.change_history[-1]["source"] == "user"
     assert user_saved.change_history[-1]["changed_fields"] == ["attributes"]
 
     manual_saved = asyncio.run(server.complete_card_from_manuals(
         character.id,
         server.ManualCompletionInput(version=user_saved.version),
-        owner,
-    ))
+        owner, db=_test_db))
     assert manual_saved.change_history[-1]["source"] == "manual"
     assert manual_saved.change_history[-1]["action"] == "manual_completion"
 
     undone = asyncio.run(server.undo_card_change(
-        character.id, server.CardVersionInput(version=manual_saved.version), owner,
-    ))
+        character.id, server.CardVersionInput(version=manual_saved.version), owner, db=_test_db))
     assert undone["card"].attributes["dadi_vita"] == "d12"
     assert undone["card"].attributes["pf_attuali"] == "14"
     assert "tiri_salvezza" not in undone["card"].attributes
     assert undone["history"][-1]["undone"] is True
 
     redone = asyncio.run(server.redo_card_change(
-        character.id, server.CardVersionInput(version=undone["card"].version), owner,
-    ))
+        character.id, server.CardVersionInput(version=undone["card"].version), owner, db=_test_db))
     assert redone["card"].attributes["tiri_salvezza"] == "Forza, Costituzione"
     assert redone["card"].attributes["pf_attuali"] == "14"
 
     try:
-        asyncio.run(server.card_history(character.id, other_user))
+        asyncio.run(server.card_history(character.id, other_user, db=_test_db))
         assert False, "Expected the other account not to access this card history"
     except server.HTTPException as error:
         assert error.status_code == 404
@@ -868,30 +867,31 @@ def test_card_history_keeps_manual_and_user_changes_separate_and_account_scoped(
 
 def test_card_history_redo_follows_undo_order_and_drops_stale_branches(monkeypatch):
     cards = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=server.MemoryCollection()))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=server.MemoryCollection())
+
     user = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
     character = asyncio.run(server.create_card(server.CardCreate(
         type="character", name="Neris", attributes={"pf_attuali": "18"},
-    ), user))
+    ), user, db=_test_db))
 
-    first = asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "14"}, version=character.version), user))
-    second = asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "9"}, version=first.version), user))
+    first = asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "14"}, version=character.version), user, db=_test_db))
+    second = asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "9"}, version=first.version), user, db=_test_db))
     assert first.version == 1
     assert second.version == 2
 
-    undo_second = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=second.version), user))
+    undo_second = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=second.version), user, db=_test_db))
     assert undo_second["card"].attributes["pf_attuali"] == "14"
-    undo_first = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=undo_second["card"].version), user))
+    undo_first = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=undo_second["card"].version), user, db=_test_db))
     assert undo_first["card"].attributes["pf_attuali"] == "18"
-    redo_first = asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=undo_first["card"].version), user))
+    redo_first = asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=undo_first["card"].version), user, db=_test_db))
     assert redo_first["card"].attributes["pf_attuali"] == "14"
-    redo_second = asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=redo_first["card"].version), user))
+    redo_second = asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=redo_first["card"].version), user, db=_test_db))
     assert redo_second["card"].attributes["pf_attuali"] == "9"
 
-    undo_for_branch = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=redo_second["card"].version), user))
-    asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "7"}, version=undo_for_branch["card"].version), user))
+    undo_for_branch = asyncio.run(server.undo_card_change(character.id, server.CardVersionInput(version=redo_second["card"].version), user, db=_test_db))
+    asyncio.run(server.update_card(character.id, server.CardUpdate(attributes={"pf_attuali": "7"}, version=undo_for_branch["card"].version), user, db=_test_db))
     try:
-        asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=undo_for_branch["card"].version + 1), user))
+        asyncio.run(server.redo_card_change(character.id, server.CardVersionInput(version=undo_for_branch["card"].version + 1), user, db=_test_db))
         assert False, "Expected a new edit to invalidate the redo branch"
     except server.HTTPException as error:
         assert error.status_code == 409
@@ -899,29 +899,28 @@ def test_card_history_redo_follows_undo_order_and_drops_stale_branches(monkeypat
 
 def test_card_update_rejects_a_stale_editor_version_without_changing_history(monkeypatch):
     cards = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=server.MemoryCollection()))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=server.MemoryCollection())
+
     user = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
     character = asyncio.run(server.create_card(server.CardCreate(
         type="character", name="Neris", attributes={"pf_attuali": "18", "tiri_salvezza": "Forza"},
-    ), user))
+    ), user, db=_test_db))
     stale_version = character.version
     saved = asyncio.run(server.update_card(
         character.id,
         server.CardUpdate(attributes={"pf_attuali": "14", "tiri_salvezza": "Forza"}, version=stale_version),
-        user,
-    ))
+        user, db=_test_db))
 
     try:
         asyncio.run(server.update_card(
             character.id,
             server.CardUpdate(attributes={"pf_attuali": "18", "tiri_salvezza": "Destrezza"}, version=stale_version),
-            user,
-        ))
+            user, db=_test_db))
         assert False, "Expected the stale save to be rejected"
     except server.HTTPException as error:
         assert error.status_code == 409
 
-    persisted = asyncio.run(server.get_card(character.id, user))
+    persisted = asyncio.run(server.get_card(character.id, user, db=_test_db))
     assert persisted.attributes == {"pf_attuali": "14", "tiri_salvezza": "Forza"}
     assert persisted.change_history == saved.change_history
 
@@ -946,7 +945,8 @@ def test_versioned_card_mutations_reject_stale_concurrent_actions(monkeypatch):
     cards = server.MemoryCollection()
     references = server.MemoryCollection()
     references.rows.append(reference)
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="owner@example.com", name="Owner")
 
     def assert_conflict(awaitable):
@@ -954,108 +954,92 @@ def test_versioned_card_mutations_reject_stale_concurrent_actions(monkeypatch):
             asyncio.run(awaitable)
         assert error.value.status_code == 409
 
-    manual_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Manuale"), user))
+    manual_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Manuale"), user, db=_test_db))
     completed = asyncio.run(server.complete_card_from_manuals(
         manual_card.id,
         server.ManualCompletionInput(version=manual_card.version),
-        user,
-    ))
+        user, db=_test_db))
     assert_conflict(server.complete_card_from_manuals(
         manual_card.id,
         server.ManualCompletionInput(version=manual_card.version),
-        user,
-    ))
-    assert asyncio.run(server.get_card(manual_card.id, user)).version == completed.version
+        user, db=_test_db))
+    assert asyncio.run(server.get_card(manual_card.id, user, db=_test_db)).version == completed.version
 
     reference_card = asyncio.run(server.create_card(server.CardCreate(
         type="character", name="Riferimenti", reference_ids=[reference["id"]],
-    ), user))
+    ), user, db=_test_db))
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         reference_card.id,
         server.ReferenceUpdateInput(reference_ids=[reference["id"]], version=reference_card.version),
-        user,
-    ))
+        user, db=_test_db))
     assert_conflict(server.refresh_card_reference_updates(
         reference_card.id,
         server.ReferenceUpdateInput(reference_ids=[reference["id"]], version=reference_card.version),
-        user,
-    ))
-    assert asyncio.run(server.get_card(reference_card.id, user)).version == refreshed["card"].version
+        user, db=_test_db))
+    assert asyncio.run(server.get_card(reference_card.id, user, db=_test_db)).version == refreshed["card"].version
 
-    undo_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Cronologia"), user))
+    undo_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Cronologia"), user, db=_test_db))
     changed = asyncio.run(server.update_card(
         undo_card.id,
         server.CardUpdate(attributes={"pf_attuali": "12"}, version=undo_card.version),
-        user,
-    ))
+        user, db=_test_db))
     changed_again = asyncio.run(server.update_card(
         undo_card.id,
         server.CardUpdate(attributes={"pf_attuali": "8"}, version=changed.version),
-        user,
-    ))
+        user, db=_test_db))
     assert_conflict(server.undo_card_change(
         undo_card.id,
         server.CardVersionInput(version=changed.version),
-        user,
-    ))
-    assert asyncio.run(server.get_card(undo_card.id, user)).version == changed_again.version
+        user, db=_test_db))
+    assert asyncio.run(server.get_card(undo_card.id, user, db=_test_db)).version == changed_again.version
 
-    redo_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Ripristino"), user))
+    redo_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Ripristino"), user, db=_test_db))
     changed_for_redo = asyncio.run(server.update_card(
         redo_card.id,
         server.CardUpdate(attributes={"pf_attuali": "12"}, version=redo_card.version),
-        user,
-    ))
+        user, db=_test_db))
     undone_for_redo = asyncio.run(server.undo_card_change(
         redo_card.id,
         server.CardVersionInput(version=changed_for_redo.version),
-        user,
-    ))
+        user, db=_test_db))
     refreshed_for_redo = asyncio.run(server.refresh_card_reference_updates(
         redo_card.id,
         server.ReferenceUpdateInput(version=undone_for_redo["card"].version),
-        user,
-    ))
+        user, db=_test_db))
     assert_conflict(server.redo_card_change(
         redo_card.id,
         server.CardVersionInput(version=undone_for_redo["card"].version),
-        user,
-    ))
-    assert asyncio.run(server.get_card(redo_card.id, user)).version == refreshed_for_redo["card"].version
+        user, db=_test_db))
+    assert asyncio.run(server.get_card(redo_card.id, user, db=_test_db)).version == refreshed_for_redo["card"].version
 
     linked_character = asyncio.run(server.create_card(server.CardCreate(
         type="character", name="Carte collegate", reference_ids=[reference["id"]],
-    ), user))
+    ), user, db=_test_db))
     linked = asyncio.run(server.create_linked_cards(
         linked_character.id,
         server.LinkedCardInput(reference_ids=[reference["id"]], version=linked_character.version),
-        user,
-    ))
+        user, db=_test_db))
     assert len(linked) == 1
     assert_conflict(server.create_linked_cards(
         linked_character.id,
         server.LinkedCardInput(reference_ids=[reference["id"]], version=linked_character.version),
-        user,
-    ))
+        user, db=_test_db))
     assert len(cards.rows) == 6
 
-    delete_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Da eliminare"), user))
+    delete_card = asyncio.run(server.create_card(server.CardCreate(type="character", name="Da eliminare"), user, db=_test_db))
     updated_for_delete = asyncio.run(server.update_card(
         delete_card.id,
         server.CardUpdate(name="Ancora qui", version=delete_card.version),
-        user,
-    ))
+        user, db=_test_db))
     assert_conflict(server.delete_card(
         delete_card.id,
         server.CardVersionInput(version=delete_card.version),
-        user,
-    ))
-    assert asyncio.run(server.get_card(delete_card.id, user)).name == "Ancora qui"
+        user, db=_test_db))
+    assert asyncio.run(server.get_card(delete_card.id, user, db=_test_db)).name == "Ancora qui"
     assert asyncio.run(server.delete_card(
         delete_card.id,
         server.CardVersionInput(version=updated_for_delete.version),
-        user,
-    )) == {"ok": True}
+        user, db=_test_db)) == {"ok": True}
 
 
 def test_untracked_reference_can_be_baselined_without_changing_card_data(monkeypatch):
@@ -1072,16 +1056,16 @@ def test_untracked_reference_can_be_baselined_without_changing_card_data(monkeyp
     ).model_dump())
     references = server.MemoryCollection()
     references.rows.append(record)
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="legacy@example.com", name="Legacy")
 
-    report = asyncio.run(server.card_reference_updates("legacy-character", user))
+    report = asyncio.run(server.card_reference_updates("legacy-character", user, db=_test_db))
     assert report["untracked_count"] == 1
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         "legacy-character",
         server.ReferenceUpdateInput(reference_ids=[record["id"]], version=0),
-        user,
-    ))
+        user, db=_test_db))
     assert refreshed["updated_reference_ids"] == []
     assert refreshed["card"].attributes == {"prerequisito": "Scelta manuale"}
     assert refreshed["card"].reference_snapshots[0]["reference_id"] == record["id"]
@@ -1102,7 +1086,8 @@ def test_attribute_only_source_correction_is_detected_and_keeps_edited_linked_en
     references = server.MemoryCollection()
     references.rows.append(original)
     cards = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="rogue@example.com", name="Rogue")
     character = asyncio.run(server.create_card(server.CardCreate(
         type="character",
@@ -1116,18 +1101,17 @@ def test_attribute_only_source_correction_is_detected_and_keeps_edited_linked_en
                 "descrizione": "Nota personale: la mia versione al tavolo.",
             }],
         },
-    ), user))
+    ), user, db=_test_db))
 
     references.rows[0] = corrected
-    report = asyncio.run(server.card_reference_updates(character.id, user))
+    report = asyncio.run(server.card_reference_updates(character.id, user, db=_test_db))
     assert report["updated_count"] == 1
     assert "attributi" in report["updates"][0]["changed_fields"]
 
     refreshed = asyncio.run(server.refresh_card_reference_updates(
         character.id,
         server.ReferenceUpdateInput(reference_ids=[original["id"]], version=character.version),
-        user,
-    ))
+        user, db=_test_db))
     assert refreshed["card"].attributes["prerequisito"] == "Saggezza 15"
     assert refreshed["card"].attributes["privilegi"][0]["descrizione"] == "Nota personale: la mia versione al tavolo."
     assert "privilegi" in refreshed["protected_fields"][original["id"]]
@@ -1166,9 +1150,10 @@ def test_public_card_projection_never_exposes_private_reference_snapshots(monkey
         reference_ids=[record["id"]],
         reference_snapshots=[server.reference_snapshot_for_card(record, "feat")],
     ).model_dump())
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards))
+    _test_db = SimpleNamespace(cards=cards)
 
-    public_card = asyncio.run(server.public_get_card("public-card"))
+
+    public_card = asyncio.run(server.public_get_card("public-card", db=_test_db))
     assert public_card["name"] == "Carta pubblica"
     assert "reference_snapshots" not in public_card
     assert "reference_ids" not in public_card
@@ -1178,11 +1163,12 @@ def test_public_card_projection_never_exposes_private_reference_snapshots(monkey
 
 def test_apply_reference_endpoint_cannot_read_another_users_record(monkeypatch):
     record = make_reference("Tiratore Scelto", user_id="owner-1")
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([record]))
+
     other_user = server.User(user_id="owner-2", email="other@example.com", name="Other")
 
     try:
-        asyncio.run(server.apply_private_reference(record["id"], other_user))
+        asyncio.run(server.apply_private_reference(record["id"], other_user, db=_test_db))
         assert False, "Expected a not-found response for another user's record"
     except server.HTTPException as error:
         assert error.status_code == 404
@@ -1198,7 +1184,8 @@ def test_unverified_references_cannot_be_attached_or_materialized_as_linked_card
     references = server.MemoryCollection()
     references.rows.append(record)
     cards = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(cards=cards, private_reference_records=references))
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+
     user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
 
     with pytest.raises(server.HTTPException, match="da verificare") as create_error:
@@ -1206,7 +1193,7 @@ def test_unverified_references_cannot_be_attached_or_materialized_as_linked_card
             type="character",
             name="Personaggio",
             reference_ids=[record["id"]],
-        ), user))
+        ), user, db=_test_db))
     assert create_error.value.status_code == 409
 
     character = server.Card(
@@ -1221,21 +1208,20 @@ def test_unverified_references_cannot_be_attached_or_materialized_as_linked_card
         asyncio.run(server.create_linked_cards(
             character.id,
             server.LinkedCardInput(reference_ids=[record["id"]], version=character.version),
-            user,
-        ))
+            user, db=_test_db))
     assert linked_error.value.status_code == 409
 
 
 def test_generate_content_prefers_matching_private_reference_before_gemini(monkeypatch):
     record = make_reference("Tiratore Scelto")
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
-    monkeypatch.setattr(server, "GEMINI_API_KEY", None)
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([record]))
+
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", None)
     user = server.User(user_id="owner-1", email="ranger@example.com", name="Ranger", premium_manual=True)
 
     payload = asyncio.run(server.generate_content(
         server.GenerateContentInput(type="feat", prompt="tirator scelto"),
-        user,
-    ))
+        user, gemini_key=None, db=_test_db))
 
     assert payload["source"] == "biblioteca_privata"
     assert payload["name"] == "Tiratore Scelto"
@@ -1248,10 +1234,11 @@ def test_generate_content_labels_manual_content_without_a_trusted_source(monkeyp
         review_flags=["ocr_da_verificare"],
         review_status="needs_review",
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([record]))
+
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "test-key")
     monkeypatch.setattr(
         server.requests,
         "post",
@@ -1264,8 +1251,7 @@ def test_generate_content_labels_manual_content_without_a_trusted_source(monkeyp
     )
     payload = asyncio.run(server.generate_content(
         server.GenerateContentInput(type="spell", prompt="Palla di fuoco"),
-        user,
-    ))
+        user, gemini_key="test-key", db=_test_db))
 
     assert payload["source"] == "ai_generated"
     assert payload["source_status"] == "unavailable"
@@ -1280,16 +1266,18 @@ def test_library_search_returns_sourced_or_explicitly_unavailable(monkeypatch):
         review_flags=["riga_tabella_da_verificare"],
         review_status="needs_review",
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([trusted, unverified])))
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([trusted, unverified]))
+
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
 
-    sourced = asyncio.run(server.search_private_library(q="Palla di fuoco", types="spell", user=user))
-    unavailable = asyncio.run(server.search_private_library(q="Dardo incantato", types="spell", user=user))
+    sourced = asyncio.run(server.search_private_library(q="Palla di fuoco", types="spell", user=user, db=_test_db))
+    unavailable = asyncio.run(server.search_private_library(q="Dardo incantato", types="spell", user=user, db=_test_db))
     diagnostic = asyncio.run(server.search_private_library(
         q="Dardo incantato",
         types="spell",
         include_unverified=True,
         user=user,
+        db=_test_db,
     ))
 
     assert sourced["status"] == "sourced"
@@ -1326,21 +1314,16 @@ def test_library_review_search_scopes_manuals_and_filters_before_result_limit(mo
         review_flags=["ocr_da_verificare"],
         review_status="needs_review",
     )
-    monkeypatch.setattr(
-        server,
-        "available_reference_manuals",
+    monkeypatch.setattr(lib_mod, "available_reference_manuals",
         lambda: {"Manuale-A.pdf": manual_a, "Manuale-B.pdf": manual_b},
     )
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(private_reference_records=MemoryReferences([
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([
             *verified_records,
             review_in_a,
             review_in_b,
             {**review_in_a, "id": "other-owner-record", "user_id": "owner-2"},
-        ])),
-    )
+        ]))
+
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
 
     result = asyncio.run(server.search_private_library(
@@ -1350,6 +1333,7 @@ def test_library_review_search_scopes_manuals_and_filters_before_result_limit(mo
         include_unverified=True,
         source_filename="Manuale-A.pdf",
         user=user,
+        db=_test_db,
     ))
 
     assert [record["id"] for record in result["records"]] == [review_in_a["id"]]
@@ -1373,8 +1357,8 @@ def test_manual_coverage_counts_valid_missing_and_records_to_review(monkeypatch,
             review_status="needs_review",
         ),
     ]
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Manuale.pdf": source})
-    monkeypatch.setattr(server, "MANUAL_COVERAGE_CATEGORIES", {"Manuale.pdf": ("class", "subclass", "spell")})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {"Manuale.pdf": source})
+    monkeypatch.setattr(lib_mod, "MANUAL_COVERAGE_CATEGORIES", {"Manuale.pdf": ("class", "subclass", "spell")})
 
     report = server.manual_coverage_report(records)
     coverage = {item["reference_type"]: item for item in report[0]["categories"]}
@@ -1423,12 +1407,13 @@ def test_coverage_endpoint_includes_translation_pending_in_totals(monkeypatch, t
             review_status="needs_review",
         ),
     ]
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Manuale.pdf": source})
-    monkeypatch.setattr(server, "MANUAL_COVERAGE_CATEGORIES", {"Manuale.pdf": ("class",)})
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences(records)))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {"Manuale.pdf": source})
+    monkeypatch.setattr(lib_mod, "MANUAL_COVERAGE_CATEGORIES", {"Manuale.pdf": ("class",)})
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences(records))
+
 
     owner = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
-    response = asyncio.run(server.private_library_coverage(owner))
+    response = asyncio.run(server.private_library_coverage(owner, db=_test_db))
 
     totals = response["totals"]
     # Barbaro + Mago → 2 unverified rate-limited; Ladro is verified → excluded.
@@ -1445,11 +1430,12 @@ def test_apply_reference_rejects_unverified_records(monkeypatch):
         review_flags=["traduzione_da_verificare"],
         review_status="needs_review",
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=MemoryReferences([record])))
+    _test_db = SimpleNamespace(private_reference_records=MemoryReferences([record]))
+
     user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
 
     with pytest.raises(server.HTTPException, match="dato certo") as error:
-        asyncio.run(server.apply_private_reference(record["id"], user))
+        asyncio.run(server.apply_private_reference(record["id"], user, db=_test_db))
 
     assert error.value.status_code == 409
 
@@ -1472,14 +1458,11 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     )
     collection = MutableMemoryReferences([record])
     review_history = server.MemoryCollection()
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(
+    _test_db = SimpleNamespace(
             private_reference_records=collection,
             private_reference_review_history=review_history,
-        ),
-    )
+        )
+
     owner = server.User(
         user_id="owner-1",
         email="mago@example.com",
@@ -1494,9 +1477,9 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     )
 
     with pytest.raises(server.HTTPException, match="dato certo"):
-        asyncio.run(server.apply_private_reference(record["id"], owner))
+        asyncio.run(server.apply_private_reference(record["id"], owner, db=_test_db))
 
-    details = asyncio.run(server.get_private_reference_review(record["id"], owner))
+    details = asyncio.run(server.get_private_reference_review(record["id"], owner, db=_test_db))
     assert details["original"]["name"] == "Bárbaro"
     assert details["original"]["full_text"] == "Un guerrero feroz que combate con furia."
     assert details["translation"]["name"] == "Barbaro"
@@ -1504,7 +1487,7 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     assert details["manual"] == [{"filename": "Manual del Jugador.pdf", "page": 46, "language": "es"}]
 
     with pytest.raises(server.HTTPException) as other_owner:
-        asyncio.run(server.get_private_reference_review(record["id"], other_user))
+        asyncio.run(server.get_private_reference_review(record["id"], other_user, db=_test_db))
     assert other_owner.value.status_code == 404
 
     rejected = asyncio.run(server.review_private_reference(
@@ -1513,8 +1496,7 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
             review_status="needs_review",
             review_notes="Controllare il termine tecnico nella seconda frase.",
         ),
-        owner,
-    ))
+        owner, db=_test_db))
     assert rejected["needs_review"] is True
     assert rejected["review_notes"].startswith("Controllare")
     assert rejected["review_history"][0]["reviewer_id"] == owner.user_id
@@ -1523,7 +1505,7 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     assert rejected["review_history"][0]["review_notes"] == "Controllare il termine tecnico nella seconda frase."
     assert rejected["review_history"][0]["reviewed_at"]
     with pytest.raises(server.HTTPException, match="dato certo"):
-        asyncio.run(server.apply_private_reference(record["id"], owner))
+        asyncio.run(server.apply_private_reference(record["id"], owner, db=_test_db))
 
     approved = asyncio.run(server.review_private_reference(
         record["id"],
@@ -1531,8 +1513,7 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
             review_status="verified",
             review_notes="Confrontata con il manuale alla pagina indicata.",
         ),
-        owner,
-    ))
+        owner, db=_test_db))
     assert approved["is_trusted"] is True
     assert approved["review_status"] == "verified"
     assert approved["review_notes"].startswith("Confrontata")
@@ -1541,7 +1522,7 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     assert approved["review_history"][1]["review_status"] == "needs_review"
     assert approved["review_history"][1]["review_notes"].startswith("Controllare")
     assert len(review_history.rows) == 2
-    assert asyncio.run(server.apply_private_reference(record["id"], owner))["name"] == "Barbaro"
+    assert asyncio.run(server.apply_private_reference(record["id"], owner, db=_test_db))["name"] == "Barbaro"
 
 
 def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
@@ -1569,14 +1550,11 @@ def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
     )
     references = BarrierReferences([record])
     review_history = server.MemoryCollection()
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(
+    _test_db = SimpleNamespace(
             private_reference_records=references,
             private_reference_review_history=review_history,
-        ),
-    )
+        )
+
     owner = server.User(
         user_id="owner-1",
         email="mago@example.com",
@@ -1588,8 +1566,7 @@ def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
         return await server.review_private_reference(
             record["id"],
             server.ReferenceReviewInput(review_status=status, review_notes=notes),
-            owner,
-        )
+            owner, db=_test_db)
 
     async def submit_together():
         await asyncio.gather(
@@ -1599,7 +1576,7 @@ def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
 
     asyncio.run(submit_together())
 
-    details = asyncio.run(server.get_private_reference_review(record["id"], owner))
+    details = asyncio.run(server.get_private_reference_review(record["id"], owner, db=_test_db))
     assert {entry["review_status"] for entry in details["review_history"]} == {"needs_review", "verified"}
     assert {entry["review_notes"] for entry in details["review_history"]} == {
         "Controllare il nome.",
@@ -1619,21 +1596,17 @@ def test_verifying_a_record_clears_its_translation_error(monkeypatch):
     )
     collection = MutableMemoryReferences([record])
     review_history = server.MemoryCollection()
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(
+    _test_db = SimpleNamespace(
             private_reference_records=collection,
             private_reference_review_history=review_history,
-        ),
-    )
+        )
+
     owner = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
 
     asyncio.run(server.review_private_reference(
         record["id"],
         server.ReferenceReviewInput(review_status="verified", review_notes=""),
-        owner,
-    ))
+        owner, db=_test_db))
 
     stored = collection.rows[0]
     assert stored["review_status"] == "verified"
@@ -1652,21 +1625,17 @@ def test_needs_review_status_does_not_clear_translation_error(monkeypatch):
     )
     collection = MutableMemoryReferences([record])
     review_history = server.MemoryCollection()
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(
+    _test_db = SimpleNamespace(
             private_reference_records=collection,
             private_reference_review_history=review_history,
-        ),
-    )
+        )
+
     owner = server.User(user_id="owner-1", email="mago@example.com", name="Mago", premium_manual=True)
 
     asyncio.run(server.review_private_reference(
         record["id"],
         server.ReferenceReviewInput(review_status="needs_review", review_notes="Da ricontrollare."),
-        owner,
-    ))
+        owner, db=_test_db))
 
     stored = collection.rows[0]
     assert stored["review_status"] == "needs_review"
@@ -1678,17 +1647,16 @@ def test_same_source_import_uses_distinct_ids_for_distinct_owners(monkeypatch, t
     source.write_bytes(b"not-read")
     record = make_reference("Tiratore Scelto")
     collection = MutableMemoryReferences([])
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Manuale.pdf": source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {"Manuale.pdf": source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args, **kwargs: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
     )
     body = server.ReferenceImportInput(filenames=["Manuale.pdf"])
 
-    asyncio.run(server.import_private_reference_manuals("owner-1", body))
-    asyncio.run(server.import_private_reference_manuals("owner-2", body))
+    asyncio.run(server.import_private_reference_manuals("owner-1", body, db=_test_db))
+    asyncio.run(server.import_private_reference_manuals("owner-2", body, db=_test_db))
 
     assert len(collection.rows) == 2
     assert collection.rows[0]["id"] != collection.rows[1]["id"]
@@ -1699,7 +1667,7 @@ def test_ocr_import_requires_server_side_confirmation_and_one_manual(monkeypatch
     second = tmp_path / "Secondo.pdf"
     first.write_bytes(b"not-read")
     second.write_bytes(b"not-read")
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Primo.pdf": first, "Secondo.pdf": second})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {"Primo.pdf": first, "Secondo.pdf": second})
 
     try:
         asyncio.run(server.import_private_reference_manuals(
@@ -1759,12 +1727,10 @@ def test_ocr_import_sends_pages_to_openai_not_gemini(monkeypatch, tmp_path):
         return _OpenAIResponse()
 
     monkeypatch.setattr(server.requests, "post", fake_post)
-    monkeypatch.setattr(server, "OPENAI_API_KEY", "test-openai-key")
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {pdf_path.name: pdf_path})
-    monkeypatch.setattr(
-        server, "db",
-        SimpleNamespace(private_reference_records=MutableMemoryReferences([])),
-    )
+    monkeypatch.setattr(lib_mod, "OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {pdf_path.name: pdf_path})
+    _test_db = SimpleNamespace(private_reference_records=MutableMemoryReferences([]))
+
 
     asyncio.run(server.import_private_reference_manuals(
         "owner-ocr",
@@ -1775,6 +1741,7 @@ def test_ocr_import_sends_pages_to_openai_not_gemini(monkeypatch, tmp_path):
             end_page=1,
             external_processing_confirmed=True,
         ),
+        db=_test_db,
     ))
 
     assert called_urls, "OCR import must invoke an HTTP endpoint"
@@ -1842,7 +1809,7 @@ def test_spanish_translation_uses_only_structured_fields_and_requires_complete_j
         captured.update(kwargs)
         return TranslationResponse()
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "test-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
     translated, error = server.translate_spanish_reference_batch([{
         "id": "ref-es",
@@ -1889,8 +1856,8 @@ def test_spanish_translation_uses_openai_only_after_gemini_failure(monkeypatch):
         calls.append((url, kwargs))
         return GeminiFailure() if "generativelanguage.googleapis.com" in url else OpenAIResponse()
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-test-key")
-    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-test-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "gemini-test-key")
+    monkeypatch.setattr(lib_mod, "OPENAI_API_KEY", "openai-test-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
 
     translated, error = server.translate_spanish_reference_batch([{
@@ -1921,16 +1888,13 @@ def test_automatic_preload_marks_successful_translations_verified(monkeypatch, t
         source_language="es",
         source_refs=[{"filename": filename, "page": 335, "language": "es"}],
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(
-        server,
-        "translate_spanish_reference_batch",
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch",
         lambda batch: ({
             batch[0]["id"]: {
                 "name": "Talento di guerra",
@@ -1950,6 +1914,7 @@ def test_automatic_preload_marks_successful_translations_verified(monkeypatch, t
             translation_processing_confirmed=True,
             auto_accept=True,
         ),
+        db=_test_db,
     ))
 
     stored = collection.rows[0]
@@ -1971,16 +1936,13 @@ def test_manual_import_keeps_translations_pending_review(monkeypatch, tmp_path):
         source_language="es",
         source_refs=[{"filename": filename, "page": 335, "language": "es"}],
     )
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(
-        server,
-        "translate_spanish_reference_batch",
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch",
         lambda batch: ({
             batch[0]["id"]: {
                 "name": "Talento di guerra",
@@ -2000,6 +1962,7 @@ def test_manual_import_keeps_translations_pending_review(monkeypatch, tmp_path):
             translation_processing_confirmed=True,
             auto_accept=False,
         ),
+        db=_test_db,
     ))
 
     stored = collection.rows[0]
@@ -2021,15 +1984,12 @@ def test_spanish_import_reuses_translation_and_keeps_source_text(monkeypatch, tm
     )
     collection = MutableMemoryReferences([])
     calls = []
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(
-        server,
-        "available_reference_manuals",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals",
         lambda: {"731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": source},
     )
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[record], pages_read=1, pages_needing_ocr=[]),
     )
 
@@ -2044,15 +2004,15 @@ def test_spanish_import_reuses_translation_and_keeps_source_text(monkeypatch, tm
             }
         }, ""
 
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", translate)
     body = server.ReferenceImportInput(
         filenames=["731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"],
         translation_processing_confirmed=True,
         start_page=5,
         end_page=5,
     )
-    first = asyncio.run(server.import_private_reference_manuals("owner-1", body))
-    second = asyncio.run(server.import_private_reference_manuals("owner-1", body))
+    first = asyncio.run(server.import_private_reference_manuals("owner-1", body, db=_test_db))
+    second = asyncio.run(server.import_private_reference_manuals("owner-1", body, db=_test_db))
 
     assert first.imported == 1
     assert second.updated == 1
@@ -2071,18 +2031,15 @@ def test_spanish_translation_failure_is_saved_for_review(monkeypatch, tmp_path):
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")
     collection = MutableMemoryReferences([])
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(
-        server,
-        "available_reference_manuals",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals",
         lambda: {"731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": source},
     )
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[make_reference("Bárbaro", reference_type="class")], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: ({}, "provider_translation_failed"))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", lambda batch: ({}, "provider_translation_failed"))
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2092,6 +2049,7 @@ def test_spanish_translation_failure_is_saved_for_review(monkeypatch, tmp_path):
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     assert result.flagged_for_review == 1
@@ -2115,8 +2073,8 @@ def test_translate_spanish_batch_returns_rate_limited_when_both_providers_return
     def fake_post(url, **kwargs):
         return RateLimitedResponse()
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-key")
-    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(lib_mod, "OPENAI_API_KEY", "openai-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
 
     translated, error = server.translate_spanish_reference_batch([{
@@ -2151,8 +2109,8 @@ def test_translate_spanish_batch_rate_limited_when_gemini_429_and_openai_fails(m
             return Gemini429()
         return OpenAIGenericFailure()
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-key")
-    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(lib_mod, "OPENAI_API_KEY", "openai-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
 
     translated, error = server.translate_spanish_reference_batch([{
@@ -2187,8 +2145,8 @@ def test_translate_spanish_batch_rate_limited_when_openai_429_after_gemini_fails
             return GeminiGenericFailure()
         return OpenAI429()
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "gemini-key")
-    monkeypatch.setattr(server, "OPENAI_API_KEY", "openai-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(lib_mod, "OPENAI_API_KEY", "openai-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
 
     translated, error = server.translate_spanish_reference_batch([{
@@ -2209,17 +2167,15 @@ def test_spanish_translation_rate_limit_saves_record_without_review_flag(monkeyp
     source.write_bytes(b"native-text")
     filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
     collection = MutableMemoryReferences([])
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(
             records=[make_reference("Bárbaro", reference_type="class")], pages_read=1, pages_needing_ocr=[]
         ),
     )
-    monkeypatch.setattr(
-        server, "translate_spanish_reference_batch",
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch",
         lambda batch: ({}, "provider_rate_limited"),
     )
 
@@ -2231,6 +2187,7 @@ def test_spanish_translation_rate_limit_saves_record_without_review_flag(monkeyp
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     stored = collection.rows[0]
@@ -2272,14 +2229,13 @@ def test_rate_limited_batch_retries_each_record_individually_and_saves_successes
         ({}, "provider_rate_limited"),
     ])
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[barbaro, ladron], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: next(responses))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", lambda batch: next(responses))
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2289,6 +2245,7 @@ def test_rate_limited_batch_retries_each_record_individually_and_saves_successes
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     stored_by_source_name = {
@@ -2329,14 +2286,13 @@ def test_rate_limited_singleton_batch_is_not_retried_individually(monkeypatch, t
         call_count[0] += 1
         return {}, "provider_rate_limited"
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[barbaro], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", mock_translate)
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2346,6 +2302,7 @@ def test_rate_limited_singleton_batch_is_not_retried_individually(monkeypatch, t
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     # Provider must be called exactly once — no individual-retry overhead for singletons.
@@ -2374,14 +2331,13 @@ def test_rate_limited_batch_individual_retry_content_error_marks_record_for_revi
         ({}, "provider_rate_limited"),
     ])
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[barbaro, ladron], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: next(responses))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", lambda batch: next(responses))
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2391,6 +2347,7 @@ def test_rate_limited_batch_individual_retry_content_error_marks_record_for_revi
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     stored_by_source_name = {
@@ -2435,14 +2392,13 @@ def test_rate_limited_batch_short_circuits_remaining_records_after_first_individ
         # First individual retry (Bárbaro): still rate-limited → triggers short-circuit.
         return {}, "provider_rate_limited"
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[barbaro, ladron, guerrero], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", mock_translate)
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2453,6 +2409,7 @@ def test_rate_limited_batch_short_circuits_remaining_records_after_first_individ
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     # 1 batch call + 1 individual retry for Bárbaro → short-circuit, no calls for the other two.
@@ -2501,14 +2458,13 @@ def test_subsequent_batches_skipped_when_provider_still_limited_after_individual
         # Any further call would be an error — the second batch must be skipped.
         raise AssertionError(f"Unexpected translate call #{call_count[0]}")
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[barbaro, ladron, guerrero], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", mock_translate)
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2519,6 +2475,7 @@ def test_subsequent_batches_skipped_when_provider_still_limited_after_individual
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     # 1 batch call + 1 individual retry for Bárbaro; Ladrón short-circuited within batch 1,
@@ -2561,14 +2518,13 @@ def test_subsequent_batches_skipped_when_singleton_batch_is_rate_limited(monkeyp
             return {}, "provider_rate_limited"
         raise AssertionError(f"Unexpected translate call #{call_count[0]} — second batch must be skipped")
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(
-        server,
-        "extract_reference_records",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "extract_reference_records",
         lambda *args: SimpleNamespace(records=[barbaro, ladron], pages_read=1, pages_needing_ocr=[]),
     )
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", mock_translate)
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", mock_translate)
 
     result = asyncio.run(server.import_private_reference_manuals(
         "owner-1",
@@ -2579,6 +2535,7 @@ def test_subsequent_batches_skipped_when_singleton_batch_is_rate_limited(monkeyp
             start_page=5,
             end_page=5,
         ),
+        db=_test_db,
     ))
 
     assert call_count[0] == 1, (
@@ -2616,12 +2573,12 @@ def test_rate_limit_retry_uses_backoff_delays_and_escalates_to_review_when_exhau
 
     retry_calls: list[str] = []
 
-    async def fake_retry(user_id, record_id):
+    async def fake_retry(user_id, record_id, *, db=None):
         retry_calls.append(record_id)
         # Simulate continued rate-limiting by not changing the record's status.
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+    monkeypatch.setattr(lib_mod, "retry_private_reference_translation", fake_retry)
 
     remaining = asyncio.run(
         server._retry_rate_limited_translations(
@@ -2659,7 +2616,7 @@ def test_rate_limit_retry_stops_early_when_record_succeeds(monkeypatch):
     async def fake_sleep(seconds):
         slept.append(seconds)
 
-    async def fake_retry(user_id, record_id):
+    async def fake_retry(user_id, record_id, *, db=None):
         # Simulate success: clear the rate-limit error from the collection.
         for row in records.rows:
             if row["id"] == record_id:
@@ -2667,7 +2624,7 @@ def test_rate_limit_retry_stops_early_when_record_succeeds(monkeypatch):
                 row["translation_status"] = "translated"
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+    monkeypatch.setattr(lib_mod, "retry_private_reference_translation", fake_retry)
 
     remaining = asyncio.run(
         server._retry_rate_limited_translations(
@@ -2698,7 +2655,7 @@ def test_preload_worker_sets_rate_limit_status_and_triggers_retry(monkeypatch, t
         "review_flags": [],
     })
 
-    async def fake_import(_user_id, body):
+    async def fake_import(_user_id, body, *, db=None):
         return server.ReferenceImportResult(
             imported=0, updated=0, flagged_for_review=0, skipped=0,
             sources=[{
@@ -2710,21 +2667,22 @@ def test_preload_worker_sets_rate_limit_status_and_triggers_retry(monkeypatch, t
 
     retry_calls: list[str] = []
 
-    async def fake_retry_rate_limited(user_id, filename, collection, delays=None, job_updater=None):
+    async def fake_retry_rate_limited(user_id, filename, collection, delays=None, job_updater=None, *, db=None):
         retry_calls.append(filename)
         return 0
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(
+    _test_db = SimpleNamespace(
         private_manual_import_jobs=jobs,
         private_reference_records=records,
-    ))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1)
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
-    monkeypatch.setattr(server, "_retry_rate_limited_translations", fake_retry_rate_limited)
+    )
 
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
-    asyncio.run(server.run_manual_preload_worker("owner-1"))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 1)
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+    monkeypatch.setattr(preload_mod, "_retry_rate_limited_translations", fake_retry_rate_limited)
+
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput(), db=_test_db))
+    asyncio.run(server.run_manual_preload_worker("owner-1", db=_test_db))
 
     assert retry_calls == [source.name]
     job = jobs.rows[0]
@@ -2750,7 +2708,7 @@ def test_retry_rate_limited_calls_job_updater_before_each_sleep(monkeypatch):
     async def fake_sleep(seconds):
         slept.append(seconds)
 
-    async def fake_retry(user_id, record_id):
+    async def fake_retry(user_id, record_id, *, db=None):
         pass  # Keep record rate-limited to exercise all delay slots.
 
     async def fake_updater(attempt: int, retry_at: str) -> None:
@@ -2758,7 +2716,7 @@ def test_retry_rate_limited_calls_job_updater_before_each_sleep(monkeypatch):
         updater_calls.append((attempt, retry_at, len(slept)))
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+    monkeypatch.setattr(lib_mod, "retry_private_reference_translation", fake_retry)
 
     asyncio.run(
         server._retry_rate_limited_translations(
@@ -2804,12 +2762,12 @@ def test_rate_limit_retry_processes_all_records_beyond_page_boundary(monkeypatch
     async def fake_sleep(_s):
         pass
 
-    async def fake_retry(user_id, record_id):
+    async def fake_retry(user_id, record_id, *, db=None):
         retried.append(record_id)
         # All retries keep failing with rate-limit to exercise exhaustion path.
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+    monkeypatch.setattr(lib_mod, "retry_private_reference_translation", fake_retry)
 
     remaining = asyncio.run(
         server._retry_rate_limited_translations(
@@ -2857,9 +2815,7 @@ def test_repeated_429_during_backoff_never_adds_review_flag_before_exhaustion(mo
     records.rows.append(record.copy())
 
     # Provider always rate-limits — simulates the worst case.
-    monkeypatch.setattr(
-        server,
-        "translate_spanish_reference_batch",
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch",
         lambda batch: ({}, "provider_rate_limited"),
     )
 
@@ -2875,7 +2831,8 @@ def test_repeated_429_during_backoff_never_adds_review_flag_before_exhaustion(mo
         )
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=records))
+    _test_db = SimpleNamespace(private_reference_records=records)
+
 
     remaining = asyncio.run(
         server._retry_rate_limited_translations(
@@ -2925,9 +2882,7 @@ def test_retry_rate_limited_does_not_overwrite_user_verified_translation(monkeyp
     records.rows.append(record.copy())
 
     translate_calls: list = []
-    monkeypatch.setattr(
-        server,
-        "translate_spanish_reference_batch",
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch",
         lambda batch: (translate_calls.append(batch) or ({}, "")),
     )
 
@@ -2935,7 +2890,8 @@ def test_retry_rate_limited_does_not_overwrite_user_verified_translation(monkeyp
         pass
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=records))
+    _test_db = SimpleNamespace(private_reference_records=records)
+
 
     remaining = asyncio.run(
         server._retry_rate_limited_translations(
@@ -3016,10 +2972,11 @@ def test_retry_translation_finalization_skips_record_verified_during_provider_ca
             }
         }, ""
 
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate_and_verify)
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=records))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", translate_and_verify)
+    _test_db = SimpleNamespace(private_reference_records=records)
 
-    asyncio.run(server.retry_private_reference_translation("owner-1", "ref-owned-barbaro"))
+
+    asyncio.run(server.retry_private_reference_translation("owner-1", "ref-owned-barbaro", db=_test_db))
 
     stored = records.rows[0]
     assert stored["review_status"] == "verified", (
@@ -3071,10 +3028,11 @@ def test_retry_single_failed_spanish_translation_preserves_source_fields(monkeyp
             }
         }, ""
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+    _test_db = SimpleNamespace(private_reference_records=collection)
 
-    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", translate)
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"], db=_test_db))
 
     assert len(calls) == 1
     assert result["id"] == source["id"]
@@ -3131,19 +3089,20 @@ def test_concurrent_translation_retries_share_one_provider_call_and_return_compl
 
     async def retry_from_two_devices():
         first = asyncio.create_task(
-            server.retry_private_reference_translation("owner-1", source["id"])
+            server.retry_private_reference_translation("owner-1", source["id"], db=_test_db)
         )
         assert await asyncio.to_thread(provider_started.wait, 1)
         second = asyncio.create_task(
-            server.retry_private_reference_translation("owner-1", source["id"])
+            server.retry_private_reference_translation("owner-1", source["id"], db=_test_db)
         )
         await asyncio.sleep(0.1)
         assert len(calls) == 1
         allow_provider_result.set()
         return await asyncio.gather(first, second)
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", translate)
 
     first_result, second_result = asyncio.run(retry_from_two_devices())
 
@@ -3190,10 +3149,11 @@ def test_retry_reclaims_an_abandoned_translation_lease(monkeypatch):
             }
         }, ""
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", translate)
+    _test_db = SimpleNamespace(private_reference_records=collection)
 
-    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", translate)
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"], db=_test_db))
 
     assert len(calls) == 1
     assert result["translation_status"] == "translated"
@@ -3227,14 +3187,13 @@ def test_retry_failed_translation_keeps_source_when_provider_fails(monkeypatch):
         "id": "ref-owned-barbaro",
     }
     collection = MutableMemoryReferences([source])
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(
-        server,
-        "translate_spanish_reference_batch",
+    _test_db = SimpleNamespace(private_reference_records=collection)
+
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch",
         lambda batch: ({}, "provider_translation_invalid"),
     )
 
-    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"], db=_test_db))
 
     assert result["translation_status"] == "failed"
     assert result["translation_error"] == "provider_translation_invalid"
@@ -3262,10 +3221,11 @@ def test_retry_translated_record_does_not_call_provider_or_modify_record(monkeyp
     }
     collection = MutableMemoryReferences([source])
     calls = []
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_reference_records=collection))
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+    _test_db = SimpleNamespace(private_reference_records=collection)
 
-    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"]))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+
+    result = asyncio.run(server.retry_private_reference_translation("owner-1", source["id"], db=_test_db))
 
     assert result == source
     assert calls == []
@@ -3277,7 +3237,7 @@ def test_retry_translation_endpoint_rejects_non_premium_user_before_provider_cal
     async def non_premium_user():
         return server.User(user_id="owner-1", email="ranger@example.com", name="Ranger")
 
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
     server.app.dependency_overrides[server.get_current_user] = non_premium_user
     try:
         with TestClient(server.app) as client:
@@ -3293,7 +3253,7 @@ def test_spanish_manual_rejects_ocr_even_when_the_request_is_confirmed(monkeypat
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")
     filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
 
     try:
         asyncio.run(server.import_private_reference_manuals(
@@ -3424,8 +3384,8 @@ def test_spanish_translation_requires_consent_before_provider_call(monkeypatch, 
     source.write_bytes(b"native-text")
     filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
     calls = []
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(server, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "translate_spanish_reference_batch", lambda batch: calls.append(batch))
 
     try:
         asyncio.run(server.import_private_reference_manuals(
@@ -3443,7 +3403,7 @@ def test_spanish_import_requires_a_small_native_page_range(monkeypatch, tmp_path
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")
     filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
 
     for body in (
         server.ReferenceImportInput(
@@ -3472,23 +3432,18 @@ def test_automatic_preload_queues_translation_and_ocr_without_user_consent(monke
     for source in (native, spanish, scanned):
         source.write_bytes(b"manual")
     jobs = server.MemoryCollection()
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(private_manual_import_jobs=jobs),
-    )
-    monkeypatch.setattr(
-        server,
-        "available_reference_manuals",
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals",
         lambda: {
             native.name: native,
             spanish.name: spanish,
             scanned.name: scanned,
         },
     )
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 8)
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 8)
 
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput(), db=_test_db))
     by_filename = {job["filename"]: job for job in jobs.rows}
     assert by_filename[native.name]["status"] == "queued"
     assert by_filename[spanish.name]["status"] == "queued"
@@ -3503,17 +3458,17 @@ def test_automatic_preload_can_queue_only_the_requested_manual(monkeypatch, tmp_
     spanish.write_bytes(b"manual")
     other.write_bytes(b"manual")
     jobs = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
-    monkeypatch.setattr(
-        server,
-        "available_reference_manuals",
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals",
         lambda: {spanish.name: spanish, other.name: other},
     )
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1018)
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 1018)
 
     asyncio.run(server.ensure_manual_preload_jobs(
         "owner-1",
         server.ManualPreloadInput(filename=spanish.name),
+        db=_test_db,
     ))
 
     assert [job["filename"] for job in jobs.rows] == [spanish.name]
@@ -3525,15 +3480,12 @@ def test_automatic_preload_processes_all_chunks_without_manual_ranges(monkeypatc
     source.write_bytes(b"manual")
     jobs = server.MemoryCollection()
     calls = []
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(private_manual_import_jobs=jobs),
-    )
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 25)
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
 
-    async def fake_import(owner_id, body):
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 25)
+
+    async def fake_import(owner_id, body, *, db=None):
         calls.append((owner_id, body.start_page, body.end_page, body.use_ai_ocr, body.auto_accept))
         return server.ReferenceImportResult(
             imported=2,
@@ -3543,9 +3495,9 @@ def test_automatic_preload_processes_all_chunks_without_manual_ranges(monkeypatc
             sources=[{"filename": source.name, "pages_needing_ocr": []}],
         )
 
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
-    asyncio.run(server.run_manual_preload_worker("owner-1"))
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput(), db=_test_db))
+    asyncio.run(server.run_manual_preload_worker("owner-1", db=_test_db))
 
     job = jobs.rows[0]
     assert calls == [
@@ -3565,15 +3517,12 @@ def test_automatic_preload_starts_ocr_without_user_consent(monkeypatch, tmp_path
     source.write_bytes(b"manual")
     jobs = server.MemoryCollection()
     calls = []
-    monkeypatch.setattr(
-        server,
-        "db",
-        SimpleNamespace(private_manual_import_jobs=jobs),
-    )
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 6)
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
 
-    async def fake_import(_owner_id, body):
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 6)
+
+    async def fake_import(_owner_id, body, *, db=None):
         calls.append((body.use_ai_ocr, body.external_processing_confirmed, body.auto_accept))
         return server.ReferenceImportResult(
             imported=1,
@@ -3583,9 +3532,9 @@ def test_automatic_preload_starts_ocr_without_user_consent(monkeypatch, tmp_path
             sources=[{"filename": source.name, "pages_needing_ocr": []}],
         )
 
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
-    asyncio.run(server.run_manual_preload_worker("owner-1"))
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput(), db=_test_db))
+    asyncio.run(server.run_manual_preload_worker("owner-1", db=_test_db))
 
     assert jobs.rows[0]["status"] == "completed"
     assert calls == [(True, True, True)]
@@ -3596,25 +3545,27 @@ def test_spanish_preload_skips_unreadable_cover_pages_and_continues(monkeypatch,
     source = tmp_path / filename
     source.write_bytes(b"manual")
     jobs = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 2)
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 2)
 
     calls = []
 
-    async def fake_import(_user_id, body):
+    async def fake_import(_user_id, body, *, db=None):
         calls.append(body.use_ai_ocr)
         return server.ReferenceImportResult(
             imported=0, updated=0, flagged_for_review=0, skipped=0,
             sources=[{"filename": filename, "pages_needing_ocr": [1]}],
         )
 
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
     asyncio.run(server.ensure_manual_preload_jobs(
         "owner-1",
         server.ManualPreloadInput(filename=filename),
+        db=_test_db,
     ))
-    asyncio.run(server.run_manual_preload_worker("owner-1"))
+    asyncio.run(server.run_manual_preload_worker("owner-1", db=_test_db))
 
     assert jobs.rows[0]["status"] == "completed"
     assert jobs.rows[0]["current_page"] == 3
@@ -3626,9 +3577,10 @@ def test_preload_checkpoint_ignores_a_worker_that_lost_its_lease(monkeypatch, tm
     source = tmp_path / "Manuale-nativo.pdf"
     source.write_bytes(b"manual")
     jobs = server.MemoryCollection()
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 2)
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
+
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 2)
 
     async def fake_import(*_args, **_kwargs):
         return server.ReferenceImportResult(
@@ -3636,13 +3588,13 @@ def test_preload_checkpoint_ignores_a_worker_that_lost_its_lease(monkeypatch, tm
             sources=[{"filename": source.name, "pages_needing_ocr": []}],
         )
 
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
-    claimed = asyncio.run(server.claim_next_manual_preload_job("owner-1"))
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput(), db=_test_db))
+    claimed = asyncio.run(server.claim_next_manual_preload_job("owner-1", db=_test_db))
     assert claimed and claimed["lease_id"]
 
     jobs.rows[0]["lease_id"] = "new-owner-lease"
-    asyncio.run(server.process_manual_preload_job("owner-1", claimed))
+    asyncio.run(server.process_manual_preload_job("owner-1", claimed, db=_test_db))
 
     assert jobs.rows[0]["status"] == "processing"
     assert jobs.rows[0]["lease_id"] == "new-owner-lease"
@@ -3663,11 +3615,12 @@ def test_startup_reclaims_only_expired_preload_leases(monkeypatch):
             "lease_expires_at": now + 600, "updated_at": server.utc_now(),
         },
     ])
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
-    started = []
-    monkeypatch.setattr(server, "start_manual_preload_worker", lambda user_id: started.append(user_id))
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
 
-    asyncio.run(server.resume_manual_preload_workers())
+    started = []
+    monkeypatch.setattr(preload_mod, "start_manual_preload_worker", lambda user_id, *, db=None: started.append(user_id))
+
+    asyncio.run(server.resume_manual_preload_workers(db=_test_db))
 
     assert jobs.rows[0]["status"] == "queued"
     assert jobs.rows[1]["status"] == "processing"
@@ -3688,13 +3641,14 @@ def test_startup_requeues_completed_manual_when_its_parser_revision_changes(monk
         "current_page": 1018,
         "records_imported": 803,
     })
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_manual_import_jobs=jobs))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1018)
-    started = []
-    monkeypatch.setattr(server, "start_manual_preload_worker", lambda user_id: started.append(user_id))
+    _test_db = SimpleNamespace(private_manual_import_jobs=jobs)
 
-    asyncio.run(server.resume_manual_preload_workers())
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 1018)
+    started = []
+    monkeypatch.setattr(preload_mod, "start_manual_preload_worker", lambda user_id, *, db=None: started.append(user_id))
+
+    asyncio.run(server.resume_manual_preload_workers(db=_test_db))
 
     assert jobs.rows[0]["status"] == "queued"
     assert jobs.rows[0]["current_page"] == 1
@@ -3816,7 +3770,7 @@ def test_preload_worker_writes_retry_state_to_job(monkeypatch, tmp_path):
         "review_flags": [],
     })
 
-    async def fake_import(_user_id, body):
+    async def fake_import(_user_id, body, *, db=None):
         return server.ReferenceImportResult(
             imported=0, updated=0, flagged_for_review=0, skipped=0,
             sources=[{
@@ -3828,7 +3782,7 @@ def test_preload_worker_writes_retry_state_to_job(monkeypatch, tmp_path):
 
     updater_snapshots: list[dict] = []
 
-    async def capturing_retry(user_id, filename, collection, delays=None, job_updater=None):
+    async def capturing_retry(user_id, filename, collection, delays=None, job_updater=None, *, db=None):
         # Call the updater once as the real function would (attempt 0).
         if job_updater is not None:
             await job_updater(0, "2026-08-23T12:00:30+00:00")
@@ -3837,17 +3791,18 @@ def test_preload_worker_writes_retry_state_to_job(monkeypatch, tmp_path):
                 updater_snapshots.append(dict(jobs.rows[0]))
         return 0
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(
+    _test_db = SimpleNamespace(
         private_manual_import_jobs=jobs,
         private_reference_records=records,
-    ))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {source.name: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 1)
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
-    monkeypatch.setattr(server, "_retry_rate_limited_translations", capturing_retry)
+    )
 
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput()))
-    asyncio.run(server.run_manual_preload_worker("owner-1"))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 1)
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+    monkeypatch.setattr(preload_mod, "_retry_rate_limited_translations", capturing_retry)
+
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", server.ManualPreloadInput(), db=_test_db))
+    asyncio.run(server.run_manual_preload_worker("owner-1", db=_test_db))
 
     assert updater_snapshots, "job_updater was never called"
     snap = updater_snapshots[0]
@@ -3880,11 +3835,11 @@ def test_retry_rate_limited_without_job_updater_does_not_raise(monkeypatch):
     async def fake_sleep(_s):
         pass
 
-    async def fake_retry(_uid, _rid):
+    async def fake_retry(_uid, _rid, *, db=None):
         pass
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(server, "retry_private_reference_translation", fake_retry)
+    monkeypatch.setattr(lib_mod, "retry_private_reference_translation", fake_retry)
 
     # Must not raise even though job_updater is not provided.
     remaining = asyncio.run(
@@ -3915,7 +3870,7 @@ def test_gemini_ocr_returns_transcription_for_valid_response(monkeypatch, tmp_pa
     }
 
     monkeypatch.setattr(server.requests, "post", lambda *a, **k: _OcrResponse(payload=valid_payload))
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(lib_mod, "GEMINI_API_KEY", "test-key")
 
     returned = server.gemini_ocr_manual_page(_OcrPage(), 5)
 
@@ -4019,23 +3974,24 @@ def test_preload_worker_marks_job_failed_after_max_ocr_attempts(monkeypatch, tmp
         "updated_at": "2026-08-01T00:00:00+00:00",
     })
 
-    async def fake_import(_user_id, body):
+    async def fake_import(_user_id, body, *, db=None):
         # The OCR page still fails — simulates a page that cannot be transcribed.
         return server.ReferenceImportResult(
             imported=0, updated=0, flagged_for_review=0, skipped=0,
             sources=[{"filename": filename, "pages_needing_ocr": [1], "translation_rate_limited": 0}],
         )
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(
+    _test_db = SimpleNamespace(
         private_manual_import_jobs=jobs,
         private_reference_records=server.MemoryCollection(),
-    ))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 3)
-    monkeypatch.setattr(server, "manual_requires_ocr", lambda _fn: True)
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    )
 
-    asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0])))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 3)
+    monkeypatch.setattr(lib_mod, "manual_requires_ocr", lambda _fn: True)
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+
+    asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0]), db=_test_db))
 
     final_job = jobs.rows[0]
     assert final_job["status"] == "failed", (
@@ -4076,23 +4032,24 @@ def test_preload_worker_accumulates_pages_needing_ocr_across_chunks(monkeypatch,
         "updated_at": "2026-08-01T00:00:00+00:00",
     })
 
-    async def fake_import(_user_id, body):
+    async def fake_import(_user_id, body, *, db=None):
         # Page 13 (inside the current batch) also fails OCR.
         return server.ReferenceImportResult(
             imported=3, updated=0, flagged_for_review=0, skipped=0,
             sources=[{"filename": filename, "pages_needing_ocr": [13], "translation_rate_limited": 0}],
         )
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(
+    _test_db = SimpleNamespace(
         private_manual_import_jobs=jobs,
         private_reference_records=server.MemoryCollection(),
-    ))
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
-    monkeypatch.setattr(server, "manual_page_count", lambda _path: 30)
-    monkeypatch.setattr(server, "manual_requires_ocr", lambda _fn: True)
-    monkeypatch.setattr(server, "import_private_reference_manuals", fake_import)
+    )
 
-    asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0])))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 30)
+    monkeypatch.setattr(lib_mod, "manual_requires_ocr", lambda _fn: True)
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", fake_import)
+
+    asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0]), db=_test_db))
 
     final_job = jobs.rows[0]
     # Pages 1 and 2 are outside the current batch (13–24) → preserved.
@@ -4125,7 +4082,7 @@ def test_ocr_import_blocks_missing_consent_before_any_page_reaches_gemini(
     source = tmp_path / "Manuale-Scansionato.pdf"
     source.write_bytes(b"scan")
     filename = source.name
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
     monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
 
     try:
@@ -4153,7 +4110,7 @@ def test_ocr_import_blocks_spanish_manual_before_any_page_reaches_gemini(
     source = tmp_path / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
     source.write_bytes(b"native-text")
     filename = source.name
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
     monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
 
     try:
@@ -4182,7 +4139,7 @@ def test_ocr_import_blocks_oversized_range_before_any_page_reaches_gemini(
     source = tmp_path / "Manuale-Scansionato.pdf"
     source.write_bytes(b"scan")
     filename = source.name
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
     monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())
 
     # No end_page at all
@@ -4229,9 +4186,7 @@ def test_ocr_import_blocks_multiple_manuals_before_any_page_reaches_gemini(
     source_b = tmp_path / "Manuale-B.pdf"
     source_a.write_bytes(b"scan-a")
     source_b.write_bytes(b"scan-b")
-    monkeypatch.setattr(
-        server,
-        "available_reference_manuals",
+    monkeypatch.setattr(lib_mod, "available_reference_manuals",
         lambda: {source_a.name: source_a, source_b.name: source_b},
     )
     monkeypatch.setattr(server.requests, "post", _make_gemini_must_not_be_called())

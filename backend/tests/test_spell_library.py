@@ -2,6 +2,7 @@ import asyncio
 from types import SimpleNamespace
 
 import server
+import services.spells as spells_mod
 from spell_library import (
     merge_spell_records,
     normalize_spell_name,
@@ -133,11 +134,11 @@ class MemorySpells:
 
 def test_apply_endpoint_cannot_read_another_users_spell(monkeypatch):
     spell = make_spell("Palla di Fuoco", user_id="owner-1")
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_spells=MemorySpells([spell])))
+    fake_db = SimpleNamespace(private_spells=MemorySpells([spell]))
     other_user = server.User(user_id="owner-2", email="other@example.com", name="Other")
 
     try:
-        asyncio.run(server.apply_private_spell(spell["id"], other_user))
+        asyncio.run(server.apply_private_spell(spell["id"], other_user, db=fake_db))
         assert False, "Expected a not-found response for another user's spell"
     except server.HTTPException as error:
         assert error.status_code == 404
@@ -145,13 +146,14 @@ def test_apply_endpoint_cannot_read_another_users_spell(monkeypatch):
 
 def test_generate_content_prefers_matching_private_spell_before_gemini(monkeypatch):
     spell = make_spell("Palla di Fuoco")
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_spells=MemorySpells([spell])))
-    monkeypatch.setattr(server, "GEMINI_API_KEY", None)
+    _test_db = SimpleNamespace(private_spells=MemorySpells([spell]))
     user = server.User(user_id="owner-1", email="mage@example.com", name="Mage", premium_manual=True)
 
     payload = asyncio.run(server.generate_content(
         server.GenerateContentInput(type="spell", prompt="palla di fuoc"),
         user,
+        gemini_key=None,
+        db=_test_db,
     ))
 
     assert payload["source"] == "grimorio"
@@ -168,14 +170,15 @@ def test_generate_content_falls_back_to_gemini_for_missing_spell(monkeypatch):
                 "text": '{"name":"Nebbia runica","description":"Una nebbia.","story":"Antica.","attributes":{"livello":"2"}}'
             }]}}]}
 
-    monkeypatch.setattr(server, "db", SimpleNamespace(private_spells=MemorySpells([])))
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-key")
+    _test_db = SimpleNamespace(private_spells=MemorySpells([]))
     monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
     user = server.User(user_id="owner-1", email="mage@example.com", name="Mage", premium_manual=True)
 
     payload = asyncio.run(server.generate_content(
         server.GenerateContentInput(type="spell", prompt="Nebbia inesistente"),
         user,
+        gemini_key="test-key",
+        db=_test_db,
     ))
 
     assert payload["name"] == "Nebbia runica"

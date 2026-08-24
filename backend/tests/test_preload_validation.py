@@ -10,6 +10,8 @@ from types import SimpleNamespace
 
 import pytest
 import server
+import services.library as lib_mod
+import services.preload as preload_mod
 
 
 class MemoryJobs:
@@ -53,9 +55,8 @@ def test_preload_unknown_filename_returns_400(monkeypatch):
     fake_db = FakeDB()
     started = []
 
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Reale.pdf": Path("/fake/Reale.pdf")})
-    monkeypatch.setattr(server, "start_manual_preload_worker", lambda user_id: started.append(user_id))
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {"Reale.pdf": Path("/fake/Reale.pdf")})
+    monkeypatch.setattr(preload_mod, "start_manual_preload_worker", lambda user_id: started.append(user_id))
 
     body = server.ManualPreloadInput(filename="NonEsistente.pdf")
 
@@ -79,19 +80,15 @@ def test_preload_valid_filename_does_not_raise(monkeypatch):
     started = []
     fake_path = Path("/fake/Reale.pdf")
 
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "available_reference_manuals", lambda: {"Reale.pdf": fake_path})
-    monkeypatch.setattr(server, "start_manual_preload_worker", lambda user_id: started.append(user_id))
-    monkeypatch.setattr(server, "manual_requires_ocr", lambda filename: False)
-    monkeypatch.setattr(server, "manual_source_fingerprint", lambda _p: "fp-stable")
-    monkeypatch.setattr(server, "manual_page_count", lambda _p: 20)
-
-    # Patch the inner lazy import used by ensure_manual_preload_jobs
-    import services.library as lib_mod
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {"Reale.pdf": fake_path})
+    monkeypatch.setattr(preload_mod, "start_manual_preload_worker", lambda user_id: started.append(user_id))
+    monkeypatch.setattr(lib_mod, "manual_requires_ocr", lambda filename: False)
+    monkeypatch.setattr(lib_mod, "manual_source_fingerprint", lambda _p: "fp-stable")
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _p: 20)
     monkeypatch.setattr(lib_mod, "manual_source_language", lambda filename: "it")
 
     body = server.ManualPreloadInput(filename="Reale.pdf")
 
     # Should complete without raising — a job is created in the queue
-    asyncio.run(server.ensure_manual_preload_jobs("owner-1", body))
+    asyncio.run(server.ensure_manual_preload_jobs("owner-1", body, db=fake_db))
     assert len(fake_db.private_manual_import_jobs.documents) >= 1

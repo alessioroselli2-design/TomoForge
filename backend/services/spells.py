@@ -17,15 +17,16 @@ from reference_library import (
 )
 
 from core.config import SPELL_PDF_DIRECTORY, utc_now
-from core.db import db
+from core.db import db as _singleton_db
 from schemas.library import SpellImportResult
 
 logger = logging.getLogger("tomeforge")
 
 
-async def private_spell_records(user_id: str) -> list[dict]:
+async def private_spell_records(user_id: str, *, db=None) -> list[dict]:
     """Load only one owner's catalogue; no unauthenticated route calls this."""
-    collection = getattr(db, "private_spells", None)
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_spells", None)
     if collection is None:
         return []
     try:
@@ -37,13 +38,14 @@ async def private_spell_records(user_id: str) -> list[dict]:
         raise
 
 
-async def find_private_spell(user_id: str, query: str) -> Optional[dict]:
-    matches = search_spell_records(await private_spell_records(user_id), query, limit=20)
+async def find_private_spell(user_id: str, query: str, *, db=None) -> Optional[dict]:
+    matches = search_spell_records(await private_spell_records(user_id, db=db), query, limit=20)
     return next((spell for spell in matches if reference_is_trusted(spell)), None)
 
 
-async def import_private_spell_pdfs(user_id: str) -> SpellImportResult:
+async def import_private_spell_pdfs(user_id: str, *, db=None) -> SpellImportResult:
     """Import supplied PDFs into a single private owner's catalogue."""
+    _db = db if db is not None else _singleton_db
     pdf_paths = sorted(SPELL_PDF_DIRECTORY.glob("*.pdf"))
     if not pdf_paths:
         raise HTTPException(status_code=404, detail="Nessun PDF degli incantesimi è disponibile per l'importazione")
@@ -53,7 +55,7 @@ async def import_private_spell_pdfs(user_id: str) -> SpellImportResult:
     )
     records = merge_spell_records(record for group in extracted_groups for record in group)
     imported = updated = flagged = skipped = 0
-    collection = getattr(db, "private_spells", None)
+    collection = getattr(_db, "private_spells", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Catalogo privato non disponibile")
 

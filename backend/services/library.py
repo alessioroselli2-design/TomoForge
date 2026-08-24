@@ -51,7 +51,7 @@ from core.config import (
     TRANSLATION_WAIT_SECONDS,
     utc_now,
 )
-from core.db import db
+from core.db import db as _singleton_db
 from core.providers import require_gemini
 from schemas.library import ReferenceImportInput, ReferenceImportResult
 
@@ -386,9 +386,10 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
     return translated, ""
 
 
-async def private_reference_records(user_id: str) -> list[dict]:
+async def private_reference_records(user_id: str, *, db=None) -> list[dict]:
     """Load a user's non-spell manual facts only; the source PDFs stay local."""
-    collection = getattr(db, "private_reference_records", None)
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_reference_records", None)
     if collection is None:
         return []
     try:
@@ -400,9 +401,10 @@ async def private_reference_records(user_id: str) -> list[dict]:
         raise
 
 
-async def private_manual_import_jobs(user_id: str) -> list[dict]:
+async def private_manual_import_jobs(user_id: str, *, db=None) -> list[dict]:
     """Load only owner-scoped preload metadata, never manual source material."""
-    collection = getattr(db, "private_manual_import_jobs", None)
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
         return []
     try:
@@ -414,16 +416,17 @@ async def private_manual_import_jobs(user_id: str) -> list[dict]:
         raise
 
 
-async def find_private_reference(user_id: str, query: str, card_type: Optional[str] = None) -> Optional[dict]:
-    records = await private_reference_records(user_id)
+async def find_private_reference(user_id: str, query: str, card_type: Optional[str] = None, *, db=None) -> Optional[dict]:
+    records = await private_reference_records(user_id, db=db)
     matches = search_reference_records(records, query, limit=20)
     if card_type:
         matches = [record for record in matches if CARD_TYPE_BY_REFERENCE_TYPE.get(record.get("reference_type")) == card_type]
     return next((record for record in matches if reference_is_trusted(record)), None)
 
 
-async def import_private_reference_manuals(user_id: str, body: ReferenceImportInput) -> ReferenceImportResult:
+async def import_private_reference_manuals(user_id: str, body: ReferenceImportInput, *, db=None) -> ReferenceImportResult:
     """Import source records locally, translating Spanish facts in small batches."""
+    _db = db if db is not None else _singleton_db
     manuals = available_reference_manuals()
     requested = body.filenames or list(manuals)
     unknown = sorted(set(requested) - set(manuals))
@@ -524,11 +527,11 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         })
 
     all_records = merge_reference_records(all_records)
-    collection = getattr(db, "private_reference_records", None)
+    collection = getattr(_db, "private_reference_records", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Biblioteca privata non disponibile: applica prima la migrazione SQL")
 
-    existing_records = await private_reference_records(user_id)
+    existing_records = await private_reference_records(user_id, db=_db)
     existing_by_source = {
         (
             record.get("reference_type"),
@@ -924,9 +927,10 @@ def reference_summary(record: dict) -> dict:
     }
 
 
-async def private_reference_review_history(user_id: str, reference_id: str) -> list[dict]:
+async def private_reference_review_history(user_id: str, reference_id: str, *, db=None) -> list[dict]:
     """Load the append-only audit trail for one owner-controlled record."""
-    collection = getattr(db, "private_reference_review_history", None)
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_reference_review_history", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL")
     try:
@@ -942,7 +946,7 @@ async def private_reference_review_history(user_id: str, reference_id: str) -> l
         raise
 
 
-async def reference_review_details(record: dict) -> dict:
+async def reference_review_details(record: dict, *, db=None) -> dict:
     """Return the private side-by-side material needed to review one record."""
     summary = reference_summary(record)
     source_language = record.get("source_language", "it")
@@ -975,7 +979,7 @@ async def reference_review_details(record: dict) -> dict:
         "original": original,
         "translation": translation,
         "manual": copy.deepcopy(record.get("source_refs") or []),
-        "review_history": await private_reference_review_history(record["user_id"], record["id"]),
+        "review_history": await private_reference_review_history(record["user_id"], record["id"], db=db),
     }
 
 
@@ -1128,9 +1132,10 @@ async def _wait_for_translation(collection: Any, user_id: str, reference_id: str
     return current or fallback
 
 
-async def retry_private_reference_translation(user_id: str, reference_id: str) -> dict:
+async def retry_private_reference_translation(user_id: str, reference_id: str, *, db=None) -> dict:
     """Retry one failed Spanish translation without re-reading the manual."""
-    collection = getattr(db, "private_reference_records", None)
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_reference_records", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Biblioteca privata non disponibile: applica prima la migrazione SQL")
 

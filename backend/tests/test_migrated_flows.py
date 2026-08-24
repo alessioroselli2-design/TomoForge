@@ -6,6 +6,11 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import server
 
+import core.auth as core_auth_mod
+import core.providers as core_providers_mod
+import routers.auth as auth_router_mod
+import services.media as services_media
+
 
 class FakeCards:
     def __init__(self):
@@ -31,7 +36,6 @@ class FakeDatabase:
 
 def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
     fake_db = FakeDatabase()
-    monkeypatch.setattr(server, "db", fake_db)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage")
 
     card = asyncio.run(server.create_card(
@@ -55,6 +59,7 @@ def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
             ),
         ),
         user,
+        db=fake_db,
     ))
 
     assert card.user_id == user.user_id
@@ -76,11 +81,10 @@ def test_card_creation_keeps_owner_foil_frame_and_appearance(monkeypatch):
 
 def test_file_record_is_created_after_storage_upload(monkeypatch):
     fake_db = FakeDatabase()
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(services_media, "put_object", lambda path, data, content_type: path)
 
     saved_path = asyncio.run(server.save_file(
-        "uploads/user_123/card.png", b"image-bytes", "image/png", "user_123", "card.png"
+        "uploads/user_123/card.png", b"image-bytes", "image/png", "user_123", "card.png", db=fake_db
     ))
 
     assert saved_path == "uploads/user_123/card.png"
@@ -89,7 +93,7 @@ def test_file_record_is_created_after_storage_upload(monkeypatch):
 
 
 def test_artwork_cleanup_is_a_noop_when_disabled(monkeypatch):
-    monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", False)
+    monkeypatch.setattr(services_media, "ARTWORK_CLEANUP_ENABLED", False)
 
     result = asyncio.run(server.cleanup_artwork(b"original-artwork", "image/jpeg"))
 
@@ -108,10 +112,9 @@ def test_artwork_cleanup_removes_marks_before_the_image_is_saved(monkeypatch):
                 b64_json=base64.b64encode(cleaned_bytes).decode("ascii")
             )])
 
-    monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", True)
-    monkeypatch.setattr(server, "require_openai", lambda: SimpleNamespace(images=FakeImages()))
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(services_media, "ARTWORK_CLEANUP_ENABLED", True)
+    monkeypatch.setattr(services_media, "require_openai", lambda: SimpleNamespace(images=FakeImages()))
+    monkeypatch.setattr(services_media, "put_object", lambda path, data, content_type: path)
 
     saved_path, cleanup_notice = asyncio.run(server.save_artwork(
         "artwork/user_123/generated.jpg",
@@ -120,6 +123,7 @@ def test_artwork_cleanup_removes_marks_before_the_image_is_saved(monkeypatch):
         "user_123",
         "segmind-generated.jpg",
         cleanup=True,
+        db=fake_db,
     ))
 
     assert calls["model"] == server.ARTWORK_CLEANUP_MODEL
@@ -149,13 +153,13 @@ def test_gemini_content_response_is_mapped_to_card_fields(monkeypatch):
         request_data.update(kwargs)
         return FakeResponse()
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "test-gemini-key")
     monkeypatch.setattr(server.requests, "post", fake_post)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_content(
         server.GenerateContentInput(type="spell", prompt="Una nebbia protettiva"),
         user,
+        gemini_key="test-gemini-key",
     ))
 
     assert result == {
@@ -192,16 +196,16 @@ def test_segmind_image_response_is_saved_as_card_artwork(monkeypatch):
         cleanup_calls.append((data, content_type))
         return b"cleaned-image-bytes", "image/png"
 
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
-    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(services_media, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(services_media, "cleanup_artwork", fake_cleanup)
     monkeypatch.setattr(server.requests, "post", fake_post)
-    monkeypatch.setattr(server, "cleanup_artwork", fake_cleanup)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_image(
         server.GenerateImageInput(type="spell", prompt="Una fenice di ossidiana", cleanup=True),
         user,
+        segmind_key="test-key",
+        db=fake_db,
     ))
 
     assert request_data["url"].endswith("/flux-dev")
@@ -236,16 +240,16 @@ def test_generated_artwork_is_saved_with_notice_when_cleanup_fails(monkeypatch):
         raise RuntimeError("image cleanup unavailable")
 
     fake_db = FakeDatabase()
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
-    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(services_media, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(services_media, "cleanup_artwork", failing_cleanup)
     monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
-    monkeypatch.setattr(server, "cleanup_artwork", failing_cleanup)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_image(
         server.GenerateImageInput(type="spell", prompt="Un golem d'ombra", cleanup=True),
         user,
+        segmind_key="test-key",
+        db=fake_db,
     ))
 
     assert result["artwork_path"].endswith(".jpg")
@@ -268,16 +272,16 @@ def test_generated_artwork_skips_cleanup_unless_requested(monkeypatch):
         cleanup_calls.append((data, content_type))
         return b"cleaned-image-bytes", "image/png"
 
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
-    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(services_media, "put_object", lambda path, data, content_type: path)
+    monkeypatch.setattr(services_media, "cleanup_artwork", fake_cleanup)
     monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
-    monkeypatch.setattr(server, "cleanup_artwork", fake_cleanup)
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_image(
         server.GenerateImageInput(type="spell", prompt="Una fenice di ossidiana"),
         user,
+        segmind_key="test-key",
+        db=fake_db,
     ))
 
     assert cleanup_calls == []
@@ -294,16 +298,16 @@ def test_requested_artwork_cleanup_saves_original_when_unavailable(monkeypatch):
             return None
 
     fake_db = FakeDatabase()
-    monkeypatch.setattr(server, "ARTWORK_CLEANUP_ENABLED", False)
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "put_object", lambda path, data, content_type: path)
-    monkeypatch.setattr(server, "require_segmind", lambda: "test-key")
+    monkeypatch.setattr(services_media, "ARTWORK_CLEANUP_ENABLED", False)
+    monkeypatch.setattr(services_media, "put_object", lambda path, data, content_type: path)
     monkeypatch.setattr(server.requests, "post", lambda *args, **kwargs: FakeResponse())
     user = server.User(user_id="user_123", email="mage@example.com", name="Mage", premium_manual=True)
 
     result = asyncio.run(server.generate_image(
         server.GenerateImageInput(type="spell", prompt="Un drago d'ombra", cleanup=True),
         user,
+        segmind_key="test-key",
+        db=fake_db,
     ))
 
     assert result["artwork_path"].endswith(".jpg")
@@ -323,15 +327,14 @@ def test_configured_admin_email_registers_as_admin_and_premium(monkeypatch):
             self.documents.append(document)
 
     fake_db = SimpleNamespace(users=FakeUsers())
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "ADMIN_EMAIL", "admin@example.com")
-    monkeypatch.setattr(server, "create_jwt", lambda user_id: "test-token")
+    monkeypatch.setattr(core_auth_mod, "ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setattr(auth_router_mod, "create_jwt", lambda user_id: "test-token")
 
     result = asyncio.run(server.register(server.RegisterInput(
         email="admin@example.com",
         password="secure-test-password",
         name="Admin",
-    )))
+    ), db=fake_db))
 
     assert result["user"]["is_admin"] is True
     assert result["user"]["is_premium"] is True
@@ -359,12 +362,14 @@ def test_configured_admin_email_is_promoted_after_google_login(monkeypatch):
         get_user=lambda access_token: SimpleNamespace(user=external_user)
     ))
     fake_db = SimpleNamespace(users=FakeUsers())
-    monkeypatch.setattr(server, "db", fake_db)
-    monkeypatch.setattr(server, "ADMIN_EMAIL", "admin@example.com")
-    monkeypatch.setattr(server, "create_jwt", lambda user_id: "test-token")
-    monkeypatch.setattr(server, "supabase_auth_client", lambda: fake_auth_client)
+    monkeypatch.setattr(core_auth_mod, "ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setattr(auth_router_mod, "create_jwt", lambda user_id: "test-token")
+    monkeypatch.setattr(auth_router_mod, "supabase_auth_client", lambda: fake_auth_client)
 
-    result = asyncio.run(server.supabase_session(server.SupabaseSessionInput(access_token="google-token")))
+    result = asyncio.run(server.supabase_session(
+        server.SupabaseSessionInput(access_token="google-token"),
+        db=fake_db,
+    ))
 
     assert result["user"]["is_admin"] is True
     assert result["user"]["is_premium"] is True
@@ -372,8 +377,8 @@ def test_configured_admin_email_is_promoted_after_google_login(monkeypatch):
 
 
 def test_google_start_uses_browser_compatible_implicit_flow(monkeypatch):
-    monkeypatch.setattr(server, "SUPABASE_URL", "https://project.supabase.co")
-    monkeypatch.setattr(server, "SUPABASE_ANON_KEY", "anon-key")
+    monkeypatch.setattr(auth_router_mod, "SUPABASE_URL", "https://project.supabase.co")
+    monkeypatch.setattr(auth_router_mod, "SUPABASE_ANON_KEY", "anon-key")
 
     result = asyncio.run(server.google_start("https://app.example/oauth/callback"))
     parsed = urlparse(result["url"])
@@ -386,13 +391,90 @@ def test_google_start_uses_browser_compatible_implicit_flow(monkeypatch):
 
 
 def test_ai_api_keys_ignore_accidental_surrounding_whitespace(monkeypatch):
-    monkeypatch.setattr(server, "SEGMIND_API_KEY", "  segmind-key  ")
-    monkeypatch.setattr(server, "OPENAI_API_KEY", "  openai-key  ")
+    monkeypatch.setattr(core_providers_mod, "SEGMIND_API_KEY", "  segmind-key  ")
+    monkeypatch.setattr(core_providers_mod, "OPENAI_API_KEY", "  openai-key  ")
 
     assert server.require_segmind() == "segmind-key"
 
     client = server.require_openai()
     assert client.api_key == "openai-key"
 
-    monkeypatch.setattr(server, "GEMINI_API_KEY", "  gemini-key  ")
+    monkeypatch.setattr(core_providers_mod, "GEMINI_API_KEY", "  gemini-key  ")
     assert server.require_gemini() == "gemini-key"
+
+
+def test_get_db_override_supplies_fake_db_to_auth_and_route(monkeypatch):
+    """Overriding get_db must reach both get_current_user (auth) and the route body."""
+    import core.config as config_mod
+    import core.auth as auth_mod
+    import jwt as pyjwt
+    from datetime import datetime, timezone, timedelta
+    from fastapi.testclient import TestClient
+    from core.db import get_db
+
+    TEST_SECRET = "test-jwt-secret-di"
+    monkeypatch.setattr(config_mod, "JWT_SECRET", TEST_SECRET)
+    monkeypatch.setattr(auth_mod, "JWT_SECRET", TEST_SECRET)
+
+    fake_user_doc = {
+        "user_id": "di_test_user",
+        "email": "di@example.com",
+        "name": "DI Test User",
+        "is_admin": False,
+        "premium_manual": False,
+        "premium_until": None,
+    }
+    db_access_log = []
+
+    class FakeCursor:
+        def __init__(self, docs):
+            self._docs = list(docs)
+
+        def sort(self, *args, **kwargs):
+            return self
+
+        async def to_list(self, limit):
+            return self._docs[:limit] if limit else self._docs
+
+    class FakeCollection:
+        def __init__(self, name, initial_docs=()):
+            self._name = name
+            self._docs = list(initial_docs)
+
+        async def find_one(self, query):
+            db_access_log.append(("find_one", self._name))
+            for doc in self._docs:
+                if all(doc.get(k) == v for k, v in query.items() if not isinstance(v, dict)):
+                    return doc
+            return None
+
+        def find(self, query=None):
+            db_access_log.append(("find", self._name))
+            return FakeCursor(self._docs)
+
+    class FakeDB:
+        def __init__(self):
+            self.users = FakeCollection("users", [fake_user_doc])
+            self.cards = FakeCollection("cards")
+
+    fake_db = FakeDB()
+
+    token = pyjwt.encode(
+        {"user_id": fake_user_doc["user_id"], "exp": datetime.now(timezone.utc) + timedelta(days=1)},
+        TEST_SECRET,
+        algorithm="HS256",
+    )
+    if isinstance(token, bytes):
+        token = token.decode()
+
+    server.app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        with TestClient(server.app) as client:
+            resp = client.get("/api/cards", cookies={"session_token": token})
+    finally:
+        server.app.dependency_overrides.pop(get_db, None)
+
+    assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+    queried = {entry[1] for entry in db_access_log}
+    assert "users" in queried, f"Auth user lookup must use the injected fake DB; accessed: {queried}"
+    assert "cards" in queried, f"Route body must use the injected fake DB; accessed: {queried}"

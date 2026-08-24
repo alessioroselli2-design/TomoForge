@@ -11,6 +11,7 @@ from spell_library import spell_to_card_payload
 
 from core.auth import require_premium
 from core.config import GEMINI_TEXT_MODEL, MOCK_DATA, SEGMIND_IMAGE_MODEL
+from core.db import get_db, SupabaseDatabase
 from core.providers import require_gemini, require_segmind
 from schemas.ai import GenerateContentInput, GenerateImageInput
 from schemas.users import User
@@ -24,7 +25,7 @@ logger = logging.getLogger("tomeforge")
 
 
 @router.post("/ai/generate-content")
-async def generate_content(body: GenerateContentInput, user: User = Depends(require_premium)):
+async def generate_content(body: GenerateContentInput, user: User = Depends(require_premium), gemini_key: str = Depends(require_gemini), db: SupabaseDatabase = Depends(get_db)):
     if MOCK_DATA:
         return {
             "name": "Eco della Luna (Demo)",
@@ -36,10 +37,10 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
             "source_message": "Nessuna fonte verificata è disponibile nella biblioteca: questo è contenuto dimostrativo.",
         }
     if body.type == "spell":
-        spell = await find_private_spell(user.user_id, body.prompt)
+        spell = await find_private_spell(user.user_id, body.prompt, db=db)
         if spell:
             return spell_to_card_payload(spell)
-    reference = await find_private_reference(user.user_id, body.prompt, body.type)
+    reference = await find_private_reference(user.user_id, body.prompt, body.type, db=db)
     if reference:
         return reference_to_card_payload(reference)
     language = LANGUAGES.get(body.language, "Italiano")
@@ -53,7 +54,7 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
             requests.post,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
             headers={
-                "x-goog-api-key": require_gemini(),
+                "x-goog-api-key": gemini_key,
                 "Content-Type": "application/json",
             },
             json={
@@ -103,11 +104,11 @@ async def generate_content(body: GenerateContentInput, user: User = Depends(requ
 
 
 @router.post("/ai/generate-image")
-async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium)):
+async def generate_image(body: GenerateImageInput, user: User = Depends(require_premium), segmind_key: str = Depends(require_segmind), db: SupabaseDatabase = Depends(get_db)):
     if MOCK_DATA:
         demo_png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
         path = f"artwork/{user.user_id}/{uuid.uuid4()}.png"
-        return {"artwork_path": await save_file(path, demo_png, "image/png", user.user_id, "mock-generated.png")}
+        return {"artwork_path": await save_file(path, demo_png, "image/png", user.user_id, "mock-generated.png", db=db)}
     type_hint = TYPE_LABELS.get(body.type or "", "")
     prompt = (
         f"Create one art-only dark fantasy illustration depicting: {body.prompt}. "
@@ -121,7 +122,7 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
         response = await asyncio.to_thread(
             requests.post,
             f"https://api.segmind.com/v1/{SEGMIND_IMAGE_MODEL}",
-            headers={"x-api-key": require_segmind(), "Content-Type": "application/json"},
+            headers={"x-api-key": segmind_key, "Content-Type": "application/json"},
             json={
                 "prompt": prompt,
                 "samples": 1,
@@ -164,6 +165,7 @@ async def generate_image(body: GenerateImageInput, user: User = Depends(require_
             user.user_id,
             f"segmind-generated.{extension}",
             cleanup=body.cleanup,
+            db=db,
         )
         result = {"artwork_path": artwork_path}
         if cleanup_notice:

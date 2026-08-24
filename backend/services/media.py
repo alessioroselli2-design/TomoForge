@@ -12,15 +12,16 @@ from core.config import (
     ARTWORK_CLEANUP_ENABLED, ARTWORK_CLEANUP_MODEL,
     MOCK_DATA, OPENAI_API_KEY, utc_now,
 )
-from core.db import db, put_object
+from core.db import db as _singleton_db, put_object
 from core.providers import require_openai
 
 logger = logging.getLogger("tomeforge")
 
 
-async def save_file(path: str, data: bytes, content_type: str, user_id: str, original_filename: Optional[str] = None) -> str:
+async def save_file(path: str, data: bytes, content_type: str, user_id: str, original_filename: Optional[str] = None, *, db=None) -> str:
+    _db = db if db is not None else _singleton_db
     stored_path = put_object(path, data, content_type)
-    await db.files.insert_one({
+    await _db.files.insert_one({
         "id": str(uuid.uuid4()), "storage_path": stored_path, "user_id": user_id,
         "original_filename": original_filename, "content_type": content_type,
         "is_deleted": False, "created_at": utc_now(),
@@ -107,6 +108,7 @@ async def save_artwork(
     original_filename: Optional[str] = None,
     *,
     cleanup: bool = False,
+    db=None,
 ) -> tuple[str, Optional[str]]:
     """Validate and persist generated artwork, optionally cleaning model-added marks."""
     cleanup_notice = None
@@ -133,4 +135,4 @@ async def save_artwork(
         cleaned_filename = f"{Path(original_filename).stem}.{extension}"
     else:
         cleaned_filename = original_filename or f"generated.{extension}"
-    return await save_file(path, data, content_type, user_id, cleaned_filename), cleanup_notice
+    return await save_file(path, data, content_type, user_id, cleaned_filename, db=db), cleanup_notice

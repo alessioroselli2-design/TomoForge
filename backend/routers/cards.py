@@ -7,7 +7,7 @@ from reference_library import reference_is_trusted, reference_rule_source, refer
 
 from core.auth import get_current_user
 from core.config import utc_now
-from core.db import db
+from core.db import db, get_db, SupabaseDatabase
 from schemas.cards import (
     Card, CardCreate, CardUpdate, CardVersionInput,
     LinkedCardInput, ManualCompletionInput, ReferenceUpdateInput,
@@ -47,16 +47,16 @@ def card_history_view(history: list[dict]) -> list[dict]:
 
 
 @router.post("/cards", response_model=Card)
-async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
+async def create_card(body: CardCreate, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     data = body.model_dump(exclude_none=True)
-    reference_ids, reference_sources = await resolve_reference_provenance(user.user_id, data.get("reference_ids", []))
-    spell_ids, spell_sources = await resolve_spell_provenance(user.user_id, data.get("spell_ids", []))
+    reference_ids, reference_sources = await resolve_reference_provenance(user.user_id, data.get("reference_ids", []), db=db)
+    spell_ids, spell_sources = await resolve_spell_provenance(user.user_id, data.get("spell_ids", []), db=db)
     data["reference_ids"] = reference_ids
     data["spell_ids"] = spell_ids
     data["source_refs"] = merge_source_refs(reference_sources, spell_sources)
-    data["rule_sources"] = await rule_sources_for_card(user.user_id, reference_ids, spell_ids)
+    data["rule_sources"] = await rule_sources_for_card(user.user_id, reference_ids, spell_ids, db=db)
     data["attributes"] = remove_unlinked_reference_attributes(data.get("attributes", {}), reference_ids)
-    records_by_id = await reference_records_by_id(user.user_id, reference_ids)
+    records_by_id = await reference_records_by_id(user.user_id, reference_ids, db=db)
     data["reference_snapshots"] = reference_snapshots_for_card(
         [], records_by_id, reference_ids, data.get("type", "custom"), utc_now()
     )
@@ -66,7 +66,7 @@ async def create_card(body: CardCreate, user: User = Depends(get_current_user)):
 
 
 @router.get("/cards", response_model=List[Card])
-async def list_cards(type: Optional[str] = None, search: Optional[str] = None, user: User = Depends(get_current_user)):
+async def list_cards(type: Optional[str] = None, search: Optional[str] = None, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     cards = await db.cards.find({"user_id": user.user_id}).sort("created_at", -1).to_list(1000)
     if type and type != "all":
         cards = [card for card in cards if card.get("type") == type]
@@ -77,7 +77,7 @@ async def list_cards(type: Optional[str] = None, search: Optional[str] = None, u
 
 
 @router.get("/cards/{card_id}", response_model=Card)
-async def get_card(card_id: str, user: User = Depends(get_current_user)):
+async def get_card(card_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
@@ -85,7 +85,7 @@ async def get_card(card_id: str, user: User = Depends(get_current_user)):
 
 
 @router.put("/cards/{card_id}", response_model=Card)
-async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_current_user)):
+async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
@@ -94,20 +94,20 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     expected_version = updates.pop("version")
     if "reference_ids" in updates or "spell_ids" in updates:
         reference_ids, reference_sources = await resolve_reference_provenance(
-            user.user_id, updates.get("reference_ids", card.get("reference_ids", []))
+            user.user_id, updates.get("reference_ids", card.get("reference_ids", [])), db=db
         )
         spell_ids, spell_sources = await resolve_spell_provenance(
-            user.user_id, updates.get("spell_ids", card.get("spell_ids", []))
+            user.user_id, updates.get("spell_ids", card.get("spell_ids", [])), db=db
         )
         updates["reference_ids"] = reference_ids
         updates["spell_ids"] = spell_ids
         updates["source_refs"] = merge_source_refs(reference_sources, spell_sources)
-        updates["rule_sources"] = await rule_sources_for_card(user.user_id, reference_ids, spell_ids)
+        updates["rule_sources"] = await rule_sources_for_card(user.user_id, reference_ids, spell_ids, db=db)
         updates["attributes"] = remove_unlinked_reference_attributes(
             updates.get("attributes", card.get("attributes", {})),
             reference_ids,
         )
-        records_by_id = await reference_records_by_id(user.user_id, reference_ids)
+        records_by_id = await reference_records_by_id(user.user_id, reference_ids, db=db)
         updates["reference_snapshots"] = reference_snapshots_for_card(
             card.get("reference_snapshots", []),
             records_by_id,
@@ -128,17 +128,17 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
         "user",
         "update",
     )
-    await save_card_versioned(card, user.user_id, updates, expected_version)
+    await save_card_versioned(card, user.user_id, updates, expected_version, db=db)
     return card_response(card)
 
 
 @router.get("/cards/{card_id}/reference-updates")
-async def card_reference_updates(card_id: str, user: User = Depends(get_current_user)):
+async def card_reference_updates(card_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     """Return changed linked references and their saved/current private snapshots."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
-    records_by_id = await reference_records_by_id(user.user_id, card.get("reference_ids") or [])
+    records_by_id = await reference_records_by_id(user.user_id, card.get("reference_ids") or [], db=db)
     updates = reference_update_report(card, records_by_id)
     return {
         "updates": [public_reference_update(update) for update in updates],
@@ -152,6 +152,7 @@ async def complete_card_from_manuals(
     card_id: str,
     body: ManualCompletionInput,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     """Save a server-derived manual completion as a distinct, undoable event."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
@@ -162,7 +163,7 @@ async def complete_card_from_manuals(
 
     before_card = copy.deepcopy(card)
     after_card = copy.deepcopy(card)
-    completed_attributes, _changes, source_ids = await manual_completion_preview_for_card(card, user.user_id)
+    completed_attributes, _changes, source_ids = await manual_completion_preview_for_card(card, user.user_id, db=db)
     after_card["attributes"] = completed_attributes
     history = append_card_history(
         card.get("change_history", []),
@@ -177,19 +178,19 @@ async def complete_card_from_manuals(
         "change_history": history,
         "updated_at": utc_now(),
     }
-    await save_card_versioned(card, user.user_id, updates, body.version)
+    await save_card_versioned(card, user.user_id, updates, body.version, db=db)
     return card_response(card)
 
 
 @router.get("/cards/{card_id}/manual-completion-preview")
-async def card_manual_completion_preview(card_id: str, user: User = Depends(get_current_user)):
+async def card_manual_completion_preview(card_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     """Calculate the exact trusted fields that a manual completion would add."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
     if card.get("type") != "character":
         raise HTTPException(status_code=400, detail="Il completamento dai manuali è disponibile solo per i personaggi")
-    attributes, changes, reference_ids = await manual_completion_preview_for_card(card, user.user_id)
+    attributes, changes, reference_ids = await manual_completion_preview_for_card(card, user.user_id, db=db)
     return {"attributes": attributes, "changes": changes, "reference_ids": reference_ids, "version": card.get("version", 0)}
 
 
@@ -198,6 +199,7 @@ async def refresh_card_reference_updates(
     card_id: str,
     body: ReferenceUpdateInput,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     """Apply selected current reference values without overwriting manual choices."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
@@ -208,7 +210,7 @@ async def refresh_card_reference_updates(
     requested_ids = list(dict.fromkeys(body.reference_ids or linked_ids))
     if not set(requested_ids).issubset(linked_ids):
         raise HTTPException(status_code=400, detail="Puoi aggiornare solo riferimenti già collegati alla carta")
-    records_by_id = await reference_records_by_id(user.user_id, requested_ids)
+    records_by_id = await reference_records_by_id(user.user_id, requested_ids, db=db)
     missing = [reference_id for reference_id in requested_ids if reference_id not in records_by_id]
     if missing:
         raise HTTPException(status_code=404, detail="Uno o più riferimenti normativi non sono più disponibili")
@@ -269,7 +271,7 @@ async def refresh_card_reference_updates(
         "reference_update",
         requested_ids,
     )
-    await save_card_versioned(card, user.user_id, updates, body.version)
+    await save_card_versioned(card, user.user_id, updates, body.version, db=db)
     return {
         "card": card_response(card),
         "updated_reference_ids": refreshed_ids,
@@ -278,7 +280,7 @@ async def refresh_card_reference_updates(
 
 
 @router.get("/cards/{card_id}/history")
-async def card_history(card_id: str, user: User = Depends(get_current_user)):
+async def card_history(card_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     """Return the short, account-scoped audit trail for a card."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
     if not card:
@@ -296,6 +298,7 @@ async def undo_card_change(
     card_id: str,
     body: CardVersionInput,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     """Undo the latest saved user or manual change without crossing accounts."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
@@ -315,7 +318,7 @@ async def undo_card_change(
     }
     updates["change_history"] = history
     updates["updated_at"] = utc_now()
-    await save_card_versioned(card, user.user_id, updates, body.version)
+    await save_card_versioned(card, user.user_id, updates, body.version, db=db)
     return {
         "card": card_response(card),
         "history": card_history_view(history),
@@ -328,6 +331,7 @@ async def redo_card_change(
     card_id: str,
     body: CardVersionInput,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     """Restore the most recently undone change while the redo branch is intact."""
     card = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
@@ -347,7 +351,7 @@ async def redo_card_change(
     }
     updates["change_history"] = history
     updates["updated_at"] = utc_now()
-    await save_card_versioned(card, user.user_id, updates, body.version)
+    await save_card_versioned(card, user.user_id, updates, body.version, db=db)
     return {
         "card": card_response(card),
         "history": card_history_view(history),
@@ -360,6 +364,7 @@ async def delete_card(
     card_id: str,
     body: CardVersionInput,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     result = await db.cards.delete_one({
         "id": card_id,
@@ -382,6 +387,7 @@ async def create_linked_cards(
     card_id: str,
     body: LinkedCardInput,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     """Create printable rule cards from a character's selected references."""
     character = await db.cards.find_one({"id": card_id, "user_id": user.user_id})
@@ -400,7 +406,7 @@ async def create_linked_cards(
 
     records_by_id = {
         record["id"]: record
-        for record in await private_reference_records(user.user_id)
+        for record in await private_reference_records(user.user_id, db=db)
         if record.get("id") in requested_ids
     }
     if len(records_by_id) != len(requested_ids):
@@ -418,6 +424,7 @@ async def create_linked_cards(
         user.user_id,
         {"updated_at": utc_now()},
         body.version,
+        db=db,
     )
 
     from schemas.cards import Card as CardModel
@@ -441,7 +448,7 @@ async def create_linked_cards(
         created.append(card)
 
     try:
-        await insert_cards_atomically(created)
+        await insert_cards_atomically(created, db=db)
     except Exception:
         rollback_updates = {"version": original_version}
         if original_updated_at is not None:

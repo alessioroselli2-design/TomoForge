@@ -14,7 +14,7 @@ from core.config import (
     TRANSLATION_RATE_LIMIT_RETRY_DELAYS,
     utc_now,
 )
-from core.db import db
+from core.db import db as _singleton_db
 from schemas.library import ManualPreloadInput, ReferenceImportInput
 
 logger = logging.getLogger("tomeforge")
@@ -67,8 +67,9 @@ def manual_preload_summary(job: Optional[dict], page_count: Optional[int]) -> di
     }
 
 
-async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> list[dict]:
+async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, db=None) -> list[dict]:
     """Reconcile all supplied manuals with one durable, owner-scoped queue."""
+    _db = db if db is not None else _singleton_db
     from services.library import (
         available_reference_manuals, manual_page_count,
         manual_requires_ocr, manual_source_fingerprint,
@@ -83,12 +84,12 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> 
         else manuals
     )
 
-    collection = getattr(db, "private_manual_import_jobs", None)
+    collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
         raise HTTPException(status_code=503, detail="Coda di indicizzazione non disponibile: applica prima la migrazione SQL")
     existing_by_filename = {
         job.get("filename"): job
-        for job in await private_manual_import_jobs(user_id)
+        for job in await private_manual_import_jobs(user_id, db=_db)
         if job.get("filename")
     }
     for filename, path in selected_manuals.items():
@@ -149,19 +150,20 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput) -> 
                 "created_at": utc_now(),
                 "completed_at": None,
             })
-    return await private_manual_import_jobs(user_id)
+    return await private_manual_import_jobs(user_id, db=_db)
 
 
-async def claim_next_manual_preload_job(user_id: str) -> Optional[dict]:
+async def claim_next_manual_preload_job(user_id: str, *, db=None) -> Optional[dict]:
     """Lease exactly one queued chunk so concurrent requests cannot duplicate it."""
+    _db = db if db is not None else _singleton_db
     from services.library import private_manual_import_jobs
-    collection = getattr(db, "private_manual_import_jobs", None)
+    collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
         return None
     now = int(time.time())
     candidates = sorted(
         (
-            job for job in await private_manual_import_jobs(user_id)
+            job for job in await private_manual_import_jobs(user_id, db=_db)
             if job.get("status") == "queued"
             or (job.get("status") == "processing" and int(job.get("lease_expires_at") or 0) < now)
         ),
@@ -190,9 +192,10 @@ async def claim_next_manual_preload_job(user_id: str) -> Optional[dict]:
     return None
 
 
-async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str) -> None:
+async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str, *, db=None) -> None:
     """Keep a long-running extraction owned until its current chunk checkpoints."""
-    collection = getattr(db, "private_manual_import_jobs", None)
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
         return
     try:
@@ -234,8 +237,11 @@ async def _retry_rate_limited_translations(
     records_collection: Any,
     delays: tuple[int, ...] = TRANSLATION_RATE_LIMIT_RETRY_DELAYS,
     job_updater: Optional[Callable[[int, str], Awaitable[None]]] = None,
+    *,
+    db=None,
 ) -> int:
     """Retry rate-limited records from *source_filename* with exponential back-off."""
+    _db = db if db is not None else _singleton_db
     from services.library import retry_private_reference_translation
     rate_limit_query = {
         "user_id": user_id,
@@ -258,7 +264,7 @@ async def _retry_rate_limited_translations(
 
         for record_id in pending_ids:
             try:
-                await retry_private_reference_translation(user_id, record_id)
+                await retry_private_reference_translation(user_id, record_id, db=_db)
             except Exception as exc:
                 logger.warning("Retry rate-limit per %s fallito: %s", record_id, exc)
 
@@ -291,13 +297,14 @@ async def _retry_rate_limited_translations(
     return len(still_limited_ids)
 
 
-async def process_manual_preload_job(user_id: str, job: dict) -> None:
+async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> None:
     """Process one bounded page chunk and checkpoint the durable queue."""
+    _db = db if db is not None else _singleton_db
     from services.library import (
         available_reference_manuals, manual_page_count, manual_requires_ocr,
         import_private_reference_manuals,
     )
-    collection = getattr(db, "private_manual_import_jobs", None)
+    collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
         return
     lease_id = job.get("lease_id")
@@ -334,7 +341,7 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
         return
 
     end_page = min(page_count, current_page + MANUAL_PRELOAD_PAGE_BATCH_SIZE - 1)
-    renewal_task = asyncio.create_task(renew_manual_preload_lease(user_id, job["id"], lease_id))
+    renewal_task = asyncio.create_task(renew_manual_preload_lease(user_id, job["id"], lease_id, db=_db))
     try:
         report = await import_private_reference_manuals(
             user_id,
@@ -347,6 +354,7 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
                 translation_processing_confirmed=bool(job.get("translation_processing_confirmed")),
                 auto_accept=True,
             ),
+            db=_db,
         )
     except Exception as exc:
         renewal_task.cancel()
@@ -372,14 +380,14 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
     source_report = next((source for source in report.sources if source.get("filename") == filename), {})
 
     translation_rate_limited = int(source_report.get("translation_rate_limited") or 0)
-    records_collection = getattr(db, "private_reference_records", None)
+    records_collection = getattr(_db, "private_reference_records", None)
     if translation_rate_limited and records_collection is not None:
         await collection.update_one(
             owned_query,
             {"$set": {"last_error": "translation_rate_limited", "updated_at": utc_now()}},
         )
         rate_limit_renewal = asyncio.create_task(
-            renew_manual_preload_lease(user_id, job["id"], lease_id)
+            renew_manual_preload_lease(user_id, job["id"], lease_id, db=_db)
         )
 
         async def _update_retry_state(attempt: int, retry_at: str) -> None:
@@ -394,7 +402,7 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
 
         try:
             await _retry_rate_limited_translations(
-                user_id, filename, records_collection, job_updater=_update_retry_state
+                user_id, filename, records_collection, job_updater=_update_retry_state, db=_db
             )
         finally:
             rate_limit_renewal.cancel()
@@ -439,31 +447,32 @@ async def process_manual_preload_job(user_id: str, job: dict) -> None:
     )
 
 
-async def run_manual_preload_worker(user_id: str) -> None:
+async def run_manual_preload_worker(user_id: str, *, db=None) -> None:
     """Drain an owner's queue outside the HTTP request, one checkpoint at a time."""
     try:
         while True:
-            job = await claim_next_manual_preload_job(user_id)
+            job = await claim_next_manual_preload_job(user_id, db=db)
             if not job:
                 return
-            await process_manual_preload_job(user_id, job)
+            await process_manual_preload_job(user_id, job, db=db)
     finally:
         MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
 
 
-def start_manual_preload_worker(user_id: str) -> None:
+def start_manual_preload_worker(user_id: str, *, db=None) -> None:
     if user_id in MANUAL_PRELOAD_ACTIVE_WORKERS:
         return
     MANUAL_PRELOAD_ACTIVE_WORKERS.add(user_id)
-    asyncio.create_task(run_manual_preload_worker(user_id))
+    asyncio.create_task(run_manual_preload_worker(user_id, db=db))
 
 
-async def resume_manual_preload_workers() -> None:
+async def resume_manual_preload_workers(*, db=None) -> None:
     """Recover queued work and completed parser revisions after a restart."""
+    _db = db if db is not None else _singleton_db
     from services.library import (
         available_reference_manuals, manual_page_count, manual_source_fingerprint,
     )
-    collection = getattr(db, "private_manual_import_jobs", None)
+    collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
         return
     try:
@@ -522,4 +531,4 @@ async def resume_manual_preload_workers() -> None:
         elif job.get("status") == "queued":
             owners.add(job.get("user_id", ""))
     for owner_id in owners - {""}:
-        start_manual_preload_worker(owner_id)
+        start_manual_preload_worker(owner_id, db=db)

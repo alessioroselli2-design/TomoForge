@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 
-from core.db import db, get_object
+from core.db import db, get_db, get_object, SupabaseDatabase
 
 router = APIRouter()
 
 
 @router.get("/public/cards/{card_id}")
-async def public_get_card(card_id: str):
+async def public_get_card(card_id: str, db: SupabaseDatabase = Depends(get_db)):
     card = await db.cards.find_one({"id": card_id})
     if not card:
         raise HTTPException(status_code=404, detail="Carta non trovata")
@@ -18,7 +18,7 @@ async def public_get_card(card_id: str):
 
 
 @router.get("/public/files/{path:path}")
-async def public_download(path: str):
+async def public_download(path: str, db: SupabaseDatabase = Depends(get_db)):
     record = await db.files.find_one({"storage_path": path, "is_deleted": False})
     if not record:
         raise HTTPException(status_code=404, detail="File non trovato")

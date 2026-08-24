@@ -5,11 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from reference_library import REFERENCE_TYPES, reference_is_trusted, reference_review_state, reference_to_card_payload
 
 from core.auth import get_current_user, require_premium
-from core.db import db
+from core.db import db, get_db, SupabaseDatabase
 from schemas.library import (
     ManualPreloadInput, ReferenceImportInput, ReferenceImportResult, ReferenceReviewInput,
 )
 from schemas.users import User
+import services.library as _lib_svc
 from services.library import (
     available_reference_manuals,
     find_private_reference,
@@ -38,21 +39,21 @@ logger = logging.getLogger("tomeforge")
 
 
 @router.get("/library/manuals")
-async def private_library_manuals(user: User = Depends(require_premium)):
+async def private_library_manuals(user: User = Depends(require_premium), db: SupabaseDatabase = Depends(get_db)):
     """Return local import metadata only, never the manual files or page text."""
-    records = await private_reference_records(user.user_id)
+    records = await private_reference_records(user.user_id, db=db)
     jobs_by_filename = {
         job.get("filename"): job
-        for job in await private_manual_import_jobs(user.user_id)
+        for job in await private_manual_import_jobs(user.user_id, db=db)
         if job.get("filename")
     }
     manuals = []
-    for filename, path in available_reference_manuals().items():
+    for filename, path in _lib_svc.available_reference_manuals().items():
         source_records = [
             record for record in records
             if any(ref.get("filename") == filename for ref in record.get("source_refs", []))
         ]
-        page_count = manual_page_count(path)
+        page_count = _lib_svc.manual_page_count(path)
         progress = manual_import_progress(filename, records, page_count)
         manuals.append({
             "filename": filename,
@@ -61,7 +62,7 @@ async def private_library_manuals(user: User = Depends(require_premium)):
             "native_text": manual_source_metadata(filename)["native_text"],
             "page_count": page_count,
             "imported_records": len(source_records),
-            "requires_ocr": manual_requires_ocr(filename),
+            "requires_ocr": _lib_svc.manual_requires_ocr(filename),
             "job": manual_preload_summary(jobs_by_filename.get(filename), page_count),
             **progress,
         })
@@ -72,12 +73,13 @@ async def private_library_manuals(user: User = Depends(require_premium)):
 async def start_private_library_preload(
     body: ManualPreloadInput = ManualPreloadInput(),
     user: User = Depends(require_premium),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     """Start or resume automatic indexing without exposing or uploading PDFs."""
     try:
-        await ensure_manual_preload_jobs(user.user_id, body)
-        start_manual_preload_worker(user.user_id)
-        return await private_library_manuals(user)
+        await ensure_manual_preload_jobs(user.user_id, body, db=db)
+        start_manual_preload_worker(user.user_id, db=db)
+        return await private_library_manuals(user, db=db)
     except HTTPException:
         raise
     except Exception as exc:
@@ -86,9 +88,9 @@ async def start_private_library_preload(
 
 
 @router.get("/library/coverage")
-async def private_library_coverage(user: User = Depends(require_premium)):
+async def private_library_coverage(user: User = Depends(require_premium), db: SupabaseDatabase = Depends(get_db)):
     """Report record readiness by supplied manual and applicable category."""
-    records = await private_reference_records(user.user_id)
+    records = await private_reference_records(user.user_id, db=db)
     manuals = manual_coverage_report(records)
     translation_pending = sum(
         1 for record in records
@@ -113,15 +115,16 @@ async def search_private_library(
     include_unverified: bool = False,
     source_filename: str = Query("", max_length=300),
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     from reference_library import search_reference_records
     source_filename = source_filename if isinstance(source_filename, str) else ""
     requested_types = {value.strip() for value in types.split(",") if value.strip()}
     if requested_types - set(REFERENCE_TYPES):
         raise HTTPException(status_code=400, detail="Tipo di contenuto non valido")
-    if source_filename and source_filename not in available_reference_manuals():
+    if source_filename and source_filename not in _lib_svc.available_reference_manuals():
         raise HTTPException(status_code=400, detail="Manuale non disponibile nella biblioteca privata")
-    records = await private_reference_records(user.user_id)
+    records = await private_reference_records(user.user_id, db=db)
     if requested_types:
         records = [record for record in records if record.get("reference_type") in requested_types]
     if source_filename:
@@ -151,10 +154,10 @@ async def search_private_library(
 
 
 @router.post("/library/import", response_model=ReferenceImportResult)
-async def import_private_library(body: ReferenceImportInput, user: User = Depends(require_premium)):
+async def import_private_library(body: ReferenceImportInput, user: User = Depends(require_premium), db: SupabaseDatabase = Depends(get_db)):
     """Per-account, resumable import. OCR is explicit because it calls Gemini."""
     try:
-        return await import_private_reference_manuals(user.user_id, body)
+        return await import_private_reference_manuals(user.user_id, body, db=db)
     except HTTPException:
         raise
     except Exception as exc:
@@ -163,7 +166,7 @@ async def import_private_library(body: ReferenceImportInput, user: User = Depend
 
 
 @router.get("/library/{reference_id}")
-async def get_private_reference(reference_id: str, user: User = Depends(get_current_user)):
+async def get_private_reference(reference_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
@@ -174,15 +177,16 @@ async def get_private_reference(reference_id: str, user: User = Depends(get_curr
 async def get_private_reference_review(
     reference_id: str,
     user: User = Depends(require_premium),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
-    return await reference_review_details(record)
+    return await reference_review_details(record, db=db)
 
 
 @router.post("/library/{reference_id}/apply")
-async def apply_private_reference(reference_id: str, user: User = Depends(get_current_user)):
+async def apply_private_reference(reference_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
@@ -198,8 +202,9 @@ async def apply_private_reference(reference_id: str, user: User = Depends(get_cu
 async def retry_private_reference_translation_endpoint(
     reference_id: str,
     user: User = Depends(require_premium),
+    db: SupabaseDatabase = Depends(get_db),
 ):
-    return reference_summary(await retry_private_reference_translation(user.user_id, reference_id))
+    return reference_summary(await retry_private_reference_translation(user.user_id, reference_id, db=db))
 
 
 @router.patch("/library/{reference_id}/review")
@@ -207,6 +212,7 @@ async def review_private_reference(
     reference_id: str,
     body: ReferenceReviewInput,
     user: User = Depends(require_premium),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     record = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     if not record:
@@ -248,4 +254,4 @@ async def review_private_reference(
     )
     updated = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     fallback = {**record, **update_fields}
-    return {"ok": True, **await reference_review_details(updated or fallback)}
+    return {"ok": True, **await reference_review_details(updated or fallback, db=db)}

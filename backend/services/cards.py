@@ -14,7 +14,7 @@ from reference_library import (
 )
 
 from core.config import utc_now
-from core.db import db
+from core.db import db as _singleton_db
 from services.spells import private_spell_records
 
 logger = logging.getLogger("tomeforge")
@@ -88,8 +88,9 @@ def apply_history_entry(card: dict, entry: dict, direction: Literal["before", "a
     return restored
 
 
-async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_version: int) -> dict:
+async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_version: int, *, db=None) -> dict:
     """Save only if this is still the version the caller read, avoiding lost edits."""
+    _db = db if db is not None else _singleton_db
     stored_version = int(card.get("version", 0) or 0)
     if expected_version != stored_version:
         raise HTTPException(
@@ -97,7 +98,7 @@ async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_
             detail="La scheda è stata modificata altrove. Ricaricala prima di salvare o aggiornare le regole.",
         )
     saved_updates = {**updates, "version": stored_version + 1}
-    result = await db.cards.update_one(
+    result = await _db.cards.update_one(
         {"id": card["id"], "user_id": user_id, "version": stored_version},
         {"$set": saved_updates},
     )
@@ -110,17 +111,18 @@ async def save_card_versioned(card: dict, user_id: str, updates: dict, expected_
     return card
 
 
-async def insert_cards_atomically(cards: list) -> None:
+async def insert_cards_atomically(cards: list, *, db=None) -> None:
     """Persist a linked-card set without exposing a partially written set."""
+    _db = db if db is not None else _singleton_db
     documents = [card.model_dump() for card in cards]
     if not documents:
         return
     try:
-        await db.cards.insert_many(documents)
+        await _db.cards.insert_many(documents)
     except Exception:
         for document in documents:
             try:
-                await db.cards.delete_one({"id": document["id"]})
+                await _db.cards.delete_one({"id": document["id"]})
             except Exception:
                 logger.exception("Failed to clean up a partially persisted linked card")
         raise
@@ -194,12 +196,12 @@ def reference_snapshot_for_card(record: dict, card_type: str, saved_at: str = ""
     return snap
 
 
-async def reference_records_by_id(user_id: str, reference_ids: list[str]) -> dict[str, dict]:
+async def reference_records_by_id(user_id: str, reference_ids: list[str], *, db=None) -> dict[str, dict]:
     from services.library import private_reference_records
     requested = set(reference_ids)
     return {
         record["id"]: record
-        for record in await private_reference_records(user_id)
+        for record in await private_reference_records(user_id, db=db)
         if record.get("id") in requested
     }
 
@@ -226,7 +228,7 @@ def reference_snapshots_for_card(
     return snapshots
 
 
-async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -> tuple[list[str], list[dict]]:
+async def resolve_reference_provenance(user_id: str, reference_ids: list[str], *, db=None) -> tuple[list[str], list[dict]]:
     """Validate selected reference records and derive their immutable provenance."""
     import json
     from services.library import private_reference_records
@@ -235,7 +237,7 @@ async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -
         return [], []
     records_by_id = {
         record["id"]: record
-        for record in await private_reference_records(user_id)
+        for record in await private_reference_records(user_id, db=db)
         if record.get("id") in requested_ids
     }
     missing = [reference_id for reference_id in requested_ids if reference_id not in records_by_id]
@@ -261,7 +263,7 @@ async def resolve_reference_provenance(user_id: str, reference_ids: list[str]) -
     return requested_ids, sources
 
 
-async def resolve_spell_provenance(user_id: str, spell_ids: list[str]) -> tuple[list[str], list[dict]]:
+async def resolve_spell_provenance(user_id: str, spell_ids: list[str], *, db=None) -> tuple[list[str], list[dict]]:
     """Validate private Grimorio entries and derive their manual/page links."""
     import json
     from reference_library import reference_review_reason
@@ -270,7 +272,7 @@ async def resolve_spell_provenance(user_id: str, spell_ids: list[str]) -> tuple[
         return [], []
     records_by_id = {
         spell["id"]: spell
-        for spell in await private_spell_records(user_id)
+        for spell in await private_spell_records(user_id, db=db)
         if spell.get("id") in requested_ids
     }
     missing = [spell_id for spell_id in requested_ids if spell_id not in records_by_id]
@@ -308,17 +310,17 @@ def merge_source_refs(*source_groups: list[dict]) -> list[dict]:
     return sources
 
 
-async def rule_sources_for_card(user_id: str, reference_ids: list[str], spell_ids: list[str]) -> list[dict]:
+async def rule_sources_for_card(user_id: str, reference_ids: list[str], spell_ids: list[str], *, db=None) -> list[dict]:
     """Build one safe manual/page entry for every server-validated linked rule."""
     from services.library import private_reference_records
     references = {
         record["id"]: record
-        for record in await private_reference_records(user_id)
+        for record in await private_reference_records(user_id, db=db)
         if record.get("id") in reference_ids
     }
     spells = {
         spell["id"]: spell
-        for spell in await private_spell_records(user_id)
+        for spell in await private_spell_records(user_id, db=db)
         if spell.get("id") in spell_ids
     }
     return [
@@ -338,7 +340,7 @@ async def rule_sources_for_card(user_id: str, reference_ids: list[str], spell_id
     ]
 
 
-async def manual_completion_preview_for_card(card: dict, user_id: str) -> tuple[dict, list[dict], list[str]]:
+async def manual_completion_preview_for_card(card: dict, user_id: str, *, db=None) -> tuple[dict, list[dict], list[str]]:
     """Resolve exact, trusted manual records from the saved character identity."""
     from services.library import private_reference_records
     from reference_library import normalize_reference_name
@@ -351,7 +353,7 @@ async def manual_completion_preview_for_card(card: dict, user_id: str) -> tuple[
     )
     records: list[dict] = []
     seen_ids: set[str] = set()
-    available = await private_reference_records(user_id)
+    available = await private_reference_records(user_id, db=db)
     linked_ids = set(card.get("reference_ids") or [])
     if linked_ids:
         records = [

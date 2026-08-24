@@ -2,18 +2,13 @@
 TomeForge API – Entry point.
 
 This file creates the FastAPI app, registers all routers, and re-exports every
-public symbol that exists in backend tests so `monkeypatch.setattr(server, …)`
-keeps working without any test changes.
-
-The custom _ServerModule.__setattr__ propagates every patched attribute to the
-submodule namespaces that imported it by name, so router/service functions pick
-up the patched value at call time.
+public symbol used in backend tests so ``import server; server.X`` keeps
+working.  Route handlers use FastAPI's ``Depends()`` system for db and
+provider dependencies so tests can pass fakes directly as kwargs.
 """
 from __future__ import annotations
 
 import os
-import sys
-from types import ModuleType
 
 import requests  # noqa: F401 – exposed as server.requests for test patching
 import stripe  # noqa: F401 – exposed as server.stripe for test patching
@@ -55,6 +50,7 @@ from core.db import (  # noqa: F401
     SupabaseDatabase,
     UpdateResult,
     db,
+    get_db,
     get_object,
     put_object,
     supabase_auth_client,
@@ -250,83 +246,6 @@ from routers.payments import (  # noqa: F401
     stripe_webhook,
 )
 
-# ---------------------------------------------------------------------------
-# Patch-propagation: when monkeypatch.setattr(server, "db", fake) is called,
-# automatically push the new value into every submodule that imported it.
-# ---------------------------------------------------------------------------
-_ATTR_TARGETS: dict[str, list[str]] = {
-    "db": [
-        "core.db",
-        "core.auth",
-        "routers.auth",
-        "routers.cards",
-        "routers.library",
-        "routers.media",
-        "routers.public",
-        "routers.admin",
-        "routers.payments",
-        "services.library",
-        "services.preload",
-        "services.cards",
-        "services.media",
-        "services.spells",
-        "services.payments",
-    ],
-    "GEMINI_API_KEY": [
-        "core.config",
-        "core.providers",
-        "services.library",
-        "routers.ai",
-    ],
-    "OPENAI_API_KEY": [
-        "core.config",
-        "core.providers",
-    ],
-    "SEGMIND_API_KEY": [
-        "core.config",
-        "core.providers",
-        "routers.ai",
-    ],
-    "SUPABASE_URL": ["core.config", "routers.auth"],
-    "SUPABASE_ANON_KEY": ["core.config", "routers.auth"],
-    "ADMIN_EMAIL": ["core.config", "core.auth", "routers.auth"],
-    "ARTWORK_CLEANUP_ENABLED": ["core.config", "services.media"],
-    "put_object": ["core.db", "services.media"],
-    "require_gemini": [
-        "core.providers",
-        "routers.ai",
-        "services.library",
-    ],
-    "require_openai": ["core.providers", "services.media"],
-    "require_segmind": ["core.providers", "routers.ai"],
-    "create_jwt": ["core.auth", "routers.auth"],
-    "supabase_auth_client": ["core.db", "routers.auth"],
-    "cleanup_artwork": ["services.media", "routers.ai"],
-    "_retry_rate_limited_translations": ["services.preload"],
-    # Library helpers used in routers.library (imported at module level from services.library)
-    "available_reference_manuals": ["services.library", "routers.library"],
-    "import_private_reference_manuals": ["services.library", "routers.library"],
-    "manual_page_count": ["services.library", "routers.library"],
-    "manual_requires_ocr": ["services.library", "routers.library"],
-    "manual_source_fingerprint": ["services.library"],
-    "retry_private_reference_translation": ["services.library", "routers.library"],
-    "start_manual_preload_worker": ["services.preload", "routers.library"],
-    "translate_spanish_reference_batch": ["services.library"],
-    "MANUAL_COVERAGE_CATEGORIES": ["core.config", "services.library"],
-    "extract_reference_records": ["services.library"],
-}
-
-
-class _ServerModule(ModuleType):
-    def __setattr__(self, name: str, value: object) -> None:
-        super().__setattr__(name, value)
-        for mod_name in _ATTR_TARGETS.get(name, []):
-            mod = sys.modules.get(mod_name)
-            if mod is not None:
-                mod.__dict__[name] = value
-
-
-sys.modules[__name__].__class__ = _ServerModule
 
 # ---------------------------------------------------------------------------
 # FastAPI application

@@ -3,7 +3,7 @@ from reference_library import reference_is_trusted, reference_review_reason
 from spell_library import spell_to_card_payload
 
 from core.auth import get_current_user, require_admin
-from core.db import db
+from core.db import db, get_db, SupabaseDatabase
 from schemas.library import SpellImportResult
 from schemas.users import User
 from services.spells import (
@@ -24,19 +24,20 @@ async def search_private_spells(
     q: str = Query("", max_length=120),
     review_only: bool = False,
     user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
 ):
     from spell_library import search_spell_records
-    records = search_spell_records(await private_spell_records(user.user_id), q)
+    records = search_spell_records(await private_spell_records(user.user_id, db=db), q)
     if review_only:
         records = [record for record in records if record.get("review_flags")]
     return {"spells": [spell_summary(record) for record in records]}
 
 
 @router.post("/spells/import", response_model=SpellImportResult)
-async def import_private_spells(user: User = Depends(require_admin)):
+async def import_private_spells(user: User = Depends(require_admin), db: SupabaseDatabase = Depends(get_db)):
     """Admin-only local import; it never copies the PDF binaries to storage."""
     try:
-        return await import_private_spell_pdfs(user.user_id)
+        return await import_private_spell_pdfs(user.user_id, db=db)
     except HTTPException:
         raise
     except Exception as exc:
@@ -45,7 +46,7 @@ async def import_private_spells(user: User = Depends(require_admin)):
 
 
 @router.get("/spells/{spell_id}")
-async def get_private_spell(spell_id: str, user: User = Depends(get_current_user)):
+async def get_private_spell(spell_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     spell = await db.private_spells.find_one({"id": spell_id, "user_id": user.user_id})
     if not spell:
         raise HTTPException(status_code=404, detail="Incantesimo non trovato nel tuo Grimorio")
@@ -53,7 +54,7 @@ async def get_private_spell(spell_id: str, user: User = Depends(get_current_user
 
 
 @router.post("/spells/{spell_id}/apply")
-async def apply_private_spell(spell_id: str, user: User = Depends(get_current_user)):
+async def apply_private_spell(spell_id: str, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     spell = await db.private_spells.find_one({"id": spell_id, "user_id": user.user_id})
     if not spell:
         raise HTTPException(status_code=404, detail="Incantesimo non trovato nel tuo Grimorio")

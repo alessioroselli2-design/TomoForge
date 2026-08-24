@@ -6,7 +6,7 @@ import jwt
 from fastapi import Depends, HTTPException, Request
 
 from core.config import JWT_SECRET, JWT_ALGO, ADMIN_EMAIL
-from core.db import db
+from core.db import get_db, SupabaseDatabase
 
 
 def hash_password(password: str) -> str:
@@ -42,7 +42,7 @@ def compute_premium(user) -> bool:
         return False
 
 
-async def get_current_user(request: Request):
+async def get_current_user(request: Request, db: SupabaseDatabase = Depends(get_db)):
     from schemas.users import User
     token = request.cookies.get("session_token") or request.query_params.get("auth")
     auth = request.headers.get("Authorization")

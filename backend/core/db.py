@@ -230,6 +230,11 @@ db = SupabaseDatabase()
 MOCK_OBJECTS: dict[str, tuple[bytes, str]] = {}
 
 
+def get_db() -> SupabaseDatabase:
+    """FastAPI dependency: return the shared database singleton."""
+    return db
+
+
 def supabase_auth_client() -> Client:
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         raise HTTPException(status_code=503, detail="Supabase Auth non configurato: aggiungi SUPABASE_URL e SUPABASE_ANON_KEY")
