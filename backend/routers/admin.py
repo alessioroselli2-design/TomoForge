@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import compute_premium, require_admin
-from core.db import db, get_db, SupabaseDatabase
+from core.db import get_db, SupabaseDatabase
 from schemas.payments import PremiumToggle
 from schemas.users import User
 

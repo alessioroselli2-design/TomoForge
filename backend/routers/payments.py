@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from core.auth import get_current_user
 from core.config import STRIPE_WEBHOOK_SECRET, utc_now
-from core.db import db, get_db, SupabaseDatabase
+from core.db import get_db, SupabaseDatabase
 from schemas.payments import CheckoutRequest
 from schemas.users import User
 from services.payments import (

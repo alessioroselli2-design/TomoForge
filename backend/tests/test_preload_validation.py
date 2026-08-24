@@ -6,7 +6,6 @@ and that no import job is created or worker started for that request.
 
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 import server

@@ -8,7 +8,7 @@ from core.auth import (
     hash_password, is_configured_admin_email, verify_password,
 )
 from core.config import (
-    ADMIN_EMAIL, ADMIN_PASSWORD, MOCK_DATA, MOCK_USER_EMAIL, MOCK_USER_PASSWORD,
+    MOCK_USER_EMAIL, MOCK_USER_PASSWORD,
     SUPABASE_ANON_KEY, SUPABASE_URL, utc_now,
 )
 from core.db import db, get_db, supabase_auth_client, SupabaseDatabase

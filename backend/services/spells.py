@@ -8,7 +8,6 @@ from spell_library import (
     extract_spell_records,
     merge_spell_records,
     search_spell_records,
-    spell_to_card_payload,
 )
 from reference_library import (
     reference_is_trusted,

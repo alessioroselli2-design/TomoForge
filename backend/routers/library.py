@@ -5,20 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from reference_library import REFERENCE_TYPES, reference_is_trusted, reference_review_state, reference_to_card_payload
 
 from core.auth import get_current_user, require_premium
-from core.db import db, get_db, SupabaseDatabase
+from core.db import get_db, SupabaseDatabase
 from schemas.library import (
     ManualPreloadInput, ReferenceImportInput, ReferenceImportResult, ReferenceReviewInput,
 )
 from schemas.users import User
 import services.library as _lib_svc
 from services.library import (
-    available_reference_manuals,
-    find_private_reference,
     import_private_reference_manuals,
     manual_coverage_report,
     manual_import_progress,
-    manual_page_count,
-    manual_requires_ocr,
     manual_source_language,
     manual_source_metadata,
     private_manual_import_jobs,

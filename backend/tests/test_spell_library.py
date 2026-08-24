@@ -2,7 +2,6 @@ import asyncio
 from types import SimpleNamespace
 
 import server
-import services.spells as spells_mod
 from spell_library import (
     merge_spell_records,
     normalize_spell_name,

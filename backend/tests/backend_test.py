@@ -5,7 +5,6 @@ AI image (OpenAI Images) + Supabase Storage, file upload/download.
 """
 import io
 import os
-import time
 import uuid
 import hashlib
 import pytest

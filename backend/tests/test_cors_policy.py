@@ -12,8 +12,6 @@ arbitrary origin — FastAPI/Starlette must not echo the origin back with
 Access-Control-Allow-Credentials: true for unknown origins.
 """
 
-import os
-
 import pytest
 from fastapi.testclient import TestClient
 

@@ -3,7 +3,7 @@ from reference_library import reference_is_trusted, reference_review_reason
 from spell_library import spell_to_card_payload
 
 from core.auth import get_current_user, require_admin
-from core.db import db, get_db, SupabaseDatabase
+from core.db import get_db, SupabaseDatabase
 from schemas.library import SpellImportResult
 from schemas.users import User
 from services.spells import (

@@ -7,7 +7,7 @@ from reference_library import reference_is_trusted, reference_rule_source, refer
 
 from core.auth import get_current_user
 from core.config import utc_now
-from core.db import db, get_db, SupabaseDatabase
+from core.db import get_db, SupabaseDatabase
 from schemas.cards import (
     Card, CardCreate, CardUpdate, CardVersionInput,
     LinkedCardInput, ManualCompletionInput, ReferenceUpdateInput,
@@ -16,7 +16,6 @@ from schemas.users import User
 from services.cards import (
     append_card_history,
     apply_history_entry,
-    card_change_patch,
     insert_cards_atomically,
     manual_completion_preview_for_card,
     merge_source_refs,

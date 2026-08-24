@@ -3,7 +3,6 @@ import base64
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
-import pytest
 import server
 
 import core.auth as core_auth_mod

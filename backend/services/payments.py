@@ -4,7 +4,6 @@ from typing import Any, Optional
 
 import stripe
 
-from core.config import utc_now
 from core.db import db as _singleton_db
 
 logger = logging.getLogger("tomeforge")

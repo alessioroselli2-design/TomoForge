@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 
-from core.db import db, get_db, get_object, SupabaseDatabase
+from core.db import get_db, get_object, SupabaseDatabase
 
 router = APIRouter()
 

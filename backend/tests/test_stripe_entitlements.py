@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import server
-import services.payments as payments_mod
 
 
 class FakeUsers:

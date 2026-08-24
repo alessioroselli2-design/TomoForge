@@ -12,7 +12,6 @@ import time
 import uuid
 from types import SimpleNamespace
 
-import pytest
 import server
 
 
@@ -72,7 +71,6 @@ def _patch_claim(monkeypatch, fake_db, collection):
     This is the critical difference from a naive sleep-then-read approach: it
     guarantees the race reaches the atomic compare-and-swap guard.
     """
-    import services.preload as preload_mod
     import services.library as lib_mod
     async def _read_jobs(user_id, *, db=None):
         # Snapshot BEFORE the cooperative yield so every concurrent caller

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 
 from core.auth import get_current_user
 from core.config import MIME_TYPES
-from core.db import db, get_db, get_object, SupabaseDatabase
+from core.db import get_db, get_object, SupabaseDatabase
 from schemas.users import User
 from services.media import save_file
 
