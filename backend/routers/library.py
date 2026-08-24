@@ -151,7 +151,7 @@ async def search_private_library(
 
 @router.post("/library/import", response_model=ReferenceImportResult)
 async def import_private_library(body: ReferenceImportInput, user: User = Depends(require_premium), db: SupabaseDatabase = Depends(get_db)):
-    """Per-account, resumable import. OCR is explicit because it calls Gemini."""
+    """Per-account, resumable import. OCR is explicit because it calls OpenAI."""
     try:
         return await import_private_reference_manuals(user.user_id, body, db=db)
     except HTTPException:

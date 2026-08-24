@@ -1767,6 +1767,24 @@ def test_ocr_import_sends_pages_to_openai_not_gemini(monkeypatch, tmp_path):
     monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {pdf_path.name: pdf_path})
     _test_db = SimpleNamespace(private_reference_records=MutableMemoryReferences([]))
 
+    with pytest.raises(server.HTTPException) as error_info:
+        asyncio.run(server.import_private_reference_manuals(
+            "owner-ocr",
+            server.ReferenceImportInput(
+                filenames=[pdf_path.name],
+                use_ai_ocr=True,
+                start_page=1,
+                end_page=1,
+                external_processing_confirmed=False,
+            ),
+            db=_test_db,
+        ))
+
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail == (
+        "Conferma esplicitamente l'invio delle sole pagine selezionate a OpenAI per l'OCR"
+    )
+    assert not called_urls, "OCR consent must be checked before sending any page"
 
     asyncio.run(server.import_private_reference_manuals(
         "owner-ocr",
