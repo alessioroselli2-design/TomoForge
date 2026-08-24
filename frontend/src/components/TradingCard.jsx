@@ -109,8 +109,10 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
 
   const handleArtworkError = React.useCallback((e) => {
-    if (!e.currentTarget.dataset.fallback) {
+    const artworkSrc = e.currentTarget.dataset.artworkSrc;
+    if (!e.currentTarget.dataset.fallback || e.currentTarget.dataset.fallbackSrc !== artworkSrc) {
       e.currentTarget.dataset.fallback = "1";
+      e.currentTarget.dataset.fallbackSrc = artworkSrc;
       e.currentTarget.src = artworkPlaceholder;
       if (hasArtwork) setArtworkError(true);
     }
@@ -160,7 +162,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
       <hr className="tf-divider mx-3" aria-hidden="true" />
       {/* artwork */}
       <div className="relative flex-none mx-3 mt-2 border border-gold-deep/60 overflow-hidden bg-obsidian" style={{ aspectRatio: "1.35" }}>
-        <img src={img} alt={card.name} className="w-full h-full object-cover" crossOrigin="anonymous" onError={handleArtworkError} />
+        <img src={img} data-artwork-src={img} alt={card.name} className="w-full h-full object-cover" crossOrigin="anonymous" onError={handleArtworkError} />
         {editorMode && !hasArtwork && (
           <div className="absolute inset-0 flex flex-col items-center justify-end pb-2 pointer-events-none">
             <p className="font-label text-[7px] tracking-widest text-gold/60 text-center px-2 leading-tight">

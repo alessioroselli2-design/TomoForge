@@ -123,7 +123,7 @@ describe("CardFront artwork placeholder", () => {
     }
   });
 
-  it("clears the artwork error when a new image URL is assigned", async () => {
+  it("resets the artwork fallback guard when a new image URL is assigned", async () => {
     const card = { id: "c6", type: "spell", name: "Rinascita", artwork_path: "uploads/broken.jpg" };
     await act(async () => {
       root.render(<CardFront card={card} editorMode imgUrl="https://cdn.example.com/broken.jpg" />);
@@ -140,5 +140,10 @@ describe("CardFront artwork placeholder", () => {
     });
     expect(container.textContent).not.toContain("Artwork non disponibile");
     expect(img.src).toContain("fixed.jpg");
+
+    await act(async () => {
+      img.dispatchEvent(new Event("error"));
+    });
+    expect(container.textContent).toContain("Artwork non disponibile");
   });
 });
