@@ -431,7 +431,100 @@ def test_lease_renewal_retries_after_transient_storage_failure(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 7: the process-local worker registry prevents duplicate starts
+# Test 7: the worker stops after losing ownership during a chunk
+# ---------------------------------------------------------------------------
+
+def test_worker_stops_after_mid_run_lease_ownership_loss(monkeypatch, tmp_path):
+    """A lost lease must stop the worker before another chunk or checkpoint."""
+    import services.library as lib_mod
+
+    source = tmp_path / "Manuale.pdf"
+    source.write_bytes(b"manual")
+    original_lease_id = "first-worker-lease"
+    replacement_lease_id = "recovered-worker-lease"
+    job = _make_job(
+        status="processing",
+        lease_id=original_lease_id,
+        lease_expires_at=123,
+    )
+    fake_db, collection = _fake_db(job)
+    update_queries = []
+    lease_loss_detected = asyncio.Event()
+    renewal_sleep_started = asyncio.Event()
+    release_renewal_sleep = asyncio.Event()
+    claim_calls = 0
+    import_calls = []
+
+    async def _controlled_sleep(_delay):
+        renewal_sleep_started.set()
+        await release_renewal_sleep.wait()
+
+    monkeypatch.setattr(
+        preload_mod,
+        "asyncio",
+        SimpleNamespace(
+            CancelledError=asyncio.CancelledError,
+            Event=asyncio.Event,
+            create_task=asyncio.create_task,
+            gather=asyncio.gather,
+            sleep=_controlled_sleep,
+        ),
+    )
+    monkeypatch.setattr(preload_mod, "MANUAL_PRELOAD_LEASE_SECONDS", 3)
+    monkeypatch.setattr(preload_mod, "MANUAL_PRELOAD_PAGE_BATCH_SIZE", 1)
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {source.name: source})
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 2)
+    monkeypatch.setattr(lib_mod, "manual_requires_ocr", lambda _filename: False)
+    monkeypatch.setattr(lib_mod, "manual_source_duplicate_of", lambda _filename, _manuals: None)
+
+    async def _claim_once(_user_id, *, db=None):
+        nonlocal claim_calls
+        claim_calls += 1
+        if claim_calls == 1:
+            return copy.deepcopy(job)
+        raise AssertionError("The worker must not claim another chunk after losing ownership")
+
+    monkeypatch.setattr(preload_mod, "claim_next_manual_preload_job", _claim_once)
+
+    async def _import_chunk(*_args, **_kwargs):
+        import_calls.append(True)
+        await renewal_sleep_started.wait()
+        release_renewal_sleep.set()
+        await lease_loss_detected.wait()
+        return server.ReferenceImportResult(
+            imported=1,
+            updated=0,
+            flagged_for_review=0,
+            skipped=0,
+            sources=[{"filename": source.name, "pages_needing_ocr": []}],
+        )
+
+    monkeypatch.setattr(lib_mod, "import_private_reference_manuals", _import_chunk)
+    original_update_one = collection.update_one
+
+    async def _replace_lease_on_renewal(query, update):
+        update_queries.append((query, update))
+        if query.get("lease_id") == original_lease_id and not lease_loss_detected.is_set():
+            collection.rows[0]["lease_id"] = replacement_lease_id
+            collection.rows[0]["lease_expires_at"] = 456
+            lease_loss_detected.set()
+            return server.UpdateResult(0)
+        return await original_update_one(query, update)
+
+    monkeypatch.setattr(collection, "update_one", _replace_lease_on_renewal)
+
+    asyncio.run(preload_mod.run_manual_preload_worker(_USER_ID, db=fake_db))
+
+    assert claim_calls == 1
+    assert import_calls == [True]
+    assert len(update_queries) == 1
+    assert update_queries[0][0]["lease_id"] == original_lease_id
+    assert collection.rows[0]["lease_id"] == replacement_lease_id
+    assert collection.rows[0]["lease_expires_at"] == 456
+
+
+# ---------------------------------------------------------------------------
+# Test 8: the process-local worker registry prevents duplicate starts
 # ---------------------------------------------------------------------------
 
 def test_start_worker_is_noop_for_an_active_user(monkeypatch):
@@ -474,7 +567,7 @@ def test_start_worker_is_noop_for_an_active_user(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 8: a finished worker clears the registry and can be started again
+# Test 9: a finished worker clears the registry and can be started again
 # ---------------------------------------------------------------------------
 
 def test_start_worker_after_previous_worker_finishes(monkeypatch):
@@ -532,7 +625,7 @@ def test_start_worker_after_previous_worker_finishes(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 9: a crashed worker clears the registry and can be started again
+# Test 10: a crashed worker clears the registry and can be started again
 # ---------------------------------------------------------------------------
 
 def test_start_worker_after_previous_worker_crashes(monkeypatch):

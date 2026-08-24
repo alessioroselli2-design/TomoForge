@@ -211,7 +211,14 @@ async def claim_next_manual_preload_job(user_id: str, *, db=None) -> Optional[di
     return None
 
 
-async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str, *, db=None) -> None:
+async def renew_manual_preload_lease(
+    user_id: str,
+    job_id: str,
+    lease_id: str,
+    *,
+    db=None,
+    ownership_lost: Optional[asyncio.Event] = None,
+) -> None:
     """Keep a long-running extraction owned until its current chunk checkpoints."""
     _db = db if db is not None else _singleton_db
     collection = getattr(_db, "private_manual_import_jobs", None)
@@ -232,6 +239,8 @@ async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str, *
                 logger.exception("Could not renew the automatic manual preload lease")
                 continue
             if not renewed.matched_count:
+                if ownership_lost is not None:
+                    ownership_lost.set()
                 return
     except asyncio.CancelledError:
         raise
@@ -392,7 +401,22 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
         return
 
     end_page = min(page_count, current_page + MANUAL_PRELOAD_PAGE_BATCH_SIZE - 1)
-    renewal_task = asyncio.create_task(renew_manual_preload_lease(user_id, job["id"], lease_id, db=_db))
+    ownership_lost = asyncio.Event()
+    renewal_task = asyncio.create_task(
+        renew_manual_preload_lease(
+            user_id,
+            job["id"],
+            lease_id,
+            db=_db,
+            ownership_lost=ownership_lost,
+        )
+    )
+
+    async def _stop_renewal() -> bool:
+        renewal_task.cancel()
+        await asyncio.gather(renewal_task, return_exceptions=True)
+        return ownership_lost.is_set()
+
     try:
         report = await import_private_reference_manuals(
             user_id,
@@ -408,11 +432,11 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
             db=_db,
         )
     except Exception as exc:
-        renewal_task.cancel()
-        await asyncio.gather(renewal_task, return_exceptions=True)
+        if await _stop_renewal():
+            return False
         attempts = int(job.get("attempt_count") or 0) + 1
         retry_status = "queued" if attempts < MANUAL_PRELOAD_MAX_ATTEMPTS else "failed"
-        await collection.update_one(
+        checkpoint = await collection.update_one(
             owned_query,
             {"$set": {
                 "status": retry_status,
@@ -423,25 +447,37 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
                 "updated_at": utc_now(),
             }},
         )
+        if not checkpoint.matched_count:
+            return False
         logger.warning("Manual preload failed for %s page %s: %s", filename, current_page, exc)
         return
-    renewal_task.cancel()
-    await asyncio.gather(renewal_task, return_exceptions=True)
+    if await _stop_renewal():
+        return False
 
     source_report = next((source for source in report.sources if source.get("filename") == filename), {})
 
     translation_rate_limited = int(source_report.get("translation_rate_limited") or 0)
     records_collection = getattr(_db, "private_reference_records", None)
     if translation_rate_limited and records_collection is not None:
-        await collection.update_one(
+        marked_rate_limited = await collection.update_one(
             owned_query,
             {"$set": {"last_error": "translation_rate_limited", "updated_at": utc_now()}},
         )
+        if not marked_rate_limited.matched_count:
+            return False
         rate_limit_renewal = asyncio.create_task(
-            renew_manual_preload_lease(user_id, job["id"], lease_id, db=_db)
+            renew_manual_preload_lease(
+                user_id,
+                job["id"],
+                lease_id,
+                db=_db,
+                ownership_lost=ownership_lost,
+            )
         )
 
         async def _update_retry_state(attempt: int, retry_at: str) -> None:
+            if ownership_lost.is_set():
+                return
             await collection.update_one(
                 owned_query,
                 {"$set": {
@@ -458,6 +494,8 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
         finally:
             rate_limit_renewal.cancel()
             await asyncio.gather(rate_limit_renewal, return_exceptions=True)
+        if ownership_lost.is_set():
+            return False
 
     current_pages = set(range(current_page, end_page + 1))
     unreadable_pages = sorted(
@@ -475,7 +513,7 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
         next_status = "completed" if next_page > page_count else "queued"
         error = ""
         attempts = 0
-    await collection.update_one(
+    checkpoint = await collection.update_one(
         owned_query,
         {"$set": {
             "status": next_status,
@@ -496,6 +534,8 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
             "updated_at": utc_now(),
         }},
     )
+    if not checkpoint.matched_count:
+        return False
 
 
 async def run_manual_preload_worker(user_id: str, *, db=None) -> None:
@@ -505,7 +545,8 @@ async def run_manual_preload_worker(user_id: str, *, db=None) -> None:
             job = await claim_next_manual_preload_job(user_id, db=db)
             if not job:
                 return
-            await process_manual_preload_job(user_id, job, db=db)
+            if await process_manual_preload_job(user_id, job, db=db) is False:
+                return
     finally:
         MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
 
