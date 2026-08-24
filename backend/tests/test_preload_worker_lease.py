@@ -341,3 +341,104 @@ def test_lease_renewal_continues_while_ownership_matches(monkeypatch):
     assert collection.update_matched_counts == [1]
     assert collection.rows[0]["lease_id"] == lease_id
     assert renewed_expiry > original_expiry
+
+
+# ---------------------------------------------------------------------------
+# Test 6: the process-local worker registry prevents duplicate starts
+# ---------------------------------------------------------------------------
+
+def test_start_worker_is_noop_for_an_active_user(monkeypatch):
+    """A second start request must not create another worker task."""
+    user_id = "active-worker-user"
+    worker_started = asyncio.Event()
+    release_worker = asyncio.Event()
+    created_tasks = []
+
+    async def _fake_worker(_user_id, *, db=None):
+        worker_started.set()
+        await release_worker.wait()
+
+    original_create_task = asyncio.create_task
+
+    def _create_task(coro):
+        task = original_create_task(coro)
+        created_tasks.append(task)
+        return task
+
+    monkeypatch.setattr(preload_mod, "run_manual_preload_worker", _fake_worker)
+    monkeypatch.setattr(preload_mod.asyncio, "create_task", _create_task)
+
+    async def _exercise():
+        preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+        try:
+            preload_mod.start_manual_preload_worker(user_id)
+            await worker_started.wait()
+
+            preload_mod.start_manual_preload_worker(user_id)
+
+            assert len(created_tasks) == 1
+            assert user_id in preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS
+        finally:
+            release_worker.set()
+            await asyncio.gather(*created_tasks, return_exceptions=True)
+            preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+
+    asyncio.run(_exercise())
+
+
+# ---------------------------------------------------------------------------
+# Test 7: a finished worker clears the registry and can be started again
+# ---------------------------------------------------------------------------
+
+def test_start_worker_after_previous_worker_finishes(monkeypatch):
+    """The worker cleanup path must permit a later start for the same user."""
+    user_id = "reusable-worker-user"
+    first_claim_started = asyncio.Event()
+    release_first_claim = asyncio.Event()
+    second_claim_started = asyncio.Event()
+    claim_count = 0
+    created_tasks = []
+
+    async def _fake_claim(_user_id, *, db=None):
+        nonlocal claim_count
+        claim_count += 1
+        if claim_count == 1:
+            first_claim_started.set()
+            await release_first_claim.wait()
+        else:
+            second_claim_started.set()
+        return None
+
+    original_create_task = asyncio.create_task
+
+    def _create_task(coro):
+        task = original_create_task(coro)
+        created_tasks.append(task)
+        return task
+
+    monkeypatch.setattr(preload_mod, "claim_next_manual_preload_job", _fake_claim)
+    monkeypatch.setattr(preload_mod.asyncio, "create_task", _create_task)
+
+    async def _exercise():
+        preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+        try:
+            preload_mod.start_manual_preload_worker(user_id)
+            await first_claim_started.wait()
+
+            preload_mod.start_manual_preload_worker(user_id)
+            assert len(created_tasks) == 1
+
+            release_first_claim.set()
+            await created_tasks[0]
+            assert user_id not in preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS
+
+            preload_mod.start_manual_preload_worker(user_id)
+            await second_claim_started.wait()
+            assert len(created_tasks) == 2
+            await created_tasks[1]
+        finally:
+            release_first_claim.set()
+            await asyncio.gather(*created_tasks, return_exceptions=True)
+            preload_mod.MANUAL_PRELOAD_ACTIVE_WORKERS.discard(user_id)
+
+    asyncio.run(_exercise())
