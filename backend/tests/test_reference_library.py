@@ -1762,6 +1762,28 @@ def test_manual_metadata_uses_the_same_ocr_rule_as_imports():
     assert not server.manual_requires_ocr("731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf")
 
 
+def test_manual_source_duplicate_detection_compares_required_distinct_assets(monkeypatch, tmp_path):
+    monster = tmp_path / "Monster.pdf"
+    player = tmp_path / "Player.pdf"
+    unrelated = tmp_path / "Unrelated.pdf"
+    monster.write_bytes(b"the same supplied manual")
+    player.write_bytes(b"the same supplied manual")
+    unrelated.write_bytes(b"a different supplied manual")
+    manuals = {
+        monster.name: monster,
+        player.name: player,
+        unrelated.name: unrelated,
+    }
+    monkeypatch.setattr(
+        lib_mod,
+        "REFERENCE_MANUAL_DISTINCT_CONTENT",
+        {monster.name: (player.name,)},
+    )
+
+    assert lib_mod.manual_source_duplicate_of(monster.name, manuals) == player.name
+    assert lib_mod.manual_source_duplicate_of(unrelated.name, manuals) is None
+
+
 def test_spanish_parser_recognizes_classes_feats_and_equipment_without_ocr():
     page = """BárBaro
 Un feroz guerrero de origen primitivo que puede dejarse llevar por la furia en
@@ -3473,6 +3495,95 @@ def test_automatic_preload_can_queue_only_the_requested_manual(monkeypatch, tmp_
 
     assert [job["filename"] for job in jobs.rows] == [spanish.name]
     assert jobs.rows[0]["translation_processing_confirmed"] is True
+
+
+def test_automatic_preload_marks_a_duplicate_manual_source_failed(monkeypatch, tmp_path):
+    monster = tmp_path / "Monster.pdf"
+    player = tmp_path / "Player.pdf"
+    monster.write_bytes(b"same manual bytes")
+    player.write_bytes(b"same manual bytes")
+    jobs = server.MemoryCollection()
+    records = server.MemoryCollection()
+    records.rows.extend([
+        {
+            "id": "invalid-source-record",
+            "user_id": "owner-1",
+            "source_key": monster.name,
+            "source_refs": [{"filename": monster.name, "page": 10}],
+            "reference_type": "monster",
+            "name": "Mostro errato",
+            "normalized_name": "mostro errato",
+        },
+        {
+            "id": "legacy-invalid-source-record",
+            "user_id": "owner-1",
+            "source_key": "",
+            "source_refs": [{"filename": monster.name, "page": 11}],
+            "reference_type": "monster",
+            "name": "Mostro legacy errato",
+            "normalized_name": "mostro legacy errato",
+        },
+        {
+            "id": "valid-source-record",
+            "user_id": "owner-1",
+            "source_key": player.name,
+            "source_refs": [{"filename": player.name, "page": 12}],
+            "reference_type": "other",
+            "name": "Regola valida",
+            "normalized_name": "regola valida",
+        },
+    ])
+    jobs.rows.append({
+        "id": "existing-monster-job",
+        "user_id": "owner-1",
+        "filename": monster.name,
+        "source_fingerprint": "old-fingerprint",
+        "status": "completed",
+        "current_page": 322,
+        "records_imported": 3,
+        "records_updated": 2,
+        "records_flagged": 1,
+        "records_skipped": 4,
+        "pages_needing_ocr": [8],
+    })
+    _test_db = SimpleNamespace(
+        private_manual_import_jobs=jobs,
+        private_reference_records=records,
+    )
+    manuals = {monster.name: monster, player.name: player}
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: manuals)
+    monkeypatch.setattr(lib_mod, "manual_page_count", lambda _path: 321)
+    monkeypatch.setattr(
+        lib_mod,
+        "REFERENCE_MANUAL_DISTINCT_CONTENT",
+        {monster.name: (player.name,)},
+    )
+
+    asyncio.run(server.ensure_manual_preload_jobs(
+        "owner-1",
+        server.ManualPreloadInput(filename=monster.name),
+        db=_test_db,
+    ))
+
+    job = jobs.rows[0]
+    assert job["status"] == "failed"
+    assert job["last_error"] == f"manual_source_duplicate:{player.name}"
+    assert job["current_page"] == 1
+    assert job["records_imported"] == 0
+    assert job["records_updated"] == 0
+    assert job["records_flagged"] == 0
+    assert job["records_skipped"] == 0
+    assert job["pages_needing_ocr"] == []
+    remaining = asyncio.run(lib_mod.private_reference_records("owner-1", db=_test_db))
+    assert [record["id"] for record in remaining] == ["valid-source-record"]
+    assert asyncio.run(lib_mod.find_private_reference(
+        "owner-1",
+        "Mostro errato",
+        db=_test_db,
+    )) is None
+    coverage = lib_mod.manual_coverage_report(remaining)
+    monster_coverage = next(report for report in coverage if report["filename"] == monster.name)
+    assert all(category["records_total"] == 0 for category in monster_coverage["categories"])
 
 
 def test_automatic_preload_processes_all_chunks_without_manual_ranges(monkeypatch, tmp_path):

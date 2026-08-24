@@ -1453,6 +1453,13 @@ const JOB_STATUS_COLOR = {
   failed: "text-red-300",
 };
 
+function preloadFailureMessage(lastError) {
+  if (String(lastError || "").startsWith("manual_source_duplicate:")) {
+    return "Il file fornito non è il Manuale dei Mostri: è una copia del Manuale del Giocatore. Sostituiscilo con il PDF corretto; il precaricamento ripartirà automaticamente.";
+  }
+  return lastError || "Errore durante il precaricamento. Riprova.";
+}
+
 function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, onOpenReviews }) {
   if (loading && !manuals.length) {
     return (
@@ -1487,6 +1494,7 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
           const isActive = job.status === "queued" || job.status === "processing";
           const isFailed = job.status === "failed";
           const isDone = job.status === "completed";
+          const needsSourceReplacement = String(job.last_error || "").startsWith("manual_source_duplicate:");
           const percent = Number(job.percent || 0);
           const title = manual.title || manual.filename.replace(/__\d+\.pdf$/, "").replaceAll("_", " ");
 
@@ -1589,13 +1597,13 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
                 <div className="mt-2 flex items-start gap-2 border border-red-900/50 bg-red-950/15 p-2">
                   <AlertTriangle className="h-4 w-4 shrink-0 text-red-300" />
                   <div className="flex-1">
-                    <p className="font-body text-[11px] text-red-200">{job.last_error || "Errore durante il precaricamento. Riprova."}</p>
+                    <p className="font-body text-[11px] text-red-200">{preloadFailureMessage(job.last_error)}</p>
                   </div>
                 </div>
               )}
 
               {/* Retry button when failed */}
-              {isFailed && (
+              {isFailed && !needsSourceReplacement && (
                 <Button
                   type="button"
                   data-testid={`retry-preload-${manual.filename}`}

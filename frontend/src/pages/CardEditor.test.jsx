@@ -254,6 +254,50 @@ describe("CardEditor preload dashboard", () => {
     });
   });
 
+  it("explains when a manual needs its source PDF replaced instead of offering retry", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") {
+        return Promise.resolve({
+          data: {
+            manuals: [{
+              filename: "manuale_mostri.pdf",
+              title: "Manuale dei Mostri",
+              source_language: "it",
+              requires_ocr: false,
+              job: {
+                status: "failed",
+                last_error: "manual_source_duplicate:Manuale_del_giocatore.pdf",
+              },
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(container.textContent).toContain("non è il Manuale dei Mostri");
+    expect(container.querySelector('[data-testid="retry-preload-manuale_mostri.pdf"]')).toBeNull();
+  });
+
   it("shows translation retry countdown when translation_retry_at is set", async () => {
     const retryAt = new Date(Date.now() + 45000).toISOString(); // 45 s in the future
     api.get.mockImplementation((path) => {

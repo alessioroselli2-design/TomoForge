@@ -68,7 +68,8 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
     _db = db if db is not None else _singleton_db
     from services.library import (
         available_reference_manuals, manual_page_count,
-        manual_requires_ocr, manual_source_fingerprint,
+        discard_private_manual_source_records,
+        manual_requires_ocr, manual_source_duplicate_of, manual_source_fingerprint,
         manual_source_language, private_manual_import_jobs,
     )
     manuals = available_reference_manuals()
@@ -95,9 +96,12 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
         ocr_confirmed = True
 
         fingerprint = manual_source_fingerprint(path)
+        duplicate_of = manual_source_duplicate_of(filename, manuals)
         changed_source = bool(existing and existing.get("source_fingerprint") != fingerprint)
         status = existing.get("status") if existing else "queued"
-        if changed_source or (body.filename == filename and (body.enable_translation or body.enable_ocr or body.retry)):
+        if duplicate_of:
+            status = "failed"
+        elif changed_source or (body.filename == filename and (body.enable_translation or body.enable_ocr or body.retry)):
             status = "queued"
         page_count = manual_page_count(path)
         payload = {
@@ -112,7 +116,21 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
             "updated_at": utc_now(),
         }
         if existing:
-            if changed_source:
+            if duplicate_of:
+                payload.update({
+                    "last_error": f"manual_source_duplicate:{duplicate_of}",
+                    "current_page": 1,
+                    "attempt_count": 0,
+                    "pages_needing_ocr": [],
+                    "records_imported": 0,
+                    "records_updated": 0,
+                    "records_flagged": 0,
+                    "records_skipped": 0,
+                    "lease_id": "",
+                    "lease_expires_at": 0,
+                    "completed_at": None,
+                })
+            elif changed_source:
                 payload.update({
                     "current_page": 1,
                     "attempt_count": 0,
@@ -132,7 +150,7 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
                 **payload,
                 "current_page": 1,
                 "attempt_count": 0,
-                "last_error": "",
+                "last_error": f"manual_source_duplicate:{duplicate_of}" if duplicate_of else "",
                 "pages_needing_ocr": [],
                 "records_imported": 0,
                 "records_updated": 0,
@@ -143,6 +161,14 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
                 "created_at": utc_now(),
                 "completed_at": None,
             })
+        if duplicate_of:
+            discarded = await discard_private_manual_source_records(user_id, filename, db=_db)
+            if discarded:
+                logger.warning(
+                    "Discarded %s records from invalid manual source %s",
+                    discarded,
+                    filename,
+                )
     return await private_manual_import_jobs(user_id, db=_db)
 
 
@@ -295,6 +321,8 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
     _db = db if db is not None else _singleton_db
     from services.library import (
         available_reference_manuals, manual_page_count, manual_requires_ocr,
+        discard_private_manual_source_records,
+        manual_source_duplicate_of,
         import_private_reference_manuals,
     )
     collection = getattr(_db, "private_manual_import_jobs", None)
@@ -316,6 +344,34 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
         await collection.update_one(
             owned_query,
             {"$set": {"status": "failed", "last_error": "manual_source_missing", "lease_id": "", "lease_expires_at": 0, "updated_at": utc_now()}},
+        )
+        return
+    duplicate_of = manual_source_duplicate_of(filename, manuals)
+    if duplicate_of:
+        discarded = await discard_private_manual_source_records(user_id, filename, db=_db)
+        await collection.update_one(
+            owned_query,
+            {"$set": {
+                "status": "failed",
+                "last_error": f"manual_source_duplicate:{duplicate_of}",
+                "current_page": 1,
+                "attempt_count": 0,
+                "pages_needing_ocr": [],
+                "records_imported": 0,
+                "records_updated": 0,
+                "records_flagged": 0,
+                "records_skipped": 0,
+                "lease_id": "",
+                "lease_expires_at": 0,
+                "completed_at": None,
+                "updated_at": utc_now(),
+            }},
+        )
+        logger.error(
+            "Manual preload stopped for %s because its bytes duplicate %s; discarded %s invalid records",
+            filename,
+            duplicate_of,
+            discarded,
         )
         return
     page_count = manual_page_count(path)
@@ -463,7 +519,9 @@ async def resume_manual_preload_workers(*, db=None) -> None:
     """Recover queued work and completed parser revisions after a restart."""
     _db = db if db is not None else _singleton_db
     from services.library import (
-        available_reference_manuals, manual_page_count, manual_source_fingerprint,
+        available_reference_manuals, manual_page_count, manual_source_duplicate_of,
+        discard_private_manual_source_records,
+        manual_source_fingerprint,
     )
     collection = getattr(_db, "private_manual_import_jobs", None)
     if collection is None:
@@ -500,13 +558,50 @@ async def resume_manual_preload_workers(*, db=None) -> None:
             continue
         filename = job.get("filename")
         path = manuals.get(filename)
+        duplicate_of = manual_source_duplicate_of(filename, manuals) if path else None
+        if duplicate_of:
+            discarded = await discard_private_manual_source_records(
+                job.get("user_id", ""),
+                filename,
+                db=_db,
+            )
+            invalidated = await collection.update_one(
+                {"id": job["id"], "user_id": job.get("user_id")},
+                {"$set": {
+                    "status": "failed",
+                    "last_error": f"manual_source_duplicate:{duplicate_of}",
+                    "current_page": 1,
+                    "attempt_count": 0,
+                    "pages_needing_ocr": [],
+                    "records_imported": 0,
+                    "records_updated": 0,
+                    "records_flagged": 0,
+                    "records_skipped": 0,
+                    "lease_id": "",
+                    "lease_expires_at": 0,
+                    "completed_at": None,
+                    "updated_at": utc_now(),
+                }},
+            )
+            if invalidated.matched_count:
+                logger.error(
+                    "Manual preload stopped for %s because its bytes duplicate %s; discarded %s invalid records",
+                    filename,
+                    duplicate_of,
+                    discarded,
+                )
+            continue
         if (
-            job.get("status") == "completed"
+            job.get("status") in {"completed", "failed"}
             and path
             and job.get("source_fingerprint") != manual_source_fingerprint(path)
         ):
             reset = await collection.update_one(
-                {"id": job["id"], "user_id": job.get("user_id"), "status": "completed"},
+                {
+                    "id": job["id"],
+                    "user_id": job.get("user_id"),
+                    "status": {"$in": ["completed", "failed"]},
+                },
                 {"$set": {
                     "status": "queued",
                     "source_fingerprint": manual_source_fingerprint(path),

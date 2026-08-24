@@ -35,6 +35,7 @@ from core.config import (
     OPENAI_OCR_MODEL,
     OPENAI_TEXT_MODEL,
     REFERENCE_MANUAL_FILENAMES,
+    REFERENCE_MANUAL_DISTINCT_CONTENT,
     REFERENCE_MANUAL_METADATA,
     REFERENCE_MANUAL_PARSER_REVISIONS,
     OCR_ONLY_REFERENCE_MANUAL_FILENAMES,
@@ -94,6 +95,41 @@ def manual_source_fingerprint(path: Path) -> str:
     if parser_revision:
         value = f"{value}:parser:{parser_revision}"
     return sha256(value.encode("utf-8")).hexdigest()
+
+
+def manual_source_duplicate_of(
+    filename: str,
+    manuals: Optional[dict[str, Path]] = None,
+) -> Optional[str]:
+    """Return the conflicting manual filename when two required-distinct PDFs match.
+
+    Compare the actual bytes only after the cheap size check. This keeps normal
+    preload setup fast while ensuring a copied asset cannot be indexed under a
+    different manual's name.
+    """
+    required_distinct_from = REFERENCE_MANUAL_DISTINCT_CONTENT.get(filename, ())
+    if not required_distinct_from:
+        return None
+    available = manuals if manuals is not None else available_reference_manuals()
+    path = available.get(filename)
+    if path is None:
+        return None
+    try:
+        own_size = path.stat().st_size
+    except OSError:
+        return None
+    for other_filename in required_distinct_from:
+        other_path = available.get(other_filename)
+        if other_path is None:
+            continue
+        try:
+            if own_size != other_path.stat().st_size:
+                continue
+            if sha256(path.read_bytes()).digest() == sha256(other_path.read_bytes()).digest():
+                return other_filename
+        except OSError:
+            continue
+    return None
 
 
 def manual_page_count(path: Path) -> Optional[int]:
@@ -398,6 +434,43 @@ async def private_reference_records(user_id: str, *, db=None) -> list[dict]:
         raise
 
 
+async def discard_private_manual_source_records(
+    user_id: str,
+    source_filename: str,
+    *,
+    db=None,
+) -> int:
+    """Remove owner records tied to a source that has been proven invalid.
+
+    `source_key` is the canonical source identifier. Checking `source_refs` as
+    well safely cleans records created before that column was backfilled, so an
+    invalid source cannot remain searchable or inflate manual coverage.
+    """
+    _db = db if db is not None else _singleton_db
+    collection = getattr(_db, "private_reference_records", None)
+    if collection is None:
+        return 0
+    records = await private_reference_records(user_id, db=_db)
+    invalid_ids = [
+        record.get("id")
+        for record in records
+        if (
+            record.get("source_key") == source_filename
+            or any(
+                ref.get("filename") == source_filename
+                for ref in record.get("source_refs") or []
+                if isinstance(ref, dict)
+            )
+        )
+        and record.get("id")
+    ]
+    deleted = 0
+    for reference_id in invalid_ids:
+        result = await collection.delete_one({"id": reference_id, "user_id": user_id})
+        deleted += int(getattr(result, "deleted_count", 0))
+    return deleted
+
+
 async def private_manual_import_jobs(user_id: str, *, db=None) -> list[dict]:
     """Load only owner-scoped preload metadata, never manual source material."""
     _db = db if db is not None else _singleton_db
@@ -429,6 +502,21 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
     unknown = sorted(set(requested) - set(manuals))
     if unknown:
         raise HTTPException(status_code=400, detail="Uno o più manuali richiesti non sono disponibili localmente")
+    duplicate_sources = {
+        filename: duplicate_of
+        for filename in requested
+        if (duplicate_of := manual_source_duplicate_of(filename, manuals))
+    }
+    if duplicate_sources:
+        duplicate_filename, original_filename = next(iter(duplicate_sources.items()))
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Il file di {manual_source_metadata(duplicate_filename)['title']} è identico a "
+                f"{manual_source_metadata(original_filename)['title']}; sostituisci il PDF con la fonte corretta "
+                "prima di importarlo."
+            ),
+        )
     if body.end_page and body.end_page < body.start_page:
         raise HTTPException(status_code=400, detail="L'intervallo di pagine non è valido")
     spanish_manuals = [

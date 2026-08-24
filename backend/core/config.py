@@ -91,6 +91,14 @@ REFERENCE_MANUAL_METADATA = {
 REFERENCE_MANUAL_PARSER_REVISIONS = {
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": "character-options-v2",
 }
+# Some local filenames can be misleading after a manual is replaced or copied
+# into the assets directory. These manuals must never have identical PDF bytes:
+# if they do, the preload stops rather than assigning rules to the wrong source.
+REFERENCE_MANUAL_DISTINCT_CONTENT = {
+    "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf": (
+        "Manuale_del_giocatore__1787259882002.pdf",
+    ),
+}
 OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset({
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 })
