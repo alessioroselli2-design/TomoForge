@@ -4205,3 +4205,79 @@ def test_ocr_import_blocks_multiple_manuals_before_any_page_reaches_gemini(
     except server.HTTPException as error:
         assert error.status_code == 400
         assert "solo manuale" in error.detail or "un solo" in error.detail
+
+
+def test_valid_ocr_import_sends_each_selected_page_once_and_persists_review_flags(
+    monkeypatch, tmp_path
+):
+    """A confirmed OCR import must process only the requested pages once each.
+
+    OCR-derived records are persisted, but every one remains blocked behind the
+    human-review flag until someone verifies the transcription.
+    """
+    import fitz
+
+    source = tmp_path / "Manuale-Scansionato.pdf"
+    document = fitz.open()
+    for _ in range(4):
+        document.new_page()
+    document.save(source)
+    document.close()
+
+    filename = source.name
+    records_from_pages = ("TALENTO OCR DUE", "TALENTO OCR TRE")
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        title = records_from_pages[len(calls) - 1]
+        return _OcrResponse(
+            payload={
+                "choices": [{
+                    "message": {
+                        "content": (
+                            f"{title}\n"
+                            "Prerequisito: Destrezza 13. Questo talento migliora la "
+                            "precisione in combattimento e offre un beneficio "
+                            "verificabile descritto nella pagina del manuale."
+                        )
+                    }
+                }]
+            }
+        )
+
+    collection = server.MemoryCollection()
+    test_db = SimpleNamespace(private_reference_records=collection)
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(lib_mod, "manual_requires_ocr", lambda _filename: True)
+    monkeypatch.setattr(lib_mod, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(server.requests, "post", fake_post)
+
+    result = asyncio.run(server.import_private_reference_manuals(
+        "owner-1",
+        server.ReferenceImportInput(
+            filenames=[filename],
+            start_page=2,
+            end_page=3,
+            use_ai_ocr=True,
+            external_processing_confirmed=True,
+        ),
+        db=test_db,
+    ))
+
+    assert len(calls) == 2
+    assert all(url == "https://api.openai.com/v1/chat/completions" for url, _ in calls)
+    assert result.imported == 2
+    assert result.flagged_for_review == 2
+    assert len(collection.rows) == 2
+    assert {
+        normalize_reference_name(record["name"]) for record in collection.rows
+    } == {
+        normalize_reference_name(title) for title in records_from_pages
+    }
+    assert {record["source_refs"][0]["page"] for record in collection.rows} == {2, 3}
+    assert all("ocr_da_verificare" in record["review_flags"] for record in collection.rows)
+    assert not [
+        record for record in collection.rows
+        if "ocr_da_verificare" not in record["review_flags"]
+    ]
