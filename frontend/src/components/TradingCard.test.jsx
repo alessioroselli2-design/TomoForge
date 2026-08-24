@@ -123,6 +123,25 @@ describe("CardFront artwork placeholder", () => {
     }
   });
 
+  it("exposes artwork failures as alerts without announcing the warning glyph", async () => {
+    const card = { id: "c7", type: "spell", name: "Segnale Perduto", artwork_path: "uploads/broken.jpg" };
+    await act(async () => {
+      root.render(<CardFront card={card} editorMode imgUrl="https://cdn.example.com/broken.jpg" />);
+    });
+
+    const img = container.querySelector("img");
+    await act(async () => {
+      img.dispatchEvent(new Event("error"));
+    });
+
+    const alert = container.querySelector('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert.textContent).toContain("Artwork non disponibile");
+    const warningGlyph = alert.querySelector('[aria-hidden="true"]');
+    expect(warningGlyph).not.toBeNull();
+    expect(warningGlyph.textContent).toBe("⚠");
+  });
+
   it("resets the artwork fallback guard when a new image URL is assigned", async () => {
     const card = { id: "c6", type: "spell", name: "Rinascita", artwork_path: "uploads/broken.jpg" };
     await act(async () => {
