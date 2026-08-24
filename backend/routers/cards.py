@@ -19,6 +19,7 @@ from services.cards import (
     insert_cards_atomically,
     manual_completion_preview_for_card,
     merge_source_refs,
+    normalize_generic_spell_links,
     reference_records_by_id,
     reference_snapshot_for_card,
     reference_snapshots_for_card,
@@ -48,8 +49,11 @@ def card_history_view(history: list[dict]) -> list[dict]:
 @router.post("/cards", response_model=Card)
 async def create_card(body: CardCreate, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     data = body.model_dump(exclude_none=True)
-    reference_ids, reference_sources = await resolve_reference_provenance(user.user_id, data.get("reference_ids", []), db=db)
-    spell_ids, spell_sources = await resolve_spell_provenance(user.user_id, data.get("spell_ids", []), db=db)
+    generic_reference_ids, legacy_spell_ids = await normalize_generic_spell_links(
+        user.user_id, data.get("reference_ids", []), data.get("spell_ids", []), db=db
+    )
+    reference_ids, reference_sources = await resolve_reference_provenance(user.user_id, generic_reference_ids, db=db)
+    spell_ids, spell_sources = await resolve_spell_provenance(user.user_id, legacy_spell_ids, db=db)
     data["reference_ids"] = reference_ids
     data["spell_ids"] = spell_ids
     data["source_refs"] = merge_source_refs(reference_sources, spell_sources)
@@ -92,11 +96,17 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     updates = body.model_dump(exclude_none=True)
     expected_version = updates.pop("version")
     if "reference_ids" in updates or "spell_ids" in updates:
+        generic_reference_ids, legacy_spell_ids = await normalize_generic_spell_links(
+            user.user_id,
+            updates.get("reference_ids", card.get("reference_ids", [])),
+            updates.get("spell_ids", card.get("spell_ids", [])),
+            db=db,
+        )
         reference_ids, reference_sources = await resolve_reference_provenance(
-            user.user_id, updates.get("reference_ids", card.get("reference_ids", [])), db=db
+            user.user_id, generic_reference_ids, db=db
         )
         spell_ids, spell_sources = await resolve_spell_provenance(
-            user.user_id, updates.get("spell_ids", card.get("spell_ids", [])), db=db
+            user.user_id, legacy_spell_ids, db=db
         )
         updates["reference_ids"] = reference_ids
         updates["spell_ids"] = spell_ids

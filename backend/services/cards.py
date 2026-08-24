@@ -263,6 +263,37 @@ async def resolve_reference_provenance(user_id: str, reference_ids: list[str], *
     return requested_ids, sources
 
 
+async def normalize_generic_spell_links(
+    user_id: str,
+    reference_ids: list[str],
+    spell_ids: list[str],
+    *,
+    db=None,
+) -> tuple[list[str], list[str]]:
+    """Move generic spell references out of the retired Grimorio ID list.
+
+    Older editor drafts can still contain a generic private-reference ID in
+    ``spell_ids``. Keeping it there makes card saving look in ``private_spells``
+    and incorrectly report that the spell disappeared.
+    """
+    from services.library import private_reference_records
+
+    requested_spell_ids = list(dict.fromkeys(spell_id for spell_id in spell_ids if spell_id))
+    if not requested_spell_ids:
+        return list(dict.fromkeys(reference_id for reference_id in reference_ids if reference_id)), []
+    generic_spell_ids = {
+        record["id"]
+        for record in await private_reference_records(user_id, db=db)
+        if record.get("id") in requested_spell_ids and record.get("reference_type") == "spell"
+    }
+    normalized_reference_ids = list(dict.fromkeys([
+        *(reference_id for reference_id in reference_ids if reference_id),
+        *(spell_id for spell_id in requested_spell_ids if spell_id in generic_spell_ids),
+    ]))
+    legacy_spell_ids = [spell_id for spell_id in requested_spell_ids if spell_id not in generic_spell_ids]
+    return normalized_reference_ids, legacy_spell_ids
+
+
 async def resolve_spell_provenance(user_id: str, spell_ids: list[str], *, db=None) -> tuple[list[str], list[dict]]:
     """Validate private Grimorio entries and derive their manual/page links."""
     import json

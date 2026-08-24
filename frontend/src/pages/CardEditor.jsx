@@ -353,7 +353,7 @@ export default function CardEditor() {
         description: card.description || res.data.description,
         story: card.story || res.data.story,
         attributes: mergeMissingValues(card.attributes, { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) }),
-        spell_ids: Array.from(new Set([...(card.spell_ids || []), res.data.spell_id || res.data.reference_id || spellId])),
+        reference_ids: Array.from(new Set([...(card.reference_ids || []), res.data.reference_id || spellId])),
         rule_sources: mergeRuleSources(card.rule_sources, [res.data.rule_source]),
         source_refs: mergeSourceReferences(card.source_refs, res.data.source_refs || []),
       });

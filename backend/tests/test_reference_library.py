@@ -755,6 +755,25 @@ def test_character_references_derive_source_refs_and_create_only_selected_rule_c
         assert error.status_code == 400
 
 
+def test_card_save_migrates_generic_spell_ids_from_the_retired_grimorio():
+    spell = make_reference("Lama infuocata", reference_type="spell")
+    references = server.MemoryCollection()
+    references.rows.append(spell)
+    cards = server.MemoryCollection()
+    _test_db = SimpleNamespace(cards=cards, private_reference_records=references)
+    user = server.User(user_id="owner-1", email="mago@example.com", name="Mago")
+
+    card = asyncio.run(server.create_card(server.CardCreate(
+        type="spell",
+        name="Lama infuocata",
+        spell_ids=[spell["id"]],
+    ), user, db=_test_db))
+
+    assert card.reference_ids == [spell["id"]]
+    assert card.spell_ids == []
+    assert card.rule_sources[0]["source_id"] == spell["id"]
+
+
 def test_linked_card_creation_removes_partial_set_when_persistence_fails(monkeypatch):
     first = make_reference("Tiratore scelto")
     second = make_reference("Sentinella")
