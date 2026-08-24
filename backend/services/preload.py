@@ -220,19 +220,21 @@ async def renew_manual_preload_lease(user_id: str, job_id: str, lease_id: str, *
     try:
         while True:
             await asyncio.sleep(max(1, MANUAL_PRELOAD_LEASE_SECONDS // 3))
-            renewed = await collection.update_one(
-                {"id": job_id, "user_id": user_id, "status": "processing", "lease_id": lease_id},
-                {"$set": {
-                    "lease_expires_at": int(time.time()) + MANUAL_PRELOAD_LEASE_SECONDS,
-                    "updated_at": utc_now(),
-                }},
-            )
+            try:
+                renewed = await collection.update_one(
+                    {"id": job_id, "user_id": user_id, "status": "processing", "lease_id": lease_id},
+                    {"$set": {
+                        "lease_expires_at": int(time.time()) + MANUAL_PRELOAD_LEASE_SECONDS,
+                        "updated_at": utc_now(),
+                    }},
+                )
+            except Exception:
+                logger.exception("Could not renew the automatic manual preload lease")
+                continue
             if not renewed.matched_count:
                 return
     except asyncio.CancelledError:
         raise
-    except Exception:
-        logger.exception("Could not renew the automatic manual preload lease")
 
 
 async def _drain_rate_limited_ids(records_collection: Any, query: dict) -> list[str]:

@@ -344,7 +344,94 @@ def test_lease_renewal_continues_while_ownership_matches(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 6: the process-local worker registry prevents duplicate starts
+# Test 6: a transient renewal failure does not lose ownership
+# ---------------------------------------------------------------------------
+
+def test_lease_renewal_retries_after_transient_storage_failure(monkeypatch):
+    """A failed renewal attempt must not stop later renewals for the same lease."""
+    first_sleep_started = asyncio.Event()
+    second_sleep_started = asyncio.Event()
+    third_sleep_started = asyncio.Event()
+    release_first_sleep = asyncio.Event()
+    release_second_sleep = asyncio.Event()
+    hold_third_sleep = asyncio.Event()
+    sleep_calls = 0
+
+    async def _controlled_sleep(_delay):
+        nonlocal sleep_calls
+        sleep_calls += 1
+        if sleep_calls == 1:
+            first_sleep_started.set()
+            await release_first_sleep.wait()
+        elif sleep_calls == 2:
+            second_sleep_started.set()
+            await release_second_sleep.wait()
+        else:
+            third_sleep_started.set()
+            await hold_third_sleep.wait()
+
+    monkeypatch.setattr(
+        preload_mod,
+        "asyncio",
+        SimpleNamespace(
+            CancelledError=asyncio.CancelledError,
+            sleep=_controlled_sleep,
+        ),
+    )
+
+    lease_id = "original-worker-lease"
+    job = _make_job(
+        status="processing",
+        lease_id=lease_id,
+        lease_expires_at=123,
+    )
+    fake_db, collection = _fake_db(job)
+    original_update_one = collection.update_one
+    update_calls = 0
+
+    async def _fail_once_then_update(query, update):
+        nonlocal update_calls
+        update_calls += 1
+        if update_calls == 1:
+            raise RuntimeError("temporary storage outage")
+        return await original_update_one(query, update)
+
+    monkeypatch.setattr(collection, "update_one", _fail_once_then_update)
+
+    async def _exercise():
+        renewal_task = asyncio.create_task(
+            preload_mod.renew_manual_preload_lease(
+                _USER_ID,
+                job["id"],
+                lease_id,
+                db=fake_db,
+            )
+        )
+        await first_sleep_started.wait()
+        release_first_sleep.set()
+        await second_sleep_started.wait()
+
+        # The first update failed, but the renewal loop must remain alive.
+        assert not renewal_task.done()
+        release_second_sleep.set()
+        await third_sleep_started.wait()
+
+        renewal_task.cancel()
+        await asyncio.gather(renewal_task, return_exceptions=True)
+
+    asyncio.run(_exercise())
+    assert update_calls == 2, "The renewal loop must attempt a later renewal"
+    assert collection.update_matched_counts == [1], (
+        "The later renewal must succeed against the original lease"
+    )
+    assert collection.rows[0]["lease_id"] == lease_id, (
+        "A transient storage failure must not change lease ownership"
+    )
+    assert collection.rows[0]["lease_expires_at"] > 123
+
+
+# ---------------------------------------------------------------------------
+# Test 7: the process-local worker registry prevents duplicate starts
 # ---------------------------------------------------------------------------
 
 def test_start_worker_is_noop_for_an_active_user(monkeypatch):
@@ -387,7 +474,7 @@ def test_start_worker_is_noop_for_an_active_user(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 7: a finished worker clears the registry and can be started again
+# Test 8: a finished worker clears the registry and can be started again
 # ---------------------------------------------------------------------------
 
 def test_start_worker_after_previous_worker_finishes(monkeypatch):
