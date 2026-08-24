@@ -93,4 +93,33 @@ describe("CardFront artwork placeholder", () => {
     expect(img.src).toContain("uploads/spell.jpg");
     expect(img.src).not.toContain("artwork-placeholder.svg");
   });
+
+  it("does not loop if the artwork placeholder also fails to load", async () => {
+    const card = { id: "c5", type: "spell", name: "Eco Spezzata", artwork_path: "uploads/spell.jpg" };
+    await act(async () => {
+      root.render(<CardFront card={card} exportMode />);
+    });
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+
+    const srcSetter = jest.spyOn(HTMLImageElement.prototype, "src", "set");
+    try {
+      await act(async () => {
+        img.dispatchEvent(new Event("error"));
+      });
+      const fallbackSrc = img.src;
+      expect(fallbackSrc).toContain("artwork-placeholder.svg");
+      expect(srcSetter).toHaveBeenCalledTimes(1);
+      expect(srcSetter.mock.calls[0][0]).toContain("artwork-placeholder.svg");
+
+      srcSetter.mockClear();
+      await act(async () => {
+        img.dispatchEvent(new Event("error"));
+      });
+      expect(srcSetter).not.toHaveBeenCalled();
+      expect(img.src).toBe(fallbackSrc);
+    } finally {
+      srcSetter.mockRestore();
+    }
+  });
 });
