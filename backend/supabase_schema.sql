@@ -33,7 +33,9 @@ create table if not exists public.cards (
   appearance jsonb not null default '{"title_effect":"gold","title_shadow":true,"description_opacity":0.64,"text_panel_color":"#05080a","text_color":"#f5f1df","front_background_start":"#151311","front_background_end":"#151311","front_background_gradient":false,"title_custom_color_enabled":false,"title_custom_color":"#f8d764","frame_custom_color_enabled":false,"frame_custom_color":"#d4af37"}'::jsonb,
   back jsonb not null default '{"style":"classic","color":"#7f1d1d","emblem":"flame","motto":""}'::jsonb,
   reference_ids jsonb not null default '[]'::jsonb,
+  spell_ids jsonb not null default '[]'::jsonb,
   source_refs jsonb not null default '[]'::jsonb,
+  rule_sources jsonb not null default '[]'::jsonb,
   reference_snapshots jsonb not null default '[]'::jsonb,
   change_history jsonb not null default '[]'::jsonb,
   version integer not null default 0,
@@ -46,7 +48,9 @@ alter table public.cards
   not null default '{"title_effect":"gold","title_shadow":true,"description_opacity":0.64,"text_panel_color":"#05080a","text_color":"#f5f1df","front_background_start":"#151311","front_background_end":"#151311","front_background_gradient":false,"title_custom_color_enabled":false,"title_custom_color":"#f8d764","frame_custom_color_enabled":false,"frame_custom_color":"#d4af37"}'::jsonb;
 alter table public.cards
   add column if not exists reference_ids jsonb not null default '[]'::jsonb,
+  add column if not exists spell_ids jsonb not null default '[]'::jsonb,
   add column if not exists source_refs jsonb not null default '[]'::jsonb,
+  add column if not exists rule_sources jsonb not null default '[]'::jsonb,
   add column if not exists reference_snapshots jsonb not null default '[]'::jsonb,
   add column if not exists change_history jsonb not null default '[]'::jsonb,
   add column if not exists version integer not null default 0;
