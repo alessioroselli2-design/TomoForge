@@ -478,7 +478,7 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
         async def _update_retry_state(attempt: int, retry_at: str) -> None:
             if ownership_lost.is_set():
                 return
-            await collection.update_one(
+            updated = await collection.update_one(
                 owned_query,
                 {"$set": {
                     "translation_retry_at": retry_at,
@@ -486,12 +486,31 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
                     "updated_at": utc_now(),
                 }},
             )
+            if not updated.matched_count:
+                ownership_lost.set()
 
-        try:
-            await _retry_rate_limited_translations(
+        retry_task = asyncio.create_task(
+            _retry_rate_limited_translations(
                 user_id, filename, records_collection, job_updater=_update_retry_state, db=_db
             )
+        )
+        ownership_task = asyncio.create_task(ownership_lost.wait())
+        try:
+            await asyncio.wait(
+                {retry_task, ownership_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if ownership_lost.is_set():
+                retry_task.cancel()
+                await asyncio.gather(retry_task, return_exceptions=True)
+                return False
+            await retry_task
         finally:
+            if not retry_task.done():
+                retry_task.cancel()
+            await asyncio.gather(retry_task, return_exceptions=True)
+            ownership_task.cancel()
+            await asyncio.gather(ownership_task, return_exceptions=True)
             rate_limit_renewal.cancel()
             await asyncio.gather(rate_limit_renewal, return_exceptions=True)
         if ownership_lost.is_set():
