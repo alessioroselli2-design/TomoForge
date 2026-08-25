@@ -18,6 +18,10 @@ from fastapi import FastAPI, HTTPException  # noqa: F401
 from fastapi.middleware.cors import CORSMiddleware
 
 # ---------------------------------------------------------------------------
+# These imports intentionally preserve the server.* compatibility surface used
+# by direct tests and patching; endpoint implementation belongs in the modules
+# below, so Ruff F401 guards here are deliberate rather than dead code.
+# ---------------------------------------------------------------------------
 # Core layer
 # ---------------------------------------------------------------------------
 from core.config import (  # noqa: F401

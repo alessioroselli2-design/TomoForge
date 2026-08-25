@@ -69,7 +69,7 @@ async def ensure_manual_preload_jobs(user_id: str, body: ManualPreloadInput, *, 
     from services.library import (
         available_reference_manuals, manual_page_count,
         discard_private_manual_source_records,
-        manual_requires_ocr, manual_source_duplicate_of, manual_source_fingerprint,
+        manual_source_duplicate_of, manual_source_fingerprint,
         manual_source_language, private_manual_import_jobs,
     )
     manuals = available_reference_manuals()

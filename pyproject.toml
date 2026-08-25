@@ -17,7 +17,11 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "python-multipart>=0.0.9",
     "requests>=2.32.3",
+    "ruff>=0.16.4",
     "stripe==14.4.1",
     "supabase>=2.15.0",
     "uvicorn==0.25.0",
 ]
+
+[tool.ruff.lint]
+select = ["F"]

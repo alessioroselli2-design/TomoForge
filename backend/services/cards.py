@@ -449,7 +449,6 @@ def refresh_derived_attributes(attributes: dict, old_snapshot: dict, new_snapsho
                 entry for entry in current_entries
                 if not (isinstance(entry, dict) and entry.get("reference_id") == reference_id)
             ]
-            unchanged_entries = [entry for entry in matching_entries if entry in old_entries]
             manual_entries = [entry for entry in matching_entries if entry not in old_entries]
             if manual_entries or (old_entries and not matching_entries):
                 refreshed[field] = untouched_entries + copy.deepcopy(manual_entries)
