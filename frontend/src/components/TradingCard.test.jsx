@@ -142,6 +142,22 @@ describe("CardFront artwork placeholder", () => {
     expect(warningGlyph.textContent).toBe("⚠");
   });
 
+  it("keeps artwork failure alerts out of exported cards while using the placeholder", async () => {
+    const card = { id: "c8", type: "spell", name: "Faglia Silenziosa", artwork_path: "uploads/broken.jpg" };
+    await act(async () => {
+      root.render(<CardFront card={card} editorMode exportMode imgUrl="https://cdn.example.com/broken.jpg" />);
+    });
+
+    const img = container.querySelector("img");
+    await act(async () => {
+      img.dispatchEvent(new Event("error"));
+    });
+
+    expect(img.src).toContain("artwork-placeholder.svg");
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).not.toContain("Artwork non disponibile");
+  });
+
   it("resets the artwork fallback guard when a new image URL is assigned", async () => {
     const card = { id: "c6", type: "spell", name: "Rinascita", artwork_path: "uploads/broken.jpg" };
     await act(async () => {
