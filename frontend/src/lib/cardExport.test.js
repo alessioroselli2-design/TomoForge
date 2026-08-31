@@ -474,4 +474,54 @@ describe("card export renderers", () => {
       .join(" ");
     expect(text).toContain("Spada dell'Oblio");
   });
+
+  it("keeps failed artwork exports on the placeholder without editor warning overlays", async () => {
+    // CardFront replaces a failed artwork URL with the loaded SVG placeholder.
+    // Keep the editor warning in the source element to prove the raster export
+    // does not accidentally capture that editor-only overlay.
+    const placeholderArtwork = {
+      complete: true,
+      naturalWidth: 270,
+      naturalHeight: 200,
+      src: "artwork-placeholder.svg",
+    };
+    const element = {
+      textContent: "⚠ Artwork non disponibile — ricarica o rigenera",
+      querySelectorAll: () => [placeholderArtwork],
+      querySelector: (selector) => (selector === "img"
+        ? placeholderArtwork
+        : selector === "canvas"
+          ? { toDataURL: () => "data:image/png;base64,qr" }
+          : null),
+    };
+    const card = {
+      id: "failed-artwork-export",
+      type: "spell",
+      name: "Faglia Silenziosa",
+      artwork_path: "uploads/broken.jpg",
+      attributes: { livello: "4" },
+    };
+    const pdf = { addImage: jest.fn(), addPage: jest.fn() };
+    const a4Pdf = { addImage: jest.fn(), addPage: jest.fn() };
+
+    const singlePdf = await addSingleCardPdfPages(pdf, element, card);
+    const a4Sheet = await addSingleCardA4PdfPages(a4Pdf, element, card);
+
+    [singlePdf.front, a4Sheet.front].forEach((front) => {
+      expect(front.artworkDrawn).toBe(true);
+      expect(front.operations).toContainEqual(expect.objectContaining({
+        name: "drawImage",
+        args: [placeholderArtwork, 12, 53, 316, 234],
+      }));
+      const text = front.operations
+        .filter((op) => op.name === "fillText")
+        .map((op) => op.text)
+        .join(" ");
+      expect(text).not.toContain("Artwork non disponibile");
+    });
+
+    expect(pdf.addImage).toHaveBeenCalledTimes(2);
+    expect(a4Pdf.addImage).toHaveBeenCalledTimes(2);
+    expect(a4Pdf.addPage).toHaveBeenCalledTimes(1);
+  });
 });
