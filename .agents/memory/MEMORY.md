@@ -6,6 +6,7 @@
 - [Live Supabase verification](live-supabase-verification.md) — Completion review may not reflect operational Supabase state; rerun the committed verifier against the target before trusting a schema-absence report.
 - [Rule card hierarchy](rule-card-hierarchy.md) — Use linked modular cards as views over one canonical manual database, not oversized cards with duplicated rule text.
 - [Reference trust gates](reference-trust-gates.md) — OCR and automated translations remain non-authoritative until verified, including direct card-linking flows.
+- [Verified import corrections](verified-import-corrections.md) — keep imported source snapshots immutable; same-source reimports must preserve verified human corrections.
 - [Private review comparisons](private-review-comparisons.md) — Source and translated text is visible only in the authenticated owner-review flow, never routine library or card APIs.
 - [Translation review history](translation-review-history.md) — Preserve an owner-only audit trail for every translation-review decision without source material.
 - [Manual preload lease ownership](manual-preload-lease-ownership.md) — Durable manual jobs must retain their claimant lease through every checkpoint and recover only expired leases.

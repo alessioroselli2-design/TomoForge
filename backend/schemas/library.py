@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,7 +42,13 @@ class ManualPreloadInput(BaseModel):
 class ReferenceReviewInput(BaseModel):
     review_status: Literal["pending", "verified", "needs_review"]
     review_notes: str = Field(default="", max_length=3000)
+    # `corrected_*` is kept for the existing editor contract; the shorter
+    # fields are used by the dedicated review queue.
     corrected_name: Optional[str] = Field(default=None, max_length=300)
-    corrected_description: Optional[str] = Field(default=None, max_length=5000)
-    corrected_full_text: Optional[str] = Field(default=None, max_length=50000)
-    corrected_attributes: Optional[dict] = None
+    corrected_description: Optional[str] = Field(default=None, max_length=12000)
+    corrected_full_text: Optional[str] = Field(default=None, max_length=120000)
+    corrected_attributes: Optional[dict[str, Any]] = None
+    name: Optional[str] = Field(default=None, max_length=240)
+    description: Optional[str] = Field(default=None, max_length=12000)
+    full_text: Optional[str] = Field(default=None, max_length=120000)
+    attributes: Optional[dict[str, Any]] = None

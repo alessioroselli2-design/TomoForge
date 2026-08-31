@@ -833,18 +833,54 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 base.get("source_normalized_name") or incoming["source_normalized_name"]
             )
             unchanged_source = base.get("source_text_checksum") == rec.get("source_text_checksum")
+            source_changed_after_review = (
+                not unchanged_source
+                and (
+                    base.get("review_status") == "verified"
+                    or bool(base.get("review_corrections"))
+                )
+            )
+            pending_changed_source = (
+                unchanged_source
+                and (base.get("review_corrections") or {}).get("_source_changed") is True
+            )
             # Preserve explicit owner corrections when the same source is
             # re-imported by the automatic queue. The raw source snapshot
             # remains untouched so the reviewer can still compare both.
-            if unchanged_source and base.get("review_corrections"):
+            if unchanged_source and base.get("review_corrections") and not pending_changed_source:
                 corrections = base["review_corrections"]
                 for field_name in ("name", "description", "full_text", "attributes"):
                     if field_name in corrections:
                         incoming[field_name] = copy.deepcopy(corrections[field_name])
+                if corrections.get("name"):
+                    incoming["normalized_name"] = normalize_reference_name(corrections["name"])
                 incoming["review_corrections"] = copy.deepcopy(corrections)
+            elif source_changed_after_review:
+                # A changed source invalidates every prior human correction.
+                # The sentinel survives automatic reimports until a reviewer
+                # explicitly verifies the new extraction.
+                incoming["review_corrections"] = {"_source_changed": True}
+                incoming["review_status"] = "needs_review"
+                incoming["review_notes"] = ""
+            elif pending_changed_source:
+                incoming["review_corrections"] = {"_source_changed": True}
+                incoming["review_status"] = "needs_review"
+                incoming["review_notes"] = base.get("review_notes", "")
             if unchanged_source and rec.get("translation_status") != "failed" and not body.auto_accept:
                 incoming["review_status"] = base.get("review_status", incoming["review_status"])
                 incoming["review_notes"] = base.get("review_notes", "")
+                if base.get("review_status") == "verified":
+                    # Preserve human corrections while the immutable imported
+                    # source checksum is unchanged. A genuinely changed source
+                    # still replaces these fields and re-enters review.
+                    for field_name in (
+                        "name",
+                        "normalized_name",
+                        "description",
+                        "full_text",
+                        "attributes",
+                    ):
+                        incoming[field_name] = copy.deepcopy(base.get(field_name))
 
         def _refresh_lookup_caches(stored: dict, merged: dict) -> None:
             combined = {**stored, **merged}

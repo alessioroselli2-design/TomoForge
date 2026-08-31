@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { BookOpen, LogOut, Plus, Crown, ShieldCheck } from "lucide-react";
+import { BookCheck, BookOpen, LogOut, Plus, Crown, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { PremiumDialog } from "@/components/PremiumDialog";
@@ -68,6 +68,12 @@ export default function Navbar() {
                 <DropdownMenuItem data-testid="nav-admin" onClick={() => navigate("/admin")}
                   className="font-label text-xs tracking-wide cursor-pointer focus:bg-secondary focus:text-gold">
                   <ShieldCheck className="w-4 h-4 mr-2" /> PANNELLO ADMIN
+                </DropdownMenuItem>
+              )}
+              {user?.is_premium && (
+                <DropdownMenuItem data-testid="nav-reviews" onClick={() => navigate("/revisioni")}
+                  className="font-label text-xs tracking-wide cursor-pointer focus:bg-secondary focus:text-gold">
+                  <BookCheck className="w-4 h-4 mr-2" /> REVISIONI OCR
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem data-testid="nav-logout" onClick={doLogout}

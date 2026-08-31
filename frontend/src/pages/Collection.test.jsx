@@ -59,7 +59,7 @@ describe("Collection review routing", () => {
     container.remove();
   });
 
-  it("opens the laboratory with the selected categories and manual encoded in the URL", async () => {
+  it("opens the review queue with the selected categories and manual encoded in the URL", async () => {
     await act(async () => {
       root.render(<Collection />);
       await Promise.resolve();
@@ -70,7 +70,7 @@ describe("Collection review routing", () => {
     });
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/crea?reviewTypes=class%2Cfeat&reviewManual=manuale+del+giocatore.pdf",
+      "/revisioni?types=class%2Cfeat&source=manuale+del+giocatore.pdf",
     );
   });
 });

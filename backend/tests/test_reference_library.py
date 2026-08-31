@@ -1589,7 +1589,59 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     assert applied["name"] == "Barbaro furioso"
     assert applied["attributes"]["abilità_primaria"] == "Forza"
 
+def test_ocr_review_persists_corrected_fields_without_mutating_imported_source():
+    record = make_reference(
+        "Guerriero Ocr",
+        reference_type="class",
+        source_language="it",
+        source_name="Guerriero Ocr",
+        source_description="Descrizione imprecisa.",
+        source_full_text="Testo OCR impreciso.",
+        source_attributes={"dado_vita": "d10"},
+        description="Descrizione imprecisa.",
+        full_text="Testo OCR impreciso.",
+        attributes={"dado_vita": "d10"},
+        review_flags=["ocr_da_verificare"],
+        review_status="needs_review",
+    )
+    original_checksum = record.get("source_text_checksum")
+    references = MutableMemoryReferences([record])
+    history = server.MemoryCollection()
+    test_db = SimpleNamespace(
+        private_reference_records=references,
+        private_reference_review_history=history,
+    )
+    owner = server.User(
+        user_id="owner-1",
+        email="mago@example.com",
+        name="Mago",
+        premium_manual=True,
+    )
 
+    result = asyncio.run(server.review_private_reference(
+        record["id"],
+        server.ReferenceReviewInput(
+            review_status="verified",
+            review_notes="Confrontato con pagina 12.",
+            name="Guerriero",
+            description="Classe marziale.",
+            full_text="Testo OCR corretto e completo.",
+            attributes={"dado_vita": "d10", "tiri_salvezza": "Forza, Costituzione"},
+        ),
+        owner,
+        db=test_db,
+    ))
+
+    stored = references.rows[0]
+    assert result["is_trusted"] is True
+    assert stored["name"] == "Guerriero"
+    assert stored["normalized_name"] == "guerriero"
+    assert stored["full_text"] == "Testo OCR corretto e completo."
+    assert stored["source_name"] == "Guerriero Ocr"
+    assert stored["source_full_text"] == "Testo OCR impreciso."
+    assert stored["source_attributes"] == {"dado_vita": "d10"}
+    assert stored.get("source_text_checksum") == original_checksum
+    assert history.rows[0]["review_notes"] == "Confrontato con pagina 12."
 def test_concurrent_translation_reviews_append_every_decision(monkeypatch):
     class BarrierReferences(MutableMemoryReferences):
         def __init__(self, rows):
@@ -4134,7 +4186,6 @@ def test_gemini_ocr_returns_transcription_for_valid_response(monkeypatch, tmp_pa
     assert not reference_is_trusted(report.records[0])
 
 
-
 def test_extract_reference_records_handles_ocr_only_manual_with_mixed_pages(tmp_path):
     """A manual where some pages are readable, one succeeds via OCR, and one fails OCR
     must report pages_read, pages_needing_ocr, and OCR-flagged records correctly."""
@@ -4571,3 +4622,149 @@ def test_valid_ocr_import_sends_each_selected_page_once_and_persists_review_flag
         record for record in collection.rows
         if "ocr_da_verificare" not in record["review_flags"]
     ]
+
+def test_translation_review_edits_italian_fields_without_changing_spanish_original():
+    record = make_reference(
+        "Barbaro",
+        reference_type="class",
+        source_language="es",
+        source_name="Bárbaro",
+        source_full_text="Texto original.",
+        source_attributes={"dado_vita": "d12"},
+        full_text="Testo tradotto.",
+        attributes={"dado_vita": "d12"},
+        translation_status="translated",
+        review_status="pending",
+    )
+    references = MutableMemoryReferences([record])
+    test_db = SimpleNamespace(
+        private_reference_records=references,
+        private_reference_review_history=server.MemoryCollection(),
+    )
+    owner = server.User(
+        user_id="owner-1",
+        email="mago@example.com",
+        name="Mago",
+        premium_manual=True,
+    )
+
+    asyncio.run(server.review_private_reference(
+        record["id"],
+        server.ReferenceReviewInput(
+            review_status="verified",
+            name="Barbaro corretto",
+            full_text="Traduzione italiana corretta.",
+            attributes={"dado_vita": "d12"},
+        ),
+        owner,
+        db=test_db,
+    ))
+
+    stored = references.rows[0]
+    assert stored["name"] == "Barbaro corretto"
+    assert stored["full_text"] == "Traduzione italiana corretta."
+    assert stored["source_name"] == "Bárbaro"
+    assert stored["source_full_text"] == "Texto original."
+
+def test_changed_source_clears_old_corrections_and_stays_in_review_on_repeat_import(monkeypatch, tmp_path):
+    source = tmp_path / "Manuale.pdf"
+    source.write_bytes(b"manual")
+    filename = source.name
+    first = make_reference(
+        "Guerriero",
+        reference_type="class",
+        full_text="Prima estrazione.",
+        source_full_text="Prima estrazione.",
+        review_status="pending",
+    )
+    first["source_text_checksum"] = "checksum-v1"
+    changed = {
+        **first,
+        "full_text": "Nuova estrazione.",
+        "source_full_text": "Nuova estrazione.",
+        "source_text_checksum": "checksum-v2",
+    }
+    extracted = [first]
+    collection = MutableMemoryReferences([])
+    test_db = SimpleNamespace(private_reference_records=collection)
+    monkeypatch.setattr(lib_mod, "available_reference_manuals", lambda: {filename: source})
+    monkeypatch.setattr(
+        lib_mod,
+        "extract_reference_records",
+        lambda *args, **kwargs: SimpleNamespace(
+            records=[dict(extracted[0])],
+            pages_read=1,
+            pages_needing_ocr=[],
+        ),
+    )
+    body = server.ReferenceImportInput(filenames=[filename], auto_accept=True)
+
+    asyncio.run(server.import_private_reference_manuals("owner-1", body, db=test_db))
+    collection.rows[0].update({
+        "name": "Guerriero corretto",
+        "normalized_name": normalize_reference_name("Guerriero corretto"),
+        "full_text": "Correzione umana.",
+        "review_status": "verified",
+        "review_corrections": {
+            "name": "Guerriero corretto",
+            "full_text": "Correzione umana.",
+        },
+    })
+
+    asyncio.run(server.import_private_reference_manuals("owner-1", body, db=test_db))
+    unchanged = collection.rows[0]
+    assert unchanged["name"] == "Guerriero corretto"
+    assert unchanged["normalized_name"] == "guerriero corretto"
+    assert [
+        row["name"]
+        for row in search_reference_records(collection.rows, "Guerriero corretto")
+    ] == ["Guerriero corretto"]
+
+    extracted[0] = changed
+    asyncio.run(server.import_private_reference_manuals("owner-1", body, db=test_db))
+    after_change = collection.rows[0]
+    assert after_change["name"] == "Guerriero"
+    assert after_change["full_text"] == "Nuova estrazione."
+    assert after_change["review_status"] == "needs_review"
+    assert after_change["review_corrections"] == {"_source_changed": True}
+
+    asyncio.run(server.import_private_reference_manuals("owner-1", body, db=test_db))
+    repeated = collection.rows[0]
+    assert repeated["name"] == "Guerriero"
+    assert repeated["full_text"] == "Nuova estrazione."
+    assert repeated["review_status"] == "needs_review"
+    assert repeated["review_corrections"] == {"_source_changed": True}
+
+
+def test_review_cannot_verify_a_record_without_complete_text():
+    record = make_reference(
+        "Traduzione fallita",
+        reference_type="class",
+        source_language="es",
+        source_name="Failed translation",
+        source_full_text="Original source text.",
+        full_text="",
+        translation_status="failed",
+        review_status="needs_review",
+    )
+    test_db = SimpleNamespace(
+        private_reference_records=MutableMemoryReferences([record]),
+        private_reference_review_history=server.MemoryCollection(),
+    )
+    owner = server.User(
+        user_id="owner-1",
+        email="mago@example.com",
+        name="Mago",
+        premium_manual=True,
+    )
+
+    with pytest.raises(server.HTTPException, match="testo completo") as error:
+        asyncio.run(server.review_private_reference(
+            record["id"],
+            server.ReferenceReviewInput(review_status="verified"),
+            owner,
+            db=test_db,
+        ))
+
+    assert error.value.status_code == 422
+    assert test_db.private_reference_review_history.rows == []

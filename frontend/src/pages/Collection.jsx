@@ -53,10 +53,10 @@ export default function Collection() {
 
   const openCoverageReviews = (types, sourceFilename) => {
     const params = new URLSearchParams({
-      reviewTypes: types,
-      ...(sourceFilename ? { reviewManual: sourceFilename } : {}),
+      types,
+      ...(sourceFilename ? { source: sourceFilename } : {}),
     });
-    navigate(`/crea?${params.toString()}`);
+    navigate(`/revisioni?${params.toString()}`);
   };
 
   const exportPrintSheet = async () => {

@@ -12,6 +12,7 @@ import PublicCard from "@/pages/PublicCard";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import Admin from "@/pages/Admin";
+import ReferenceReview from "@/pages/ReferenceReview";
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
 
@@ -36,6 +37,7 @@ function AppRouter() {
       <Route path="/p/:id" element={<PublicCard />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
+      <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />
       <Route path="/carta/:id/modifica" element={<Protected><CardEditor /></Protected>} />
       <Route path="/carta/:id/scheda" element={<Protected><CharacterSheet /></Protected>} />
       <Route path="/carta/:id" element={<Protected><CardDetail /></Protected>} />

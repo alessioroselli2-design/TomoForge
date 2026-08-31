@@ -1,9 +1,11 @@
 import uuid
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from reference_library import (
     REFERENCE_TYPES,
+    compact_text,
     normalize_reference_name,
     reference_is_trusted,
     reference_review_state,
@@ -116,6 +118,7 @@ async def search_private_library(
     review_only: bool = False,
     include_unverified: bool = False,
     source_filename: str = Query("", max_length=300),
+    limit: Annotated[int, Query(ge=1, le=8000)] = 40,
     user: User = Depends(get_current_user),
     db: SupabaseDatabase = Depends(get_db),
 ):
@@ -136,7 +139,7 @@ async def search_private_library(
         ]
     if review_only:
         records = [record for record in records if reference_review_state(record) == "review"]
-    records = search_reference_records(records, q, limit=40)
+    records = search_reference_records(records, q, limit=limit)
     excluded_unverified = sum(not reference_is_trusted(record) for record in records)
     if not include_unverified:
         records = [record for record in records if reference_is_trusted(record)]
@@ -220,27 +223,42 @@ async def review_private_reference(
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
     review_notes = body.review_notes.strip()
-    content_updates: dict = {}
+    update_fields: dict = {
+        "review_status": body.review_status,
+        "review_notes": review_notes,
+        "updated_at": utc_now(),
+    }
     corrections: dict = {}
-    if body.corrected_name is not None:
-        corrected_name = body.corrected_name.strip()
-        if not corrected_name:
-            raise HTTPException(status_code=400, detail="Il nome corretto non può essere vuoto")
-        content_updates["name"] = corrected_name
-        content_updates["normalized_name"] = normalize_reference_name(corrected_name)
-        corrections["name"] = corrected_name
-    if body.corrected_description is not None:
-        content_updates["description"] = body.corrected_description.strip()
-        corrections["description"] = content_updates["description"]
-    if body.corrected_full_text is not None:
-        corrected_full_text = body.corrected_full_text.strip()
-        if not corrected_full_text:
-            raise HTTPException(status_code=400, detail="Il testo corretto non può essere vuoto")
-        content_updates["full_text"] = corrected_full_text
-        corrections["full_text"] = corrected_full_text
-    if body.corrected_attributes is not None:
-        content_updates["attributes"] = body.corrected_attributes
-        corrections["attributes"] = body.corrected_attributes
+    requested_name = body.name if body.name is not None else body.corrected_name
+    requested_description = body.description if body.description is not None else body.corrected_description
+    requested_full_text = body.full_text if body.full_text is not None else body.corrected_full_text
+    requested_attributes = body.attributes if body.attributes is not None else body.corrected_attributes
+    if requested_name is not None:
+        name = requested_name.strip()
+        if not name:
+            raise HTTPException(status_code=422, detail="Il nome del contenuto non può essere vuoto")
+        update_fields["name"] = name
+        update_fields["normalized_name"] = normalize_reference_name(name)
+        corrections["name"] = name
+    if requested_description is not None:
+        update_fields["description"] = compact_text(requested_description, maximum=12000)
+        corrections["description"] = update_fields["description"]
+    if requested_full_text is not None:
+        update_fields["full_text"] = requested_full_text.strip()
+        corrections["full_text"] = update_fields["full_text"]
+    if requested_attributes is not None:
+        update_fields["attributes"] = requested_attributes
+        corrections["attributes"] = requested_attributes
+    if corrections or body.review_status == "verified":
+        update_fields["review_corrections"] = corrections
+
+    effective_name = update_fields.get("name", record.get("name", "")).strip()
+    effective_full_text = update_fields.get("full_text", record.get("full_text", "")).strip()
+    if body.review_status == "verified" and (not effective_name or not effective_full_text):
+        raise HTTPException(
+            status_code=422,
+            detail="Per verificare il contenuto servono un nome e un testo completo corretti",
+        )
     review_entry = {
         "id": f"review_{uuid.uuid4().hex}",
         "reference_id": record["id"],
@@ -264,20 +282,24 @@ async def review_private_reference(
                 detail="Cronologia revisioni non disponibile: applica prima la migrazione SQL",
             ) from exc
         raise
-    update_fields: dict = {
-        "review_status": body.review_status,
-        "review_notes": review_notes,
-        "updated_at": utc_now(),
-    }
-    if content_updates:
-        update_fields.update(content_updates)
-        update_fields["review_corrections"] = corrections
-    if body.review_status == "verified":
-        update_fields["translation_error"] = ""
-    await db.private_reference_records.update_one(
-        {"id": reference_id, "user_id": user.user_id},
-        {"$set": update_fields},
-    )
+    try:
+        if body.review_status == "verified":
+            update_fields["translation_error"] = ""
+        result = await db.private_reference_records.update_one(
+            {"id": reference_id, "user_id": user.user_id},
+            {"$set": update_fields},
+        )
+        if getattr(result, "matched_count", 0) != 1:
+            raise RuntimeError("Il record non è più disponibile per la revisione")
+    except Exception:
+        # Keep the append-only trail consistent if the state update could not
+        # be applied. The service role owns both rows and can compensate safely.
+        await history_collection.delete_one({
+            "id": review_entry["id"],
+            "reference_id": reference_id,
+            "user_id": user.user_id,
+        })
+        raise
     updated = await db.private_reference_records.find_one({"id": reference_id, "user_id": user.user_id})
     fallback = {**record, **update_fields}
     return {"ok": True, **await reference_review_details(updated or fallback, db=db)}
