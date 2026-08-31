@@ -212,7 +212,11 @@ describe("CardEditor preload dashboard", () => {
               title: "Manuale Errore",
               source_language: "it",
               requires_ocr: false,
-              job: { status: "failed", last_error: "Timeout durante l'estrazione." },
+              job: {
+                status: "failed",
+                last_error: "ocr_pages_unavailable",
+                pages_needing_ocr: [12, 13],
+              },
             }],
           },
         });
@@ -240,8 +244,10 @@ describe("CardEditor preload dashboard", () => {
     });
 
     expect(container.querySelector('[data-testid="retry-preload-manuale_err.pdf"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="missing-ocr-pages-manuale_err.pdf"]')).not.toBeNull();
     expect(container.textContent).toContain("ERRORE");
-    expect(container.textContent).toContain("Timeout durante l'estrazione.");
+    expect(container.textContent).toContain("Pagine: 12, 13");
+    expect(container.textContent).toContain("ritentare automaticamente queste pagine");
 
     await act(async () => {
       container.querySelector('[data-testid="retry-preload-manuale_err.pdf"]').click();
@@ -795,6 +801,15 @@ describe("CardEditor review scope", () => {
     expect(container.textContent).toContain("Controllare il termine tecnico.");
 
     await act(async () => {
+      const correctedName = container.querySelector('[data-testid="reference-corrected-name"]');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(
+        correctedName,
+        "Barbaro furioso",
+      );
+      correctedName.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    await act(async () => {
       container.querySelector('[data-testid="approve-reference"]').click();
       await Promise.resolve();
     });
@@ -802,6 +817,7 @@ describe("CardEditor review scope", () => {
     expect(api.patch).toHaveBeenCalledWith("/library/review-1/review", {
       review_status: "verified",
       review_notes: "",
+      corrected_name: "Barbaro furioso",
     });
     expect(container.querySelector('[data-testid="reference-review-panel"]')).toBeNull();
     expect(container.textContent).toContain("Confrontata con il manuale.");

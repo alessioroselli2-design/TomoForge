@@ -103,6 +103,17 @@ const mergeRuleSources = (current = [], incoming = []) => {
   return [...byId.values()];
 };
 
+const reviewDraftFromRecord = (record) => {
+  const translation = record?.translation || {};
+  const attributes = translation.attributes || record?.attributes || {};
+  return {
+    name: translation.name || record?.name || "",
+    description: translation.description || record?.description || "",
+    full_text: translation.full_text || record?.full_text || "",
+    attributes: JSON.stringify(attributes, null, 2),
+  };
+};
+
 const addCharacterReference = (attributes, payload) => {
   const referenceType = payload.reference_type;
   const name = payload.name || "";
@@ -168,6 +179,9 @@ export default function CardEditor() {
   const [loadingSourceRecord, setLoadingSourceRecord] = useState(null);
   const [reviewingReference, setReviewingReference] = useState(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewDraft, setReviewDraft] = useState({
+    name: "", description: "", full_text: "", attributes: "{}",
+  });
   const [coverageRefreshKey, setCoverageRefreshKey] = useState(0);
   const [characterReferences, setCharacterReferences] = useState([]);
   const [referenceUpdates, setReferenceUpdates] = useState([]);
@@ -470,6 +484,7 @@ export default function CardEditor() {
       const res = await api.get(`/library/${referenceId}${user?.is_premium ? "/review" : (needsReview ? "/review" : "")}`);
       setSourceRecord(res.data);
       setReviewNotes(res.data.review_notes || "");
+      setReviewDraft(reviewDraftFromRecord(res.data));
     } catch (error) {
       toast.error(error.response?.data?.detail || "Impossibile leggere la fonte del record");
     } finally {
@@ -500,6 +515,7 @@ export default function CardEditor() {
         is_trusted: updatedRecord.is_trusted,
       };
       setSourceRecord((current) => current?.id === referenceId ? updatedRecord : current);
+      setReviewDraft(reviewDraftFromRecord(updatedRecord));
       setReferenceResults((current) => current.map((record) => record.id === referenceId ? { ...record, ...summary } : record));
       setReviewNotes(updatedRecord.review_notes || "");
       if (updatedRecord.translation_status === "translated") {
@@ -516,15 +532,38 @@ export default function CardEditor() {
 
   const reviewReference = async (reviewStatus) => {
     if (!sourceRecord?.id) return;
+    let correctedAttributes;
+    try {
+      correctedAttributes = JSON.parse(reviewDraft.attributes || "{}");
+    } catch {
+      toast.error("I dati strutturati corretti devono essere JSON valido");
+      return;
+    }
+    if (!correctedAttributes || Array.isArray(correctedAttributes) || typeof correctedAttributes !== "object") {
+      toast.error("I dati strutturati corretti devono essere un oggetto JSON");
+      return;
+    }
+    const currentTranslation = sourceRecord.translation || {};
+    const originalName = currentTranslation.name || sourceRecord.name || "";
+    const originalDescription = currentTranslation.description || sourceRecord.description || "";
+    const originalFullText = currentTranslation.full_text || sourceRecord.full_text || "";
+    const originalAttributes = currentTranslation.attributes || sourceRecord.attributes || {};
+    const correctedContent = {};
+    if (reviewDraft.name.trim() !== originalName.trim()) correctedContent.corrected_name = reviewDraft.name.trim();
+    if (reviewDraft.description.trim() !== originalDescription.trim()) correctedContent.corrected_description = reviewDraft.description.trim();
+    if (reviewDraft.full_text.trim() !== originalFullText.trim()) correctedContent.corrected_full_text = reviewDraft.full_text.trim();
+    if (JSON.stringify(correctedAttributes) !== JSON.stringify(originalAttributes)) correctedContent.corrected_attributes = correctedAttributes;
     setReviewingReference(reviewStatus);
     try {
       const response = await api.patch(`/library/${sourceRecord.id}/review`, {
         review_status: reviewStatus,
         review_notes: reviewNotes.trim(),
+        ...correctedContent,
       });
       const updatedRecord = response.data;
       setSourceRecord(updatedRecord);
       setReviewNotes(updatedRecord.review_notes || "");
+      setReviewDraft(reviewDraftFromRecord(updatedRecord));
       setCoverageRefreshKey((current) => current + 1);
       if (reviewStatus === "verified") {
         setReferenceResults((current) => current.filter((record) => record.id !== updatedRecord.id));
@@ -1131,9 +1170,43 @@ export default function CardEditor() {
                               <p className="mt-2 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/85">{sourceRecord.original?.full_text || sourceRecord.source_full_text || "Testo originale non disponibile."}</p>
                             </article>
                             <article data-testid="reference-translation" className="border border-sky-700/40 bg-sky-950/15 p-3">
-                              <p className="font-label text-[9px] tracking-widest text-sky-200">TRADUZIONE · ITALIANO</p>
-                              <h3 className="mt-1 font-heading text-base text-foreground">{sourceRecord.translation?.name || sourceRecord.name}</h3>
-                              <p className="mt-2 whitespace-pre-wrap font-body text-xs leading-relaxed text-foreground/85">{sourceRecord.translation?.full_text || sourceRecord.full_text || "Traduzione non disponibile."}</p>
+                              <p className="font-label text-[9px] tracking-widest text-sky-200">VERSIONE DA USARE · ITALIANO</p>
+                              <label className="mt-2 block font-label text-[9px] tracking-widest text-muted-foreground" htmlFor={`corrected-name-${sourceRecord.id}`}>NOME</label>
+                              <Input
+                                id={`corrected-name-${sourceRecord.id}`}
+                                data-testid="reference-corrected-name"
+                                value={reviewDraft.name}
+                                onChange={(event) => setReviewDraft((current) => ({ ...current, name: event.target.value }))}
+                                className={`${inputCls} mt-1`}
+                              />
+                              <label className="mt-2 block font-label text-[9px] tracking-widest text-muted-foreground" htmlFor={`corrected-description-${sourceRecord.id}`}>DESCRIZIONE</label>
+                              <Textarea
+                                id={`corrected-description-${sourceRecord.id}`}
+                                data-testid="reference-corrected-description"
+                                value={reviewDraft.description}
+                                onChange={(event) => setReviewDraft((current) => ({ ...current, description: event.target.value }))}
+                                className={`${inputCls} mt-1 min-h-[72px]`}
+                              />
+                              <label className="mt-2 block font-label text-[9px] tracking-widest text-muted-foreground" htmlFor={`corrected-full-text-${sourceRecord.id}`}>TESTO COMPLETO</label>
+                              <Textarea
+                                id={`corrected-full-text-${sourceRecord.id}`}
+                                data-testid="reference-corrected-full-text"
+                                value={reviewDraft.full_text}
+                                onChange={(event) => setReviewDraft((current) => ({ ...current, full_text: event.target.value }))}
+                                className={`${inputCls} mt-1 min-h-[150px]`}
+                              />
+                              {!reviewDraft.full_text && (
+                                <p className="mt-1 font-body text-[11px] text-amber-200">Traduzione non disponibile.</p>
+                              )}
+                              <label className="mt-2 block font-label text-[9px] tracking-widest text-muted-foreground" htmlFor={`corrected-attributes-${sourceRecord.id}`}>DATI STRUTTURATI · JSON</label>
+                              <Textarea
+                                id={`corrected-attributes-${sourceRecord.id}`}
+                                data-testid="reference-corrected-attributes"
+                                value={reviewDraft.attributes}
+                                onChange={(event) => setReviewDraft((current) => ({ ...current, attributes: event.target.value }))}
+                                className={`${inputCls} mt-1 min-h-[110px] font-mono text-[11px]`}
+                              />
+                              <p className="mt-1 font-body text-[10px] leading-relaxed text-sky-100/70">Modifica qui i dati che verranno usati nella carta. Il testo originale resta invariato per il confronto.</p>
                             </article>
                           </div>
                           <label className="mt-3 block font-label text-[9px] tracking-widest text-muted-foreground" htmlFor={`review-notes-${sourceRecord.id}`}>NOTA DELLA REVISIONE</label>
@@ -1556,6 +1629,28 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
                       <p className="mt-0.5 font-heading text-lg text-foreground">{job.pages_needing_ocr.length}</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* OCR pages that could not be read. Page numbers are safe to
+                  expose; source PDFs and rendered page images remain private. */}
+              {Array.isArray(job.pages_needing_ocr) && job.pages_needing_ocr.length > 0 && (
+                <div
+                  data-testid={`missing-ocr-pages-${manual.filename}`}
+                  className="mt-2 flex items-start gap-2 border border-red-900/60 bg-red-950/20 px-2 py-1.5"
+                >
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-300" />
+                  <div className="flex-1">
+                    <p className="font-label text-[9px] tracking-widest text-red-300">
+                      {job.pages_needing_ocr.length} {job.pages_needing_ocr.length === 1 ? "PAGINA OCR MANCANTE" : "PAGINE OCR MANCANTI"}
+                    </p>
+                    <p className="mt-0.5 font-body text-[11px] leading-relaxed text-red-200/80">
+                      Pagine: {job.pages_needing_ocr.join(", ")}.{" "}
+                      {isFailed
+                        ? "Usa «RIPROVA PRECARICAMENTO» per ritentare automaticamente queste pagine."
+                        : "Verranno ritentate automaticamente dal prossimo blocco di elaborazione."}
+                    </p>
+                  </div>
                 </div>
               )}
 

@@ -833,6 +833,15 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 base.get("source_normalized_name") or incoming["source_normalized_name"]
             )
             unchanged_source = base.get("source_text_checksum") == rec.get("source_text_checksum")
+            # Preserve explicit owner corrections when the same source is
+            # re-imported by the automatic queue. The raw source snapshot
+            # remains untouched so the reviewer can still compare both.
+            if unchanged_source and base.get("review_corrections"):
+                corrections = base["review_corrections"]
+                for field_name in ("name", "description", "full_text", "attributes"):
+                    if field_name in corrections:
+                        incoming[field_name] = copy.deepcopy(corrections[field_name])
+                incoming["review_corrections"] = copy.deepcopy(corrections)
             if unchanged_source and rec.get("translation_status") != "failed" and not body.auto_accept:
                 incoming["review_status"] = base.get("review_status", incoming["review_status"])
                 incoming["review_notes"] = base.get("review_notes", "")

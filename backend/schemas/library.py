@@ -42,3 +42,7 @@ class ManualPreloadInput(BaseModel):
 class ReferenceReviewInput(BaseModel):
     review_status: Literal["pending", "verified", "needs_review"]
     review_notes: str = Field(default="", max_length=3000)
+    corrected_name: Optional[str] = Field(default=None, max_length=300)
+    corrected_description: Optional[str] = Field(default=None, max_length=5000)
+    corrected_full_text: Optional[str] = Field(default=None, max_length=50000)
+    corrected_attributes: Optional[dict] = None

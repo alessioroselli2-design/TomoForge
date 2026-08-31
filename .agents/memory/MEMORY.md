@@ -11,3 +11,4 @@
 - [Manual preload lease ownership](manual-preload-lease-ownership.md) — Durable manual jobs must retain their claimant lease through every checkpoint and recover only expired leases.
 - [Manual source integrity](manual-source-integrity.md) — Validate required-distinct manual assets before indexing so mislabeled copies cannot create false coverage.
 - [Supabase production migration access](supabase-production-migration-access.md) — External schema DDL needs a scoped PostgreSQL pooler role, not the application service key.
+- [Reference correction semantics](reference-correction-semantics.md) — Review notes are audit context, never executable edits; corrections must be explicit and remain blocked until confirmed.

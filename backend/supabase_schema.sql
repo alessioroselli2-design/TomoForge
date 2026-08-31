@@ -124,6 +124,7 @@ create table if not exists public.private_reference_records (
   review_flags jsonb not null default '[]'::jsonb,
   review_status text not null default 'pending' check (review_status in ('pending', 'verified', 'needs_review')),
   review_notes text not null default '',
+  review_corrections jsonb not null default '{}'::jsonb,
   source_key text not null default '',
   source_language text not null default 'it',
   source_normalized_name text not null default '',
@@ -151,6 +152,8 @@ alter table public.private_reference_records
     'tool', 'magic_item', 'vehicle', 'ammunition', 'mount', 'trade_good',
     'service', 'other'
   ));
+alter table public.private_reference_records
+  add column if not exists review_corrections jsonb not null default '{}';
 alter table public.private_reference_records
   add column if not exists source_key text not null default '',
   add column if not exists source_language text not null default 'it',

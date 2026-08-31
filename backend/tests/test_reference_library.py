@@ -1549,15 +1549,23 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
         record["id"],
         server.ReferenceReviewInput(
             review_status="needs_review",
-            review_notes="Controllare il termine tecnico nella seconda frase.",
+            review_notes="Applicata la correzione; richiede ancora conferma.",
+            corrected_name="Barbaro furioso",
+            corrected_description="Un guerriero feroce corretto.",
+            corrected_full_text="Un guerriero feroce corretto che combatte con furia.",
+            corrected_attributes={"dado_vita": "d12", "abilità_primaria": "Forza"},
         ),
         owner, db=_test_db))
     assert rejected["needs_review"] is True
-    assert rejected["review_notes"].startswith("Controllare")
+    assert rejected["review_notes"].startswith("Applicata")
+    assert rejected["translation"]["name"] == "Barbaro furioso"
+    assert rejected["translation"]["full_text"] == "Un guerriero feroce corretto che combatte con furia."
+    assert rejected["translation"]["attributes"]["abilità_primaria"] == "Forza"
+    assert rejected["original"]["name"] == "Bárbaro"
     assert rejected["review_history"][0]["reviewer_id"] == owner.user_id
     assert rejected["review_history"][0]["reviewer_name"] == owner.name
     assert rejected["review_history"][0]["review_status"] == "needs_review"
-    assert rejected["review_history"][0]["review_notes"] == "Controllare il termine tecnico nella seconda frase."
+    assert rejected["review_history"][0]["review_notes"] == "Applicata la correzione; richiede ancora conferma."
     assert rejected["review_history"][0]["reviewed_at"]
     with pytest.raises(server.HTTPException, match="dato certo"):
         asyncio.run(server.apply_private_reference(record["id"], owner, db=_test_db))
@@ -1575,9 +1583,11 @@ def test_translation_review_shows_private_comparison_and_unlocks_only_after_conf
     assert len(approved["review_history"]) == 2
     assert approved["review_history"][0]["review_status"] == "verified"
     assert approved["review_history"][1]["review_status"] == "needs_review"
-    assert approved["review_history"][1]["review_notes"].startswith("Controllare")
+    assert approved["review_history"][1]["review_notes"].startswith("Applicata")
     assert len(review_history.rows) == 2
-    assert asyncio.run(server.apply_private_reference(record["id"], owner, db=_test_db))["name"] == "Barbaro"
+    applied = asyncio.run(server.apply_private_reference(record["id"], owner, db=_test_db))
+    assert applied["name"] == "Barbaro furioso"
+    assert applied["attributes"]["abilità_primaria"] == "Forza"
 
 
 def test_concurrent_translation_reviews_append_every_decision(monkeypatch):

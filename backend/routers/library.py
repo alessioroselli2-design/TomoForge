@@ -2,7 +2,13 @@ import uuid
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from reference_library import REFERENCE_TYPES, reference_is_trusted, reference_review_state, reference_to_card_payload
+from reference_library import (
+    REFERENCE_TYPES,
+    normalize_reference_name,
+    reference_is_trusted,
+    reference_review_state,
+    reference_to_card_payload,
+)
 
 from core.auth import get_current_user, require_premium
 from core.db import get_db, SupabaseDatabase
@@ -214,6 +220,27 @@ async def review_private_reference(
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
     review_notes = body.review_notes.strip()
+    content_updates: dict = {}
+    corrections: dict = {}
+    if body.corrected_name is not None:
+        corrected_name = body.corrected_name.strip()
+        if not corrected_name:
+            raise HTTPException(status_code=400, detail="Il nome corretto non può essere vuoto")
+        content_updates["name"] = corrected_name
+        content_updates["normalized_name"] = normalize_reference_name(corrected_name)
+        corrections["name"] = corrected_name
+    if body.corrected_description is not None:
+        content_updates["description"] = body.corrected_description.strip()
+        corrections["description"] = content_updates["description"]
+    if body.corrected_full_text is not None:
+        corrected_full_text = body.corrected_full_text.strip()
+        if not corrected_full_text:
+            raise HTTPException(status_code=400, detail="Il testo corretto non può essere vuoto")
+        content_updates["full_text"] = corrected_full_text
+        corrections["full_text"] = corrected_full_text
+    if body.corrected_attributes is not None:
+        content_updates["attributes"] = body.corrected_attributes
+        corrections["attributes"] = body.corrected_attributes
     review_entry = {
         "id": f"review_{uuid.uuid4().hex}",
         "reference_id": record["id"],
@@ -242,6 +269,9 @@ async def review_private_reference(
         "review_notes": review_notes,
         "updated_at": utc_now(),
     }
+    if content_updates:
+        update_fields.update(content_updates)
+        update_fields["review_corrections"] = corrections
     if body.review_status == "verified":
         update_fields["translation_error"] = ""
     await db.private_reference_records.update_one(
