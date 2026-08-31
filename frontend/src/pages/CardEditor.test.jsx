@@ -657,6 +657,61 @@ describe("CardEditor review scope", () => {
     expect(container.textContent).toContain("Classe da rivedere");
   });
 
+  it("shows privilege progression and filters it by class and level", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/library/manuals") return Promise.resolve({ data: { manuals: [] } });
+      if (path === "/library") {
+        return Promise.resolve({
+          data: {
+            records: [{
+              id: "feature-1",
+              name: "Superiorità in combattimento",
+              reference_type: "class_feature",
+              parent_class: "Guerriero",
+              parent_subclass: "Maestro della Battaglia",
+              level: "3",
+              source_refs: [{ filename: "Manuale.pdf", page: 73 }],
+              is_trusted: true,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/crea?type=feature"]}>
+          <Routes>
+            <Route path="/crea" element={<CardEditor />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    const classFilter = container.querySelector('[data-testid="reference-class-filter"]');
+    const levelFilter = container.querySelector('[data-testid="reference-level-filter"]');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(classFilter, "Guerriero");
+      classFilter.dispatchEvent(new Event("input", { bubbles: true }));
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(levelFilter, "3");
+      levelFilter.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/library", {
+      params: {
+        types: "class_feature,ability",
+        parent_class: "Guerriero",
+        level: "3",
+      },
+    });
+    expect(container.textContent).toContain(
+      "Classe: Guerriero · Sottoclasse: Maestro della Battaglia · Livello 3",
+    );
+  });
+
   it("keeps the review scope when the card type changes", async () => {
     await act(async () => {
       root.render(

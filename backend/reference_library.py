@@ -204,6 +204,9 @@ def reference_content_fingerprint(record: dict) -> str:
         "source_language": record.get("source_language", "it"),
         "full_text": clean_text(source_text),
         "attributes": source_attributes,
+        "parent_class": record.get("parent_class", ""),
+        "parent_subclass": record.get("parent_subclass", ""),
+        "level": record.get("level", "") or (source_attributes or {}).get("livello", ""),
     }
     serialized = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return sha256(serialized.encode("utf-8")).hexdigest()
@@ -564,6 +567,81 @@ def _attributes(record_type: str, body: str) -> dict:
     return attributes
 
 
+def _reference_hierarchy(
+    record_type: str,
+    body: str,
+    parent_class: str = "",
+    parent_subclass: str = "",
+) -> dict:
+    """Extract the class hierarchy and unlock level for a privilege.
+
+    These values deliberately live beside ``attributes``.  Attributes describe
+    what a rule does, while this metadata describes where it belongs in the
+    character progression and is therefore useful for filtering.
+    """
+    if record_type not in {"class_feature", "ability"}:
+        return {
+            "parent_class": parent_class if record_type == "subclass" else "",
+            "parent_subclass": "",
+            "level": "",
+        }
+
+    flat = clean_text(body)
+    resolved_class = clean_text(parent_class)
+    resolved_subclass = clean_text(parent_subclass)
+
+    subclass_match = re.search(
+        r"(?:sottoclasse|subclase|sub-clase)\s*(?:del|della|de la|de|di)?\s*[:\-]?\s*"
+        r"([A-Za-zÀ-ÿ][^.;,\n]{2,70})",
+        flat,
+        flags=re.IGNORECASE,
+    )
+    if subclass_match:
+        resolved_subclass = clean_text(subclass_match.group(1)).strip(" :;-")
+
+    class_match = re.search(
+        r"(?:classe(?:\s+(?:di appartenenza|del personaggio))?|clase)"
+        r"\s*[:\-]\s*([A-Za-zÀ-ÿ][^.;,\n]{2,50})",
+        flat,
+        flags=re.IGNORECASE,
+    )
+    if class_match:
+        resolved_class = clean_text(class_match.group(1)).strip(" :;-")
+
+    # A privilege paragraph often says "un guerriero..." without an explicit
+    # "classe:" label. Restrict this fallback to the known class vocabulary so
+    # ordinary prose cannot become a false parent.
+    if not resolved_class:
+        normalized_body = f" {normalize_reference_name(flat)} "
+        known_classes = sorted(CLASS_TITLES | SPANISH_CLASS_TITLES, key=len, reverse=True)
+        match = next(
+            (class_name for class_name in known_classes if f" {class_name} " in normalized_body),
+            None,
+        )
+        if match:
+            resolved_class = match.title()
+
+    level_match = re.search(
+        r"(?:al|dal|a partire dal|a partire da|dal raggiungimento del|"
+        r"raggiungi(?: il)?|raggiunge(?: il)?|quando raggiungi(?: il)?|"
+        r"quando raggiunge(?: il)?|desde el|a partir del|a partir de|"
+        r"cuando alcanzas(?: el)?|en el)\s+"
+        r"(\d+)\s*(?:°|º|o|er|do|to)?\s*(?:livello|nivel)\b",
+        flat,
+        flags=re.IGNORECASE,
+    ) or re.search(
+        r"(?:livello|nivel)\s*[:\-]\s*(\d+)\b",
+        flat,
+        flags=re.IGNORECASE,
+    )
+    level = level_match.group(1) if level_match else ""
+    return {
+        "parent_class": resolved_class,
+        "parent_subclass": resolved_subclass,
+        "level": level,
+    }
+
+
 SPANISH_SPELL_HEADER = re.compile(
     r"^(?:Abjuración|Adivinación|Conjuración|Encantamiento|Evocación|Ilusión|Nigromancia|Transmutación)"
     r"\s+(?:nivel\s+)?(?:\d+|truco)(?:\s*\(ritual\))?\s*$",
@@ -706,6 +784,8 @@ def parse_reference_page(
     source_filename: str,
     source_page: int,
     source_language: str = "it",
+    parent_class: str = "",
+    parent_subclass: str = "",
 ) -> list[dict]:
     """Extract conservative heading-based records from one text-native page.
 
@@ -721,12 +801,19 @@ def parse_reference_page(
     spell_records = _spanish_spell_records(text, source_filename, source_page, source_language)
     spell_names = {record["normalized_name"] for record in spell_records}
     records: list[dict] = []
+    current_class = clean_text(parent_class)
+    current_subclass = clean_text(parent_subclass)
     for heading_index, (line_index, title) in enumerate(headings):
         next_line = headings[heading_index + 1][0] if heading_index + 1 < len(headings) else len(lines)
         body_lines = lines[line_index + 1 : next_line]
         raw_body = "\n".join(body_lines)
         body = clean_text(" ".join(body_lines))
         record_type = _record_type(title, body)
+        if record_type == "class":
+            current_class = title
+            current_subclass = ""
+        elif record_type == "subclass":
+            current_subclass = title
         if is_sparse_index_page and record_type in {"feat", "race", "subrace"}:
             continue
         equipment_rows = _equipment_row_records(
@@ -754,6 +841,15 @@ def parse_reference_page(
             "source_refs": [source_reference(source_filename, source_page, source_language)],
             "review_flags": review_flags,
         }
+        hierarchy = _reference_hierarchy(
+            record_type,
+            body,
+            current_class,
+            current_subclass,
+        )
+        record.update(hierarchy)
+        if hierarchy["level"]:
+            record["attributes"]["livello"] = hierarchy["level"]
         records.append(record)
         records.extend(equipment_rows)
     return records + spell_records
@@ -776,6 +872,8 @@ def extract_reference_records(
     document = fitz.open(pdf_path)
     report = ReferenceImportReport(source_filename=pdf_path.name)
     pending_spanish_feat: Optional[tuple[str, int]] = None
+    current_class = ""
+    current_subclass = ""
     try:
         first = max(start_page, 1)
         last = min(end_page or len(document), len(document))
@@ -823,6 +921,8 @@ def extract_reference_records(
                     pdf_path.name,
                     title_page,
                     source_language,
+                    current_class,
+                    current_subclass,
                 )
                 continued = next(
                     (
@@ -840,7 +940,20 @@ def extract_reference_records(
                     ]
                     report.records.append(continued)
                 pending_spanish_feat = None
-            records = parse_reference_page(text, pdf_path.name, page_number, source_language)
+            records = parse_reference_page(
+                text,
+                pdf_path.name,
+                page_number,
+                source_language,
+                current_class,
+                current_subclass,
+            )
+            for record in records:
+                if record.get("reference_type") == "class":
+                    current_class = record.get("name", "")
+                    current_subclass = ""
+                elif record.get("reference_type") == "subclass":
+                    current_subclass = record.get("name", "")
             if extracted_with_ocr:
                 for record in records:
                     record["review_flags"] = sorted(
@@ -936,6 +1049,9 @@ def merge_reference_records(records: Iterable[dict]) -> list[dict]:
         for name, value in (candidate.get("attributes") or {}).items():
             if value and not current["attributes"].get(name):
                 current["attributes"][name] = value
+        for field_name in ("parent_class", "parent_subclass", "level"):
+            if candidate.get(field_name) and not current.get(field_name):
+                current[field_name] = candidate[field_name]
     return list(merged.values())
 
 
@@ -943,6 +1059,9 @@ def search_reference_records(
     records: Iterable[dict],
     query: str,
     reference_type: Optional[str] = None,
+    parent_class: Optional[str] = None,
+    parent_subclass: Optional[str] = None,
+    level: Optional[str] = None,
     limit: int = 15,
 ) -> list[dict]:
     # Older imports may already contain an identical entry for each manual.
@@ -953,6 +1072,16 @@ def search_reference_records(
     ranked: list[tuple[float, dict]] = []
     for record in records:
         if reference_type and record.get("reference_type") != reference_type:
+            continue
+        record_attributes = record.get("attributes") or {}
+        record_class = record.get("parent_class") or record_attributes.get("parent_class") or ""
+        record_subclass = record.get("parent_subclass") or record_attributes.get("parent_subclass") or ""
+        record_level = record.get("level") or record_attributes.get("level") or record_attributes.get("livello") or ""
+        if parent_class and normalize_reference_name(parent_class) not in normalize_reference_name(record_class):
+            continue
+        if parent_subclass and normalize_reference_name(parent_subclass) not in normalize_reference_name(record_subclass):
+            continue
+        if level and str(record_level).strip() != str(level).strip():
             continue
         candidate = record.get("normalized_name") or normalize_reference_name(record.get("name", ""))
         haystack = f"{candidate} {normalize_reference_name(' '.join(record.get('tags') or []))}"
@@ -1100,6 +1229,9 @@ def reference_to_card_payload(record: dict) -> dict:
         "card_type": card_type,
         "source": "biblioteca_privata",
         "reference_type": reference_type,
+        "parent_class": record.get("parent_class", ""),
+        "parent_subclass": record.get("parent_subclass", ""),
+        "level": record.get("level", "") or attributes.get("livello", ""),
         "source_language": record.get("source_language", "it"),
         "content_language": (
             "it"
@@ -1125,6 +1257,9 @@ def reference_content_checksum(record: dict) -> str:
         "description": record.get("description", ""),
         "full_text": record.get("full_text", ""),
         "attributes": record.get("attributes", {}),
+        "parent_class": record.get("parent_class", ""),
+        "parent_subclass": record.get("parent_subclass", ""),
+        "level": record.get("level", ""),
         "source_refs": record.get("source_refs", []),
         "translation_status": record.get("translation_status", "not_required"),
         "review_status": record.get("review_status", "pending"),
@@ -1145,6 +1280,9 @@ def reference_snapshot(record: dict, saved_at: str = "") -> dict:
         "description": record.get("description", ""),
         "full_text": record.get("full_text", ""),
         "attributes": deepcopy(record.get("attributes") or {}),
+        "parent_class": record.get("parent_class", ""),
+        "parent_subclass": record.get("parent_subclass", ""),
+        "level": record.get("level", ""),
         "source_refs": deepcopy(record.get("source_refs") or []),
         "source_language": record.get("source_language", "it"),
         "translation_status": record.get("translation_status", "not_required"),
@@ -1172,10 +1310,16 @@ def reference_snapshot_changed(snapshot: dict, record: dict) -> bool:
     # change while the source text remains the same.
     current = reference_snapshot(record)
     rendered_fields = (
-        "name", "description", "full_text", "attributes", "source_refs",
+        "name", "description", "full_text", "attributes",
+        "parent_class", "parent_subclass", "level", "source_refs",
         "source_language", "translation_status",
     )
-    if any(snapshot.get(field) != current.get(field) for field in rendered_fields):
+    if any(
+        snapshot.get(field, "") != current.get(field, "")
+        if field in {"parent_class", "parent_subclass", "level"}
+        else snapshot.get(field) != current.get(field)
+        for field in rendered_fields
+    ):
         return True
     return snapshot.get("source_text_checksum") != current.get("source_text_checksum")
 
@@ -1190,6 +1334,11 @@ def reference_snapshot_change_fields(snapshot: dict, record: dict) -> list[str]:
         labels.append("testo")
     if snapshot.get("attributes") != current["attributes"]:
         labels.append("attributi")
+    if any(
+        snapshot.get(field, "") != current[field]
+        for field in ("parent_class", "parent_subclass", "level")
+    ):
+        labels.append("progressione di classe")
     if snapshot.get("source_refs") != current["source_refs"]:
         labels.append("riferimenti di pagina")
     return labels or ["contenuto"]

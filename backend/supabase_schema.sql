@@ -119,6 +119,9 @@ create table if not exists public.private_reference_records (
   description text not null default '',
   full_text text not null default '',
   attributes jsonb not null default '{}'::jsonb,
+  parent_class text not null default '',
+  parent_subclass text not null default '',
+  level text not null default '',
   tags jsonb not null default '[]'::jsonb,
   source_refs jsonb not null default '[]'::jsonb,
   review_flags jsonb not null default '[]'::jsonb,
@@ -153,7 +156,10 @@ alter table public.private_reference_records
     'service', 'other'
   ));
 alter table public.private_reference_records
-  add column if not exists review_corrections jsonb not null default '{}';
+  add column if not exists review_corrections jsonb not null default '{}',
+  add column if not exists parent_class text not null default '',
+  add column if not exists parent_subclass text not null default '',
+  add column if not exists level text not null default '';
 alter table public.private_reference_records
   add column if not exists source_key text not null default '',
   add column if not exists source_language text not null default 'it',
@@ -177,8 +183,21 @@ update public.private_reference_records
       source_normalized_name = coalesce(nullif(source_normalized_name, ''), normalized_name),
       source_name = coalesce(nullif(source_name, ''), name),
       source_description = coalesce(nullif(source_description, ''), description),
-      source_full_text = coalesce(nullif(source_full_text, ''), full_text)
-  where source_key = '' or source_normalized_name = '' or source_name = '';
+      source_full_text = coalesce(nullif(source_full_text, ''), full_text),
+      parent_class = coalesce(nullif(parent_class, ''), attributes->>'parent_class', ''),
+      parent_subclass = coalesce(nullif(parent_subclass, ''), attributes->>'parent_subclass', ''),
+      level = coalesce(nullif(level, ''), attributes->>'level', attributes->>'livello', '')
+  where source_key = ''
+     or source_normalized_name = ''
+     or source_name = ''
+     or (
+       reference_type in ('class_feature', 'ability')
+       and (
+         (parent_class = '' and coalesce(attributes->>'parent_class', '') <> '')
+         or (parent_subclass = '' and coalesce(attributes->>'parent_subclass', '') <> '')
+         or (level = '' and coalesce(attributes->>'level', attributes->>'livello', '') <> '')
+       )
+     );
 alter table public.private_reference_records
   drop constraint if exists private_reference_records_user_id_reference_type_normalized_name_key;
 alter table public.private_reference_records
@@ -190,6 +209,9 @@ create index if not exists private_reference_records_user_name_idx
   on public.private_reference_records (user_id, reference_type, normalized_name);
 create index if not exists private_reference_records_user_source_idx
   on public.private_reference_records (user_id, source_key, source_normalized_name);
+create index if not exists private_reference_records_user_progression_idx
+  on public.private_reference_records (user_id, parent_class, level)
+  where reference_type in ('class_feature', 'ability');
 
 -- One durable, owner-scoped queue per locally supplied manual.  It retains only
 -- processing metadata and counters; source PDF bytes and extracted page text

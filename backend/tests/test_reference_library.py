@@ -389,6 +389,62 @@ def test_subclass_and_class_feature_keep_dedicated_printable_card_types():
     assert feature["attributes"]["benefici"] == ["Manovre"]
 
 
+def test_reference_parser_links_privileges_to_class_subclass_and_unlock_level():
+    page = """GUERRIERO
+Il guerriero padroneggia tutte le armi e le armature. Dado Vita: d10. Questa
+descrizione introduce la progressione completa della classe e i suoi privilegi.
+MAESTRO DELLA BATTAGLIA
+Quando scegli questo archetipo del guerriero al 3° livello, apprendi manovre e
+dadi di superiorità che modificano gli attacchi e le prove in combattimento.
+SUPERIORITÀ IN COMBATTIMENTO
+Al 3° livello il guerriero ottiene questa capacità. Impara manovre precise e usa
+dadi di superiorità per influenzare attacchi, prove e tiri salvezza degli alleati.
+"""
+
+    records = parse_reference_page(page, "Manuale del giocatore.pdf", 73)
+    feature = next(record for record in records if record["name"] == "Superiorità In Combattimento")
+
+    assert feature["reference_type"] == "class_feature"
+    assert feature["parent_class"] == "Guerriero"
+    assert feature["parent_subclass"] == "Maestro Della Battaglia"
+    assert feature["level"] == "3"
+    assert feature["attributes"]["livello"] == "3"
+
+
+def test_reference_search_filters_privileges_by_class_subclass_and_level():
+    records = [
+        make_reference(
+            "Azione impetuosa",
+            reference_type="class_feature",
+            parent_class="Guerriero",
+            level="2",
+        ),
+        make_reference(
+            "Superiorità in combattimento",
+            reference_type="class_feature",
+            parent_class="Guerriero",
+            parent_subclass="Maestro della Battaglia",
+            level="3",
+        ),
+        make_reference(
+            "Ira",
+            reference_type="class_feature",
+            parent_class="Barbaro",
+            level="1",
+        ),
+    ]
+
+    matches = search_reference_records(
+        records,
+        "",
+        parent_class="guerriero",
+        parent_subclass="maestro della battaglia",
+        level="3",
+    )
+
+    assert [record["name"] for record in matches] == ["Superiorità in combattimento"]
+
+
 def test_magic_items_tools_and_vehicles_receive_equipment_categories():
     page = """MANTELLO DI PROTEZIONE
 Oggetto meraviglioso, raro (richiede sintonia). Finché lo indossi, ottieni un bonus

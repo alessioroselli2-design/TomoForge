@@ -114,6 +114,15 @@ const reviewDraftFromRecord = (record) => {
   };
 };
 
+const privilegeProgressionLabel = (record) => {
+  if (!["class_feature", "ability"].includes(record?.reference_type)) return "";
+  const parts = [];
+  if (record.parent_class) parts.push(`Classe: ${record.parent_class}`);
+  if (record.parent_subclass) parts.push(`Sottoclasse: ${record.parent_subclass}`);
+  if (record.level) parts.push(`Livello ${record.level}`);
+  return parts.length > 0 ? parts.join(" · ") : "Classe e livello non rilevati";
+};
+
 const addCharacterReference = (attributes, payload) => {
   const referenceType = payload.reference_type;
   const name = payload.name || "";
@@ -121,7 +130,14 @@ const addCharacterReference = (attributes, payload) => {
   const addDistinct = (field) => {
     const current = Array.isArray(next[field]) ? next[field] : [];
     if (!current.some((item) => (item.reference_id || item.nome) === (payload.reference_id || name))) {
-      next[field] = [...current, { reference_id: payload.reference_id, nome: name, descrizione: payload.description || "" }];
+      next[field] = [...current, {
+        reference_id: payload.reference_id,
+        nome: name,
+        descrizione: payload.description || "",
+        parent_class: payload.parent_class || "",
+        parent_subclass: payload.parent_subclass || "",
+        level: payload.level || "",
+      }];
     }
   };
   if (referenceType === "class" && !hasUserValue(next.classe)) next.classe = name;
@@ -165,6 +181,8 @@ export default function CardEditor() {
   const [searchingSpells, setSearchingSpells] = useState(false);
   const [applyingSpell, setApplyingSpell] = useState(null);
   const [referenceQuery, setReferenceQuery] = useState("");
+  const [referenceClassFilter, setReferenceClassFilter] = useState("");
+  const [referenceLevelFilter, setReferenceLevelFilter] = useState("");
   const [reviewTypes, setReviewTypes] = useState("");
   const [reviewManual, setReviewManual] = useState("");
   const [referenceResults, setReferenceResults] = useState([]);
@@ -383,7 +401,10 @@ export default function CardEditor() {
 
   useEffect(() => {
     const types = LIBRARY_TYPES_BY_CARD[card.type];
-    if ((!types && !reviewTypes) || (!referenceQuery.trim() && !reviewTypes)) {
+    if (
+      (!types && !reviewTypes)
+      || (!referenceQuery.trim() && !reviewTypes && !referenceClassFilter.trim() && !referenceLevelFilter.trim())
+    ) {
       setReferenceResults([]);
       setSearchingReferences(false);
       return undefined;
@@ -395,6 +416,8 @@ export default function CardEditor() {
           params: {
             ...(referenceQuery.trim() ? { q: referenceQuery } : {}),
             types: reviewTypes || types,
+            ...(referenceClassFilter.trim() ? { parent_class: referenceClassFilter.trim() } : {}),
+            ...(referenceLevelFilter.trim() ? { level: referenceLevelFilter.trim() } : {}),
             ...(reviewTypes ? { review_only: true, include_unverified: true } : {}),
             ...(reviewManual ? { source_filename: reviewManual } : {}),
           },
@@ -407,7 +430,14 @@ export default function CardEditor() {
       }
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [card.type, referenceQuery, reviewManual, reviewTypes]);
+  }, [
+    card.type,
+    referenceClassFilter,
+    referenceLevelFilter,
+    referenceQuery,
+    reviewManual,
+    reviewTypes,
+  ]);
 
   const openCoverageReviews = (types, sourceFilename) => {
     setReviewTypes(types);
@@ -436,6 +466,9 @@ export default function CardEditor() {
             id: res.data.reference_id || referenceId,
             name: res.data.name,
             reference_type: res.data.reference_type,
+             parent_class: res.data.parent_class || "",
+             parent_subclass: res.data.parent_subclass || "",
+             level: res.data.level || "",
             source_refs: res.data.source_refs || [],
           }]);
       } else {
@@ -1052,6 +1085,7 @@ export default function CardEditor() {
                         {characterReferences.map((record) => (
                           <span key={record.id} className="inline-flex items-center gap-1 border border-sky-700/50 bg-obsidian/40 px-2 py-1 font-body text-xs text-sky-100">
                             {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {record.name}
+                            {privilegeProgressionLabel(record) && ` · ${privilegeProgressionLabel(record)}`}
                             <button type="button" aria-label={`Rimuovi ${record.name}`} onClick={() => removeCharacterReference(record.id)} className="text-sky-300 hover:text-crimson">
                               <X className="h-3 w-3" />
                             </button>
@@ -1071,6 +1105,27 @@ export default function CardEditor() {
                     />
                     {searchingReferences && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gold" />}
                   </div>
+                   {["class", "feature", "character"].includes(card.type) && (
+                     <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                       <Input
+                         data-testid="reference-class-filter"
+                         value={referenceClassFilter}
+                         onChange={(event) => setReferenceClassFilter(event.target.value)}
+                         placeholder="Filtra privilegi per classe"
+                         aria-label="Filtra privilegi per classe"
+                         className={inputCls}
+                       />
+                       <Input
+                         data-testid="reference-level-filter"
+                         value={referenceLevelFilter}
+                         onChange={(event) => setReferenceLevelFilter(event.target.value.replace(/\D/g, "").slice(0, 2))}
+                         placeholder="Livello"
+                         aria-label="Filtra privilegi per livello"
+                         inputMode="numeric"
+                         className={inputCls}
+                       />
+                     </div>
+                   )}
                   {reviewTypes && (
                     <p className="mt-2 flex items-center justify-between border-l-2 border-amber-500/70 bg-amber-950/20 px-3 py-2 font-body text-[11px] text-amber-100/80">
                       <span>Record del tuo account contrassegnati per revisione.</span>
@@ -1094,6 +1149,11 @@ export default function CardEditor() {
                             className="min-w-0 flex-1 text-left disabled:opacity-60"
                           >
                             <span className="block font-heading text-base text-foreground">{record.name}</span>
+                             {privilegeProgressionLabel(record) && (
+                               <span className="mt-0.5 block font-label text-[10px] tracking-wide text-gold/90">
+                                 {privilegeProgressionLabel(record)}
+                               </span>
+                             )}
                             <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
                               {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.language === "es" ? "Fonte spagnola" : ref.filename} p.${ref.page}`).join(", ")}
                               {record.source_language === "es" && record.source_name ? ` · Originale: ${record.source_name}` : ""}

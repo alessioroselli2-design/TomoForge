@@ -115,6 +115,9 @@ async def private_library_coverage(user: User = Depends(require_premium), db: Su
 async def search_private_library(
     q: str = Query("", max_length=120),
     types: str = Query("", max_length=200),
+    parent_class: str = Query("", max_length=120),
+    parent_subclass: str = Query("", max_length=160),
+    level: str = Query("", max_length=12),
     review_only: bool = False,
     include_unverified: bool = False,
     source_filename: str = Query("", max_length=300),
@@ -124,6 +127,9 @@ async def search_private_library(
 ):
     from reference_library import search_reference_records
     source_filename = source_filename if isinstance(source_filename, str) else ""
+    parent_class = parent_class if isinstance(parent_class, str) else ""
+    parent_subclass = parent_subclass if isinstance(parent_subclass, str) else ""
+    level = level if isinstance(level, str) else ""
     requested_types = {value.strip() for value in types.split(",") if value.strip()}
     if requested_types - set(REFERENCE_TYPES):
         raise HTTPException(status_code=400, detail="Tipo di contenuto non valido")
@@ -139,7 +145,14 @@ async def search_private_library(
         ]
     if review_only:
         records = [record for record in records if reference_review_state(record) == "review"]
-    records = search_reference_records(records, q, limit=limit)
+    records = search_reference_records(
+        records,
+        q,
+        parent_class=parent_class,
+        parent_subclass=parent_subclass,
+        level=level,
+        limit=limit,
+    )
     excluded_unverified = sum(not reference_is_trusted(record) for record in records)
     if not include_unverified:
         records = [record for record in records if reference_is_trusted(record)]

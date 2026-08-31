@@ -1039,11 +1039,15 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
 
 def reference_summary(record: dict) -> dict:
     review_state = reference_review_state(record)
+    attributes = record.get("attributes") or {}
     return {
         "id": record["id"],
         "name": record["name"],
         "reference_type": record.get("reference_type", "other"),
-        "attributes": record.get("attributes", {}),
+        "attributes": attributes,
+        "parent_class": record.get("parent_class") or attributes.get("parent_class", ""),
+        "parent_subclass": record.get("parent_subclass") or attributes.get("parent_subclass", ""),
+        "level": record.get("level") or attributes.get("level") or attributes.get("livello", ""),
         "source_refs": record.get("source_refs", []),
         "source_language": record.get("source_language", "it"),
         "source_name": record.get("source_name", ""),
@@ -1116,6 +1120,7 @@ async def reference_review_details(record: dict, *, db=None) -> dict:
 def public_reference_snapshot(snapshot: dict) -> dict:
     allowed = {
         "reference_id", "name", "reference_type", "source_refs",
+        "parent_class", "parent_subclass", "level",
         "source_text_checksum", "content_revision", "saved_at", "derived_attributes",
     }
     return {
