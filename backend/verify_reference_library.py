@@ -174,9 +174,6 @@ def verify_library(user_id: str) -> dict[str, Any]:
         for reference in record.get("source_refs", [])
         if reference.get("filename")
     )
-    missing_sources = [
-        filename for filename in REQUIRED_SOURCE_FILENAMES if source_counts[filename] == 0
-    ]
     # DMG absence is reported in required_manual_records but does not block
     # the PHB category checks (feat/race/subrace/spell), which are independent.
     if source_counts[PLAYER_HANDBOOK_FILENAME] == 0:

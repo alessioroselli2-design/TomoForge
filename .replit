@@ -45,7 +45,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "uv run ruff check backend/server.py backend/routers backend/services"
+args = "uv run ruff check backend/server.py backend/routers backend/services backend/core backend/schemas backend/*.py"
 
 [workflows.workflow.metadata]
 isValidation = true
