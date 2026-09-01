@@ -183,6 +183,14 @@ alter table public.private_reference_records
   add column if not exists ai_reviewed_at timestamptz,
   add column if not exists ai_review_notes text not null default '',
   add column if not exists ai_review_corrections jsonb not null default '{}'::jsonb;
+alter table public.private_reference_records
+  drop constraint if exists private_reference_records_ai_review_status_check;
+alter table public.private_reference_records
+  add constraint private_reference_records_ai_review_status_check
+  check (ai_review_status in (
+    'pending', 'verified', 'conflict', 'low_confidence',
+    'excluded', 'failed', 'not_required'
+  ));
 create index if not exists private_reference_records_canonical_idx
   on public.private_reference_records (user_id, canonical_id);
 
@@ -211,6 +219,14 @@ create table if not exists public.private_reference_canonical (
   updated_at timestamptz not null default now(),
   unique (user_id, canonical_key)
 );
+alter table public.private_reference_canonical
+  drop constraint if exists private_reference_canonical_verification_status_check;
+alter table public.private_reference_canonical
+  add constraint private_reference_canonical_verification_status_check
+  check (verification_status in (
+    'pending', 'ai_verified', 'verified', 'conflict',
+    'low_confidence', 'manual_review', 'excluded'
+  ));
 create index if not exists private_reference_canonical_owner_idx
   on public.private_reference_canonical (user_id, verification_status);
 alter table public.private_reference_records

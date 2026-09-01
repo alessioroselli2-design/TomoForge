@@ -33,9 +33,9 @@ def record(identifier, **changes):
 def test_grouping_authority_and_character_sheet_exclusion():
     assert canonical_group_key(record("a")).startswith("dnd5e:2014:owner:class_feature:azione")
     ranks = [
-        source_authority(record("a", source_key="Official_Errata.pdf"))[0],
-        source_authority(record("b", source_key="Official_Revised.pdf"))[0],
-        source_authority(record("c", source_key="reprint.pdf"))[0],
+        source_authority(record("a", source_refs=[{"authority_class": "official_errata"}]))[0],
+        source_authority(record("b", source_refs=[{"authority_class": "official_revision"}]))[0],
+        source_authority(record("c", source_refs=[{"authority_class": "reprint"}]))[0],
         source_authority(record("d", source_key="Manuale_del_giocatore.pdf"))[0],
         source_authority(record(
             "e",
@@ -80,7 +80,7 @@ def test_divergent_ai_selection_retains_whole_selected_record_and_provenance():
 
 
 def test_ai_cannot_override_a_higher_authority_source():
-    errata = record("errata", source_key="Official_Errata.pdf", full_text="official")
+    errata = record("errata", source_refs=[{"authority_class": "official_errata"}], full_text="official")
     derived = record("derived", source_key="fan_notes.pdf", full_text="derived")
     row = asyncio.run(canonicalize_group(
         [errata, derived],
@@ -113,6 +113,29 @@ def test_unreviewed_translation_always_requires_ai_even_when_it_is_the_only_sour
     assert calls
     assert row["verification_status"] == "verified"
     assert row["verification_model"] != "deterministic"
+
+
+def test_filename_alone_does_not_grant_errata_authority():
+    assert source_authority(record("fake", source_key="my_errata_notes.pdf"))[0] == 10
+
+
+def test_singleton_ocr_uncertainty_cannot_be_certified_by_text_only_ai():
+    uncertain = record("ocr", review_flags=["ocr_da_verificare"])
+    calls = []
+    row = asyncio.run(canonicalize_group(
+        [uncertain],
+        comparator=lambda candidates: calls.append(candidates) or {
+            "selected_source_record_id": "ocr",
+            "confidence": .99,
+            "notes": "text looks plausible",
+            "conflict_fields": [],
+            "status": "verified",
+        },
+    ))
+    assert calls
+    assert row["verification_status"] == "low_confidence"
+    assert row["confidence"] <= .79
+    assert "visual_or_source_verification" in row["conflict_fields"]
 
 
 def test_invalid_or_low_confidence_ai_never_certifies_and_protects_use():
@@ -235,7 +258,7 @@ def test_in_memory_batch_persists_only_live_canonical_columns_and_resumes():
     db = Database()
     db.private_reference_records.rows = [
         record("old", full_text="old", source_refs=[{"filename": "Manuale_del_giocatore.pdf", "page": 1}]),
-        record("new", full_text="new", source_key="Errata.pdf", source_refs=[{"filename": "Errata.pdf", "page": 2}]),
+        record("new", full_text="new", source_key="Errata.pdf", source_refs=[{"filename": "Errata.pdf", "page": 2, "authority_class": "official_errata"}]),
     ]
     result = asyncio.run(run_canonicalization(
         "owner", db=db, comparator=lambda _: {

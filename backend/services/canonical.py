@@ -89,11 +89,11 @@ def source_authority(record: dict) -> tuple[int, str, bool]:
     revision = any(item.get("revision") or item.get("is_revision") for item in metadata)
     official = any(item.get("official") or item.get("official_source") or item.get("source_kind") == "official"
                    for item in metadata)
-    if explicit == "official_errata" or "errata" in name:
+    if explicit == "official_errata":
         return 60, "official_errata", True
-    if explicit == "official_revision" or revision or any(word in name for word in ("revision", "revised", "rivisto")):
+    if explicit == "official_revision" or revision:
         return 50, "official_revision", True
-    if explicit == "reprint" or "reprint" in name:
+    if explicit == "reprint":
         return 40, "reprint", True
     known_official = any(token in name for token in (
         "manuale_del_giocatore", "manual del jugador", "guida_onnicomprensiva",
@@ -138,6 +138,30 @@ def _translation_needs_ai_review(record: dict) -> bool:
     )
 
 
+_VISUAL_REVIEW_FLAGS = frozenset({
+    "ocr_da_verificare",
+    "riga_tabella_da_verificare",
+    "sezione_potenzialmente_continua",
+})
+
+
+def _record_has_blocking_uncertainty(record: dict) -> bool:
+    flags = {str(flag) for flag in (record.get("review_flags") or [])}
+    return bool(flags & _VISUAL_REVIEW_FLAGS) or record.get("translation_status") in {"failed", "processing"}
+
+
+def _record_needs_ai_review(record: dict) -> bool:
+    if _translation_needs_ai_review(record):
+        return True
+    if record.get("translation_status") in {"failed", "processing"}:
+        return True
+    if record.get("review_flags"):
+        return True
+    if record.get("review_status") != "verified":
+        return True
+    return source_authority(record)[0] <= 10
+
+
 def openai_comparator(candidates: list[dict]) -> dict[str, Any]:
     if not OPENAI_API_KEY:
         raise RuntimeError("OpenAI comparator non configurato")
@@ -177,7 +201,7 @@ async def canonicalize_group(records: list[dict], ruleset: str = "2014", compara
     key = canonical_group_key(records[0], ruleset)
     selected = _best(records)
     state, confidence, notes, conflicts = "verified", 1.0, "Equivalent source records.", []
-    requires_ai = not _equivalent(records) or any(_translation_needs_ai_review(record) for record in records)
+    requires_ai = not _equivalent(records) or any(_record_needs_ai_review(record) for record in records)
     if requires_ai:
         try:
             answer = await _compare(comparator or openai_comparator, records)
@@ -200,6 +224,11 @@ async def canonicalize_group(records: list[dict], ruleset: str = "2014", compara
                 raise ValueError("AI returned an invalid status")
             state = "verified" if requested == "verified" and confidence >= .8 and not conflicts else (
                 "conflict" if requested == "conflict" or conflicts else "low_confidence")
+            if state == "verified" and _record_has_blocking_uncertainty(selected):
+                state = "low_confidence"
+                confidence = min(confidence, .79)
+                conflicts = [*conflicts, "visual_or_source_verification"]
+                notes = (notes + " Verifica visiva o seconda fonte necessaria prima dell'uso canonico.").strip()
         except Exception as exc:  # provider errors must never certify a rule
             logger.warning("Canonical comparator unavailable: %s", exc)
             state, confidence, notes, conflicts = "conflict", 0.0, "Comparator unavailable or invalid response.", []
