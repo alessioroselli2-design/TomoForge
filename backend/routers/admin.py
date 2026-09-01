@@ -3,7 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from core.auth import compute_premium, require_admin
 from core.db import get_db, SupabaseDatabase
 from schemas.payments import PremiumToggle
+from schemas.library import CanonicalizationRunInput
 from schemas.users import User
+from services.canonical import canonicalization_status, run_canonicalization
 
 router = APIRouter()
 
@@ -20,3 +22,23 @@ async def admin_set_premium(uid: str, body: PremiumToggle, admin: User = Depends
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Utente non trovato")
     return {"ok": True}
+
+
+@router.get("/admin/canonicalization/status")
+async def admin_canonicalization_status(
+    user_id: str | None = None,
+    admin: User = Depends(require_admin),
+    db: SupabaseDatabase = Depends(get_db),
+):
+    return await canonicalization_status(user_id or admin.user_id, db=db)
+
+
+@router.post("/admin/canonicalization/run")
+async def admin_run_canonicalization(
+    body: CanonicalizationRunInput,
+    admin: User = Depends(require_admin),
+    db: SupabaseDatabase = Depends(get_db),
+):
+    return await run_canonicalization(
+        body.user_id or admin.user_id, db=db, batch_size=body.batch_size, ruleset=body.ruleset
+    )

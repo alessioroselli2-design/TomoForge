@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Crown, ShieldCheck, Loader2 } from "lucide-react";
+import { Crown, ShieldCheck, Loader2, BookOpenCheck, Play } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -15,6 +15,11 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [busy, setBusy] = useState(true);
   const [q, setQ] = useState("");
+  const [ownerUserId, setOwnerUserId] = useState("");
+  const [batchSize, setBatchSize] = useState(5);
+  const [canonicalStatus, setCanonicalStatus] = useState(null);
+  const [canonicalBusy, setCanonicalBusy] = useState(false);
+  const [canonicalStatusBusy, setCanonicalStatusBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !user.is_admin)) {
@@ -26,13 +31,57 @@ export default function Admin() {
     try {
       const res = await api.get("/admin/users");
       setUsers(res.data);
+      setOwnerUserId((current) => current || res.data?.[0]?.user_id || "");
     } catch (e) {
       toast.error("Impossibile caricare gli utenti");
     } finally {
       setBusy(false);
     }
   };
-  useEffect(() => { if (user?.is_admin) load(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => { if (user?.is_admin) load(); /* eslint-disable-next-line */ }, [user?.is_admin]);
+
+  const loadCanonicalStatus = async (selectedOwnerId = ownerUserId) => {
+    if (!selectedOwnerId) {
+      setCanonicalStatus(null);
+      return;
+    }
+    setCanonicalStatusBusy(true);
+    try {
+      const res = await api.get("/admin/canonicalization/status", {
+        params: { user_id: selectedOwnerId },
+      });
+      setCanonicalStatus(res.data);
+    } catch (e) {
+      toast.error("Impossibile caricare lo stato della canonicalizzazione");
+    } finally {
+      setCanonicalStatusBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.is_admin && ownerUserId) loadCanonicalStatus();
+    // The status is intentionally refreshed after an explicit batch only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownerUserId, user?.is_admin]);
+
+  const runCanonicalization = async () => {
+    const normalizedBatchSize = Math.max(1, Math.min(25, Number(batchSize) || 1));
+    setBatchSize(normalizedBatchSize);
+    setCanonicalBusy(true);
+    try {
+      await api.post("/admin/canonicalization/run", {
+        user_id: ownerUserId,
+        batch_size: normalizedBatchSize,
+        ruleset: "2014",
+      });
+      toast.success("Batch di canonicalizzazione completato");
+      await loadCanonicalStatus();
+    } catch (e) {
+      toast.error("Canonicalizzazione non riuscita");
+    } finally {
+      setCanonicalBusy(false);
+    }
+  };
 
   const toggle = async (u, enabled) => {
     setUsers((prev) => prev.map((x) => (x.user_id === u.user_id ? { ...x, premium_manual: enabled, is_premium: enabled || x.is_premium } : x)));
@@ -103,6 +152,90 @@ export default function Admin() {
           )}
         </div>
         <p className="font-body text-[11px] text-muted-foreground mt-3">Lo switch concede l'accesso Premium gratuito. Gli abbonati Stripe restano Premium anche senza switch.</p>
+
+        <section className="mt-14 border border-gold-deep/40 bg-card p-5 sm:p-7" aria-labelledby="canonicalization-title">
+          <div className="flex items-start gap-3">
+            <BookOpenCheck className="w-6 h-6 text-gold shrink-0 mt-1" />
+            <div>
+              <p className="font-label text-xs tracking-[0.25em] text-gold/70">BIBLIOTECA CANONICA</p>
+              <h2 id="canonicalization-title" className="font-display text-3xl tf-gold-text mt-1">D&amp;D 5e · Regole 2014</h2>
+              <p className="font-body text-sm text-muted-foreground mt-2">
+                Unisci i record duplicati nella libreria dell&apos;utente selezionato. L&apos;avvio è sempre manuale.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-[minmax(0,1fr)_150px_auto] gap-4 mt-6 items-end">
+            <label className="font-label text-[10px] tracking-widest text-muted-foreground uppercase">
+              Proprietario libreria
+              <select
+                data-testid="canonical-owner"
+                value={ownerUserId}
+                onChange={(e) => {
+                  setCanonicalStatus(null);
+                  setOwnerUserId(e.target.value);
+                }}
+                disabled={busy || canonicalBusy}
+                className="mt-2 w-full h-10 bg-input border border-border px-3 font-body text-sm text-foreground"
+              >
+                {users.length === 0 && <option value="">Nessun utente disponibile</option>}
+                {users.map((u) => <option key={u.user_id} value={u.user_id}>{u.name} ({u.email})</option>)}
+              </select>
+            </label>
+            <label className="font-label text-[10px] tracking-widest text-muted-foreground uppercase">
+              Gruppi per batch
+              <Input
+                data-testid="canonical-batch-size"
+                type="number"
+                min="1"
+                max="25"
+                value={batchSize}
+                onChange={(e) => setBatchSize(e.target.value)}
+                disabled={!ownerUserId || canonicalBusy}
+                className="mt-2 bg-input border-border rounded-none font-body"
+              />
+            </label>
+            <button
+              type="button"
+              data-testid="canonical-run"
+              onClick={runCanonicalization}
+              disabled={!ownerUserId || canonicalBusy}
+              className="h-10 px-4 bg-gold text-obsidian font-label text-xs tracking-widest uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {canonicalBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {canonicalBusy ? "In corso…" : "Avvia / riprendi"}
+            </button>
+          </div>
+
+          {canonicalStatusBusy ? (
+            <div className="mt-6 flex items-center gap-2 text-muted-foreground font-body text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Caricamento stato…</div>
+          ) : canonicalStatus && (
+            <div data-testid="canonical-status" className="mt-6">
+              <div className="flex justify-between gap-4 font-body text-sm text-muted-foreground">
+                <span>Progresso: {canonicalStatus.canonical_total || 0} canonici su {canonicalStatus.records_total || 0} record</span>
+                <span>{canonicalStatus.ruleset || "2014"}</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-border border border-border mt-3">
+                {[
+                  ["Verificati", canonicalStatus.verified_groups],
+                  ["Conflitti", canonicalStatus.conflict_groups],
+                  ["Bassa confidenza", canonicalStatus.low_confidence_groups],
+                  ["In attesa", canonicalStatus.pending_groups],
+                  ["Esclusi", canonicalStatus.excluded_records],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-card px-3 py-3">
+                    <div className="font-label text-[9px] tracking-widest text-muted-foreground uppercase">{label}</div>
+                    <div className="font-display text-2xl text-foreground mt-1">{value || 0}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="font-body text-xs text-muted-foreground mt-3">
+                I gruppi con conflitti o bassa confidenza restano bloccati come dati incerti. Una successiva esecuzione può
+                rivalutarli quando cambiano le fonti, senza imporre una revisione manuale record per record.
+              </p>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

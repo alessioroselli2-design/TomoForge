@@ -52,3 +52,9 @@ class ReferenceReviewInput(BaseModel):
     description: Optional[str] = Field(default=None, max_length=12000)
     full_text: Optional[str] = Field(default=None, max_length=120000)
     attributes: Optional[dict[str, Any]] = None
+
+
+class CanonicalizationRunInput(BaseModel):
+    user_id: Optional[str] = None
+    batch_size: int = Field(default=5, ge=1, le=25)
+    ruleset: Literal["2014"] = "2014"

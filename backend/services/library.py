@@ -54,6 +54,11 @@ from schemas.library import ReferenceImportInput, ReferenceImportResult
 logger = logging.getLogger("tomeforge")
 
 
+def is_rule_manual_filename(filename: str) -> bool:
+    """Keep fillable templates out of the private rules catalogue."""
+    return not filename.casefold().startswith("scheda_personaggio")
+
+
 def available_reference_manuals() -> dict[str, Path]:
     """Discover supplied PDFs from the fixed local assets directory."""
     known = [
@@ -63,7 +68,7 @@ def available_reference_manuals() -> dict[str, Path]:
     known_set = set(known)
     additional = sorted(
         path.name for path in SPELL_PDF_DIRECTORY.glob("*.pdf")
-        if path.is_file() and path.name not in known_set
+        if path.is_file() and path.name not in known_set and is_rule_manual_filename(path.name)
     )
     return {filename: SPELL_PDF_DIRECTORY / filename for filename in [*known, *additional]}
 
@@ -818,6 +823,13 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 else "needs_review" if reference_review_state(record) == "review" else "pending"
             ),
             "review_notes": "",
+            "canonical_id": None,
+            "ai_review_status": "pending",
+            "ai_confidence": 0,
+            "ai_review_model": "",
+            "ai_reviewed_at": None,
+            "ai_review_notes": "",
+            "ai_review_corrections": {},
             "updated_at": utc_now(),
         }
 
@@ -862,6 +874,13 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                 incoming["review_corrections"] = {"_source_changed": True}
                 incoming["review_status"] = "needs_review"
                 incoming["review_notes"] = ""
+                incoming["canonical_id"] = None
+                incoming["ai_review_status"] = "pending"
+                incoming["ai_confidence"] = 0
+                incoming["ai_review_model"] = ""
+                incoming["ai_reviewed_at"] = None
+                incoming["ai_review_notes"] = ""
+                incoming["ai_review_corrections"] = {}
             elif pending_changed_source:
                 incoming["review_corrections"] = {"_source_changed": True}
                 incoming["review_status"] = "needs_review"
@@ -881,6 +900,12 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                         "attributes",
                     ):
                         incoming[field_name] = copy.deepcopy(base.get(field_name))
+                for field_name in (
+                    "canonical_id", "ai_review_status", "ai_confidence",
+                    "ai_review_model", "ai_reviewed_at", "ai_review_notes",
+                    "ai_review_corrections",
+                ):
+                    incoming[field_name] = copy.deepcopy(base.get(field_name))
 
         def _refresh_lookup_caches(stored: dict, merged: dict) -> None:
             combined = {**stored, **merged}
@@ -1056,8 +1081,12 @@ def reference_summary(record: dict) -> dict:
         "review_notes": record.get("review_notes", ""),
         "review_reason": reference_review_reason(record),
         "review_state": review_state,
-        "is_trusted": review_state == "valid",
-        "needs_review": review_state == "review",
+        "is_trusted": reference_is_trusted(record),
+        "needs_review": review_state == "review" or record.get("ai_review_status") in {"conflict", "low_confidence"},
+        "canonical_id": record.get("canonical_id"),
+        "ai_review_status": record.get("ai_review_status", "pending"),
+        "ai_confidence": record.get("ai_confidence", 0),
+        "canonical_selected": (record.get("ai_review_corrections") or {}).get("selected"),
     }
 
 

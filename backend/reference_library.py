@@ -264,6 +264,17 @@ def reference_review_reason(record: dict) -> str:
 
 def reference_is_trusted(record: dict) -> bool:
     """Whether a record is safe for deterministic character automation."""
+    # Canonicalisation is an additional, stricter gate once it has considered
+    # this source.  Legacy/pending imports deliberately retain their existing
+    # review behaviour until an administrator runs the bounded batch.
+    canonical_state = record.get("ai_review_status")
+    if canonical_state in {"conflict", "low_confidence", "excluded"}:
+        return False
+    ai_review = record.get("ai_review_corrections") or {}
+    if ai_review.get("selected") is False:
+        return False
+    if ai_review.get("canonical_invalidated") is True and record.get("review_status") != "verified":
+        return False
     return reference_review_state(record) == "valid"
 
 
@@ -277,13 +288,23 @@ def source_reference(source_filename: str, source_page: int, source_language: st
 
 def reference_rule_source(record: dict) -> dict:
     """Safe, durable provenance shown beside a specific rule."""
-    return {
+    source = {
         "source_kind": "reference",
         "source_id": record.get("id", ""),
         "name": record.get("name", ""),
         "reference_type": record.get("reference_type", "other"),
         "source_refs": record.get("source_refs", []),
     }
+    if record.get("canonical_id"):
+        ai_review = record.get("ai_review_corrections") or {}
+        source.update({
+            "canonical_id": record["canonical_id"],
+            "canonical_verification_status": record.get("ai_review_status", "pending"),
+            "canonical_confidence": record.get("ai_confidence"),
+            "canonical_selected": ai_review.get("selected") is True,
+            "canonical_source_refs": ai_review.get("canonical_source_refs") or [],
+        })
+    return source
 
 
 def text_is_usable(value: str) -> bool:

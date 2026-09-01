@@ -264,6 +264,33 @@ async def review_private_reference(
         corrections["attributes"] = requested_attributes
     if corrections or body.review_status == "verified":
         update_fields["review_corrections"] = corrections
+    if (
+        not corrections
+        and body.review_status == "verified"
+        and (record.get("ai_review_corrections") or {}).get("canonical_invalidated") is True
+    ):
+        # A reviewer may first save a correction as needs_review and confirm it
+        # in a second action. It becomes human-trusted without reviving the
+        # stale canonical selection or provenance.
+        update_fields["ai_review_corrections"] = {"canonical_invalidated": True}
+    if corrections:
+        # A changed canonical input must never inherit an earlier AI decision.
+        # Keep legacy pending imports usable, but explicitly mark reviewed
+        # canonical records as invalidated until the next bounded admin batch.
+        ai_invalidation = {
+            "canonical_invalidated": True,
+        }
+        if body.review_status != "verified":
+            ai_invalidation["selected"] = False
+        update_fields.update({
+            "canonical_id": None,
+            "ai_review_status": "pending",
+            "ai_confidence": 0,
+            "ai_review_model": "",
+            "ai_reviewed_at": None,
+            "ai_review_notes": "canonical_source_changed_by_review",
+            "ai_review_corrections": ai_invalidation,
+        })
 
     effective_name = update_fields.get("name", record.get("name", "")).strip()
     effective_full_text = update_fields.get("full_text", record.get("full_text", "")).strip()

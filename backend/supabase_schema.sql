@@ -173,6 +173,51 @@ alter table public.private_reference_records
   add column if not exists translation_error text not null default '',
   add column if not exists translation_lease_id text not null default '',
   add column if not exists translation_lease_expires_at bigint not null default 0;
+-- AI canonicalisation remains owner-scoped and only stores selected structured
+-- records plus provenance; it never stores PDF bytes or page images.
+alter table public.private_reference_records
+  add column if not exists canonical_id text,
+  add column if not exists ai_review_status text not null default 'pending',
+  add column if not exists ai_confidence numeric not null default 0,
+  add column if not exists ai_review_model text not null default '',
+  add column if not exists ai_reviewed_at timestamptz,
+  add column if not exists ai_review_notes text not null default '',
+  add column if not exists ai_review_corrections jsonb not null default '{}'::jsonb;
+create index if not exists private_reference_records_canonical_idx
+  on public.private_reference_records (user_id, canonical_id);
+
+create table if not exists public.private_reference_canonical (
+  id text primary key,
+  user_id text not null references public.users(user_id) on delete cascade,
+  canonical_key text not null,
+  reference_type text not null,
+  normalized_name text not null,
+  name text not null default '',
+  description text not null default '',
+  full_text text not null default '',
+  attributes jsonb not null default '{}'::jsonb,
+  parent_class text not null default '',
+  parent_subclass text not null default '',
+  level text not null default '',
+  source_record_ids jsonb not null default '[]'::jsonb,
+  source_refs jsonb not null default '[]'::jsonb,
+  source_count integer not null default 0,
+  confidence numeric not null default 0,
+  verification_status text not null default 'pending',
+  conflict_fields jsonb not null default '[]'::jsonb,
+  verification_model text not null default '',
+  verification_notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, canonical_key)
+);
+create index if not exists private_reference_canonical_owner_idx
+  on public.private_reference_canonical (user_id, verification_status);
+alter table public.private_reference_records
+  drop constraint if exists private_reference_records_canonical_id_fkey;
+alter table public.private_reference_records
+  add constraint private_reference_records_canonical_id_fkey
+  foreign key (canonical_id) references public.private_reference_canonical(id) on delete set null;
 alter table public.private_reference_records
   drop constraint if exists private_reference_records_translation_status_check;
 alter table public.private_reference_records
@@ -314,6 +359,7 @@ alter table public.files enable row level security;
 alter table public.payment_transactions enable row level security;
 alter table public.private_spells enable row level security;
 alter table public.private_reference_records enable row level security;
+alter table public.private_reference_canonical enable row level security;
 alter table public.private_manual_import_jobs enable row level security;
 alter table public.private_reference_review_history enable row level security;
 
@@ -321,5 +367,6 @@ alter table public.private_reference_review_history enable row level security;
 -- role and enforces ownership on every read/write.
 revoke all on table public.private_spells from anon, authenticated;
 revoke all on table public.private_reference_records from anon, authenticated;
+revoke all on table public.private_reference_canonical from anon, authenticated;
 revoke all on table public.private_manual_import_jobs from anon, authenticated;
 revoke all on table public.private_reference_review_history from anon, authenticated;
