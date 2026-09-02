@@ -1,4 +1,5 @@
 from reference_sources import (
+    source_import_segments,
     source_is_rule_source,
     source_metadata_for_page,
     source_requires_vision,
@@ -48,6 +49,49 @@ def test_duplicates_documents_misidentified_and_unknown_sources_do_not_auto_impo
     assert not source_is_rule_source("440983851-Errata-D-D-ITA.pdf")
     assert not source_is_rule_source("Scheda personaggio .pdf")
     assert not source_is_rule_source("manuale-non-registrato.pdf")
+
+
+def test_audited_mixed_and_vision_modes_are_registered():
+    assert source_metadata_for_page(
+        "536195827-Minsc-and-Boo-s-Journal-of-Villainy.pdf"
+    )["text_mode"] == "mixed"
+    assert source_metadata_for_page(
+        "647833920-D-D-5ªE-Light-of-Xaryxis.pdf"
+    )["text_mode"] == "mixed"
+    volo = source_metadata_for_page("616924846-Volo-s-Guide-to-Monsters.pdf")
+    assert volo["source_role"] == "visual_authority"
+    assert volo["text_mode"] == "vision_required"
+    assert source_requires_vision("616924846-Volo-s-Guide-to-Monsters.pdf")
+
+
+def test_visual_aids_are_not_independent_rule_import_sources():
+    for filename in (
+        "468887356-Guildmasters-Guide-to-Ravnica-AnyFlip-pdf.pdf",
+        "589043473-Mordenkainens-Tome-of-Foes.pdf",
+    ):
+        assert source_metadata_for_page(filename)["source_role"] == "visual_aid"
+        assert not source_is_rule_source(filename)
+        assert source_import_segments(filename) == ()
+    assert source_metadata_for_page(
+        "589043473-Mordenkainens-Tome-of-Foes.pdf"
+    )["text_mode"] == "vision_required"
+
+
+def test_extraction_aids_remain_available_but_hard_exclusions_do_not():
+    extraction_aids = (
+        "731764731-D-D-Manual-Del-Jugador-5e(1).pdf",
+        "417238314-Volo-s-Guide-to-Monsters-RUS-pdf.pdf",
+        "Bardo .pdf",
+    )
+    for filename in extraction_aids:
+        assert source_is_rule_source(filename)
+        assert source_import_segments(filename)
+    for filename in (
+        "Manuale del Giocatore (1).pdf",
+        "440983851-Errata-D-D-ITA.pdf",
+        "Scheda personaggio .pdf",
+    ):
+        assert source_import_segments(filename) == ()
 
 
 def test_source_reference_persists_logical_provenance():
