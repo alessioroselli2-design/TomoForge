@@ -483,7 +483,7 @@ Passaggio su nave 1 mo 0 kg
     assert by_name["Passaggio Su Nave"]["reference_type"] == "service"
 
 
-def test_reference_merge_deduplicates_but_preserves_sources_and_review_flags():
+def test_reference_merge_keeps_ocr_record_independent_across_sources():
     first = make_reference("Tiratore Scelto")
     second = make_reference(
         "Tiratore scelto",
@@ -492,12 +492,12 @@ def test_reference_merge_deduplicates_but_preserves_sources_and_review_flags():
     )
     merged = merge_reference_records([first, second])
 
-    assert len(merged) == 1
-    assert len(merged[0]["source_refs"]) == 2
-    assert merged[0]["review_flags"] == ["ocr_da_verificare"]
+    assert len(merged) == 2
+    assert all(len(record["source_refs"]) == 1 for record in merged)
+    assert sum("ocr_da_verificare" in record["review_flags"] for record in merged) == 1
 
 
-def test_reference_merge_deduplicates_identical_native_rules_across_manuals():
+def test_reference_merge_keeps_identical_native_rules_separate_across_manuals():
     first = make_reference(
         "Palla di Fuoco",
         reference_type="spell",
@@ -517,11 +517,11 @@ def test_reference_merge_deduplicates_identical_native_rules_across_manuals():
 
     merged = merge_reference_records([first, second])
 
-    assert len(merged) == 1
-    assert merged[0]["source_refs"] == [
-        {"filename": "Manuale-del-Giocatore.pdf", "page": 241},
-        {"filename": "Guida-di-Xanathar.pdf", "page": 155},
-    ]
+    assert len(merged) == 2
+    assert {record["source_key"] for record in merged} == {
+        "Manuale-del-Giocatore.pdf", "Guida-di-Xanathar.pdf",
+    }
+    assert all(len(record["source_refs"]) == 1 for record in merged)
 
 
 def test_reference_merge_keeps_rule_variants_from_different_manuals_separate():
@@ -545,7 +545,7 @@ def test_reference_merge_keeps_rule_variants_from_different_manuals_separate():
     assert len(merge_reference_records([first, revised])) == 2
 
 
-def test_reference_search_hides_existing_cross_manual_duplicates():
+def test_reference_search_preserves_cross_manual_canonicalization_candidates():
     first = make_reference(
         "Palla di Fuoco",
         reference_type="spell",
@@ -565,8 +565,8 @@ def test_reference_search_hides_existing_cross_manual_duplicates():
 
     matches = search_reference_records([first, second], "palla di fuoco")
 
-    assert len(matches) == 1
-    assert len(matches[0]["source_refs"]) == 2
+    assert len(matches) == 2
+    assert all(len(record["source_refs"]) == 1 for record in matches)
 
 
 def test_reference_search_is_accent_case_and_typo_tolerant():
@@ -2090,8 +2090,8 @@ def test_spanish_translation_uses_openai_only_after_gemini_failure(monkeypatch):
     assert "Un talento completo." in calls[1][1]["json"]["messages"][1]["content"]
 
 
-def test_automatic_preload_marks_successful_translations_verified(monkeypatch, tmp_path):
-    """Auto-preload (auto_accept=True) promotes successful translations to verified/valid."""
+def test_automatic_preload_keeps_successful_translations_unverified(monkeypatch, tmp_path):
+    """Translation success is not canonical verification, even during auto-preload."""
     source = tmp_path / "Manual-del-Jugador.pdf"
     source.write_bytes(b"native-text")
     filename = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
@@ -2132,10 +2132,8 @@ def test_automatic_preload_marks_successful_translations_verified(monkeypatch, t
 
     stored = collection.rows[0]
     assert stored["translation_status"] == "translated"
-    # Auto-accept preload must promote successful translations to verified so
-    # the library verifier can find valid probes without manual human review.
-    assert stored["review_status"] == "verified"
-    assert reference_review_state(stored) == "valid"
+    assert stored["review_status"] == "needs_review"
+    assert reference_review_state(stored) == "review"
 
 
 def test_manual_import_keeps_translations_pending_review(monkeypatch, tmp_path):
@@ -4931,4 +4929,3 @@ La regola resta un incantesimo e non deve diventare uno scudo di equipaggiamento
     assert len(records) == 1
     assert records[0]["reference_type"] == "spell"
     assert records[0]["normalized_name"] == "scudo"
-

@@ -10,12 +10,15 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import logging
 import os
 
 import requests  # noqa: F401 – exposed as server.requests for test patching
 import stripe  # noqa: F401 – exposed as server.stripe for test patching
 from fastapi import FastAPI, HTTPException  # noqa: F401
 from fastapi.middleware.cors import CORSMiddleware
+
+logger = logging.getLogger("tomeforge")
 
 # ---------------------------------------------------------------------------
 # These imports intentionally preserve the server.* compatibility surface used
@@ -161,7 +164,14 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     if MOCK_DATA:
         await seed_mock_data()
-    await resume_manual_preload_workers()
+    try:
+        await resume_manual_preload_workers()
+    except HTTPException as exc:
+        # Local/test deployments without a configured database can still
+        # serve request validation; no preload state exists to resume.
+        if exc.status_code != 503:
+            raise
+        logger.warning("Ripristino preload non disponibile all'avvio: %s", exc.detail)
     yield
 
 
