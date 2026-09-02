@@ -7,6 +7,7 @@ from reference_library import (
     REFERENCE_TYPES,
     compact_text,
     normalize_reference_name,
+    reference_effective_type,
     reference_is_trusted,
     reference_review_state,
     reference_to_card_payload,
@@ -137,7 +138,11 @@ async def search_private_library(
         raise HTTPException(status_code=400, detail="Manuale non disponibile nella biblioteca privata")
     records = await private_reference_records(user.user_id, db=db)
     if requested_types:
-        records = [record for record in records if record.get("reference_type") in requested_types]
+        records = [
+            record
+            for record in records
+            if reference_effective_type(record) in requested_types
+        ]
     if source_filename:
         records = [
             record for record in records

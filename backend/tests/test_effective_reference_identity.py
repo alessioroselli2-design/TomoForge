@@ -5,6 +5,10 @@ from reference_library import (
     reference_to_card_payload,
 )
 from services.canonical import canonical_group_key
+from services.canonical_identity_consensus import (
+    _prompt_record as consensus_prompt_record,
+)
+from services.library import reference_summary
 from services.canonical_identity import (
     identity_candidate_score,
     identity_candidates,
@@ -138,3 +142,24 @@ def test_identity_prefilter_accepts_cross_legacy_spell_type():
 
     assert identity_candidate_score(old, parsed) >= 0
     assert parsed in identity_candidates(old, [old, parsed])
+
+
+def test_reference_summary_exposes_effective_type_and_keeps_source_type():
+    record = legacy("summary")
+
+    summary = reference_summary(record)
+
+    assert summary["reference_type"] == "spell"
+    assert summary["source_reference_type"] == "ability"
+    assert summary["level"] == "3"
+    assert record["reference_type"] == "ability"
+
+
+def test_second_consensus_prompt_uses_effective_identity():
+    record = legacy("consensus")
+
+    payload = consensus_prompt_record(record)
+
+    assert payload["reference_type"] == "spell"
+    assert payload["source_reference_type"] == "ability"
+    assert payload["level"] == "3"

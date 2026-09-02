@@ -21,6 +21,8 @@ from reference_library import (
     merge_reference_records,
     normalize_reference_name,
     reference_content_fingerprint,
+    reference_effective_level,
+    reference_effective_type,
     reference_is_trusted,
     reference_review_reason,
     reference_review_state,
@@ -495,7 +497,13 @@ async def find_private_reference(user_id: str, query: str, card_type: Optional[s
     records = await private_reference_records(user_id, db=db)
     matches = search_reference_records(records, query, limit=20)
     if card_type:
-        matches = [record for record in matches if CARD_TYPE_BY_REFERENCE_TYPE.get(record.get("reference_type")) == card_type]
+        matches = [
+            record
+            for record in matches
+            if CARD_TYPE_BY_REFERENCE_TYPE.get(
+                reference_effective_type(record)
+            ) == card_type
+        ]
     return next((record for record in matches if reference_is_trusted(record)), None)
 
 
@@ -1065,14 +1073,17 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
 def reference_summary(record: dict) -> dict:
     review_state = reference_review_state(record)
     attributes = record.get("attributes") or {}
+    effective_type = reference_effective_type(record)
+    effective_level = reference_effective_level(record)
     return {
         "id": record["id"],
         "name": record["name"],
-        "reference_type": record.get("reference_type", "other"),
+        "reference_type": effective_type,
+        "source_reference_type": record.get("reference_type", "other"),
         "attributes": attributes,
         "parent_class": record.get("parent_class") or attributes.get("parent_class", ""),
         "parent_subclass": record.get("parent_subclass") or attributes.get("parent_subclass", ""),
-        "level": record.get("level") or attributes.get("level") or attributes.get("livello", ""),
+        "level": effective_level,
         "source_refs": record.get("source_refs", []),
         "source_language": record.get("source_language", "it"),
         "source_name": record.get("source_name", ""),
@@ -1203,7 +1214,7 @@ def manual_coverage_report(records: list[dict]) -> list[dict]:
         for reference_type in categories:
             category_records = [
                 record for record in source_records
-                if record.get("reference_type") == reference_type
+                if reference_effective_type(record) == reference_type
             ]
             valid = sum(reference_is_trusted(record) for record in category_records)
             to_review = sum(reference_review_state(record) == "review" for record in category_records)

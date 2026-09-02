@@ -11,6 +11,10 @@ from typing import Any
 import requests
 
 from core.config import OPENAI_API_KEY, OPENAI_TEXT_MODEL
+from reference_library import (
+    reference_effective_level,
+    reference_effective_type,
+)
 from services.canonical_identity import IdentityComparator, resolve_identity
 
 CONSENSUS_UNCERTAIN_CONFIDENCE_CAP = 0.91
@@ -29,13 +33,14 @@ def _excerpt(record: dict, limit: int = 1800) -> str:
 def _prompt_record(record: dict) -> dict[str, Any]:
     return {
         "source_record_id": record.get("id"),
-        "reference_type": record.get("reference_type"),
+        "reference_type": reference_effective_type(record),
+        "source_reference_type": record.get("reference_type"),
         "name": record.get("name"),
         "normalized_name": record.get("normalized_name"),
         "source_name": record.get("source_name"),
         "parent_class": record.get("parent_class"),
         "parent_subclass": record.get("parent_subclass"),
-        "level": record.get("level"),
+        "level": reference_effective_level(record),
         "source_language": record.get("source_language"),
         "translation_status": record.get("translation_status"),
         "text_excerpt": _excerpt(record),
