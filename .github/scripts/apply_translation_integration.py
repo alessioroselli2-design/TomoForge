@@ -24,16 +24,15 @@ def replace_between(text: str, start: str, end: str, replacement: str, label: st
 
 text = LIB.read_text()
 
-# Import the generic, provider-independent localization policy.
+# Import only the generic provider-independent language policy. Existing import
+# state/flag semantics remain unchanged so rate-limit retries keep working.
 text = replace_once(
     text,
     "from schemas.library import ReferenceImportInput, ReferenceImportResult\n\nlogger = logging.getLogger(\"tomeforge\")\n",
     "from schemas.library import ReferenceImportInput, ReferenceImportResult\n"
     "from services.reference_translation import (\n"
-    "    apply_translation,\n"
     "    build_translation_prompt,\n"
     "    normalize_language,\n"
-    "    translation_failure,\n"
     "    translation_required,\n"
     "    validate_translation_payload,\n"
     ")\n\n"
@@ -41,8 +40,6 @@ text = replace_once(
     "translation imports",
 )
 
-# Replace the Spanish-only provider function with a generic language-aware one,
-# while preserving the old Spanish entry point for tests/API compatibility.
 new_translation_functions = '''def translate_reference_batch(
     records: list[dict],
     source_language: str,
@@ -119,8 +116,6 @@ text = replace_between(
     "translation provider function",
 )
 
-# Require explicit external-processing confirmation for every supported source
-# language, not only Spanish. Automatic preload already records this consent.
 new_translation_validation = '''    translatable_manuals = [
         filename for filename in requested
         if translation_required(manual_source_language(filename))
@@ -157,7 +152,6 @@ text = replace_once(
     "translation queue language gate",
 )
 
-# Build batches per source language so no provider request can mix EN/ES/RU.
 new_batch_builder = '''    translation_batches: list[tuple[str, list[dict]]] = []
     queues_by_language: dict[str, list[dict]] = {}
     for record in translation_queue:
@@ -210,54 +204,6 @@ text = replace_once(
     "translation provider individual call",
 )
 
-# Use the shared conservative record transformers. Successful translations are
-# still review-only; rate limits/failures retain the immutable source snapshot.
-old_result_block = '''            if translated_record:
-                name = translated_record["name"]
-                description = translated_record["description"]
-                localized_records.append({
-                    **record,
-                    "name": name,
-                    "normalized_name": normalize_reference_name(name),
-                    "description": description,
-                    "full_text": translated_record["full_text"],
-                    "attributes": translated_record["attributes"],
-                    "translation_status": "translated",
-                    "translation_error": "",
-                })
-                report["translated"] += 1
-            elif record_error == "provider_rate_limited":
-                localized_records.append({
-                    **record,
-                    "translation_status": "failed",
-                    "translation_error": "provider_rate_limited",
-                })
-                report["translation_rate_limited"] += 1
-            else:
-                localized_records.append({
-                    **record,
-                    "review_flags": sorted(set(record.get("review_flags") or []) | {"traduzione_da_verificare"}),
-                    "translation_status": "failed",
-                    "translation_error": record_error or "provider_translation_failed",
-                })
-                report["translation_failed"] += 1
-'''
-new_result_block = '''            if translated_record:
-                localized_records.append(apply_translation(record, translated_record))
-                report["translated"] += 1
-            elif record_error == "provider_rate_limited":
-                localized_records.append(translation_failure(record, "provider_rate_limited"))
-                report["translation_rate_limited"] += 1
-            else:
-                localized_records.append(
-                    translation_failure(record, record_error or "provider_translation_failed")
-                )
-                report["translation_failed"] += 1
-'''
-text = replace_once(text, old_result_block, new_result_block, "translation result handling")
-
-# Side-by-side review fallback must treat every translatable language as an
-# original-language source, not only Spanish.
 old_original = '''    original = {
         "name": record.get("source_name") or (record.get("name") if source_language != "es" else ""),
         "description": record.get("source_description") or (
@@ -298,7 +244,6 @@ text = replace_once(
     "translation progress language gate",
 )
 
-# Retry failed translations for any supported non-Italian source language.
 text = replace_once(
     text,
     '    """Retry one failed Spanish translation without re-reading the manual."""\n',
@@ -321,53 +266,6 @@ text = replace_once(
     "        )\n",
     "retry provider call",
 )
-
-# A successful retry is still an automated translation: retain the translation
-# review flag and keep review_status=needs_review until the later AI-verifier or
-# a human explicitly certifies it.
-old_retry_success = '''    remaining_review_flags = sorted(
-        set(record.get("review_flags") or []) - {"traduzione_da_verificare"}
-    )
-    await collection.update_one(
-        processing_query,
-        {"$set": {
-            "name": translated_record["name"],
-            "normalized_name": normalize_reference_name(translated_record["name"]),
-            "description": translated_record["description"],
-            "full_text": translated_record["full_text"],
-            "attributes": translated_record["attributes"],
-            "translation_status": "translated",
-            "translation_error": "",
-            "translation_lease_id": "",
-            "translation_lease_expires_at": 0,
-            "review_flags": remaining_review_flags,
-            "review_status": "needs_review" if remaining_review_flags else "pending",
-            "updated_at": utc_now(),
-        }},
-    )
-'''
-new_retry_success = '''    review_flags = sorted(
-        set(record.get("review_flags") or []) | {"traduzione_da_verificare"}
-    )
-    await collection.update_one(
-        processing_query,
-        {"$set": {
-            "name": translated_record["name"],
-            "normalized_name": normalize_reference_name(translated_record["name"]),
-            "description": translated_record["description"],
-            "full_text": translated_record["full_text"],
-            "attributes": translated_record["attributes"],
-            "translation_status": "translated",
-            "translation_error": "",
-            "translation_lease_id": "",
-            "translation_lease_expires_at": 0,
-            "review_flags": review_flags,
-            "review_status": "needs_review",
-            "updated_at": utc_now(),
-        }},
-    )
-'''
-text = replace_once(text, old_retry_success, new_retry_success, "retry success review state")
 
 LIB.write_text(text)
 
@@ -454,7 +352,7 @@ def test_import_translates_supported_non_italian_manuals_and_preserves_source(mo
     assert stored["source_name"] == "Original Rule"
     assert stored["source_full_text"].startswith("Original complete")
     assert stored["translation_status"] == "translated"
-    assert "traduzione_da_verificare" in stored["review_flags"]
+    assert "traduzione_da_verificare" not in stored.get("review_flags", [])
     assert stored["review_status"] == "needs_review"
     assert stored["ai_review_status"] == "pending"
 
@@ -500,14 +398,14 @@ def test_translation_progress_counts_english_and_russian_pending_records():
             "translation_status": "failed",
             "translation_error": "provider_rate_limited",
             "review_status": "needs_review",
-            "review_flags": ["traduzione_da_verificare"],
+            "review_flags": [],
         },
         {
             "source_refs": [{"filename": "book.pdf", "page": 2}],
             "source_language": "ru",
             "translation_status": "translated",
             "review_status": "needs_review",
-            "review_flags": ["traduzione_da_verificare"],
+            "review_flags": [],
         },
     ]
 
