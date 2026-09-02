@@ -18,6 +18,8 @@ import re
 import unicodedata
 from typing import Callable, Iterable, Optional
 
+from reference_sources import source_metadata_for_page
+
 logger = logging.getLogger("tomeforge")
 
 
@@ -279,10 +281,21 @@ def reference_is_trusted(record: dict) -> bool:
 
 
 def source_reference(source_filename: str, source_page: int, source_language: str) -> dict:
-    """Keep existing Italian provenance compact while labeling foreign sources."""
+    """Attach physical and logical provenance without storing source bytes."""
     reference = {"filename": source_filename, "page": source_page}
     if source_language != "it":
         reference["language"] = source_language
+    metadata = source_metadata_for_page(source_filename, source_page)
+    if metadata:
+        reference.update({
+            "logical_source_id": metadata["logical_source_id"],
+            "source_title": metadata["title"],
+            "ruleset": metadata["ruleset"],
+            "authority_class": metadata["authority_class"],
+            "source_role": metadata["source_role"],
+            "source_status": metadata["source_status"],
+            "logical_page": metadata["logical_page"],
+        })
     return reference
 
 

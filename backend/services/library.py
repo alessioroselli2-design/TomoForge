@@ -12,6 +12,12 @@ from typing import Any, Optional
 
 import requests
 from fastapi import HTTPException
+from reference_sources import (
+    source_default_language,
+    source_is_rule_source,
+    source_metadata_for_page,
+    source_requires_vision,
+)
 from reference_library import (
     CARD_TYPE_BY_REFERENCE_TYPE,
     REFERENCE_TYPES,
@@ -57,11 +63,28 @@ logger = logging.getLogger("tomeforge")
 
 
 def is_rule_manual_filename(filename: str) -> bool:
-    """Keep fillable templates out of the private rules catalogue."""
-    return not filename.casefold().startswith("scheda_personaggio")
+    """Accept safe new PDFs while honoring explicit registry exclusions."""
+    lowered = filename.casefold()
+
+    # Character sheets/templates are documents, never rule manuals.
+    if (
+        lowered.startswith("scheda_personaggio")
+        or lowered.startswith("scheda personaggio")
+    ):
+        return False
+
+    # Known sources obey the explicit source registry. This preserves
+    # exclusions for duplicates, obsolete sources and non-rule documents.
+    registered = source_metadata_for_page(filename)
+    if registered:
+        return source_is_rule_source(filename)
+
+    # An unregistered PDF remains discoverable as a candidate source.
+    # Its metadata/authority must still be established before canonical use.
+    return True
 
 
-def available_reference_manuals() -> dict[str, Path]:
+def _registry_available_reference_manuals() -> dict[str, Path]:
     """Discover supplied PDFs from the fixed local assets directory."""
     known = [
         filename for filename in REFERENCE_MANUAL_FILENAMES
@@ -75,14 +98,64 @@ def available_reference_manuals() -> dict[str, Path]:
     return {filename: SPELL_PDF_DIRECTORY / filename for filename in [*known, *additional]}
 
 
-def manual_requires_ocr(filename: str) -> bool:
+
+def available_reference_manuals() -> dict[str, Path]:
+    """Registry sources plus safe discovery of additional supplied PDFs."""
+    manuals = (
+        dict(_registry_available_reference_manuals())
+        if REFERENCE_MANUAL_FILENAMES
+        else {}
+    )
+
+    for source_path in sorted(SPELL_PDF_DIRECTORY.glob("*.pdf")):
+        if (
+            source_path.is_file()
+            and is_rule_manual_filename(source_path.name)
+        ):
+            manuals.setdefault(source_path.name, source_path)
+
+    return manuals
+
+
+def _registry_manual_requires_ocr(filename: str) -> bool:
+    registered = source_metadata_for_page(filename)
+    if registered:
+        return source_requires_vision(filename)
     return (
         filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES
         or filename.startswith(OCR_REQUIRED_REFERENCE_PREFIXES)
     )
 
 
+
+def manual_requires_ocr(filename: str) -> bool:
+    legacy_requires_ocr = (
+        filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES
+        or filename.startswith(OCR_REQUIRED_REFERENCE_PREFIXES)
+    )
+
+    return (
+        legacy_requires_ocr
+        or _registry_manual_requires_ocr(filename)
+    )
+
+
 def manual_source_metadata(filename: str) -> dict:
+    registered = source_metadata_for_page(filename)
+    if registered:
+        return {
+            "title": registered["title"],
+            "language": registered["language"],
+            "native_text": registered.get("text_mode") in {"text", "mixed"},
+            "logical_source_id": registered["logical_source_id"],
+            "ruleset": registered["ruleset"],
+            "authority_class": registered["authority_class"],
+            "source_role": registered["source_role"],
+            "source_status": registered["source_status"],
+            "page_start": registered["page_start"],
+            "page_end": registered["page_end"],
+            "text_mode": registered["text_mode"],
+        }
     return {
         "title": Path(filename).stem.replace("_", " "),
         "language": "it",
@@ -92,7 +165,7 @@ def manual_source_metadata(filename: str) -> dict:
 
 
 def manual_source_language(filename: str) -> str:
-    return manual_source_metadata(filename)["language"]
+    return source_default_language(filename) if source_metadata_for_page(filename) else manual_source_metadata(filename)["language"]
 
 
 def manual_source_fingerprint(path: Path) -> str:

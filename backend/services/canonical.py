@@ -77,38 +77,71 @@ def is_character_sheet_source(record: dict) -> bool:
     return any(name.casefold().startswith("scheda_personaggio") for name in names)
 
 
-def source_authority(record: dict) -> tuple[int, str, bool]:
-    """Return rank, class and whether this is a later revision.
+def source_record_is_excluded(record: dict) -> bool:
+    """Exclude duplicate, obsolete, misidentified and document-only sources."""
+    refs = [ref for ref in record.get("source_refs") or [] if isinstance(ref, dict)]
+    statuses = {str(ref.get("source_status") or "").casefold() for ref in refs}
+    statuses.discard("")
+    if not statuses:
+        return False
+    excluded = {"duplicate", "misidentified", "document", "superseded"}
+    return statuses.issubset(excluded)
 
-    Import metadata may explicitly supply authority_class; filename inference is
-    intentionally conservative and translation is never authority by itself.
-    """
+
+def source_authority(record: dict) -> tuple[int, str, bool]:
+    """Return explicit source rank; weak aids never outrank authoritative books."""
     refs = [ref for ref in record.get("source_refs") or [] if isinstance(ref, dict)]
     metadata = [record, *refs]
     explicit = next((
-        str(item.get("authority_class") or item.get("source_kind") or "").casefold()
-        for item in metadata if item.get("authority_class") or item.get("source_kind")
+        str(item.get("authority_class") or "").casefold()
+        for item in metadata if item.get("authority_class")
     ), "")
+    role = next((
+        str(item.get("source_role") or "").casefold()
+        for item in metadata if item.get("source_role")
+    ), "")
+    status = next((
+        str(item.get("source_status") or "").casefold()
+        for item in metadata if item.get("source_status")
+    ), "")
+
+    if status in {"duplicate", "misidentified", "document"}:
+        return 0, status, False
+    if status == "superseded":
+        return 12, "superseded", False
+    if explicit == "official_errata":
+        return 60, "official_errata", True
+    if explicit == "official_ruling":
+        return 55, "official_ruling", True
+    if explicit == "official_revision":
+        return 50, "official_revision", True
+    if explicit == "reprint":
+        return 40, "reprint", True
+    if role == "visual_aid" or explicit == "extraction_aid" or role == "extraction_aid":
+        return 8, explicit or role or "extraction_aid", False
+    if role == "ingest_copy":
+        return 25, explicit or "ingest_copy", False
+    if explicit in {"official_source", "official_supplement"}:
+        return 35, explicit, False
+    if explicit == "licensed_translation":
+        return 32, "licensed_translation", False
+    if explicit == "community_licensed" or role in {"lower_authority", "community"}:
+        return 20, explicit or role, False
+
     name = " ".join([str(record.get("source_key", ""))] + [
         str(ref.get("filename", "")) for ref in refs
     ]).casefold()
     revision = any(item.get("revision") or item.get("is_revision") for item in metadata)
-    official = any(item.get("official") or item.get("official_source") or item.get("source_kind") == "official"
-                   for item in metadata)
-    if explicit == "official_errata":
-        return 60, "official_errata", True
-    if explicit == "official_revision" or revision:
+    official = any(item.get("official") or item.get("official_source") for item in metadata)
+    if revision:
         return 50, "official_revision", True
-    if explicit == "reprint":
-        return 40, "reprint", True
     known_official = any(token in name for token in (
         "manuale_del_giocatore", "manual del jugador", "guida_onnicomprensiva",
         "calderone-omnicomprensivo", "manuale-dei-mostri", "manuale-del-dungeon-master",
     ))
-    if explicit in {"official_source", "official_translation"} or record.get("official_source") or official or known_official:
-        return 30, explicit or "official_source", False
+    if official or known_official:
+        return 30, "legacy_official_source", False
     return 10, "derived", False
-
 
 def provenance(records: list[dict]) -> list[dict]:
     later_exists = any(source_authority(record)[2] for record in records)
@@ -267,6 +300,7 @@ async def canonicalization_status(user_id: str, *, db) -> dict:
     for record in records:
         if (
             is_character_sheet_source(record)
+            or source_record_is_excluded(record)
             or record_ruleset(record) != "2014"
             or record.get("ai_review_status") == "excluded"
         ):
@@ -299,6 +333,9 @@ async def run_canonicalization(user_id: str, *, db, batch_size: int = 5, ruleset
     for record in records:
         if is_character_sheet_source(record):
             exclusions.append((record, "Character sheet/template source excluded."))
+            continue
+        if source_record_is_excluded(record):
+            exclusions.append((record, "Duplicate, superseded, misidentified or document source excluded."))
             continue
         source_ruleset = record_ruleset(record)
         if source_ruleset != ruleset:

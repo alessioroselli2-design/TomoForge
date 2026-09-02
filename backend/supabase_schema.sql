@@ -386,3 +386,44 @@ revoke all on table public.private_reference_records from anon, authenticated;
 revoke all on table public.private_reference_canonical from anon, authenticated;
 revoke all on table public.private_manual_import_jobs from anon, authenticated;
 revoke all on table public.private_reference_review_history from anon, authenticated;
+
+-- Physical/logical source catalogue. PDF bytes are not stored here.
+create table if not exists public.private_reference_sources (
+  id text primary key,
+  user_id text not null references public.users(user_id) on delete cascade,
+  physical_filename text not null,
+  physical_sha256 text not null default '',
+  physical_size_bytes bigint not null default 0,
+  physical_pages integer not null default 0,
+  logical_source_id text not null,
+  title text not null,
+  language text not null default 'it',
+  ruleset text not null default '2014',
+  authority_class text not null default 'derived',
+  source_role text not null default 'authority',
+  source_status text not null default 'active' check (source_status in (
+    'active', 'duplicate', 'superseded', 'misidentified', 'document'
+  )),
+  page_start integer not null default 1,
+  page_end integer not null default 1,
+  text_mode text not null default 'text' check (text_mode in (
+    'text', 'vision_required', 'mixed', 'document', 'unknown'
+  )),
+  notes text not null default '',
+  import_state text not null default 'catalogued' check (import_state in (
+    'catalogued', 'pending', 'importing', 'imported', 'excluded', 'failed'
+  )),
+  imported_record_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, physical_filename, logical_source_id, page_start, page_end),
+  check (page_start >= 1),
+  check (page_end >= page_start)
+);
+create index if not exists private_reference_sources_user_idx
+  on public.private_reference_sources (user_id);
+create index if not exists private_reference_sources_logical_idx
+  on public.private_reference_sources (user_id, logical_source_id);
+create index if not exists private_reference_sources_status_idx
+  on public.private_reference_sources (user_id, source_status, import_state);
+alter table public.private_reference_sources enable row level security;
