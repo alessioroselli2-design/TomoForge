@@ -58,6 +58,12 @@ from core.config import (
 )
 from core.db import db as _singleton_db
 from schemas.library import ReferenceImportInput, ReferenceImportResult
+from services.reference_translation import (
+    build_translation_prompt,
+    normalize_language,
+    translation_required,
+    validate_translation_payload,
+)
 
 logger = logging.getLogger("tomeforge")
 
@@ -432,31 +438,18 @@ def _is_provider_rate_limited(exc: Exception) -> bool:
     )
 
 
-def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, dict], str]:
-    """Translate a small structured Spanish batch without sending PDF pages."""
+def translate_reference_batch(
+    records: list[dict],
+    source_language: str,
+) -> tuple[dict[str, dict], str]:
+    """Translate a small structured EN/ES/RU batch without sending PDF pages."""
     if not records:
         return {}, ""
-    source_records = [
-        {
-            "id": record["id"],
-            "name": record["source_name"],
-            "description": record["source_description"],
-            "full_text": record["source_full_text"],
-            "attributes": record.get("source_attributes", {}),
-        }
-        for record in records
-    ]
-    prompt = (
-        "Traduci dallo spagnolo all'italiano questi record strutturati di un manuale "
-        "di gioco. Traduci soltanto nome, descrizione e valori di attributes; non "
-        "aggiungere regole, non riassumere, non omettere dettagli, non alterare ID, "
-        "dadi, numeri, prezzi o nomi delle chiavi. full_text deve contenere la "
-        "traduzione completa del testo sorgente, senza abbreviazioni. Restituisci esclusivamente JSON "
-        "valido nel formato {\"records\":[{\"id\":\"...\",\"name\":\"...\","
-        "\"description\":\"...\",\"full_text\":\"...\",\"attributes\":{...}}]}. Ogni ID ricevuto deve "
-        "comparire esattamente una volta.\n\n"
-        + json.dumps(source_records, ensure_ascii=False, separators=(",", ":"))
-    )
+    source_language = normalize_language(source_language)
+    try:
+        prompt = build_translation_prompt(records, source_language)
+    except ValueError as exc:
+        return {}, str(exc)
     try:
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
@@ -476,42 +469,40 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
     except (requests.RequestException, ValueError, TypeError, json.JSONDecodeError) as exc:
         primary_rate_limited = _is_provider_rate_limited(exc)
         logger.warning(
-            "Traduzione Gemini non disponibile per un gruppo di %s record: %s; provo OpenAI autorizzato",
-            len(records), exc,
+            "Traduzione Gemini %s->it non disponibile per un gruppo di %s record: %s; provo OpenAI autorizzato",
+            source_language,
+            len(records),
+            exc,
         )
         try:
             decoded = _openai_translation_response(prompt)
         except (requests.RequestException, RuntimeError, ValueError, TypeError, json.JSONDecodeError) as fallback_exc:
             logger.warning(
-                "Traduzione OpenAI non disponibile per un gruppo di %s record: %s",
-                len(records), fallback_exc,
+                "Traduzione OpenAI %s->it non disponibile per un gruppo di %s record: %s",
+                source_language,
+                len(records),
+                fallback_exc,
             )
             if primary_rate_limited or _is_provider_rate_limited(fallback_exc):
                 return {}, "provider_rate_limited"
             return {}, "provider_translation_failed"
 
-    translated_rows = decoded.get("records") if isinstance(decoded, dict) else None
-    if not isinstance(translated_rows, list):
-        return {}, "provider_translation_invalid"
-    expected_ids = {record["id"] for record in records}
-    translated: dict[str, dict] = {}
-    for item in translated_rows:
-        if not isinstance(item, dict) or item.get("id") not in expected_ids:
-            continue
-        name = clean_text(str(item.get("name") or ""))
-        description = clean_text(str(item.get("description") or ""))
-        full_text = clean_text(str(item.get("full_text") or ""))
-        attributes = item.get("attributes")
-        if name and description and full_text and isinstance(attributes, dict):
-            translated[item["id"]] = {
-                "name": name,
-                "description": compact_text(description),
-                "full_text": full_text,
-                "attributes": attributes,
-            }
-    if set(translated) != expected_ids:
-        return {}, "provider_translation_incomplete"
-    return translated, ""
+    return validate_translation_payload(decoded, records)
+
+
+def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, dict], str]:
+    """Backward-compatible Spanish translation entry point."""
+    return translate_reference_batch(records, "es")
+
+
+def _translate_reference_batch_for_language(
+    records: list[dict], source_language: str
+) -> tuple[dict[str, dict], str]:
+    """Keep Spanish monkeypatch compatibility while supporting EN/RU."""
+    source_language = normalize_language(source_language)
+    if source_language == "es":
+        return translate_spanish_reference_batch(records)
+    return translate_reference_batch(records, source_language)
 
 
 async def private_reference_records(user_id: str, *, db=None) -> list[dict]:
@@ -620,25 +611,25 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         )
     if body.end_page and body.end_page < body.start_page:
         raise HTTPException(status_code=400, detail="L'intervallo di pagine non è valido")
-    spanish_manuals = [
+    translatable_manuals = [
         filename for filename in requested
-        if manual_source_language(filename) == "es"
+        if translation_required(manual_source_language(filename))
     ]
-    if spanish_manuals and not body.translation_processing_confirmed:
+    if translatable_manuals and not body.translation_processing_confirmed:
         raise HTTPException(
             status_code=400,
-            detail="Conferma esplicitamente l'invio del testo estratto a Gemini per la traduzione italiana",
+            detail="Conferma esplicitamente l'invio del testo estratto al provider AI per la traduzione italiana",
         )
-    if spanish_manuals:
+    if translatable_manuals:
         if body.end_page is None:
             raise HTTPException(
                 status_code=400,
-                detail="Per tradurre il manuale spagnolo seleziona un intervallo di massimo 12 pagine",
+                detail="Per tradurre un manuale non italiano seleziona un intervallo di massimo 12 pagine",
             )
         if body.end_page - body.start_page + 1 > 12:
             raise HTTPException(
                 status_code=400,
-                detail="La traduzione del manuale spagnolo è limitata a 12 pagine per importazione",
+                detail="La traduzione dei manuali non italiani è limitata a 12 pagine per importazione",
             )
     if body.use_ai_ocr:
         spanish_native_manuals = [
@@ -776,7 +767,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
     report_by_filename = {report["filename"]: report for report in source_reports}
     for record in merge_reference_records(all_records):
         existing = existing_for_import(record)
-        if record["source_language"] != "es":
+        if not translation_required(record["source_language"]):
             localized_records.append({
                 **record,
                 "translation_status": "not_required",
@@ -802,26 +793,31 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             continue
         translation_queue.append(record)
 
-    translation_batches: list[list[dict]] = []
-    current_batch: list[dict] = []
-    current_size = 0
+    translation_batches: list[tuple[str, list[dict]]] = []
+    queues_by_language: dict[str, list[dict]] = {}
     for record in translation_queue:
-        record_size = len(record["source_name"]) + len(record["source_description"]) + len(record["source_full_text"])
-        if current_batch and (
-            len(current_batch) >= body.translation_batch_size
-            or current_size + record_size > 12000
-        ):
-            translation_batches.append(current_batch)
-            current_batch = []
-            current_size = 0
-        current_batch.append(record)
-        current_size += record_size
-    if current_batch:
-        translation_batches.append(current_batch)
+        queues_by_language.setdefault(normalize_language(record["source_language"]), []).append(record)
+    for source_language, language_queue in queues_by_language.items():
+        current_batch: list[dict] = []
+        current_size = 0
+        for record in language_queue:
+            record_size = len(record["source_name"]) + len(record["source_description"]) + len(record["source_full_text"])
+            if current_batch and (
+                len(current_batch) >= body.translation_batch_size
+                or current_size + record_size > 12000
+            ):
+                translation_batches.append((source_language, current_batch))
+                current_batch = []
+                current_size = 0
+            current_batch.append(record)
+            current_size += record_size
+        if current_batch:
+            translation_batches.append((source_language, current_batch))
 
     provider_exhausted = False
+    provider_exhausted = False
 
-    for batch in translation_batches:
+    for source_language, batch in translation_batches:
         individual_errors: dict[str, str] = {}
 
         if provider_exhausted:
@@ -830,7 +826,9 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             for record in batch:
                 individual_errors[record["id"]] = "provider_rate_limited"
         else:
-            translated, error = await asyncio.to_thread(translate_spanish_reference_batch, batch)
+            translated, error = await asyncio.to_thread(
+                _translate_reference_batch_for_language, batch, source_language
+            )
 
             if error == "provider_rate_limited" and len(batch) > 1:
                 provider_still_limited = False
@@ -839,7 +837,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
                         individual_errors[record["id"]] = "provider_rate_limited"
                         continue
                     ind_translated, ind_error = await asyncio.to_thread(
-                        translate_spanish_reference_batch, [record]
+                        _translate_reference_batch_for_language, [record], source_language
                     )
                     if ind_translated.get(record["id"]):
                         translated[record["id"]] = ind_translated[record["id"]]
@@ -1191,17 +1189,18 @@ async def reference_review_details(record: dict, *, db=None) -> dict:
     """Return the private side-by-side material needed to review one record."""
     summary = reference_summary(record)
     source_language = record.get("source_language", "it")
+    source_is_translated = translation_required(source_language)
     original = {
-        "name": record.get("source_name") or (record.get("name") if source_language != "es" else ""),
+        "name": record.get("source_name") or (record.get("name") if not source_is_translated else ""),
         "description": record.get("source_description") or (
-            record.get("description") if source_language != "es" else ""
+            record.get("description") if not source_is_translated else ""
         ),
         "full_text": record.get("source_full_text") or (
-            record.get("full_text") if source_language != "es" else ""
+            record.get("full_text") if not source_is_translated else ""
         ),
         "attributes": copy.deepcopy(
             record.get("source_attributes")
-            or (record.get("attributes") if source_language != "es" else {})
+            or (record.get("attributes") if not source_is_translated else {})
             or {}
         ),
     }
@@ -1318,7 +1317,7 @@ def manual_import_progress(filename: str, records: list[dict], page_count: Optio
     to_review = sum(reference_review_state(record) == "review" for record in source_records)
     ready = sum(reference_is_trusted(record) for record in source_records)
     translation_pending = failed + processing + sum(
-        record.get("source_language") == "es"
+        translation_required(record.get("source_language"))
         and record.get("translation_status", "not_required") not in {"translated", "failed", TRANSLATION_PROCESSING_STATUS}
         for record in source_records
     )
@@ -1375,7 +1374,7 @@ async def _wait_for_translation(collection: Any, user_id: str, reference_id: str
 
 
 async def retry_private_reference_translation(user_id: str, reference_id: str, *, db=None) -> dict:
-    """Retry one failed Spanish translation without re-reading the manual."""
+    """Retry one failed EN/ES/RU translation without re-reading the manual."""
     _db = db if db is not None else _singleton_db
     collection = getattr(_db, "private_reference_records", None)
     if collection is None:
@@ -1384,8 +1383,9 @@ async def retry_private_reference_translation(user_id: str, reference_id: str, *
     record = await collection.find_one({"id": reference_id, "user_id": user_id})
     if not record:
         raise HTTPException(status_code=404, detail="Contenuto non trovato nella tua biblioteca privata")
-    if record.get("source_language") != "es":
-        raise HTTPException(status_code=400, detail="Questo record non richiede una traduzione dallo spagnolo")
+    source_language = normalize_language(record.get("source_language"))
+    if not translation_required(source_language):
+        raise HTTPException(status_code=400, detail="Questo record non richiede una traduzione italiana")
     if record.get("translation_status") != "failed" and _translation_lease_is_active(record):
         return await _wait_for_translation(collection, user_id, reference_id, record)
     if record.get("translation_status") != "failed":
@@ -1436,7 +1436,9 @@ async def retry_private_reference_translation(user_id: str, reference_id: str, *
         "source_attributes": dict(record.get("source_attributes") or {}),
     }
     try:
-        translated, error = await asyncio.to_thread(translate_spanish_reference_batch, [source_record])
+        translated, error = await asyncio.to_thread(
+            _translate_reference_batch_for_language, [source_record], source_language
+        )
     except Exception as exc:
         logger.warning("Retry della traduzione Gemini fallito per %s: %s", reference_id, exc)
         translated, error = {}, "provider_translation_failed"
