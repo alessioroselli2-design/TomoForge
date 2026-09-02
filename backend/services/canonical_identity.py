@@ -17,7 +17,12 @@ from typing import Any, Callable
 import requests
 
 from core.config import OPENAI_API_KEY, OPENAI_TEXT_MODEL
-from reference_library import normalize_reference_name, reference_content_fingerprint
+from reference_library import (
+    normalize_reference_name,
+    reference_content_fingerprint,
+    reference_effective_level,
+    reference_effective_type,
+)
 
 
 IdentityComparator = Callable[[dict, list[dict]], dict[str, Any]]
@@ -70,9 +75,9 @@ def identity_is_resolved(record: dict) -> bool:
 
 
 def _same_progression_slot(record: dict, candidate: dict) -> bool:
-    reference_type = str(record.get("reference_type") or "other")
+    reference_type = reference_effective_type(record)
 
-    if reference_type != str(candidate.get("reference_type") or "other"):
+    if reference_type != reference_effective_type(candidate):
         return False
 
     fields = []
@@ -87,8 +92,20 @@ def _same_progression_slot(record: dict, candidate: dict) -> bool:
         fields.append("level")
 
     for field in fields:
-        left = normalize_reference_name(str(record.get(field) or ""))
-        right = normalize_reference_name(str(candidate.get(field) or ""))
+        if field == "level":
+            left = normalize_reference_name(
+                reference_effective_level(record)
+            )
+            right = normalize_reference_name(
+                reference_effective_level(candidate)
+            )
+        else:
+            left = normalize_reference_name(
+                str(record.get(field) or "")
+            )
+            right = normalize_reference_name(
+                str(candidate.get(field) or "")
+            )
 
         if left and right and left != right:
             return False
@@ -185,12 +202,20 @@ def identity_catalog_fingerprint(
     candidates: list[dict],
 ) -> str:
     payload = [
+        "identity-effective-type-v2",
         str(record.get("id", "")),
         reference_content_fingerprint(record),
+        reference_effective_type(record),
+        reference_effective_level(record),
     ]
 
     payload.extend(
-        f"{candidate.get('id', '')}:{reference_content_fingerprint(candidate)}"
+        (
+            f"{candidate.get('id', '')}:"
+            f"{reference_content_fingerprint(candidate)}:"
+            f"{reference_effective_type(candidate)}:"
+            f"{reference_effective_level(candidate)}"
+        )
         for candidate in sorted(
             candidates,
             key=lambda row: str(row.get("id", "")),
@@ -203,13 +228,14 @@ def identity_catalog_fingerprint(
 def _prompt_record(record: dict) -> dict:
     return {
         "source_record_id": record.get("id"),
-        "reference_type": record.get("reference_type"),
+        "reference_type": reference_effective_type(record),
+        "source_reference_type": record.get("reference_type"),
         "name": record.get("name"),
         "normalized_name": record.get("normalized_name"),
         "source_name": record.get("source_name"),
         "parent_class": record.get("parent_class"),
         "parent_subclass": record.get("parent_subclass"),
-        "level": record.get("level"),
+        "level": reference_effective_level(record),
         "source_language": record.get("source_language"),
         "translation_status": record.get("translation_status"),
         "text_excerpt": _excerpt(record),

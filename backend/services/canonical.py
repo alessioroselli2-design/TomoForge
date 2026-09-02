@@ -16,7 +16,12 @@ from typing import Any, Callable
 import requests
 
 from core.config import OPENAI_API_KEY, OPENAI_TEXT_MODEL, utc_now
-from reference_library import normalize_reference_name, reference_content_fingerprint
+from reference_library import (
+    normalize_reference_name,
+    reference_content_fingerprint,
+    reference_effective_level,
+    reference_effective_type,
+)
 
 logger = logging.getLogger("tomeforge")
 SUPPORTED_RULESETS = frozenset({"2014"})
@@ -30,18 +35,19 @@ def canonical_group_key(record: dict, ruleset: str = "2014") -> str:
         raise ValueError("Solo il ruleset D&D 5e 2014 è attualmente supportato")
     if record_ruleset(record) != ruleset:
         raise ValueError(f"La fonte appartiene al ruleset D&D 5e {record_ruleset(record)}")
+    reference_type = reference_effective_type(record)
     parts = [
         "dnd5e", ruleset, str(record.get("user_id", "")),
-        str(record.get("reference_type", "other")),
+        reference_type,
         record.get("normalized_name") or normalize_reference_name(record.get("name", "")),
     ]
-    if record.get("reference_type") in {"subclass", "class_feature", "ability"}:
+    if reference_type in {"subclass", "class_feature", "ability"}:
         parts.extend((
             normalize_reference_name(record.get("parent_class", "")),
             normalize_reference_name(record.get("parent_subclass", "")),
         ))
-    if record.get("reference_type") in {"class_feature", "ability", "spell"}:
-        parts.append(str(record.get("level") or (record.get("attributes") or {}).get("livello", "")))
+    if reference_type in {"class_feature", "ability", "spell"}:
+        parts.append(reference_effective_level(record))
     return ":".join(parts)
 
 
@@ -238,12 +244,12 @@ async def canonicalize_group(records: list[dict], ruleset: str = "2014", compara
     now = utc_now()
     row = {
         "id": canonical_id(key), "user_id": records[0]["user_id"], "canonical_key": key,
-        "reference_type": selected.get("reference_type"), "normalized_name":
+        "reference_type": reference_effective_type(selected), "normalized_name":
         selected.get("normalized_name") or normalize_reference_name(selected.get("name", "")),
         "name": selected.get("name", ""), "description": selected.get("description", ""),
         "full_text": selected.get("full_text", ""), "attributes": selected.get("attributes", {}),
         "parent_class": selected.get("parent_class", ""), "parent_subclass": selected.get("parent_subclass", ""),
-        "level": selected.get("level", ""), "source_record_ids": [r["id"] for r in sorted(records, key=lambda r: r["id"])],
+        "level": reference_effective_level(selected), "source_record_ids": [r["id"] for r in sorted(records, key=lambda r: r["id"])],
         "source_refs": source_refs, "source_count": len(records), "confidence": confidence,
         "verification_status": state, "conflict_fields": conflicts,
         "verification_model": OPENAI_TEXT_MODEL if requires_ai else "deterministic",

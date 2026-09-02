@@ -712,6 +712,7 @@ SPANISH_SPELL_SCHOOLS = (
     "Encantamiento",
     "Evocación",
     "Ilusión",
+    "Ilusionismo",
     "Nigromancia",
     "Transmutación",
 )
@@ -772,6 +773,16 @@ _SPELL_HEADER_PATTERNS = (
         "es",
         True,
         re.compile(
+            rf"^(?P<school>{_SPANISH_SPELL_SCHOOLS_PATTERN})"
+            rf"\s*\(truco\)"
+            rf"{_SPELL_HEADER_SUFFIX}",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "es",
+        True,
+        re.compile(
             rf"^Truco\s+(?:de\s+)?"
             rf"(?P<school>{_SPANISH_SPELL_SCHOOLS_PATTERN})"
             rf"(?:\s*\((?P<ritual>ritual)\))?"
@@ -794,6 +805,8 @@ def spell_header_metadata(value: str) -> dict:
         school = match.group("school")
         if school.casefold() == "tramutazione":
             school = "Trasmutazione"
+        elif school.casefold() == "ilusionismo":
+            school = "Ilusión"
 
         return {
             "language": language,
@@ -986,6 +999,90 @@ def _italian_spell_records(
         source_page,
         source_language,
     )
+
+
+def _normalize_reference_level(value: object) -> str:
+    text = str(value or "").strip()
+    key = normalize_reference_name(text)
+
+    if key in {
+        "trucchetto",
+        "trucco",
+        "cantrip",
+        "0",
+    }:
+        return "0"
+
+    match = re.search(r"\d+", text)
+    return match.group(0) if match else text
+
+
+def _record_structure_text(record: dict) -> str:
+    return str(
+        record.get("source_full_text")
+        or record.get("full_text")
+        or ""
+    )
+
+
+def reference_effective_type(record: dict) -> str:
+    """Return a conservative structural type without mutating source data."""
+    raw_type = str(record.get("reference_type") or "other")
+    text = _record_structure_text(record)
+    metadata = spell_header_metadata(text)
+
+    if not metadata:
+        return raw_type
+
+    sample = clean_text(text).casefold()
+
+    if metadata["language"] == "es":
+        required = (
+            "tiempo de lanzamiento",
+            "componentes",
+            "duración",
+        )
+    else:
+        required = (
+            "tempo di lancio",
+            "componenti",
+            "durata",
+        )
+
+    if all(token in sample for token in required):
+        return "spell"
+
+    return raw_type
+
+
+def reference_effective_level(record: dict) -> str:
+    """Derive progression level while retaining the imported record untouched."""
+    raw_level = _normalize_reference_level(record.get("level"))
+
+    if raw_level:
+        return raw_level
+
+    if reference_effective_type(record) == "spell":
+        metadata = spell_header_metadata(
+            _record_structure_text(record)
+        )
+        if metadata.get("level") != "":
+            return _normalize_reference_level(
+                metadata.get("level")
+            )
+
+    for attributes in (
+        record.get("attributes") or {},
+        record.get("source_attributes") or {},
+    ):
+        level = _normalize_reference_level(
+            attributes.get("livello")
+            or attributes.get("level")
+        )
+        if level:
+            return level
+
+    return ""
 
 
 def _equipment_row_records(
@@ -1390,12 +1487,13 @@ def search_reference_records(
     needle = normalize_reference_name(query)
     ranked: list[tuple[float, dict]] = []
     for record in records:
-        if reference_type and record.get("reference_type") != reference_type:
+        effective_type = reference_effective_type(record)
+        if reference_type and effective_type != reference_type:
             continue
         record_attributes = record.get("attributes") or {}
         record_class = record.get("parent_class") or record_attributes.get("parent_class") or ""
         record_subclass = record.get("parent_subclass") or record_attributes.get("parent_subclass") or ""
-        record_level = record.get("level") or record_attributes.get("level") or record_attributes.get("livello") or ""
+        record_level = reference_effective_level(record)
         if parent_class and normalize_reference_name(parent_class) not in normalize_reference_name(record_class):
             continue
         if parent_subclass and normalize_reference_name(parent_subclass) not in normalize_reference_name(record_subclass):
@@ -1437,7 +1535,8 @@ def search_reference_records(
 
 
 def reference_to_card_payload(record: dict) -> dict:
-    reference_type = record.get("reference_type", "other")
+    reference_type = reference_effective_type(record)
+    effective_level = reference_effective_level(record)
     attributes = dict(record.get("attributes") or {})
     card_type = CARD_TYPE_BY_REFERENCE_TYPE.get(reference_type, "custom")
     if card_type == "class":
@@ -1476,13 +1575,21 @@ def reference_to_card_payload(record: dict) -> dict:
     elif card_type == "feat":
         attributes = {"prerequisito": attributes.get("prerequisito", ""), "benefici": attributes.get("benefici", []), **attributes}
     elif card_type == "spell":
-        # Earlier imports stored the core spell metadata but did not extract
-        # damage. Re-read the private text when applying a record so existing
-        # cards receive that field too, without altering the source material.
+        # Earlier imports may have the correct spell body under a legacy
+        # parser type. Derive card metadata without rewriting the source row.
         extracted_attributes = _attributes("spell", record.get("full_text", ""))
         attributes = {**extracted_attributes, **attributes}
+
+        spell_metadata = spell_header_metadata(
+            _record_structure_text(record)
+        )
+        if effective_level and not attributes.get("livello"):
+            attributes["livello"] = effective_level
+        if spell_metadata and not attributes.get("scuola"):
+            attributes["scuola"] = spell_metadata.get("school", "")
+
         attributes = {
-            "livello": attributes.get("livello", ""),
+            "livello": attributes.get("livello", effective_level),
             "scuola": attributes.get("scuola", ""),
             "azione": attributes.get("azione", attributes.get("tempo_lancio", "")),
             "tempo_lancio": attributes.get("tempo_lancio", ""),
@@ -1550,7 +1657,7 @@ def reference_to_card_payload(record: dict) -> dict:
         "reference_type": reference_type,
         "parent_class": record.get("parent_class", ""),
         "parent_subclass": record.get("parent_subclass", ""),
-        "level": record.get("level", "") or attributes.get("livello", ""),
+        "level": effective_level or attributes.get("livello", ""),
         "source_language": record.get("source_language", "it"),
         "content_language": (
             "it"
