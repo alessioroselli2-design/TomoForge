@@ -88,7 +88,7 @@ def _registry_available_reference_manuals() -> dict[str, Path]:
     """Discover supplied PDFs from the fixed local assets directory."""
     known = [
         filename for filename in REFERENCE_MANUAL_FILENAMES
-        if (SPELL_PDF_DIRECTORY / filename).is_file()
+        if (SPELL_PDF_DIRECTORY / filename).is_file() and is_rule_manual_filename(filename)
     ]
     known_set = set(known)
     additional = sorted(

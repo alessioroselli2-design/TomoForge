@@ -521,17 +521,13 @@ async def process_manual_preload_job(user_id: str, job: dict, *, db=None) -> Non
         (set(job.get("pages_needing_ocr") or []) - current_pages)
         | set(source_report.get("pages_needing_ocr") or [])
     )
-    attempts = int(job.get("attempt_count") or 0)
-    if source_report.get("pages_needing_ocr") and manual_requires_ocr(filename):
-        next_page = current_page
-        attempts += 1
-        next_status = "queued" if attempts < MANUAL_PRELOAD_MAX_ATTEMPTS else "failed"
-        error = "ocr_pages_unavailable"
-    else:
-        next_page = end_page + 1
-        next_status = "completed" if next_page > page_count else "queued"
-        error = ""
-        attempts = 0
+    # An OCR miss is page-local: retain it for a targeted retry/review, but do
+    # not replay the whole chunk (and duplicate already imported records).
+    # Parser and persistence exceptions still take the retry/failure path above.
+    next_page = end_page + 1
+    next_status = "completed" if next_page > page_count else "queued"
+    error = "ocr_pages_unresolved" if unreadable_pages else ""
+    attempts = 0
     checkpoint = await collection.update_one(
         owned_query,
         {"$set": {

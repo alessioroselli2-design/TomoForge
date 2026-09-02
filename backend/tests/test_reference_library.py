@@ -4288,9 +4288,8 @@ def test_extract_reference_records_handles_ocr_only_manual_with_mixed_pages(tmp_
     assert len(native_records) >= 1, "Records from the native text layer must NOT carry ocr_da_verificare"
 
 
-def test_preload_worker_marks_job_failed_after_max_ocr_attempts(monkeypatch, tmp_path):
-    """process_manual_preload_job must set status=failed and last_error=ocr_pages_unavailable
-    when an OCR-only manual exhausts all permitted retry attempts."""
+def test_preload_worker_completes_with_warning_after_unresolved_ocr(monkeypatch, tmp_path):
+    """An unresolved OCR page remains reviewable without blocking the first pass."""
     source = tmp_path / "dm-guide-scan.pdf"
     source.write_bytes(b"%PDF-1.4\n%%EOF")
     filename = source.name
@@ -4305,7 +4304,7 @@ def test_preload_worker_marks_job_failed_after_max_ocr_attempts(monkeypatch, tmp
         "source_fingerprint": "fp-dm",
         "current_page": 1,
         "page_count": 3,
-        "attempt_count": server.MANUAL_PRELOAD_MAX_ATTEMPTS - 1,  # one more failure → failed
+        "attempt_count": server.MANUAL_PRELOAD_MAX_ATTEMPTS - 1,
         "last_error": "ocr_pages_unavailable",
         "pages_needing_ocr": [1],
         "records_imported": 0,
@@ -4339,10 +4338,10 @@ def test_preload_worker_marks_job_failed_after_max_ocr_attempts(monkeypatch, tmp
     asyncio.run(server.process_manual_preload_job("owner-1", dict(jobs.rows[0]), db=_test_db))
 
     final_job = jobs.rows[0]
-    assert final_job["status"] == "failed", (
-        "Job must be failed after exhausting MANUAL_PRELOAD_MAX_ATTEMPTS OCR retries"
-    )
-    assert final_job["last_error"] == "ocr_pages_unavailable"
+    assert final_job["status"] == "completed"
+    assert final_job["current_page"] == 4
+    assert final_job["attempt_count"] == 0
+    assert final_job["last_error"] == "ocr_pages_unresolved"
     assert 1 in final_job["pages_needing_ocr"]
 
 
