@@ -39,7 +39,14 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-SPELL_PDF_DIRECTORY = ROOT_DIR.parent / "attached_assets"
+# Keep the private manual collection outside the repository by default. A
+# worker or local recovery run can point at a materialized collection without
+# copying gigabytes of PDFs into the deployment bundle.
+REFERENCE_MANUAL_DIRECTORY = Path(
+    os.getenv("REFERENCE_MANUAL_DIRECTORY", str(ROOT_DIR.parent / "attached_assets"))
+).expanduser()
+# Backwards-compatible name used by the spell and reference import services.
+SPELL_PDF_DIRECTORY = REFERENCE_MANUAL_DIRECTORY
 REFERENCE_MANUAL_FILENAMES = (
     "Manuale_del_giocatore__1787259882002.pdf",
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf",
