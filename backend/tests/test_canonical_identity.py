@@ -248,3 +248,116 @@ def test_catalog_fingerprint_changes_when_candidate_changes():
     after = identity_catalog_fingerprint(source, [changed])
 
     assert before != after
+
+def test_high_confidence_ai_match_with_weak_local_candidate_is_rejected():
+    source = record(
+        "source-weak",
+        name="Ricolmi Di Energia",
+        normalized_name="ricolmi di energia",
+        full_text=(
+            "Gli gnomi manifestano energia, entusiasmo "
+            "e vitalita nelle loro espressioni."
+        ),
+    )
+
+    weak = record(
+        "weak",
+        name="Raggio Di Infermità",
+        normalized_name="raggio di infermita",
+        source_language="it",
+        translation_status="not_required",
+        full_text="",
+    )
+
+    assert 0.18 <= identity_candidate_score(source, weak) < 0.45
+
+    result = asyncio.run(
+        resolve_identity(
+            source,
+            [source, weak],
+            comparator=lambda record, candidates: {
+                "status": "matched",
+                "candidate_source_record_id": "weak",
+                "confidence": 1.0,
+                "notes": "Match dichiarato dal modello.",
+            },
+        )
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["matched_source_record_id"] == ""
+    assert result["identity_normalized_name"] == ""
+    assert "controllo deterministico" in result["notes"]
+
+
+def test_ai_cannot_choose_candidate_too_far_down_local_ranking():
+    source = record(
+        "source-rank",
+        name="Ricolmi Di Energia",
+        normalized_name="ricolmi di energia",
+        full_text=(
+            "Manifesti energia ed entusiasmo "
+            "attraverso una caratteristica."
+        ),
+    )
+
+    candidates = [
+        record(
+            "rank-1",
+            name="Ricolmi Di Energia",
+            normalized_name="ricolmi di energia",
+            source_language="it",
+            translation_status="not_required",
+            full_text=source["full_text"],
+        ),
+        record(
+            "rank-2",
+            name="Ricolmo Di Energia",
+            normalized_name="ricolmo di energia",
+            source_language="it",
+            translation_status="not_required",
+            full_text=source["full_text"],
+        ),
+        record(
+            "rank-3",
+            name="Energia Ricolma",
+            normalized_name="energia ricolma",
+            source_language="it",
+            translation_status="not_required",
+            full_text=source["full_text"],
+        ),
+        record(
+            "rank-4",
+            name="Energia",
+            normalized_name="energia",
+            source_language="it",
+            translation_status="not_required",
+            full_text=source["full_text"],
+        ),
+    ]
+
+    ranked = identity_candidates(
+        source,
+        [source, *candidates],
+    )
+
+    assert len(ranked) >= 4
+    rank_four_id = ranked[3]["id"]
+
+    result = asyncio.run(
+        resolve_identity(
+            source,
+            [source, *candidates],
+            comparator=lambda record, candidates: {
+                "status": "matched",
+                "candidate_source_record_id": rank_four_id,
+                "confidence": 1.0,
+                "notes": "Il modello ha scelto un candidato debole.",
+            },
+        )
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["matched_source_record_id"] == ""
+    assert "candidate_rank=4" in result["notes"]
+

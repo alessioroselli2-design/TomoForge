@@ -26,6 +26,13 @@ MATCH_MIN_CONFIDENCE = 0.92
 NO_MATCH_MIN_CONFIDENCE = 0.95
 MAX_IDENTITY_CANDIDATES = 6
 
+# A high AI confidence is not sufficient on its own.
+# Semantic identity matches must also be plausible according to
+# the deterministic local candidate ranking.
+MATCH_MIN_LOCAL_SCORE = 0.45
+MATCH_MAX_BEST_SCORE_GAP = 0.10
+MATCH_MAX_CANDIDATE_RANK = 3
+
 
 def _tokens(value: str) -> set[str]:
     value = normalize_reference_name(value or "")
@@ -353,8 +360,83 @@ async def resolve_identity(
                     "identity comparator selected unknown candidate"
                 )
 
+            ranked_candidates = sorted(
+                (
+                    (
+                        identity_candidate_score(record, candidate),
+                        candidate,
+                    )
+                    for candidate in candidates
+                ),
+                key=lambda item: (
+                    -item[0],
+                    str(item[1].get("id", "")),
+                ),
+            )
+
+            selected = next(
+                candidate
+                for candidate in candidates
+                if str(candidate.get("id")) == selected_id
+            )
+
+            selected_score = identity_candidate_score(
+                record,
+                selected,
+            )
+            best_score = ranked_candidates[0][0]
+
+            selected_rank = next(
+                index
+                for index, (_, candidate) in enumerate(
+                    ranked_candidates,
+                    1,
+                )
+                if str(candidate.get("id")) == selected_id
+            )
+
+            gate_reasons = []
+
+            if selected_score < MATCH_MIN_LOCAL_SCORE:
+                gate_reasons.append(
+                    f"local_score={selected_score:.3f}"
+                )
+
+            if selected_rank > MATCH_MAX_CANDIDATE_RANK:
+                gate_reasons.append(
+                    f"candidate_rank={selected_rank}"
+                )
+
+            if (
+                best_score - selected_score
+                > MATCH_MAX_BEST_SCORE_GAP
+            ):
+                gate_reasons.append(
+                    "too_far_from_best="
+                    f"{best_score - selected_score:.3f}"
+                )
+
             if confidence < MATCH_MIN_CONFIDENCE:
                 status = "uncertain"
+                selected_id = ""
+
+            elif gate_reasons:
+                status = "uncertain"
+                selected_id = ""
+                confidence = min(
+                    confidence,
+                    MATCH_MIN_CONFIDENCE - 0.01,
+                )
+                gate_note = (
+                    "Match AI non accettato dal controllo "
+                    "deterministico: "
+                    + ", ".join(gate_reasons)
+                )
+                notes = (
+                    f"{notes} | {gate_note}"
+                    if notes
+                    else gate_note
+                )[:1200]
 
         elif status == "no_match":
             selected_id = ""
