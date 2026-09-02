@@ -61,6 +61,22 @@ def test_character_sheet_is_not_discovered_as_rule_manual(monkeypatch, tmp_path)
     assert set(library.available_reference_manuals()) == {"Manuale_aggiuntivo.pdf"}
 
 
+def test_unregistered_exact_copy_of_registered_manual_is_not_discovered(monkeypatch, tmp_path):
+    from services import library
+
+    registered_name = "Manuale_del_giocatore__1787259882002.pdf"
+    (tmp_path / registered_name).write_bytes(b"registered manual bytes")
+    (tmp_path / "same-manual-with-another-name.pdf").write_bytes(b"registered manual bytes")
+    (tmp_path / "new-manual.pdf").write_bytes(b"different manual bytes")
+    monkeypatch.setattr(library, "SPELL_PDF_DIRECTORY", tmp_path)
+    monkeypatch.setattr(library, "REFERENCE_MANUAL_FILENAMES", (registered_name,))
+
+    assert set(library.available_reference_manuals()) == {
+        registered_name,
+        "new-manual.pdf",
+    }
+
+
 def test_divergent_ai_selection_retains_whole_selected_record_and_provenance():
     first = record("one", full_text="vecchia regola")
     second = record("two", full_text="nuova regola", attributes={"danno": "2d6"})

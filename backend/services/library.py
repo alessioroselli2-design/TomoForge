@@ -91,7 +91,7 @@ def is_rule_manual_filename(filename: str) -> bool:
 
 
 def _registry_available_reference_manuals() -> dict[str, Path]:
-    """Discover supplied PDFs from the fixed local assets directory."""
+    """Discover supplied PDFs from the configured private source directory."""
     known = [
         filename for filename in REFERENCE_MANUAL_FILENAMES
         if (SPELL_PDF_DIRECTORY / filename).is_file() and is_rule_manual_filename(filename)
@@ -102,6 +102,38 @@ def _registry_available_reference_manuals() -> dict[str, Path]:
         if path.is_file() and path.name not in known_set and is_rule_manual_filename(path.name)
     )
     return {filename: SPELL_PDF_DIRECTORY / filename for filename in [*known, *additional]}
+
+
+def _manual_content_digest(path: Path) -> bytes:
+    """Hash a PDF without loading a potentially large manual into memory."""
+    digest = sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.digest()
+
+
+def _unregistered_duplicate_of(
+    path: Path,
+    registered_manuals: dict[str, Path],
+) -> Optional[str]:
+    """Identify an unregistered copy of a known source by its exact bytes."""
+    try:
+        own_size = path.stat().st_size
+    except OSError:
+        return None
+    own_digest: Optional[bytes] = None
+    for filename, registered_path in registered_manuals.items():
+        try:
+            if own_size != registered_path.stat().st_size:
+                continue
+            if own_digest is None:
+                own_digest = _manual_content_digest(path)
+            if own_digest == _manual_content_digest(registered_path):
+                return filename
+        except OSError:
+            continue
+    return None
 
 
 
@@ -119,6 +151,23 @@ def available_reference_manuals() -> dict[str, Path]:
             and is_rule_manual_filename(source_path.name)
         ):
             manuals.setdefault(source_path.name, source_path)
+
+    registered_manuals = {
+        filename: path
+        for filename, path in manuals.items()
+        if source_metadata_for_page(filename)
+    }
+    for filename, path in tuple(manuals.items()):
+        if source_metadata_for_page(filename):
+            continue
+        duplicate_of = _unregistered_duplicate_of(path, registered_manuals)
+        if duplicate_of:
+            logger.warning(
+                "Ignoring unregistered manual copy %s; bytes match registered source %s",
+                filename,
+                duplicate_of,
+            )
+            manuals.pop(filename, None)
 
     return manuals
 
@@ -224,7 +273,7 @@ def manual_source_duplicate_of(
         try:
             if own_size != other_path.stat().st_size:
                 continue
-            if sha256(path.read_bytes()).digest() == sha256(other_path.read_bytes()).digest():
+            if _manual_content_digest(path) == _manual_content_digest(other_path):
                 return other_filename
         except OSError:
             continue
