@@ -1314,7 +1314,15 @@ def extract_reference_records(
                 if ocr_page is None:
                     report.pages_needing_ocr.append(page_number)
                     continue
-                text = ocr_page(page, page_number)
+                try:
+                    text = ocr_page(page, page_number)
+                except Exception as exc:
+                    # A remote OCR provider is an optional, page-scoped aid.
+                    # Preserve the missing page in the report and continue the
+                    # manual rather than losing all already extracted records.
+                    logger.warning("OCR pagina %s non riuscito: %s", page_number, exc)
+                    report.pages_needing_ocr.append(page_number)
+                    continue
                 extracted_with_ocr = True
                 if not text_is_usable(text):
                     stripped = text.strip() if text else ""
@@ -1407,44 +1415,26 @@ def extract_reference_records(
 
 
 def merge_reference_records(records: Iterable[dict]) -> list[dict]:
-    """Deduplicate identical native content while retaining every source pointer.
+    """Join repeated page fragments only within the same physical source.
 
-    A repeated rule from different manuals is merged only when its original
-    wording and extracted facts match exactly. OCR and translated source text
-    remains source-scoped until a reviewer can confirm it, avoiding an
-    accidental merge of two editions or translations.
+    Equal records from different manuals intentionally remain independent
+    canonicalization candidates.  In particular, this function never chooses
+    fields from one manual to complete a record extracted from another.
     """
     merged: dict[tuple[str, str, str, str], dict] = {}
-    source_groups: dict[tuple[str, str, str], tuple[str, str, str, str]] = {}
-    content_groups: dict[tuple[str, str, str, str], tuple[str, str, str, str]] = {}
     for candidate in records:
-        source_key = candidate.get("source_key", "")
-        source_group = (
+        refs = candidate.get("source_refs") or []
+        source_key = candidate.get("source_key") or next(
+            (ref.get("filename") for ref in refs if isinstance(ref, dict) and ref.get("filename")),
+            "",
+        )
+        key = (
             candidate["reference_type"],
             candidate["normalized_name"],
             source_key,
+            candidate.get("source_language", "it"),
         )
-        source_language = candidate.get("source_language", "it")
-        content_group = (
-            candidate["reference_type"],
-            candidate["normalized_name"],
-            source_language,
-            reference_content_fingerprint(candidate),
-        )
-        # A source-local merge preserves the prior multi-page parsing
-        # behavior. Cross-manual merges are intentionally limited to native
-        # content: translations and OCR need their own review history.
-        can_merge_across_manuals = source_language != "es" and not candidate.get("review_flags")
-        key = source_groups.get(source_group)
-        if key is None and can_merge_across_manuals:
-            key = content_groups.get(content_group)
-        if key is None:
-            key = content_group if can_merge_across_manuals else (
-                candidate["reference_type"],
-                candidate["normalized_name"],
-                source_language,
-                f"{content_group[-1]}:{source_key}",
-            )
+        if key not in merged:
             merged[key] = {
                 **candidate,
                 "attributes": dict(candidate.get("attributes") or {}),
@@ -1452,11 +1442,8 @@ def merge_reference_records(records: Iterable[dict]) -> list[dict]:
                 "review_flags": list(candidate.get("review_flags") or []),
                 "tags": list(candidate.get("tags") or []),
             }
-            if can_merge_across_manuals:
-                content_groups[content_group] = key
-        source_groups[source_group] = key
         current = merged[key]
-        if current is candidate:
+        if current.get("id") == candidate.get("id"):
             continue
         current["source_refs"].extend(ref for ref in candidate.get("source_refs", []) if ref not in current["source_refs"])
         current["review_flags"] = sorted(set(current["review_flags"]) | set(candidate.get("review_flags") or []))

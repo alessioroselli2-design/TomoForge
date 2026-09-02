@@ -10,7 +10,7 @@ import requests
 
 from core.config import (
     ARTWORK_CLEANUP_ENABLED, ARTWORK_CLEANUP_MODEL,
-    MOCK_DATA, OPENAI_API_KEY, utc_now,
+    MOCK_DATA, utc_now,
 )
 from core.db import db as _singleton_db, put_object
 from core.providers import require_openai
@@ -93,11 +93,9 @@ def require_artwork_cleanup() -> None:
             status_code=503,
             detail="La pulizia opzionale di firme e filigrane non è disponibile nella modalità demo.",
         )
-    if not (OPENAI_API_KEY or "").strip():
-        raise HTTPException(
-            status_code=503,
-            detail="La pulizia opzionale di firme e filigrane non è configurata su questo server.",
-        )
+    # Provider configuration is validated by ``require_openai`` inside the
+    # cleanup operation. Keeping one validation path also permits injected
+    # provider clients in tests and self-hosted deployments.
 
 
 async def save_artwork(

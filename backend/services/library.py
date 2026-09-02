@@ -6,6 +6,7 @@ import logging
 import re
 import time
 import uuid
+from functools import partial
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Optional
@@ -56,7 +57,6 @@ from core.config import (
     utc_now,
 )
 from core.db import db as _singleton_db
-from core.providers import require_gemini
 from schemas.library import ReferenceImportInput, ReferenceImportResult
 
 logger = logging.getLogger("tomeforge")
@@ -129,6 +129,7 @@ def _registry_manual_requires_ocr(filename: str) -> bool:
 
 
 def manual_requires_ocr(filename: str) -> bool:
+    registered = source_metadata_for_page(filename)
     legacy_requires_ocr = (
         filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES
         or filename.startswith(OCR_REQUIRED_REFERENCE_PREFIXES)
@@ -137,6 +138,18 @@ def manual_requires_ocr(filename: str) -> bool:
     return (
         legacy_requires_ocr
         or _registry_manual_requires_ocr(filename)
+        or registered.get("text_mode") == "mixed"
+    )
+
+
+def manual_forces_ocr(filename: str) -> bool:
+    """Whether every page must use OCR rather than its native text layer."""
+    metadata = source_metadata_for_page(filename)
+    return bool(metadata and metadata.get("text_mode") == "vision_required") or (
+        not metadata and (
+            filename in OCR_ONLY_REFERENCE_MANUAL_FILENAMES
+            or filename.startswith(OCR_REQUIRED_REFERENCE_PREFIXES)
+        )
     )
 
 
@@ -223,7 +236,7 @@ def manual_page_count(path: Path) -> Optional[int]:
         return None
 
 
-def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
+def gemini_ocr_manual_page(page: Any, page_number: int, source_language: str = "") -> str:
     """Transcribe a private scanned page using Gemini Vision without persisting the image."""
     if not GEMINI_API_KEY:
         logger.warning("OCR Gemini non configurato: GEMINI_API_KEY mancante")
@@ -231,10 +244,11 @@ def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     import pymupdf as fitz
     pixmap = page.get_pixmap(matrix=fitz.Matrix(1.45, 1.45), alpha=False)
     image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
+    language_hint = f" La lingua dichiarata della fonte è {source_language}." if source_language else ""
     prompt = (
-        "Trascrivi fedelmente questa pagina di un manuale di gioco in italiano. "
-        "Mantieni titoli in MAIUSCOLO, paragrafi e tabelle leggibili. Non riassumere, "
-        "non inventare testo, non aggiungere commenti: restituisci solo la trascrizione."
+        "Trascrivi fedelmente la pagina nella sua lingua originale; non tradurre."
+        f"{language_hint} Mantieni titoli, paragrafi e tabelle leggibili. Non riassumere, "
+        "non inventare testo e non aggiungere commenti: restituisci solo la trascrizione."
     )
     try:
         response = requests.post(
@@ -268,7 +282,7 @@ def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
     return ""
 
 
-def openai_ocr_manual_page(page: Any, page_number: int) -> str:
+def openai_ocr_manual_page(page: Any, page_number: int, source_language: str = "") -> str:
     """Transcribe a private scanned page using OpenAI Vision without persisting the image."""
     if not OPENAI_API_KEY:
         logger.warning("OCR OpenAI non configurato: OPENAI_API_KEY mancante")
@@ -276,10 +290,11 @@ def openai_ocr_manual_page(page: Any, page_number: int) -> str:
     import pymupdf as fitz
     pixmap = page.get_pixmap(matrix=fitz.Matrix(1.45, 1.45), alpha=False)
     image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
+    language_hint = f" La lingua dichiarata della fonte è {source_language}." if source_language else ""
     prompt = (
-        "Trascrivi fedelmente questa pagina di un manuale di gioco in italiano. "
-        "Mantieni titoli in MAIUSCOLO, paragrafi e tabelle leggibili. Non riassumere, "
-        "non inventare testo, non aggiungere commenti: restituisci solo la trascrizione."
+        "Trascrivi fedelmente la pagina nella sua lingua originale; non tradurre."
+        f"{language_hint} Mantieni titoli, paragrafi e tabelle leggibili. Non riassumere, "
+        "non inventare testo e non aggiungere commenti: restituisci solo la trascrizione."
     )
     try:
         response = requests.post(
@@ -445,7 +460,7 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
     try:
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent",
-            headers={"x-goog-api-key": require_gemini(), "Content-Type": "application/json"},
+            headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
@@ -652,16 +667,19 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
 
     all_records: list[dict] = []
     source_reports: list[dict] = []
-    ocr_callback = openai_ocr_manual_page if body.use_ai_ocr else None
     for filename in requested:
         source_metadata = manual_source_metadata(filename)
+        ocr_callback = (
+            partial(openai_ocr_manual_page, source_language=source_metadata["language"])
+            if body.use_ai_ocr else None
+        )
         report = await asyncio.to_thread(
             extract_reference_records,
             manuals[filename],
             ocr_callback,
             body.start_page,
             body.end_page,
-            manual_requires_ocr(filename),
+            manual_forces_ocr(filename),
             source_metadata["language"],
         )
         for record in report.records:
@@ -730,17 +748,6 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         for record in existing_records
         if record.get("reference_type") and record.get("source_key")
     }
-    existing_by_content = {
-        (
-            record.get("reference_type"),
-            record.get("normalized_name") or normalize_reference_name(record.get("name", "")),
-            record.get("source_language", "it"),
-            reference_content_fingerprint(record),
-        ): record
-        for record in existing_records
-        if record.get("reference_type") and (record.get("name") or record.get("normalized_name"))
-    }
-
     def existing_for_import(record: dict) -> Optional[dict]:
         source_match = existing_by_source.get((
             record["reference_type"],
@@ -762,14 +769,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
         ))
         if stored_name_match:
             return stored_name_match
-        if record.get("source_language") == "es" or record.get("review_flags"):
-            return None
-        return existing_by_content.get((
-            record["reference_type"],
-            record["normalized_name"],
-            record.get("source_language", "it"),
-            reference_content_fingerprint(record),
-        ))
+        return None
 
     localized_records: list[dict] = []
     translation_queue: list[dict] = []
@@ -900,7 +900,7 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             "id": f"ref_{owned_record_id}",
             "user_id": user_id,
             "review_status": (
-                "verified" if body.auto_accept and record.get("translation_status") != "failed"
+                "verified" if body.auto_accept and reference_review_state(record) == "valid"
                 else "needs_review" if reference_review_state(record) == "review" else "pending"
             ),
             "review_notes": "",
@@ -1003,12 +1003,6 @@ async def import_private_reference_manuals(user_id: str, body: ReferenceImportIn
             existing_by_source_name[(
                 merged.get("source_key", ""),
                 merged.get("source_normalized_name") or merged["normalized_name"],
-            )] = combined
-            existing_by_content[(
-                merged["reference_type"],
-                merged["normalized_name"],
-                merged.get("source_language", "it"),
-                reference_content_fingerprint(merged),
             )] = combined
 
         if existing:
