@@ -68,8 +68,9 @@ def build_translation_prompt(
 
     source_label = _LANGUAGE_NAMES.get(source, source)
     target_label = _LANGUAGE_NAMES.get(target, target)
+    target_phrase = "all'italiano" if target == "it" else f"al {target_label}"
     return (
-        f"Traduci fedelmente dal {source_label} al {target_label} questi record strutturati "
+        f"Traduci fedelmente dal {source_label} {target_phrase} questi record strutturati "
         "di un manuale di gioco. Il testo fornito è la fonte: non usare conoscenze esterne. "
         "Traduci nome, descrizione, full_text e soltanto i valori testuali di attributes. "
         "Non aggiungere regole, non correggere il contenuto, non riassumere e non omettere "
