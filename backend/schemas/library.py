@@ -58,3 +58,8 @@ class CanonicalizationRunInput(BaseModel):
     user_id: Optional[str] = None
     batch_size: int = Field(default=5, ge=1, le=25)
     ruleset: Literal["2014"] = "2014"
+
+
+class TranslationVerificationRunInput(BaseModel):
+    user_id: Optional[str] = None
+    batch_size: int = Field(default=5, ge=1, le=25)
