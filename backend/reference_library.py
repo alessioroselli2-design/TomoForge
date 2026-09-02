@@ -350,6 +350,8 @@ def _record_type(title: str, body: str) -> str:
     sample = f"{title} {body[:900]}".casefold()
     title_key = title.casefold()
     normalized_title = normalize_reference_name(title)
+    if spell_header_metadata(body):
+        return "spell"
     if normalized_title in CLASS_TITLES | SPANISH_CLASS_TITLES:
         return "class"
     if normalized_title in SPANISH_SUBRACE_TITLES:
@@ -471,29 +473,57 @@ def _attributes(record_type: str, body: str) -> dict:
                 attributes[field] = found.group(1).strip() if found.lastindex else found.group(0).strip()
     elif record_type == "spell":
         spell_text = body or flat
-        spell_header = re.search(
-            r"(Abjuración|Adivinación|Conjuración|Encantamiento|Evocación|Ilusión|Nigromancia|Transmutación)"
-            r"\s+(?:nivel\s+)?(\d+|truco)(?:\s*\((ritual)\))?",
-            spell_text,
-            flags=re.IGNORECASE,
-        )
-        if spell_header:
-            attributes["scuola"] = spell_header.group(1)
-            attributes["livello"] = "Trucchetto" if spell_header.group(2).casefold() == "truco" else spell_header.group(2)
-            if spell_header.group(3):
+        header = spell_header_metadata(spell_text)
+        if header:
+            attributes["scuola"] = header["school"]
+            attributes["livello"] = header["level"]
+            if header["ritual"]:
                 attributes["rituale"] = "Sì"
+
         spell_patterns = {
-            "tempo_lancio": r"(?mi)^Tiempo de lanzamiento\s*:\s*(.+)$",
-            "gittata": r"(?mi)^(?:Alcance|Alance)\s*:\s*(.+)$",
-            "componenti": r"(?mi)^Componentes\s*:\s*(.+)$",
-            "durata": r"(?mi)^Duración\s*:\s*(.+)$",
+            "tempo_lancio": (
+                r"(?mi)^Tempo di Lancio\s*:\s*(.+)$",
+                r"(?mi)^Tiempo de lanzamiento\s*:\s*(.+)$",
+            ),
+            "gittata": (
+                r"(?mi)^(?:Gittata|Raggio)\s*:\s*(.+)$",
+                r"(?mi)^(?:Alcance|Alance)\s*:\s*(.+)$",
+            ),
+            "componenti": (
+                r"(?mi)^Componenti\s*:\s*(.+)$",
+                r"(?mi)^Componentes\s*:\s*(.+)$",
+            ),
+            "durata": (
+                r"(?mi)^Durata\s*:\s*(.+)$",
+                r"(?mi)^Duración\s*:\s*(.+)$",
+            ),
         }
-        for field, pattern in spell_patterns.items():
-            found = re.search(pattern, spell_text, flags=re.IGNORECASE)
+
+        for field, patterns in spell_patterns.items():
+            found = next(
+                (
+                    match
+                    for pattern in patterns
+                    if (
+                        match := re.search(
+                            pattern,
+                            spell_text,
+                            flags=re.IGNORECASE,
+                        )
+                    )
+                ),
+                None,
+            )
             if found:
                 attributes[field] = found.group(1).strip()
-        if re.search(r"Concentración", spell_text, flags=re.IGNORECASE):
+
+        if re.search(
+            r"Concentrazione|Concentración",
+            spell_text,
+            flags=re.IGNORECASE,
+        ):
             attributes["concentrazione"] = "Sì"
+
         damage = re.search(
             r"\b(?P<dice>\d+\s*d\s*\d+(?:\s*[+-]\s*\d+)?)\s+"
             r"(?:danni?|puntos?\s+de\s+daño|puntos?\s+di\s+danno)\s+"
@@ -663,11 +693,265 @@ def _reference_hierarchy(
     }
 
 
-SPANISH_SPELL_HEADER = re.compile(
-    r"^(?:Abjuración|Adivinación|Conjuración|Encantamiento|Evocación|Ilusión|Nigromancia|Transmutación)"
-    r"\s+(?:nivel\s+)?(?:\d+|truco)(?:\s*\(ritual\))?\s*$",
-    flags=re.IGNORECASE,
+ITALIAN_SPELL_SCHOOLS = (
+    "Abiurazione",
+    "Ammaliamento",
+    "Divinazione",
+    "Evocazione",
+    "Illusione",
+    "Invocazione",
+    "Necromanzia",
+    "Trasmutazione",
+    "Tramutazione",
 )
+
+SPANISH_SPELL_SCHOOLS = (
+    "Abjuración",
+    "Adivinación",
+    "Conjuración",
+    "Encantamiento",
+    "Evocación",
+    "Ilusión",
+    "Nigromancia",
+    "Transmutación",
+)
+
+
+def _spell_school_pattern(values: tuple[str, ...]) -> str:
+    return "|".join(re.escape(value) for value in values)
+
+
+_SPELL_HEADER_SUFFIX = (
+    r"(?=\s*(?:$|Tempo\s+di\s+Lancio\s*:|"
+    r"Tiempo\s+de\s+lanzamiento\s*:))"
+)
+
+_ITALIAN_SPELL_SCHOOLS_PATTERN = _spell_school_pattern(
+    ITALIAN_SPELL_SCHOOLS
+)
+_SPANISH_SPELL_SCHOOLS_PATTERN = _spell_school_pattern(
+    SPANISH_SPELL_SCHOOLS
+)
+
+_SPELL_HEADER_PATTERNS = (
+    (
+        "it",
+        False,
+        re.compile(
+            rf"^(?P<school>{_ITALIAN_SPELL_SCHOOLS_PATTERN})"
+            rf"\s+di\s+(?P<level>\d+)\s*[°º]?\s*livello"
+            rf"(?:\s*\((?P<ritual>rituale)\))?"
+            rf"{_SPELL_HEADER_SUFFIX}",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "it",
+        True,
+        re.compile(
+            rf"^Trucchetto\s+di\s+"
+            rf"(?P<school>{_ITALIAN_SPELL_SCHOOLS_PATTERN})"
+            rf"(?:\s*\((?P<ritual>rituale)\))?"
+            rf"{_SPELL_HEADER_SUFFIX}",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "es",
+        False,
+        re.compile(
+            rf"^(?P<school>{_SPANISH_SPELL_SCHOOLS_PATTERN})"
+            rf"\s+(?:de\s+)?(?:nivel\s+)?"
+            rf"(?P<level>\d+)\s*[°º]?"
+            rf"(?:\s*\((?P<ritual>ritual)\))?"
+            rf"{_SPELL_HEADER_SUFFIX}",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "es",
+        True,
+        re.compile(
+            rf"^Truco\s+(?:de\s+)?"
+            rf"(?P<school>{_SPANISH_SPELL_SCHOOLS_PATTERN})"
+            rf"(?:\s*\((?P<ritual>ritual)\))?"
+            rf"{_SPELL_HEADER_SUFFIX}",
+            flags=re.IGNORECASE,
+        ),
+    ),
+)
+
+
+def spell_header_metadata(value: str) -> dict:
+    """Parse a high-confidence Italian or Spanish 5e spell header."""
+    normalized = clean_text(value)
+
+    for language, cantrip, pattern in _SPELL_HEADER_PATTERNS:
+        match = pattern.match(normalized)
+        if not match:
+            continue
+
+        school = match.group("school")
+        if school.casefold() == "tramutazione":
+            school = "Trasmutazione"
+
+        return {
+            "language": language,
+            "school": school.title(),
+            "level": (
+                "0"
+                if cantrip
+                else str(match.groupdict().get("level") or "")
+            ),
+            "ritual": bool(match.groupdict().get("ritual")),
+        }
+
+    return {}
+
+
+def _spell_block_has_fields(
+    lines: list[str],
+    header_index: int,
+    source_language: str,
+) -> bool:
+    sample = clean_text(
+        " ".join(lines[header_index : header_index + 16])
+    ).casefold()
+
+    if source_language == "es":
+        return (
+            "tiempo de lanzamiento" in sample
+            and "componentes" in sample
+            and "duración" in sample
+        )
+
+    return (
+        "tempo di lancio" in sample
+        and "componenti" in sample
+        and "durata" in sample
+    )
+
+
+def _spell_records_for_language(
+    text: str,
+    source_filename: str,
+    source_page: int,
+    source_language: str,
+) -> list[dict]:
+    if source_language not in {"it", "es"}:
+        return []
+
+    lines = [
+        line.strip()
+        for line in (text or "").splitlines()
+    ]
+
+    starts: list[tuple[int, dict, str]] = []
+
+    for index in range(1, len(lines)):
+        metadata = spell_header_metadata(lines[index])
+
+        if (
+            not metadata
+            or metadata["language"] != source_language
+        ):
+            continue
+
+        title = clean_text(
+            lines[index - 1]
+        ).strip("*_ ")
+
+        if (
+            not 2 <= len(title) <= 84
+            or not any(char.isalpha() for char in title)
+            or not _spell_block_has_fields(
+                lines,
+                index,
+                source_language,
+            )
+        ):
+            continue
+
+        starts.append((index, metadata, title))
+
+    records: list[dict] = []
+
+    for position, (
+        header_index,
+        metadata,
+        raw_title,
+    ) in enumerate(starts):
+        title = raw_title.title()
+
+        next_header = (
+            starts[position + 1][0] - 1
+            if position + 1 < len(starts)
+            else len(lines)
+        )
+
+        raw_body = "\n".join(
+            lines[header_index:next_header]
+        )
+        body = clean_text(raw_body)
+
+        if len(body) < 80:
+            continue
+
+        normalized_name = normalize_reference_name(title)
+
+        stable_source = (
+            f"{source_filename}:{source_page}:"
+            f"spell:{normalized_name}"
+        )
+
+        attributes = _attributes(
+            "spell",
+            raw_body,
+        )
+        attributes.setdefault(
+            "scuola",
+            metadata["school"],
+        )
+        attributes.setdefault(
+            "livello",
+            metadata["level"],
+        )
+
+        if metadata["ritual"]:
+            attributes["rituale"] = "Sì"
+
+        records.append({
+            "id": (
+                "ref_"
+                + sha256(
+                    stable_source.encode()
+                ).hexdigest()[:24]
+            ),
+            "reference_type": "spell",
+            "name": title,
+            "normalized_name": normalized_name,
+            "description": compact_text(body),
+            "full_text": body,
+            "attributes": attributes,
+            "parent_class": "",
+            "parent_subclass": "",
+            "level": metadata["level"],
+            "tags": ["spell"],
+            "source_refs": [
+                source_reference(
+                    source_filename,
+                    source_page,
+                    source_language,
+                )
+            ],
+            "review_flags": (
+                ["sezione_potenzialmente_continua"]
+                if position == len(starts) - 1
+                else []
+            ),
+        })
+
+    return records
 
 
 def _spanish_spell_records(
@@ -676,41 +960,32 @@ def _spanish_spell_records(
     source_page: int,
     source_language: str,
 ) -> list[dict]:
-    """Extract native Spanish spell blocks whose title uses mixed small caps."""
     if source_language != "es":
         return []
-    lines = [line.strip() for line in (text or "").splitlines()]
-    starts = [
-        index for index in range(1, len(lines))
-        if SPANISH_SPELL_HEADER.match(clean_text(lines[index]))
-        and 2 <= len(clean_text(lines[index - 1])) <= 84
-        and any(char.isalpha() for char in lines[index - 1])
-    ]
-    records: list[dict] = []
-    for position, header_index in enumerate(starts):
-        title = clean_text(lines[header_index - 1]).title()
-        # The next spell's title is the line immediately before its school
-        # header, so exclude it from the previous spell's source block.
-        next_header = starts[position + 1] - 1 if position + 1 < len(starts) else len(lines)
-        raw_body = "\n".join(lines[header_index:next_header])
-        body = clean_text(raw_body)
-        if len(body) < 80:
-            continue
-        normalized_name = normalize_reference_name(title)
-        stable_source = f"{source_filename}:{source_page}:spell:{normalized_name}"
-        records.append({
-            "id": f"ref_{sha256(stable_source.encode()).hexdigest()[:24]}",
-            "reference_type": "spell",
-            "name": title,
-            "normalized_name": normalized_name,
-            "description": compact_text(body),
-            "full_text": body,
-            "attributes": _attributes("spell", raw_body),
-            "tags": ["spell"],
-            "source_refs": [source_reference(source_filename, source_page, source_language)],
-            "review_flags": ["sezione_potenzialmente_continua"] if position == len(starts) - 1 else [],
-        })
-    return records
+
+    return _spell_records_for_language(
+        text,
+        source_filename,
+        source_page,
+        source_language,
+    )
+
+
+def _italian_spell_records(
+    text: str,
+    source_filename: str,
+    source_page: int,
+    source_language: str,
+) -> list[dict]:
+    if source_language != "it":
+        return []
+
+    return _spell_records_for_language(
+        text,
+        source_filename,
+        source_page,
+        source_language,
+    )
 
 
 def _equipment_row_records(
@@ -819,8 +1094,24 @@ def parse_reference_page(
     # feats, races, or subraces with misleading provenance.
     is_sparse_index_page = _is_sparse_index_page(lines, source_language)
     headings = [(index, title) for index, line in enumerate(lines) if (title := _title_from_line(line))]
-    spell_records = _spanish_spell_records(text, source_filename, source_page, source_language)
-    spell_names = {record["normalized_name"] for record in spell_records}
+    spell_records = [
+        *_spanish_spell_records(
+            text,
+            source_filename,
+            source_page,
+            source_language,
+        ),
+        *_italian_spell_records(
+            text,
+            source_filename,
+            source_page,
+            source_language,
+        ),
+    ]
+    spell_names = {
+        record["normalized_name"]
+        for record in spell_records
+    }
     records: list[dict] = []
     current_class = clean_text(parent_class)
     current_subclass = clean_text(parent_subclass)
@@ -830,6 +1121,9 @@ def parse_reference_page(
         raw_body = "\n".join(body_lines)
         body = clean_text(" ".join(body_lines))
         record_type = _record_type(title, body)
+        normalized_name = normalize_reference_name(title)
+        if normalized_name in spell_names:
+            continue
         if record_type == "class":
             current_class = title
             current_subclass = ""
@@ -869,6 +1163,10 @@ def parse_reference_page(
             current_subclass,
         )
         record.update(hierarchy)
+        if record_type == "spell":
+            record["level"] = str(
+                record["attributes"].get("livello") or ""
+            )
         if hierarchy["level"]:
             record["attributes"]["livello"] = hierarchy["level"]
         records.append(record)

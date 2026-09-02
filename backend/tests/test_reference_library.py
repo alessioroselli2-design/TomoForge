@@ -4824,3 +4824,111 @@ def test_review_cannot_verify_a_record_without_complete_text():
 
     assert error.value.status_code == 422
     assert test_db.private_reference_review_history.rows == []
+
+def test_reference_parser_extracts_italian_leveled_spell_as_spell():
+    page = """PALLA DI FUOCO
+Invocazione di 3° livello
+Tempo di Lancio: 1 azione
+Gittata: 45 metri
+Componenti: V, S, M (una piccola sfera di sterco di pipistrello e zolfo)
+Durata: Istantanea
+Una scia di luce parte dall'indice dell'incantatore e sfreccia verso un punto
+entro gittata, dove esplode in una vampata che investe le creature presenti.
+"""
+    records = parse_reference_page(
+        page,
+        "Manuale_del_giocatore.pdf",
+        241,
+        "it",
+    )
+
+    assert len(records) == 1
+    spell = records[0]
+
+    assert spell["reference_type"] == "spell"
+    assert spell["normalized_name"] == "palla di fuoco"
+    assert spell["level"] == "3"
+    assert spell["attributes"]["livello"] == "3"
+    assert spell["attributes"]["scuola"] == "Invocazione"
+    assert spell["attributes"]["tempo_lancio"] == "1 azione"
+    assert spell["attributes"]["gittata"] == "45 metri"
+
+
+def test_reference_parser_extracts_italian_cantrip_as_level_zero_spell():
+    page = """FIAMMA SACRA
+Trucchetto di Invocazione
+Tempo di Lancio: 1 azione
+Gittata: 18 metri
+Componenti: V, S
+Durata: Istantanea
+Una luminosità simile a una fiamma scende su una creatura entro gittata.
+Il bersaglio deve reagire all'energia radiosa descritta dall'incantesimo.
+"""
+    records = parse_reference_page(
+        page,
+        "Manuale_del_giocatore.pdf",
+        220,
+        "it",
+    )
+
+    assert len(records) == 1
+    spell = records[0]
+
+    assert spell["reference_type"] == "spell"
+    assert spell["level"] == "0"
+    assert spell["attributes"]["livello"] == "0"
+    assert spell["attributes"]["scuola"] == "Invocazione"
+
+
+def test_reference_parser_extracts_spanish_cantrip_truco_form():
+    page = """LUZ
+Truco de Evocación
+Tiempo de lanzamiento: 1 acción
+Alcance: Toque
+Componentes: V, M (una luciérnaga o musgo fosforescente)
+Duración: 1 hora
+Tocas un objeto que no mida más de tres metros en ninguna dimensión y este
+emite luz brillante durante la duración del conjuro sin inventar reglas nuevas.
+"""
+    records = parse_reference_page(
+        page,
+        "Manual del Jugador.pdf",
+        206,
+        "es",
+    )
+
+    assert len(records) == 1
+    spell = records[0]
+
+    assert spell["reference_type"] == "spell"
+    assert spell["level"] == "0"
+    assert spell["attributes"]["livello"] == "0"
+    assert spell["attributes"]["scuola"] == "Evocación"
+    assert spell["source_refs"] == [{
+        "filename": "Manual del Jugador.pdf",
+        "page": 206,
+        "language": "es",
+    }]
+
+
+def test_spell_parser_prevents_equipment_or_ability_duplicate():
+    page = """SCUDO
+Abiurazione di 1° livello
+Tempo di Lancio: 1 reazione
+Gittata: Incantatore
+Componenti: V, S
+Durata: 1 round
+Compare una barriera di forza magica invisibile a protezione dell'incantatore.
+La regola resta un incantesimo e non deve diventare uno scudo di equipaggiamento.
+"""
+    records = parse_reference_page(
+        page,
+        "Manuale_del_giocatore.pdf",
+        250,
+        "it",
+    )
+
+    assert len(records) == 1
+    assert records[0]["reference_type"] == "spell"
+    assert records[0]["normalized_name"] == "scudo"
+
