@@ -337,6 +337,7 @@ async def _process_selected_chunks(
         if str(job.get("status") or "") == "completed":
             return job
 
+        start_page = max(1, int(job.get("current_page") or 1))
         result = await process_manual_preload_job(user_id, job, db=db)
         if result is False:
             raise RuntimeError(f"Lost durable import lease for {filename}")
@@ -356,6 +357,12 @@ async def _process_selected_chunks(
         if status != "queued":
             raise RuntimeError(
                 f"Unexpected manual checkpoint status for {filename}: {status or 'missing'}"
+            )
+        next_page = max(1, int((current or {}).get("current_page") or 1))
+        if next_page <= start_page:
+            error = str((current or {}).get("last_error") or "no_progress")
+            raise RuntimeError(
+                f"Manual chunk made no progress for {filename} at page {start_page}: {error}"
             )
 
     current = await db.private_manual_import_jobs.find_one(
