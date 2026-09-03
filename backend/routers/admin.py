@@ -3,13 +3,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from core.auth import compute_premium, require_admin
 from core.db import get_db, SupabaseDatabase
 from schemas.payments import PremiumToggle
-from schemas.library import CanonicalizationRunInput, TranslationVerificationRunInput
+from schemas.library import (
+    CanonicalizationRunInput,
+    TranslationRetryRunInput,
+    TranslationVerificationRunInput,
+)
 from schemas.users import User
 from services.canonical import (
     CanonicalizationBlockedError,
     canonicalization_status,
     run_canonicalization,
 )
+from services.translation_retry import translation_retry_status, run_translation_retries
 from services.translation_review import translation_review_status, run_translation_reviews
 
 router = APIRouter()
@@ -27,6 +32,28 @@ async def admin_set_premium(uid: str, body: PremiumToggle, admin: User = Depends
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Utente non trovato")
     return {"ok": True}
+
+
+@router.get("/admin/translation-retry/status")
+async def admin_translation_retry_status(
+    user_id: str | None = None,
+    admin: User = Depends(require_admin),
+    db: SupabaseDatabase = Depends(get_db),
+):
+    return await translation_retry_status(user_id or admin.user_id, db=db)
+
+
+@router.post("/admin/translation-retry/run")
+async def admin_run_translation_retry(
+    body: TranslationRetryRunInput,
+    admin: User = Depends(require_admin),
+    db: SupabaseDatabase = Depends(get_db),
+):
+    return await run_translation_retries(
+        body.user_id or admin.user_id,
+        db=db,
+        batch_size=body.batch_size,
+    )
 
 
 @router.get("/admin/translation-verification/status")
