@@ -61,3 +61,29 @@ def test_reversed_ritual_header_preserves_ritual_marker():
     )
 
     assert normalized.splitlines()[1] == "Divinazione di 1° livello (rituale)"
+
+
+def test_structured_spell_card_record_is_preserved_on_retry():
+    row = {
+        "reference_type": "spell",
+        "level": "1",
+        "attributes": {
+            "scuola": "Divinazione",
+            "tempo_lancio": "1 azione bonus",
+            "gittata": "27 metri",
+            "componenti": "V",
+            "durata": "Concentrazione, massimo 1 ora",
+        },
+    }
+
+    assert runner._is_current_spell_card_record(row) is True
+
+
+def test_unstructured_ocr_record_remains_cleanup_candidate():
+    row = {
+        "reference_type": "other",
+        "level": "",
+        "attributes": {},
+    }
+
+    assert runner._is_current_spell_card_record(row) is False
