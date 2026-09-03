@@ -85,4 +85,7 @@ jobs:
         env:
           REQUESTED_FILENAME: ${{ steps.request.outputs.requested }}
         run: |
-          python backend/scripts/run_r2_manual_import.py --filename "$REQUESTED_FILENAME"
+          # One 12-page checkpoint per run bounds OCR/API spend for large books.
+          python backend/scripts/run_r2_manual_import.py \
+            --filename "$REQUESTED_FILENAME" \
+            --max-chunks 1

@@ -11,6 +11,8 @@ import argparse
 import asyncio
 import os
 import sys
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -270,6 +272,107 @@ def _download_source(
     return target
 
 
+async def _claim_selected_preload_job(db: Any, user_id: str, filename: str) -> dict | None:
+    """Lease only the requested source so an R2 run cannot drain unrelated jobs."""
+    from core.config import MANUAL_PRELOAD_LEASE_SECONDS, utc_now
+
+    collection = db.private_manual_import_jobs
+    job = await collection.find_one({"user_id": user_id, "filename": filename})
+    if not job:
+        return None
+    if str(job.get("status") or "") == "completed":
+        return job
+
+    now = int(time.time())
+    status = str(job.get("status") or "")
+    lease_expired = (
+        status == "processing"
+        and int(job.get("lease_expires_at") or 0) < now
+    )
+    if status != "queued" and not lease_expired:
+        return None
+
+    lease_id = uuid.uuid4().hex
+    claimed = await collection.update_one(
+        {
+            "id": job["id"],
+            "user_id": user_id,
+            "$or": [
+                {"status": "queued"},
+                {"status": "processing", "lease_expires_at": {"$lt": now}},
+            ],
+        },
+        {"$set": {
+            "status": "processing",
+            "lease_id": lease_id,
+            "lease_expires_at": now + MANUAL_PRELOAD_LEASE_SECONDS,
+            "updated_at": utc_now(),
+        }},
+    )
+    if not claimed.matched_count:
+        return None
+    return await collection.find_one({"id": job["id"], "user_id": user_id})
+
+
+async def _process_selected_chunks(
+    db: Any,
+    user_id: str,
+    filename: str,
+    max_chunks: int,
+) -> dict:
+    """Process at most *max_chunks* 12-page checkpoints for one selected manual."""
+    from services.preload import process_manual_preload_job
+
+    processed = 0
+    while processed < max_chunks:
+        job = await _claim_selected_preload_job(db, user_id, filename)
+        if not job:
+            current = await db.private_manual_import_jobs.find_one(
+                {"user_id": user_id, "filename": filename}
+            )
+            status = str((current or {}).get("status") or "missing")
+            raise RuntimeError(
+                f"Could not claim requested manual job {filename}: status={status}"
+            )
+        if str(job.get("status") or "") == "completed":
+            return job
+
+        start_page = max(1, int(job.get("current_page") or 1))
+        result = await process_manual_preload_job(user_id, job, db=db)
+        if result is False:
+            raise RuntimeError(f"Lost durable import lease for {filename}")
+        processed += 1
+
+        current = await db.private_manual_import_jobs.find_one(
+            {"user_id": user_id, "filename": filename}
+        )
+        status = str((current or {}).get("status") or "")
+        if status == "completed":
+            return current
+        if status == "failed":
+            error = str((current or {}).get("last_error") or "unknown")
+            raise RuntimeError(
+                f"Manual import failed for {filename}: {error}"
+            )
+        if status != "queued":
+            raise RuntimeError(
+                f"Unexpected manual checkpoint status for {filename}: {status or 'missing'}"
+            )
+        next_page = max(1, int((current or {}).get("current_page") or 1))
+        if next_page <= start_page:
+            error = str((current or {}).get("last_error") or "no_progress")
+            raise RuntimeError(
+                f"Manual chunk made no progress for {filename} at page {start_page}: {error}"
+            )
+
+    current = await db.private_manual_import_jobs.find_one(
+        {"user_id": user_id, "filename": filename}
+    )
+    if not current:
+        raise RuntimeError(f"Manual import job disappeared for {filename}")
+    return current
+
+
 async def _run_import(args: argparse.Namespace) -> int:
     target_dir = Path(
         os.getenv("REFERENCE_MANUAL_DIRECTORY", args.target_dir)
@@ -279,7 +382,7 @@ async def _run_import(args: argparse.Namespace) -> int:
     # core.config reads REFERENCE_MANUAL_DIRECTORY at import time.
     from core.db import db
     from schemas.library import ManualPreloadInput
-    from services.preload import ensure_manual_preload_jobs, run_manual_preload_worker
+    from services.preload import ensure_manual_preload_jobs
 
     if not db.configured:
         raise RuntimeError("Supabase is not configured for the import worker")
@@ -324,26 +427,37 @@ async def _run_import(args: argparse.Namespace) -> int:
         )
         print(f"Downloaded {local_path.name} ({local_path.stat().st_size} bytes).")
 
-        await ensure_manual_preload_jobs(
-            user_id,
-            ManualPreloadInput(filename=local_filename, retry=True),
-            db=db,
-        )
-        await run_manual_preload_worker(user_id, db=db)
-
-        job = await db.private_manual_import_jobs.find_one(
-            {"user_id": user_id, "filename": local_filename}
-        )
-        status = str((job or {}).get("status") or "")
-        if status != "completed":
-            error = str((job or {}).get("last_error") or "unknown")
-            raise RuntimeError(
-                f"Manual import did not complete for {local_filename}: "
-                f"status={status or 'missing'}, error={error}"
+        try:
+            await ensure_manual_preload_jobs(
+                user_id,
+                ManualPreloadInput(filename=local_filename, retry=True),
+                db=db,
+            )
+            job = await _process_selected_chunks(
+                db,
+                user_id,
+                local_filename,
+                args.max_chunks,
             )
 
-        local_path.unlink(missing_ok=True)
-        print(f"Completed {local_filename}.")
+            status = str(job.get("status") or "")
+            if status == "completed":
+                print(f"Completed {local_filename}.")
+            elif status == "queued":
+                current_page = int(job.get("current_page") or 1)
+                page_count = int(job.get("page_count") or 0)
+                print(
+                    f"Checkpointed {local_filename}: next page {current_page}"
+                    f"/{page_count or '?'} after {args.max_chunks} chunk(s)."
+                )
+            else:
+                error = str(job.get("last_error") or "unknown")
+                raise RuntimeError(
+                    f"Manual import did not checkpoint safely for {local_filename}: "
+                    f"status={status or 'missing'}, error={error}"
+                )
+        finally:
+            local_path.unlink(missing_ok=True)
 
     return 0
 
@@ -367,6 +481,15 @@ def _parser() -> argparse.ArgumentParser:
         help="Maximum pending sources to process when --filename is omitted.",
     )
     parser.add_argument(
+        "--max-chunks",
+        type=int,
+        default=1,
+        help=(
+            "Maximum 12-page durable checkpoints per selected manual. "
+            "Default: 1, to bound OCR/API spend per workflow run."
+        ),
+    )
+    parser.add_argument(
         "--target-dir",
         default="/tmp/tomoforge-manuals",
         help="Ephemeral directory used for the current worker run.",
@@ -378,6 +501,9 @@ def main() -> int:
     args = _parser().parse_args()
     if args.max_manuals < 1:
         print("--max-manuals must be at least 1", file=sys.stderr)
+        return 2
+    if args.max_chunks < 1:
+        print("--max-chunks must be at least 1", file=sys.stderr)
         return 2
     try:
         return asyncio.run(_run_import(args))
