@@ -11,13 +11,17 @@ import inspect
 import json
 import math
 import re
-from hashlib import sha256
 from typing import Any, Callable
 
 import requests
 
 from core.config import OPENAI_API_KEY, OPENAI_TEXT_MODEL, utc_now
-from services.reference_translation import normalize_language, translation_required
+from services.reference_translation import translation_required
+from translation_integrity import (
+    normalize_language,
+    translation_verification_fingerprint,
+    translation_verification_is_current as translation_verification_is_current,
+)
 
 TRANSLATION_AI_VERIFIED = "ai_verified"
 TRANSLATION_CONFLICT = "conflict"
@@ -48,34 +52,11 @@ def mechanical_tokens(text: str) -> tuple[str, ...]:
     return tuple(sorted(dice + numbers))
 
 
-def translation_verification_fingerprint(record: dict) -> str:
-    """Invalidate a prior verdict when either source or localized text changes."""
-    payload = {
-        "source_language": normalize_language(record.get("source_language")),
-        "source_name": _clean(record.get("source_name")),
-        "source_description": _clean(record.get("source_description")),
-        "source_full_text": _clean(record.get("source_full_text")),
-        "source_attributes": record.get("source_attributes") or {},
-        "name": _clean(record.get("name")),
-        "description": _clean(record.get("description")),
-        "full_text": _clean(record.get("full_text")),
-        "attributes": record.get("attributes") or {},
-        "translation_status": str(record.get("translation_status") or "not_required"),
-    }
-    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return sha256(raw.encode("utf-8")).hexdigest()
-
-
 def translation_verification_required(record: dict) -> bool:
     return (
         translation_required(record.get("source_language"))
         and record.get("translation_status") == "translated"
     )
-
-
-def translation_verification_is_current(record: dict) -> bool:
-    stored = str(record.get("translation_review_fingerprint") or "")
-    return bool(stored) and stored == translation_verification_fingerprint(record)
 
 
 def _prompt_payload(record: dict) -> dict:

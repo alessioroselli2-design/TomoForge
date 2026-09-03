@@ -16,12 +16,14 @@ from reference_library import (
     normalize_reference_name,
     parse_reference_page,
     reference_is_trusted,
+    reference_review_reason,
     reference_review_state,
     reference_snapshot,
     reference_snapshot_changed,
     reference_to_card_payload,
     search_reference_records,
 )
+from translation_integrity import translation_verification_fingerprint
 
 
 def make_reference(name, reference_type="feat", **changes):
@@ -643,6 +645,58 @@ def test_translated_or_flagged_reference_requires_human_verification_before_use(
     ocr_flagged["review_status"] = "verified"
     assert reference_is_trusted(translated)
     assert reference_is_trusted(ocr_flagged)
+
+
+def test_current_ai_translation_verdict_unlocks_only_translation_uncertainty():
+    translated = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_language="es",
+        source_name="Bola de Fuego",
+        source_description="Una explosión de fuego.",
+        source_full_text="Una explosión inflige 8d6 de daño de fuego.",
+        source_attributes={"damage": "8d6"},
+        full_text="Un'esplosione infligge 8d6 danni da fuoco.",
+        attributes={"damage": "8d6"},
+        translation_status="translated",
+        translation_review_status="ai_verified",
+        review_flags=["traduzione_da_verificare"],
+        review_status="needs_review",
+    )
+    translated["translation_review_fingerprint"] = translation_verification_fingerprint(translated)
+
+    assert reference_review_state(translated) == "valid"
+    assert reference_is_trusted(translated)
+    assert reference_review_reason(translated) == ""
+
+    translated["review_flags"].append("ocr_da_verificare")
+    assert reference_review_state(translated) == "review"
+    assert not reference_is_trusted(translated)
+    assert "OCR" in reference_review_reason(translated)
+
+
+def test_stale_ai_translation_verdict_never_unlocks_the_record():
+    translated = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        source_language="es",
+        source_name="Bola de Fuego",
+        source_description="Una explosión de fuego.",
+        source_full_text="Una explosión inflige 8d6 de daño de fuego.",
+        source_attributes={"damage": "8d6"},
+        full_text="Un'esplosione infligge 8d6 danni da fuoco.",
+        attributes={"damage": "8d6"},
+        translation_status="translated",
+        translation_review_status="ai_verified",
+        review_flags=["traduzione_da_verificare"],
+        review_status="needs_review",
+    )
+    translated["translation_review_fingerprint"] = translation_verification_fingerprint(translated)
+    translated["full_text"] += " Testo cambiato."
+
+    assert reference_review_state(translated) == "review"
+    assert not reference_is_trusted(translated)
+    assert "verifica AI" in reference_review_reason(translated)
 
 
 def test_verified_review_status_overrides_failed_translation_status():

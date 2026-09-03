@@ -36,6 +36,24 @@ const status = {
   records_total: 28,
   canonical_total: 17,
 };
+const translationStatus = {
+  owner_user_id: "owner-1",
+  translatable_total: 10,
+  translated_total: 9,
+  pending: 0,
+  ai_verified: 8,
+  conflict: 1,
+  low_confidence: 0,
+  failed: 0,
+  stale: 0,
+  human_verified: 0,
+  translation_failed: 0,
+  translation_processing: 0,
+  translation_pending: 0,
+  translation_not_ready: 0,
+  verification_complete: 10,
+  ready_for_canonicalization: true,
+};
 
 const settle = async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
@@ -50,6 +68,7 @@ describe("Admin canonicalization", () => {
     jest.clearAllMocks();
     api.get.mockImplementation((path) => {
       if (path === "/admin/users") return Promise.resolve({ data: users });
+      if (path === "/admin/translation-verification/status") return Promise.resolve({ data: translationStatus });
       if (path === "/admin/canonicalization/status") return Promise.resolve({ data: status });
       return Promise.resolve({ data: {} });
     });
@@ -71,6 +90,8 @@ describe("Admin canonicalization", () => {
     });
 
     expect(container.textContent).toContain("D&D 5e · Regole 2014");
+    expect(container.textContent).toContain("Verifica AI delle traduzioni");
+    expect(container.textContent).toContain("Pronte per la fase 2");
     expect(container.textContent).toContain("Verificati");
     expect(container.textContent).toContain("5");
     expect(container.textContent).toContain("Conflitti");
@@ -78,6 +99,9 @@ describe("Admin canonicalization", () => {
     expect(container.textContent).toContain("restano bloccati");
     expect(container.textContent).toContain("senza imporre una revisione manuale");
     expect(api.get).toHaveBeenCalledWith("/admin/canonicalization/status", {
+      params: { user_id: "owner-1" },
+    });
+    expect(api.get).toHaveBeenCalledWith("/admin/translation-verification/status", {
       params: { user_id: "owner-1" },
     });
     expect(api.post).not.toHaveBeenCalled();
@@ -106,5 +130,48 @@ describe("Admin canonicalization", () => {
       ruleset: "2014",
     });
     expect(api.get.mock.calls.filter(([path]) => path === "/admin/canonicalization/status")).toHaveLength(2);
+  });
+
+  it("runs a bounded translation-verification batch", async () => {
+    api.post.mockResolvedValueOnce({ data: { ...translationStatus, ai_verified: 9 } });
+    await act(async () => {
+      root.render(<MemoryRouter><Admin /></MemoryRouter>);
+      await settle();
+    });
+
+    const input = container.querySelector('[data-testid="translation-batch-size"]');
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      setter.call(input, "7");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector('[data-testid="translation-run"]').click();
+      await settle();
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/admin/translation-verification/run", {
+      user_id: "owner-1",
+      batch_size: 7,
+    });
+    expect(container.querySelector('[data-testid="translation-status"]').textContent).toContain("9");
+  });
+
+  it("keeps canonicalization disabled while translations are not ready", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/admin/users") return Promise.resolve({ data: users });
+      if (path === "/admin/translation-verification/status") {
+        return Promise.resolve({ data: { ...translationStatus, translation_failed: 1, translation_not_ready: 1, ready_for_canonicalization: false } });
+      }
+      if (path === "/admin/canonicalization/status") return Promise.resolve({ data: status });
+      return Promise.resolve({ data: {} });
+    });
+    await act(async () => {
+      root.render(<MemoryRouter><Admin /></MemoryRouter>);
+      await settle();
+    });
+
+    expect(container.querySelector('[data-testid="canonical-run"]').disabled).toBe(true);
+    expect(container.querySelector('[data-testid="canonical-translation-gate"]').textContent).toContain("Completa la fase 1");
   });
 });

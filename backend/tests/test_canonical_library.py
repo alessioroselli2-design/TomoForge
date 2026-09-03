@@ -4,10 +4,12 @@ import pytest
 from fastapi import HTTPException
 
 from reference_library import reference_is_trusted, reference_rule_source
+from routers.admin import admin_run_canonicalization
 from routers.library import apply_private_reference, review_private_reference
-from schemas.library import ReferenceReviewInput
+from schemas.library import CanonicalizationRunInput, ReferenceReviewInput
 from schemas.users import User
 from services.canonical import (
+    CanonicalizationBlockedError,
     canonical_group_key,
     canonicalize_group,
     canonicalization_status,
@@ -16,6 +18,7 @@ from services.canonical import (
     run_canonicalization,
     source_authority,
 )
+from translation_integrity import translation_verification_fingerprint
 
 
 def record(identifier, **changes):
@@ -109,7 +112,7 @@ def test_ai_cannot_override_a_higher_authority_source():
     assert row["confidence"] == 0
 
 
-def test_unreviewed_translation_always_requires_ai_even_when_it_is_the_only_source():
+def test_unreviewed_translation_cannot_be_certified_by_canonical_comparison_alone():
     translated = record(
         "translated",
         source_key="Manual_del_Jugador.pdf",
@@ -127,8 +130,70 @@ def test_unreviewed_translation_always_requires_ai_even_when_it_is_the_only_sour
         },
     ))
     assert calls
-    assert row["verification_status"] == "verified"
+    assert row["verification_status"] == "low_confidence"
+    assert "visual_or_source_verification" in row["conflict_fields"]
     assert row["verification_model"] != "deterministic"
+
+
+def test_current_translation_fidelity_verdict_allows_canonical_verification():
+    translated = record(
+        "translated",
+        source_key="Manual_del_Jugador.pdf",
+        source_language="es",
+        source_name="Acción",
+        source_description="Una regla.",
+        source_full_text="La regla inflige 1d6 de daño.",
+        source_attributes={"damage": "1d6"},
+        full_text="La regola infligge 1d6 danni.",
+        attributes={"damage": "1d6"},
+        translation_status="translated",
+        translation_review_status="ai_verified",
+    )
+    translated["translation_review_fingerprint"] = translation_verification_fingerprint(translated)
+
+    row = asyncio.run(canonicalize_group(
+        [translated],
+        comparator=lambda candidates: {
+            "selected_source_record_id": "translated",
+            "confidence": .99,
+            "notes": "selected",
+            "conflict_fields": [],
+            "status": "verified",
+        },
+    ))
+
+    assert row["verification_status"] == "verified"
+
+
+def test_translation_conflict_cannot_become_a_trusted_canonical_selection():
+    translated = record(
+        "translated",
+        source_key="Manual_del_Jugador.pdf",
+        source_language="es",
+        source_name="Acción",
+        source_description="Una regla.",
+        source_full_text="La regla inflige 1d6 de daño.",
+        source_attributes={"damage": "1d6"},
+        full_text="La regola infligge 1d6 danni.",
+        attributes={"damage": "1d6"},
+        translation_status="translated",
+        translation_review_status="conflict",
+    )
+    translated["translation_review_fingerprint"] = translation_verification_fingerprint(translated)
+
+    row = asyncio.run(canonicalize_group(
+        [translated],
+        comparator=lambda candidates: {
+            "selected_source_record_id": "translated",
+            "confidence": .99,
+            "notes": "selected",
+            "conflict_fields": [],
+            "status": "verified",
+        },
+    ))
+
+    assert row["verification_status"] == "low_confidence"
+    assert "visual_or_source_verification" in row["conflict_fields"]
 
 
 def test_filename_alone_does_not_grant_errata_authority():
@@ -311,3 +376,61 @@ def test_in_memory_batch_persists_only_live_canonical_columns_and_resumes():
         "verified_groups": 1, "conflict_groups": 0, "low_confidence_groups": 0,
         "excluded_records": 0, "records_total": 3, "canonical_total": 1,
     }
+
+
+def test_batch_refuses_all_writes_until_translations_are_ready():
+    class Database:
+        def __init__(self):
+            from core.db import MemoryCollection
+            self.private_reference_records = MemoryCollection()
+            self.private_reference_canonical = MemoryCollection()
+
+    db = Database()
+    db.private_reference_records.rows = [record(
+        "failed-translation",
+        source_language="es",
+        source_name="Acción",
+        source_full_text="Texto original.",
+        translation_status="failed",
+    )]
+
+    with pytest.raises(CanonicalizationBlockedError) as error:
+        asyncio.run(run_canonicalization("owner", db=db))
+
+    assert error.value.translation_status["translation_failed"] == 1
+    assert db.private_reference_canonical.rows == []
+    assert db.private_reference_records.rows[0].get("ai_review_status") is None
+
+
+def test_admin_endpoint_reports_translation_gate_as_conflict():
+    class Database:
+        def __init__(self):
+            from core.db import MemoryCollection
+            self.private_reference_records = MemoryCollection()
+            self.private_reference_canonical = MemoryCollection()
+
+    db = Database()
+    db.private_reference_records.rows = [record(
+        "failed-translation",
+        source_language="es",
+        source_name="Acción",
+        source_full_text="Texto original.",
+        translation_status="failed",
+    )]
+    admin = User(
+        user_id="owner",
+        email="owner@example.test",
+        name="Owner",
+        is_admin=True,
+    )
+
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(admin_run_canonicalization(
+            CanonicalizationRunInput(user_id="owner"),
+            admin=admin,
+            db=db,
+        ))
+
+    assert error.value.status_code == 409
+    assert error.value.detail["code"] == "translation_verification_incomplete"
+    assert error.value.detail["translation_status"]["translation_failed"] == 1

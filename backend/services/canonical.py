@@ -22,11 +22,22 @@ from reference_library import (
     reference_effective_level,
     reference_effective_type,
 )
+from services.record_paging import list_collection_rows
+from services.translation_review import list_owner_reference_records, summarize_translation_review
+from translation_integrity import translation_verification_is_current
 
 logger = logging.getLogger("tomeforge")
 SUPPORTED_RULESETS = frozenset({"2014"})
 FINAL_STATES = frozenset({"verified", "conflict", "low_confidence", "excluded"})
 Comparator = Callable[[list[dict]], dict[str, Any]]
+
+
+class CanonicalizationBlockedError(RuntimeError):
+    """Raised before any writes when localization is not ready to canonicalize."""
+
+    def __init__(self, translation_status: dict):
+        self.translation_status = translation_status
+        super().__init__("translation_verification_incomplete")
 
 
 def canonical_group_key(record: dict, ruleset: str = "2014") -> str:
@@ -186,7 +197,14 @@ _VISUAL_REVIEW_FLAGS = frozenset({
 
 def _record_has_blocking_uncertainty(record: dict) -> bool:
     flags = {str(flag) for flag in (record.get("review_flags") or [])}
-    return bool(flags & _VISUAL_REVIEW_FLAGS) or record.get("translation_status") in {"failed", "processing"}
+    if bool(flags & _VISUAL_REVIEW_FLAGS) or record.get("translation_status") in {"failed", "processing"}:
+        return True
+    if record.get("translation_status") == "translated" and record.get("review_status") != "verified":
+        return not (
+            record.get("translation_review_status") == "ai_verified"
+            and translation_verification_is_current(record)
+        )
+    return False
 
 
 def _record_needs_ai_review(record: dict) -> bool:
@@ -292,8 +310,11 @@ async def canonicalize_group(records: list[dict], ruleset: str = "2014", compara
 
 
 async def canonicalization_status(user_id: str, *, db) -> dict:
-    records = await db.private_reference_records.find({"user_id": user_id}).to_list(8000)
-    canonical_rows = await db.private_reference_canonical.find({"user_id": user_id}).to_list(8000)
+    records = await list_owner_reference_records(user_id, db=db)
+    canonical_rows = await list_collection_rows(
+        db.private_reference_canonical,
+        {"user_id": user_id},
+    )
     counts = {key: 0 for key in ("verified", "conflict", "low_confidence", "pending")}
     groups: dict[str, list[dict]] = {}
     excluded = 0
@@ -327,7 +348,10 @@ async def run_canonicalization(user_id: str, *, db, batch_size: int = 5, ruleset
                                comparator: Comparator | None = None) -> dict:
     if ruleset not in SUPPORTED_RULESETS:
         raise ValueError("Solo il ruleset D&D 5e 2014 è attualmente supportato")
-    records = await db.private_reference_records.find({"user_id": user_id}).to_list(8000)
+    records = await list_owner_reference_records(user_id, db=db)
+    translation_status = summarize_translation_review(records, user_id)
+    if not translation_status["ready_for_canonicalization"]:
+        raise CanonicalizationBlockedError(translation_status)
     groups: dict[str, list[dict]] = {}
     exclusions: list[tuple[dict, str]] = []
     for record in records:

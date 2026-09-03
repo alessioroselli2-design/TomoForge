@@ -19,6 +19,7 @@ import unicodedata
 from typing import Callable, Iterable, Optional
 
 from reference_sources import source_metadata_for_page
+from translation_integrity import translation_verification_is_current
 
 logger = logging.getLogger("tomeforge")
 
@@ -217,10 +218,9 @@ def reference_content_fingerprint(record: dict) -> str:
 def reference_review_state(record: dict) -> str:
     """Classify a record as safe to automate, pending review, or unavailable.
 
-    Native text without extraction warnings is usable immediately.  OCR/table
-    warnings and automated translations are deliberately not: a reviewer must
-    explicitly mark those records as verified before they can complete a
-    character sheet or answer a manual-content request.
+    Native text without extraction warnings is usable immediately. OCR/table
+    warnings remain blocked. A translated record is usable after either an
+    explicit human review or a current, successful AI fidelity verdict.
 
     An explicit human verification (review_status="verified") always overrides
     automatic status checks — including a failed translation — because the
@@ -232,18 +232,33 @@ def reference_review_state(record: dict) -> str:
         return "valid"
     if translation_status in UNAVAILABLE_TRANSLATION_STATUSES:
         return "review"
+    review_flags = {str(flag) for flag in (record.get("review_flags") or [])}
     if translation_status == "translated":
-        return "review"
-    if record.get("review_flags") or review_status == "needs_review":
+        translation_is_verified = (
+            record.get("translation_review_status") == "ai_verified"
+            and translation_verification_is_current(record)
+        )
+        if not translation_is_verified:
+            return "review"
+        # The fidelity verifier satisfies only the translation flag. It never
+        # clears OCR, table or source-continuation uncertainty.
+        translation_flag_was_present = "traduzione_da_verificare" in review_flags
+        review_flags.discard("traduzione_da_verificare")
+        if review_flags:
+            return "review"
+        if review_status == "needs_review" and not translation_flag_was_present:
+            return "review"
+        return "valid"
+    if review_flags or review_status == "needs_review":
         return "review"
     return "valid"
 
 
 REVIEW_FLAG_MESSAGES = {
-    "ocr_da_verificare": "Trascrizione OCR non verificata da una persona.",
+    "ocr_da_verificare": "Trascrizione OCR ancora da verificare.",
     "riga_tabella_da_verificare": "Riga di tabella estratta automaticamente e non ancora verificata.",
     "sezione_potenzialmente_continua": "La sezione potrebbe continuare nella pagina successiva.",
-    "traduzione_da_verificare": "Traduzione automatica non ancora verificata.",
+    "traduzione_da_verificare": "Traduzione automatica non ancora verificata dall'AI.",
 }
 
 
@@ -255,11 +270,35 @@ def reference_review_reason(record: dict) -> str:
     if translation_status == "failed":
         return "Traduzione automatica non riuscita: verifica il contenuto prima di usarlo."
     if translation_status == "translated":
-        return "Traduzione automatica non ancora verificata da una persona."
+        review_status = str(record.get("translation_review_status") or "pending")
+        current = translation_verification_is_current(record)
+        if review_status == "conflict" and current:
+            return "La verifica AI ha rilevato differenze tra originale e traduzione."
+        if review_status == "low_confidence" and current:
+            return "La verifica AI non ha raggiunto una confidenza sufficiente sulla traduzione."
+        if review_status == "failed":
+            return "La verifica AI della traduzione non è riuscita e verrà ritentata."
+        if review_status != "ai_verified" or not current:
+            return "Traduzione automatica in attesa della verifica AI."
     for flag in record.get("review_flags") or []:
+        if flag == "traduzione_da_verificare" and translation_status == "translated":
+            if (
+                record.get("translation_review_status") == "ai_verified"
+                and translation_verification_is_current(record)
+            ):
+                continue
         if flag in REVIEW_FLAG_MESSAGES:
             return REVIEW_FLAG_MESSAGES[flag]
     if record.get("review_status") == "needs_review":
+        flags = {str(flag) for flag in (record.get("review_flags") or [])}
+        translation_only_is_verified = (
+            translation_status == "translated"
+            and flags == {"traduzione_da_verificare"}
+            and record.get("translation_review_status") == "ai_verified"
+            and translation_verification_is_current(record)
+        )
+        if translation_only_is_verified:
+            return ""
         return "Questo contenuto richiede una verifica prima di poter essere usato."
     return ""
 
