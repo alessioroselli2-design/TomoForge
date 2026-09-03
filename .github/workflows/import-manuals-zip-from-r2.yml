@@ -15,6 +15,7 @@ on:
   push:
     branches:
       - codex/r2-zip-ingest
+      - ai-canonical-library
     paths:
       - .github/r2-zip-import-request.txt
 
