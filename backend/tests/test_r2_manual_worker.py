@@ -1,7 +1,9 @@
+import asyncio
 from datetime import datetime, timezone
 
 import pytest
 
+from scripts import import_manuals_from_r2 as worker
 from scripts.import_manuals_from_r2 import (
     _canonical_filename,
     _local_filename_for_source,
@@ -72,3 +74,60 @@ def test_r2_worker_defaults_to_one_durable_page_chunk():
 
     assert args.max_manuals == 1
     assert args.max_chunks == 1
+
+
+class _FakeJobs:
+    def __init__(self, current):
+        self.current = current
+
+    async def find_one(self, _query):
+        return dict(self.current)
+
+
+class _FakeDB:
+    def __init__(self, current):
+        self.private_manual_import_jobs = _FakeJobs(current)
+
+
+def test_bounded_worker_rejects_retryable_chunk_without_progress(monkeypatch):
+    async def fake_claim(_db, _user_id, _filename):
+        return {"status": "processing", "current_page": 13}
+
+    async def fake_process(_user_id, _job, *, db=None):
+        return None
+
+    monkeypatch.setattr(worker, "_claim_selected_preload_job", fake_claim)
+    import services.preload as preload
+    monkeypatch.setattr(preload, "process_manual_preload_job", fake_process)
+
+    db = _FakeDB({
+        "status": "queued",
+        "current_page": 13,
+        "last_error": "temporary_provider_error",
+    })
+
+    with pytest.raises(RuntimeError, match="made no progress"):
+        asyncio.run(worker._process_selected_chunks(db, "owner", "Large.pdf", 1))
+
+
+def test_bounded_worker_accepts_advanced_checkpoint(monkeypatch):
+    async def fake_claim(_db, _user_id, _filename):
+        return {"status": "processing", "current_page": 13}
+
+    async def fake_process(_user_id, _job, *, db=None):
+        return None
+
+    monkeypatch.setattr(worker, "_claim_selected_preload_job", fake_claim)
+    import services.preload as preload
+    monkeypatch.setattr(preload, "process_manual_preload_job", fake_process)
+
+    db = _FakeDB({
+        "status": "queued",
+        "current_page": 25,
+        "last_error": "",
+    })
+
+    result = asyncio.run(
+        worker._process_selected_chunks(db, "owner", "Large.pdf", 1)
+    )
+    assert result["current_page"] == 25
