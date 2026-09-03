@@ -46,28 +46,45 @@ def _is_retry_candidate(record: dict) -> bool:
 
 
 def summarize_translation_retry(records: list[dict], user_id: str) -> dict[str, Any]:
-    """Return owner-scoped failed-translation recovery status without writes."""
-    failed = [
+    """Return owner-scoped translation recovery status without writes."""
+    translatable = [
         record
         for record in records
         if (
             record.get("review_status") != "verified"
             and translation_required(record.get("source_language"))
-            and record.get("translation_status") == "failed"
         )
+    ]
+    failed = [record for record in translatable if record.get("translation_status") == "failed"]
+    processing = [
+        record for record in translatable if record.get("translation_status") == "processing"
+    ]
+    pending = [
+        record
+        for record in translatable
+        if record.get("translation_status") not in {"translated", "failed", "processing"}
+    ]
+    translated = [
+        record for record in translatable if record.get("translation_status") == "translated"
     ]
     retryable = [record for record in failed if _is_retry_candidate(record)]
     errors: dict[str, int] = {}
     for record in failed:
         error = str(record.get("translation_error") or "unknown")
         errors[error] = errors.get(error, 0) + 1
+    not_ready = len(failed) + len(processing) + len(pending)
     return {
         "owner_user_id": user_id,
+        "translatable_total": len(translatable),
+        "translated_total": len(translated),
         "failed_total": len(failed),
+        "processing_total": len(processing),
+        "pending_total": len(pending),
+        "translation_not_ready": not_ready,
         "retryable_total": len(retryable),
         "blocked_total": len(failed) - len(retryable),
         "errors": dict(sorted(errors.items())),
-        "ready_for_verification": len(failed) == 0,
+        "ready_for_verification": not_ready == 0,
     }
 
 
