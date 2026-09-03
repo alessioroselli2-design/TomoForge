@@ -1,0 +1,53 @@
+name: Import private manuals from R2
+
+on:
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: Optional exact PDF filename; leave blank to process the next pending source
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-private-manual-import
+  cancel-in-progress: false
+
+jobs:
+  import-manual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      PYTHONUNBUFFERED: "1"
+      REFERENCE_MANUAL_DIRECTORY: ${{ runner.temp }}/tomoforge-manuals
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      REQUESTED_FILENAME: ${{ inputs.filename }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install worker dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Import next private manual from R2
+        run: |
+          python backend/scripts/import_manuals_from_r2.py --filename "$REQUESTED_FILENAME"
