@@ -17,6 +17,10 @@ export default function Admin() {
   const [q, setQ] = useState("");
   const [ownerUserId, setOwnerUserId] = useState("");
   const [batchSize, setBatchSize] = useState(5);
+  const [retryBatchSize, setRetryBatchSize] = useState(5);
+  const [retryStatus, setRetryStatus] = useState(null);
+  const [retryBusy, setRetryBusy] = useState(false);
+  const [retryStatusBusy, setRetryStatusBusy] = useState(false);
   const [translationBatchSize, setTranslationBatchSize] = useState(5);
   const [translationStatus, setTranslationStatus] = useState(null);
   const [translationBusy, setTranslationBusy] = useState(false);
@@ -62,6 +66,24 @@ export default function Admin() {
     }
   };
 
+  const loadRetryStatus = async (selectedOwnerId = ownerUserId) => {
+    if (!selectedOwnerId) {
+      setRetryStatus(null);
+      return;
+    }
+    setRetryStatusBusy(true);
+    try {
+      const res = await api.get("/admin/translation-retry/status", {
+        params: { user_id: selectedOwnerId },
+      });
+      setRetryStatus(res.data);
+    } catch (e) {
+      toast.error("Impossibile caricare lo stato del recupero traduzioni");
+    } finally {
+      setRetryStatusBusy(false);
+    }
+  };
+
   const loadTranslationStatus = async (selectedOwnerId = ownerUserId) => {
     if (!selectedOwnerId) {
       setTranslationStatus(null);
@@ -82,12 +104,36 @@ export default function Admin() {
 
   useEffect(() => {
     if (user?.is_admin && ownerUserId) {
+      loadRetryStatus();
       loadTranslationStatus();
       loadCanonicalStatus();
     }
     // The status is intentionally refreshed after an explicit batch only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerUserId, user?.is_admin]);
+
+  const runTranslationRetry = async () => {
+    const normalizedBatchSize = Math.max(1, Math.min(25, Number(retryBatchSize) || 1));
+    setRetryBatchSize(normalizedBatchSize);
+    setRetryBusy(true);
+    try {
+      const res = await api.post("/admin/translation-retry/run", {
+        user_id: ownerUserId,
+        batch_size: normalizedBatchSize,
+      });
+      setRetryStatus(res.data);
+      await loadTranslationStatus();
+      toast.success(
+        res.data?.recovered_records
+          ? `Recuperate ${res.data.recovered_records} traduzioni`
+          : "Batch di recupero traduzioni completato",
+      );
+    } catch (e) {
+      toast.error("Recupero delle traduzioni non riuscito");
+    } finally {
+      setRetryBusy(false);
+    }
+  };
 
   const runTranslationVerification = async () => {
     const normalizedBatchSize = Math.max(1, Math.min(25, Number(translationBatchSize) || 1));
@@ -204,7 +250,7 @@ export default function Admin() {
               <p className="font-label text-xs tracking-[0.25em] text-gold/70">BIBLIOTECA CANONICA</p>
               <h2 id="canonicalization-title" className="font-display text-3xl tf-gold-text mt-1">D&amp;D 5e · Regole 2014</h2>
               <p className="font-body text-sm text-muted-foreground mt-2">
-                Verifica prima le traduzioni, poi confronta le fonti e crea i record canonici. Ogni batch parte solo su comando.
+                Recupera prima eventuali traduzioni fallite, poi verificale e infine crea i record canonici. Ogni batch parte solo su comando.
               </p>
             </div>
           </div>
@@ -216,11 +262,12 @@ export default function Admin() {
                 data-testid="canonical-owner"
                 value={ownerUserId}
                 onChange={(e) => {
+                  setRetryStatus(null);
                   setTranslationStatus(null);
                   setCanonicalStatus(null);
                   setOwnerUserId(e.target.value);
                 }}
-                disabled={busy || translationBusy || canonicalBusy}
+                disabled={busy || retryBusy || translationBusy || canonicalBusy}
                 className="mt-2 w-full h-10 bg-input border border-border px-3 font-body text-sm text-foreground"
               >
                 {users.length === 0 && <option value="">Nessun utente disponibile</option>}
@@ -230,6 +277,71 @@ export default function Admin() {
           </div>
 
           <div className="mt-8 border border-border bg-obsidian/30 p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <Languages className="w-5 h-5 text-gold shrink-0 mt-0.5" />
+              <div>
+                <p className="font-label text-[10px] tracking-[0.22em] text-gold/70">PREPARAZIONE</p>
+                <h3 className="font-display text-2xl text-foreground">Recupero traduzioni fallite</h3>
+                <p className="font-body text-xs text-muted-foreground mt-1">
+                  Ritenta in piccoli batch solo le traduzioni non riuscite, senza rileggere i PDF né modificare il testo sorgente.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-[150px_auto] gap-4 mt-5 items-end">
+              <label className="font-label text-[10px] tracking-widest text-muted-foreground uppercase">
+                Record per batch
+                <Input
+                  data-testid="retry-batch-size"
+                  type="number"
+                  min="1"
+                  max="25"
+                  value={retryBatchSize}
+                  onChange={(e) => setRetryBatchSize(e.target.value)}
+                  disabled={!ownerUserId || retryBusy || !retryStatus?.retryable_total}
+                  className="mt-2 bg-input border-border rounded-none font-body"
+                />
+              </label>
+              <button
+                type="button"
+                data-testid="retry-run"
+                onClick={runTranslationRetry}
+                disabled={!ownerUserId || retryBusy || !retryStatus?.retryable_total}
+                className="h-10 px-4 bg-gold text-obsidian font-label text-xs tracking-widest uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {retryBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                {retryBusy ? "In corso…" : "Recupera / riprendi"}
+              </button>
+            </div>
+
+            {retryStatusBusy ? (
+              <div className="mt-5 flex items-center gap-2 text-muted-foreground font-body text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Caricamento stato…</div>
+            ) : retryStatus && (
+              <div data-testid="retry-status" className="mt-5">
+                <div className="flex flex-wrap justify-between gap-2 font-body text-sm text-muted-foreground">
+                  <span>Tradotte: {retryStatus.translated_total || 0} su {retryStatus.translatable_total || 0}</span>
+                  <span className={retryStatus.ready_for_verification ? "text-emerald-400" : "text-amber-300"}>
+                    {retryStatus.ready_for_verification ? "Pronte per la verifica AI" : "Recupero ancora necessario"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border border-border mt-3">
+                  {[
+                    ["Fallite", retryStatus.failed_total],
+                    ["Ritentabili", retryStatus.retryable_total],
+                    ["In corso", retryStatus.processing_total],
+                    ["Bloccate", retryStatus.blocked_total],
+                  ].map(([label, value]) => (
+                    <div key={label} className="bg-card px-3 py-3">
+                      <div className="font-label text-[9px] tracking-widest text-muted-foreground uppercase">{label}</div>
+                      <div className="font-display text-2xl text-foreground mt-1">{value || 0}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 border border-border bg-obsidian/30 p-4 sm:p-5">
             <div className="flex items-start gap-3">
               <Languages className="w-5 h-5 text-gold shrink-0 mt-0.5" />
               <div>
@@ -251,7 +363,7 @@ export default function Admin() {
                   max="25"
                   value={translationBatchSize}
                   onChange={(e) => setTranslationBatchSize(e.target.value)}
-                  disabled={!ownerUserId || translationBusy}
+                  disabled={!ownerUserId || translationBusy || !retryStatus?.ready_for_verification}
                   className="mt-2 bg-input border-border rounded-none font-body"
                 />
               </label>
@@ -259,13 +371,19 @@ export default function Admin() {
                 type="button"
                 data-testid="translation-run"
                 onClick={runTranslationVerification}
-                disabled={!ownerUserId || translationBusy}
+                disabled={!ownerUserId || translationBusy || !retryStatus?.ready_for_verification}
                 className="h-10 px-4 bg-gold text-obsidian font-label text-xs tracking-widest uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {translationBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 {translationBusy ? "In corso…" : "Verifica / riprendi"}
               </button>
             </div>
+
+            {!retryStatus?.ready_for_verification && !retryStatusBusy && (
+              <p data-testid="translation-retry-gate" className="font-body text-xs text-amber-300 mt-3">
+                Completa prima il recupero delle traduzioni non pronte.
+              </p>
+            )}
 
             {translationStatusBusy ? (
               <div className="mt-5 flex items-center gap-2 text-muted-foreground font-body text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Caricamento stato…</div>
