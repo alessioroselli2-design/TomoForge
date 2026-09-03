@@ -321,7 +321,7 @@ async def _reset_false_success_for_explicit_retry(worker, requested_filename: st
 
 
 async def _verify_requested_import(worker, requested_filename: str) -> None:
-    """Reject a false-success job that completed without durable source records."""
+    """Accept a safe bounded checkpoint or a durable completed source."""
     from core.db import db
 
     user_id = await worker._owner_id(db)
@@ -335,8 +335,19 @@ async def _verify_requested_import(worker, requested_filename: str) -> None:
     job = await db.private_manual_import_jobs.find_one(
         {"user_id": user_id, "filename": filename}
     )
-    if not job or str(job.get("status") or "") != "completed":
-        raise RuntimeError(f"Import job did not complete for {filename}")
+    if not job:
+        raise RuntimeError(f"Import job disappeared for {filename}")
+
+    status = str(job.get("status") or "")
+    current_page = int(job.get("current_page") or 1)
+    if status == "queued":
+        if current_page <= 1:
+            raise RuntimeError(f"Import checkpoint made no progress for {filename}")
+        return
+    if status != "completed":
+        raise RuntimeError(
+            f"Import job did not checkpoint safely for {filename}: status={status or 'missing'}"
+        )
 
     persisted = int(job.get("records_imported") or 0) + int(
         job.get("records_updated") or 0
@@ -358,6 +369,9 @@ def main() -> int:
     args = worker._parser().parse_args()
     if args.max_manuals < 1:
         print("--max-manuals must be at least 1", file=sys.stderr)
+        return 2
+    if args.max_chunks < 1:
+        print("--max-chunks must be at least 1", file=sys.stderr)
         return 2
 
     try:
