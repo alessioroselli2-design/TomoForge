@@ -36,3 +36,28 @@ def test_registry_required_ocr_stays_enabled(monkeypatch):
     runner.enable_worker_ocr_fallback()
 
     assert library.manual_requires_ocr("847921086-Manuale-Dei-Mostri-5e.pdf") is True
+
+
+def test_reversed_card_footer_header_is_normalized():
+    transcription = (
+        "ALLARME\n"
+        "1° livello Abiurazione\n"
+        "Tempo di Lancio: 1 minuto\n"
+        "Gittata: 9 metri\n"
+        "Componenti: V, S, M\n"
+        "Durata: 8 ore\n"
+        "Testo della regola."
+    )
+
+    normalized = runner._normalize_spell_card_transcription(transcription)
+
+    assert "Abiurazione di 1° livello" in normalized.splitlines()
+    assert "1° livello Abiurazione" not in normalized
+
+
+def test_reversed_ritual_header_preserves_ritual_marker():
+    normalized = runner._normalize_spell_card_transcription(
+        "INDIVIDUAZIONE DEL MAGICO\n1° livello Divinazione (rituale)"
+    )
+
+    assert normalized.splitlines()[1] == "Divinazione di 1° livello (rituale)"
