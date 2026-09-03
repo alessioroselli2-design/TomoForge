@@ -36,10 +36,23 @@ const status = {
   records_total: 28,
   canonical_total: 17,
 };
+const retryStatus = {
+  owner_user_id: "owner-1",
+  translatable_total: 10,
+  translated_total: 10,
+  failed_total: 0,
+  processing_total: 0,
+  pending_total: 0,
+  translation_not_ready: 0,
+  retryable_total: 0,
+  blocked_total: 0,
+  errors: {},
+  ready_for_verification: true,
+};
 const translationStatus = {
   owner_user_id: "owner-1",
   translatable_total: 10,
-  translated_total: 9,
+  translated_total: 10,
   pending: 0,
   ai_verified: 8,
   conflict: 1,
@@ -68,6 +81,7 @@ describe("Admin canonicalization", () => {
     jest.clearAllMocks();
     api.get.mockImplementation((path) => {
       if (path === "/admin/users") return Promise.resolve({ data: users });
+      if (path === "/admin/translation-retry/status") return Promise.resolve({ data: retryStatus });
       if (path === "/admin/translation-verification/status") return Promise.resolve({ data: translationStatus });
       if (path === "/admin/canonicalization/status") return Promise.resolve({ data: status });
       return Promise.resolve({ data: {} });
@@ -83,13 +97,15 @@ describe("Admin canonicalization", () => {
     container.remove();
   });
 
-  it("renders canonical status and never starts a batch on mount", async () => {
+  it("renders the safe three-step flow and never starts a batch on mount", async () => {
     await act(async () => {
       root.render(<MemoryRouter><Admin /></MemoryRouter>);
       await settle();
     });
 
     expect(container.textContent).toContain("D&D 5e · Regole 2014");
+    expect(container.textContent).toContain("Recupero traduzioni fallite");
+    expect(container.textContent).toContain("Pronte per la verifica AI");
     expect(container.textContent).toContain("Verifica AI delle traduzioni");
     expect(container.textContent).toContain("Pronte per la fase 2");
     expect(container.textContent).toContain("Verificati");
@@ -98,6 +114,9 @@ describe("Admin canonicalization", () => {
     expect(container.textContent).toContain("Bassa confidenza");
     expect(container.textContent).toContain("restano bloccati");
     expect(container.textContent).toContain("senza imporre una revisione manuale");
+    expect(api.get).toHaveBeenCalledWith("/admin/translation-retry/status", {
+      params: { user_id: "owner-1" },
+    });
     expect(api.get).toHaveBeenCalledWith("/admin/canonicalization/status", {
       params: { user_id: "owner-1" },
     });
@@ -107,7 +126,7 @@ describe("Admin canonicalization", () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it("submits the exact batch payload and refreshes status after completion", async () => {
+  it("submits the exact canonical batch payload and refreshes status after completion", async () => {
     await act(async () => {
       root.render(<MemoryRouter><Admin /></MemoryRouter>);
       await settle();
@@ -130,6 +149,57 @@ describe("Admin canonicalization", () => {
       ruleset: "2014",
     });
     expect(api.get.mock.calls.filter(([path]) => path === "/admin/canonicalization/status")).toHaveLength(2);
+  });
+
+  it("runs a bounded failed-translation recovery batch before verification", async () => {
+    const initialRetryStatus = {
+      ...retryStatus,
+      translated_total: 8,
+      failed_total: 2,
+      translation_not_ready: 2,
+      retryable_total: 2,
+      ready_for_verification: false,
+    };
+    api.get.mockImplementation((path) => {
+      if (path === "/admin/users") return Promise.resolve({ data: users });
+      if (path === "/admin/translation-retry/status") return Promise.resolve({ data: initialRetryStatus });
+      if (path === "/admin/translation-verification/status") return Promise.resolve({ data: translationStatus });
+      if (path === "/admin/canonicalization/status") return Promise.resolve({ data: status });
+      return Promise.resolve({ data: {} });
+    });
+    api.post.mockResolvedValueOnce({
+      data: {
+        ...retryStatus,
+        processed_records: 2,
+        recovered_records: 2,
+        still_failed_records: 0,
+      },
+    });
+
+    await act(async () => {
+      root.render(<MemoryRouter><Admin /></MemoryRouter>);
+      await settle();
+    });
+
+    expect(container.querySelector('[data-testid="translation-run"]').disabled).toBe(true);
+    const input = container.querySelector('[data-testid="retry-batch-size"]');
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      setter.call(input, "2");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector('[data-testid="retry-run"]').click();
+      await settle();
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/admin/translation-retry/run", {
+      user_id: "owner-1",
+      batch_size: 2,
+    });
+    expect(container.querySelector('[data-testid="retry-status"]').textContent).toContain("Pronte per la verifica AI");
+    expect(container.querySelector('[data-testid="translation-run"]').disabled).toBe(false);
+    expect(api.get.mock.calls.filter(([path]) => path === "/admin/translation-verification/status")).toHaveLength(2);
   });
 
   it("runs a bounded translation-verification batch", async () => {
@@ -157,9 +227,21 @@ describe("Admin canonicalization", () => {
     expect(container.querySelector('[data-testid="translation-status"]').textContent).toContain("9");
   });
 
-  it("keeps canonicalization disabled while translations are not ready", async () => {
+  it("keeps verification and canonicalization disabled while translations are not ready", async () => {
     api.get.mockImplementation((path) => {
       if (path === "/admin/users") return Promise.resolve({ data: users });
+      if (path === "/admin/translation-retry/status") {
+        return Promise.resolve({
+          data: {
+            ...retryStatus,
+            translated_total: 9,
+            failed_total: 1,
+            retryable_total: 1,
+            translation_not_ready: 1,
+            ready_for_verification: false,
+          },
+        });
+      }
       if (path === "/admin/translation-verification/status") {
         return Promise.resolve({ data: { ...translationStatus, translation_failed: 1, translation_not_ready: 1, ready_for_canonicalization: false } });
       }
@@ -171,6 +253,8 @@ describe("Admin canonicalization", () => {
       await settle();
     });
 
+    expect(container.querySelector('[data-testid="translation-run"]').disabled).toBe(true);
+    expect(container.querySelector('[data-testid="translation-retry-gate"]').textContent).toContain("Completa prima il recupero");
     expect(container.querySelector('[data-testid="canonical-run"]').disabled).toBe(true);
     expect(container.querySelector('[data-testid="canonical-translation-gate"]').textContent).toContain("Completa la fase 1");
   });
