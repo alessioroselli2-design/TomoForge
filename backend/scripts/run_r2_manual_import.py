@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import re
 import sys
 from hashlib import sha256
 from pathlib import Path
@@ -32,7 +33,43 @@ SPELL_CARD_SOURCES = frozenset({
     "Stregone .pdf",
     "Warlock .pdf",
 })
-SPELL_CARD_PARSER_REVISION = "r2-spell-card-ocr-v1"
+SPELL_CARD_PARSER_REVISION = "r2-spell-card-ocr-v2"
+
+
+def _normalize_spell_card_transcription(value: str) -> str:
+    """Normalise a common card-footer header order into the parser's format."""
+    from reference_library import ITALIAN_SPELL_SCHOOLS
+
+    school_pattern = "|".join(re.escape(school) for school in ITALIAN_SPELL_SCHOOLS)
+    reversed_header = re.compile(
+        rf"^(?P<level>\d+)\s*[°º]?\s*livello\s+"
+        rf"(?P<school>{school_pattern})(?P<ritual>\s*\(rituale\))?\s*$",
+        flags=re.IGNORECASE,
+    )
+    cantrip_header = re.compile(
+        rf"^Trucchetto\s+(?P<school>{school_pattern})\s*$",
+        flags=re.IGNORECASE,
+    )
+
+    lines: list[str] = []
+    for raw_line in (value or "").splitlines():
+        line = raw_line.strip()
+        match = reversed_header.match(line)
+        if match:
+            school = match.group("school")
+            if school.casefold() == "tramutazione":
+                school = "Trasmutazione"
+            ritual = " (rituale)" if match.group("ritual") else ""
+            line = f"{school.title()} di {match.group('level')}° livello{ritual}"
+        else:
+            match = cantrip_header.match(line)
+            if match:
+                school = match.group("school")
+                if school.casefold() == "tramutazione":
+                    school = "Trasmutazione"
+                line = f"Trucchetto di {school.title()}"
+        lines.append(line)
+    return "\n".join(lines).strip()
 
 
 def _worker_openai_ocr(page, page_number: int, source_language: str = "") -> str:
@@ -118,6 +155,7 @@ def _worker_openai_ocr(page, page_number: int, source_language: str = "") -> str
             .strip()
         )
         if transcription:
+            transcription = _normalize_spell_card_transcription(transcription)
             letters = sum(char.isalpha() for char in transcription)
             printable = sum(char.isprintable() for char in transcription)
             library.logger.info(
