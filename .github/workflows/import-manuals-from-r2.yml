@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 330
     env:
       PYTHONUNBUFFERED: "1"
-      REFERENCE_MANUAL_DIRECTORY: ${{ runner.temp }}/tomoforge-manuals
+      REFERENCE_MANUAL_DIRECTORY: /tmp/tomoforge-manuals
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
