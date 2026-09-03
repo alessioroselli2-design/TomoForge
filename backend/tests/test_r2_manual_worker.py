@@ -5,6 +5,7 @@ import pytest
 from scripts.import_manuals_from_r2 import (
     _canonical_filename,
     _local_filename_for_source,
+    _parser,
     _pending_sources,
     _resolve_requested_source,
     _safe_pdf_name,
@@ -64,3 +65,10 @@ def test_requested_source_accepts_legacy_alias():
 def test_stable_mtime_uses_r2_last_modified_timestamp():
     value = datetime(2026, 9, 3, 9, 0, tzinfo=timezone.utc)
     assert _stable_mtime(value) == value.timestamp()
+
+
+def test_r2_worker_defaults_to_one_durable_page_chunk():
+    args = _parser().parse_args([])
+
+    assert args.max_manuals == 1
+    assert args.max_chunks == 1
