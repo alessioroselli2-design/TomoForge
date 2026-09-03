@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.config import TRANSLATION_PROCESSING_STATUS
 from services.library import retry_private_reference_translation
 from services.record_paging import list_collection_rows
 from services.reference_translation import translation_required
@@ -57,12 +58,15 @@ def summarize_translation_retry(records: list[dict], user_id: str) -> dict[str, 
     ]
     failed = [record for record in translatable if record.get("translation_status") == "failed"]
     processing = [
-        record for record in translatable if record.get("translation_status") == "processing"
+        record
+        for record in translatable
+        if record.get("translation_status") == TRANSLATION_PROCESSING_STATUS
     ]
     pending = [
         record
         for record in translatable
-        if record.get("translation_status") not in {"translated", "failed", "processing"}
+        if record.get("translation_status")
+        not in {"translated", "failed", TRANSLATION_PROCESSING_STATUS}
     ]
     translated = [
         record for record in translatable if record.get("translation_status") == "translated"
