@@ -85,4 +85,4 @@ jobs:
         env:
           REQUESTED_FILENAME: ${{ steps.request.outputs.requested }}
         run: |
-          python backend/scripts/import_manuals_from_r2.py --filename "$REQUESTED_FILENAME"
+          python backend/scripts/run_r2_manual_import.py --filename "$REQUESTED_FILENAME"
