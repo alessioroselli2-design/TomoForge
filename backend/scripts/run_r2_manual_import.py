@@ -140,9 +140,7 @@ def _worker_openai_ocr(page, page_number: int, source_language: str = "") -> str
         return ""
     except requests.RequestException as exc:
         library.logger.warning(
-            "OCR OpenAI non raggiungibile per pagina %s: %s",
-            page_number,
-            exc,
+            "OCR OpenAI non raggiungibile per pagina %s: %s", page_number, exc
         )
         return ""
 
@@ -217,12 +215,39 @@ def enable_worker_parser_revision() -> None:
     library._r2_parser_revision_enabled = True
 
 
+def _is_current_spell_card_record(row: dict) -> bool:
+    """Recognise a record produced by the structured spell-card OCR parser."""
+    attributes = row.get("attributes") or {}
+    return (
+        str(row.get("reference_type") or "") == "spell"
+        and bool(str(row.get("level") or "").strip())
+        and all(
+            bool(str(attributes.get(field) or "").strip())
+            for field in (
+                "scuola",
+                "tempo_lancio",
+                "gittata",
+                "componenti",
+                "durata",
+            )
+        )
+    )
+
+
 async def _cleanup_stale_ocr_artifacts(worker, requested_filename: str) -> int:
-    """Remove only source-local OCR artefacts before a targeted corrected re-index."""
+    """Remove only obsolete source-local spell-card OCR artefacts.
+
+    This cleanup exists for the one-time migration from the older generic OCR
+    parser. It must never delete already-structured records on a normal retry,
+    and it is intentionally disabled for non spell-card manuals.
+    """
     from core.db import db
 
     user_id = await worker._owner_id(db)
     canonical = worker._canonical_filename(requested_filename)
+    if canonical not in SPELL_CARD_SOURCES:
+        return 0
+
     _imported, jobs = await worker._existing_source_state(db, user_id)
     job_state = jobs.get(canonical)
     if not job_state:
@@ -245,6 +270,8 @@ async def _cleanup_stale_ocr_artifacts(worker, requested_filename: str) -> int:
         source_local = bool(ref_sources) and ref_sources == {canonical}
         if "ocr_da_verificare" not in flags or not source_local:
             continue
+        if _is_current_spell_card_record(row):
+            continue
         result = await db.private_reference_records.delete_one(
             {"id": row["id"], "user_id": user_id}
         )
@@ -256,14 +283,14 @@ async def _cleanup_stale_ocr_artifacts(worker, requested_filename: str) -> int:
 
 
 async def _reset_false_success_for_explicit_retry(worker, requested_filename: str) -> None:
-    """Restart an explicit retry that previously completed with only OCR misses."""
+    """Restart a completed job when its source no longer has durable provenance."""
     from core.db import db
 
     user_id = await worker._owner_id(db)
     canonical = worker._canonical_filename(requested_filename)
-    _imported, jobs = await worker._existing_source_state(db, user_id)
+    imported, jobs = await worker._existing_source_state(db, user_id)
     job_state = jobs.get(canonical)
-    if not job_state:
+    if not job_state or canonical in imported:
         return
 
     filename = job_state["filename"]
@@ -271,11 +298,6 @@ async def _reset_false_success_for_explicit_retry(worker, requested_filename: st
         {"user_id": user_id, "filename": filename}
     )
     if not job or str(job.get("status") or "") != "completed":
-        return
-
-    persisted = int(job.get("records_imported") or 0) + int(job.get("records_updated") or 0)
-    unresolved = list(job.get("pages_needing_ocr") or [])
-    if persisted > 0 or not unresolved:
         return
 
     await db.private_manual_import_jobs.update_one(
@@ -295,16 +317,16 @@ async def _reset_false_success_for_explicit_retry(worker, requested_filename: st
             "completed_at": None,
         }},
     )
-    print(f"Resetting prior zero-record OCR-only completion for {filename}.")
+    print(f"Resetting completed job without durable records for {filename}.")
 
 
 async def _verify_requested_import(worker, requested_filename: str) -> None:
-    """Reject a false-success job that completed without producing any records."""
+    """Reject a false-success job that completed without durable source records."""
     from core.db import db
 
     user_id = await worker._owner_id(db)
     canonical = worker._canonical_filename(requested_filename)
-    _imported, jobs = await worker._existing_source_state(db, user_id)
+    imported, jobs = await worker._existing_source_state(db, user_id)
     job_state = jobs.get(canonical)
     if not job_state:
         raise RuntimeError(f"No durable import job found for {requested_filename}")
@@ -316,11 +338,13 @@ async def _verify_requested_import(worker, requested_filename: str) -> None:
     if not job or str(job.get("status") or "") != "completed":
         raise RuntimeError(f"Import job did not complete for {filename}")
 
-    persisted = int(job.get("records_imported") or 0) + int(job.get("records_updated") or 0)
-    if persisted <= 0:
+    persisted = int(job.get("records_imported") or 0) + int(
+        job.get("records_updated") or 0
+    )
+    if persisted <= 0 or canonical not in imported:
         unresolved = list(job.get("pages_needing_ocr") or [])
         raise RuntimeError(
-            f"Import completed without persisted records for {filename}; "
+            f"Import completed without durable records for {filename}; "
             f"unresolved OCR pages={unresolved}"
         )
 
