@@ -12,6 +12,7 @@ import json
 from typing import Any, Iterable
 
 from reference_library import clean_text, compact_text, normalize_reference_name
+from translation_integrity import normalize_language
 
 TARGET_LANGUAGE = "it"
 TRANSLATABLE_SOURCE_LANGUAGES = frozenset({"en", "es", "ru"})
@@ -23,10 +24,6 @@ _LANGUAGE_NAMES = {
     "ru": "russo",
     "it": "italiano",
 }
-
-
-def normalize_language(value: Any) -> str:
-    return str(value or "").strip().casefold().replace("_", "-").split("-", 1)[0]
 
 
 def translation_required(source_language: Any, target_language: str = TARGET_LANGUAGE) -> bool:

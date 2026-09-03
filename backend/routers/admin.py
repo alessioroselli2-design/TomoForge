@@ -5,7 +5,11 @@ from core.db import get_db, SupabaseDatabase
 from schemas.payments import PremiumToggle
 from schemas.library import CanonicalizationRunInput, TranslationVerificationRunInput
 from schemas.users import User
-from services.canonical import canonicalization_status, run_canonicalization
+from services.canonical import (
+    CanonicalizationBlockedError,
+    canonicalization_status,
+    run_canonicalization,
+)
 from services.translation_review import translation_review_status, run_translation_reviews
 
 router = APIRouter()
@@ -60,6 +64,16 @@ async def admin_run_canonicalization(
     admin: User = Depends(require_admin),
     db: SupabaseDatabase = Depends(get_db),
 ):
-    return await run_canonicalization(
-        body.user_id or admin.user_id, db=db, batch_size=body.batch_size, ruleset=body.ruleset
-    )
+    try:
+        return await run_canonicalization(
+            body.user_id or admin.user_id, db=db, batch_size=body.batch_size, ruleset=body.ruleset
+        )
+    except CanonicalizationBlockedError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "translation_verification_incomplete",
+                "message": "Completa traduzioni e verifica AI prima della canonicalizzazione.",
+                "translation_status": exc.translation_status,
+            },
+        ) from exc

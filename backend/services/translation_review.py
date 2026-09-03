@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from services.record_paging import list_collection_rows
+from services.reference_translation import translation_required
 from services.translation_verification import (
     TRANSLATION_AI_VERIFIED,
     TRANSLATION_CONFLICT,
-    TRANSLATION_FAILED,
     TRANSLATION_LOW_CONFIDENCE,
     translation_verification_is_current,
     verify_translation,
@@ -25,15 +26,32 @@ CURRENT_REVIEW_STATES = frozenset({
 })
 
 
+async def list_owner_reference_records(
+    user_id: str,
+    *,
+    db,
+    page_size: int = 1000,
+) -> list[dict]:
+    """Read the complete owner corpus instead of silently stopping at 8,000 rows."""
+    return await list_collection_rows(
+        db.private_reference_records,
+        {"user_id": user_id},
+        page_size=page_size,
+    )
+
+
 def _needs_translation_review(record: dict) -> bool:
-    if record.get("translation_status") != "translated":
+    if (
+        record.get("translation_status") != "translated"
+        or record.get("review_status") == "verified"
+    ):
         return False
     status = str(record.get("translation_review_status") or "pending")
     return status not in CURRENT_REVIEW_STATES or not translation_verification_is_current(record)
 
 
-async def translation_review_status(user_id: str, *, db) -> dict[str, Any]:
-    records = await db.private_reference_records.find({"user_id": user_id}).to_list(8000)
+def summarize_translation_review(records: list[dict], user_id: str) -> dict[str, Any]:
+    """Return the owner-scoped translation gate without reading or writing data."""
     translated = [record for record in records if record.get("translation_status") == "translated"]
     counts = {
         "ai_verified": 0,
@@ -42,8 +60,34 @@ async def translation_review_status(user_id: str, *, db) -> dict[str, Any]:
         "failed": 0,
         "pending": 0,
         "stale": 0,
+        "human_verified": 0,
+        "translation_failed": 0,
+        "translation_processing": 0,
+        "translation_pending": 0,
     }
-    for record in translated:
+    translatable_total = 0
+    for record in records:
+        translation_status = str(record.get("translation_status") or "not_required")
+        is_translation_candidate = (
+            translation_required(record.get("source_language"))
+            or translation_status in {"translated", "failed", "processing"}
+        )
+        if not is_translation_candidate:
+            continue
+        translatable_total += 1
+        if record.get("review_status") == "verified":
+            counts["human_verified"] += 1
+            continue
+        if translation_status == "failed":
+            counts["translation_failed"] += 1
+            continue
+        if translation_status == "processing":
+            counts["translation_processing"] += 1
+            continue
+        if translation_status != "translated":
+            counts["translation_pending"] += 1
+            continue
+
         status = str(record.get("translation_review_status") or "pending")
         current = translation_verification_is_current(record)
         if status in CURRENT_REVIEW_STATES and not current:
@@ -53,8 +97,15 @@ async def translation_review_status(user_id: str, *, db) -> dict[str, Any]:
             counts[status] += 1
         else:
             counts["pending"] += 1
+    not_ready = (
+        counts["translation_failed"]
+        + counts["translation_processing"]
+        + counts["translation_pending"]
+    )
+    blocking_total = not_ready + counts["pending"] + counts["failed"]
     return {
         "owner_user_id": user_id,
+        "translatable_total": translatable_total,
         "translated_total": len(translated),
         "pending": counts["pending"],
         "ai_verified": counts["ai_verified"],
@@ -62,8 +113,23 @@ async def translation_review_status(user_id: str, *, db) -> dict[str, Any]:
         "low_confidence": counts["low_confidence"],
         "failed": counts["failed"],
         "stale": counts["stale"],
-        "ready_for_canonicalization": counts["pending"] == 0 and counts["failed"] == 0,
+        "human_verified": counts["human_verified"],
+        "translation_failed": counts["translation_failed"],
+        "translation_processing": counts["translation_processing"],
+        "translation_pending": counts["translation_pending"],
+        "translation_not_ready": not_ready,
+        "verification_complete": translatable_total - blocking_total,
+        "ready_for_canonicalization": (
+            counts["pending"] == 0
+            and counts["failed"] == 0
+            and not_ready == 0
+        ),
     }
+
+
+async def translation_review_status(user_id: str, *, db) -> dict[str, Any]:
+    records = await list_owner_reference_records(user_id, db=db)
+    return summarize_translation_review(records, user_id)
 
 
 async def run_translation_reviews(
@@ -79,7 +145,7 @@ async def run_translation_reviews(
     low-confidence verdicts are stable until the source/translation fingerprint
     changes; they are never silently promoted to verified.
     """
-    records = await db.private_reference_records.find({"user_id": user_id}).to_list(8000)
+    records = await list_owner_reference_records(user_id, db=db)
     pending = sorted(
         (record for record in records if _needs_translation_review(record)),
         key=lambda record: str(record.get("id", "")),
