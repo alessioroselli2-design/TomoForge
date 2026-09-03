@@ -36,6 +36,56 @@ def enable_worker_ocr_fallback() -> None:
     library._r2_ocr_fallback_enabled = True
 
 
+async def _reset_false_success_for_explicit_retry(worker, requested_filename: str) -> None:
+    """Restart an explicit retry that previously completed with only OCR misses.
+
+    The durable preload worker normally resumes from its checkpoint. A previous
+    false-success can therefore sit at page_count + 1 and immediately complete
+    again without re-reading any page. Reset only the narrow broken state: an
+    explicitly requested completed job with zero persisted records and unresolved
+    OCR pages.
+    """
+    from core.db import db
+
+    user_id = await worker._owner_id(db)
+    canonical = worker._canonical_filename(requested_filename)
+    _imported, jobs = await worker._existing_source_state(db, user_id)
+    job_state = jobs.get(canonical)
+    if not job_state:
+        return
+
+    filename = job_state["filename"]
+    job = await db.private_manual_import_jobs.find_one(
+        {"user_id": user_id, "filename": filename}
+    )
+    if not job or str(job.get("status") or "") != "completed":
+        return
+
+    persisted = int(job.get("records_imported") or 0) + int(job.get("records_updated") or 0)
+    unresolved = list(job.get("pages_needing_ocr") or [])
+    if persisted > 0 or not unresolved:
+        return
+
+    await db.private_manual_import_jobs.update_one(
+        {"id": job["id"], "user_id": user_id, "status": "completed"},
+        {"$set": {
+            "status": "queued",
+            "current_page": 1,
+            "attempt_count": 0,
+            "last_error": "",
+            "pages_needing_ocr": [],
+            "records_imported": 0,
+            "records_updated": 0,
+            "records_flagged": 0,
+            "records_skipped": 0,
+            "lease_id": "",
+            "lease_expires_at": 0,
+            "completed_at": None,
+        }},
+    )
+    print(f"Resetting prior zero-record OCR-only completion for {filename}.")
+
+
 async def _verify_requested_import(worker, requested_filename: str) -> None:
     """Reject a false-success job that completed without producing any records."""
     from core.db import db
@@ -74,6 +124,8 @@ def main() -> int:
         return 2
 
     try:
+        if args.filename:
+            asyncio.run(_reset_false_success_for_explicit_retry(worker, args.filename))
         result = asyncio.run(worker._run_import(args))
         if result == 0 and args.filename:
             asyncio.run(_verify_requested_import(worker, args.filename))
