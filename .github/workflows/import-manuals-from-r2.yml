@@ -1,0 +1,88 @@
+name: Import private manuals from R2
+
+on:
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: Optional exact PDF filename; leave blank to process the next pending source
+        required: false
+        type: string
+  push:
+    branches:
+      - codex/r2-manual-import
+      - ai-canonical-library
+    paths:
+      - .github/r2-import-request.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-private-manual-import
+  cancel-in-progress: false
+
+jobs:
+  import-manual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      PYTHONUNBUFFERED: "1"
+      REFERENCE_MANUAL_DIRECTORY: /tmp/tomoforge-manuals
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve requested manual
+        id: request
+        env:
+          MANUAL_INPUT: ${{ inputs.filename }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            requested="$MANUAL_INPUT"
+            if [ -z "$requested" ]; then
+              echo "requested=" >> "$GITHUB_OUTPUT"
+            else
+              echo "requested=$requested" >> "$GITHUB_OUTPUT"
+            fi
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ -f .github/r2-import-request.txt ]; then
+            requested="$(tr -d '\r\n' < .github/r2-import-request.txt)"
+            if [ -z "$requested" ]; then
+              echo "R2 import request file is empty." >&2
+              exit 1
+            fi
+            echo "requested=$requested" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "R2 import request file was removed; nothing to import."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.request.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install worker dependencies
+        if: steps.request.outputs.skip != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Import requested private manual from R2
+        if: steps.request.outputs.skip != 'true'
+        env:
+          REQUESTED_FILENAME: ${{ steps.request.outputs.requested }}
+        run: |
+          python backend/scripts/run_r2_manual_import.py --filename "$REQUESTED_FILENAME"
