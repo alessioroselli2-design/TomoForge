@@ -47,6 +47,7 @@ def test_retry_status_counts_retryable_and_blocked_failures():
 
         status = await translation_retry_status("owner-1", db=db)
 
+        assert status["translatable_total"] == 2
         assert status["failed_total"] == 2
         assert status["retryable_total"] == 1
         assert status["blocked_total"] == 1
@@ -54,6 +55,39 @@ def test_retry_status_counts_retryable_and_blocked_failures():
             "manual_intervention_required": 1,
             "provider_translation_incomplete": 1,
         }
+        assert status["ready_for_verification"] is False
+
+    asyncio.run(scenario())
+
+
+def test_retry_status_stays_blocked_for_processing_and_pending_translations():
+    async def scenario():
+        db = FakeDB()
+        await db.private_reference_records.insert_many([
+            failed_record(
+                id="processing",
+                translation_status="processing",
+                translation_error="",
+            ),
+            failed_record(
+                id="pending",
+                translation_status="pending",
+                translation_error="",
+            ),
+            failed_record(
+                id="translated",
+                translation_status="translated",
+                translation_error="",
+            ),
+        ])
+
+        status = await translation_retry_status("owner-1", db=db)
+
+        assert status["translated_total"] == 1
+        assert status["processing_total"] == 1
+        assert status["pending_total"] == 1
+        assert status["translation_not_ready"] == 2
+        assert status["retryable_total"] == 0
         assert status["ready_for_verification"] is False
 
     asyncio.run(scenario())
