@@ -31,6 +31,17 @@ async def fetch_all(collection: Any, page_size: int = 1000) -> list[dict]:
         offset += len(page)
 
 
+def _review_queue_by_reference_type(records: list[dict]) -> dict[str, int]:
+    """Return aggregate unresolved counts by reference type without exposing content."""
+    queue = Counter()
+    for row in records:
+        if str(row.get("review_status") or "unknown") == "verified":
+            continue
+        reference_type = str(row.get("reference_type") or "unknown")
+        queue[reference_type] += 1
+    return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
+
+
 def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
     review = Counter(str(row.get("review_status") or "unknown") for row in records)
     translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
@@ -48,6 +59,7 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_verified": verified,
         "records_needs_review": review["needs_review"],
         "records_pending": review["pending"],
+        "review_queue_by_reference_type": _review_queue_by_reference_type(records),
         "translation_failed": translation["failed"],
         "translation_translated": translation["translated"],
         "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),

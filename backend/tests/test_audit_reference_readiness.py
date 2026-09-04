@@ -28,9 +28,9 @@ def test_fetch_all_reads_every_page_without_duplication():
 
 def test_summarize_readiness_reports_only_aggregate_state():
     records = [
-        {"review_status": "verified", "translation_status": "not_required", "canonical_id": None, "name": "Private rule text"},
-        {"review_status": "needs_review", "translation_status": "failed", "canonical_id": "canon-1", "full_text": "Sensitive source text"},
-        {"review_status": "pending", "translation_status": "translated", "canonical_id": ""},
+        {"review_status": "verified", "translation_status": "not_required", "canonical_id": None, "reference_type": "spell", "name": "Private rule text"},
+        {"review_status": "needs_review", "translation_status": "failed", "canonical_id": "canon-1", "reference_type": "spell", "full_text": "Sensitive source text"},
+        {"review_status": "pending", "translation_status": "translated", "canonical_id": "", "reference_type": "feat"},
     ]
     sources = [
         {"source_status": "active", "text_mode": "text", "import_state": "catalogued", "physical_filename": "private.pdf"},
@@ -49,6 +49,7 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "records_verified": 1,
         "records_needs_review": 1,
         "records_pending": 1,
+        "review_queue_by_reference_type": {"feat": 1, "spell": 1},
         "translation_failed": 1,
         "translation_translated": 1,
         "records_linked_to_canonical": 1,
@@ -73,8 +74,29 @@ def test_summarize_readiness_reports_only_aggregate_state():
     assert "canonical private text" not in rendered
 
 
+def test_summarize_readiness_orders_review_queue_by_count_then_type():
+    records = [
+        {"review_status": "needs_review", "reference_type": "spell"},
+        {"review_status": "pending", "reference_type": "spell"},
+        {"review_status": "pending", "reference_type": "feat"},
+        {"review_status": "needs_review", "reference_type": "race"},
+        {"review_status": "verified", "reference_type": "spell"},
+        {"review_status": "pending"},
+    ]
+
+    result = summarize_readiness(records, [], [])
+
+    assert list(result["review_queue_by_reference_type"].items()) == [
+        ("spell", 2),
+        ("feat", 1),
+        ("race", 1),
+        ("unknown", 1),
+    ]
+
+
 def test_summarize_readiness_handles_empty_catalogue():
     result = summarize_readiness([], [], [])
     assert result["records_total"] == 0
     assert result["verified_ratio"] == 0.0
     assert result["canonical_total"] == 0
+    assert result["review_queue_by_reference_type"] == {}
