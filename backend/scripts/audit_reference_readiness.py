@@ -58,6 +58,21 @@ def _review_queue_by_status_and_reference_type(records: list[dict]) -> dict[str,
     }
 
 
+def _review_queue_by_language_translation_and_ai(records: list[dict]) -> dict[str, int]:
+    """Return unresolved counts grouped by coarse processing state only."""
+    queue = Counter()
+    for row in records:
+        review_status = str(row.get("review_status") or "unknown")
+        if review_status == "verified":
+            continue
+        source_language = str(row.get("source_language") or "unknown")
+        translation_status = str(row.get("translation_status") or "unknown")
+        ai_review_status = str(row.get("ai_review_status") or "unknown")
+        key = f"{source_language}|{translation_status}|{ai_review_status}"
+        queue[key] += 1
+    return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
+
+
 def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
     review = Counter(str(row.get("review_status") or "unknown") for row in records)
     translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
@@ -77,6 +92,7 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_pending": review["pending"],
         "review_queue_by_reference_type": _review_queue_by_reference_type(records),
         "review_queue_by_status_and_reference_type": _review_queue_by_status_and_reference_type(records),
+        "review_queue_by_language_translation_and_ai": _review_queue_by_language_translation_and_ai(records),
         "translation_failed": translation["failed"],
         "translation_translated": translation["translated"],
         "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),
