@@ -23,6 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from reference_library import extract_reference_records
 from scripts.pilot_local_ocr_from_r2 import _agreement_metrics, _run_tesseract
+from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
 
 
 def _record_summary(records: list[dict]) -> dict[str, Any]:
@@ -45,6 +46,23 @@ def _record_summary(records: list[dict]) -> dict[str, Any]:
         "records_flagged_for_review": flagged,
         "records_with_ocr_review_flag": ocr_flagged,
         "source_pages_represented": len(pages),
+    }
+
+
+def _monster_parser_summary(
+    primary_pages: list[tuple[int, str]],
+    comparison_pages: list[tuple[int, str]],
+    source_filename: str,
+    source_language: str,
+) -> dict[str, int]:
+    """Return privacy-safe aggregate metrics for the conservative monster parser."""
+    primary = parse_monster_statblocks(primary_pages, source_filename, source_language)
+    comparison = parse_monster_statblocks(comparison_pages, source_filename, source_language)
+    agreed = agreed_monster_records(primary, comparison)
+    return {
+        "monster_candidates_primary": len(primary),
+        "monster_candidates_comparison": len(comparison),
+        "monster_candidates_independently_agreed": len(agreed),
     }
 
 
@@ -93,6 +111,8 @@ def main() -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     page_metrics: dict[int, dict[str, Any]] = {}
+    primary_ocr_pages: dict[int, str] = {}
+    comparison_ocr_pages: dict[int, str] = {}
 
     with tempfile.TemporaryDirectory(prefix="tomoforge-parser-ocr-") as tmp:
         tmp_path = Path(tmp)
@@ -122,7 +142,11 @@ def main() -> int:
                 f"length_ratio={agreement['length_ratio']}\t"
                 f"quality_pass={int(agreement['quality_pass'])}"
             )
-            return primary if agreement["quality_pass"] else ""
+            if agreement["quality_pass"]:
+                primary_ocr_pages[page_number] = primary
+                comparison_ocr_pages[page_number] = comparison
+                return primary
+            return ""
 
         report = extract_reference_records(
             pdf_path,
@@ -132,6 +156,15 @@ def main() -> int:
             True,
             args.source_language,
         )
+
+    ordered_primary_pages = sorted(primary_ocr_pages.items())
+    ordered_comparison_pages = sorted(comparison_ocr_pages.items())
+    monster_summary = _monster_parser_summary(
+        ordered_primary_pages,
+        ordered_comparison_pages,
+        safe_name,
+        args.source_language,
+    )
 
     aggregate = {
         "filename": safe_name,
@@ -151,6 +184,7 @@ def main() -> int:
         "primary_psm": args.psm,
         "comparison_psm": args.comparison_psm,
         **_record_summary(report.records),
+        **monster_summary,
         "page_quality": [
             {"page": page, **page_metrics[page]}
             for page in sorted(page_metrics)
@@ -163,7 +197,8 @@ def main() -> int:
         f"pages_read={aggregate['pages_read']}\t"
         f"quality_passed={aggregate['quality_pages_passed']}\t"
         f"records_detected={aggregate['records_detected']}\t"
-        f"flagged={aggregate['records_flagged_for_review']}"
+        f"flagged={aggregate['records_flagged_for_review']}\t"
+        f"monster_agreed={aggregate['monster_candidates_independently_agreed']}"
     )
     print(f"PARSER_REPORT={report_path}")
     return 0
