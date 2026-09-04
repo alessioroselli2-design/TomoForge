@@ -54,6 +54,10 @@ def test_summarize_readiness_reports_only_aggregate_state():
             "needs_review": {"spell": 1},
             "pending": {"feat": 1},
         },
+        "review_queue_by_language_translation_and_ai": {
+            "unknown|failed|unknown": 1,
+            "unknown|translated|unknown": 1,
+        },
         "translation_failed": 1,
         "translation_translated": 1,
         "records_linked_to_canonical": 1,
@@ -100,6 +104,25 @@ def test_summarize_readiness_orders_review_queue_by_count_then_type():
         "needs_review": {"race": 1, "spell": 1},
         "pending": {"feat": 1, "spell": 1, "unknown": 1},
     }
+    assert result["review_queue_by_language_translation_and_ai"] == {
+        "unknown|unknown|unknown": 5,
+    }
+
+
+def test_summarize_readiness_groups_processing_state_without_content():
+    records = [
+        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "ai_review_status": "pending"},
+        {"review_status": "pending", "source_language": "it", "translation_status": "not_required", "ai_review_status": "pending"},
+        {"review_status": "needs_review", "source_language": "es", "translation_status": "failed", "ai_review_status": "pending"},
+        {"review_status": "verified", "source_language": "es", "translation_status": "failed", "ai_review_status": "pending"},
+    ]
+
+    result = summarize_readiness(records, [], [])
+
+    assert result["review_queue_by_language_translation_and_ai"] == {
+        "it|not_required|pending": 2,
+        "es|failed|pending": 1,
+    }
 
 
 def test_summarize_readiness_handles_empty_catalogue():
@@ -109,3 +132,4 @@ def test_summarize_readiness_handles_empty_catalogue():
     assert result["canonical_total"] == 0
     assert result["review_queue_by_reference_type"] == {}
     assert result["review_queue_by_status_and_reference_type"] == {}
+    assert result["review_queue_by_language_translation_and_ai"] == {}
