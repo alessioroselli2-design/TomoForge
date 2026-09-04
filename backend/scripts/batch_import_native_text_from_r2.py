@@ -29,9 +29,11 @@ SPELL_CARD_AIDS = frozenset({
     "Warlock .pdf",
 })
 
+CATALOGUE_EXCLUDED_STATUSES = frozenset({"duplicate", "misidentified", "document"})
+
 
 def _eligibility_reason(filename: str, metadata: dict) -> str:
-    """Return an empty string when a registered source is safe for this batch."""
+    """Return an empty string when the versioned registry allows this batch."""
     if filename in SPELL_CARD_AIDS:
         return "spell-card extraction aid"
     status = str(metadata.get("source_status") or metadata.get("status") or "").strip()
@@ -46,6 +48,27 @@ def _eligibility_reason(filename: str, metadata: dict) -> str:
     text_mode = str(metadata.get("text_mode") or "").strip()
     if text_mode != "text":
         return f"text mode {text_mode or 'unknown'}"
+    return ""
+
+
+def _catalogue_gate_reason(filename: str, catalogue_rows: list[dict]) -> str:
+    """Fail closed when the durable source catalogue disagrees about text safety."""
+    matching = [
+        row
+        for row in catalogue_rows
+        if str(row.get("physical_filename") or "") == filename
+        and str(row.get("source_status") or "") not in CATALOGUE_EXCLUDED_STATUSES
+    ]
+    if not matching:
+        return "source missing from durable catalogue"
+
+    modes = sorted({str(row.get("text_mode") or "unknown") for row in matching})
+    if modes != ["text"]:
+        return f"durable catalogue text mode {','.join(modes)}"
+
+    languages = sorted({str(row.get("language") or "unknown").lower() for row in matching})
+    if languages != ["it"]:
+        return f"durable catalogue language {','.join(languages)}"
     return ""
 
 
@@ -72,29 +95,41 @@ async def _run(args: argparse.Namespace) -> int:
     os.environ.pop("OPENAI_API_KEY", None)
     os.environ.pop("GEMINI_API_KEY", None)
 
+    from core.db import db
     from reference_sources import source_is_rule_source, source_metadata_for_page
     from scripts import import_manuals_from_r2 as worker
+
+    if not db.configured:
+        raise RuntimeError("Supabase is required to verify durable source metadata")
 
     bucket = os.getenv("R2_BUCKET", "tomoforge-manuals").strip() or "tomoforge-manuals"
     client = worker._r2_client()
     importable = worker._importable_r2_objects(worker._list_pdf_objects(client, bucket))
+    catalogue_rows = await db.private_reference_sources.find({}).to_list(5000)
 
     selected: list[str] = []
+    skipped: list[tuple[str, str]] = []
     for canonical in sorted(importable):
         metadata = source_metadata_for_page(canonical)
         if not metadata or not source_is_rule_source(canonical):
             continue
         reason = _eligibility_reason(canonical, metadata)
         if not reason:
+            reason = _catalogue_gate_reason(canonical, catalogue_rows)
+        if reason:
+            skipped.append((canonical, reason))
+        else:
             selected.append(canonical)
+
+    print(f"Native-text batch selected {len(selected)} source(s).")
+    for filename in selected:
+        print(f"  SELECTED\t{filename}")
+    for filename, reason in skipped:
+        print(f"  SKIPPED\t{filename}\t{reason}")
 
     if not selected:
         print("No safe Italian native-text sources are currently present in R2.")
         return 0
-
-    print(f"Native-text batch selected {len(selected)} source(s):")
-    for filename in selected:
-        print(f"  - {filename}")
 
     failures: list[tuple[str, str]] = []
     for index, filename in enumerate(selected, start=1):
