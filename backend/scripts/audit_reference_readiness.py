@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Read-only aggregate readiness audit for the private reference catalogue.
+
+The audit intentionally reports counts and ratios only. It does not expose rule
+text, source document contents, user identifiers, or make database writes.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+
+def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
+    review = Counter(str(row.get("review_status") or "unknown") for row in records)
+    translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
+    source_states = Counter(str(row.get("source_status") or "unknown") for row in sources)
+    text_modes = Counter(str(row.get("text_mode") or "unknown") for row in sources)
+    import_states = Counter(str(row.get("import_state") or "unknown") for row in sources)
+    canonical_states = Counter(str(row.get("verification_status") or "unknown") for row in canonical)
+
+    total = len(records)
+    verified = review["verified"]
+    review_ratio = round(verified / total, 4) if total else 0.0
+
+    return {
+        "records_total": total,
+        "records_verified": verified,
+        "records_needs_review": review["needs_review"],
+        "records_pending": review["pending"],
+        "translation_failed": translation["failed"],
+        "translation_translated": translation["translated"],
+        "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),
+        "verified_ratio": review_ratio,
+        "sources_total": len(sources),
+        "sources_active": source_states["active"],
+        "sources_duplicate": source_states["duplicate"],
+        "sources_superseded": source_states["superseded"],
+        "sources_catalogued": import_states["catalogued"],
+        "sources_excluded": import_states["excluded"],
+        "sources_text": text_modes["text"],
+        "sources_mixed": text_modes["mixed"],
+        "sources_vision_required": text_modes["vision_required"],
+        "canonical_total": len(canonical),
+        "canonical_verified": canonical_states["verified"],
+        "canonical_needs_review": canonical_states["needs_review"],
+    }
+
+
+async def _run() -> int:
+    from core.db import db
+
+    if not db.configured:
+        raise RuntimeError("Supabase is not configured")
+
+    records = await db.private_reference_records.find({}).to_list(20000)
+    sources = await db.private_reference_sources.find({}).to_list(5000)
+    canonical = await db.private_reference_canonical.find({}).to_list(20000)
+    print(json.dumps(summarize_readiness(records, sources, canonical), sort_keys=True))
+    return 0
+
+
+def main() -> int:
+    try:
+        return asyncio.run(_run())
+    except Exception as exc:
+        print(f"Reference readiness audit failed: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
