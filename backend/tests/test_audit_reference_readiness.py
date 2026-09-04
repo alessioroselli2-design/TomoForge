@@ -58,6 +58,7 @@ def test_summarize_readiness_reports_only_aggregate_state():
             "unknown|failed|unknown": 1,
             "unknown|translated|unknown": 1,
         },
+        "no_translation_review_queue_by_reference_type": {},
         "translation_failed": 1,
         "translation_translated": 1,
         "records_linked_to_canonical": 1,
@@ -110,6 +111,7 @@ def test_summarize_readiness_orders_review_queue_by_count_then_type():
     assert result["review_queue_by_language_translation_and_ai"] == {
         "unknown|unknown|unknown": 5,
     }
+    assert result["no_translation_review_queue_by_reference_type"] == {}
 
 
 def test_summarize_readiness_groups_processing_state_without_content():
@@ -125,6 +127,25 @@ def test_summarize_readiness_groups_processing_state_without_content():
     assert result["review_queue_by_language_translation_and_ai"] == {
         "it|not_required|pending": 2,
         "es|failed|pending": 1,
+    }
+    assert result["no_translation_review_queue_by_reference_type"] == {"unknown": 2}
+
+
+def test_summarize_readiness_isolates_no_translation_review_queue_by_type():
+    records = [
+        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
+        {"review_status": "pending", "source_language": "it", "translation_status": "not_required", "reference_type": "spell"},
+        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
+        {"review_status": "verified", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
+        {"review_status": "needs_review", "source_language": "es", "translation_status": "not_required", "reference_type": "weapon"},
+        {"review_status": "needs_review", "source_language": "it", "translation_status": "failed", "reference_type": "weapon"},
+    ]
+
+    result = summarize_readiness(records, [], [])
+
+    assert result["no_translation_review_queue_by_reference_type"] == {
+        "weapon": 2,
+        "spell": 1,
     }
 
 
@@ -164,6 +185,7 @@ def test_summarize_readiness_handles_empty_catalogue():
     assert result["review_queue_by_reference_type"] == {}
     assert result["review_queue_by_status_and_reference_type"] == {}
     assert result["review_queue_by_language_translation_and_ai"] == {}
+    assert result["no_translation_review_queue_by_reference_type"] == {}
     assert result["source_status_breakdown"] == {}
     assert result["source_text_mode_breakdown"] == {}
     assert result["source_import_state_breakdown"] == {}

@@ -73,6 +73,22 @@ def _review_queue_by_language_translation_and_ai(records: list[dict]) -> dict[st
     return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
 
 
+def _no_translation_review_queue_by_reference_type(records: list[dict]) -> dict[str, int]:
+    """Return unresolved Italian records that need no translation, grouped by type."""
+    queue = Counter()
+    for row in records:
+        review_status = str(row.get("review_status") or "unknown")
+        if review_status == "verified":
+            continue
+        if str(row.get("source_language") or "unknown") != "it":
+            continue
+        if str(row.get("translation_status") or "unknown") != "not_required":
+            continue
+        reference_type = str(row.get("reference_type") or "unknown")
+        queue[reference_type] += 1
+    return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
+
+
 def _aggregate_breakdown(rows: list[dict], field: str) -> dict[str, int]:
     """Return a complete deterministic aggregate for a non-sensitive state field."""
     counts = Counter(str(row.get(field) or "unknown") for row in rows)
@@ -99,6 +115,7 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "review_queue_by_reference_type": _review_queue_by_reference_type(records),
         "review_queue_by_status_and_reference_type": _review_queue_by_status_and_reference_type(records),
         "review_queue_by_language_translation_and_ai": _review_queue_by_language_translation_and_ai(records),
+        "no_translation_review_queue_by_reference_type": _no_translation_review_queue_by_reference_type(records),
         "translation_failed": translation["failed"],
         "translation_translated": translation["translated"],
         "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),
