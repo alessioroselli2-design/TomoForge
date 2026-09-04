@@ -42,6 +42,22 @@ def _review_queue_by_reference_type(records: list[dict]) -> dict[str, int]:
     return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
 
 
+def _review_queue_by_status_and_reference_type(records: list[dict]) -> dict[str, dict[str, int]]:
+    """Return unresolved counts split by review status and reference type."""
+    queue: dict[str, Counter] = {}
+    for row in records:
+        review_status = str(row.get("review_status") or "unknown")
+        if review_status == "verified":
+            continue
+        reference_type = str(row.get("reference_type") or "unknown")
+        queue.setdefault(review_status, Counter())[reference_type] += 1
+
+    return {
+        status: dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+        for status, counts in sorted(queue.items())
+    }
+
+
 def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
     review = Counter(str(row.get("review_status") or "unknown") for row in records)
     translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
@@ -60,6 +76,7 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_needs_review": review["needs_review"],
         "records_pending": review["pending"],
         "review_queue_by_reference_type": _review_queue_by_reference_type(records),
+        "review_queue_by_status_and_reference_type": _review_queue_by_status_and_reference_type(records),
         "translation_failed": translation["failed"],
         "translation_translated": translation["translated"],
         "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),
