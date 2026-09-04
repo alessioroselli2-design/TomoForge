@@ -50,6 +50,10 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "records_needs_review": 1,
         "records_pending": 1,
         "review_queue_by_reference_type": {"feat": 1, "spell": 1},
+        "review_queue_by_status_and_reference_type": {
+            "needs_review": {"spell": 1},
+            "pending": {"feat": 1},
+        },
         "translation_failed": 1,
         "translation_translated": 1,
         "records_linked_to_canonical": 1,
@@ -92,6 +96,10 @@ def test_summarize_readiness_orders_review_queue_by_count_then_type():
         ("race", 1),
         ("unknown", 1),
     ]
+    assert result["review_queue_by_status_and_reference_type"] == {
+        "needs_review": {"race": 1, "spell": 1},
+        "pending": {"feat": 1, "spell": 1, "unknown": 1},
+    }
 
 
 def test_summarize_readiness_handles_empty_catalogue():
@@ -100,3 +108,4 @@ def test_summarize_readiness_handles_empty_catalogue():
     assert result["verified_ratio"] == 0.0
     assert result["canonical_total"] == 0
     assert result["review_queue_by_reference_type"] == {}
+    assert result["review_queue_by_status_and_reference_type"] == {}
