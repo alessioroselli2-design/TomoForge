@@ -12,10 +12,23 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
+
+
+async def fetch_all(collection: Any, page_size: int = 1000) -> list[dict]:
+    """Read a collection in bounded pages so API row limits cannot truncate audits."""
+    rows: list[dict] = []
+    offset = 0
+    while True:
+        page = await collection.find({}).to_list(page_size, offset=offset)
+        rows.extend(page)
+        if len(page) < page_size:
+            return rows
+        offset += len(page)
 
 
 def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
@@ -60,9 +73,11 @@ async def _run() -> int:
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
 
-    records = await db.private_reference_records.find({}).to_list(20000)
-    sources = await db.private_reference_sources.find({}).to_list(5000)
-    canonical = await db.private_reference_canonical.find({}).to_list(20000)
+    records, sources, canonical = await asyncio.gather(
+        fetch_all(db.private_reference_records),
+        fetch_all(db.private_reference_sources),
+        fetch_all(db.private_reference_canonical),
+    )
     print(json.dumps(summarize_readiness(records, sources, canonical), sort_keys=True))
     return 0
 

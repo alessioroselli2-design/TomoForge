@@ -1,4 +1,29 @@
-from scripts.audit_reference_readiness import summarize_readiness
+import asyncio
+
+from scripts.audit_reference_readiness import fetch_all, summarize_readiness
+
+
+class FakeCollection:
+    def __init__(self, rows):
+        self.rows = rows
+        self.offsets = []
+
+    def find(self, query):
+        assert query == {}
+        return self
+
+    async def to_list(self, limit, offset=0):
+        self.offsets.append(offset)
+        return self.rows[offset:offset + limit]
+
+
+def test_fetch_all_reads_every_page_without_duplication():
+    collection = FakeCollection([{"id": index} for index in range(7)])
+
+    result = asyncio.run(fetch_all(collection, page_size=3))
+
+    assert [row["id"] for row in result] == list(range(7))
+    assert collection.offsets == [0, 3, 6]
 
 
 def test_summarize_readiness_reports_only_aggregate_state():
