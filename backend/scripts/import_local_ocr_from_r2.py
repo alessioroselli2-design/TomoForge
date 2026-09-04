@@ -233,7 +233,7 @@ async def _run(args: argparse.Namespace) -> int:
             "records_detected": int(source_report.get("records_detected") or 0),
             "records_imported": int(result.imported),
             "records_updated": int(result.updated),
-            "records_flagged": int(result.flagged),
+            "records_flagged": int(result.flagged_for_review),
             "records_skipped": int(result.skipped),
             "records_with_local_ocr_provenance": touched,
             "ocr_revision": _OCR_REVISION,
