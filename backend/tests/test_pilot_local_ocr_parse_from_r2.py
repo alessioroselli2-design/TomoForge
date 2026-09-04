@@ -1,4 +1,4 @@
-from scripts.pilot_local_ocr_parse_from_r2 import _record_summary
+from scripts.pilot_local_ocr_parse_from_r2 import _monster_parser_summary, _record_summary
 
 
 def test_record_summary_exposes_only_aggregate_parser_metrics():
@@ -28,3 +28,55 @@ def test_record_summary_exposes_only_aggregate_parser_metrics():
     }
     serialized = str(summary)
     assert "Private source" not in serialized
+
+
+def test_monster_parser_summary_requires_independent_ocr_agreement_and_is_aggregate_only():
+    primary = """LUPO TERRIBILE
+Grande bestia, senza allineamento
+Classe Armatura 14
+Punti Ferita 37 (5d10+10)
+Velocità 15 m
+FOR DES COS INT SAG CAR
+17 15 15 3 12 7
+Sensi Percezione passiva 13
+Linguaggi -
+Grado di Sfida 1 (200 PE)
+Azioni
+Morso. Attacco con arma da mischia.
+"""
+    comparison = primary.replace("Morso. Attacco con arma da mischia.", "Morso. Attacco in mischia.")
+    summary = _monster_parser_summary(
+        [(12, primary)],
+        [(12, comparison)],
+        "private-monster-manual.pdf",
+        "it",
+    )
+    assert summary == {
+        "monster_candidates_primary": 1,
+        "monster_candidates_comparison": 1,
+        "monster_candidates_independently_agreed": 1,
+    }
+    serialized = str(summary)
+    assert "LUPO TERRIBILE" not in serialized
+    assert "Morso" not in serialized
+
+
+def test_monster_parser_summary_rejects_core_stat_disagreement():
+    primary = """LUPO TERRIBILE
+Grande bestia, senza allineamento
+Classe Armatura 14
+Punti Ferita 37 (5d10+10)
+Velocità 15 m
+Azioni
+Morso. Attacco con arma da mischia.
+"""
+    comparison = primary.replace("Classe Armatura 14", "Classe Armatura 13")
+    summary = _monster_parser_summary(
+        [(12, primary)],
+        [(12, comparison)],
+        "private-monster-manual.pdf",
+        "it",
+    )
+    assert summary["monster_candidates_primary"] == 1
+    assert summary["monster_candidates_comparison"] == 1
+    assert summary["monster_candidates_independently_agreed"] == 0
