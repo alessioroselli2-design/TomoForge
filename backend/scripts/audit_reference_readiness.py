@@ -73,6 +73,12 @@ def _review_queue_by_language_translation_and_ai(records: list[dict]) -> dict[st
     return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
 
 
+def _aggregate_breakdown(rows: list[dict], field: str) -> dict[str, int]:
+    """Return a complete deterministic aggregate for a non-sensitive state field."""
+    counts = Counter(str(row.get(field) or "unknown") for row in rows)
+    return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+
 def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
     review = Counter(str(row.get("review_status") or "unknown") for row in records)
     translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
@@ -98,6 +104,9 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),
         "verified_ratio": review_ratio,
         "sources_total": len(sources),
+        "source_status_breakdown": _aggregate_breakdown(sources, "source_status"),
+        "source_text_mode_breakdown": _aggregate_breakdown(sources, "text_mode"),
+        "source_import_state_breakdown": _aggregate_breakdown(sources, "import_state"),
         "sources_active": source_states["active"],
         "sources_duplicate": source_states["duplicate"],
         "sources_superseded": source_states["superseded"],

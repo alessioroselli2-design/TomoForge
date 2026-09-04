@@ -63,6 +63,9 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "records_linked_to_canonical": 1,
         "verified_ratio": 0.3333,
         "sources_total": 3,
+        "source_status_breakdown": {"active": 1, "duplicate": 1, "superseded": 1},
+        "source_text_mode_breakdown": {"mixed": 1, "text": 1, "vision_required": 1},
+        "source_import_state_breakdown": {"catalogued": 2, "excluded": 1},
         "sources_active": 1,
         "sources_duplicate": 1,
         "sources_superseded": 1,
@@ -125,6 +128,34 @@ def test_summarize_readiness_groups_processing_state_without_content():
     }
 
 
+def test_summarize_readiness_reconciles_unexpected_source_states():
+    sources = [
+        {"source_status": "active", "text_mode": "text", "import_state": "catalogued"},
+        {"source_status": "document", "text_mode": "document", "import_state": "catalogued"},
+        {"source_status": "misidentified", "text_mode": None, "import_state": "excluded"},
+    ]
+
+    result = summarize_readiness([], sources, [])
+
+    assert result["source_status_breakdown"] == {
+        "active": 1,
+        "document": 1,
+        "misidentified": 1,
+    }
+    assert result["source_text_mode_breakdown"] == {
+        "document": 1,
+        "text": 1,
+        "unknown": 1,
+    }
+    assert result["source_import_state_breakdown"] == {
+        "catalogued": 2,
+        "excluded": 1,
+    }
+    assert sum(result["source_status_breakdown"].values()) == result["sources_total"]
+    assert sum(result["source_text_mode_breakdown"].values()) == result["sources_total"]
+    assert sum(result["source_import_state_breakdown"].values()) == result["sources_total"]
+
+
 def test_summarize_readiness_handles_empty_catalogue():
     result = summarize_readiness([], [], [])
     assert result["records_total"] == 0
@@ -133,3 +164,6 @@ def test_summarize_readiness_handles_empty_catalogue():
     assert result["review_queue_by_reference_type"] == {}
     assert result["review_queue_by_status_and_reference_type"] == {}
     assert result["review_queue_by_language_translation_and_ai"] == {}
+    assert result["source_status_breakdown"] == {}
+    assert result["source_text_mode_breakdown"] == {}
+    assert result["source_import_state_breakdown"] == {}
