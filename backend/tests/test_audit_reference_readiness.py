@@ -1,4 +1,4 @@
-import pytest
+import asyncio
 
 from scripts.audit_reference_readiness import fetch_all, summarize_readiness
 
@@ -17,11 +17,10 @@ class FakeCollection:
         return self.rows[offset:offset + limit]
 
 
-@pytest.mark.asyncio
-async def test_fetch_all_reads_every_page_without_duplication():
+def test_fetch_all_reads_every_page_without_duplication():
     collection = FakeCollection([{"id": index} for index in range(7)])
 
-    result = await fetch_all(collection, page_size=3)
+    result = asyncio.run(fetch_all(collection, page_size=3))
 
     assert [row["id"] for row in result] == list(range(7))
     assert collection.offsets == [0, 3, 6]
