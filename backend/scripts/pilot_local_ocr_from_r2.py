@@ -3,7 +3,8 @@
 
 No Supabase writes and no external AI APIs are used. The script downloads one
 manual to the ephemeral runner, renders only the requested page window, runs
-local Tesseract, and writes a small JSON quality report plus per-page text files.
+local Tesseract, and persists metrics only. OCR source text stays ephemeral and
+is never uploaded as a workflow artifact.
 """
 
 from __future__ import annotations
@@ -118,8 +119,6 @@ def main() -> int:
             image_path = Path(tmp) / f"page-{page_number:04d}.png"
             page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(image_path)
             ocr_text = _run_tesseract(image_path, args.languages, args.psm)
-            text_path = output_dir / f"page-{page_number:04d}.txt"
-            text_path.write_text(ocr_text, encoding="utf-8")
             page_report = {
                 "page": page_number,
                 "native": _text_quality(native_text),
