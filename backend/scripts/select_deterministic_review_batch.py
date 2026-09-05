@@ -11,6 +11,18 @@ def _nonempty_json(value: Any) -> bool:
     return True
 
 
+def _has_suspicious_name_shape(value: Any) -> bool:
+    """Reject names that require interpretation before deterministic AI review.
+
+    Digits embedded in a rules-entity name are treated conservatively because they
+    are a common extraction/OCR substitution (for example ``0Rcus``). Legitimate
+    digit-bearing names can still proceed through the normal human review gate.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return True
+    return any(char.isdigit() for char in value)
+
+
 def is_deterministic_review_candidate(record: dict[str, Any]) -> bool:
     """Return True only for records that can be AI-reviewed without interpretation.
 
@@ -30,6 +42,10 @@ def is_deterministic_review_candidate(record: dict[str, Any]) -> bool:
     if not record.get("source_key") or not _nonempty_json(record.get("source_refs")):
         return False
     if _nonempty_json(record.get("review_flags")):
+        return False
+    if _has_suspicious_name_shape(record.get("name")):
+        return False
+    if _has_suspicious_name_shape(record.get("source_name")):
         return False
 
     exact_pairs = (
