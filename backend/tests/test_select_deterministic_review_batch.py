@@ -44,7 +44,7 @@ def test_candidate_preserves_review_and_translation_gates():
     assert not is_deterministic_review_candidate(make_record(ai_review_status="verified"))
     assert not is_deterministic_review_candidate(make_record(source_language="en"))
     assert not is_deterministic_review_candidate(make_record(translation_status="pending"))
-    assert not is_deterministic_review_candidate(make_record(review_flags=["check"] ))
+    assert not is_deterministic_review_candidate(make_record(review_flags=["check"]))
 
 
 def test_candidate_rejects_digit_bearing_names_that_need_interpretation():
@@ -55,6 +55,25 @@ def test_candidate_rejects_digit_bearing_names_that_need_interpretation():
         make_record(name="Orcus2", source_name="Orcus2", normalized_name="orcus2", source_normalized_name="orcus2")
     )
     assert is_deterministic_review_candidate(make_record(name="Orcus", source_name="Orcus"))
+
+
+def test_candidate_rejects_unbalanced_delimiters():
+    assert not is_deterministic_review_candidate(
+        make_record(name="Warlock)", source_name="Warlock)", normalized_name="warlock)", source_normalized_name="warlock)")
+    )
+    assert is_deterministic_review_candidate(
+        make_record(name="Warlock (Celestiale)", source_name="Warlock (Celestiale)")
+    )
+
+
+def test_candidate_rejects_heavily_fragmented_letter_names():
+    malformed = "D I Sto R S I O N E D E Lla Car N E"
+    assert not is_deterministic_review_candidate(
+        make_record(name=malformed, source_name=malformed, normalized_name=malformed.lower(), source_normalized_name=malformed.lower())
+    )
+    assert is_deterministic_review_candidate(
+        make_record(name="Con I Signori Della Polvere", source_name="Con I Signori Della Polvere")
+    )
 
 
 def test_batch_is_bounded_and_deterministic_without_mutation():
