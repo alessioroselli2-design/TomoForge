@@ -47,6 +47,16 @@ def test_candidate_preserves_review_and_translation_gates():
     assert not is_deterministic_review_candidate(make_record(review_flags=["check"] ))
 
 
+def test_candidate_rejects_digit_bearing_names_that_need_interpretation():
+    assert not is_deterministic_review_candidate(
+        make_record(name="0Rcus", source_name="0Rcus", normalized_name="0rcus", source_normalized_name="0rcus")
+    )
+    assert not is_deterministic_review_candidate(
+        make_record(name="Orcus2", source_name="Orcus2", normalized_name="orcus2", source_normalized_name="orcus2")
+    )
+    assert is_deterministic_review_candidate(make_record(name="Orcus", source_name="Orcus"))
+
+
 def test_batch_is_bounded_and_deterministic_without_mutation():
     records = [make_record("c"), make_record("a"), make_record("b")]
     original = [dict(record) for record in records]
