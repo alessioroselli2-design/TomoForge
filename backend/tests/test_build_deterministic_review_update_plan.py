@@ -5,7 +5,7 @@ def make_record(record_id="a", **overrides):
     record = {
         "id": record_id,
         "review_status": "needs_review",
-        "ai_review_status": None,
+        "ai_review_status": "pending",
         "source_language": "it",
         "translation_status": "not_required",
         "source_key": "source:book",
