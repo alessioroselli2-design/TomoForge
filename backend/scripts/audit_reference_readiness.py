@@ -97,6 +97,7 @@ def _aggregate_breakdown(rows: list[dict], field: str) -> dict[str, int]:
 
 def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
     review = Counter(str(row.get("review_status") or "unknown") for row in records)
+    ai_review = Counter(str(row.get("ai_review_status") or "unknown") for row in records)
     translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
     source_states = Counter(str(row.get("source_status") or "unknown") for row in sources)
     text_modes = Counter(str(row.get("text_mode") or "unknown") for row in sources)
@@ -112,6 +113,12 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_verified": verified,
         "records_needs_review": review["needs_review"],
         "records_pending": review["pending"],
+        "review_status_breakdown": _aggregate_breakdown(records, "review_status"),
+        "ai_review_status_breakdown": _aggregate_breakdown(records, "ai_review_status"),
+        "records_ai_verified": ai_review["verified"],
+        "records_ai_pending": ai_review["pending"],
+        "records_ai_conflict": ai_review["conflict"],
+        "records_ai_low_confidence": ai_review["low_confidence"],
         "review_queue_by_reference_type": _review_queue_by_reference_type(records),
         "review_queue_by_status_and_reference_type": _review_queue_by_status_and_reference_type(records),
         "review_queue_by_language_translation_and_ai": _review_queue_by_language_translation_and_ai(records),
@@ -133,8 +140,12 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "sources_mixed": text_modes["mixed"],
         "sources_vision_required": text_modes["vision_required"],
         "canonical_total": len(canonical),
+        "canonical_status_breakdown": _aggregate_breakdown(canonical, "verification_status"),
         "canonical_verified": canonical_states["verified"],
-        "canonical_needs_review": canonical_states["needs_review"],
+        "canonical_ai_verified": canonical_states["ai_verified"],
+        "canonical_manual_review": canonical_states["manual_review"],
+        "canonical_conflict": canonical_states["conflict"],
+        "canonical_low_confidence": canonical_states["low_confidence"],
     }
 
 

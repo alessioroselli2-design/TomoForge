@@ -28,9 +28,9 @@ def test_fetch_all_reads_every_page_without_duplication():
 
 def test_summarize_readiness_reports_only_aggregate_state():
     records = [
-        {"review_status": "verified", "translation_status": "not_required", "canonical_id": None, "reference_type": "spell", "name": "Private rule text"},
-        {"review_status": "needs_review", "translation_status": "failed", "canonical_id": "canon-1", "reference_type": "spell", "full_text": "Sensitive source text"},
-        {"review_status": "pending", "translation_status": "translated", "canonical_id": "", "reference_type": "feat"},
+        {"review_status": "verified", "ai_review_status": "verified", "translation_status": "not_required", "canonical_id": None, "reference_type": "spell", "name": "Private rule text"},
+        {"review_status": "needs_review", "ai_review_status": "pending", "translation_status": "failed", "canonical_id": "canon-1", "reference_type": "spell", "full_text": "Sensitive source text"},
+        {"review_status": "pending", "ai_review_status": "low_confidence", "translation_status": "translated", "canonical_id": "", "reference_type": "feat"},
     ]
     sources = [
         {"source_status": "active", "text_mode": "text", "import_state": "catalogued", "physical_filename": "private.pdf"},
@@ -39,7 +39,7 @@ def test_summarize_readiness_reports_only_aggregate_state():
     ]
     canonical = [
         {"verification_status": "verified", "full_text": "canonical private text"},
-        {"verification_status": "needs_review"},
+        {"verification_status": "manual_review"},
     ]
 
     result = summarize_readiness(records, sources, canonical)
@@ -49,14 +49,20 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "records_verified": 1,
         "records_needs_review": 1,
         "records_pending": 1,
+        "review_status_breakdown": {"needs_review": 1, "pending": 1, "verified": 1},
+        "ai_review_status_breakdown": {"low_confidence": 1, "pending": 1, "verified": 1},
+        "records_ai_verified": 1,
+        "records_ai_pending": 1,
+        "records_ai_conflict": 0,
+        "records_ai_low_confidence": 1,
         "review_queue_by_reference_type": {"feat": 1, "spell": 1},
         "review_queue_by_status_and_reference_type": {
             "needs_review": {"spell": 1},
             "pending": {"feat": 1},
         },
         "review_queue_by_language_translation_and_ai": {
-            "unknown|failed|unknown": 1,
-            "unknown|translated|unknown": 1,
+            "unknown|failed|pending": 1,
+            "unknown|translated|low_confidence": 1,
         },
         "no_translation_review_queue_by_reference_type": {},
         "translation_failed": 1,
@@ -76,8 +82,12 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "sources_mixed": 1,
         "sources_vision_required": 1,
         "canonical_total": 2,
+        "canonical_status_breakdown": {"manual_review": 1, "verified": 1},
         "canonical_verified": 1,
-        "canonical_needs_review": 1,
+        "canonical_ai_verified": 0,
+        "canonical_manual_review": 1,
+        "canonical_conflict": 0,
+        "canonical_low_confidence": 0,
     }
     rendered = str(result)
     assert "Private rule text" not in rendered
@@ -177,11 +187,43 @@ def test_summarize_readiness_reconciles_unexpected_source_states():
     assert sum(result["source_import_state_breakdown"].values()) == result["sources_total"]
 
 
+def test_summarize_readiness_uses_only_live_canonical_schema_statuses():
+    canonical = [
+        {"verification_status": "pending"},
+        {"verification_status": "ai_verified"},
+        {"verification_status": "verified"},
+        {"verification_status": "conflict"},
+        {"verification_status": "low_confidence"},
+        {"verification_status": "manual_review"},
+        {"verification_status": "excluded"},
+    ]
+
+    result = summarize_readiness([], [], canonical)
+
+    assert result["canonical_status_breakdown"] == {
+        "ai_verified": 1,
+        "conflict": 1,
+        "excluded": 1,
+        "low_confidence": 1,
+        "manual_review": 1,
+        "pending": 1,
+        "verified": 1,
+    }
+    assert result["canonical_verified"] == 1
+    assert result["canonical_ai_verified"] == 1
+    assert result["canonical_manual_review"] == 1
+    assert result["canonical_conflict"] == 1
+    assert result["canonical_low_confidence"] == 1
+
+
 def test_summarize_readiness_handles_empty_catalogue():
     result = summarize_readiness([], [], [])
     assert result["records_total"] == 0
     assert result["verified_ratio"] == 0.0
     assert result["canonical_total"] == 0
+    assert result["review_status_breakdown"] == {}
+    assert result["ai_review_status_breakdown"] == {}
+    assert result["canonical_status_breakdown"] == {}
     assert result["review_queue_by_reference_type"] == {}
     assert result["review_queue_by_status_and_reference_type"] == {}
     assert result["review_queue_by_language_translation_and_ai"] == {}
