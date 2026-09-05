@@ -76,6 +76,18 @@ def test_candidate_rejects_heavily_fragmented_letter_names():
     )
 
 
+def test_candidate_accepts_standard_italian_ability_abbreviations():
+    for abbreviation in ("For", "Des", "Cos", "Int", "Sag", "Car"):
+        assert is_deterministic_review_candidate(
+            make_record(
+                name=abbreviation,
+                source_name=abbreviation,
+                normalized_name=abbreviation.lower(),
+                source_normalized_name=abbreviation.lower(),
+            )
+        )
+
+
 def test_batch_is_bounded_and_deterministic_without_mutation():
     records = [make_record("c"), make_record("a"), make_record("b")]
     original = [dict(record) for record in records]
