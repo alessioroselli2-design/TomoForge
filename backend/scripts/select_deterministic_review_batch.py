@@ -62,7 +62,7 @@ def is_deterministic_review_candidate(record: dict[str, Any]) -> bool:
     """
     if record.get("review_status") != "needs_review":
         return False
-    if record.get("ai_review_status") == "verified":
+    if record.get("ai_review_status") != "pending":
         return False
     if record.get("source_language") != "it":
         return False
