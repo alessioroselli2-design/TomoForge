@@ -51,6 +51,11 @@ def test_summarize_reports_aggregate_logical_source_coverage_only():
         "records_with_multiple_logical_source_ids": 1,
         "records_with_only_catalogued_logical_source_ids": 2,
         "records_with_unknown_logical_source_ids": 1,
+        "records_without_id_with_filename_hint": 1,
+        "records_without_id_without_filename_hint": 1,
+        "records_without_id_with_unique_filename_match": 0,
+        "records_without_id_with_ambiguous_filename_match": 0,
+        "records_without_id_with_unmatched_filename": 1,
         "logical_source_record_coverage_ratio": 0.6,
         "catalog_logical_source_ids": 2,
         "referenced_logical_source_ids": 3,
@@ -63,6 +68,36 @@ def test_summarize_reports_aggregate_logical_source_coverage_only():
     assert "source-missing" not in rendered
     assert "private-a.pdf" not in rendered
     assert "private source text" not in rendered
+
+
+def test_summarize_classifies_legacy_filename_matches_without_exposing_names():
+    records = [
+        {"source_refs": [{"filename": "unique.pdf"}]},
+        {"source_refs": [{"filename": "ambiguous.pdf"}]},
+        {"source_refs": [{"filename": "missing.pdf"}]},
+        {"source_refs": [{"filename": "first.pdf"}, {"filename": "second.pdf"}]},
+        {"source_refs": []},
+    ]
+    sources = [
+        {"logical_source_id": "source-unique", "physical_filename": "unique.pdf"},
+        {"logical_source_id": "source-a", "physical_filename": "ambiguous.pdf"},
+        {"logical_source_id": "source-b", "filename": "ambiguous.pdf"},
+        {"logical_source_id": "source-shared", "physical_filename": "first.pdf"},
+        {"logical_source_id": "source-shared", "physical_filename": "second.pdf"},
+    ]
+
+    result = summarize_logical_source_coverage(records, sources)
+
+    assert result["records_without_logical_source_id"] == 5
+    assert result["records_without_id_with_filename_hint"] == 4
+    assert result["records_without_id_without_filename_hint"] == 1
+    assert result["records_without_id_with_unique_filename_match"] == 2
+    assert result["records_without_id_with_ambiguous_filename_match"] == 1
+    assert result["records_without_id_with_unmatched_filename"] == 1
+    rendered = str(result)
+    assert "unique.pdf" not in rendered
+    assert "ambiguous.pdf" not in rendered
+    assert "source-unique" not in rendered
 
 
 def test_summarize_deduplicates_repeated_ids_and_ignores_malformed_refs():
@@ -102,6 +137,11 @@ def test_summarize_handles_empty_catalogue():
         "records_with_multiple_logical_source_ids": 0,
         "records_with_only_catalogued_logical_source_ids": 0,
         "records_with_unknown_logical_source_ids": 0,
+        "records_without_id_with_filename_hint": 0,
+        "records_without_id_without_filename_hint": 0,
+        "records_without_id_with_unique_filename_match": 0,
+        "records_without_id_with_ambiguous_filename_match": 0,
+        "records_without_id_with_unmatched_filename": 0,
         "logical_source_record_coverage_ratio": 0.0,
         "catalog_logical_source_ids": 0,
         "referenced_logical_source_ids": 0,

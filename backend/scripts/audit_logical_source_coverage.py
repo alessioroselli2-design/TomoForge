@@ -45,6 +45,37 @@ def _logical_source_ids_from_record(record: dict) -> set[str]:
     return result
 
 
+def _filenames_from_record(record: dict) -> set[str]:
+    refs = record.get("source_refs")
+    if not isinstance(refs, list):
+        return set()
+
+    result: set[str] = set()
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        value = ref.get("filename")
+        if isinstance(value, str) and value.strip():
+            result.add(value.strip())
+    return result
+
+
+def _catalog_ids_by_filename(sources: list[dict]) -> dict[str, set[str]]:
+    """Map catalogue filenames to logical IDs without exposing either in output."""
+    result: dict[str, set[str]] = {}
+    for source in sources:
+        logical_id = source.get("logical_source_id")
+        if not isinstance(logical_id, str) or not logical_id.strip():
+            continue
+        logical_id = logical_id.strip()
+
+        for key in ("physical_filename", "filename"):
+            filename = source.get(key)
+            if isinstance(filename, str) and filename.strip():
+                result.setdefault(filename.strip(), set()).add(logical_id)
+    return result
+
+
 def summarize_logical_source_coverage(records: list[dict], sources: list[dict]) -> dict:
     """Return provenance-coverage aggregates without exposing source identifiers."""
     catalog_ids = {
@@ -52,12 +83,18 @@ def summarize_logical_source_coverage(records: list[dict], sources: list[dict]) 
         for source in sources
         if isinstance((value := source.get("logical_source_id")), str) and value.strip()
     }
+    catalog_ids_by_filename = _catalog_ids_by_filename(sources)
 
     records_with_id = 0
     records_without_id = 0
     records_with_multiple_ids = 0
     records_only_known_ids = 0
     records_with_unknown_ids = 0
+    records_without_id_with_filename_hint = 0
+    records_without_id_without_filename_hint = 0
+    records_without_id_unique_filename_match = 0
+    records_without_id_ambiguous_filename_match = 0
+    records_without_id_unmatched_filename = 0
     referenced_ids: set[str] = set()
     unknown_ids: set[str] = set()
 
@@ -65,6 +102,22 @@ def summarize_logical_source_coverage(records: list[dict], sources: list[dict]) 
         ids = _logical_source_ids_from_record(record)
         if not ids:
             records_without_id += 1
+            filenames = _filenames_from_record(record)
+            if not filenames:
+                records_without_id_without_filename_hint += 1
+                continue
+
+            records_without_id_with_filename_hint += 1
+            candidate_ids: set[str] = set()
+            for filename in filenames:
+                candidate_ids.update(catalog_ids_by_filename.get(filename, set()))
+
+            if len(candidate_ids) == 1:
+                records_without_id_unique_filename_match += 1
+            elif len(candidate_ids) > 1:
+                records_without_id_ambiguous_filename_match += 1
+            else:
+                records_without_id_unmatched_filename += 1
             continue
 
         records_with_id += 1
@@ -89,6 +142,11 @@ def summarize_logical_source_coverage(records: list[dict], sources: list[dict]) 
         "records_with_multiple_logical_source_ids": records_with_multiple_ids,
         "records_with_only_catalogued_logical_source_ids": records_only_known_ids,
         "records_with_unknown_logical_source_ids": records_with_unknown_ids,
+        "records_without_id_with_filename_hint": records_without_id_with_filename_hint,
+        "records_without_id_without_filename_hint": records_without_id_without_filename_hint,
+        "records_without_id_with_unique_filename_match": records_without_id_unique_filename_match,
+        "records_without_id_with_ambiguous_filename_match": records_without_id_ambiguous_filename_match,
+        "records_without_id_with_unmatched_filename": records_without_id_unmatched_filename,
         "logical_source_record_coverage_ratio": coverage_ratio,
         "catalog_logical_source_ids": len(catalog_ids),
         "referenced_logical_source_ids": len(referenced_ids),
