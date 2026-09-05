@@ -1,6 +1,7 @@
 import asyncio
 
 from scripts.audit_logical_source_coverage import (
+    _normalize_filename_key,
     fetch_all,
     summarize_logical_source_coverage,
 )
@@ -56,6 +57,9 @@ def test_summarize_reports_aggregate_logical_source_coverage_only():
         "records_without_id_with_unique_filename_match": 0,
         "records_without_id_with_ambiguous_filename_match": 0,
         "records_without_id_with_unmatched_filename": 1,
+        "records_without_id_with_unique_normalized_filename_match": 0,
+        "records_without_id_with_ambiguous_normalized_filename_match": 0,
+        "records_without_id_with_unmatched_normalized_filename": 1,
         "logical_source_record_coverage_ratio": 0.6,
         "catalog_logical_source_ids": 2,
         "referenced_logical_source_ids": 3,
@@ -94,10 +98,44 @@ def test_summarize_classifies_legacy_filename_matches_without_exposing_names():
     assert result["records_without_id_with_unique_filename_match"] == 2
     assert result["records_without_id_with_ambiguous_filename_match"] == 1
     assert result["records_without_id_with_unmatched_filename"] == 1
+    assert result["records_without_id_with_unique_normalized_filename_match"] == 2
+    assert result["records_without_id_with_ambiguous_normalized_filename_match"] == 1
+    assert result["records_without_id_with_unmatched_normalized_filename"] == 1
     rendered = str(result)
     assert "unique.pdf" not in rendered
     assert "ambiguous.pdf" not in rendered
     assert "source-unique" not in rendered
+
+
+def test_normalized_filename_matching_removes_only_deterministic_transport_noise():
+    assert _normalize_filename_key("Bardo__1787233073462.pdf") == _normalize_filename_key("Bardo .pdf")
+    assert _normalize_filename_key(
+        "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf"
+    ) == _normalize_filename_key("724962906-D-D-5e-Manuale-Del-Dungeon-Master.pdf")
+    assert _normalize_filename_key("Manuale_del_Giocatore__1787259882002.pdf") == _normalize_filename_key(
+        "Manuale del Giocatore (1).pdf"
+    )
+
+
+def test_summarize_normalized_match_requires_one_logical_id_not_one_catalog_row():
+    records = [
+        {"source_refs": [{"filename": "Bardo__1787233073462.pdf"}]},
+        {"source_refs": [{"filename": "shared__1787233073462.pdf"}]},
+    ]
+    sources = [
+        {"logical_source_id": "derived-bard", "physical_filename": "Bardo .pdf"},
+        {"logical_source_id": "derived-bard", "physical_filename": "Bardo (1).pdf"},
+        {"logical_source_id": "source-a", "physical_filename": "shared.pdf"},
+        {"logical_source_id": "source-b", "physical_filename": "shared (1).pdf"},
+    ]
+
+    result = summarize_logical_source_coverage(records, sources)
+
+    assert result["records_without_id_with_unique_filename_match"] == 0
+    assert result["records_without_id_with_unmatched_filename"] == 2
+    assert result["records_without_id_with_unique_normalized_filename_match"] == 1
+    assert result["records_without_id_with_ambiguous_normalized_filename_match"] == 1
+    assert result["records_without_id_with_unmatched_normalized_filename"] == 0
 
 
 def test_summarize_deduplicates_repeated_ids_and_ignores_malformed_refs():
@@ -142,6 +180,9 @@ def test_summarize_handles_empty_catalogue():
         "records_without_id_with_unique_filename_match": 0,
         "records_without_id_with_ambiguous_filename_match": 0,
         "records_without_id_with_unmatched_filename": 0,
+        "records_without_id_with_unique_normalized_filename_match": 0,
+        "records_without_id_with_ambiguous_normalized_filename_match": 0,
+        "records_without_id_with_unmatched_normalized_filename": 0,
         "logical_source_record_coverage_ratio": 0.0,
         "catalog_logical_source_ids": 0,
         "referenced_logical_source_ids": 0,
