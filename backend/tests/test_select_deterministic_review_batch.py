@@ -10,7 +10,7 @@ def make_record(record_id="b", **overrides):
     record = {
         "id": record_id,
         "review_status": "needs_review",
-        "ai_review_status": None,
+        "ai_review_status": "pending",
         "source_language": "it",
         "translation_status": "not_required",
         "source_key": "source:book",
@@ -42,6 +42,10 @@ def test_candidate_requires_exact_source_equality_and_provenance():
 def test_candidate_preserves_review_and_translation_gates():
     assert not is_deterministic_review_candidate(make_record(review_status="verified"))
     assert not is_deterministic_review_candidate(make_record(ai_review_status="verified"))
+    assert not is_deterministic_review_candidate(make_record(ai_review_status="excluded"))
+    assert not is_deterministic_review_candidate(make_record(ai_review_status="conflict"))
+    assert not is_deterministic_review_candidate(make_record(ai_review_status="low_confidence"))
+    assert not is_deterministic_review_candidate(make_record(ai_review_status=None))
     assert not is_deterministic_review_candidate(make_record(source_language="en"))
     assert not is_deterministic_review_candidate(make_record(translation_status="pending"))
     assert not is_deterministic_review_candidate(make_record(review_flags=["check"]))
