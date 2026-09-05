@@ -51,6 +51,8 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "records_pending": 1,
         "review_status_breakdown": {"needs_review": 1, "pending": 1, "verified": 1},
         "ai_review_status_breakdown": {"low_confidence": 1, "pending": 1, "verified": 1},
+        "ai_review_unexpected_states": {},
+        "ai_review_statuses_valid": True,
         "records_ai_verified": 1,
         "records_ai_pending": 1,
         "records_ai_excluded": 0,
@@ -226,6 +228,8 @@ def test_summarize_readiness_handles_empty_catalogue():
     assert result["canonical_total"] == 0
     assert result["review_status_breakdown"] == {}
     assert result["ai_review_status_breakdown"] == {}
+    assert result["ai_review_unexpected_states"] == {}
+    assert result["ai_review_statuses_valid"] is True
     assert result["canonical_status_breakdown"] == {}
     assert result["review_queue_by_reference_type"] == {}
     assert result["review_queue_by_status_and_reference_type"] == {}

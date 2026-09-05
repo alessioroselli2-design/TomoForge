@@ -18,6 +18,16 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+AI_REVIEW_STATUSES = {
+    "pending",
+    "verified",
+    "excluded",
+    "failed",
+    "not_required",
+    "conflict",
+    "low_confidence",
+}
+
 
 async def fetch_all(collection: Any, page_size: int = 1000) -> list[dict]:
     """Read a collection in bounded pages so API row limits cannot truncate audits."""
@@ -103,6 +113,9 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
     text_modes = Counter(str(row.get("text_mode") or "unknown") for row in sources)
     import_states = Counter(str(row.get("import_state") or "unknown") for row in sources)
     canonical_states = Counter(str(row.get("verification_status") or "unknown") for row in canonical)
+    unexpected_ai_review = {
+        status: count for status, count in ai_review.items() if status not in AI_REVIEW_STATUSES
+    }
 
     total = len(records)
     verified = review["verified"]
@@ -115,6 +128,8 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_pending": review["pending"],
         "review_status_breakdown": _aggregate_breakdown(records, "review_status"),
         "ai_review_status_breakdown": _aggregate_breakdown(records, "ai_review_status"),
+        "ai_review_unexpected_states": dict(sorted(unexpected_ai_review.items())),
+        "ai_review_statuses_valid": not unexpected_ai_review,
         "records_ai_verified": ai_review["verified"],
         "records_ai_pending": ai_review["pending"],
         "records_ai_excluded": ai_review["excluded"],
