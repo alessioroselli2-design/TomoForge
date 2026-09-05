@@ -11,16 +11,45 @@ def _nonempty_json(value: Any) -> bool:
     return True
 
 
+def _has_unbalanced_delimiters(value: str) -> bool:
+    pairs = {')': '(', ']': '[', '}': '{'}
+    openings = set(pairs.values())
+    stack: list[str] = []
+    for char in value:
+        if char in openings:
+            stack.append(char)
+        elif char in pairs:
+            if not stack or stack.pop() != pairs[char]:
+                return True
+    return bool(stack)
+
+
+def _has_excessive_isolated_letters(value: str) -> bool:
+    tokens = [token.strip(".,;:!?()[]{}'\"") for token in value.split()]
+    alpha_tokens = [token for token in tokens if token.isalpha()]
+    if len(alpha_tokens) < 4:
+        return False
+    isolated = sum(len(token) == 1 for token in alpha_tokens)
+    return isolated >= 4 and isolated / len(alpha_tokens) >= 0.4
+
+
 def _has_suspicious_name_shape(value: Any) -> bool:
     """Reject names that require interpretation before deterministic AI review.
 
-    Digits embedded in a rules-entity name are treated conservatively because they
-    are a common extraction/OCR substitution (for example ``0Rcus``). Legitimate
-    digit-bearing names can still proceed through the normal human review gate.
+    The automatic path is intentionally conservative. Digits, unbalanced
+    delimiters, and heavily fragmented single-letter text are common extraction
+    artefacts. Legitimate edge cases can still proceed through human review.
     """
     if not isinstance(value, str) or not value.strip():
         return True
-    return any(char.isdigit() for char in value)
+    stripped = value.strip()
+    if any(char.isdigit() for char in stripped):
+        return True
+    if _has_unbalanced_delimiters(stripped):
+        return True
+    if _has_excessive_isolated_letters(stripped):
+        return True
+    return False
 
 
 def is_deterministic_review_candidate(record: dict[str, Any]) -> bool:
