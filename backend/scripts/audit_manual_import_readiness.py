@@ -40,6 +40,12 @@ def _has_record_activity(job: dict) -> bool:
     return False
 
 
+def _has_ocr_backlog(job: dict) -> bool:
+    """Return whether a job records one or more pages still needing OCR."""
+    pages = job.get("pages_needing_ocr")
+    return isinstance(pages, list) and len(pages) > 0
+
+
 def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
     """Return aggregate structured-import readiness without leaking job details."""
     statuses = Counter(str(job.get("status") or "unknown") for job in jobs)
@@ -54,6 +60,17 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         "jobs_failed": statuses["failed"],
         "jobs_incomplete": total - completed,
         "failed_jobs_with_record_activity": sum(_has_record_activity(job) for job in failed),
+        "failed_jobs_with_ocr_backlog": sum(_has_ocr_backlog(job) for job in failed),
+        "failed_jobs_retried": sum(
+            isinstance(job.get("attempt_count"), (int, float)) and job.get("attempt_count") > 1
+            for job in failed
+        ),
+        "failed_jobs_external_processing_confirmed": sum(
+            job.get("external_processing_confirmed") is True for job in failed
+        ),
+        "failed_jobs_translation_processing_confirmed": sum(
+            job.get("translation_processing_confirmed") is True for job in failed
+        ),
         "structured_import_stable": total > 0 and statuses["failed"] == 0 and completed == total,
     }
 
