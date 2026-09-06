@@ -3,7 +3,7 @@
 
 This is deliberately separate from the read-only global approval manifest.  A write
 requires a second, batch-specific authorization document that names every candidate,
-pins the current global candidate fingerprint, and caps the batch at five records.
+pins the current global candidate fingerprint, and caps the batch at one record.
 The script reconstructs the live deterministic plan immediately before writing and
 rechecks every requested candidate.  It only changes ``source_refs``; review state,
 AI-review metadata, canonical_id, record content and checksums are never written.
@@ -30,7 +30,7 @@ from scripts.validate_logical_source_backfill_plan import (  # noqa: E402
     validate_approval_manifest,
 )
 
-MAX_MICROBATCH_WRITES = 5
+MAX_MICROBATCH_WRITES = 1
 
 
 def validate_batch_authorization(
