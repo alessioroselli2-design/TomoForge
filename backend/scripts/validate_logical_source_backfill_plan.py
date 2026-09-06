@@ -3,7 +3,8 @@
 
 This is a read-only preflight gate. It never applies backfills. A saved plan is
 accepted only when it is still exactly reproducible from the current records and
-source registry and still satisfies the dry-run safety contract.
+source registry, still satisfies the dry-run safety contract, and matches an
+explicitly pinned candidate fingerprint.
 """
 
 from __future__ import annotations
@@ -31,7 +32,11 @@ def candidate_fingerprint(candidates: list[dict[str, str]]) -> str:
 
 
 def validate_backfill_plan(
-    saved_plan: dict[str, Any], records: list[dict], sources: list[dict]
+    saved_plan: dict[str, Any],
+    records: list[dict],
+    sources: list[dict],
+    *,
+    expected_candidate_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Validate that a saved dry-run is unchanged and safe to consider further."""
     errors: list[str] = []
@@ -62,6 +67,16 @@ def validate_backfill_plan(
     if len(saved_ids) != len(set(saved_ids)):
         errors.append("saved plan contains duplicate candidate record ids")
 
+    saved_sha256 = candidate_fingerprint(saved_candidates)
+    fresh_sha256 = candidate_fingerprint(fresh_candidates)
+    if expected_candidate_sha256 is not None:
+        if len(expected_candidate_sha256) != 64 or any(
+            ch not in "0123456789abcdef" for ch in expected_candidate_sha256.lower()
+        ):
+            errors.append("expected candidate fingerprint is not a valid SHA-256")
+        elif fresh_sha256 != expected_candidate_sha256.lower():
+            errors.append("fresh candidate fingerprint does not match pinned SHA-256")
+
     return {
         "mode": "preflight_read_only",
         "writes_performed": 0,
@@ -69,12 +84,15 @@ def validate_backfill_plan(
         "errors": errors,
         "saved_candidate_count": len(saved_candidates),
         "fresh_candidate_count": len(fresh_candidates),
-        "saved_plan_sha256": candidate_fingerprint(saved_candidates),
-        "fresh_plan_sha256": candidate_fingerprint(fresh_candidates),
+        "saved_plan_sha256": saved_sha256,
+        "fresh_plan_sha256": fresh_sha256,
+        "expected_candidate_sha256": expected_candidate_sha256.lower()
+        if expected_candidate_sha256 is not None
+        else None,
     }
 
 
-async def _run(plan_path: Path) -> int:
+async def _run(plan_path: Path, expected_candidate_sha256: str) -> int:
     from core.db import db
 
     if not db.configured:
@@ -88,7 +106,12 @@ async def _run(plan_path: Path) -> int:
         fetch_all(db.private_reference_records),
         fetch_all(db.private_reference_sources),
     )
-    result = validate_backfill_plan(saved_plan, records, sources)
+    result = validate_backfill_plan(
+        saved_plan,
+        records,
+        sources,
+        expected_candidate_sha256=expected_candidate_sha256,
+    )
     print(json.dumps(result, sort_keys=True))
     return 0 if result["valid"] else 2
 
@@ -98,9 +121,14 @@ def main() -> int:
         description="Read-only preflight for a saved logical-source backfill dry-run"
     )
     parser.add_argument("--plan", type=Path, required=True, help="Path to saved dry-run JSON")
+    parser.add_argument(
+        "--expected-sha256",
+        required=True,
+        help="Pinned SHA-256 of the exact candidate set approved for this preflight",
+    )
     args = parser.parse_args()
     try:
-        return asyncio.run(_run(args.plan))
+        return asyncio.run(_run(args.plan, args.expected_sha256))
     except Exception as exc:
         print(f"Logical-source backfill preflight failed: {exc}", file=sys.stderr)
         return 1
