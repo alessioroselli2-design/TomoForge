@@ -22,25 +22,60 @@ def _inputs():
     return records, sources
 
 
-def test_preflight_accepts_exact_reproducible_dry_run_with_pinned_fingerprint():
+def _approval(saved):
+    return {
+        "schema_version": 1,
+        "scope": "logical_source_provenance_backfill",
+        "source_branch": "ai-canonical-library",
+        "source_commit": "snapshot-sha",
+        "candidate_count": saved["proposed_backfills"],
+        "ambiguous_excluded_count": saved["excluded_ambiguous"],
+        "candidate_sha256": candidate_fingerprint(saved["candidates"]),
+        "approval_state": "preflight_only",
+        "writes_authorized": False,
+    }
+
+
+def test_preflight_accepts_exact_reproducible_dry_run_with_approval_manifest():
     records, sources = _inputs()
     saved = build_backfill_plan(records, sources)
-    expected = candidate_fingerprint(saved["candidates"])
+    approval = _approval(saved)
 
     result = validate_backfill_plan(
         saved,
         records,
         sources,
-        expected_candidate_sha256=expected,
+        approval_manifest=approval,
     )
 
+    expected = approval["candidate_sha256"]
     assert result["valid"] is True
     assert result["errors"] == []
     assert result["writes_performed"] == 0
     assert result["saved_candidate_count"] == 1
     assert result["fresh_candidate_count"] == 1
+    assert result["fresh_ambiguous_excluded_count"] == 1
     assert result["saved_plan_sha256"] == result["fresh_plan_sha256"] == expected
-    assert result["expected_candidate_sha256"] == expected
+    assert result["approval_manifest_checked"] is True
+    assert result["approval_manifest_valid"] is True
+    assert result["approval_candidate_sha256"] == expected
+
+
+def test_preflight_accepts_optional_additional_matching_fingerprint():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+    approval = _approval(saved)
+
+    result = validate_backfill_plan(
+        saved,
+        records,
+        sources,
+        approval_manifest=approval,
+        expected_candidate_sha256=approval["candidate_sha256"],
+    )
+
+    assert result["valid"] is True
+    assert result["expected_candidate_sha256"] == approval["candidate_sha256"]
 
 
 def test_preflight_rejects_stale_or_tampered_candidate_set():
@@ -119,6 +154,76 @@ def test_preflight_rejects_invalid_pinned_fingerprint():
 
     assert result["valid"] is False
     assert "expected candidate fingerprint is not a valid SHA-256" in result["errors"]
+
+
+def test_preflight_rejects_manifest_that_authorizes_writes():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+    approval = _approval(saved)
+    approval["writes_authorized"] = True
+
+    result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
+
+    assert result["valid"] is False
+    assert "approval manifest must not authorize writes" in result["errors"]
+    assert result["approval_manifest_valid"] is False
+    assert result["writes_performed"] == 0
+
+
+def test_preflight_rejects_manifest_candidate_count_drift():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+    approval = _approval(saved)
+    approval["candidate_count"] += 1
+
+    result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
+
+    assert result["valid"] is False
+    assert "fresh candidate count does not match approval manifest" in result["errors"]
+
+
+def test_preflight_rejects_manifest_ambiguous_count_drift():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+    approval = _approval(saved)
+    approval["ambiguous_excluded_count"] += 1
+
+    result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
+
+    assert result["valid"] is False
+    assert "fresh ambiguous exclusion count does not match approval manifest" in result["errors"]
+
+
+def test_preflight_rejects_manifest_fingerprint_drift():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+    approval = _approval(saved)
+    approval["candidate_sha256"] = "0" * 64
+
+    result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
+
+    assert result["valid"] is False
+    assert "fresh candidate fingerprint does not match approval manifest" in result["errors"]
+
+
+def test_preflight_rejects_manifest_contract_changes():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+    approval = _approval(saved)
+    approval.update(
+        {
+            "schema_version": 2,
+            "scope": "other_scope",
+            "approval_state": "approved_for_write",
+        }
+    )
+
+    result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
+
+    assert result["valid"] is False
+    assert "approval manifest schema_version is unsupported" in result["errors"]
+    assert "approval manifest scope is invalid" in result["errors"]
+    assert "approval manifest is not preflight_only" in result["errors"]
 
 
 def test_candidate_fingerprint_is_stable_and_order_sensitive():
