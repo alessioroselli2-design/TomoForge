@@ -52,6 +52,12 @@ def _is_schema_cache_failure(job: dict) -> bool:
     return "pgrst204" in error and "schema cache" in error
 
 
+def _is_manual_source_duplicate_failure(job: dict) -> bool:
+    """Recognize the importer\'s explicit duplicate-source guard without leaking its payload."""
+    error = str(job.get("last_error") or "").lower()
+    return error.startswith("manual_source_duplicate:")
+
+
 def _is_duplicate_like_failure(job: dict) -> bool:
     """Recognize duplicate/idempotency-like failures without exposing error text."""
     error = str(job.get("last_error") or "").lower()
@@ -117,6 +123,13 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         ),
         "failed_jobs_non_schema_cache_without_ocr_backlog": sum(
             not _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
+        ),
+        "failed_jobs_manual_source_duplicate": sum(
+            _is_manual_source_duplicate_failure(job) for job in failed
+        ),
+        "failed_jobs_manual_source_duplicate_reconciliation_candidates": sum(
+            _is_manual_source_duplicate_failure(job) and _is_non_schema_investigation_candidate(job)
+            for job in failed
         ),
         "failed_jobs_duplicate_like": sum(_is_duplicate_like_failure(job) for job in failed),
         "failed_jobs_duplicate_like_investigation_candidates": sum(

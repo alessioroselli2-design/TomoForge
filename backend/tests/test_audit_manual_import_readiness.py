@@ -43,6 +43,8 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         "failed_jobs_schema_cache_miss": 2,
         "failed_jobs_schema_cache_miss_without_ocr_backlog": 1,
         "failed_jobs_non_schema_cache_without_ocr_backlog": 0,
+        "failed_jobs_manual_source_duplicate": 0,
+        "failed_jobs_manual_source_duplicate_reconciliation_candidates": 0,
         "failed_jobs_duplicate_like": 0,
         "failed_jobs_duplicate_like_investigation_candidates": 0,
         "failed_jobs_schema_cache_retry_candidates": 0,
@@ -70,6 +72,8 @@ def test_summary_requires_all_jobs_completed_for_stability():
     assert result["failed_jobs_schema_cache_miss"] == 0
     assert result["failed_jobs_schema_cache_miss_without_ocr_backlog"] == 0
     assert result["failed_jobs_non_schema_cache_without_ocr_backlog"] == 0
+    assert result["failed_jobs_manual_source_duplicate"] == 0
+    assert result["failed_jobs_manual_source_duplicate_reconciliation_candidates"] == 0
     assert result["failed_jobs_duplicate_like"] == 0
     assert result["failed_jobs_duplicate_like_investigation_candidates"] == 0
     assert result["failed_jobs_schema_cache_retry_candidates"] == 0
@@ -96,6 +100,7 @@ def test_non_schema_cache_failure_is_counted_coarsely_without_exposing_error():
     assert result["failed_jobs_schema_cache_miss"] == 0
     assert result["failed_jobs_schema_cache_miss_without_ocr_backlog"] == 0
     assert result["failed_jobs_non_schema_cache_without_ocr_backlog"] == 1
+    assert result["failed_jobs_manual_source_duplicate"] == 0
     assert result["failed_jobs_duplicate_like"] == 0
     assert result["failed_jobs_schema_cache_retry_candidates"] == 0
     assert result["failed_jobs_non_schema_investigation_candidates"] == 1
@@ -105,11 +110,34 @@ def test_non_schema_cache_failure_is_counted_coarsely_without_exposing_error():
 
 def test_duplicate_like_failure_is_counted_without_authorizing_retry():
     result = summarize_import_readiness([{"status": "failed", "last_error": "duplicate source fingerprint", "pages_needing_ocr": []}])
+    assert result["failed_jobs_manual_source_duplicate"] == 0
     assert result["failed_jobs_duplicate_like"] == 1
     assert result["failed_jobs_duplicate_like_investigation_candidates"] == 1
     assert result["failed_jobs_schema_cache_retry_candidates"] == 0
     assert result["failed_jobs_non_schema_investigation_candidates"] == 1
     assert "duplicate source fingerprint" not in str(result)
+
+
+def test_manual_source_duplicate_is_classified_for_reconciliation_without_leaking_payload():
+    private_payload = "manual_source_duplicate:private-manual-name.pdf"
+    result = summarize_import_readiness([
+        {"status": "failed", "last_error": private_payload, "pages_needing_ocr": []},
+    ])
+    assert result["failed_jobs_manual_source_duplicate"] == 1
+    assert result["failed_jobs_manual_source_duplicate_reconciliation_candidates"] == 1
+    assert result["failed_jobs_duplicate_like"] == 1
+    assert result["failed_jobs_schema_cache_retry_candidates"] == 0
+    assert result["structured_import_stable"] is False
+    assert private_payload not in str(result)
+    assert "private-manual-name.pdf" not in str(result)
+
+
+def test_manual_source_duplicate_with_activity_is_not_reconciliation_candidate():
+    result = summarize_import_readiness([
+        {"status": "failed", "last_error": "manual_source_duplicate:hidden.pdf", "records_imported": 1, "pages_needing_ocr": []},
+    ])
+    assert result["failed_jobs_manual_source_duplicate"] == 1
+    assert result["failed_jobs_manual_source_duplicate_reconciliation_candidates"] == 0
 
 
 def test_non_schema_cache_failure_with_ocr_backlog_is_not_in_non_ocr_signal():
