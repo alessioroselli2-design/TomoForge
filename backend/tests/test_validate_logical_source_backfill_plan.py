@@ -22,28 +22,41 @@ def _inputs():
     return records, sources
 
 
-def test_preflight_accepts_exact_reproducible_dry_run():
+def test_preflight_accepts_exact_reproducible_dry_run_with_pinned_fingerprint():
     records, sources = _inputs()
     saved = build_backfill_plan(records, sources)
+    expected = candidate_fingerprint(saved["candidates"])
 
-    result = validate_backfill_plan(saved, records, sources)
+    result = validate_backfill_plan(
+        saved,
+        records,
+        sources,
+        expected_candidate_sha256=expected,
+    )
 
     assert result["valid"] is True
     assert result["errors"] == []
     assert result["writes_performed"] == 0
     assert result["saved_candidate_count"] == 1
     assert result["fresh_candidate_count"] == 1
-    assert result["saved_plan_sha256"] == result["fresh_plan_sha256"]
+    assert result["saved_plan_sha256"] == result["fresh_plan_sha256"] == expected
+    assert result["expected_candidate_sha256"] == expected
 
 
 def test_preflight_rejects_stale_or_tampered_candidate_set():
     records, sources = _inputs()
     saved = build_backfill_plan(records, sources)
+    expected = candidate_fingerprint(saved["candidates"])
     saved["candidates"] = [
         {"record_id": "r-ambiguous", "logical_source_id": "source-a"}
     ]
 
-    result = validate_backfill_plan(saved, records, sources)
+    result = validate_backfill_plan(
+        saved,
+        records,
+        sources,
+        expected_candidate_sha256=expected,
+    )
 
     assert result["valid"] is False
     assert "saved candidate set is stale or differs from current live inputs" in result["errors"]
@@ -76,6 +89,36 @@ def test_preflight_rejects_duplicate_candidate_record_ids():
     assert result["valid"] is False
     assert "saved plan contains duplicate candidate record ids" in result["errors"]
     assert result["writes_performed"] == 0
+
+
+def test_preflight_rejects_mismatched_pinned_fingerprint():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+
+    result = validate_backfill_plan(
+        saved,
+        records,
+        sources,
+        expected_candidate_sha256="0" * 64,
+    )
+
+    assert result["valid"] is False
+    assert "fresh candidate fingerprint does not match pinned SHA-256" in result["errors"]
+
+
+def test_preflight_rejects_invalid_pinned_fingerprint():
+    records, sources = _inputs()
+    saved = build_backfill_plan(records, sources)
+
+    result = validate_backfill_plan(
+        saved,
+        records,
+        sources,
+        expected_candidate_sha256="not-a-sha256",
+    )
+
+    assert result["valid"] is False
+    assert "expected candidate fingerprint is not a valid SHA-256" in result["errors"]
 
 
 def test_candidate_fingerprint_is_stable_and_order_sensitive():
