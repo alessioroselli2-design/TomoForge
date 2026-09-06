@@ -105,6 +105,43 @@ def test_enrich_source_refs_preserves_existing_fields_and_adds_catalog_metadata(
     assert "logical_source_id" not in refs[0]
 
 
+def test_enrich_source_refs_does_not_overwrite_existing_metadata():
+    refs = [
+        {
+            "page": 67,
+            "filename": "Mago__1787233073462.pdf",
+            "source_title": "Titolo conservato",
+            "ruleset": "legacy-ruleset",
+            "authority_class": "historical",
+            "source_role": "historical_reference",
+            "source_status": "archived",
+        }
+    ]
+    source = {
+        "title": "Mago",
+        "ruleset": "2014",
+        "authority_class": "derived_reference",
+        "source_role": "supplemental",
+        "source_status": "active",
+    }
+
+    result = enrich_source_refs(refs, "derived_class_mago", source)
+
+    assert result == [
+        {
+            "page": 67,
+            "filename": "Mago__1787233073462.pdf",
+            "logical_source_id": "derived_class_mago",
+            "source_title": "Titolo conservato",
+            "ruleset": "legacy-ruleset",
+            "authority_class": "historical",
+            "source_role": "historical_reference",
+            "source_status": "archived",
+        }
+    ]
+    assert "logical_source_id" not in refs[0]
+
+
 def test_enrich_source_refs_rejects_incompatible_existing_provenance():
     refs = [{"filename": "x.pdf", "logical_source_id": "other"}]
     try:
