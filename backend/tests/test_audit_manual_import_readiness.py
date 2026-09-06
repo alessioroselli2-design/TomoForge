@@ -61,7 +61,7 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         "failed_jobs_without_ocr_backlog": 1,
         "failed_jobs_schema_cache_miss": 2,
         "failed_jobs_schema_cache_miss_without_ocr_backlog": 1,
-        "failed_jobs_schema_cache_retry_candidates": 1,
+        "failed_jobs_schema_cache_retry_candidates": 0,
         "failed_jobs_retried": 2,
         "failed_jobs_retried_without_ocr_backlog": 1,
         "failed_jobs_external_processing_confirmed": 1,
@@ -93,7 +93,7 @@ def test_summary_requires_all_jobs_completed_for_stability():
     assert result["failed_jobs_retried_without_ocr_backlog"] == 0
 
 
-def test_schema_cache_retry_candidate_requires_no_ocr_and_no_record_activity():
+def test_schema_cache_retry_candidate_requires_no_ocr_no_activity_and_no_prior_retry():
     jobs = [
         {
             "status": "failed",
@@ -111,12 +111,19 @@ def test_schema_cache_retry_candidate_requires_no_ocr_and_no_record_activity():
             "records_updated": 1,
             "pages_needing_ocr": [],
         },
+        {
+            "status": "failed",
+            "last_error": "PGRST204: schema cache miss",
+            "attempt_count": 2,
+            "pages_needing_ocr": [],
+        },
     ]
 
     result = summarize_import_readiness(jobs)
 
-    assert result["failed_jobs_schema_cache_miss"] == 3
+    assert result["failed_jobs_schema_cache_miss"] == 4
     assert result["failed_jobs_schema_cache_retry_candidates"] == 1
+    assert result["failed_jobs_retried"] == 1
 
 
 def test_non_schema_cache_failure_is_not_misclassified():
