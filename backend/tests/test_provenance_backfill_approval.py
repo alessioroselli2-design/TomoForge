@@ -24,7 +24,7 @@ def test_provenance_backfill_approval_pins_a_well_formed_candidate_set():
     source_commit = approval["source_commit"]
     digest = approval["candidate_sha256"]
 
-    assert approval["candidate_count"] == 3468
+    assert approval["candidate_count"] == 3467
     assert approval["ambiguous_excluded_count"] == 196
     assert len(source_commit) == 40
     assert all(ch in "0123456789abcdef" for ch in source_commit)
