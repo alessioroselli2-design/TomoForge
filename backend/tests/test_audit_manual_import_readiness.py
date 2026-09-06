@@ -40,7 +40,12 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
             "external_processing_confirmed": True,
             "translation_processing_confirmed": True,
         },
-        {"status": "failed", "filename": "private-c.pdf", "last_error": "other detail"},
+        {
+            "status": "failed",
+            "filename": "private-c.pdf",
+            "last_error": "other detail",
+            "attempt_count": 3,
+        },
     ]
 
     result = summarize_import_readiness(jobs)
@@ -53,7 +58,9 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         "jobs_incomplete": 2,
         "failed_jobs_with_record_activity": 1,
         "failed_jobs_with_ocr_backlog": 1,
-        "failed_jobs_retried": 1,
+        "failed_jobs_without_ocr_backlog": 1,
+        "failed_jobs_retried": 2,
+        "failed_jobs_retried_without_ocr_backlog": 1,
         "failed_jobs_external_processing_confirmed": 1,
         "failed_jobs_translation_processing_confirmed": 1,
         "structured_import_stable": False,
@@ -74,7 +81,9 @@ def test_summary_requires_all_jobs_completed_for_stability():
     assert result["jobs_incomplete"] == 0
     assert result["failed_jobs_with_record_activity"] == 0
     assert result["failed_jobs_with_ocr_backlog"] == 0
+    assert result["failed_jobs_without_ocr_backlog"] == 0
     assert result["failed_jobs_retried"] == 0
+    assert result["failed_jobs_retried_without_ocr_backlog"] == 0
 
 
 def test_empty_job_history_is_not_treated_as_stable():
