@@ -63,6 +63,7 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         "failed_jobs_schema_cache_miss_without_ocr_backlog": 1,
         "failed_jobs_non_schema_cache_without_ocr_backlog": 0,
         "failed_jobs_schema_cache_retry_candidates": 0,
+        "failed_jobs_non_schema_investigation_candidates": 0,
         "failed_jobs_retried": 2,
         "failed_jobs_retried_without_ocr_backlog": 1,
         "failed_jobs_external_processing_confirmed": 1,
@@ -91,6 +92,7 @@ def test_summary_requires_all_jobs_completed_for_stability():
     assert result["failed_jobs_schema_cache_miss_without_ocr_backlog"] == 0
     assert result["failed_jobs_non_schema_cache_without_ocr_backlog"] == 0
     assert result["failed_jobs_schema_cache_retry_candidates"] == 0
+    assert result["failed_jobs_non_schema_investigation_candidates"] == 0
     assert result["failed_jobs_retried"] == 0
     assert result["failed_jobs_retried_without_ocr_backlog"] == 0
 
@@ -137,6 +139,7 @@ def test_non_schema_cache_failure_is_counted_coarsely_without_exposing_error():
     assert result["failed_jobs_schema_cache_miss_without_ocr_backlog"] == 0
     assert result["failed_jobs_non_schema_cache_without_ocr_backlog"] == 1
     assert result["failed_jobs_schema_cache_retry_candidates"] == 0
+    assert result["failed_jobs_non_schema_investigation_candidates"] == 1
     assert "PGRST116" not in str(result)
     assert "no rows returned" not in str(result)
 
@@ -147,6 +150,18 @@ def test_non_schema_cache_failure_with_ocr_backlog_is_not_in_non_ocr_signal():
     ])
 
     assert result["failed_jobs_non_schema_cache_without_ocr_backlog"] == 0
+    assert result["failed_jobs_non_schema_investigation_candidates"] == 0
+
+
+def test_non_schema_investigation_candidate_excludes_partial_activity_and_retries():
+    result = summarize_import_readiness([
+        {"status": "failed", "last_error": "unknown failure", "records_imported": 1, "pages_needing_ocr": []},
+        {"status": "failed", "last_error": "unknown failure", "attempt_count": 2, "pages_needing_ocr": []},
+        {"status": "failed", "last_error": "unknown failure", "pages_needing_ocr": []},
+    ])
+
+    assert result["failed_jobs_non_schema_cache_without_ocr_backlog"] == 3
+    assert result["failed_jobs_non_schema_investigation_candidates"] == 1
 
 
 def test_empty_job_history_is_not_treated_as_stable():

@@ -73,6 +73,21 @@ def _is_schema_cache_retry_candidate(job: dict) -> bool:
     )
 
 
+def _is_non_schema_investigation_candidate(job: dict) -> bool:
+    """Flag a failed non-schema job for diagnosis only, never automatic retry.
+
+    The gate excludes OCR backlog, recorded record activity, and prior retries.
+    Because the failure class remains unknown, passing this gate authorizes only
+    read-only investigation of the cause, not re-execution of the import.
+    """
+    return (
+        not _is_schema_cache_failure(job)
+        and not _has_ocr_backlog(job)
+        and not _has_record_activity(job)
+        and not _was_retried(job)
+    )
+
+
 def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
     """Return aggregate structured-import readiness without leaking job details."""
     statuses = Counter(str(job.get("status") or "unknown") for job in jobs)
@@ -99,6 +114,9 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         ),
         "failed_jobs_schema_cache_retry_candidates": sum(
             _is_schema_cache_retry_candidate(job) for job in failed
+        ),
+        "failed_jobs_non_schema_investigation_candidates": sum(
+            _is_non_schema_investigation_candidate(job) for job in failed
         ),
         "failed_jobs_retried": sum(_was_retried(job) for job in failed),
         "failed_jobs_retried_without_ocr_backlog": sum(
