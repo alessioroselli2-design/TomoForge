@@ -32,7 +32,7 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         {
             "status": "failed",
             "filename": "private-b.pdf",
-            "last_error": "sensitive failure detail",
+            "last_error": "PGRST204: Could not find column in the schema cache",
             "records_imported": 10,
             "records_flagged": 4,
             "pages_needing_ocr": [2, 3],
@@ -43,7 +43,7 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         {
             "status": "failed",
             "filename": "private-c.pdf",
-            "last_error": "other detail",
+            "last_error": "PGRST204: Could not find the level column in the schema cache",
             "attempt_count": 3,
         },
     ]
@@ -59,6 +59,8 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
         "failed_jobs_with_record_activity": 1,
         "failed_jobs_with_ocr_backlog": 1,
         "failed_jobs_without_ocr_backlog": 1,
+        "failed_jobs_schema_cache_miss": 2,
+        "failed_jobs_schema_cache_miss_without_ocr_backlog": 1,
         "failed_jobs_retried": 2,
         "failed_jobs_retried_without_ocr_backlog": 1,
         "failed_jobs_external_processing_confirmed": 1,
@@ -68,7 +70,8 @@ def test_summary_marks_failed_imports_as_not_stable_and_reports_partial_activity
     rendered = str(result)
     assert "private-a.pdf" not in rendered
     assert "private-b.pdf" not in rendered
-    assert "sensitive failure detail" not in rendered
+    assert "PGRST204" not in rendered
+    assert "level column" not in rendered
 
 
 def test_summary_requires_all_jobs_completed_for_stability():
@@ -82,8 +85,19 @@ def test_summary_requires_all_jobs_completed_for_stability():
     assert result["failed_jobs_with_record_activity"] == 0
     assert result["failed_jobs_with_ocr_backlog"] == 0
     assert result["failed_jobs_without_ocr_backlog"] == 0
+    assert result["failed_jobs_schema_cache_miss"] == 0
+    assert result["failed_jobs_schema_cache_miss_without_ocr_backlog"] == 0
     assert result["failed_jobs_retried"] == 0
     assert result["failed_jobs_retried_without_ocr_backlog"] == 0
+
+
+def test_non_schema_cache_failure_is_not_misclassified():
+    result = summarize_import_readiness([
+        {"status": "failed", "last_error": "PGRST116: no rows returned", "pages_needing_ocr": []},
+    ])
+
+    assert result["failed_jobs_schema_cache_miss"] == 0
+    assert result["failed_jobs_schema_cache_miss_without_ocr_backlog"] == 0
 
 
 def test_empty_job_history_is_not_treated_as_stable():
