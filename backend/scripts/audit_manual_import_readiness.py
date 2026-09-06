@@ -94,6 +94,9 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         "failed_jobs_schema_cache_miss_without_ocr_backlog": sum(
             _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
         ),
+        "failed_jobs_non_schema_cache_without_ocr_backlog": sum(
+            not _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
+        ),
         "failed_jobs_schema_cache_retry_candidates": sum(
             _is_schema_cache_retry_candidate(job) for job in failed
         ),
