@@ -52,6 +52,20 @@ def _is_schema_cache_failure(job: dict) -> bool:
     return "pgrst204" in error and "schema cache" in error
 
 
+def _is_schema_cache_retry_candidate(job: dict) -> bool:
+    """Return whether a schema-cache failure is safe enough to inspect for one-job retry.
+
+    This is intentionally conservative: jobs with OCR backlog or any recorded
+    record activity are excluded so the audit cannot encourage a retry that may
+    duplicate or compound partial work.
+    """
+    return (
+        _is_schema_cache_failure(job)
+        and not _has_ocr_backlog(job)
+        and not _has_record_activity(job)
+    )
+
+
 def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
     """Return aggregate structured-import readiness without leaking job details."""
     statuses = Counter(str(job.get("status") or "unknown") for job in jobs)
@@ -72,6 +86,9 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         "failed_jobs_schema_cache_miss": sum(_is_schema_cache_failure(job) for job in failed),
         "failed_jobs_schema_cache_miss_without_ocr_backlog": sum(
             _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
+        ),
+        "failed_jobs_schema_cache_retry_candidates": sum(
+            _is_schema_cache_retry_candidate(job) for job in failed
         ),
         "failed_jobs_retried": sum(
             isinstance(job.get("attempt_count"), (int, float)) and job.get("attempt_count") > 1
