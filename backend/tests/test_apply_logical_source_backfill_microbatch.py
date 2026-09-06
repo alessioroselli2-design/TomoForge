@@ -150,3 +150,20 @@ def test_enrich_source_refs_rejects_incompatible_existing_provenance():
         assert "incompatible logical_source_id" in str(exc)
     else:
         raise AssertionError("expected incompatible provenance to be rejected")
+
+
+def test_enrich_source_refs_failure_is_side_effect_free_for_multi_ref_records():
+    refs = [
+        {"filename": "Mago__1787233073462.pdf", "page": 67},
+        {"filename": "legacy.pdf", "page": 68, "logical_source_id": "historical_other"},
+    ]
+    original = [dict(ref) for ref in refs]
+
+    try:
+        enrich_source_refs(refs, "derived_class_mago", {"title": "Mago"})
+    except ValueError as exc:
+        assert "incompatible logical_source_id" in str(exc)
+    else:
+        raise AssertionError("expected incompatible provenance to be rejected")
+
+    assert refs == original
