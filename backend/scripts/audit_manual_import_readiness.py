@@ -52,17 +52,24 @@ def _is_schema_cache_failure(job: dict) -> bool:
     return "pgrst204" in error and "schema cache" in error
 
 
+def _was_retried(job: dict) -> bool:
+    """Return whether the import job records more than one attempt."""
+    attempts = job.get("attempt_count")
+    return isinstance(attempts, (int, float)) and attempts > 1
+
+
 def _is_schema_cache_retry_candidate(job: dict) -> bool:
     """Return whether a schema-cache failure is safe enough to inspect for one-job retry.
 
-    This is intentionally conservative: jobs with OCR backlog or any recorded
-    record activity are excluded so the audit cannot encourage a retry that may
-    duplicate or compound partial work.
+    This is intentionally conservative: jobs with OCR backlog, any recorded
+    record activity, or a previous retry are excluded so the audit cannot
+    encourage repeated retries that may duplicate or compound partial work.
     """
     return (
         _is_schema_cache_failure(job)
         and not _has_ocr_backlog(job)
         and not _has_record_activity(job)
+        and not _was_retried(job)
     )
 
 
@@ -90,13 +97,9 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         "failed_jobs_schema_cache_retry_candidates": sum(
             _is_schema_cache_retry_candidate(job) for job in failed
         ),
-        "failed_jobs_retried": sum(
-            isinstance(job.get("attempt_count"), (int, float)) and job.get("attempt_count") > 1
-            for job in failed
-        ),
+        "failed_jobs_retried": sum(_was_retried(job) for job in failed),
         "failed_jobs_retried_without_ocr_backlog": sum(
-            isinstance(job.get("attempt_count"), (int, float)) and job.get("attempt_count") > 1
-            for job in failed_without_ocr_backlog
+            _was_retried(job) for job in failed_without_ocr_backlog
         ),
         "failed_jobs_external_processing_confirmed": sum(
             job.get("external_processing_confirmed") is True for job in failed
