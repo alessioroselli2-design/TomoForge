@@ -46,6 +46,12 @@ def _has_ocr_backlog(job: dict) -> bool:
     return isinstance(pages, list) and len(pages) > 0
 
 
+def _is_schema_cache_failure(job: dict) -> bool:
+    """Recognize PostgREST schema-cache misses without exposing error contents."""
+    error = str(job.get("last_error") or "").lower()
+    return "pgrst204" in error and "schema cache" in error
+
+
 def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
     """Return aggregate structured-import readiness without leaking job details."""
     statuses = Counter(str(job.get("status") or "unknown") for job in jobs)
@@ -63,6 +69,10 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         "failed_jobs_with_record_activity": sum(_has_record_activity(job) for job in failed),
         "failed_jobs_with_ocr_backlog": sum(_has_ocr_backlog(job) for job in failed),
         "failed_jobs_without_ocr_backlog": len(failed_without_ocr_backlog),
+        "failed_jobs_schema_cache_miss": sum(_is_schema_cache_failure(job) for job in failed),
+        "failed_jobs_schema_cache_miss_without_ocr_backlog": sum(
+            _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
+        ),
         "failed_jobs_retried": sum(
             isinstance(job.get("attempt_count"), (int, float)) and job.get("attempt_count") > 1
             for job in failed
