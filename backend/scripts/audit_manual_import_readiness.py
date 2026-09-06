@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -20,7 +21,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 
 async def fetch_all(collection: Any, page_size: int = 1000) -> list[dict]:
-    """Read all jobs in bounded pages so row limits cannot truncate the audit."""
+    """Read all rows in bounded pages so row limits cannot truncate the audit."""
     rows: list[dict] = []
     offset = 0
     while True:
@@ -53,9 +54,49 @@ def _is_schema_cache_failure(job: dict) -> bool:
 
 
 def _is_manual_source_duplicate_failure(job: dict) -> bool:
-    """Recognize the importer\'s explicit duplicate-source guard without leaking its payload."""
+    """Recognize the importer's explicit duplicate-source guard without leaking its payload."""
     error = str(job.get("last_error") or "").lower()
     return error.startswith("manual_source_duplicate:")
+
+
+def _manual_source_duplicate_payload(job: dict) -> str:
+    """Return the duplicate guard payload for internal identity matching only."""
+    error = str(job.get("last_error") or "")
+    if not error.lower().startswith("manual_source_duplicate:"):
+        return ""
+    return error.split(":", 1)[1]
+
+
+def _normalize_manual_identity(filename: str) -> str:
+    """Normalize upload/copy suffixes so read-only duplicate reconciliation is conservative."""
+    stem = Path(str(filename or "")).stem.lower()
+    stem = re.sub(r"[_\W]+", " ", stem, flags=re.UNICODE).strip()
+    stem = re.sub(r"\s+\d{13}$", "", stem).strip()
+    stem = re.sub(r"\s+\d+$", "", stem).strip()
+    return re.sub(r"\s+", " ", stem)
+
+
+def _manual_source_duplicate_reconciliation_state(job: dict, sources: list[dict]) -> str:
+    """Classify duplicate guards against catalog identities without authorizing writes or retries."""
+    if not _is_manual_source_duplicate_failure(job) or not _is_non_schema_investigation_candidate(job):
+        return "not_candidate"
+
+    identity = _normalize_manual_identity(_manual_source_duplicate_payload(job))
+    if not identity:
+        return "unmatched"
+
+    matches = [
+        source for source in sources
+        if _normalize_manual_identity(str(source.get("physical_filename") or "")) == identity
+    ]
+    if not matches:
+        return "unmatched"
+
+    logical_ids = {str(source.get("logical_source_id") or "") for source in matches if source.get("logical_source_id")}
+    has_active = any(str(source.get("source_status") or "") == "active" for source in matches)
+    if len(logical_ids) == 1 and has_active:
+        return "reconciled_single_logical_source"
+    return "ambiguous"
 
 
 def _is_duplicate_like_failure(job: dict) -> bool:
@@ -100,13 +141,18 @@ def _is_non_schema_investigation_candidate(job: dict) -> bool:
     )
 
 
-def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
-    """Return aggregate structured-import readiness without leaking job details."""
+def summarize_import_readiness(jobs: list[dict], sources: list[dict] | None = None) -> dict[str, Any]:
+    """Return aggregate structured-import readiness without leaking job or source details."""
+    sources = sources or []
     statuses = Counter(str(job.get("status") or "unknown") for job in jobs)
     failed = [job for job in jobs if str(job.get("status") or "unknown") == "failed"]
     failed_without_ocr_backlog = [job for job in failed if not _has_ocr_backlog(job)]
     completed = statuses["completed"]
     total = len(jobs)
+    reconciliation_states = [
+        _manual_source_duplicate_reconciliation_state(job, sources) for job in failed
+        if _is_manual_source_duplicate_failure(job)
+    ]
 
     return {
         "jobs_total": total,
@@ -131,6 +177,9 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
             _is_manual_source_duplicate_failure(job) and _is_non_schema_investigation_candidate(job)
             for job in failed
         ),
+        "failed_jobs_manual_source_duplicate_reconciled": reconciliation_states.count("reconciled_single_logical_source"),
+        "failed_jobs_manual_source_duplicate_ambiguous": reconciliation_states.count("ambiguous"),
+        "failed_jobs_manual_source_duplicate_unmatched": reconciliation_states.count("unmatched"),
         "failed_jobs_duplicate_like": sum(_is_duplicate_like_failure(job) for job in failed),
         "failed_jobs_duplicate_like_investigation_candidates": sum(
             _is_duplicate_like_failure(job) and _is_non_schema_investigation_candidate(job)
@@ -163,7 +212,8 @@ async def _run() -> int:
         raise RuntimeError("Supabase is not configured")
 
     jobs = await fetch_all(db.private_manual_import_jobs)
-    print(json.dumps(summarize_import_readiness(jobs), sort_keys=True))
+    sources = await fetch_all(db.private_reference_sources)
+    print(json.dumps(summarize_import_readiness(jobs, sources), sort_keys=True))
     return 0
 
 
