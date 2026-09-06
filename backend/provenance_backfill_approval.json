@@ -2,11 +2,11 @@
   "schema_version": 1,
   "scope": "logical_source_provenance_backfill",
   "source_branch": "ai-canonical-library",
-  "source_commit": "b59c1752ef3d557bd94b9bb07a0d2f8589ab146b",
-  "candidate_count": 3468,
+  "source_commit": "6cb8d146b5e03efdd121bd45a7b12370bc307589",
+  "candidate_count": 3467,
   "ambiguous_excluded_count": 196,
-  "candidate_sha256": "ce275bd963e68d6b64644257e3e8f893df607dc88ed006e3bc09c38d8bfb9f45",
+  "candidate_sha256": "2d33f268e9dfd4d88d4fffeaba7c7eb6068c88cb687a184da91492e5a934d987",
   "approval_state": "preflight_only",
   "writes_authorized": false,
-  "notes": "Refreshed from the read-only live provenance dry-run after the verified single-record pilot. Ambiguous records remain excluded; this artifact does not authorize a backfill."
+  "notes": "Refreshed from the read-only live provenance dry-run after the second verified single-record pilot. Ambiguous records remain excluded; this artifact does not authorize a backfill."
 }
