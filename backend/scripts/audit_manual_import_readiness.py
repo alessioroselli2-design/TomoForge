@@ -52,6 +52,12 @@ def _is_schema_cache_failure(job: dict) -> bool:
     return "pgrst204" in error and "schema cache" in error
 
 
+def _is_duplicate_like_failure(job: dict) -> bool:
+    """Recognize duplicate/idempotency-like failures without exposing error text."""
+    error = str(job.get("last_error") or "").lower()
+    return "duplicate" in error
+
+
 def _was_retried(job: dict) -> bool:
     """Return whether the import job records more than one attempt."""
     attempts = job.get("attempt_count")
@@ -111,6 +117,11 @@ def summarize_import_readiness(jobs: list[dict]) -> dict[str, Any]:
         ),
         "failed_jobs_non_schema_cache_without_ocr_backlog": sum(
             not _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
+        ),
+        "failed_jobs_duplicate_like": sum(_is_duplicate_like_failure(job) for job in failed),
+        "failed_jobs_duplicate_like_investigation_candidates": sum(
+            _is_duplicate_like_failure(job) and _is_non_schema_investigation_candidate(job)
+            for job in failed
         ),
         "failed_jobs_schema_cache_retry_candidates": sum(
             _is_schema_cache_retry_candidate(job) for job in failed
