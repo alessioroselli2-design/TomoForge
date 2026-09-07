@@ -2,9 +2,9 @@
 """Read-only audit of source provenance for failed manual import jobs.
 
 The audit classifies only exact registry evidence and exact historical artifact
-filenames already committed in the repository. Historical artifacts are
-strictly diagnostic: they never authorize a registry match, retry, OCR,
-database write, or canonicalization.
+filenames already committed in the repository. Historical artifacts and OCR-gap
+metadata are strictly diagnostic: they never authorize a registry match, retry,
+OCR, database write, or canonicalization.
 """
 
 from __future__ import annotations
@@ -34,6 +34,23 @@ def _duplicate_target(error: str) -> str | None:
         return None
     value = error.split(marker, 1)[1].strip()
     return value or None
+
+
+def _declared_ocr_gap_pages(job: dict) -> list[int]:
+    """Return unique positive OCR-gap pages already recorded on a failed job."""
+    raw_pages = job.get("pages_needing_ocr") or []
+    if not isinstance(raw_pages, (list, tuple, set)):
+        return []
+
+    pages: set[int] = set()
+    for value in raw_pages:
+        try:
+            page = int(value)
+        except (TypeError, ValueError):
+            continue
+        if page > 0:
+            pages.add(page)
+    return sorted(pages)
 
 
 def _historical_filenames_from_sample_report(path: Path) -> set[str]:
@@ -75,6 +92,8 @@ def summarize_failed_import_source_provenance(
     historical_job_filenames_found = 0
     historical_duplicate_targets_found = 0
     source_failures = 0
+    source_failures_with_declared_ocr_gaps = 0
+    declared_ocr_gap_pages_total = 0
 
     for job in jobs:
         if str(job.get("status") or "") != "failed":
@@ -84,6 +103,11 @@ def summarize_failed_import_source_provenance(
             continue
 
         source_failures += 1
+        ocr_gap_pages = _declared_ocr_gap_pages(job)
+        if ocr_gap_pages:
+            source_failures_with_declared_ocr_gaps += 1
+            declared_ocr_gap_pages_total += len(ocr_gap_pages)
+
         fingerprint = str(job.get("source_fingerprint") or "").strip().lower()
         filename = str(job.get("filename") or "").strip().casefold()
         sha_matches = by_sha.get(fingerprint, []) if fingerprint else []
@@ -116,6 +140,8 @@ def summarize_failed_import_source_provenance(
 
     return {
         "failed_source_jobs_total": source_failures,
+        "failed_source_jobs_with_declared_ocr_gaps": source_failures_with_declared_ocr_gaps,
+        "declared_ocr_gap_pages_total": declared_ocr_gap_pages_total,
         "exact_sha_matches": outcomes["exact_sha_match"],
         "ambiguous_sha_matches": outcomes["ambiguous_sha_match"],
         "filename_matches_without_hash_confirmation": outcomes[
@@ -132,6 +158,7 @@ def summarize_failed_import_source_provenance(
         "failed_job_filenames_present_in_historical_artifacts": historical_job_filenames_found,
         "reported_duplicate_targets_present_in_historical_artifacts": historical_duplicate_targets_found,
         "historical_artifact_evidence_is_diagnostic_only": True,
+        "ocr_gap_evidence_is_diagnostic_only": True,
         "database_write_authorized": False,
         "automatic_retry_authorized": False,
         "ocr_generation_authorized": False,
