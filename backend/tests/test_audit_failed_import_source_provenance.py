@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from scripts.audit_failed_import_source_provenance import (
+    _historical_filenames_from_sample_report,
     summarize_failed_import_source_provenance,
 )
 
@@ -52,12 +55,20 @@ def test_unresolved_and_duplicate_target_do_not_become_safe_match():
         },
     ]
 
-    result = summarize_failed_import_source_provenance(sources, jobs)
+    result = summarize_failed_import_source_provenance(
+        sources,
+        jobs,
+        historical_filenames={"missing.pdf", "existing.pdf"},
+    )
 
     assert result["failed_source_jobs_total"] == 2
     assert result["unresolved_no_exact_registry_evidence"] == 2
     assert result["reported_duplicate_targets_present_in_registry"] == 1
+    assert result["failed_job_filenames_present_in_historical_artifacts"] == 1
+    assert result["reported_duplicate_targets_present_in_historical_artifacts"] == 1
+    assert result["historical_artifact_evidence_is_diagnostic_only"] is True
     assert result["exact_sha_matches"] == 0
+    assert result["automatic_retry_authorized"] is False
     assert result["ocr_generation_authorized"] is False
     assert result["canonicalization_authorized"] is False
 
@@ -81,3 +92,14 @@ def test_ambiguous_hash_never_authorizes_retry():
     assert result["ambiguous_sha_matches"] == 1
     assert result["exact_sha_matches"] == 0
     assert result["automatic_retry_authorized"] is False
+
+
+def test_sample_report_loader_uses_exact_casefolded_filenames(tmp_path: Path):
+    report = tmp_path / "report.json"
+    report.write_text(
+        '[{"filename":"Manual.PDF"},{"filename":""},{"other":"ignored"}]',
+        encoding="utf-8",
+    )
+
+    assert _historical_filenames_from_sample_report(report) == {"manual.pdf"}
+    assert _historical_filenames_from_sample_report(tmp_path / "missing.json") == set()
