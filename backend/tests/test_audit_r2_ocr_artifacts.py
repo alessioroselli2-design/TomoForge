@@ -1,4 +1,4 @@
-from backend.scripts.audit_r2_ocr_artifacts import classify_artifact_key
+from scripts.audit_r2_ocr_artifacts import classify_artifact_key
 
 
 def test_classifies_supported_ocr_artifacts_case_insensitively():
