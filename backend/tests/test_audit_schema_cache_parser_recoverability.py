@@ -12,7 +12,7 @@ def _job(filename="Book_123.pdf", page_count=4, pages_needing_ocr=None):
         "records_flagged": 0,
         "records_skipped": 0,
         "pages_needing_ocr": pages_needing_ocr or [],
-        "last_error": "Could not find the 'level' column of 'private_reference_records' in the schema cache",
+        "last_error": "{'code': 'PGRST204', 'message': \"Could not find the 'level' column in the schema cache\"}",
     }
 
 
