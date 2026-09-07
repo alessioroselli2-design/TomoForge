@@ -65,7 +65,7 @@ def test_ambiguous_duplicate_sources_do_not_count_as_safe_match():
             "physical_pages": 100,
         },
         {
-            "physical_filename": "Book (1).pdf",
+            "physical_filename": "Book_1786999999999.pdf",
             "text_mode": "vision_required",
             "import_state": "excluded",
             "physical_pages": 100,
