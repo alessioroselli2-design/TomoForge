@@ -40,23 +40,37 @@ def summarize_vision_required_backlog(sources: list[dict], jobs: list[dict]) -> 
     source_missing_failed_jobs = 0
     duplicate_failed_jobs = 0
     matched_failed_pages_remaining = 0
+    matched_failed_jobs_with_explicit_ocr_pages = 0
+    matched_failed_jobs_without_explicit_ocr_pages = 0
+    matched_schema_cache_failed_jobs = 0
 
     for job in jobs:
         if str(job.get("status") or "") != "failed":
             continue
         normalized = _normalized_source_name(job.get("filename"))
         matches = by_normalized_name.get(normalized, []) if normalized else []
-        if len(matches) == 1:
+        is_unique_vision_match = len(matches) == 1
+        error = str(job.get("last_error") or "")
+        is_schema_cache = "PGRST204" in error or "schema cache" in error.lower()
+
+        if is_unique_vision_match:
             matched_failed_jobs += 1
             page_count = int(job.get("page_count") or 0)
             current_page = int(job.get("current_page") or 0)
             if page_count > current_page:
                 matched_failed_pages_remaining += page_count - current_page
+
+            pages_needing_ocr = job.get("pages_needing_ocr") or []
+            if pages_needing_ocr:
+                matched_failed_jobs_with_explicit_ocr_pages += 1
+            else:
+                matched_failed_jobs_without_explicit_ocr_pages += 1
+            if is_schema_cache:
+                matched_schema_cache_failed_jobs += 1
         else:
             unmatched_failed_jobs += 1
 
-        error = str(job.get("last_error") or "")
-        if "PGRST204" in error or "schema cache" in error.lower():
+        if is_schema_cache:
             schema_cache_failed_jobs += 1
         elif "manual_source_missing" in error:
             source_missing_failed_jobs += 1
@@ -73,6 +87,9 @@ def summarize_vision_required_backlog(sources: list[dict], jobs: list[dict]) -> 
         "failed_jobs_schema_cache": schema_cache_failed_jobs,
         "failed_jobs_source_missing": source_missing_failed_jobs,
         "failed_jobs_source_duplicate": duplicate_failed_jobs,
+        "matched_schema_cache_failed_jobs": matched_schema_cache_failed_jobs,
+        "matched_failed_jobs_with_explicit_ocr_pages": matched_failed_jobs_with_explicit_ocr_pages,
+        "matched_failed_jobs_without_explicit_ocr_pages": matched_failed_jobs_without_explicit_ocr_pages,
         "matched_failed_pages_remaining": matched_failed_pages_remaining,
         "ocr_generation_authorized": False,
         "database_write_authorized": False,
