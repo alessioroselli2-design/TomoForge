@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Read-only audit of source provenance for failed manual import jobs.
 
-The audit classifies only exact registry evidence. It never changes source
-metadata, retries imports, generates OCR, or authorizes canonicalization.
+The audit classifies only exact registry evidence and exact historical artifact
+filenames already committed in the repository. Historical artifacts are
+strictly diagnostic: they never authorize a registry match, retry, OCR,
+database write, or canonicalization.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+REPO_DIR = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -33,9 +36,30 @@ def _duplicate_target(error: str) -> str | None:
     return value or None
 
 
+def _historical_filenames_from_sample_report(path: Path) -> set[str]:
+    """Load exact PDF filenames from the checked-in manual sample report."""
+    if not path.is_file():
+        return set()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError("manual sample report must contain a JSON list")
+    return {
+        str(item.get("filename") or "").strip().casefold()
+        for item in payload
+        if isinstance(item, dict) and str(item.get("filename") or "").strip()
+    }
+
+
 def summarize_failed_import_source_provenance(
-    sources: list[dict], jobs: list[dict]
+    sources: list[dict],
+    jobs: list[dict],
+    historical_filenames: set[str] | None = None,
 ) -> dict[str, Any]:
+    historical_filenames = {
+        str(value).strip().casefold()
+        for value in (historical_filenames or set())
+        if str(value).strip()
+    }
     by_sha: dict[str, list[dict]] = {}
     by_filename: dict[str, list[dict]] = {}
     for source in sources:
@@ -48,6 +72,8 @@ def summarize_failed_import_source_provenance(
 
     outcomes: Counter[str] = Counter()
     duplicate_targets_found = 0
+    historical_job_filenames_found = 0
+    historical_duplicate_targets_found = 0
     source_failures = 0
 
     for job in jobs:
@@ -62,6 +88,9 @@ def summarize_failed_import_source_provenance(
         filename = str(job.get("filename") or "").strip().casefold()
         sha_matches = by_sha.get(fingerprint, []) if fingerprint else []
         filename_matches = by_filename.get(filename, []) if filename else []
+
+        if filename and filename in historical_filenames:
+            historical_job_filenames_found += 1
 
         if len(sha_matches) == 1:
             outcomes["exact_sha_match"] += 1
@@ -78,8 +107,12 @@ def summarize_failed_import_source_provenance(
             outcomes["unresolved_no_exact_registry_evidence"] += 1
 
         duplicate_target = _duplicate_target(error)
-        if duplicate_target and by_filename.get(duplicate_target.casefold()):
-            duplicate_targets_found += 1
+        if duplicate_target:
+            normalized_target = duplicate_target.casefold()
+            if by_filename.get(normalized_target):
+                duplicate_targets_found += 1
+            if normalized_target in historical_filenames:
+                historical_duplicate_targets_found += 1
 
     return {
         "failed_source_jobs_total": source_failures,
@@ -96,6 +129,9 @@ def summarize_failed_import_source_provenance(
             "unresolved_no_exact_registry_evidence"
         ],
         "reported_duplicate_targets_present_in_registry": duplicate_targets_found,
+        "failed_job_filenames_present_in_historical_artifacts": historical_job_filenames_found,
+        "reported_duplicate_targets_present_in_historical_artifacts": historical_duplicate_targets_found,
+        "historical_artifact_evidence_is_diagnostic_only": True,
         "database_write_authorized": False,
         "automatic_retry_authorized": False,
         "ocr_generation_authorized": False,
@@ -113,9 +149,15 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_manual_import_jobs),
     )
+    historical_filenames = _historical_filenames_from_sample_report(
+        REPO_DIR / ".agents" / "outputs" / "manual-sample-report.json"
+    )
     print(
         json.dumps(
-            summarize_failed_import_source_provenance(sources, jobs), sort_keys=True
+            summarize_failed_import_source_provenance(
+                sources, jobs, historical_filenames=historical_filenames
+            ),
+            sort_keys=True,
         )
     )
     return 0
