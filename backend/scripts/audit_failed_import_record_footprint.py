@@ -25,11 +25,15 @@ from scripts.audit_manual_import_readiness import fetch_all
 def summarize_failed_import_record_footprint(
     jobs: list[dict], records: list[dict]
 ) -> dict[str, Any]:
-    failed_filenames = {
-        str(job.get("filename") or "").strip()
+    failed_jobs = [
+        job
         for job in jobs
         if str(job.get("status") or "unknown") == "failed"
         and str(job.get("filename") or "").strip()
+    ]
+    failed_filenames = {
+        str(job.get("filename") or "").strip()
+        for job in failed_jobs
     }
 
     matched_records = [
@@ -43,16 +47,21 @@ def summarize_failed_import_record_footprint(
         for record in matched_records
         if str(record.get("source_key") or "").strip()
     }
+    unresolved_failed_job_ids = sorted(
+        str(job.get("id") or "").strip()
+        for job in failed_jobs
+        if str(job.get("filename") or "").strip() not in linked_jobs
+        and str(job.get("id") or "").strip()
+    )
 
     return {
-        "failed_jobs_total": sum(
-            str(job.get("status") or "unknown") == "failed" for job in jobs
-        ),
+        "failed_jobs_total": len(failed_jobs),
         "failed_jobs_with_exact_record_footprint": len(linked_jobs),
         "failed_jobs_without_exact_record_footprint": max(
             0,
             len(failed_filenames) - len(linked_jobs),
         ),
+        "unresolved_failed_job_ids": unresolved_failed_job_ids,
         "records_exactly_linked_to_failed_jobs": len(matched_records),
         "linked_records_verified": review["verified"],
         "linked_records_needs_review": review["needs_review"],
