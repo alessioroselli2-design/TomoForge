@@ -5,7 +5,9 @@ The audit scans committed structured JSON artifacts only. Exact physical SHA
 matches are reported as provenance-review evidence; filename/title matches are
 reported separately as weak hints and never promoted to import proof. Nominal
 hints that point at more than one concordant pair are explicitly marked
-ambiguous so they cannot be mistaken for unique provenance evidence.
+ambiguous so they cannot be mistaken for unique provenance evidence. Every
+concordant pair is also assigned to exactly one evidence bucket: exact SHA,
+unique nominal hint, ambiguous nominal hint, or no repository evidence.
 
 No OCR, external processing, database write, review-state mutation, import, or
 canonicalization is authorized by this audit.
@@ -102,6 +104,7 @@ def summarize_concordant_text_peer_repo_artifacts(
     exact_sha_paths: dict[str, list[str]] = {}
     filename_paths: dict[str, list[str]] = {}
     title_paths: dict[str, list[str]] = {}
+    all_pair_keys: set[str] = set()
 
     for blocked_id, peer_ids in concordant_map.items():
         for peer_id in peer_ids:
@@ -110,6 +113,7 @@ def summarize_concordant_text_peer_repo_artifacts(
             peer_filename = str(peer.get("physical_filename") or "").strip()
             peer_title = str(peer.get("title") or "").strip()
             key = f"{blocked_id}->{peer_id}"
+            all_pair_keys.add(key)
 
             sha_hits = sorted(
                 path for path, strings in artifact_strings.items() if peer_sha and peer_sha in strings
@@ -130,20 +134,38 @@ def summarize_concordant_text_peer_repo_artifacts(
             if title_hits:
                 title_paths[key] = title_hits
 
-    nominal_hint_pairs = (set(filename_paths) | set(title_paths)) - set(exact_sha_paths)
+    exact_sha_pairs = set(exact_sha_paths)
+    nominal_hint_pairs = (set(filename_paths) | set(title_paths)) - exact_sha_pairs
     ambiguous_nominal_paths, ambiguous_nominal_pairs = _ambiguous_hint_paths(
         filename_paths,
         title_paths,
         exact_sha_paths,
     )
+    unique_nominal_pairs = nominal_hint_pairs - ambiguous_nominal_pairs
+    no_artifact_evidence_pairs = all_pair_keys - exact_sha_pairs - nominal_hint_pairs
+
+    evidence_bucket_total = (
+        len(exact_sha_pairs)
+        + len(unique_nominal_pairs)
+        + len(ambiguous_nominal_pairs)
+        + len(no_artifact_evidence_pairs)
+    )
+    evidence_buckets_are_exhaustive = evidence_bucket_total == len(all_pair_keys)
 
     return {
-        "concordant_text_peer_pairs": sum(len(v) for v in concordant_map.values()),
-        "pairs_with_exact_sha_structured_artifact": len(exact_sha_paths),
+        "concordant_text_peer_pairs": len(all_pair_keys),
+        "pairs_with_exact_sha_structured_artifact": len(exact_sha_pairs),
         "pairs_with_filename_only_or_additional_hint": len(filename_paths),
         "pairs_with_title_only_or_additional_hint": len(title_paths),
         "pairs_with_nominal_hint_but_no_exact_sha": len(nominal_hint_pairs),
+        "pairs_with_unique_nominal_hint": len(unique_nominal_pairs),
         "pairs_with_ambiguous_nominal_hint": len(ambiguous_nominal_pairs),
+        "pairs_with_no_repository_artifact_evidence": len(no_artifact_evidence_pairs),
+        "exact_sha_pair_ids": sorted(exact_sha_pairs),
+        "unique_nominal_hint_pair_ids": sorted(unique_nominal_pairs),
+        "ambiguous_nominal_hint_pair_ids": sorted(ambiguous_nominal_pairs),
+        "no_repository_artifact_evidence_pair_ids": sorted(no_artifact_evidence_pairs),
+        "evidence_buckets_are_exhaustive": evidence_buckets_are_exhaustive,
         "exact_sha_artifact_paths_by_pair": dict(sorted(exact_sha_paths.items())),
         "filename_artifact_paths_by_pair": dict(sorted(filename_paths.items())),
         "title_artifact_paths_by_pair": dict(sorted(title_paths.items())),
@@ -152,6 +174,7 @@ def summarize_concordant_text_peer_repo_artifacts(
         "exact_sha_artifact_evidence_is_review_candidate_only": True,
         "filename_or_title_evidence_is_not_import_proof": True,
         "ambiguous_nominal_evidence_requires_manual_provenance_review": True,
+        "unique_nominal_evidence_requires_manual_provenance_review": True,
         "ocr_authorized": False,
         "external_processing_authorized": False,
         "automatic_import_authorized": False,
