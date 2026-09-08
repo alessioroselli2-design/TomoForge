@@ -57,6 +57,9 @@ def test_exact_sha_artifact_is_reported_but_never_authorizes_import(tmp_path: Pa
 
     assert result["concordant_text_peer_pairs"] == 1
     assert result["pairs_with_exact_sha_structured_artifact"] == 1
+    assert result["pairs_with_identity_bound_exact_sha_artifact"] == 0
+    assert result["pairs_with_exact_sha_but_no_identity_binding"] == 1
+    assert result["exact_sha_without_identity_binding_pair_ids"] == ["vision->text"]
     assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 0
     assert result["pairs_with_unique_nominal_hint"] == 0
     assert result["pairs_with_ambiguous_nominal_hint"] == 0
@@ -67,6 +70,43 @@ def test_exact_sha_artifact_is_reported_but_never_authorizes_import(tmp_path: Pa
         "vision->text": [str(artifact)]
     }
     assert result["exact_sha_artifact_evidence_is_review_candidate_only"] is True
+    assert result["exact_sha_without_identity_binding_requires_manual_provenance_review"] is True
+    assert result["automatic_import_authorized"] is False
+    assert result["database_write_authorized"] is False
+    assert result["canonicalization_authorized"] is False
+
+
+def test_exact_sha_and_logical_source_id_in_same_artifact_is_identity_bound_review_evidence(
+    tmp_path: Path,
+):
+    blocked = _source("vision", "sha-vision")
+    text_peer = _source(
+        "text",
+        "sha-text",
+        text_mode="text",
+        filename="Guildmasters’ Guide to Ravnica.2 .pdf",
+        source_role="authority",
+    )
+    artifact = tmp_path / "artifact.json"
+    artifact.write_text(
+        '{"source_sha256":"sha-text","logical_source_id":"ggtr_2018_en"}',
+        encoding="utf-8",
+    )
+
+    result = summarize_concordant_text_peer_repo_artifacts(
+        [blocked, text_peer],
+        [],
+        load_structured_artifact_strings(tmp_path),
+    )
+
+    assert result["pairs_with_exact_sha_structured_artifact"] == 1
+    assert result["pairs_with_identity_bound_exact_sha_artifact"] == 1
+    assert result["pairs_with_exact_sha_but_no_identity_binding"] == 0
+    assert result["identity_bound_exact_sha_pair_ids"] == ["vision->text"]
+    assert result["identity_bound_exact_sha_artifact_paths_by_pair"] == {
+        "vision->text": [str(artifact)]
+    }
+    assert result["identity_bound_sha_evidence_is_review_candidate_only"] is True
     assert result["automatic_import_authorized"] is False
     assert result["database_write_authorized"] is False
     assert result["canonicalization_authorized"] is False
@@ -92,6 +132,7 @@ def test_filename_and_title_hints_do_not_count_as_exact_sha_evidence(tmp_path: P
     result = summarize_concordant_text_peer_repo_artifacts([blocked, text_peer], [], strings)
 
     assert result["pairs_with_exact_sha_structured_artifact"] == 0
+    assert result["pairs_with_identity_bound_exact_sha_artifact"] == 0
     assert result["pairs_with_filename_only_or_additional_hint"] == 1
     assert result["pairs_with_title_only_or_additional_hint"] == 1
     assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 1
@@ -184,6 +225,7 @@ def test_exact_sha_pair_is_excluded_from_nominal_ambiguity(tmp_path: Path):
     )
 
     assert result["pairs_with_exact_sha_structured_artifact"] == 1
+    assert result["pairs_with_identity_bound_exact_sha_artifact"] == 0
     assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 1
     assert result["pairs_with_unique_nominal_hint"] == 1
     assert result["pairs_with_ambiguous_nominal_hint"] == 0
@@ -212,6 +254,7 @@ def test_concordant_pair_without_artifact_evidence_is_explicitly_bucketed(tmp_pa
 
     assert result["concordant_text_peer_pairs"] == 1
     assert result["pairs_with_exact_sha_structured_artifact"] == 0
+    assert result["pairs_with_identity_bound_exact_sha_artifact"] == 0
     assert result["pairs_with_unique_nominal_hint"] == 0
     assert result["pairs_with_ambiguous_nominal_hint"] == 0
     assert result["pairs_with_no_repository_artifact_evidence"] == 1
