@@ -11,6 +11,11 @@ Text-mode peers are additionally checked for conservative structural concordance
 The check deliberately requires matching title, language, ruleset, authority
 class, and full page geometry, and rejects extraction-aid peers. Passing this
 check only makes the pair a provenance-review candidate; it is not import proof.
+
+For structurally concordant text peers, historical import-job evidence is checked
+by exact physical SHA only. Filename similarity is intentionally insufficient.
+Even a completed exact-SHA job remains diagnostic evidence and never authorizes
+an automatic import or database mutation.
 """
 
 from __future__ import annotations
@@ -69,7 +74,10 @@ def _text_peer_mismatch_reasons(source: dict, peer: dict) -> list[str]:
     return reasons
 
 
-def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str, Any]:
+def summarize_zero_import_logical_source_peers(
+    sources: list[dict], jobs: list[dict] | None = None
+) -> dict[str, Any]:
+    jobs = jobs or []
     sha_summary = summarize_zero_import_registry_sha_peers(sources)
     unresolved_ids = set(
         sha_summary["source_ids_still_unexplained_after_duplicate_peer_evidence"]
@@ -84,14 +92,24 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
         if logical_id:
             by_logical_id[logical_id].append(source)
 
+    jobs_by_sha: dict[str, list[dict]] = defaultdict(list)
+    for job in jobs:
+        sha = _norm(job.get("source_fingerprint"))
+        if sha:
+            jobs_by_sha[sha].append(job)
+
     with_any_peer_ids: list[str] = []
     with_text_peer_ids: list[str] = []
     with_concordant_text_peer_ids: list[str] = []
     with_only_incompatible_text_peer_ids: list[str] = []
+    with_concordant_text_peer_exact_job_ids: list[str] = []
+    with_concordant_text_peer_completed_job_ids: list[str] = []
     with_imported_peer_ids: list[str] = []
     without_peer_ids: list[str] = []
     text_peer_map: dict[str, list[str]] = {}
     concordant_text_peer_map: dict[str, list[str]] = {}
+    exact_job_peer_map: dict[str, list[str]] = {}
+    completed_job_peer_map: dict[str, list[str]] = {}
     incompatible_text_peer_reasons: dict[str, dict[str, list[str]]] = {}
 
     for source in unresolved:
@@ -116,20 +134,36 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
             )
 
             concordant_peer_ids: list[str] = []
+            exact_job_peer_ids: list[str] = []
+            completed_job_peer_ids: list[str] = []
             rejected_peer_reasons: dict[str, list[str]] = {}
             for peer in text_peers:
                 peer_id = str(peer.get("id") or "").strip()
                 reasons = _text_peer_mismatch_reasons(source, peer)
                 if reasons:
                     rejected_peer_reasons[peer_id] = reasons
-                else:
-                    concordant_peer_ids.append(peer_id)
+                    continue
+
+                concordant_peer_ids.append(peer_id)
+                peer_sha = _norm(peer.get("physical_sha256"))
+                exact_jobs = jobs_by_sha.get(peer_sha, []) if peer_sha else []
+                if exact_jobs:
+                    exact_job_peer_ids.append(peer_id)
+                    if any(_norm(job.get("status")) == "completed" for job in exact_jobs):
+                        completed_job_peer_ids.append(peer_id)
 
             if concordant_peer_ids:
                 with_concordant_text_peer_ids.append(source_id)
                 concordant_text_peer_map[source_id] = sorted(concordant_peer_ids)
             else:
                 with_only_incompatible_text_peer_ids.append(source_id)
+
+            if exact_job_peer_ids:
+                with_concordant_text_peer_exact_job_ids.append(source_id)
+                exact_job_peer_map[source_id] = sorted(exact_job_peer_ids)
+            if completed_job_peer_ids:
+                with_concordant_text_peer_completed_job_ids.append(source_id)
+                completed_job_peer_map[source_id] = sorted(completed_job_peer_ids)
 
             if rejected_peer_reasons:
                 incompatible_text_peer_reasons[source_id] = dict(
@@ -156,6 +190,12 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
         "residual_sources_with_only_incompatible_text_peer": len(
             with_only_incompatible_text_peer_ids
         ),
+        "residual_sources_with_concordant_text_peer_exact_import_job": len(
+            with_concordant_text_peer_exact_job_ids
+        ),
+        "residual_sources_with_concordant_text_peer_completed_import_job": len(
+            with_concordant_text_peer_completed_job_ids
+        ),
         "residual_sources_with_imported_logical_peer": len(with_imported_peer_ids),
         "residual_sources_without_same_logical_source_peer": len(without_peer_ids),
         "source_ids_with_same_logical_source_peer": sorted(with_any_peer_ids),
@@ -166,17 +206,31 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
         "source_ids_with_only_incompatible_text_peer": sorted(
             with_only_incompatible_text_peer_ids
         ),
+        "source_ids_with_concordant_text_peer_exact_import_job": sorted(
+            with_concordant_text_peer_exact_job_ids
+        ),
+        "source_ids_with_concordant_text_peer_completed_import_job": sorted(
+            with_concordant_text_peer_completed_job_ids
+        ),
         "source_ids_with_imported_logical_peer": sorted(with_imported_peer_ids),
         "source_ids_without_same_logical_source_peer": sorted(without_peer_ids),
         "text_mode_logical_peer_ids_by_source": dict(sorted(text_peer_map.items())),
         "structurally_concordant_text_peer_ids_by_source": dict(
             sorted(concordant_text_peer_map.items())
         ),
+        "concordant_text_peer_ids_with_exact_import_job_by_source": dict(
+            sorted(exact_job_peer_map.items())
+        ),
+        "concordant_text_peer_ids_with_completed_import_job_by_source": dict(
+            sorted(completed_job_peer_map.items())
+        ),
         "incompatible_text_peer_reasons_by_source": dict(
             sorted(incompatible_text_peer_reasons.items())
         ),
         "logical_source_match_is_diagnostic_only": True,
         "structural_concordance_is_review_candidate_only": True,
+        "exact_sha_import_job_evidence_is_diagnostic_only": True,
+        "filename_only_import_job_evidence_is_not_accepted": True,
         "text_mode_peer_does_not_prove_interchangeable_content": True,
         "text_mode_peer_requires_provenance_review": True,
         "ocr_authorized": False,
@@ -193,8 +247,15 @@ async def _run() -> int:
 
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
-    sources = await fetch_all(db.private_reference_sources)
-    print(json.dumps(summarize_zero_import_logical_source_peers(sources), sort_keys=True))
+    sources, jobs = await asyncio.gather(
+        fetch_all(db.private_reference_sources),
+        fetch_all(db.private_manual_import_jobs),
+    )
+    print(
+        json.dumps(
+            summarize_zero_import_logical_source_peers(sources, jobs), sort_keys=True
+        )
+    )
     return 0
 
 
