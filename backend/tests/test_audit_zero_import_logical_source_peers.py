@@ -44,6 +44,15 @@ def _source(
     }
 
 
+def _job(job_id, sha, *, status="completed", filename="book.pdf"):
+    return {
+        "id": job_id,
+        "source_fingerprint": sha,
+        "status": status,
+        "filename": filename,
+    }
+
+
 def test_text_mode_logical_peer_is_structurally_gated_and_never_authorizes_import():
     blocked = _source(
         "vision",
@@ -72,16 +81,51 @@ def test_text_mode_logical_peer_is_structurally_gated_and_never_authorizes_impor
     assert result["residual_sources_with_text_mode_logical_peer"] == 1
     assert result["residual_sources_with_structurally_concordant_text_peer"] == 1
     assert result["residual_sources_with_only_incompatible_text_peer"] == 0
+    assert result["residual_sources_with_concordant_text_peer_exact_import_job"] == 0
     assert result["source_ids_with_text_mode_logical_peer"] == ["vision"]
     assert result["structurally_concordant_text_peer_ids_by_source"] == {
         "vision": ["text"]
     }
     assert result["incompatible_text_peer_reasons_by_source"] == {}
     assert result["structural_concordance_is_review_candidate_only"] is True
+    assert result["exact_sha_import_job_evidence_is_diagnostic_only"] is True
     assert result["text_mode_peer_requires_provenance_review"] is True
     assert result["automatic_import_authorized"] is False
     assert result["ocr_authorized"] is False
     assert result["canonicalization_authorized"] is False
+
+
+def test_exact_sha_job_evidence_is_reported_but_does_not_authorize_import():
+    blocked = _source("vision", "sha-vision", "ggtr", pages=258, end=258)
+    text_peer = _source(
+        "text",
+        "sha-text",
+        "ggtr",
+        text_mode="text",
+        pages=258,
+        end=258,
+    )
+    unrelated_filename_only = _job(
+        "filename-only", "other-sha", filename="text.pdf", status="completed"
+    )
+    exact_completed = _job("exact", "sha-text", status="completed")
+
+    result = summarize_zero_import_logical_source_peers(
+        [blocked, text_peer], [unrelated_filename_only, exact_completed]
+    )
+
+    assert result["residual_sources_with_concordant_text_peer_exact_import_job"] == 1
+    assert result["residual_sources_with_concordant_text_peer_completed_import_job"] == 1
+    assert result["source_ids_with_concordant_text_peer_exact_import_job"] == ["vision"]
+    assert result["concordant_text_peer_ids_with_exact_import_job_by_source"] == {
+        "vision": ["text"]
+    }
+    assert result["concordant_text_peer_ids_with_completed_import_job_by_source"] == {
+        "vision": ["text"]
+    }
+    assert result["filename_only_import_job_evidence_is_not_accepted"] is True
+    assert result["automatic_import_authorized"] is False
+    assert result["database_write_authorized"] is False
 
 
 def test_language_page_and_authority_mismatch_blocks_text_peer_concordance():
