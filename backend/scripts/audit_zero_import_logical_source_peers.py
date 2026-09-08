@@ -6,6 +6,11 @@ triage. A matching ``logical_source_id`` is diagnostic provenance evidence, not
 proof that two physical copies are interchangeable. In particular, a text-mode
 peer can identify a potentially cheaper review path, but it never authorizes an
 import, OCR, external processing, review-state mutation, or canonicalization.
+
+Text-mode peers are additionally checked for conservative structural concordance.
+The check deliberately requires matching title, language, ruleset, authority
+class, and full page geometry, and rejects extraction-aid peers. Passing this
+check only makes the pair a provenance-review candidate; it is not import proof.
 """
 
 from __future__ import annotations
@@ -38,6 +43,32 @@ def _is_text_peer_candidate(peer: dict) -> bool:
     )
 
 
+def _text_peer_mismatch_reasons(source: dict, peer: dict) -> list[str]:
+    """Return conservative reasons why a text peer is not structurally concordant."""
+    reasons: list[str] = []
+
+    for field in ("title", "language", "ruleset", "authority_class"):
+        source_value = _norm(source.get(field))
+        peer_value = _norm(peer.get(field))
+        if not source_value or not peer_value:
+            reasons.append(f"{field}_missing")
+        elif source_value != peer_value:
+            reasons.append(f"{field}_mismatch")
+
+    for field in ("page_start", "page_end", "physical_pages"):
+        source_value = _int_or_none(source.get(field))
+        peer_value = _int_or_none(peer.get(field))
+        if source_value is None or peer_value is None:
+            reasons.append(f"{field}_missing")
+        elif source_value != peer_value:
+            reasons.append(f"{field}_mismatch")
+
+    if _norm(peer.get("source_role")) == "extraction_aid":
+        reasons.append("peer_source_role_is_extraction_aid")
+
+    return reasons
+
+
 def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str, Any]:
     sha_summary = summarize_zero_import_registry_sha_peers(sources)
     unresolved_ids = set(
@@ -55,9 +86,13 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
 
     with_any_peer_ids: list[str] = []
     with_text_peer_ids: list[str] = []
+    with_concordant_text_peer_ids: list[str] = []
+    with_only_incompatible_text_peer_ids: list[str] = []
     with_imported_peer_ids: list[str] = []
     without_peer_ids: list[str] = []
     text_peer_map: dict[str, list[str]] = {}
+    concordant_text_peer_map: dict[str, list[str]] = {}
+    incompatible_text_peer_reasons: dict[str, dict[str, list[str]]] = {}
 
     for source in unresolved:
         source_id = str(source.get("id") or "").strip()
@@ -80,6 +115,27 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
                 str(peer.get("id") or "").strip() for peer in text_peers
             )
 
+            concordant_peer_ids: list[str] = []
+            rejected_peer_reasons: dict[str, list[str]] = {}
+            for peer in text_peers:
+                peer_id = str(peer.get("id") or "").strip()
+                reasons = _text_peer_mismatch_reasons(source, peer)
+                if reasons:
+                    rejected_peer_reasons[peer_id] = reasons
+                else:
+                    concordant_peer_ids.append(peer_id)
+
+            if concordant_peer_ids:
+                with_concordant_text_peer_ids.append(source_id)
+                concordant_text_peer_map[source_id] = sorted(concordant_peer_ids)
+            else:
+                with_only_incompatible_text_peer_ids.append(source_id)
+
+            if rejected_peer_reasons:
+                incompatible_text_peer_reasons[source_id] = dict(
+                    sorted(rejected_peer_reasons.items())
+                )
+
         if any(_int_or_none(peer.get("imported_record_count")) not in (None, 0) for peer in peers):
             with_imported_peer_ids.append(source_id)
 
@@ -94,14 +150,33 @@ def summarize_zero_import_logical_source_peers(sources: list[dict]) -> dict[str,
         "residual_sources_entering_logical_peer_triage": len(unresolved),
         "residual_sources_with_same_logical_source_peer": len(with_any_peer_ids),
         "residual_sources_with_text_mode_logical_peer": len(with_text_peer_ids),
+        "residual_sources_with_structurally_concordant_text_peer": len(
+            with_concordant_text_peer_ids
+        ),
+        "residual_sources_with_only_incompatible_text_peer": len(
+            with_only_incompatible_text_peer_ids
+        ),
         "residual_sources_with_imported_logical_peer": len(with_imported_peer_ids),
         "residual_sources_without_same_logical_source_peer": len(without_peer_ids),
         "source_ids_with_same_logical_source_peer": sorted(with_any_peer_ids),
         "source_ids_with_text_mode_logical_peer": sorted(with_text_peer_ids),
+        "source_ids_with_structurally_concordant_text_peer": sorted(
+            with_concordant_text_peer_ids
+        ),
+        "source_ids_with_only_incompatible_text_peer": sorted(
+            with_only_incompatible_text_peer_ids
+        ),
         "source_ids_with_imported_logical_peer": sorted(with_imported_peer_ids),
         "source_ids_without_same_logical_source_peer": sorted(without_peer_ids),
         "text_mode_logical_peer_ids_by_source": dict(sorted(text_peer_map.items())),
+        "structurally_concordant_text_peer_ids_by_source": dict(
+            sorted(concordant_text_peer_map.items())
+        ),
+        "incompatible_text_peer_reasons_by_source": dict(
+            sorted(incompatible_text_peer_reasons.items())
+        ),
         "logical_source_match_is_diagnostic_only": True,
+        "structural_concordance_is_review_candidate_only": True,
         "text_mode_peer_does_not_prove_interchangeable_content": True,
         "text_mode_peer_requires_provenance_review": True,
         "ocr_authorized": False,
