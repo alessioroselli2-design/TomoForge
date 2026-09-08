@@ -2,12 +2,14 @@
 """Read-only repository-artifact audit for concordant text peers.
 
 The audit scans committed structured JSON artifacts only. Exact physical SHA
-matches are reported as provenance-review evidence; filename/title matches are
-reported separately as weak hints and never promoted to import proof. Nominal
-hints that point at more than one concordant pair are explicitly marked
-ambiguous so they cannot be mistaken for unique provenance evidence. Every
-concordant pair is also assigned to exactly one evidence bucket: exact SHA,
-unique nominal hint, ambiguous nominal hint, or no repository evidence.
+matches are reported as provenance-review evidence; SHA matches that co-occur
+with the peer logical source ID in the same artifact are reported separately as
+identity-bound evidence. Filename/title matches are weak hints and never
+promoted to import proof. Nominal hints that point at more than one concordant
+pair are explicitly marked ambiguous so they cannot be mistaken for unique
+provenance evidence. Every concordant pair is also assigned to exactly one
+evidence bucket: exact SHA, unique nominal hint, ambiguous nominal hint, or no
+repository evidence.
 
 No OCR, external processing, database write, review-state mutation, import, or
 canonicalization is authorized by this audit.
@@ -102,6 +104,7 @@ def summarize_concordant_text_peer_repo_artifacts(
     source_by_id = {str(source.get("id") or "").strip(): source for source in sources}
 
     exact_sha_paths: dict[str, list[str]] = {}
+    identity_bound_sha_paths: dict[str, list[str]] = {}
     filename_paths: dict[str, list[str]] = {}
     title_paths: dict[str, list[str]] = {}
     all_pair_keys: set[str] = set()
@@ -110,6 +113,7 @@ def summarize_concordant_text_peer_repo_artifacts(
         for peer_id in peer_ids:
             peer = source_by_id.get(peer_id, {})
             peer_sha = str(peer.get("physical_sha256") or "").strip()
+            peer_logical_source_id = str(peer.get("logical_source_id") or "").strip()
             peer_filename = str(peer.get("physical_filename") or "").strip()
             peer_title = str(peer.get("title") or "").strip()
             key = f"{blocked_id}->{peer_id}"
@@ -117,6 +121,14 @@ def summarize_concordant_text_peer_repo_artifacts(
 
             sha_hits = sorted(
                 path for path, strings in artifact_strings.items() if peer_sha and peer_sha in strings
+            )
+            identity_bound_hits = sorted(
+                path
+                for path, strings in artifact_strings.items()
+                if peer_sha
+                and peer_logical_source_id
+                and peer_sha in strings
+                and peer_logical_source_id in strings
             )
             filename_hits = sorted(
                 path
@@ -129,12 +141,15 @@ def summarize_concordant_text_peer_repo_artifacts(
 
             if sha_hits:
                 exact_sha_paths[key] = sha_hits
+            if identity_bound_hits:
+                identity_bound_sha_paths[key] = identity_bound_hits
             if filename_hits:
                 filename_paths[key] = filename_hits
             if title_hits:
                 title_paths[key] = title_hits
 
     exact_sha_pairs = set(exact_sha_paths)
+    identity_bound_sha_pairs = set(identity_bound_sha_paths)
     nominal_hint_pairs = (set(filename_paths) | set(title_paths)) - exact_sha_pairs
     ambiguous_nominal_paths, ambiguous_nominal_pairs = _ambiguous_hint_paths(
         filename_paths,
@@ -155,6 +170,8 @@ def summarize_concordant_text_peer_repo_artifacts(
     return {
         "concordant_text_peer_pairs": len(all_pair_keys),
         "pairs_with_exact_sha_structured_artifact": len(exact_sha_pairs),
+        "pairs_with_identity_bound_exact_sha_artifact": len(identity_bound_sha_pairs),
+        "pairs_with_exact_sha_but_no_identity_binding": len(exact_sha_pairs - identity_bound_sha_pairs),
         "pairs_with_filename_only_or_additional_hint": len(filename_paths),
         "pairs_with_title_only_or_additional_hint": len(title_paths),
         "pairs_with_nominal_hint_but_no_exact_sha": len(nominal_hint_pairs),
@@ -162,16 +179,21 @@ def summarize_concordant_text_peer_repo_artifacts(
         "pairs_with_ambiguous_nominal_hint": len(ambiguous_nominal_pairs),
         "pairs_with_no_repository_artifact_evidence": len(no_artifact_evidence_pairs),
         "exact_sha_pair_ids": sorted(exact_sha_pairs),
+        "identity_bound_exact_sha_pair_ids": sorted(identity_bound_sha_pairs),
+        "exact_sha_without_identity_binding_pair_ids": sorted(exact_sha_pairs - identity_bound_sha_pairs),
         "unique_nominal_hint_pair_ids": sorted(unique_nominal_pairs),
         "ambiguous_nominal_hint_pair_ids": sorted(ambiguous_nominal_pairs),
         "no_repository_artifact_evidence_pair_ids": sorted(no_artifact_evidence_pairs),
         "evidence_buckets_are_exhaustive": evidence_buckets_are_exhaustive,
         "exact_sha_artifact_paths_by_pair": dict(sorted(exact_sha_paths.items())),
+        "identity_bound_exact_sha_artifact_paths_by_pair": dict(sorted(identity_bound_sha_paths.items())),
         "filename_artifact_paths_by_pair": dict(sorted(filename_paths.items())),
         "title_artifact_paths_by_pair": dict(sorted(title_paths.items())),
         "ambiguous_nominal_artifact_paths": ambiguous_nominal_paths,
         "structured_artifact_files_scanned": len(artifact_strings),
         "exact_sha_artifact_evidence_is_review_candidate_only": True,
+        "identity_bound_sha_evidence_is_review_candidate_only": True,
+        "exact_sha_without_identity_binding_requires_manual_provenance_review": True,
         "filename_or_title_evidence_is_not_import_proof": True,
         "ambiguous_nominal_evidence_requires_manual_provenance_review": True,
         "unique_nominal_evidence_requires_manual_provenance_review": True,
