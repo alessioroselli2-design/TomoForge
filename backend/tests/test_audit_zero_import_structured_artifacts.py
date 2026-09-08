@@ -40,6 +40,7 @@ def test_structured_artifact_audit_is_conservative():
     assert result["zero_import_sources_with_filename_and_page_count_artifact_evidence"] == 1
     assert result["zero_import_sources_with_filename_only_artifact_evidence"] == 1
     assert result["zero_import_sources_with_ambiguous_artifact_evidence"] == 1
+    assert result["zero_import_sources_with_ambiguous_source_identity"] == 0
     assert result["zero_import_sources_without_structured_artifact_evidence"] == 1
     assert result["zero_import_sources_with_historical_extracted_text"] == 1
     assert result["zero_import_sources_with_historical_zero_text"] == 1
@@ -48,6 +49,7 @@ def test_structured_artifact_audit_is_conservative():
     assert result["source_ids_with_filename_and_page_count_artifact_evidence"] == ["exact"]
     assert result["source_ids_with_filename_only_artifact_evidence"] == ["name-only"]
     assert result["source_ids_with_ambiguous_artifact_evidence"] == ["ambiguous"]
+    assert result["source_ids_with_ambiguous_source_identity"] == []
     assert result["source_ids_without_structured_artifact_evidence"] == ["absent"]
     assert result["source_ids_with_exact_historical_text_review_evidence"] == ["exact"]
     assert result["source_ids_with_inconclusive_structured_artifact_evidence"] == [
@@ -57,6 +59,7 @@ def test_structured_artifact_audit_is_conservative():
     assert result["historical_artifact_evidence_is_diagnostic_only"] is True
     assert result["historical_extracted_text_requires_manual_review"] is True
     assert result["historical_extracted_text_does_not_authorize_import"] is True
+    assert result["source_filename_identity_is_not_unique_provenance"] is True
     assert result["ocr_authorized"] is False
     assert result["external_processing_authorized"] is False
     assert result["automatic_import_authorized"] is False
@@ -64,3 +67,22 @@ def test_structured_artifact_audit_is_conservative():
     assert result["database_write_authorized"] is False
     assert result["review_state_mutation_authorized"] is False
     assert result["canonicalization_authorized"] is False
+
+
+def test_duplicate_live_source_filename_never_becomes_strong_review_evidence():
+    sources = [
+        _source("dup-a", "Same-Book.pdf", 75),
+        _source("dup-b", "Same-Book.pdf", 75),
+    ]
+    analyses = [
+        {"filename": "Same-Book.pdf", "pages": 75, "total_characters": 9000},
+    ]
+
+    result = summarize_zero_import_structured_artifacts(sources, analyses)
+
+    assert result["zero_import_vision_sources_total"] == 2
+    assert result["zero_import_sources_with_ambiguous_source_identity"] == 2
+    assert result["source_ids_with_ambiguous_source_identity"] == ["dup-a", "dup-b"]
+    assert result["zero_import_sources_with_exact_historical_text_review_evidence"] == 0
+    assert result["source_ids_with_exact_historical_text_review_evidence"] == []
+    assert result["historical_evidence_triage_partition_complete"] is True

@@ -40,6 +40,16 @@ def _load_json_list(path: Path) -> list[dict]:
     return [item for item in payload if isinstance(item, dict)]
 
 
+def _is_blocked_zero_import_source(source: dict) -> bool:
+    return (
+        str(source.get("source_status") or "") == "active"
+        and str(source.get("import_state") or "") == "catalogued"
+        and str(source.get("text_mode") or "") in {"vision_required", "mixed"}
+        and source.get("imported_record_count") in (None, 0)
+        and bool(str(source.get("id") or "").strip())
+    )
+
+
 def summarize_zero_import_structured_artifacts(
     sources: list[dict], analyses: list[dict]
 ) -> dict[str, Any]:
@@ -49,29 +59,27 @@ def summarize_zero_import_structured_artifacts(
         if key:
             analyses_by_key.setdefault(key, []).append(analysis)
 
+    blocked_sources = [source for source in sources if _is_blocked_zero_import_source(source)]
+    source_ids_by_key: dict[str, list[str]] = {}
+    for source in blocked_sources:
+        source_id = str(source.get("id") or "").strip()
+        key = _artifact_key(source.get("physical_filename"))
+        if key:
+            source_ids_by_key.setdefault(key, []).append(source_id)
+
     blocked_ids: list[str] = []
     exact_ids: list[str] = []
     filename_only_ids: list[str] = []
     ambiguous_ids: list[str] = []
+    source_identity_ambiguous_ids: list[str] = []
     no_artifact_ids: list[str] = []
     text_present_ids: list[str] = []
     zero_text_ids: list[str] = []
     exact_text_review_ids: list[str] = []
     inconclusive_artifact_ids: list[str] = []
 
-    for source in sources:
-        if str(source.get("source_status") or "") != "active":
-            continue
-        if str(source.get("import_state") or "") != "catalogued":
-            continue
-        if str(source.get("text_mode") or "") not in {"vision_required", "mixed"}:
-            continue
-        if source.get("imported_record_count") not in (None, 0):
-            continue
-
+    for source in blocked_sources:
         source_id = str(source.get("id") or "").strip()
-        if not source_id:
-            continue
         blocked_ids.append(source_id)
 
         key = _artifact_key(source.get("physical_filename"))
@@ -81,6 +89,14 @@ def summarize_zero_import_structured_artifacts(
             continue
         if not matches:
             no_artifact_ids.append(source_id)
+            continue
+
+        # A single historical artifact is still not unique provenance if more
+        # than one live blocked source normalizes to the same physical filename.
+        # Keep those cases out of the strong review bucket until the source
+        # identity can be reconciled using stronger evidence than a filename.
+        if key and len(source_ids_by_key.get(key, [])) > 1:
+            source_identity_ambiguous_ids.append(source_id)
             continue
 
         analysis = matches[0]
@@ -101,8 +117,9 @@ def summarize_zero_import_structured_artifacts(
             zero_text_ids.append(source_id)
 
         # Only the strongest checked-in evidence reaches this review bucket:
-        # one filename match, matching non-zero page counts, and extracted text.
-        # It is still diagnostic only and never authorizes an import.
+        # one source filename identity, one artifact filename match, matching
+        # non-zero page counts, and extracted text. It is still diagnostic only
+        # and never authorizes an import.
         if page_count_matches and total_characters > 0:
             exact_text_review_ids.append(source_id)
         else:
@@ -112,6 +129,7 @@ def summarize_zero_import_structured_artifacts(
         len(exact_text_review_ids)
         + len(inconclusive_artifact_ids)
         + len(ambiguous_ids)
+        + len(source_identity_ambiguous_ids)
         + len(no_artifact_ids)
     )
 
@@ -120,6 +138,9 @@ def summarize_zero_import_structured_artifacts(
         "zero_import_sources_with_filename_and_page_count_artifact_evidence": len(exact_ids),
         "zero_import_sources_with_filename_only_artifact_evidence": len(filename_only_ids),
         "zero_import_sources_with_ambiguous_artifact_evidence": len(ambiguous_ids),
+        "zero_import_sources_with_ambiguous_source_identity": len(
+            source_identity_ambiguous_ids
+        ),
         "zero_import_sources_without_structured_artifact_evidence": len(no_artifact_ids),
         "zero_import_sources_with_historical_extracted_text": len(text_present_ids),
         "zero_import_sources_with_historical_zero_text": len(zero_text_ids),
@@ -132,6 +153,7 @@ def summarize_zero_import_structured_artifacts(
         "source_ids_with_filename_and_page_count_artifact_evidence": sorted(exact_ids),
         "source_ids_with_filename_only_artifact_evidence": sorted(filename_only_ids),
         "source_ids_with_ambiguous_artifact_evidence": sorted(ambiguous_ids),
+        "source_ids_with_ambiguous_source_identity": sorted(source_identity_ambiguous_ids),
         "source_ids_without_structured_artifact_evidence": sorted(no_artifact_ids),
         "source_ids_with_historical_extracted_text": sorted(text_present_ids),
         "source_ids_with_historical_zero_text": sorted(zero_text_ids),
@@ -146,6 +168,7 @@ def summarize_zero_import_structured_artifacts(
         "historical_artifact_evidence_is_diagnostic_only": True,
         "historical_extracted_text_requires_manual_review": True,
         "historical_extracted_text_does_not_authorize_import": True,
+        "source_filename_identity_is_not_unique_provenance": True,
         "ocr_authorized": False,
         "external_processing_authorized": False,
         "automatic_import_authorized": False,
