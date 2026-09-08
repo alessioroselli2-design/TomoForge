@@ -13,6 +13,8 @@ def _source(
     text_mode="vision_required",
     filename=None,
     source_role="visual_aid",
+    logical_source_id="ggtr_2018_en",
+    title="Guildmasters’ Guide to Ravnica",
 ):
     return {
         "id": source_id,
@@ -20,8 +22,8 @@ def _source(
         "physical_sha256": sha,
         "physical_size_bytes": 1000,
         "physical_pages": 258,
-        "logical_source_id": "ggtr_2018_en",
-        "title": "Guildmasters’ Guide to Ravnica",
+        "logical_source_id": logical_source_id,
+        "title": title,
         "language": "en",
         "ruleset": "2014",
         "authority_class": "official_supplement",
@@ -55,6 +57,8 @@ def test_exact_sha_artifact_is_reported_but_never_authorizes_import(tmp_path: Pa
 
     assert result["concordant_text_peer_pairs"] == 1
     assert result["pairs_with_exact_sha_structured_artifact"] == 1
+    assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 0
+    assert result["pairs_with_ambiguous_nominal_hint"] == 0
     assert result["exact_sha_artifact_paths_by_pair"] == {
         "vision->text": [str(artifact)]
     }
@@ -86,8 +90,90 @@ def test_filename_and_title_hints_do_not_count_as_exact_sha_evidence(tmp_path: P
     assert result["pairs_with_exact_sha_structured_artifact"] == 0
     assert result["pairs_with_filename_only_or_additional_hint"] == 1
     assert result["pairs_with_title_only_or_additional_hint"] == 1
+    assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 1
+    assert result["pairs_with_ambiguous_nominal_hint"] == 0
     assert result["filename_or_title_evidence_is_not_import_proof"] is True
     assert result["automatic_import_authorized"] is False
+
+
+def test_shared_nominal_artifact_hint_is_marked_ambiguous(tmp_path: Path):
+    sources = [
+        _source("vision-a", "sha-vision-a", logical_source_id="source_a"),
+        _source(
+            "text-a",
+            "sha-text-a",
+            text_mode="text",
+            filename="shared-name.pdf",
+            source_role="authority",
+            logical_source_id="source_a",
+        ),
+        _source("vision-b", "sha-vision-b", logical_source_id="source_b"),
+        _source(
+            "text-b",
+            "sha-text-b",
+            text_mode="text",
+            filename="shared-name.pdf",
+            source_role="authority",
+            logical_source_id="source_b",
+        ),
+    ]
+    artifact = tmp_path / "artifact.json"
+    artifact.write_text('{"filename":"shared-name.pdf"}', encoding="utf-8")
+
+    result = summarize_concordant_text_peer_repo_artifacts(
+        sources,
+        [],
+        load_structured_artifact_strings(tmp_path),
+    )
+
+    assert result["concordant_text_peer_pairs"] == 2
+    assert result["pairs_with_exact_sha_structured_artifact"] == 0
+    assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 2
+    assert result["pairs_with_ambiguous_nominal_hint"] == 2
+    assert result["ambiguous_nominal_artifact_paths"] == {
+        str(artifact): ["vision-a->text-a", "vision-b->text-b"]
+    }
+    assert result["ambiguous_nominal_evidence_requires_manual_provenance_review"] is True
+    assert result["automatic_import_authorized"] is False
+
+
+def test_exact_sha_pair_is_excluded_from_nominal_ambiguity(tmp_path: Path):
+    sources = [
+        _source("vision-a", "sha-vision-a", logical_source_id="source_a"),
+        _source(
+            "text-a",
+            "sha-text-a",
+            text_mode="text",
+            filename="shared-name.pdf",
+            source_role="authority",
+            logical_source_id="source_a",
+        ),
+        _source("vision-b", "sha-vision-b", logical_source_id="source_b"),
+        _source(
+            "text-b",
+            "sha-text-b",
+            text_mode="text",
+            filename="shared-name.pdf",
+            source_role="authority",
+            logical_source_id="source_b",
+        ),
+    ]
+    artifact = tmp_path / "artifact.json"
+    artifact.write_text(
+        '{"filename":"shared-name.pdf","source_sha256":"sha-text-a"}',
+        encoding="utf-8",
+    )
+
+    result = summarize_concordant_text_peer_repo_artifacts(
+        sources,
+        [],
+        load_structured_artifact_strings(tmp_path),
+    )
+
+    assert result["pairs_with_exact_sha_structured_artifact"] == 1
+    assert result["pairs_with_nominal_hint_but_no_exact_sha"] == 1
+    assert result["pairs_with_ambiguous_nominal_hint"] == 0
+    assert result["ambiguous_nominal_artifact_paths"] == {}
 
 
 def test_invalid_json_is_ignored_without_promoting_evidence(tmp_path: Path):

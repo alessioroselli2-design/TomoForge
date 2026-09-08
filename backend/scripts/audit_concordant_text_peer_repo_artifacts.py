@@ -3,7 +3,9 @@
 
 The audit scans committed structured JSON artifacts only. Exact physical SHA
 matches are reported as provenance-review evidence; filename/title matches are
-reported separately as weak hints and never promoted to import proof.
+reported separately as weak hints and never promoted to import proof. Nominal
+hints that point at more than one concordant pair are explicitly marked
+ambiguous so they cannot be mistaken for unique provenance evidence.
 
 No OCR, external processing, database write, review-state mutation, import, or
 canonicalization is authorized by this audit.
@@ -14,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -52,6 +55,39 @@ def load_structured_artifact_strings(root: Path) -> dict[str, set[str]]:
             continue
         result[str(path)] = {text for text in _iter_scalar_strings(payload) if text}
     return result
+
+
+def _ambiguous_hint_paths(
+    filename_paths: dict[str, list[str]],
+    title_paths: dict[str, list[str]],
+    exact_sha_paths: dict[str, list[str]],
+) -> tuple[dict[str, list[str]], set[str]]:
+    """Return nominal artifact paths shared by multiple SHA-unproven pairs.
+
+    A pair with any exact-SHA artifact evidence is deliberately excluded from
+    this ambiguity classification: its nominal hits may still be useful for
+    review, but they are not the only repository evidence available for that
+    pair.
+    """
+    path_to_pairs: dict[str, set[str]] = defaultdict(set)
+    for pair_key, paths in filename_paths.items():
+        if pair_key in exact_sha_paths:
+            continue
+        for path in paths:
+            path_to_pairs[path].add(pair_key)
+    for pair_key, paths in title_paths.items():
+        if pair_key in exact_sha_paths:
+            continue
+        for path in paths:
+            path_to_pairs[path].add(pair_key)
+
+    ambiguous = {
+        path: sorted(pair_keys)
+        for path, pair_keys in sorted(path_to_pairs.items())
+        if len(pair_keys) > 1
+    }
+    ambiguous_pairs = {pair_key for pair_keys in ambiguous.values() for pair_key in pair_keys}
+    return ambiguous, ambiguous_pairs
 
 
 def summarize_concordant_text_peer_repo_artifacts(
@@ -94,17 +130,28 @@ def summarize_concordant_text_peer_repo_artifacts(
             if title_hits:
                 title_paths[key] = title_hits
 
+    nominal_hint_pairs = (set(filename_paths) | set(title_paths)) - set(exact_sha_paths)
+    ambiguous_nominal_paths, ambiguous_nominal_pairs = _ambiguous_hint_paths(
+        filename_paths,
+        title_paths,
+        exact_sha_paths,
+    )
+
     return {
         "concordant_text_peer_pairs": sum(len(v) for v in concordant_map.values()),
         "pairs_with_exact_sha_structured_artifact": len(exact_sha_paths),
         "pairs_with_filename_only_or_additional_hint": len(filename_paths),
         "pairs_with_title_only_or_additional_hint": len(title_paths),
+        "pairs_with_nominal_hint_but_no_exact_sha": len(nominal_hint_pairs),
+        "pairs_with_ambiguous_nominal_hint": len(ambiguous_nominal_pairs),
         "exact_sha_artifact_paths_by_pair": dict(sorted(exact_sha_paths.items())),
         "filename_artifact_paths_by_pair": dict(sorted(filename_paths.items())),
         "title_artifact_paths_by_pair": dict(sorted(title_paths.items())),
+        "ambiguous_nominal_artifact_paths": ambiguous_nominal_paths,
         "structured_artifact_files_scanned": len(artifact_strings),
         "exact_sha_artifact_evidence_is_review_candidate_only": True,
         "filename_or_title_evidence_is_not_import_proof": True,
+        "ambiguous_nominal_evidence_requires_manual_provenance_review": True,
         "ocr_authorized": False,
         "external_processing_authorized": False,
         "automatic_import_authorized": False,
