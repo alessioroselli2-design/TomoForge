@@ -53,6 +53,7 @@ def _valid_slice(source: dict) -> tuple[int, int] | None:
 
 def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, Any]:
     blocked = [source for source in sources if _blocked_zero_import_source(source)]
+    blocked_source_ids = sorted(str(source.get("id")) for source in blocked)
     by_filename: dict[str, list[dict]] = defaultdict(list)
     for source in blocked:
         filename, _ = _physical_key(source)
@@ -102,17 +103,32 @@ def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, An
             unresolved_group_count += 1
             unresolved_source_ids.extend(ids)
 
+    repeated_id_set = set(repeated_source_ids)
+    shared_slice_id_set = set(shared_slice_source_ids)
+    unique_filename_source_ids = sorted(
+        source_id for source_id in blocked_source_ids if source_id not in repeated_id_set
+    )
+    physical_layout_unexplained_source_ids = sorted(
+        source_id for source_id in blocked_source_ids if source_id not in shared_slice_id_set
+    )
+
     return {
         "zero_import_vision_sources_total": len(blocked),
         "repeated_physical_filename_group_count": len(repeated_filename_groups),
         "repeated_physical_filename_source_count": len(repeated_source_ids),
         "shared_physical_artifact_disjoint_slice_group_count": shared_slice_group_count,
         "shared_physical_artifact_disjoint_slice_source_count": len(shared_slice_source_ids),
+        "unique_physical_filename_source_count": len(unique_filename_source_ids),
+        "physical_layout_explained_by_shared_slices_source_count": len(shared_slice_source_ids),
+        "physical_layout_unexplained_source_count": len(physical_layout_unexplained_source_ids),
         "unresolved_repeated_physical_identity_group_count": unresolved_group_count,
         "unresolved_repeated_physical_identity_source_count": len(unresolved_source_ids),
         "source_ids_with_repeated_physical_filename": repeated_source_ids,
         "source_ids_in_shared_physical_artifact_disjoint_slices": sorted(shared_slice_source_ids),
+        "source_ids_with_unique_physical_filename": unique_filename_source_ids,
+        "source_ids_with_unexplained_physical_layout": physical_layout_unexplained_source_ids,
         "source_ids_with_unresolved_repeated_physical_identity": sorted(unresolved_source_ids),
+        "physical_layout_explanation_is_not_provenance_resolution": True,
         "shared_physical_slices_are_diagnostic_only": True,
         "shared_physical_slices_do_not_authorize_import": True,
         "shared_physical_slices_do_not_resolve_logical_provenance": True,
