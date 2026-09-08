@@ -56,6 +56,8 @@ def summarize_zero_import_structured_artifacts(
     no_artifact_ids: list[str] = []
     text_present_ids: list[str] = []
     zero_text_ids: list[str] = []
+    exact_text_review_ids: list[str] = []
+    inconclusive_artifact_ids: list[str] = []
 
     for source in sources:
         if str(source.get("source_status") or "") != "active":
@@ -84,7 +86,10 @@ def summarize_zero_import_structured_artifacts(
         analysis = matches[0]
         source_pages = int(source.get("physical_pages") or 0)
         artifact_pages = int(analysis.get("pages") or 0)
-        if source_pages > 0 and artifact_pages > 0 and source_pages == artifact_pages:
+        page_count_matches = (
+            source_pages > 0 and artifact_pages > 0 and source_pages == artifact_pages
+        )
+        if page_count_matches:
             exact_ids.append(source_id)
         else:
             filename_only_ids.append(source_id)
@@ -95,6 +100,21 @@ def summarize_zero_import_structured_artifacts(
         else:
             zero_text_ids.append(source_id)
 
+        # Only the strongest checked-in evidence reaches this review bucket:
+        # one filename match, matching non-zero page counts, and extracted text.
+        # It is still diagnostic only and never authorizes an import.
+        if page_count_matches and total_characters > 0:
+            exact_text_review_ids.append(source_id)
+        else:
+            inconclusive_artifact_ids.append(source_id)
+
+    partition_total = (
+        len(exact_text_review_ids)
+        + len(inconclusive_artifact_ids)
+        + len(ambiguous_ids)
+        + len(no_artifact_ids)
+    )
+
     return {
         "zero_import_vision_sources_total": len(blocked_ids),
         "zero_import_sources_with_filename_and_page_count_artifact_evidence": len(exact_ids),
@@ -103,13 +123,28 @@ def summarize_zero_import_structured_artifacts(
         "zero_import_sources_without_structured_artifact_evidence": len(no_artifact_ids),
         "zero_import_sources_with_historical_extracted_text": len(text_present_ids),
         "zero_import_sources_with_historical_zero_text": len(zero_text_ids),
+        "zero_import_sources_with_exact_historical_text_review_evidence": len(
+            exact_text_review_ids
+        ),
+        "zero_import_sources_with_inconclusive_structured_artifact_evidence": len(
+            inconclusive_artifact_ids
+        ),
         "source_ids_with_filename_and_page_count_artifact_evidence": sorted(exact_ids),
         "source_ids_with_filename_only_artifact_evidence": sorted(filename_only_ids),
         "source_ids_with_ambiguous_artifact_evidence": sorted(ambiguous_ids),
         "source_ids_without_structured_artifact_evidence": sorted(no_artifact_ids),
         "source_ids_with_historical_extracted_text": sorted(text_present_ids),
         "source_ids_with_historical_zero_text": sorted(zero_text_ids),
+        "source_ids_with_exact_historical_text_review_evidence": sorted(
+            exact_text_review_ids
+        ),
+        "source_ids_with_inconclusive_structured_artifact_evidence": sorted(
+            inconclusive_artifact_ids
+        ),
+        "historical_evidence_triage_partition_complete": partition_total
+        == len(blocked_ids),
         "historical_artifact_evidence_is_diagnostic_only": True,
+        "historical_extracted_text_requires_manual_review": True,
         "historical_extracted_text_does_not_authorize_import": True,
         "ocr_authorized": False,
         "external_processing_authorized": False,
