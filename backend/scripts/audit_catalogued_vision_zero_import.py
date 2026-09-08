@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """Read-only audit for active catalogued sources that require vision/OCR but have no imported records.
 
-The result is a review gate only. Historical import-job matches are diagnostic
-provenance evidence: they never authorize OCR, external processing, import
-retries, database writes, review-state changes, or canonicalization.
+The result is a review gate only. Historical import-job and checked-in sample
+artifact matches are diagnostic provenance evidence: they never authorize OCR,
+external processing, import retries, database writes, review-state changes, or
+canonicalization. Sample text proves only that sampled pages once exposed some
+text; it does not establish complete or importable source text.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+REPO_DIR = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -25,10 +29,32 @@ def _norm(value: Any) -> str:
     return str(value or "").strip().casefold()
 
 
+def _artifact_key(value: Any) -> str:
+    """Normalize a filename for diagnostic historical-artifact comparison only."""
+    filename = Path(str(value or "").strip()).name.casefold()
+    if filename.endswith(".pdf"):
+        filename = filename[:-4]
+    # Historical uploaded artifacts often carry a 13-digit generated timestamp.
+    filename = re.sub(r"[_\-\s]*\d{13}$", "", filename)
+    return re.sub(r"[^a-z0-9]+", "", filename)
+
+
+def _load_historical_sample_report(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError("manual sample report must contain a JSON list")
+    return [item for item in payload if isinstance(item, dict)]
+
+
 def summarize_catalogued_vision_zero_import(
-    sources: list[dict], jobs: list[dict] | None = None
+    sources: list[dict],
+    jobs: list[dict] | None = None,
+    historical_samples: list[dict] | None = None,
 ) -> dict[str, Any]:
     jobs = jobs or []
+    historical_samples = historical_samples or []
     jobs_by_sha: dict[str, list[dict]] = {}
     jobs_by_filename: dict[str, list[dict]] = {}
     for job in jobs:
@@ -39,11 +65,21 @@ def summarize_catalogued_vision_zero_import(
         if filename:
             jobs_by_filename.setdefault(filename, []).append(job)
 
+    samples_by_key: dict[str, list[dict]] = {}
+    for artifact in historical_samples:
+        key = _artifact_key(artifact.get("filename"))
+        if key:
+            samples_by_key.setdefault(key, []).append(artifact)
+
     blocked_ids: list[str] = []
     exact_job_evidence_ids: list[str] = []
     filename_only_job_evidence_ids: list[str] = []
     no_exact_job_evidence_ids: list[str] = []
     ambiguous_job_evidence_ids: list[str] = []
+    sample_artifact_evidence_ids: list[str] = []
+    sampled_text_evidence_ids: list[str] = []
+    sampled_zero_text_evidence_ids: list[str] = []
+    ambiguous_sample_artifact_evidence_ids: list[str] = []
     examined = 0
 
     for source in sources:
@@ -85,6 +121,22 @@ def summarize_catalogued_vision_zero_import(
         else:
             no_exact_job_evidence_ids.append(source_id)
 
+        artifact_key = _artifact_key(source.get("physical_filename"))
+        artifact_matches = samples_by_key.get(artifact_key, []) if artifact_key else []
+        if len(artifact_matches) > 1:
+            ambiguous_sample_artifact_evidence_ids.append(source_id)
+        elif len(artifact_matches) == 1:
+            sample_artifact_evidence_ids.append(source_id)
+            samples = artifact_matches[0].get("samples") or []
+            has_sampled_text = any(
+                isinstance(sample, dict) and int(sample.get("text_chars") or 0) > 0
+                for sample in samples
+            )
+            if has_sampled_text:
+                sampled_text_evidence_ids.append(source_id)
+            else:
+                sampled_zero_text_evidence_ids.append(source_id)
+
     return {
         "active_catalogued_vision_sources_examined": examined,
         "active_catalogued_vision_sources_with_zero_imported_records": len(blocked_ids),
@@ -107,8 +159,30 @@ def summarize_catalogued_vision_zero_import(
         "source_ids_without_exact_import_job_evidence": sorted(
             no_exact_job_evidence_ids
         ),
+        "zero_import_sources_with_historical_sample_artifact_evidence": len(
+            sample_artifact_evidence_ids
+        ),
+        "zero_import_sources_with_sampled_text_evidence": len(sampled_text_evidence_ids),
+        "zero_import_sources_with_sampled_zero_text_evidence": len(
+            sampled_zero_text_evidence_ids
+        ),
+        "zero_import_sources_with_ambiguous_sample_artifact_evidence": len(
+            ambiguous_sample_artifact_evidence_ids
+        ),
+        "source_ids_with_historical_sample_artifact_evidence": sorted(
+            sample_artifact_evidence_ids
+        ),
+        "source_ids_with_sampled_text_evidence": sorted(sampled_text_evidence_ids),
+        "source_ids_with_sampled_zero_text_evidence": sorted(
+            sampled_zero_text_evidence_ids
+        ),
+        "source_ids_with_ambiguous_sample_artifact_evidence": sorted(
+            ambiguous_sample_artifact_evidence_ids
+        ),
         "requires_authorized_text_extraction_before_import": bool(blocked_ids),
         "historical_import_job_evidence_is_diagnostic_only": True,
+        "historical_sample_artifact_evidence_is_diagnostic_only": True,
+        "sampled_text_evidence_does_not_establish_complete_text": True,
         "evidence_is_diagnostic_only": True,
         "ocr_authorized": False,
         "external_processing_authorized": False,
@@ -129,9 +203,15 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_manual_import_jobs),
     )
+    historical_samples = _load_historical_sample_report(
+        REPO_DIR / ".agents" / "outputs" / "manual-sample-report.json"
+    )
     print(
         json.dumps(
-            summarize_catalogued_vision_zero_import(sources, jobs), sort_keys=True
+            summarize_catalogued_vision_zero_import(
+                sources, jobs, historical_samples=historical_samples
+            ),
+            sort_keys=True,
         )
     )
     return 0
