@@ -54,7 +54,7 @@ def test_spanish_phb_spread_probe_reports_structured_output_per_window() -> None
     assert result["records_detected_total"] > 0, result
     assert result["named_records_detected_total"] > 0, result
     assert result["named_records_detected_total"] + result["unnamed_records_detected_total"] == result["records_detected_total"]
-    assert result["productive_windows"] >= result["named_signal_windows"] > 0, result
+    assert result["productive_windows"] == result["named_signal_windows"] > 0, result
     assert result["productive_windows"] + result["empty_windows"] == result["window_count"]
     assert result["record_types_total"], result
     assert [(window["start_page"], window["end_page"]) for window in result["windows"]] == [
