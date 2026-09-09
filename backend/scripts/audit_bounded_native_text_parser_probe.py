@@ -19,7 +19,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from reference_library import ReferenceImportReport, extract_reference_records
+from reference_library import CHARACTER_CREATION_REFERENCE_TYPES, ReferenceImportReport, extract_reference_records
 
 MAX_PROBE_PAGES = 12
 
@@ -45,9 +45,20 @@ def bounded_native_text_parser_probe(
         raise ValueError(f"probe is limited to {MAX_PROBE_PAGES} pages")
 
     report = extractor(pdf_path, None, start_page, end_page, False, source_language)
-    counts = Counter(str(record.get("reference_type") or "other") for record in report.records)
-    names = [str(record.get("name") or "").strip() for record in report.records]
-    named_records = sum(bool(name) for name in names)
+    record_signals = [
+        (
+            str(record.get("reference_type") or "other"),
+            str(record.get("name") or "").strip(),
+        )
+        for record in report.records
+    ]
+    counts = Counter(reference_type for reference_type, _ in record_signals)
+    named_counts = Counter(reference_type for reference_type, name in record_signals if name)
+    named_records = sum(named_counts.values())
+    useful_named_records = sum(
+        count for reference_type, count in named_counts.items() if reference_type in CHARACTER_CREATION_REFERENCE_TYPES
+    )
+    names = [name for _, name in record_signals]
 
     return {
         "source_filename": pdf_path.name,
@@ -62,6 +73,10 @@ def bounded_native_text_parser_probe(
         "named_records_detected": named_records,
         "unnamed_records_detected": len(report.records) - named_records,
         "record_types": dict(sorted(counts.items())),
+        "named_record_types": dict(sorted(named_counts.items())),
+        "useful_named_records_detected": useful_named_records,
+        "non_useful_named_records_detected": named_records - useful_named_records,
+        "useful_named_share": useful_named_records / named_records if named_records else 0.0,
         "sample_record_names": [name for name in names if name][:10],
         "pdf_bytes_read": True,
         "bounded_native_text_parser_probe_executed": True,
@@ -100,6 +115,7 @@ def bounded_native_text_parser_probe_windows(
 
     window_results: list[dict[str, Any]] = []
     aggregate_types: Counter[str] = Counter()
+    aggregate_named_types: Counter[str] = Counter()
     for index, (start_page, end_page) in enumerate(normalized_windows, start=1):
         result = bounded_native_text_parser_probe(
             pdf_path,
@@ -109,10 +125,12 @@ def bounded_native_text_parser_probe_windows(
             extractor=extractor,
         )
         aggregate_types.update(result["record_types"])
+        aggregate_named_types.update(result["named_record_types"])
         window_results.append({"window_index": index, **result})
 
     records_detected_total = sum(result["records_detected"] for result in window_results)
     named_records_total = sum(result["named_records_detected"] for result in window_results)
+    useful_named_records_total = sum(result["useful_named_records_detected"] for result in window_results)
     productive_windows = sum(result["records_detected"] > 0 for result in window_results)
     named_signal_windows = sum(result["named_records_detected"] > 0 for result in window_results)
     ranked_windows = sorted(
@@ -125,6 +143,10 @@ def bounded_native_text_parser_probe_windows(
                 "named_records_detected": result["named_records_detected"],
                 "unnamed_records_detected": result["unnamed_records_detected"],
                 "record_types": result["record_types"],
+                "named_record_types": result["named_record_types"],
+                "useful_named_records_detected": result["useful_named_records_detected"],
+                "non_useful_named_records_detected": result["non_useful_named_records_detected"],
+                "useful_named_share": result["useful_named_share"],
             }
             for result in window_results
         ),
@@ -139,6 +161,14 @@ def bounded_native_text_parser_probe_windows(
             key=lambda item: (-item[1], item[0]),
         )[0]
 
+    best_window_useful_named_records_detected = (
+        best_named_signal_window["useful_named_records_detected"] if best_named_signal_window else 0
+    )
+    best_window_non_useful_named_records_detected = (
+        best_named_signal_window["non_useful_named_records_detected"] if best_named_signal_window else 0
+    )
+    best_window_useful_named_share = best_named_signal_window["useful_named_share"] if best_named_signal_window else 0.0
+
     return {
         "source_filename": Path(pdf_path).name,
         "source_language": source_language,
@@ -147,18 +177,26 @@ def bounded_native_text_parser_probe_windows(
         "records_detected_total": records_detected_total,
         "named_records_detected_total": named_records_total,
         "unnamed_records_detected_total": records_detected_total - named_records_total,
+        "useful_named_records_detected_total": useful_named_records_total,
+        "non_useful_named_records_detected_total": named_records_total - useful_named_records_total,
+        "useful_named_share_total": useful_named_records_total / named_records_total if named_records_total else 0.0,
         "productive_windows": productive_windows,
         "named_signal_windows": named_signal_windows,
         "empty_windows": len(window_results) - productive_windows,
         "record_types_total": dict(sorted(aggregate_types.items())),
+        "named_record_types_total": dict(sorted(aggregate_named_types.items())),
         "windows": window_results,
         "windows_by_named_signal": ranked_windows,
         "best_named_signal_window": best_named_signal_window,
         "best_window_dominant_reference_type": best_window_dominant_reference_type,
         "best_window_dominant_reference_type_count": best_window_dominant_reference_type_count,
+        "best_window_useful_named_records_detected": best_window_useful_named_records_detected,
+        "best_window_non_useful_named_records_detected": best_window_non_useful_named_records_detected,
+        "best_window_useful_named_share": best_window_useful_named_share,
         "ranking_is_diagnostic_only": True,
         "best_window_selection_is_diagnostic_only": True,
         "dominant_type_is_diagnostic_only": True,
+        "useful_named_share_is_diagnostic_only": True,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
