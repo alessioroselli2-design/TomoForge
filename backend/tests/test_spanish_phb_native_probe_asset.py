@@ -3,7 +3,10 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from scripts.audit_bounded_native_text_parser_probe import bounded_native_text_parser_probe
+from scripts.audit_bounded_native_text_parser_probe import (
+    bounded_native_text_parser_probe,
+    bounded_native_text_parser_probe_windows,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -38,27 +41,30 @@ def test_spanish_phb_asset_matches_registry_and_has_native_text() -> None:
     assert result["automatic_import_authorized"] is False
 
 
-def test_spanish_phb_spread_probe_detects_structured_parser_output() -> None:
-    """Sample 12 total pages across the real aid and require actual parser output.
+def test_spanish_phb_spread_probe_reports_structured_output_per_window() -> None:
+    """Measure four tiny windows independently without authorizing an import."""
+    result = bounded_native_text_parser_probe_windows(
+        SPANISH_PHB,
+        windows=((1, 3), (255, 257), (509, 511), (763, 765)),
+        source_language="es",
+    )
 
-    The four windows are intentionally tiny and distributed through the 1,018-page
-    physical asset. Each probe remains native-text-only and non-persistent; this
-    test is only a readiness measurement, never an import authorization.
-    """
-    windows = ((1, 3), (255, 257), (509, 511), (763, 765))
-    results = [
-        bounded_native_text_parser_probe(
-            SPANISH_PHB,
-            start_page=start_page,
-            end_page=end_page,
-            source_language="es",
-        )
-        for start_page, end_page in windows
+    assert result["window_count"] == 4
+    assert result["requested_pages_total"] == 12
+    assert result["records_detected_total"] > 0, result
+    assert result["record_types_total"], result
+    assert [(window["start_page"], window["end_page"]) for window in result["windows"]] == [
+        (1, 3),
+        (255, 257),
+        (509, 511),
+        (763, 765),
     ]
-
-    assert sum(result["requested_pages"] for result in results) == 12
-    assert all(result["ocr_used"] is False for result in results)
-    assert all(result["translation_used"] is False for result in results)
-    assert all(result["database_write_used"] is False for result in results)
-    assert all(result["records_persisted"] is False for result in results)
-    assert any(result["records_detected"] > 0 for result in results), results
+    assert all("records_detected" in window for window in result["windows"])
+    assert all("record_types" in window for window in result["windows"])
+    assert all(window["ocr_used"] is False for window in result["windows"])
+    assert result["ocr_used"] is False
+    assert result["translation_used"] is False
+    assert result["database_write_used"] is False
+    assert result["records_persisted"] is False
+    assert result["canonicalization_performed"] is False
+    assert result["automatic_import_authorized"] is False
