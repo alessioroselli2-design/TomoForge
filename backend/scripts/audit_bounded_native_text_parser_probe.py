@@ -131,6 +131,13 @@ def bounded_native_text_parser_probe_windows(
         key=lambda result: (-result["named_records_detected"], result["unnamed_records_detected"], result["window_index"]),
     )
     best_named_signal_window = ranked_windows[0] if ranked_windows else None
+    best_window_dominant_reference_type = None
+    best_window_dominant_reference_type_count = 0
+    if best_named_signal_window and best_named_signal_window["record_types"]:
+        best_window_dominant_reference_type, best_window_dominant_reference_type_count = sorted(
+            best_named_signal_window["record_types"].items(),
+            key=lambda item: (-item[1], item[0]),
+        )[0]
 
     return {
         "source_filename": Path(pdf_path).name,
@@ -147,8 +154,11 @@ def bounded_native_text_parser_probe_windows(
         "windows": window_results,
         "windows_by_named_signal": ranked_windows,
         "best_named_signal_window": best_named_signal_window,
+        "best_window_dominant_reference_type": best_window_dominant_reference_type,
+        "best_window_dominant_reference_type_count": best_window_dominant_reference_type_count,
         "ranking_is_diagnostic_only": True,
         "best_window_selection_is_diagnostic_only": True,
+        "dominant_type_is_diagnostic_only": True,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
