@@ -36,6 +36,16 @@ def _eligible_extraction_aid(source: dict) -> bool:
     )
 
 
+def _zero_import_difficult_source(source: dict) -> bool:
+    return (
+        _norm(source.get("text_mode")) in {"vision_required", "mixed"}
+        and _norm(source.get("source_status")) in {"active", "superseded"}
+        and _norm(source.get("import_state")) == "catalogued"
+        and int(source.get("imported_record_count") or 0) == 0
+        and _norm(source.get("source_role")) != "extraction_aid"
+    )
+
+
 def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any]:
     by_logical_id: dict[str, list[dict]] = defaultdict(list)
     for source in sources:
@@ -46,6 +56,8 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
     pair_ids: list[str] = []
     peer_map: dict[str, list[str]] = {}
     logical_ids: set[str] = set()
+    zero_import_targets_with_aid: list[str] = []
+    zero_import_targets_without_aid: list[str] = []
 
     for source in sources:
         source_id = str(source.get("id") or "").strip()
@@ -74,12 +86,24 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
         if peers:
             peer_map[source_id] = sorted(set(peers))
 
+        if _zero_import_difficult_source(source):
+            if peers:
+                zero_import_targets_with_aid.append(source_id)
+            else:
+                zero_import_targets_without_aid.append(source_id)
+
     unique_pairs = sorted(set(pair_ids))
     return {
         "multilingual_extraction_aid_pairs": len(unique_pairs),
         "logical_sources_with_multilingual_extraction_aid": len(logical_ids),
         "multilingual_extraction_aid_pair_ids": unique_pairs,
         "multilingual_extraction_aid_peer_ids_by_source": dict(sorted(peer_map.items())),
+        "zero_import_difficult_sources_with_multilingual_extraction_aid": sorted(
+            set(zero_import_targets_with_aid)
+        ),
+        "zero_import_difficult_sources_without_multilingual_extraction_aid": sorted(
+            set(zero_import_targets_without_aid)
+        ),
         "cross_language_peer_is_intentional_extraction_evidence_only": True,
         "cross_language_peer_does_not_prove_translation_equivalence": True,
         "cross_language_peer_does_not_replace_authoritative_language_source": True,
