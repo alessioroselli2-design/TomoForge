@@ -56,13 +56,26 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
         for reference_type, count in best["named_record_types"].items()
         if reference_type in CHARACTER_CREATION_REFERENCE_TYPES
     )
-    non_useful_named_count = best["named_records_detected"] - useful_named_count
+    expected_non_useful_named_types = {
+        reference_type: count
+        for reference_type, count in sorted(best["named_record_types"].items())
+        if reference_type not in CHARACTER_CREATION_REFERENCE_TYPES
+    }
+    non_useful_named_count = sum(expected_non_useful_named_types.values())
     assert useful_named_count > 0
     assert result["best_window_useful_named_records_detected"] == useful_named_count
     assert result["best_window_non_useful_named_records_detected"] == non_useful_named_count
+    assert best["non_useful_named_record_types"] == expected_non_useful_named_types
+    assert result["best_window_non_useful_named_record_types"] == expected_non_useful_named_types
+    assert sum(result["best_window_non_useful_named_record_types"].values()) == non_useful_named_count
+    assert all(
+        reference_type not in CHARACTER_CREATION_REFERENCE_TYPES
+        for reference_type in result["best_window_non_useful_named_record_types"]
+    )
     assert result["best_window_useful_named_share"] == useful_named_count / best["named_records_detected"]
     assert 0 < result["best_window_useful_named_share"] <= 1
     assert result["useful_named_share_is_diagnostic_only"] is True
+    assert result["non_useful_named_types_are_diagnostic_only"] is True
 
     # Completeness is an exact diagnostic, not an arbitrary quality threshold:
     # true means every named record in scope belongs to the useful taxonomy.
@@ -74,6 +87,14 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
     assert (
         result["useful_named_records_detected_total"] + result["non_useful_named_records_detected_total"]
         == result["named_records_detected_total"]
+    )
+    assert (
+        sum(result["non_useful_named_record_types_total"].values())
+        == result["non_useful_named_records_detected_total"]
+    )
+    assert all(
+        reference_type not in CHARACTER_CREATION_REFERENCE_TYPES
+        for reference_type in result["non_useful_named_record_types_total"]
     )
     assert result["useful_named_signal_is_complete_total"] is (
         result["named_records_detected_total"] > 0 and result["non_useful_named_records_detected_total"] == 0
