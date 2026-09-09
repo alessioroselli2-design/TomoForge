@@ -10,6 +10,7 @@ def _source(
     source_role="authority",
     source_status="active",
     import_state="catalogued",
+    imported_record_count=0,
 ):
     return {
         "id": source_id,
@@ -19,6 +20,7 @@ def _source(
         "source_role": source_role,
         "source_status": source_status,
         "import_state": import_state,
+        "imported_record_count": imported_record_count,
     }
 
 
@@ -40,6 +42,10 @@ def test_cross_language_extraction_aid_is_reported_without_authorizing_translati
     assert result["multilingual_extraction_aid_peer_ids_by_source"] == {
         "phb-it": ["phb-es"]
     }
+    assert result["zero_import_difficult_sources_with_multilingual_extraction_aid"] == [
+        "phb-it"
+    ]
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == []
     assert result["cross_language_peer_is_intentional_extraction_evidence_only"] is True
     assert result["cross_language_peer_does_not_prove_translation_equivalence"] is True
     assert result["cross_language_peer_does_not_replace_authoritative_language_source"] is True
@@ -62,6 +68,10 @@ def test_same_language_copy_is_not_classified_as_multilingual_extraction_aid():
 
     assert result["multilingual_extraction_aid_pairs"] == 0
     assert result["multilingual_extraction_aid_peer_ids_by_source"] == {}
+    assert result["zero_import_difficult_sources_with_multilingual_extraction_aid"] == []
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == [
+        "book-a"
+    ]
     assert result["duplicate_deletion_authorized"] is False
 
 
@@ -72,6 +82,9 @@ def test_cross_language_authority_peer_is_not_implicitly_treated_as_extraction_a
     result = summarize_multilingual_extraction_aids([italian, english_authority])
 
     assert result["multilingual_extraction_aid_pairs"] == 0
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == [
+        "book-it"
+    ]
     assert result["translation_authorized"] is False
 
 
@@ -97,5 +110,35 @@ def test_excluded_or_non_text_extraction_aid_is_not_eligible():
     result = summarize_multilingual_extraction_aids([authority, excluded, vision_only])
 
     assert result["multilingual_extraction_aid_pairs"] == 0
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == [
+        "book-it"
+    ]
     assert result["database_write_authorized"] is False
     assert result["review_state_mutation_authorized"] is False
+
+
+def test_only_catalogued_zero_import_difficult_sources_are_triaged():
+    already_imported = _source(
+        "imported-it",
+        "imported-book",
+        "it",
+        imported_record_count=4,
+    )
+    text_source = _source(
+        "text-it",
+        "text-book",
+        "it",
+        text_mode="text",
+    )
+    excluded = _source(
+        "excluded-it",
+        "excluded-book",
+        "it",
+        import_state="excluded",
+        source_status="duplicate",
+    )
+
+    result = summarize_multilingual_extraction_aids([already_imported, text_source, excluded])
+
+    assert result["zero_import_difficult_sources_with_multilingual_extraction_aid"] == []
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == []
