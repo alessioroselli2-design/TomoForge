@@ -6,6 +6,7 @@ def _source(
     logical_id,
     language,
     *,
+    ruleset="2014",
     text_mode="vision_required",
     source_role="authority",
     source_status="active",
@@ -16,6 +17,7 @@ def _source(
         "id": source_id,
         "logical_source_id": logical_id,
         "language": language,
+        "ruleset": ruleset,
         "text_mode": text_mode,
         "source_role": source_role,
         "source_status": source_status,
@@ -39,6 +41,9 @@ def test_cross_language_extraction_aid_is_reported_without_authorizing_translati
     assert result["multilingual_extraction_aid_pairs"] == 1
     assert result["logical_sources_with_multilingual_extraction_aid"] == 1
     assert result["multilingual_extraction_aid_pair_ids"] == ["phb-it->phb-es"]
+    assert result["multilingual_extraction_aid_pair_match_types"] == {
+        "phb-it->phb-es": "exact_logical_source_id"
+    }
     assert result["multilingual_extraction_aid_peer_ids_by_source"] == {
         "phb-it": ["phb-es"]
     }
@@ -52,6 +57,65 @@ def test_cross_language_extraction_aid_is_reported_without_authorizing_translati
     assert result["translation_authorized"] is False
     assert result["automatic_import_authorized"] is False
     assert result["canonicalization_authorized"] is False
+
+
+def test_language_suffixed_ids_link_only_with_matching_metadata_and_ruleset():
+    italian = _source("phb-it", "phb_2014_it", "it")
+    spanish_aid = _source(
+        "phb-es",
+        "phb_2014_es",
+        "es",
+        text_mode="text",
+        source_role="extraction_aid",
+    )
+
+    result = summarize_multilingual_extraction_aids([italian, spanish_aid])
+
+    assert result["multilingual_extraction_aid_pair_ids"] == ["phb-it->phb-es"]
+    assert result["multilingual_extraction_aid_pair_match_types"] == {
+        "phb-it->phb-es": "language_suffixed_family"
+    }
+    assert result["zero_import_difficult_sources_with_multilingual_extraction_aid"] == [
+        "phb-it"
+    ]
+    assert result["title_or_filename_matching_used"] is False
+
+
+def test_language_suffixed_family_rejects_language_metadata_mismatch():
+    italian = _source("book-it", "book_2014_it", "it")
+    mislabeled_aid = _source(
+        "book-ru",
+        "book_2014_en",
+        "ru",
+        text_mode="text",
+        source_role="extraction_aid",
+    )
+
+    result = summarize_multilingual_extraction_aids([italian, mislabeled_aid])
+
+    assert result["multilingual_extraction_aid_pairs"] == 0
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == [
+        "book-it"
+    ]
+
+
+def test_language_suffixed_family_rejects_different_rulesets():
+    italian = _source("book-it", "book_2014_it", "it", ruleset="2014")
+    spanish_aid = _source(
+        "book-es",
+        "book_2014_es",
+        "es",
+        ruleset="2024",
+        text_mode="text",
+        source_role="extraction_aid",
+    )
+
+    result = summarize_multilingual_extraction_aids([italian, spanish_aid])
+
+    assert result["multilingual_extraction_aid_pairs"] == 0
+    assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == [
+        "book-it"
+    ]
 
 
 def test_same_language_copy_is_not_classified_as_multilingual_extraction_aid():
