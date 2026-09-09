@@ -12,7 +12,7 @@ EXPECTED_SHA256 = "22987ea29717120c7b3ec4650017faa9fb0c0e9e7542be1357eda6b780ae7
 
 
 def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> None:
-    """Identify the dominant typed signal without authorizing any downstream mutation."""
+    """Identify and expose the dominant typed signal without downstream mutation."""
     assert SPANISH_PHB.is_file()
     assert hashlib.sha256(SPANISH_PHB.read_bytes()).hexdigest() == EXPECTED_SHA256
 
@@ -37,6 +37,9 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
     assert dominant_count == max(best["record_types"].values())
     assert ranked_types == sorted(ranked_types, key=lambda item: (-item[1], item[0]))
     assert sum(best["record_types"].values()) == best["records_detected"]
+    assert result["best_window_dominant_reference_type"] == dominant_type
+    assert result["best_window_dominant_reference_type_count"] == dominant_count
+    assert result["dominant_type_is_diagnostic_only"] is True
 
     # The diagnostic stays inside the previously reviewed 12-page native-text probe.
     assert result["requested_pages_total"] == 12
