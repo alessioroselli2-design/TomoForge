@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from pathlib import Path
 
 from scripts.audit_bounded_native_text_parser_probe import (
@@ -67,6 +68,18 @@ def test_spanish_phb_spread_probe_reports_structured_output_per_window() -> None
     assert all("named_records_detected" in window for window in result["windows"])
     assert all("unnamed_records_detected" in window for window in result["windows"])
     assert all("record_types" in window for window in result["windows"])
+
+    aggregate_types: Counter[str] = Counter()
+    for window in result["windows"]:
+        assert window["records_detected"] == window["named_records_detected"] + window["unnamed_records_detected"]
+        assert window["records_detected"] == sum(window["record_types"].values())
+        aggregate_types.update(window["record_types"])
+
+    assert result["records_detected_total"] == sum(window["records_detected"] for window in result["windows"])
+    assert result["named_records_detected_total"] == sum(window["named_records_detected"] for window in result["windows"])
+    assert result["unnamed_records_detected_total"] == sum(window["unnamed_records_detected"] for window in result["windows"])
+    assert result["record_types_total"] == dict(sorted(aggregate_types.items()))
+
     assert all(window["ocr_used"] is False for window in result["windows"])
     assert result["ocr_used"] is False
     assert result["translation_used"] is False
