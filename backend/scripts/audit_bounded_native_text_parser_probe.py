@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Run a bounded, non-persistent parser probe against native PDF text only.
+"""Run bounded, non-persistent parser probes against native PDF text only.
 
-This diagnostic intentionally bypasses the database and every external provider.
-It invokes the deterministic parser with no OCR callback, never translates,
-never imports records, and limits each probe to at most 12 pages. The output is
-aggregate metadata plus a small list of detected names so parser usefulness can
-be measured before any durable import is considered.
+These diagnostics intentionally bypass the database and every external provider.
+They invoke the deterministic parser with no OCR callback, never translate,
+never import records, and cap each probe (or a set of windows) at 12 pages.
 """
 
 from __future__ import annotations
@@ -15,7 +13,7 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -72,6 +70,59 @@ def bounded_native_text_parser_probe(
         "pdf_bytes_read": True,
         "bounded_native_text_parser_probe_executed": True,
         "ocr_callback_supplied": False,
+        "ocr_used": False,
+        "translation_used": False,
+        "external_processing_used": False,
+        "database_read_used": False,
+        "database_write_used": False,
+        "records_persisted": False,
+        "review_state_mutated": False,
+        "canonicalization_performed": False,
+        "automatic_import_authorized": False,
+    }
+
+
+def bounded_native_text_parser_probe_windows(
+    pdf_path: Path,
+    *,
+    windows: Iterable[tuple[int, int]],
+    source_language: str,
+    extractor: Callable[..., ReferenceImportReport] = extract_reference_records,
+) -> dict[str, Any]:
+    """Measure several tiny windows separately while enforcing one 12-page budget."""
+    normalized_windows = tuple((int(start), int(end)) for start, end in windows)
+    if not normalized_windows:
+        raise ValueError("at least one probe window is required")
+
+    total_requested_pages = 0
+    for start_page, end_page in normalized_windows:
+        if start_page < 1 or end_page < start_page:
+            raise ValueError("invalid probe page range")
+        total_requested_pages += end_page - start_page + 1
+    if total_requested_pages > MAX_PROBE_PAGES:
+        raise ValueError(f"combined probe windows are limited to {MAX_PROBE_PAGES} pages")
+
+    window_results: list[dict[str, Any]] = []
+    aggregate_types: Counter[str] = Counter()
+    for index, (start_page, end_page) in enumerate(normalized_windows, start=1):
+        result = bounded_native_text_parser_probe(
+            pdf_path,
+            start_page=start_page,
+            end_page=end_page,
+            source_language=source_language,
+            extractor=extractor,
+        )
+        aggregate_types.update(result["record_types"])
+        window_results.append({"window_index": index, **result})
+
+    return {
+        "source_filename": Path(pdf_path).name,
+        "source_language": source_language,
+        "window_count": len(window_results),
+        "requested_pages_total": total_requested_pages,
+        "records_detected_total": sum(result["records_detected"] for result in window_results),
+        "record_types_total": dict(sorted(aggregate_types.items())),
+        "windows": window_results,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
