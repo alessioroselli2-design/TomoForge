@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from reference_library import CHARACTER_CREATION_REFERENCE_TYPES
 from scripts.audit_bounded_native_text_parser_probe import bounded_native_text_parser_probe_windows
 
 
@@ -40,6 +41,12 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
     assert result["best_window_dominant_reference_type"] == dominant_type
     assert result["best_window_dominant_reference_type_count"] == dominant_count
     assert result["dominant_type_is_diagnostic_only"] is True
+
+    # A Player's Handbook probe is only semantically promising when its strongest
+    # named signal lands in the existing character-creation taxonomy rather than
+    # the generic fallback bucket. This remains a diagnostic gate, not import approval.
+    assert dominant_type in CHARACTER_CREATION_REFERENCE_TYPES
+    assert dominant_type != "other"
 
     # The diagnostic stays inside the previously reviewed 12-page native-text probe.
     assert result["requested_pages_total"] == 12
