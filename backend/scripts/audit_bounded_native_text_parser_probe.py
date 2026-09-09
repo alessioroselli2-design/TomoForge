@@ -44,14 +44,7 @@ def bounded_native_text_parser_probe(
     if requested_pages > MAX_PROBE_PAGES:
         raise ValueError(f"probe is limited to {MAX_PROBE_PAGES} pages")
 
-    report = extractor(
-        pdf_path,
-        None,
-        start_page,
-        end_page,
-        False,
-        source_language,
-    )
+    report = extractor(pdf_path, None, start_page, end_page, False, source_language)
     counts = Counter(str(record.get("reference_type") or "other") for record in report.records)
     names = [str(record.get("name") or "").strip() for record in report.records]
     named_records = sum(bool(name) for name in names)
@@ -122,6 +115,21 @@ def bounded_native_text_parser_probe_windows(
     named_records_total = sum(result["named_records_detected"] for result in window_results)
     productive_windows = sum(result["records_detected"] > 0 for result in window_results)
     named_signal_windows = sum(result["named_records_detected"] > 0 for result in window_results)
+    ranked_windows = sorted(
+        (
+            {
+                "window_index": result["window_index"],
+                "start_page": result["start_page"],
+                "end_page": result["end_page"],
+                "records_detected": result["records_detected"],
+                "named_records_detected": result["named_records_detected"],
+                "unnamed_records_detected": result["unnamed_records_detected"],
+                "record_types": result["record_types"],
+            }
+            for result in window_results
+        ),
+        key=lambda result: (-result["named_records_detected"], result["unnamed_records_detected"], result["window_index"]),
+    )
 
     return {
         "source_filename": Path(pdf_path).name,
@@ -136,6 +144,8 @@ def bounded_native_text_parser_probe_windows(
         "empty_windows": len(window_results) - productive_windows,
         "record_types_total": dict(sorted(aggregate_types.items())),
         "windows": window_results,
+        "windows_by_named_signal": ranked_windows,
+        "ranking_is_diagnostic_only": True,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
@@ -149,9 +159,7 @@ def bounded_native_text_parser_probe_windows(
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Probe at most 12 PDF pages using only TomoForge native-text parser logic."
-    )
+    parser = argparse.ArgumentParser(description="Probe at most 12 PDF pages using only TomoForge native-text parser logic.")
     parser.add_argument("pdf_path", type=Path)
     parser.add_argument("--start-page", type=int, required=True)
     parser.add_argument("--end-page", type=int, required=True)
