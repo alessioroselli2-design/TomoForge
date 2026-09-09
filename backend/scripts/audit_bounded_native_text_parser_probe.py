@@ -54,6 +54,7 @@ def bounded_native_text_parser_probe(
     )
     counts = Counter(str(record.get("reference_type") or "other") for record in report.records)
     names = [str(record.get("name") or "").strip() for record in report.records]
+    named_records = sum(bool(name) for name in names)
 
     return {
         "source_filename": pdf_path.name,
@@ -65,8 +66,10 @@ def bounded_native_text_parser_probe(
         "pages_needing_ocr": sorted(int(page) for page in report.pages_needing_ocr),
         "native_text_pages_available": int(report.pages_read),
         "records_detected": len(report.records),
+        "named_records_detected": named_records,
+        "unnamed_records_detected": len(report.records) - named_records,
         "record_types": dict(sorted(counts.items())),
-        "sample_record_names": names[:10],
+        "sample_record_names": [name for name in names if name][:10],
         "pdf_bytes_read": True,
         "bounded_native_text_parser_probe_executed": True,
         "ocr_callback_supplied": False,
@@ -115,12 +118,22 @@ def bounded_native_text_parser_probe_windows(
         aggregate_types.update(result["record_types"])
         window_results.append({"window_index": index, **result})
 
+    records_detected_total = sum(result["records_detected"] for result in window_results)
+    named_records_total = sum(result["named_records_detected"] for result in window_results)
+    productive_windows = sum(result["records_detected"] > 0 for result in window_results)
+    named_signal_windows = sum(result["named_records_detected"] > 0 for result in window_results)
+
     return {
         "source_filename": Path(pdf_path).name,
         "source_language": source_language,
         "window_count": len(window_results),
         "requested_pages_total": total_requested_pages,
-        "records_detected_total": sum(result["records_detected"] for result in window_results),
+        "records_detected_total": records_detected_total,
+        "named_records_detected_total": named_records_total,
+        "unnamed_records_detected_total": records_detected_total - named_records_total,
+        "productive_windows": productive_windows,
+        "named_signal_windows": named_signal_windows,
+        "empty_windows": len(window_results) - productive_windows,
         "record_types_total": dict(sorted(aggregate_types.items())),
         "windows": window_results,
         "ocr_used": False,
