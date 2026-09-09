@@ -58,6 +58,7 @@ def bounded_native_text_parser_probe(
     useful_named_records = sum(
         count for reference_type, count in named_counts.items() if reference_type in CHARACTER_CREATION_REFERENCE_TYPES
     )
+    non_useful_named_records = named_records - useful_named_records
     names = [name for _, name in record_signals]
 
     return {
@@ -75,8 +76,9 @@ def bounded_native_text_parser_probe(
         "record_types": dict(sorted(counts.items())),
         "named_record_types": dict(sorted(named_counts.items())),
         "useful_named_records_detected": useful_named_records,
-        "non_useful_named_records_detected": named_records - useful_named_records,
+        "non_useful_named_records_detected": non_useful_named_records,
         "useful_named_share": useful_named_records / named_records if named_records else 0.0,
+        "useful_named_signal_is_complete": named_records > 0 and non_useful_named_records == 0,
         "sample_record_names": [name for name in names if name][:10],
         "pdf_bytes_read": True,
         "bounded_native_text_parser_probe_executed": True,
@@ -131,6 +133,7 @@ def bounded_native_text_parser_probe_windows(
     records_detected_total = sum(result["records_detected"] for result in window_results)
     named_records_total = sum(result["named_records_detected"] for result in window_results)
     useful_named_records_total = sum(result["useful_named_records_detected"] for result in window_results)
+    non_useful_named_records_total = named_records_total - useful_named_records_total
     productive_windows = sum(result["records_detected"] > 0 for result in window_results)
     named_signal_windows = sum(result["named_records_detected"] > 0 for result in window_results)
     ranked_windows = sorted(
@@ -147,6 +150,7 @@ def bounded_native_text_parser_probe_windows(
                 "useful_named_records_detected": result["useful_named_records_detected"],
                 "non_useful_named_records_detected": result["non_useful_named_records_detected"],
                 "useful_named_share": result["useful_named_share"],
+                "useful_named_signal_is_complete": result["useful_named_signal_is_complete"],
             }
             for result in window_results
         ),
@@ -168,6 +172,9 @@ def bounded_native_text_parser_probe_windows(
         best_named_signal_window["non_useful_named_records_detected"] if best_named_signal_window else 0
     )
     best_window_useful_named_share = best_named_signal_window["useful_named_share"] if best_named_signal_window else 0.0
+    best_window_useful_named_signal_is_complete = (
+        best_named_signal_window["useful_named_signal_is_complete"] if best_named_signal_window else False
+    )
 
     return {
         "source_filename": Path(pdf_path).name,
@@ -178,8 +185,9 @@ def bounded_native_text_parser_probe_windows(
         "named_records_detected_total": named_records_total,
         "unnamed_records_detected_total": records_detected_total - named_records_total,
         "useful_named_records_detected_total": useful_named_records_total,
-        "non_useful_named_records_detected_total": named_records_total - useful_named_records_total,
+        "non_useful_named_records_detected_total": non_useful_named_records_total,
         "useful_named_share_total": useful_named_records_total / named_records_total if named_records_total else 0.0,
+        "useful_named_signal_is_complete_total": named_records_total > 0 and non_useful_named_records_total == 0,
         "productive_windows": productive_windows,
         "named_signal_windows": named_signal_windows,
         "empty_windows": len(window_results) - productive_windows,
@@ -193,10 +201,12 @@ def bounded_native_text_parser_probe_windows(
         "best_window_useful_named_records_detected": best_window_useful_named_records_detected,
         "best_window_non_useful_named_records_detected": best_window_non_useful_named_records_detected,
         "best_window_useful_named_share": best_window_useful_named_share,
+        "best_window_useful_named_signal_is_complete": best_window_useful_named_signal_is_complete,
         "ranking_is_diagnostic_only": True,
         "best_window_selection_is_diagnostic_only": True,
         "dominant_type_is_diagnostic_only": True,
         "useful_named_share_is_diagnostic_only": True,
+        "useful_named_signal_completeness_is_diagnostic_only": True,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
