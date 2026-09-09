@@ -48,6 +48,27 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
     assert dominant_type in CHARACTER_CREATION_REFERENCE_TYPES
     assert dominant_type != "other"
 
+    # Measure how much of the named signal in the strongest window belongs to the
+    # useful character-creation taxonomy. Keep counts reconciled and diagnostic-only.
+    assert sum(best["named_record_types"].values()) == best["named_records_detected"]
+    useful_named_count = sum(
+        count
+        for reference_type, count in best["named_record_types"].items()
+        if reference_type in CHARACTER_CREATION_REFERENCE_TYPES
+    )
+    assert useful_named_count > 0
+    assert result["best_window_useful_named_records_detected"] == useful_named_count
+    assert result["best_window_non_useful_named_records_detected"] == best["named_records_detected"] - useful_named_count
+    assert result["best_window_useful_named_share"] == useful_named_count / best["named_records_detected"]
+    assert 0 < result["best_window_useful_named_share"] <= 1
+    assert result["useful_named_share_is_diagnostic_only"] is True
+
+    assert sum(result["named_record_types_total"].values()) == result["named_records_detected_total"]
+    assert (
+        result["useful_named_records_detected_total"] + result["non_useful_named_records_detected_total"]
+        == result["named_records_detected_total"]
+    )
+
     # The diagnostic stays inside the previously reviewed 12-page native-text probe.
     assert result["requested_pages_total"] == 12
     assert result["best_window_selection_is_diagnostic_only"] is True
