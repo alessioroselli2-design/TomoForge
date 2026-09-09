@@ -12,6 +12,10 @@ path also recognizes IDs shaped as ``<family>_<year>_<language>`` (for example
 the source language and both sources declare the same ruleset. This avoids
 using titles or filenames as identity evidence.
 
+The audit also distinguishes a text extraction aid that already has structured
+records from one that only exposes text. Text-only peers can guide a later
+parser review, but they are not treated as reusable structured records.
+
 No OCR, translation, external processing, import, database mutation, review
 state mutation, deletion, or canonicalization is authorized by this audit.
 """
@@ -44,6 +48,16 @@ def _eligible_extraction_aid(source: dict) -> bool:
         and _norm(source.get("source_role")) == "extraction_aid"
         and _norm(source.get("source_status")) in {"active", "superseded"}
         and _norm(source.get("import_state")) in {"catalogued", "imported"}
+    )
+
+
+def _extraction_aid_has_structured_records(source: dict) -> bool:
+    """Return True only for an aid that is explicitly imported with records."""
+
+    return (
+        _eligible_extraction_aid(source)
+        and _norm(source.get("import_state")) == "imported"
+        and int(source.get("imported_record_count") or 0) > 0
     )
 
 
@@ -110,10 +124,14 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
 
     pair_ids: list[str] = []
     peer_map: dict[str, list[str]] = {}
+    structured_peer_map: dict[str, list[str]] = {}
+    text_only_peer_map: dict[str, list[str]] = {}
     pair_match_types: dict[str, str] = {}
     identity_keys: set[str] = set()
     zero_import_targets_with_aid: list[str] = []
     zero_import_targets_without_aid: list[str] = []
+    zero_import_targets_with_structured_aid: list[str] = []
+    zero_import_targets_with_text_only_aid: list[str] = []
 
     for source in sources:
         source_id = str(source.get("id") or "").strip()
@@ -130,6 +148,8 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
             candidates.extend(by_language_family.get(family, []))
 
         peers: list[str] = []
+        structured_peers: list[str] = []
+        text_only_peers: list[str] = []
         seen_candidates: set[str] = set()
         for peer in candidates:
             peer_id = str(peer.get("id") or "").strip()
@@ -151,13 +171,25 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
                 pair_ids.append(pair_id)
                 pair_match_types[pair_id] = match_type
                 identity_keys.add(identity_key)
+                if _extraction_aid_has_structured_records(peer):
+                    structured_peers.append(peer_id)
+                else:
+                    text_only_peers.append(peer_id)
 
         if peers:
             peer_map[source_id] = sorted(set(peers))
+        if structured_peers:
+            structured_peer_map[source_id] = sorted(set(structured_peers))
+        if text_only_peers:
+            text_only_peer_map[source_id] = sorted(set(text_only_peers))
 
         if _zero_import_difficult_source(source):
             if peers:
                 zero_import_targets_with_aid.append(source_id)
+                if structured_peers:
+                    zero_import_targets_with_structured_aid.append(source_id)
+                else:
+                    zero_import_targets_with_text_only_aid.append(source_id)
             else:
                 zero_import_targets_without_aid.append(source_id)
 
@@ -170,12 +202,26 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
             sorted(pair_match_types.items())
         ),
         "multilingual_extraction_aid_peer_ids_by_source": dict(sorted(peer_map.items())),
+        "structured_multilingual_extraction_aid_peer_ids_by_source": dict(
+            sorted(structured_peer_map.items())
+        ),
+        "text_only_multilingual_extraction_aid_peer_ids_by_source": dict(
+            sorted(text_only_peer_map.items())
+        ),
         "zero_import_difficult_sources_with_multilingual_extraction_aid": sorted(
             set(zero_import_targets_with_aid)
         ),
         "zero_import_difficult_sources_without_multilingual_extraction_aid": sorted(
             set(zero_import_targets_without_aid)
         ),
+        "zero_import_difficult_sources_with_structured_multilingual_extraction_aid": sorted(
+            set(zero_import_targets_with_structured_aid)
+        ),
+        "zero_import_difficult_sources_with_text_only_multilingual_extraction_aid": sorted(
+            set(zero_import_targets_with_text_only_aid)
+        ),
+        "text_only_extraction_aid_requires_structured_parse_before_record_reuse": True,
+        "structured_peer_records_are_cross_language_evidence_only": True,
         "language_suffixed_family_requires_matching_language_metadata": True,
         "language_suffixed_family_requires_same_ruleset": True,
         "title_or_filename_matching_used": False,
