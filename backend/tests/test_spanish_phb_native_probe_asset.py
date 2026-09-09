@@ -69,7 +69,10 @@ def test_spanish_phb_spread_probe_reports_structured_output_per_window() -> None
     assert len(ranking) == result["window_count"]
     assert {window["window_index"] for window in ranking} == {1, 2, 3, 4}
     assert ranking == sorted(ranking, key=lambda window: (-window["named_records_detected"], window["unnamed_records_detected"], window["window_index"]))
+    assert result["best_named_signal_window"] == ranking[0]
+    assert result["best_named_signal_window"]["named_records_detected"] > 0
     assert result["ranking_is_diagnostic_only"] is True
+    assert result["best_window_selection_is_diagnostic_only"] is True
 
     assert all(window["ocr_used"] is False for window in result["windows"])
     assert result["ocr_used"] is False
