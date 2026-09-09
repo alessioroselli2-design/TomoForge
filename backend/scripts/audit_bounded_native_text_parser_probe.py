@@ -58,7 +58,12 @@ def bounded_native_text_parser_probe(
     useful_named_records = sum(
         count for reference_type, count in named_counts.items() if reference_type in CHARACTER_CREATION_REFERENCE_TYPES
     )
-    non_useful_named_records = named_records - useful_named_records
+    non_useful_named_types = {
+        reference_type: count
+        for reference_type, count in sorted(named_counts.items())
+        if reference_type not in CHARACTER_CREATION_REFERENCE_TYPES
+    }
+    non_useful_named_records = sum(non_useful_named_types.values())
     names = [name for _, name in record_signals]
 
     return {
@@ -77,6 +82,7 @@ def bounded_native_text_parser_probe(
         "named_record_types": dict(sorted(named_counts.items())),
         "useful_named_records_detected": useful_named_records,
         "non_useful_named_records_detected": non_useful_named_records,
+        "non_useful_named_record_types": non_useful_named_types,
         "useful_named_share": useful_named_records / named_records if named_records else 0.0,
         "useful_named_signal_is_complete": named_records > 0 and non_useful_named_records == 0,
         "sample_record_names": [name for name in names if name][:10],
@@ -118,6 +124,7 @@ def bounded_native_text_parser_probe_windows(
     window_results: list[dict[str, Any]] = []
     aggregate_types: Counter[str] = Counter()
     aggregate_named_types: Counter[str] = Counter()
+    aggregate_non_useful_named_types: Counter[str] = Counter()
     for index, (start_page, end_page) in enumerate(normalized_windows, start=1):
         result = bounded_native_text_parser_probe(
             pdf_path,
@@ -128,12 +135,13 @@ def bounded_native_text_parser_probe_windows(
         )
         aggregate_types.update(result["record_types"])
         aggregate_named_types.update(result["named_record_types"])
+        aggregate_non_useful_named_types.update(result["non_useful_named_record_types"])
         window_results.append({"window_index": index, **result})
 
     records_detected_total = sum(result["records_detected"] for result in window_results)
     named_records_total = sum(result["named_records_detected"] for result in window_results)
     useful_named_records_total = sum(result["useful_named_records_detected"] for result in window_results)
-    non_useful_named_records_total = named_records_total - useful_named_records_total
+    non_useful_named_records_total = sum(aggregate_non_useful_named_types.values())
     productive_windows = sum(result["records_detected"] > 0 for result in window_results)
     named_signal_windows = sum(result["named_records_detected"] > 0 for result in window_results)
     ranked_windows = sorted(
@@ -149,6 +157,7 @@ def bounded_native_text_parser_probe_windows(
                 "named_record_types": result["named_record_types"],
                 "useful_named_records_detected": result["useful_named_records_detected"],
                 "non_useful_named_records_detected": result["non_useful_named_records_detected"],
+                "non_useful_named_record_types": result["non_useful_named_record_types"],
                 "useful_named_share": result["useful_named_share"],
                 "useful_named_signal_is_complete": result["useful_named_signal_is_complete"],
             }
@@ -171,6 +180,9 @@ def bounded_native_text_parser_probe_windows(
     best_window_non_useful_named_records_detected = (
         best_named_signal_window["non_useful_named_records_detected"] if best_named_signal_window else 0
     )
+    best_window_non_useful_named_record_types = (
+        best_named_signal_window["non_useful_named_record_types"] if best_named_signal_window else {}
+    )
     best_window_useful_named_share = best_named_signal_window["useful_named_share"] if best_named_signal_window else 0.0
     best_window_useful_named_signal_is_complete = (
         best_named_signal_window["useful_named_signal_is_complete"] if best_named_signal_window else False
@@ -186,6 +198,7 @@ def bounded_native_text_parser_probe_windows(
         "unnamed_records_detected_total": records_detected_total - named_records_total,
         "useful_named_records_detected_total": useful_named_records_total,
         "non_useful_named_records_detected_total": non_useful_named_records_total,
+        "non_useful_named_record_types_total": dict(sorted(aggregate_non_useful_named_types.items())),
         "useful_named_share_total": useful_named_records_total / named_records_total if named_records_total else 0.0,
         "useful_named_signal_is_complete_total": named_records_total > 0 and non_useful_named_records_total == 0,
         "productive_windows": productive_windows,
@@ -200,6 +213,7 @@ def bounded_native_text_parser_probe_windows(
         "best_window_dominant_reference_type_count": best_window_dominant_reference_type_count,
         "best_window_useful_named_records_detected": best_window_useful_named_records_detected,
         "best_window_non_useful_named_records_detected": best_window_non_useful_named_records_detected,
+        "best_window_non_useful_named_record_types": best_window_non_useful_named_record_types,
         "best_window_useful_named_share": best_window_useful_named_share,
         "best_window_useful_named_signal_is_complete": best_window_useful_named_signal_is_complete,
         "ranking_is_diagnostic_only": True,
@@ -207,6 +221,7 @@ def bounded_native_text_parser_probe_windows(
         "dominant_type_is_diagnostic_only": True,
         "useful_named_share_is_diagnostic_only": True,
         "useful_named_signal_completeness_is_diagnostic_only": True,
+        "non_useful_named_types_are_diagnostic_only": True,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
