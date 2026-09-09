@@ -130,6 +130,7 @@ def bounded_native_text_parser_probe_windows(
         ),
         key=lambda result: (-result["named_records_detected"], result["unnamed_records_detected"], result["window_index"]),
     )
+    best_named_signal_window = ranked_windows[0] if ranked_windows else None
 
     return {
         "source_filename": Path(pdf_path).name,
@@ -145,7 +146,9 @@ def bounded_native_text_parser_probe_windows(
         "record_types_total": dict(sorted(aggregate_types.items())),
         "windows": window_results,
         "windows_by_named_signal": ranked_windows,
+        "best_named_signal_window": best_named_signal_window,
         "ranking_is_diagnostic_only": True,
+        "best_window_selection_is_diagnostic_only": True,
         "ocr_used": False,
         "translation_used": False,
         "external_processing_used": False,
