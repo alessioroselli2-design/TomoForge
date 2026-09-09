@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Run a bounded, non-persistent parser probe against native PDF text only.
+
+This diagnostic intentionally bypasses the database and every external provider.
+It invokes the deterministic parser with no OCR callback, never translates,
+never imports records, and limits each probe to at most 12 pages. The output is
+aggregate metadata plus a small list of detected names so parser usefulness can
+be measured before any durable import is considered.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+from typing import Any, Callable
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from reference_library import ReferenceImportReport, extract_reference_records
+
+MAX_PROBE_PAGES = 12
+
+
+def bounded_native_text_parser_probe(
+    pdf_path: Path,
+    *,
+    start_page: int,
+    end_page: int,
+    source_language: str,
+    extractor: Callable[..., ReferenceImportReport] = extract_reference_records,
+) -> dict[str, Any]:
+    """Return parser metrics without OCR, translation, persistence, or mutation."""
+    pdf_path = Path(pdf_path)
+    if pdf_path.suffix.lower() != ".pdf":
+        raise ValueError("probe target must be a PDF")
+    if not pdf_path.is_file():
+        raise FileNotFoundError(pdf_path)
+    if start_page < 1 or end_page < start_page:
+        raise ValueError("invalid probe page range")
+    requested_pages = end_page - start_page + 1
+    if requested_pages > MAX_PROBE_PAGES:
+        raise ValueError(f"probe is limited to {MAX_PROBE_PAGES} pages")
+
+    report = extractor(
+        pdf_path,
+        None,
+        start_page,
+        end_page,
+        False,
+        source_language,
+    )
+    counts = Counter(str(record.get("reference_type") or "other") for record in report.records)
+    names = [str(record.get("name") or "").strip() for record in report.records]
+
+    return {
+        "source_filename": pdf_path.name,
+        "source_language": source_language,
+        "start_page": start_page,
+        "end_page": end_page,
+        "requested_pages": requested_pages,
+        "pages_read": int(report.pages_read),
+        "pages_needing_ocr": sorted(int(page) for page in report.pages_needing_ocr),
+        "native_text_pages_available": int(report.pages_read),
+        "records_detected": len(report.records),
+        "record_types": dict(sorted(counts.items())),
+        "sample_record_names": names[:10],
+        "pdf_bytes_read": True,
+        "bounded_native_text_parser_probe_executed": True,
+        "ocr_callback_supplied": False,
+        "ocr_used": False,
+        "translation_used": False,
+        "external_processing_used": False,
+        "database_read_used": False,
+        "database_write_used": False,
+        "records_persisted": False,
+        "review_state_mutated": False,
+        "canonicalization_performed": False,
+        "automatic_import_authorized": False,
+    }
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Probe at most 12 PDF pages using only TomoForge native-text parser logic."
+    )
+    parser.add_argument("pdf_path", type=Path)
+    parser.add_argument("--start-page", type=int, required=True)
+    parser.add_argument("--end-page", type=int, required=True)
+    parser.add_argument("--source-language", default="es")
+    return parser
+
+
+def main() -> int:
+    args = _parser().parse_args()
+    try:
+        result = bounded_native_text_parser_probe(
+            args.pdf_path,
+            start_page=args.start_page,
+            end_page=args.end_page,
+            source_language=args.source_language.strip().lower() or "unknown",
+        )
+    except Exception as exc:
+        print(f"Bounded native-text parser probe failed: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
