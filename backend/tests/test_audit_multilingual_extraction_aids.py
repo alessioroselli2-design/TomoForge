@@ -47,16 +47,56 @@ def test_cross_language_extraction_aid_is_reported_without_authorizing_translati
     assert result["multilingual_extraction_aid_peer_ids_by_source"] == {
         "phb-it": ["phb-es"]
     }
+    assert result["structured_multilingual_extraction_aid_peer_ids_by_source"] == {}
+    assert result["text_only_multilingual_extraction_aid_peer_ids_by_source"] == {
+        "phb-it": ["phb-es"]
+    }
     assert result["zero_import_difficult_sources_with_multilingual_extraction_aid"] == [
         "phb-it"
     ]
+    assert result[
+        "zero_import_difficult_sources_with_structured_multilingual_extraction_aid"
+    ] == []
+    assert result[
+        "zero_import_difficult_sources_with_text_only_multilingual_extraction_aid"
+    ] == ["phb-it"]
     assert result["zero_import_difficult_sources_without_multilingual_extraction_aid"] == []
+    assert result["text_only_extraction_aid_requires_structured_parse_before_record_reuse"] is True
     assert result["cross_language_peer_is_intentional_extraction_evidence_only"] is True
     assert result["cross_language_peer_does_not_prove_translation_equivalence"] is True
     assert result["cross_language_peer_does_not_replace_authoritative_language_source"] is True
     assert result["translation_authorized"] is False
     assert result["automatic_import_authorized"] is False
     assert result["canonicalization_authorized"] is False
+
+
+def test_imported_extraction_aid_is_separated_from_text_only_peer():
+    italian = _source("book-it", "book-2014", "it")
+    english_aid = _source(
+        "book-en",
+        "book-2014",
+        "en",
+        text_mode="text",
+        source_role="extraction_aid",
+        import_state="imported",
+        imported_record_count=12,
+    )
+
+    result = summarize_multilingual_extraction_aids([italian, english_aid])
+
+    assert result["structured_multilingual_extraction_aid_peer_ids_by_source"] == {
+        "book-it": ["book-en"]
+    }
+    assert result["text_only_multilingual_extraction_aid_peer_ids_by_source"] == {}
+    assert result[
+        "zero_import_difficult_sources_with_structured_multilingual_extraction_aid"
+    ] == ["book-it"]
+    assert result[
+        "zero_import_difficult_sources_with_text_only_multilingual_extraction_aid"
+    ] == []
+    assert result["structured_peer_records_are_cross_language_evidence_only"] is True
+    assert result["automatic_import_authorized"] is False
+    assert result["translation_authorized"] is False
 
 
 def test_language_suffixed_ids_link_only_with_matching_metadata_and_ruleset():
