@@ -68,8 +68,12 @@ def summarize_verified_authority_shared_spell_evidence(
     }
 
     sources_by_alias: dict[str, list[dict]] = {}
+    sources_by_filename: dict[str, list[dict]] = {}
     for source in sources:
-        alias = _normalized_filename_alias_key(str(source.get("physical_filename") or ""))
+        physical_filename = str(source.get("physical_filename") or "").strip()
+        if physical_filename:
+            sources_by_filename.setdefault(physical_filename, []).append(source)
+        alias = _normalized_filename_alias_key(physical_filename)
         if alias:
             sources_by_alias.setdefault(alias, []).append(source)
 
@@ -91,10 +95,18 @@ def summarize_verified_authority_shared_spell_evidence(
         authority_records: list[dict] = []
         has_disallowed_non_class_provenance = not provenance_filenames
         for filename in provenance_filenames:
-            if _class_pack(filename) is not None:
+            exact_sources = sources_by_filename.get(filename, [])
+            if exact_sources and any(
+                str(source.get("source_role") or "").strip().casefold() != "authority"
+                or str(source.get("source_status") or "").strip().casefold() != "active"
+                for source in exact_sources
+            ):
+                has_disallowed_non_class_provenance = True
+                continue
+            if _class_pack(filename) is not None and not exact_sources:
                 continue
             alias = _normalized_filename_alias_key(filename)
-            matched_sources = sources_by_alias.get(alias, []) if alias else []
+            matched_sources = exact_sources or (sources_by_alias.get(alias, []) if alias else [])
             if not matched_sources or any(
                 str(source.get("source_role") or "").strip().casefold() != "authority"
                 or str(source.get("source_status") or "").strip().casefold() != "active"
