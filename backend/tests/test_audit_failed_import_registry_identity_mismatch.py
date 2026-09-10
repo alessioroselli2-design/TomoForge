@@ -146,3 +146,67 @@ def test_audit_accepts_duplicate_claim_with_same_normalized_identity_as_diagnost
     assert result["cross_identity_duplicate_failed_job_ids"] == []
     assert result["cross_identity_duplicate_requires_manual_reconciliation"] is False
     assert result["automatic_retry_authorized"] is False
+
+
+def test_audit_confirms_distinct_registry_logical_sources_for_cross_identity_duplicate_claim():
+    jobs = [
+        {
+            "id": "monster-job",
+            "filename": "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf",
+            "status": "failed",
+            "last_error": "manual_source_duplicate:Manuale_del_giocatore__1787259882002.pdf",
+        }
+    ]
+    sources = [
+        {
+            "id": "monster-source",
+            "physical_filename": "847921086-Manuale-Dei-Mostri-5e.pdf",
+            "logical_source_id": "mm_2014_it",
+        },
+        {
+            "id": "phb-source",
+            "physical_filename": "Manuale del giocatore .pdf",
+            "logical_source_id": "phb_2014_it",
+        },
+    ]
+
+    result = summarize_failed_import_registry_identity_mismatch(jobs, sources)
+
+    assert result["failed_jobs_with_cross_identity_duplicate_claim"] == 1
+    assert result["failed_jobs_with_registry_distinct_logical_source_duplicate_claim"] == 1
+    assert result["registry_distinct_logical_source_duplicate_failed_job_ids"] == ["monster-job"]
+    assert result["registry_logical_source_evidence_is_diagnostic_only"] is True
+    assert result["registry_distinct_logical_source_duplicate_requires_manual_reconciliation"] is True
+    assert result["automatic_retry_authorized"] is False
+    assert result["database_write_authorized"] is False
+
+
+def test_audit_does_not_escalate_when_registry_logical_source_is_the_same():
+    jobs = [
+        {
+            "id": "variant-job",
+            "filename": "Book-A_ok_1787286581630.pdf",
+            "status": "failed",
+            "last_error": "manual_source_duplicate:Book-B.pdf",
+        }
+    ]
+    sources = [
+        {
+            "id": "source-a",
+            "physical_filename": "Book-A.pdf",
+            "logical_source_id": "same_book",
+        },
+        {
+            "id": "source-b",
+            "physical_filename": "Book-B.pdf",
+            "logical_source_id": "same_book",
+        },
+    ]
+
+    result = summarize_failed_import_registry_identity_mismatch(jobs, sources)
+
+    assert result["failed_jobs_with_cross_identity_duplicate_claim"] == 1
+    assert result["failed_jobs_with_registry_distinct_logical_source_duplicate_claim"] == 0
+    assert result["registry_distinct_logical_source_duplicate_failed_job_ids"] == []
+    assert result["registry_distinct_logical_source_duplicate_requires_manual_reconciliation"] is False
+    assert result["automatic_retry_authorized"] is False

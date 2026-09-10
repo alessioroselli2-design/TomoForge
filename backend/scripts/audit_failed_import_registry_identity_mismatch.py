@@ -5,8 +5,9 @@ This audit is deliberately conservative. It only compares failed jobs with regis
 sources after removing known local artifact suffixes (``_ok`` and long timestamp
 suffixes) from filenames. It also inspects ``manual_source_duplicate:<filename>``
 errors to detect duplicate claims that point at a different normalized artifact
-identity. All findings are diagnostic evidence only; they never authorize an import
-retry, registry mutation, OCR, review mutation, or canonicalization.
+identity, and checks whether both sides map uniquely to distinct logical sources in
+the registry. All findings are diagnostic evidence only; they never authorize an
+import retry, registry mutation, OCR, review mutation, or canonicalization.
 """
 
 from __future__ import annotations
@@ -65,8 +66,10 @@ def summarize_failed_import_registry_identity_mismatch(
     ambiguous_candidates = 0
     duplicate_claims = 0
     cross_identity_duplicate_claims = 0
+    registry_distinct_logical_source_claims = 0
     mismatched_job_ids: list[str] = []
     cross_identity_duplicate_job_ids: list[str] = []
+    registry_distinct_logical_source_job_ids: list[str] = []
 
     for job in jobs:
         if str(job.get("status") or "") != "failed":
@@ -76,18 +79,31 @@ def summarize_failed_import_registry_identity_mismatch(
             continue
         examined += 1
         identity = normalized_artifact_identity(filename)
+        candidates = by_identity.get(identity, []) if identity else []
 
         duplicate_target = duplicate_error_target(str(job.get("last_error") or ""))
         if duplicate_target:
             duplicate_claims += 1
             target_identity = normalized_artifact_identity(duplicate_target)
+            target_candidates = by_identity.get(target_identity, []) if target_identity else []
             if identity and target_identity and identity != target_identity:
                 cross_identity_duplicate_claims += 1
                 job_id = str(job.get("id") or "").strip()
                 if job_id:
                     cross_identity_duplicate_job_ids.append(job_id)
 
-        candidates = by_identity.get(identity, []) if identity else []
+                if len(candidates) == 1 and len(target_candidates) == 1:
+                    job_logical_source = str(candidates[0].get("logical_source_id") or "").strip()
+                    target_logical_source = str(target_candidates[0].get("logical_source_id") or "").strip()
+                    if (
+                        job_logical_source
+                        and target_logical_source
+                        and job_logical_source != target_logical_source
+                    ):
+                        registry_distinct_logical_source_claims += 1
+                        if job_id:
+                            registry_distinct_logical_source_job_ids.append(job_id)
+
         if not candidates:
             continue
         exact_identity_candidates += 1
@@ -127,11 +143,19 @@ def summarize_failed_import_registry_identity_mismatch(
         "failed_jobs_with_page_count_mismatch": page_count_mismatches,
         "failed_jobs_with_duplicate_claim": duplicate_claims,
         "failed_jobs_with_cross_identity_duplicate_claim": cross_identity_duplicate_claims,
+        "failed_jobs_with_registry_distinct_logical_source_duplicate_claim": registry_distinct_logical_source_claims,
         "mismatched_failed_job_ids": sorted(set(mismatched_job_ids)),
         "cross_identity_duplicate_failed_job_ids": sorted(set(cross_identity_duplicate_job_ids)),
+        "registry_distinct_logical_source_duplicate_failed_job_ids": sorted(
+            set(registry_distinct_logical_source_job_ids)
+        ),
         "normalized_filename_evidence_is_diagnostic_only": True,
         "duplicate_target_identity_is_diagnostic_only": True,
+        "registry_logical_source_evidence_is_diagnostic_only": True,
         "cross_identity_duplicate_requires_manual_reconciliation": bool(cross_identity_duplicate_claims),
+        "registry_distinct_logical_source_duplicate_requires_manual_reconciliation": bool(
+            registry_distinct_logical_source_claims
+        ),
         "registry_identity_confirmed": False,
         "automatic_retry_authorized": False,
         "database_write_authorized": False,
