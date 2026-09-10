@@ -124,7 +124,7 @@ def test_pending_authority_record_does_not_count_as_verified_evidence():
     }
 
 
-def test_class_sources_only_requires_only_owner_and_companion_aliases():
+def test_class_sources_only_requires_only_class_alias_provenance():
     jobs, sources, records = _fixture("needs_review")
     records[-1]["normalized_name"] = "dardo di fuoco"
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
@@ -167,6 +167,55 @@ def test_missing_identity_is_ambiguous_even_with_class_aliases():
     jobs, sources, records = _fixture("needs_review")
     records[-1]["normalized_name"] = "dardo di fuoco"
     records[0]["normalized_name"] = ""
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
+    assert pair["classification_requires_review"] is True
+
+
+def _add_same_identity_non_class_record(sources, records, *, filename, role, status="active"):
+    sources.append({
+        "physical_filename": filename,
+        "physical_sha256": f"sha-{filename}",
+        "logical_source_id": f"source-{filename}",
+        "source_role": role,
+        "source_status": status,
+    })
+    records.append({
+        "source_key": filename,
+        "reference_type": "spell",
+        "normalized_name": "cura ferite",
+        "source_refs": [{"filename": filename}],
+        "review_status": "needs_review",
+    })
+
+
+def test_separate_same_identity_extraction_aid_keeps_pair_ambiguous():
+    jobs, sources, records = _fixture("needs_review")
+    records.pop()
+    _add_same_identity_non_class_record(
+        sources, records, filename="OCR_Ausiliario.pdf", role="extraction_aid"
+    )
+
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
+    assert pair["classification_requires_review"] is True
+
+
+def test_separate_same_identity_superseded_authority_keeps_pair_ambiguous():
+    jobs, sources, records = _fixture("needs_review")
+    records.pop()
+    _add_same_identity_non_class_record(
+        sources,
+        records,
+        filename="Supplemento_Superseded.pdf",
+        role="authority",
+        status="superseded",
+    )
+
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
 
     pair = result["unidirectional_pairs"][0]
