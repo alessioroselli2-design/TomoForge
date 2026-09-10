@@ -3,7 +3,8 @@
 
 The audit checks whether a column previously reported missing from PostgREST's
 schema cache is present in the columns currently returned by reference-record
-rows. Presence is diagnostic only: partial jobs are never authorized for retry,
+rows. Presence is diagnostic only: jobs with record activity or prior retries
+remain behind manual reconciliation, and no job is authorized for retry,
 writeback, OCR, translation, or canonicalization.
 """
 
@@ -73,8 +74,14 @@ def summarize_schema_cache_recovery(
     now_present = [(job, column) for job, column in schema_jobs if column in columns]
     still_absent = [(job, column) for job, column in schema_jobs if column not in columns]
     now_present_partial = [(job, column) for job, column in now_present if _has_record_activity(job)]
+    now_present_retried = [(job, column) for job, column in now_present if _was_retried(job)]
     now_present_partial_retried = [
         (job, column) for job, column in now_present_partial if _was_retried(job)
+    ]
+    now_present_requiring_manual_reconciliation = [
+        (job, column)
+        for job, column in now_present
+        if _has_record_activity(job) or _was_retried(job)
     ]
 
     return {
@@ -83,10 +90,13 @@ def summarize_schema_cache_recovery(
         "failed_schema_cache_columns_still_absent": len(still_absent),
         "now_present_with_record_activity": len(now_present_partial),
         "now_present_without_record_activity": sum(not _has_record_activity(job) for job, _ in now_present),
+        "now_present_with_prior_retry": len(now_present_retried),
         "now_present_with_record_activity_and_prior_retry": len(now_present_partial_retried),
         "now_present_partial_jobs_requiring_manual_reconciliation": len(now_present_partial),
+        "now_present_jobs_requiring_manual_reconciliation": len(now_present_requiring_manual_reconciliation),
         "live_record_columns_observed": len(columns),
         "historical_failure_may_be_stale": bool(now_present),
+        "prior_retry_is_review_only": bool(now_present_retried),
         "partial_retried_failure_is_review_only": bool(now_present_partial_retried),
         "automatic_retry_authorized": False,
         "database_write_authorized": False,
