@@ -28,24 +28,10 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from scripts.audit_failed_import_alias_reciprocal_provenance import _ref_filenames
+from scripts.audit_failed_import_source_provenance import _normalized_filename_alias_key
 from scripts.audit_manual_import_readiness import fetch_all
-from scripts.audit_unidirectional_alias_identity_evidence import _identity
+from scripts.audit_unidirectional_alias_identity_evidence import _class_pack, _identity
 from scripts.audit_authority_backed_shared_spells import summarize_authority_backed_shared_spell_evidence
-
-
-def _record_is_class_sources_only(record: dict[str, Any], owner: str, companion: str) -> bool:
-    """Return True only when provenance is explicitly limited to the two class aliases.
-
-    Any additional, unknown, extraction-aid, inactive/superseded authority, or other
-    provenance keeps the record in manual review rather than being guessed as class-only.
-    """
-    refs = set(_ref_filenames(record.get("source_refs")))
-    source_key = str(record.get("source_key") or "").strip()
-    if source_key:
-        refs.add(source_key)
-    if not refs:
-        return False
-    return refs.issubset({owner, companion})
 
 
 def summarize_verified_authority_shared_spell_evidence(
@@ -81,6 +67,59 @@ def summarize_verified_authority_shared_spell_evidence(
         )
     }
 
+    sources_by_alias: dict[str, list[dict]] = {}
+    for source in sources:
+        alias = _normalized_filename_alias_key(str(source.get("physical_filename") or ""))
+        if alias:
+            sources_by_alias.setdefault(alias, []).append(source)
+
+    records_by_identity: dict[tuple[str, str], list[dict]] = {}
+    for record in records:
+        identity = _identity(record)
+        if all(identity):
+            records_by_identity.setdefault(identity, []).append(record)
+
+    def classify_identity_provenance(identity: tuple[str, str]) -> str:
+        identity_records = records_by_identity.get(identity, [])
+        provenance_filenames: set[str] = set()
+        for identity_record in identity_records:
+            source_key = str(identity_record.get("source_key") or "").strip()
+            if source_key:
+                provenance_filenames.add(source_key)
+            provenance_filenames.update(_ref_filenames(identity_record.get("source_refs")))
+
+        authority_records: list[dict] = []
+        has_disallowed_non_class_provenance = not provenance_filenames
+        for filename in provenance_filenames:
+            if _class_pack(filename) is not None:
+                continue
+            alias = _normalized_filename_alias_key(filename)
+            matched_sources = sources_by_alias.get(alias, []) if alias else []
+            if not matched_sources or any(
+                str(source.get("source_role") or "").strip().casefold() != "authority"
+                or str(source.get("source_status") or "").strip().casefold() != "active"
+                for source in matched_sources
+            ):
+                has_disallowed_non_class_provenance = True
+                continue
+            authority_records.extend(
+                identity_record
+                for identity_record in identity_records
+                if filename == str(identity_record.get("source_key") or "").strip()
+                or filename in _ref_filenames(identity_record.get("source_refs"))
+            )
+
+        if has_disallowed_non_class_provenance:
+            return AMBIGUOUS_REVIEW
+        if authority_records:
+            if any(
+                str(record.get("review_status") or "").strip().casefold() == "verified"
+                for record in authority_records
+            ):
+                return AUTHORITATIVE_VERIFIED
+            return AUTHORITATIVE_UNVERIFIED
+        return CLASS_SOURCES_ONLY
+
     rows: list[dict[str, Any]] = []
     for pair in base["unidirectional_pairs"]:
         owner = pair["job_filename"]
@@ -112,14 +151,8 @@ def summarize_verified_authority_shared_spell_evidence(
             identity = _identity(record)
             if not all(identity):
                 record_evidence_classes.add(AMBIGUOUS_REVIEW)
-            elif identity in verified_authority_identities:
-                record_evidence_classes.add(AUTHORITATIVE_VERIFIED)
-            elif identity in active_authority_identities:
-                record_evidence_classes.add(AUTHORITATIVE_UNVERIFIED)
-            elif _record_is_class_sources_only(record, owner, companion):
-                record_evidence_classes.add(CLASS_SOURCES_ONLY)
             else:
-                record_evidence_classes.add(AMBIGUOUS_REVIEW)
+                record_evidence_classes.add(classify_identity_provenance(identity))
 
         if len(record_evidence_classes) == 1:
             evidence_classification = next(iter(record_evidence_classes))
