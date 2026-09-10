@@ -75,14 +75,22 @@ def summarize_verified_authority_shared_spell_evidence(
         for row in shared_rows
         if row["verified_active_authority_same_identity_is_stronger_supporting_evidence"]
     )
-    shared_without_verified_authority = len(shared_rows) - shared_with_verified_authority
+    residual_shared_rows = sorted(
+        (
+            row
+            for row in shared_rows
+            if not row["verified_active_authority_same_identity_is_stronger_supporting_evidence"]
+        ),
+        key=lambda r: (r["job_filename"], r["companion_filename"]),
+    )
 
     return {
         "unidirectional_pairs": sorted(rows, key=lambda r: (r["job_filename"], r["companion_filename"])),
         "verified_active_authority_structured_identities": len(verified_authority_identities),
         "shared_class_card_candidate_pairs": len(shared_rows),
         "shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence": shared_with_verified_authority,
-        "shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence": shared_without_verified_authority,
+        "shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence": len(residual_shared_rows),
+        "residual_shared_class_card_candidate_pairs": residual_shared_rows,
         "verified_authority_identity_evidence_is_confirmation": False,
         "requires_manual_reconciliation": True,
         "automatic_retry_authorized": False,
