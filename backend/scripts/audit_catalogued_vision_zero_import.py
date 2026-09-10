@@ -83,11 +83,14 @@ def summarize_catalogued_vision_zero_import(
     examined = 0
 
     for source in sources:
-        if str(source.get("source_status") or "") != "active":
+        # Registry metadata is human-maintained and historically may contain
+        # harmless case/whitespace drift. Normalize before applying the gate so
+        # relevant sources cannot silently disappear from the audit.
+        if _norm(source.get("source_status")) != "active":
             continue
-        if str(source.get("import_state") or "") != "catalogued":
+        if _norm(source.get("import_state")) != "catalogued":
             continue
-        if str(source.get("text_mode") or "") not in {"vision_required", "mixed"}:
+        if _norm(source.get("text_mode")) not in {"vision_required", "mixed"}:
             continue
         examined += 1
         imported = source.get("imported_record_count")
@@ -115,8 +118,6 @@ def summarize_catalogued_vision_zero_import(
         elif len(sha_matches) == 1:
             exact_job_evidence_ids.append(source_id)
         elif filename_matches:
-            # Filename-only evidence is useful for review but cannot establish
-            # provenance when an exact physical hash is unavailable/mismatched.
             filename_only_job_evidence_ids.append(source_id)
         else:
             no_exact_job_evidence_ids.append(source_id)
@@ -142,43 +143,21 @@ def summarize_catalogued_vision_zero_import(
         "active_catalogued_vision_sources_with_zero_imported_records": len(blocked_ids),
         "blocked_source_ids": sorted(blocked_ids),
         "zero_import_sources_with_exact_import_job_evidence": len(exact_job_evidence_ids),
-        "zero_import_sources_with_filename_only_job_evidence": len(
-            filename_only_job_evidence_ids
-        ),
-        "zero_import_sources_with_ambiguous_job_evidence": len(
-            ambiguous_job_evidence_ids
-        ),
-        "zero_import_sources_without_exact_import_job_evidence": len(
-            no_exact_job_evidence_ids
-        ),
+        "zero_import_sources_with_filename_only_job_evidence": len(filename_only_job_evidence_ids),
+        "zero_import_sources_with_ambiguous_job_evidence": len(ambiguous_job_evidence_ids),
+        "zero_import_sources_without_exact_import_job_evidence": len(no_exact_job_evidence_ids),
         "source_ids_with_exact_import_job_evidence": sorted(exact_job_evidence_ids),
-        "source_ids_with_filename_only_job_evidence": sorted(
-            filename_only_job_evidence_ids
-        ),
+        "source_ids_with_filename_only_job_evidence": sorted(filename_only_job_evidence_ids),
         "source_ids_with_ambiguous_job_evidence": sorted(ambiguous_job_evidence_ids),
-        "source_ids_without_exact_import_job_evidence": sorted(
-            no_exact_job_evidence_ids
-        ),
-        "zero_import_sources_with_historical_sample_artifact_evidence": len(
-            sample_artifact_evidence_ids
-        ),
+        "source_ids_without_exact_import_job_evidence": sorted(no_exact_job_evidence_ids),
+        "zero_import_sources_with_historical_sample_artifact_evidence": len(sample_artifact_evidence_ids),
         "zero_import_sources_with_sampled_text_evidence": len(sampled_text_evidence_ids),
-        "zero_import_sources_with_sampled_zero_text_evidence": len(
-            sampled_zero_text_evidence_ids
-        ),
-        "zero_import_sources_with_ambiguous_sample_artifact_evidence": len(
-            ambiguous_sample_artifact_evidence_ids
-        ),
-        "source_ids_with_historical_sample_artifact_evidence": sorted(
-            sample_artifact_evidence_ids
-        ),
+        "zero_import_sources_with_sampled_zero_text_evidence": len(sampled_zero_text_evidence_ids),
+        "zero_import_sources_with_ambiguous_sample_artifact_evidence": len(ambiguous_sample_artifact_evidence_ids),
+        "source_ids_with_historical_sample_artifact_evidence": sorted(sample_artifact_evidence_ids),
         "source_ids_with_sampled_text_evidence": sorted(sampled_text_evidence_ids),
-        "source_ids_with_sampled_zero_text_evidence": sorted(
-            sampled_zero_text_evidence_ids
-        ),
-        "source_ids_with_ambiguous_sample_artifact_evidence": sorted(
-            ambiguous_sample_artifact_evidence_ids
-        ),
+        "source_ids_with_sampled_zero_text_evidence": sorted(sampled_zero_text_evidence_ids),
+        "source_ids_with_ambiguous_sample_artifact_evidence": sorted(ambiguous_sample_artifact_evidence_ids),
         "requires_authorized_text_extraction_before_import": bool(blocked_ids),
         "historical_import_job_evidence_is_diagnostic_only": True,
         "historical_sample_artifact_evidence_is_diagnostic_only": True,
@@ -206,14 +185,7 @@ async def _run() -> int:
     historical_samples = _load_historical_sample_report(
         REPO_DIR / ".agents" / "outputs" / "manual-sample-report.json"
     )
-    print(
-        json.dumps(
-            summarize_catalogued_vision_zero_import(
-                sources, jobs, historical_samples=historical_samples
-            ),
-            sort_keys=True,
-        )
-    )
+    print(json.dumps(summarize_catalogued_vision_zero_import(sources, jobs, historical_samples=historical_samples), sort_keys=True))
     return 0
 
 
