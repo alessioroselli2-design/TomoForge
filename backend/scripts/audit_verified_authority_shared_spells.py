@@ -3,10 +3,11 @@
 
 This refinement only treats an active authority-source identity match as stronger
 supporting evidence when at least one matching authority record is itself marked
-`verified`. Residual pairs are classified so review can distinguish an existing
-but unverified authority match from a complete lack of active authority identity
-evidence. The result remains support-only: no record identity is confirmed and
-no retry, database write, review-state mutation, or canonicalization is authorized.
+`verified`. Residual pairs are classified conservatively so review can distinguish
+verified authority evidence, unverified authority evidence, class-only provenance,
+and ambiguous/inconsistent evidence. The result remains support-only: no record
+identity is confirmed and no retry, database write, review-state mutation, or
+canonicalization is authorized.
 """
 from __future__ import annotations
 
@@ -17,6 +18,11 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+AUTHORITATIVE_VERIFIED = "authoritative_source_with_verified_record"
+AUTHORITATIVE_UNVERIFIED = "authoritative_source_with_unverified_record"
+CLASS_SOURCES_ONLY = "class_sources_only"
+AMBIGUOUS_REVIEW = "ambiguous_or_inconsistent_requires_review"
+
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
@@ -25,6 +31,21 @@ from scripts.audit_failed_import_alias_reciprocal_provenance import _ref_filenam
 from scripts.audit_manual_import_readiness import fetch_all
 from scripts.audit_unidirectional_alias_identity_evidence import _identity
 from scripts.audit_authority_backed_shared_spells import summarize_authority_backed_shared_spell_evidence
+
+
+def _record_is_class_sources_only(record: dict[str, Any], owner: str, companion: str) -> bool:
+    """Return True only when provenance is explicitly limited to the two class aliases.
+
+    Any additional, unknown, extraction-aid, inactive/superseded authority, or other
+    provenance keeps the record in manual review rather than being guessed as class-only.
+    """
+    refs = set(_ref_filenames(record.get("source_refs")))
+    source_key = str(record.get("source_key") or "").strip()
+    if source_key:
+        refs.add(source_key)
+    if not refs:
+        return False
+    return refs.issubset({owner, companion})
 
 
 def summarize_verified_authority_shared_spell_evidence(
@@ -85,6 +106,28 @@ def summarize_verified_authority_shared_spell_evidence(
         row["mixed_records_with_verified_active_authority_same_identity"] = verified_matches
         row["mixed_records_without_verified_active_authority_same_identity"] = len(owner_records) - verified_matches
         row["verified_active_authority_same_identity_is_stronger_supporting_evidence"] = verified_matches > 0
+
+        record_evidence_classes: set[str] = set()
+        for record in owner_records:
+            identity = _identity(record)
+            if not all(identity):
+                record_evidence_classes.add(AMBIGUOUS_REVIEW)
+            elif identity in verified_authority_identities:
+                record_evidence_classes.add(AUTHORITATIVE_VERIFIED)
+            elif identity in active_authority_identities:
+                record_evidence_classes.add(AUTHORITATIVE_UNVERIFIED)
+            elif _record_is_class_sources_only(record, owner, companion):
+                record_evidence_classes.add(CLASS_SOURCES_ONLY)
+            else:
+                record_evidence_classes.add(AMBIGUOUS_REVIEW)
+
+        if len(record_evidence_classes) == 1:
+            evidence_classification = next(iter(record_evidence_classes))
+        else:
+            evidence_classification = AMBIGUOUS_REVIEW
+        row["shared_spell_evidence_classification"] = evidence_classification
+        row["classification_requires_review"] = evidence_classification == AMBIGUOUS_REVIEW
+
         if verified_matches > 0:
             row["residual_review_reason"] = None
         elif active_matches > 0:
@@ -108,14 +151,25 @@ def summarize_verified_authority_shared_spell_evidence(
         key=lambda r: (r["job_filename"], r["companion_filename"]),
     )
     residual_reason_counts = Counter(row["residual_review_reason"] for row in residual_shared_rows)
+    evidence_classification_counts = Counter(
+        row["shared_spell_evidence_classification"] for row in shared_rows
+    )
+    classification_review_rows = sorted(
+        (row for row in shared_rows if row["classification_requires_review"]),
+        key=lambda r: (r["job_filename"], r["companion_filename"]),
+    )
 
     return {
         "unidirectional_pairs": sorted(rows, key=lambda r: (r["job_filename"], r["companion_filename"])),
         "active_authority_structured_identities": len(active_authority_identities),
         "verified_active_authority_structured_identities": len(verified_authority_identities),
         "shared_class_card_candidate_pairs": len(shared_rows),
+        "shared_class_card_candidate_pairs_by_evidence_classification": dict(
+            sorted(evidence_classification_counts.items())
+        ),
         "shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence": shared_with_verified_authority,
         "shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence": len(residual_shared_rows),
+        "shared_class_card_candidate_pairs_requiring_classification_review": classification_review_rows,
         "residual_shared_class_card_candidate_pairs_by_reason": dict(sorted(residual_reason_counts.items())),
         "residual_shared_class_card_candidate_pairs": residual_shared_rows,
         "verified_authority_identity_evidence_is_confirmation": False,
