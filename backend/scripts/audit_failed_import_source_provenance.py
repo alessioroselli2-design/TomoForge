@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Read-only audit of source provenance for failed manual import jobs.
 
-The audit classifies only exact registry evidence and exact historical artifact
-filenames already committed in the repository. Historical artifacts and OCR-gap
-metadata are strictly diagnostic: they never authorize a registry match, retry,
-OCR, database write, or canonicalization.
+The audit classifies only exact registry evidence and conservative filename-alias
+candidates already present in the registry. Alias evidence is strictly diagnostic:
+it never overrides a hash mismatch or authorizes retry, OCR, database writes, or
+canonicalization. Historical artifacts and OCR-gap metadata follow the same rule.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -34,6 +35,17 @@ def _duplicate_target(error: str) -> str | None:
         return None
     value = error.split(marker, 1)[1].strip()
     return value or None
+
+
+def _normalized_filename_alias_key(value: str) -> str:
+    """Normalize upload/copy decorations only; never treat this as identity proof."""
+    name = Path(str(value or "").strip()).name.casefold()
+    if name.endswith(".pdf"):
+        name = name[:-4]
+    name = re.sub(r"\(\d+\)$", "", name)
+    name = re.sub(r"[\s_-]+\d{10,}$", "", name)
+    name = re.sub(r"[^a-z0-9]+", " ", name)
+    return " ".join(name.split())
 
 
 def _declared_ocr_gap_pages(job: dict) -> list[int]:
@@ -79,13 +91,17 @@ def summarize_failed_import_source_provenance(
     }
     by_sha: dict[str, list[dict]] = {}
     by_filename: dict[str, list[dict]] = {}
+    by_alias_key: dict[str, list[dict]] = {}
     for source in sources:
         sha = str(source.get("physical_sha256") or "").strip().lower()
         filename = str(source.get("physical_filename") or "").strip().casefold()
+        alias_key = _normalized_filename_alias_key(filename)
         if sha:
             by_sha.setdefault(sha, []).append(source)
         if filename:
             by_filename.setdefault(filename, []).append(source)
+        if alias_key:
+            by_alias_key.setdefault(alias_key, []).append(source)
 
     outcomes: Counter[str] = Counter()
     duplicate_targets_found = 0
@@ -110,8 +126,10 @@ def summarize_failed_import_source_provenance(
 
         fingerprint = str(job.get("source_fingerprint") or "").strip().lower()
         filename = str(job.get("filename") or "").strip().casefold()
+        alias_key = _normalized_filename_alias_key(filename)
         sha_matches = by_sha.get(fingerprint, []) if fingerprint else []
         filename_matches = by_filename.get(filename, []) if filename else []
+        alias_matches = by_alias_key.get(alias_key, []) if alias_key else []
 
         if filename and filename in historical_filenames:
             historical_job_filenames_found += 1
@@ -127,6 +145,12 @@ def summarize_failed_import_source_provenance(
             outcomes["exact_filename_match_no_fingerprint"] += 1
         elif len(filename_matches) > 1:
             outcomes["ambiguous_filename_match"] += 1
+        elif fingerprint and len(alias_matches) == 1:
+            # Conservative alias evidence only: upload timestamps/copy suffixes differ,
+            # while the content hash still does not confirm identity.
+            outcomes["filename_alias_candidate_without_hash_confirmation"] += 1
+        elif len(alias_matches) > 1:
+            outcomes["ambiguous_filename_alias_candidate"] += 1
         else:
             outcomes["unresolved_no_exact_registry_evidence"] += 1
 
@@ -151,12 +175,19 @@ def summarize_failed_import_source_provenance(
             "exact_filename_match_no_fingerprint"
         ],
         "ambiguous_filename_matches": outcomes["ambiguous_filename_match"],
+        "filename_alias_candidates_without_hash_confirmation": outcomes[
+            "filename_alias_candidate_without_hash_confirmation"
+        ],
+        "ambiguous_filename_alias_candidates": outcomes[
+            "ambiguous_filename_alias_candidate"
+        ],
         "unresolved_no_exact_registry_evidence": outcomes[
             "unresolved_no_exact_registry_evidence"
         ],
         "reported_duplicate_targets_present_in_registry": duplicate_targets_found,
         "failed_job_filenames_present_in_historical_artifacts": historical_job_filenames_found,
         "reported_duplicate_targets_present_in_historical_artifacts": historical_duplicate_targets_found,
+        "filename_alias_evidence_is_diagnostic_only": True,
         "historical_artifact_evidence_is_diagnostic_only": True,
         "ocr_gap_evidence_is_diagnostic_only": True,
         "database_write_authorized": False,
