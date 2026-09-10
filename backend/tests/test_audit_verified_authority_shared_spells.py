@@ -61,6 +61,8 @@ def test_verified_active_authority_identity_is_stronger_support_only():
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 1
     assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 0
     assert result["residual_shared_class_card_candidate_pairs"] == []
+    assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {}
+    assert result["active_authority_structured_identities"] == 1
     assert result["verified_active_authority_structured_identities"] == 1
     assert result["verified_authority_identity_evidence_is_confirmation"] is False
     assert result["automatic_retry_authorized"] is False
@@ -69,8 +71,10 @@ def test_verified_active_authority_identity_is_stronger_support_only():
     assert result["canonicalization_authorized"] is False
 
     pair = result["unidirectional_pairs"][0]
+    assert pair["mixed_records_with_active_authority_same_identity"] == 1
     assert pair["mixed_records_with_verified_active_authority_same_identity"] == 1
     assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is True
+    assert pair["residual_review_reason"] is None
     assert pair["identity_confirmed"] is False
     assert pair["requires_manual_reconciliation"] is True
 
@@ -79,22 +83,49 @@ def test_needs_review_authority_record_does_not_count_as_verified_evidence():
     jobs, sources, records = _fixture("needs_review")
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
 
+    assert result["active_authority_structured_identities"] == 1
     assert result["verified_active_authority_structured_identities"] == 0
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
     assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
+    assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {
+        "active_authority_identity_present_but_not_verified": 1
+    }
     assert len(result["residual_shared_class_card_candidate_pairs"]) == 1
     assert result["residual_shared_class_card_candidate_pairs"][0]["job_filename"] == "Bardo__1787233073462.pdf"
     assert result["residual_shared_class_card_candidate_pairs"][0]["companion_filename"] == "Stregone__1787233073462.pdf"
     pair = result["unidirectional_pairs"][0]
+    assert pair["mixed_records_with_active_authority_same_identity"] == 1
     assert pair["mixed_records_with_verified_active_authority_same_identity"] == 0
     assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is False
+    assert pair["residual_review_reason"] == "active_authority_identity_present_but_not_verified"
+    assert pair["requires_manual_reconciliation"] is True
 
 
 def test_pending_authority_record_does_not_count_as_verified_evidence():
     jobs, sources, records = _fixture("pending")
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
 
+    assert result["active_authority_structured_identities"] == 1
     assert result["verified_active_authority_structured_identities"] == 0
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
     assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
+    assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {
+        "active_authority_identity_present_but_not_verified": 1
+    }
     assert len(result["residual_shared_class_card_candidate_pairs"]) == 1
+
+
+def test_missing_authority_identity_is_separate_residual_reason():
+    jobs, sources, records = _fixture("needs_review")
+    records[-1]["normalized_name"] = "dardo di fuoco"
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    assert result["active_authority_structured_identities"] == 1
+    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
+    assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {
+        "no_active_authority_same_identity": 1
+    }
+    pair = result["residual_shared_class_card_candidate_pairs"][0]
+    assert pair["mixed_records_with_active_authority_same_identity"] == 0
+    assert pair["residual_review_reason"] == "no_active_authority_same_identity"
+    assert pair["requires_manual_reconciliation"] is True
