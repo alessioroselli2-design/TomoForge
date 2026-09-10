@@ -59,6 +59,7 @@ def test_verified_active_authority_identity_is_stronger_support_only():
 
     assert result["shared_class_card_candidate_pairs"] == 1
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 1
+    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 0
     assert result["verified_active_authority_structured_identities"] == 1
     assert result["verified_authority_identity_evidence_is_confirmation"] is False
     assert result["automatic_retry_authorized"] is False
@@ -79,6 +80,7 @@ def test_needs_review_authority_record_does_not_count_as_verified_evidence():
 
     assert result["verified_active_authority_structured_identities"] == 0
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
+    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
     pair = result["unidirectional_pairs"][0]
     assert pair["mixed_records_with_verified_active_authority_same_identity"] == 0
     assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is False
@@ -90,3 +92,4 @@ def test_pending_authority_record_does_not_count_as_verified_evidence():
 
     assert result["verified_active_authority_structured_identities"] == 0
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
+    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
