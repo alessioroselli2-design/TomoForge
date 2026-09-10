@@ -43,7 +43,7 @@ def _normalized_filename_alias_key(value: str) -> str:
     if name.endswith(".pdf"):
         name = name[:-4]
     name = re.sub(r"\(\d+\)$", "", name)
-    name = re.sub(r"[\s_-]+\d{10,}$", "", name)
+    name = re.sub(r"(?:[\s_-]+ok)?[\s_-]+\d{10,}$", "", name)
     name = re.sub(r"[^a-z0-9]+", " ", name)
     return " ".join(name.split())
 
@@ -161,8 +161,6 @@ def summarize_failed_import_source_provenance(
             if by_filename.get(normalized_target):
                 duplicate_targets_found += 1
             elif len(target_alias_matches) == 1:
-                # Alias resolution is diagnostic only. It is useful for detecting
-                # stale upload/copy suffixes, but never confirms duplicate identity.
                 duplicate_target_alias_candidates += 1
             if (
                 target_alias_key
@@ -171,9 +169,6 @@ def summarize_failed_import_source_provenance(
                 and len(target_alias_matches) == 1
                 and len(alias_matches) == 1
             ):
-                # The job filename and its reported duplicate target each map to a
-                # different single registry alias. This is a provenance conflict,
-                # not evidence that either side is the canonical duplicate.
                 duplicate_target_alias_conflicts_with_job_alias += 1
             if normalized_target in historical_filenames:
                 historical_duplicate_targets_found += 1
