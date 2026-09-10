@@ -39,34 +39,6 @@ def summarize_verified_authority_shared_spell_evidence(
 ) -> dict[str, Any]:
     base = summarize_authority_backed_shared_spell_evidence(jobs, sources, records)
 
-    authority_filenames = {
-        str(source.get("physical_filename") or "").strip()
-        for source in sources
-        if str(source.get("source_role") or "").strip().casefold() == "authority"
-        and str(source.get("source_status") or "").strip().casefold() == "active"
-        and str(source.get("physical_filename") or "").strip()
-    }
-
-    active_authority_identities = {
-        _identity(record)
-        for record in records
-        if all(_identity(record))
-        and (
-            str(record.get("source_key") or "").strip() in authority_filenames
-            or bool(_ref_filenames(record.get("source_refs")) & authority_filenames)
-        )
-    }
-    verified_authority_identities = {
-        _identity(record)
-        for record in records
-        if str(record.get("review_status") or "").strip().casefold() == "verified"
-        and all(_identity(record))
-        and (
-            str(record.get("source_key") or "").strip() in authority_filenames
-            or bool(_ref_filenames(record.get("source_refs")) & authority_filenames)
-        )
-    }
-
     sources_by_alias: dict[str, list[dict]] = {}
     sources_by_filename: dict[str, list[dict]] = {}
     for source in sources:
@@ -76,6 +48,29 @@ def summarize_verified_authority_shared_spell_evidence(
         alias = _normalized_filename_alias_key(physical_filename)
         if alias:
             sources_by_alias.setdefault(alias, []).append(source)
+
+    def is_active_authority_source(filename: str) -> bool:
+        alias = _normalized_filename_alias_key(filename)
+        matched_sources = sources_by_alias.get(alias, []) if alias else []
+        return bool(matched_sources) and all(
+            str(source.get("source_role") or "").strip().casefold() == "authority"
+            and str(source.get("source_status") or "").strip().casefold() == "active"
+            for source in matched_sources
+        )
+
+    active_authority_identities = {
+        _identity(record)
+        for record in records
+        if all(_identity(record))
+        and is_active_authority_source(str(record.get("source_key") or "").strip())
+    }
+    verified_authority_identities = {
+        _identity(record)
+        for record in records
+        if str(record.get("review_status") or "").strip().casefold() == "verified"
+        and all(_identity(record))
+        and is_active_authority_source(str(record.get("source_key") or "").strip())
+    }
 
     records_by_identity: dict[tuple[str, str], list[dict]] = {}
     for record in records:
@@ -92,8 +87,8 @@ def summarize_verified_authority_shared_spell_evidence(
                 provenance_filenames.add(source_key)
             provenance_filenames.update(_ref_filenames(identity_record.get("source_refs")))
 
-        authority_records: list[dict] = []
         has_disallowed_non_class_provenance = not provenance_filenames
+        has_active_authority_provenance = False
         for filename in provenance_filenames:
             exact_sources = sources_by_filename.get(filename, [])
             if exact_sources and any(
@@ -114,14 +109,19 @@ def summarize_verified_authority_shared_spell_evidence(
             ):
                 has_disallowed_non_class_provenance = True
                 continue
-            authority_records.extend(
-                identity_record
-                for identity_record in identity_records
-                if filename == str(identity_record.get("source_key") or "").strip()
-                or filename in _ref_filenames(identity_record.get("source_refs"))
-            )
+            has_active_authority_provenance = True
 
         if has_disallowed_non_class_provenance:
+            return AMBIGUOUS_REVIEW
+
+        authority_records = [
+            identity_record
+            for identity_record in identity_records
+            if is_active_authority_source(
+                str(identity_record.get("source_key") or "").strip()
+            )
+        ]
+        if has_active_authority_provenance and not authority_records:
             return AMBIGUOUS_REVIEW
         if authority_records:
             if any(
