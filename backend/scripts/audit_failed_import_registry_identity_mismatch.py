@@ -3,9 +3,10 @@
 
 This audit is deliberately conservative. It only compares failed jobs with registry
 sources after removing known local artifact suffixes (``_ok`` and long timestamp
-suffixes) from filenames. A normalized filename match is diagnostic evidence only;
-it never authorizes an import retry, registry mutation, OCR, review mutation, or
-canonicalization.
+suffixes) from filenames. It also inspects ``manual_source_duplicate:<filename>``
+errors to detect duplicate claims that point at a different normalized artifact
+identity. All findings are diagnostic evidence only; they never authorize an import
+retry, registry mutation, OCR, review mutation, or canonicalization.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from scripts.audit_manual_import_readiness import fetch_all
 
 _LONG_NUMERIC_SUFFIX_RE = re.compile(r"(?:[_-](?:ok)[_-]?)?(?:[_-]?\d{10,})$", re.IGNORECASE)
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
+_DUPLICATE_ERROR_PREFIX = "manual_source_duplicate:"
 
 
 def normalized_artifact_identity(filename: str) -> str:
@@ -36,6 +38,15 @@ def normalized_artifact_identity(filename: str) -> str:
         stem = _LONG_NUMERIC_SUFFIX_RE.sub("", stem)
     stem = re.sub(r"(?:[_-]ok)$", "", stem, flags=re.IGNORECASE)
     return _NON_ALNUM_RE.sub("", stem)
+
+
+def duplicate_error_target(last_error: str) -> str | None:
+    """Extract the declared duplicate filename without interpreting it as trusted identity."""
+    value = str(last_error or "").strip()
+    if not value.casefold().startswith(_DUPLICATE_ERROR_PREFIX):
+        return None
+    target = value[len(_DUPLICATE_ERROR_PREFIX) :].strip()
+    return target or None
 
 
 def summarize_failed_import_registry_identity_mismatch(
@@ -52,7 +63,10 @@ def summarize_failed_import_registry_identity_mismatch(
     fingerprint_mismatches = 0
     page_count_mismatches = 0
     ambiguous_candidates = 0
+    duplicate_claims = 0
+    cross_identity_duplicate_claims = 0
     mismatched_job_ids: list[str] = []
+    cross_identity_duplicate_job_ids: list[str] = []
 
     for job in jobs:
         if str(job.get("status") or "") != "failed":
@@ -62,6 +76,17 @@ def summarize_failed_import_registry_identity_mismatch(
             continue
         examined += 1
         identity = normalized_artifact_identity(filename)
+
+        duplicate_target = duplicate_error_target(str(job.get("last_error") or ""))
+        if duplicate_target:
+            duplicate_claims += 1
+            target_identity = normalized_artifact_identity(duplicate_target)
+            if identity and target_identity and identity != target_identity:
+                cross_identity_duplicate_claims += 1
+                job_id = str(job.get("id") or "").strip()
+                if job_id:
+                    cross_identity_duplicate_job_ids.append(job_id)
+
         candidates = by_identity.get(identity, []) if identity else []
         if not candidates:
             continue
@@ -100,8 +125,13 @@ def summarize_failed_import_registry_identity_mismatch(
         "failed_jobs_with_ambiguous_registry_identity_candidate": ambiguous_candidates,
         "failed_jobs_with_fingerprint_mismatch": fingerprint_mismatches,
         "failed_jobs_with_page_count_mismatch": page_count_mismatches,
+        "failed_jobs_with_duplicate_claim": duplicate_claims,
+        "failed_jobs_with_cross_identity_duplicate_claim": cross_identity_duplicate_claims,
         "mismatched_failed_job_ids": sorted(set(mismatched_job_ids)),
+        "cross_identity_duplicate_failed_job_ids": sorted(set(cross_identity_duplicate_job_ids)),
         "normalized_filename_evidence_is_diagnostic_only": True,
+        "duplicate_target_identity_is_diagnostic_only": True,
+        "cross_identity_duplicate_requires_manual_reconciliation": bool(cross_identity_duplicate_claims),
         "registry_identity_confirmed": False,
         "automatic_retry_authorized": False,
         "database_write_authorized": False,
