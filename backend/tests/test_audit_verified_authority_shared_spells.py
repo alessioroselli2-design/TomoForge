@@ -98,6 +98,7 @@ def test_needs_review_authority_record_does_not_count_as_verified_evidence():
     assert pair["mixed_records_with_verified_active_authority_same_identity"] == 0
     assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is False
     assert pair["residual_review_reason"] == "active_authority_identity_present_but_not_verified"
+    assert pair["requires_manual_reconciliation"] is True
 
 
 def test_pending_authority_record_does_not_count_as_verified_evidence():
@@ -127,3 +128,4 @@ def test_missing_authority_identity_is_separate_residual_reason():
     pair = result["residual_shared_class_card_candidate_pairs"][0]
     assert pair["mixed_records_with_active_authority_same_identity"] == 0
     assert pair["residual_review_reason"] == "no_active_authority_same_identity"
+    assert pair["requires_manual_reconciliation"] is True
