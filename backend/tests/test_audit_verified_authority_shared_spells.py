@@ -1,4 +1,10 @@
-from scripts.audit_verified_authority_shared_spells import summarize_verified_authority_shared_spell_evidence
+from scripts.audit_verified_authority_shared_spells import (
+    AMBIGUOUS_REVIEW,
+    AUTHORITATIVE_UNVERIFIED,
+    AUTHORITATIVE_VERIFIED,
+    CLASS_SOURCES_ONLY,
+    summarize_verified_authority_shared_spell_evidence,
+)
 
 
 def _fixture(authority_review_status="verified"):
@@ -64,6 +70,9 @@ def test_verified_active_authority_identity_is_stronger_support_only():
     assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {}
     assert result["active_authority_structured_identities"] == 1
     assert result["verified_active_authority_structured_identities"] == 1
+    assert result["shared_class_card_candidate_pairs_by_evidence_classification"] == {
+        AUTHORITATIVE_VERIFIED: 1
+    }
     assert result["verified_authority_identity_evidence_is_confirmation"] is False
     assert result["automatic_retry_authorized"] is False
     assert result["database_write_authorized"] is False
@@ -74,6 +83,8 @@ def test_verified_active_authority_identity_is_stronger_support_only():
     assert pair["mixed_records_with_active_authority_same_identity"] == 1
     assert pair["mixed_records_with_verified_active_authority_same_identity"] == 1
     assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is True
+    assert pair["shared_spell_evidence_classification"] == AUTHORITATIVE_VERIFIED
+    assert pair["classification_requires_review"] is False
     assert pair["residual_review_reason"] is None
     assert pair["identity_confirmed"] is False
     assert pair["requires_manual_reconciliation"] is True
@@ -87,17 +98,16 @@ def test_needs_review_authority_record_does_not_count_as_verified_evidence():
     assert result["verified_active_authority_structured_identities"] == 0
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
     assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
+    assert result["shared_class_card_candidate_pairs_by_evidence_classification"] == {
+        AUTHORITATIVE_UNVERIFIED: 1
+    }
     assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {
         "active_authority_identity_present_but_not_verified": 1
     }
     assert len(result["residual_shared_class_card_candidate_pairs"]) == 1
-    assert result["residual_shared_class_card_candidate_pairs"][0]["job_filename"] == "Bardo__1787233073462.pdf"
-    assert result["residual_shared_class_card_candidate_pairs"][0]["companion_filename"] == "Stregone__1787233073462.pdf"
     pair = result["unidirectional_pairs"][0]
-    assert pair["mixed_records_with_active_authority_same_identity"] == 1
-    assert pair["mixed_records_with_verified_active_authority_same_identity"] == 0
-    assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is False
-    assert pair["residual_review_reason"] == "active_authority_identity_present_but_not_verified"
+    assert pair["shared_spell_evidence_classification"] == AUTHORITATIVE_UNVERIFIED
+    assert pair["classification_requires_review"] is False
     assert pair["requires_manual_reconciliation"] is True
 
 
@@ -109,23 +119,56 @@ def test_pending_authority_record_does_not_count_as_verified_evidence():
     assert result["verified_active_authority_structured_identities"] == 0
     assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
     assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
-    assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {
-        "active_authority_identity_present_but_not_verified": 1
+    assert result["shared_class_card_candidate_pairs_by_evidence_classification"] == {
+        AUTHORITATIVE_UNVERIFIED: 1
     }
-    assert len(result["residual_shared_class_card_candidate_pairs"]) == 1
 
 
-def test_missing_authority_identity_is_separate_residual_reason():
+def test_class_sources_only_requires_only_owner_and_companion_aliases():
     jobs, sources, records = _fixture("needs_review")
     records[-1]["normalized_name"] = "dardo di fuoco"
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
 
-    assert result["active_authority_structured_identities"] == 1
-    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
-    assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {
-        "no_active_authority_same_identity": 1
-    }
-    pair = result["residual_shared_class_card_candidate_pairs"][0]
-    assert pair["mixed_records_with_active_authority_same_identity"] == 0
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == CLASS_SOURCES_ONLY
+    assert pair["classification_requires_review"] is False
     assert pair["residual_review_reason"] == "no_active_authority_same_identity"
-    assert pair["requires_manual_reconciliation"] is True
+
+
+def test_class_plus_extraction_aid_is_ambiguous():
+    jobs, sources, records = _fixture("needs_review")
+    records[-1]["normalized_name"] = "dardo di fuoco"
+    records[0]["source_refs"].append({"filename": "Bardo .pdf"})
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
+    assert pair["classification_requires_review"] is True
+    assert len(result["shared_class_card_candidate_pairs_requiring_classification_review"]) == 1
+
+
+def test_class_plus_superseded_authority_is_ambiguous():
+    jobs, sources, records = _fixture("needs_review")
+    records[-1]["normalized_name"] = "dardo di fuoco"
+    sources.append({
+        "physical_filename": "Vecchio_Manuale.pdf",
+        "source_role": "authority",
+        "source_status": "superseded",
+    })
+    records[0]["source_refs"].append({"filename": "Vecchio_Manuale.pdf"})
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
+    assert pair["classification_requires_review"] is True
+
+
+def test_missing_identity_is_ambiguous_even_with_class_aliases():
+    jobs, sources, records = _fixture("needs_review")
+    records[-1]["normalized_name"] = "dardo di fuoco"
+    records[0]["normalized_name"] = ""
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
+    assert pair["classification_requires_review"] is True
