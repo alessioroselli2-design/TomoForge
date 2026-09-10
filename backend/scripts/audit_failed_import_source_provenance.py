@@ -43,7 +43,7 @@ def _normalized_filename_alias_key(value: str) -> str:
     if name.endswith(".pdf"):
         name = name[:-4]
     name = re.sub(r"\(\d+\)$", "", name)
-    name = re.sub(r"[\s_-]+\d{10,}$", "", name)
+    name = re.sub(r"(?:[\s_-]+ok)?[\s_-]+\d{10,}$", "", name)
     name = re.sub(r"[^a-z0-9]+", " ", name)
     return " ".join(name.split())
 
@@ -105,6 +105,8 @@ def summarize_failed_import_source_provenance(
 
     outcomes: Counter[str] = Counter()
     duplicate_targets_found = 0
+    duplicate_target_alias_candidates = 0
+    duplicate_target_alias_conflicts_with_job_alias = 0
     historical_job_filenames_found = 0
     historical_duplicate_targets_found = 0
     source_failures = 0
@@ -139,15 +141,12 @@ def summarize_failed_import_source_provenance(
         elif len(sha_matches) > 1:
             outcomes["ambiguous_sha_match"] += 1
         elif fingerprint and filename_matches:
-            # A filename match cannot override a conflicting/missing exact hash.
             outcomes["filename_match_without_hash_confirmation"] += 1
         elif not fingerprint and len(filename_matches) == 1:
             outcomes["exact_filename_match_no_fingerprint"] += 1
         elif len(filename_matches) > 1:
             outcomes["ambiguous_filename_match"] += 1
         elif fingerprint and len(alias_matches) == 1:
-            # Conservative alias evidence only: upload timestamps/copy suffixes differ,
-            # while the content hash still does not confirm identity.
             outcomes["filename_alias_candidate_without_hash_confirmation"] += 1
         elif len(alias_matches) > 1:
             outcomes["ambiguous_filename_alias_candidate"] += 1
@@ -157,8 +156,20 @@ def summarize_failed_import_source_provenance(
         duplicate_target = _duplicate_target(error)
         if duplicate_target:
             normalized_target = duplicate_target.casefold()
+            target_alias_key = _normalized_filename_alias_key(duplicate_target)
+            target_alias_matches = by_alias_key.get(target_alias_key, []) if target_alias_key else []
             if by_filename.get(normalized_target):
                 duplicate_targets_found += 1
+            elif len(target_alias_matches) == 1:
+                duplicate_target_alias_candidates += 1
+            if (
+                target_alias_key
+                and alias_key
+                and target_alias_key != alias_key
+                and len(target_alias_matches) == 1
+                and len(alias_matches) == 1
+            ):
+                duplicate_target_alias_conflicts_with_job_alias += 1
             if normalized_target in historical_filenames:
                 historical_duplicate_targets_found += 1
 
@@ -185,11 +196,17 @@ def summarize_failed_import_source_provenance(
             "unresolved_no_exact_registry_evidence"
         ],
         "reported_duplicate_targets_present_in_registry": duplicate_targets_found,
+        "reported_duplicate_target_alias_candidates": duplicate_target_alias_candidates,
+        "reported_duplicate_target_alias_conflicts_with_job_alias": (
+            duplicate_target_alias_conflicts_with_job_alias
+        ),
         "failed_job_filenames_present_in_historical_artifacts": historical_job_filenames_found,
         "reported_duplicate_targets_present_in_historical_artifacts": historical_duplicate_targets_found,
         "filename_alias_evidence_is_diagnostic_only": True,
+        "duplicate_target_alias_evidence_is_diagnostic_only": True,
         "historical_artifact_evidence_is_diagnostic_only": True,
         "ocr_gap_evidence_is_diagnostic_only": True,
+        "requires_manual_reconciliation": source_failures,
         "database_write_authorized": False,
         "automatic_retry_authorized": False,
         "ocr_generation_authorized": False,
