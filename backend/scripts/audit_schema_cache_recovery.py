@@ -47,6 +47,11 @@ def _has_record_activity(job: dict[str, Any]) -> bool:
     )
 
 
+def _was_retried(job: dict[str, Any]) -> bool:
+    attempts = job.get("attempt_count")
+    return isinstance(attempts, (int, float)) and attempts > 1
+
+
 def _current_record_columns(records: list[dict[str, Any]]) -> set[str]:
     columns: set[str] = set()
     for row in records:
@@ -67,15 +72,22 @@ def summarize_schema_cache_recovery(
 
     now_present = [(job, column) for job, column in schema_jobs if column in columns]
     still_absent = [(job, column) for job, column in schema_jobs if column not in columns]
+    now_present_partial = [(job, column) for job, column in now_present if _has_record_activity(job)]
+    now_present_partial_retried = [
+        (job, column) for job, column in now_present_partial if _was_retried(job)
+    ]
 
     return {
         "failed_schema_cache_jobs": len(schema_jobs),
         "failed_schema_cache_columns_now_present": len(now_present),
         "failed_schema_cache_columns_still_absent": len(still_absent),
-        "now_present_with_record_activity": sum(_has_record_activity(job) for job, _ in now_present),
+        "now_present_with_record_activity": len(now_present_partial),
         "now_present_without_record_activity": sum(not _has_record_activity(job) for job, _ in now_present),
+        "now_present_with_record_activity_and_prior_retry": len(now_present_partial_retried),
+        "now_present_partial_jobs_requiring_manual_reconciliation": len(now_present_partial),
         "live_record_columns_observed": len(columns),
         "historical_failure_may_be_stale": bool(now_present),
+        "partial_retried_failure_is_review_only": bool(now_present_partial_retried),
         "automatic_retry_authorized": False,
         "database_write_authorized": False,
         "ocr_generation_authorized": False,
