@@ -221,3 +221,28 @@ def test_separate_same_identity_superseded_authority_keeps_pair_ambiguous():
     pair = result["unidirectional_pairs"][0]
     assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
     assert pair["classification_requires_review"] is True
+
+
+def test_verified_class_record_does_not_verify_unreviewed_authority_record():
+    jobs, sources, records = _fixture("needs_review")
+    records[0]["review_status"] = "verified"
+
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AUTHORITATIVE_UNVERIFIED
+    assert pair["mixed_records_with_verified_active_authority_same_identity"] == 0
+    assert result["verified_active_authority_structured_identities"] == 0
+
+
+def test_authority_reference_without_owned_authority_record_is_ambiguous():
+    jobs, sources, records = _fixture("needs_review")
+    records.pop()
+    records[0]["source_refs"].append({"filename": "Manuale_del_Giocatore.pdf"})
+
+    result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
+
+    pair = result["unidirectional_pairs"][0]
+    assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
+    assert pair["classification_requires_review"] is True
+    assert pair["mixed_records_with_active_authority_same_identity"] == 0
