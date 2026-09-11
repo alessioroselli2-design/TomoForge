@@ -19,11 +19,20 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from scripts.audit_manual_import_readiness import fetch_all
+from scripts.evaluate_text_extraction_quality import (
+    EMPTY_TEXT,
+    TEXT_USABLE,
+    VISION_REVIEW_REQUIRED,
+)
 
 READY = "READY_FOR_BOUNDED_OCR_PILOT"
 PROVENANCE_REVIEW = "NEEDS_PROVENANCE_REVIEW"
 STRUCTURED = "HAS_EXISTING_STRUCTURED_EVIDENCE"
 NOT_ELIGIBLE = "NOT_ELIGIBLE"
+
+PREFLIGHT_REQUIRED = "PREFLIGHT_REQUIRED"
+NATIVE_TEXT_REVIEW = "NATIVE_TEXT_PARSER_REVIEW"
+VISION_PILOT_REVIEW = "VISION_OCR_PILOT_REVIEW"
 
 
 def _norm(value: Any) -> str:
@@ -36,12 +45,27 @@ def _activity(job: dict[str, Any]) -> int:
     ))
 
 
+def _text_preflight_path(result: dict[str, Any] | None) -> str:
+    """Return the next review path implied by optional text-quality evidence."""
+    if not result:
+        return PREFLIGHT_REQUIRED
+    classification = str(result.get("classification") or "").strip()
+    if classification == TEXT_USABLE:
+        return NATIVE_TEXT_REVIEW
+    if classification in {VISION_REVIEW_REQUIRED, EMPTY_TEXT}:
+        return VISION_PILOT_REVIEW
+    return PREFLIGHT_REQUIRED
+
+
 def summarize_bounded_ocr_pilot_candidates(
-    sources: list[dict[str, Any]], jobs: list[dict[str, Any]]
+    sources: list[dict[str, Any]],
+    jobs: list[dict[str, Any]],
+    text_quality_by_source_id: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     sources_by_sha: dict[str, list[dict[str, Any]]] = defaultdict(list)
     sources_by_logical: dict[str, list[dict[str, Any]]] = defaultdict(list)
     jobs_by_sha: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    text_quality_by_source_id = text_quality_by_source_id or {}
 
     for source in sources:
         sha = _norm(source.get("physical_sha256"))
@@ -103,6 +127,7 @@ def summarize_bounded_ocr_pilot_candidates(
 
         pages = source.get("physical_pages")
         page_count = int(pages) if pages not in (None, "") else None
+        preflight = text_quality_by_source_id.get(source_id)
         rows.append({
             "source_id": source_id,
             "physical_filename": source.get("physical_filename"),
@@ -119,6 +144,12 @@ def summarize_bounded_ocr_pilot_candidates(
             "same_sha_logical_source_count": len(sha_logical_ids),
             "classification": classification,
             "classification_reason": reason,
+            "text_quality_preflight_classification": (
+                preflight.get("classification") if preflight else None
+            ),
+            "recommended_review_path": (
+                _text_preflight_path(preflight) if classification == READY else None
+            ),
             "requires_manual_review": classification != READY,
         })
 
@@ -131,12 +162,15 @@ def summarize_bounded_ocr_pilot_candidates(
     ))
     counts = {name: sum(row["classification"] == name for row in rows) for name in priority}
     ready = [row for row in rows if row["classification"] == READY]
+    recommended = ready[0] if ready else None
     return {
         "classification_counts": counts,
         "ready_candidates_ranked": ready,
         "all_sources": rows,
-        "recommended_pilot_source_id": ready[0]["source_id"] if ready else None,
+        "recommended_pilot_source_id": recommended["source_id"] if recommended else None,
+        "recommended_next_step": recommended["recommended_review_path"] if recommended else None,
         "recommendation_is_execution_authorization": False,
+        "text_quality_preflight_is_required_before_parser_or_vision_execution": True,
         "ocr_authorized": False,
         "translation_authorized": False,
         "external_paid_api_authorized": False,
