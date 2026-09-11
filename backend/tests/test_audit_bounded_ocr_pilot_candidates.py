@@ -1,9 +1,17 @@
 from scripts.audit_bounded_ocr_pilot_candidates import (
+    NATIVE_TEXT_REVIEW,
     NOT_ELIGIBLE,
+    PREFLIGHT_REQUIRED,
     PROVENANCE_REVIEW,
     READY,
     STRUCTURED,
+    VISION_PILOT_REVIEW,
     summarize_bounded_ocr_pilot_candidates,
+)
+from scripts.evaluate_text_extraction_quality import (
+    EMPTY_TEXT,
+    TEXT_USABLE,
+    VISION_REVIEW_REQUIRED,
 )
 
 
@@ -31,11 +39,47 @@ def test_unique_active_authority_is_ranked_ready_without_authorizing_ocr():
 
     assert result["classification_counts"][READY] == 1
     assert result["recommended_pilot_source_id"] == "src-ready"
+    assert result["recommended_next_step"] == PREFLIGHT_REQUIRED
     assert result["ready_candidates_ranked"][0]["classification"] == READY
+    assert result["text_quality_preflight_is_required_before_parser_or_vision_execution"] is True
     assert result["ocr_authorized"] is False
     assert result["external_paid_api_authorized"] is False
     assert result["database_write_authorized"] is False
     assert result["canonicalization_authorized"] is False
+
+
+def test_usable_preflight_routes_ready_candidate_to_native_text_review():
+    quality = {"src-ready": {"classification": TEXT_USABLE}}
+
+    result = summarize_bounded_ocr_pilot_candidates([_source()], [], quality)
+
+    row = result["ready_candidates_ranked"][0]
+    assert row["text_quality_preflight_classification"] == TEXT_USABLE
+    assert row["recommended_review_path"] == NATIVE_TEXT_REVIEW
+    assert result["recommended_next_step"] == NATIVE_TEXT_REVIEW
+    assert result["ocr_authorized"] is False
+
+
+def test_corrupt_or_empty_preflight_routes_ready_candidate_to_vision_review():
+    for quality_classification in (VISION_REVIEW_REQUIRED, EMPTY_TEXT):
+        quality = {"src-ready": {"classification": quality_classification}}
+        result = summarize_bounded_ocr_pilot_candidates([_source()], [], quality)
+
+        row = result["ready_candidates_ranked"][0]
+        assert row["text_quality_preflight_classification"] == quality_classification
+        assert row["recommended_review_path"] == VISION_PILOT_REVIEW
+        assert result["recommended_next_step"] == VISION_PILOT_REVIEW
+        assert result["recommendation_is_execution_authorization"] is False
+        assert result["ocr_authorized"] is False
+
+
+def test_unknown_preflight_classification_cannot_bypass_preflight():
+    quality = {"src-ready": {"classification": "UNRECOGNIZED"}}
+
+    result = summarize_bounded_ocr_pilot_candidates([_source()], [], quality)
+
+    assert result["recommended_next_step"] == PREFLIGHT_REQUIRED
+    assert result["ready_candidates_ranked"][0]["recommended_review_path"] == PREFLIGHT_REQUIRED
 
 
 def test_same_sha_across_different_logical_sources_requires_provenance_review():
