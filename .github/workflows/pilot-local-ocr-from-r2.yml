@@ -47,6 +47,7 @@ jobs:
         run: |
           python backend/scripts/pilot_local_ocr_from_r2.py \
             --filename "847921086-Manuale-Dei-Mostri-5e.pdf" \
+            --expected-sha256 "d3f7ee63b8870154167d12290c6336f256a765103fd19084a952e5d03c2c4dc5" \
             --start-page 12 \
             --page-count 12 \
             --output-dir /tmp/mm-local-ocr-pilot
