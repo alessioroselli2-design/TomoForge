@@ -2,14 +2,16 @@
 """Run a bounded, read-only local Tesseract OCR pilot on one private R2 PDF.
 
 No Supabase writes and no external AI APIs are used. The script downloads one
-manual to the ephemeral runner, renders only the requested page window, runs
-two local Tesseract layout modes, and persists metrics only. OCR source text
-stays ephemeral and is never uploaded as a workflow artifact.
+manual to the ephemeral runner, verifies the downloaded bytes against the
+expected registry SHA-256, renders only the requested page window, runs two
+local Tesseract layout modes, and persists metrics only. OCR source text stays
+ephemeral and is never uploaded as a workflow artifact.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -36,6 +38,7 @@ _STRUCTURAL_MARKERS = (
     "carisma",
     "azioni",
 )
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _word_tokens(text: str) -> list[str]:
@@ -112,6 +115,21 @@ def _agreement_metrics(primary: str, comparison: str) -> dict[str, Any]:
     return metrics
 
 
+def _normalize_expected_sha256(value: str) -> str:
+    normalized = (value or "").strip().casefold()
+    if not _SHA256_RE.fullmatch(normalized):
+        raise ValueError("--expected-sha256 must be exactly 64 hexadecimal characters")
+    return normalized
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _run_tesseract(image_path: Path, languages: str, psm: int) -> str:
     command = [
         "tesseract",
@@ -136,6 +154,11 @@ def _run_tesseract(image_path: Path, languages: str, psm: int) -> str:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Bounded local OCR pilot for an R2 manual")
     parser.add_argument("--filename", required=True)
+    parser.add_argument(
+        "--expected-sha256",
+        required=True,
+        help="SHA-256 recorded in the authoritative source registry",
+    )
     parser.add_argument("--start-page", type=int, required=True, help="1-based first PDF page")
     parser.add_argument("--page-count", type=int, default=12)
     parser.add_argument("--dpi", type=int, default=220)
@@ -156,6 +179,11 @@ def main() -> int:
         return 2
     if args.psm == args.comparison_psm:
         print("--psm and --comparison-psm must differ", file=sys.stderr)
+        return 2
+    try:
+        expected_sha256 = _normalize_expected_sha256(args.expected_sha256)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
         return 2
 
     # Defense in depth: this pilot must never consume hosted AI credits.
@@ -180,6 +208,15 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="tomoforge-ocr-") as tmp:
         pdf_path = Path(tmp) / safe_name
         client.download_file(bucket, metadata["key"], str(pdf_path))
+        actual_sha256 = _sha256_file(pdf_path)
+        if actual_sha256 != expected_sha256:
+            print(
+                "R2 PDF SHA-256 mismatch: "
+                f"expected={expected_sha256} actual={actual_sha256} filename={safe_name}",
+                file=sys.stderr,
+            )
+            return 1
+
         document = fitz.open(pdf_path)
         last_page = min(document.page_count, args.start_page - 1 + args.page_count)
         if args.start_page > document.page_count:
@@ -222,6 +259,9 @@ def main() -> int:
         "filename": safe_name,
         "r2_key": metadata["key"],
         "size_bytes": metadata["size"],
+        "expected_sha256": expected_sha256,
+        "actual_sha256": actual_sha256,
+        "sha256_verified": True,
         "start_page": args.start_page,
         "page_count_requested": args.page_count,
         "page_count_processed": len(pages),
