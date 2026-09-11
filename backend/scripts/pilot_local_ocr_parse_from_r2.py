@@ -49,6 +49,59 @@ def _record_summary(records: list[dict]) -> dict[str, Any]:
     }
 
 
+def _core_values_match(left: dict, right: dict) -> bool:
+    """Mirror the conservative agreement check without exposing source text."""
+
+    def norm(value: object) -> str:
+        return " ".join(str(value or "").casefold().split())
+
+    left_attributes = left.get("attributes") or {}
+    right_attributes = right.get("attributes") or {}
+    return all(
+        norm(left_attributes.get(field)) == norm(right_attributes.get(field))
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    )
+
+
+def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) -> dict[str, int]:
+    """Explain agreement failures using counts only, never private OCR content."""
+    same_page = 0
+    same_name = 0
+    exact_key = 0
+    exact_key_core_match = 0
+
+    for record in primary:
+        start_page = int(record.get("start_page") or 0)
+        normalized_name = str(record.get("normalized_name") or "")
+        same_page_matches = [
+            other
+            for other in comparison
+            if int(other.get("start_page") or 0) == start_page
+        ]
+        same_name_matches = [
+            other
+            for other in comparison
+            if str(other.get("normalized_name") or "") == normalized_name
+        ]
+        exact_matches = [
+            other
+            for other in same_page_matches
+            if str(other.get("normalized_name") or "") == normalized_name
+        ]
+
+        same_page += int(bool(same_page_matches))
+        same_name += int(bool(same_name_matches))
+        exact_key += int(bool(exact_matches))
+        exact_key_core_match += int(any(_core_values_match(record, other) for other in exact_matches))
+
+    return {
+        "monster_primary_with_same_start_page_candidate": same_page,
+        "monster_primary_with_same_name_candidate": same_name,
+        "monster_primary_with_exact_key_candidate": exact_key,
+        "monster_primary_with_exact_key_and_core_match": exact_key_core_match,
+    }
+
+
 def _monster_parser_summary(
     primary_pages: list[tuple[int, str]],
     comparison_pages: list[tuple[int, str]],
@@ -63,6 +116,7 @@ def _monster_parser_summary(
         "monster_candidates_primary": len(primary),
         "monster_candidates_comparison": len(comparison),
         "monster_candidates_independently_agreed": len(agreed),
+        **_monster_agreement_diagnostics(primary, comparison),
     }
 
 
