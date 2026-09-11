@@ -1,4 +1,8 @@
-from scripts.pilot_local_ocr_parse_from_r2 import _monster_parser_summary, _record_summary
+from scripts.pilot_local_ocr_parse_from_r2 import (
+    _monster_agreement_diagnostics,
+    _monster_parser_summary,
+    _record_summary,
+)
 
 
 def test_record_summary_exposes_only_aggregate_parser_metrics():
@@ -55,6 +59,10 @@ Morso. Attacco con arma da mischia.
         "monster_candidates_primary": 1,
         "monster_candidates_comparison": 1,
         "monster_candidates_independently_agreed": 1,
+        "monster_primary_with_same_start_page_candidate": 1,
+        "monster_primary_with_same_name_candidate": 1,
+        "monster_primary_with_exact_key_candidate": 1,
+        "monster_primary_with_exact_key_and_core_match": 1,
     }
     serialized = str(summary)
     assert "LUPO TERRIBILE" not in serialized
@@ -80,3 +88,29 @@ Morso. Attacco con arma da mischia.
     assert summary["monster_candidates_primary"] == 1
     assert summary["monster_candidates_comparison"] == 1
     assert summary["monster_candidates_independently_agreed"] == 0
+    assert summary["monster_primary_with_exact_key_candidate"] == 1
+    assert summary["monster_primary_with_exact_key_and_core_match"] == 0
+
+
+def test_agreement_diagnostics_separate_page_name_and_core_failures_without_exposing_text():
+    base = {
+        "start_page": 12,
+        "normalized_name": "private monster",
+        "attributes": {
+            "classe_armatura": "14",
+            "punti_ferita": "37 (5d10+10)",
+            "velocita": "15 m",
+        },
+    }
+    different_name = {
+        **base,
+        "normalized_name": "private monste r",
+    }
+    diagnostics = _monster_agreement_diagnostics([base], [different_name])
+    assert diagnostics == {
+        "monster_primary_with_same_start_page_candidate": 1,
+        "monster_primary_with_same_name_candidate": 0,
+        "monster_primary_with_exact_key_candidate": 0,
+        "monster_primary_with_exact_key_and_core_match": 0,
+    }
+    assert "private monster" not in str(diagnostics)
