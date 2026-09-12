@@ -8,8 +8,8 @@ if str(SERVICES) not in sys.path:
 from monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
 
 
-def _goblin_text(ac="15 (armatura di cuoio, scudo)"):
-    return f"""GOBLIN
+def _goblin_text(ac="15 (armatura di cuoio, scudo)", title="GOBLIN"):
+    return f"""{title}
 Piccolo umanoide (goblinoide), neutrale malvagio
 Classe Armatura {ac}
 Punti Ferita 7 (2d6)
@@ -80,3 +80,55 @@ def test_requires_independent_ocr_agreement_on_core_stats():
 def test_missing_core_marker_is_fail_closed():
     text = _goblin_text().replace("Punti Ferita 7 (2d6)\n", "")
     assert parse_monster_statblocks([(166, text)], "manuale.pdf") == []
+
+
+def test_innocuous_ocr_separators_in_same_name_match_without_changing_provenance_or_review():
+    primary = parse_monster_statblocks([(166, _goblin_text())], "manuale.pdf")
+    comparison = parse_monster_statblocks(
+        [(166, _goblin_text(title="G Ó B L I N"))],
+        "manuale.pdf",
+    )
+
+    agreed = agreed_monster_records(primary, comparison)
+
+    assert len(agreed) == 1
+    assert agreed[0]["source_refs"] == primary[0]["source_refs"]
+    assert "ocr_da_verificare" in agreed[0]["review_flags"]
+    assert "ocr_independent_agreement" in agreed[0]["review_flags"]
+
+
+def test_internal_ocr_separator_in_same_name_matches():
+    primary = parse_monster_statblocks([(166, _goblin_text())], "manuale.pdf")
+    comparison = parse_monster_statblocks(
+        [(166, _goblin_text(title="GOB|LIN"))],
+        "manuale.pdf",
+    )
+
+    assert len(agreed_monster_records(primary, comparison)) == 1
+
+
+def test_different_or_incomplete_name_does_not_match_on_same_page():
+    primary = parse_monster_statblocks([(166, _goblin_text())], "manuale.pdf")
+    different = parse_monster_statblocks(
+        [(166, _goblin_text(title="HOBGOBLIN"))],
+        "manuale.pdf",
+    )
+    missing_word_primary = parse_monster_statblocks(
+        [(166, _goblin_text(title="GOBLIN REALE"))],
+        "manuale.pdf",
+    )
+
+    assert agreed_monster_records(primary, different) == []
+    assert agreed_monster_records(missing_word_primary, primary) == []
+
+
+def test_multiple_same_page_candidates_require_one_unique_exact_name_match():
+    primary = parse_monster_statblocks([(166, _goblin_text())], "manuale.pdf")
+    exact = parse_monster_statblocks([(166, _goblin_text())], "manuale.pdf")[0]
+    other = parse_monster_statblocks(
+        [(166, _goblin_text(title="HOBGOBLIN"))],
+        "manuale.pdf",
+    )[0]
+
+    assert len(agreed_monster_records(primary, [exact, other])) == 1
+    assert agreed_monster_records(primary, [exact, dict(exact)]) == []
