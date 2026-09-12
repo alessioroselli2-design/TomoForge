@@ -63,6 +63,9 @@ Morso. Attacco con arma da mischia.
         "monster_primary_with_same_name_candidate": 1,
         "monster_primary_with_exact_key_candidate": 1,
         "monster_primary_with_exact_key_and_core_match": 1,
+        "monster_exact_key_classe_armatura_match": 1,
+        "monster_exact_key_punti_ferita_match": 1,
+        "monster_exact_key_velocita_match": 1,
     }
     serialized = str(summary)
     assert "LUPO TERRIBILE" not in serialized
@@ -90,6 +93,9 @@ Morso. Attacco con arma da mischia.
     assert summary["monster_candidates_independently_agreed"] == 0
     assert summary["monster_primary_with_exact_key_candidate"] == 1
     assert summary["monster_primary_with_exact_key_and_core_match"] == 0
+    assert summary["monster_exact_key_classe_armatura_match"] == 0
+    assert summary["monster_exact_key_punti_ferita_match"] == 1
+    assert summary["monster_exact_key_velocita_match"] == 1
 
 
 def test_agreement_diagnostics_separate_page_name_and_core_failures_without_exposing_text():
@@ -112,5 +118,8 @@ def test_agreement_diagnostics_separate_page_name_and_core_failures_without_expo
         "monster_primary_with_same_name_candidate": 0,
         "monster_primary_with_exact_key_candidate": 0,
         "monster_primary_with_exact_key_and_core_match": 0,
+        "monster_exact_key_classe_armatura_match": 0,
+        "monster_exact_key_punti_ferita_match": 0,
+        "monster_exact_key_velocita_match": 0,
     }
     assert "private monster" not in str(diagnostics)
