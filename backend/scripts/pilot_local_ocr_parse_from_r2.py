@@ -114,17 +114,15 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
                     for other in exact_matches
                 )
             )
-
-        for other in exact_matches:
-            semantic_matches = semantic_core_field_matches(
-                left_attributes,
-                other.get("attributes") or {},
-            )
-            for field in semantic_core_field_matches_count:
-                semantic_core_field_matches_count[field] = max(
-                    semantic_core_field_matches_count[field],
-                    int(semantic_matches[f"{field}_semantic_match"]),
+            semantic_core_field_matches_count[field] += int(
+                any(
+                    semantic_core_field_matches(
+                        left_attributes,
+                        other.get("attributes") or {},
+                    )[f"{field}_semantic_match"]
+                    for other in exact_matches
                 )
+            )
 
     return {
         "monster_primary_with_same_start_page_candidate": same_page,
