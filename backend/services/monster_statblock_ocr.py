@@ -11,6 +11,8 @@ before persisting any candidate.
 from __future__ import annotations
 
 import re
+import unicodedata
+from collections import defaultdict
 from hashlib import sha256
 from typing import Iterable
 
@@ -75,6 +77,20 @@ _STRUCTURAL_PREFIXES = (
 
 def _norm(value: str) -> str:
     return normalize_reference_name(clean_text(value or ""))
+
+
+def _normalize_monster_name(value: str) -> str:
+    """Normalize only unambiguous OCR separators in a monster heading."""
+    value = "".join(char for char in value or "" if unicodedata.category(char) != "Cf")
+    value = re.sub(r"(?<=\w)[|¦](?=\w)", "", value)
+
+    # OCR sometimes emits letter-spaced all-caps headings. Rejoin only runs of
+    # at least three standalone uppercase letters; ordinary multiword headings
+    # and two-letter initials retain their word boundaries.
+    letter_spaced_heading = re.compile(r"(?:[A-ZÀ-ÖØ-Þ]\s+){2,}[A-ZÀ-ÖØ-Þ]")
+    if letter_spaced_heading.fullmatch(value.strip()):
+        value = re.sub(r"\s+", "", value)
+    return normalize_reference_name(value)
 
 
 def _line_is_descriptor(line: str) -> bool:
@@ -267,7 +283,7 @@ def parse_monster_statblocks(
             continue
         title_index, title, descriptor = header
         start_page = flattened[title_index][0]
-        normalized = normalize_reference_name(title)
+        normalized = _normalize_monster_name(title)
         key = (start_page, normalized)
         if not normalized or key in seen:
             continue
@@ -284,7 +300,7 @@ def parse_monster_statblocks(
         attributes = _attributes(block_text, descriptor)
         if not _core_attributes_are_complete(attributes):
             continue
-        normalized_name = normalize_reference_name(title)
+        normalized_name = _normalize_monster_name(title)
         touched_pages = sorted({page for page, line in block_pairs if line})
         source_refs = [
             {
@@ -325,16 +341,17 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
     normalization.  The returned record keeps the primary transcription but is
     tagged with an explicit independent-agreement flag.
     """
-    comparison_by_key = {
-        (int(record.get("start_page") or 0), record.get("normalized_name")): record
-        for record in comparison
-    }
+    comparison_by_key: dict[tuple[int, str], list[dict]] = defaultdict(list)
+    for record in comparison:
+        key = (int(record.get("start_page") or 0), str(record.get("normalized_name") or ""))
+        comparison_by_key[key].append(record)
     agreed: list[dict] = []
     for record in primary:
-        key = (int(record.get("start_page") or 0), record.get("normalized_name"))
-        other = comparison_by_key.get(key)
-        if not other:
+        key = (int(record.get("start_page") or 0), str(record.get("normalized_name") or ""))
+        matches = comparison_by_key.get(key, [])
+        if len(matches) != 1:
             continue
+        other = matches[0]
         left = record.get("attributes") or {}
         right = other.get("attributes") or {}
         if any(
