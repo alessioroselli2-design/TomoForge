@@ -61,6 +61,7 @@ Morso. Attacco con arma da mischia.
         "monster_candidates_independently_agreed": 1,
         "monster_primary_with_same_start_page_candidate": 1,
         "monster_primary_with_same_name_candidate": 1,
+        "monster_primary_with_same_page_boundary_name_candidate": 1,
         "monster_primary_with_exact_key_candidate": 1,
         "monster_primary_with_exact_key_and_core_match": 1,
         "monster_exact_key_classe_armatura_match": 1,
@@ -122,6 +123,7 @@ def test_agreement_diagnostics_separate_page_name_and_core_failures_without_expo
     assert diagnostics == {
         "monster_primary_with_same_start_page_candidate": 1,
         "monster_primary_with_same_name_candidate": 0,
+        "monster_primary_with_same_page_boundary_name_candidate": 1,
         "monster_primary_with_exact_key_candidate": 0,
         "monster_primary_with_exact_key_and_core_match": 0,
         "monster_exact_key_classe_armatura_match": 0,
