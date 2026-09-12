@@ -23,6 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from reference_library import extract_reference_records
 from scripts.pilot_local_ocr_from_r2 import _agreement_metrics, _run_tesseract
+from services.monster_name_diagnostics import compact_name_boundary_match
 from services.monster_semantic_diagnostics import semantic_core_field_matches
 from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
 
@@ -68,6 +69,7 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
     """Explain agreement failures using counts only, never private OCR content."""
     same_page = 0
     same_name = 0
+    same_page_boundary_name = 0
     exact_key = 0
     exact_key_core_match = 0
     core_field_matches = {
@@ -102,6 +104,15 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
 
         same_page += int(bool(same_page_matches))
         same_name += int(bool(same_name_matches))
+        same_page_boundary_name += int(
+            any(
+                compact_name_boundary_match(
+                    normalized_name,
+                    str(other.get("normalized_name") or ""),
+                )
+                for other in same_page_matches
+            )
+        )
         exact_key += int(bool(exact_matches))
         exact_key_core_match += int(any(_core_values_match(record, other) for other in exact_matches))
 
@@ -127,6 +138,7 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
     return {
         "monster_primary_with_same_start_page_candidate": same_page,
         "monster_primary_with_same_name_candidate": same_name,
+        "monster_primary_with_same_page_boundary_name_candidate": same_page_boundary_name,
         "monster_primary_with_exact_key_candidate": exact_key,
         "monster_primary_with_exact_key_and_core_match": exact_key_core_match,
         "monster_exact_key_classe_armatura_match": core_field_matches["classe_armatura"],
