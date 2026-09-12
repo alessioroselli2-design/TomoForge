@@ -49,16 +49,16 @@ def _record_summary(records: list[dict]) -> dict[str, Any]:
     }
 
 
+def _norm_value(value: object) -> str:
+    return " ".join(str(value or "").casefold().split())
+
+
 def _core_values_match(left: dict, right: dict) -> bool:
     """Mirror the conservative agreement check without exposing source text."""
-
-    def norm(value: object) -> str:
-        return " ".join(str(value or "").casefold().split())
-
     left_attributes = left.get("attributes") or {}
     right_attributes = right.get("attributes") or {}
     return all(
-        norm(left_attributes.get(field)) == norm(right_attributes.get(field))
+        _norm_value(left_attributes.get(field)) == _norm_value(right_attributes.get(field))
         for field in ("classe_armatura", "punti_ferita", "velocita")
     )
 
@@ -69,6 +69,11 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
     same_name = 0
     exact_key = 0
     exact_key_core_match = 0
+    core_field_matches = {
+        "classe_armatura": 0,
+        "punti_ferita": 0,
+        "velocita": 0,
+    }
 
     for record in primary:
         start_page = int(record.get("start_page") or 0)
@@ -94,11 +99,24 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         exact_key += int(bool(exact_matches))
         exact_key_core_match += int(any(_core_values_match(record, other) for other in exact_matches))
 
+        left_attributes = record.get("attributes") or {}
+        for field in core_field_matches:
+            core_field_matches[field] += int(
+                any(
+                    _norm_value(left_attributes.get(field))
+                    == _norm_value((other.get("attributes") or {}).get(field))
+                    for other in exact_matches
+                )
+            )
+
     return {
         "monster_primary_with_same_start_page_candidate": same_page,
         "monster_primary_with_same_name_candidate": same_name,
         "monster_primary_with_exact_key_candidate": exact_key,
         "monster_primary_with_exact_key_and_core_match": exact_key_core_match,
+        "monster_exact_key_classe_armatura_match": core_field_matches["classe_armatura"],
+        "monster_exact_key_punti_ferita_match": core_field_matches["punti_ferita"],
+        "monster_exact_key_velocita_match": core_field_matches["velocita"],
     }
 
 
