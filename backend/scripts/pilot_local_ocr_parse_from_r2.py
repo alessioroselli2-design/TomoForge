@@ -23,6 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from reference_library import extract_reference_records
 from scripts.pilot_local_ocr_from_r2 import _agreement_metrics, _run_tesseract
+from services.monster_semantic_diagnostics import semantic_core_field_matches
 from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
 
 
@@ -74,6 +75,11 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "punti_ferita": 0,
         "velocita": 0,
     }
+    semantic_core_field_matches_count = {
+        "classe_armatura": 0,
+        "punti_ferita": 0,
+        "velocita": 0,
+    }
 
     for record in primary:
         start_page = int(record.get("start_page") or 0)
@@ -108,6 +114,15 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
                     for other in exact_matches
                 )
             )
+            semantic_core_field_matches_count[field] += int(
+                any(
+                    semantic_core_field_matches(
+                        left_attributes,
+                        other.get("attributes") or {},
+                    )[f"{field}_semantic_match"]
+                    for other in exact_matches
+                )
+            )
 
     return {
         "monster_primary_with_same_start_page_candidate": same_page,
@@ -117,6 +132,9 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "monster_exact_key_classe_armatura_match": core_field_matches["classe_armatura"],
         "monster_exact_key_punti_ferita_match": core_field_matches["punti_ferita"],
         "monster_exact_key_velocita_match": core_field_matches["velocita"],
+        "monster_exact_key_classe_armatura_semantic_match": semantic_core_field_matches_count["classe_armatura"],
+        "monster_exact_key_punti_ferita_semantic_match": semantic_core_field_matches_count["punti_ferita"],
+        "monster_exact_key_velocita_semantic_match": semantic_core_field_matches_count["velocita"],
     }
 
 
