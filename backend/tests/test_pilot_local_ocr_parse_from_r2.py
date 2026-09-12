@@ -66,6 +66,9 @@ Morso. Attacco con arma da mischia.
         "monster_exact_key_classe_armatura_match": 1,
         "monster_exact_key_punti_ferita_match": 1,
         "monster_exact_key_velocita_match": 1,
+        "monster_exact_key_classe_armatura_semantic_match": 1,
+        "monster_exact_key_punti_ferita_semantic_match": 1,
+        "monster_exact_key_velocita_semantic_match": 1,
     }
     serialized = str(summary)
     assert "LUPO TERRIBILE" not in serialized
@@ -96,6 +99,9 @@ Morso. Attacco con arma da mischia.
     assert summary["monster_exact_key_classe_armatura_match"] == 0
     assert summary["monster_exact_key_punti_ferita_match"] == 1
     assert summary["monster_exact_key_velocita_match"] == 1
+    assert summary["monster_exact_key_classe_armatura_semantic_match"] == 0
+    assert summary["monster_exact_key_punti_ferita_semantic_match"] == 1
+    assert summary["monster_exact_key_velocita_semantic_match"] == 1
 
 
 def test_agreement_diagnostics_separate_page_name_and_core_failures_without_exposing_text():
@@ -121,5 +127,41 @@ def test_agreement_diagnostics_separate_page_name_and_core_failures_without_expo
         "monster_exact_key_classe_armatura_match": 0,
         "monster_exact_key_punti_ferita_match": 0,
         "monster_exact_key_velocita_match": 0,
+        "monster_exact_key_classe_armatura_semantic_match": 0,
+        "monster_exact_key_punti_ferita_semantic_match": 0,
+        "monster_exact_key_velocita_semantic_match": 0,
     }
     assert "private monster" not in str(diagnostics)
+
+
+def test_agreement_diagnostics_counts_semantic_matches_without_persisting_source_values():
+    primary = {
+        "start_page": 12,
+        "normalized_name": "private monster",
+        "attributes": {
+            "classe_armatura": "14 (armatura naturale)",
+            "punti_ferita": "37 (5d10+10)",
+            "velocita": "15 m, nuoto 9 m",
+        },
+    }
+    comparison = {
+        "start_page": 12,
+        "normalized_name": "private monster",
+        "attributes": {
+            "classe_armatura": "CA: 14 armatura naturale",
+            "punti_ferita": "PF 37; formula OCR differente",
+            "velocita": "Velocita 15m / nuoto 9m",
+        },
+    }
+    diagnostics = _monster_agreement_diagnostics([primary], [comparison])
+    assert diagnostics["monster_primary_with_exact_key_and_core_match"] == 0
+    assert diagnostics["monster_exact_key_classe_armatura_match"] == 0
+    assert diagnostics["monster_exact_key_punti_ferita_match"] == 0
+    assert diagnostics["monster_exact_key_velocita_match"] == 0
+    assert diagnostics["monster_exact_key_classe_armatura_semantic_match"] == 1
+    assert diagnostics["monster_exact_key_punti_ferita_semantic_match"] == 1
+    assert diagnostics["monster_exact_key_velocita_semantic_match"] == 1
+    serialized = str(diagnostics)
+    assert "armatura naturale" not in serialized
+    assert "formula OCR" not in serialized
+    assert "nuoto" not in serialized
