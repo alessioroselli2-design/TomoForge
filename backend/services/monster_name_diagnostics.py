@@ -58,3 +58,19 @@ def compact_name_single_edit_match(left_normalized: object, right_normalized: ob
     if long_index < len(longer):
         edits += 1
     return edits == 1
+
+
+def compact_name_containment_match(left_normalized: object, right_normalized: object) -> bool:
+    """Detect a strict compact-name containment relationship.
+
+    This diagnostic identifies likely missing or extra OCR fragments without
+    fuzzy matching. Whitespace is removed first; exact matches and empty values
+    never match. The shorter compact name must contain at least four characters
+    to avoid classifying tiny OCR fragments as meaningful containment.
+    """
+    left = _compact(left_normalized)
+    right = _compact(right_normalized)
+    if not left or not right or left == right:
+        return False
+    shorter, longer = (left, right) if len(left) < len(right) else (right, left)
+    return len(shorter) >= 4 and shorter in longer
