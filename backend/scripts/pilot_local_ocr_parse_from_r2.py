@@ -28,7 +28,10 @@ from services.monster_name_diagnostics import (
     compact_name_containment_match,
     compact_name_single_edit_match,
 )
-from services.monster_semantic_diagnostics import semantic_core_field_matches
+from services.monster_semantic_diagnostics import (
+    deterministic_core_field_matches,
+    semantic_core_field_matches,
+)
 from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
 
 
@@ -77,6 +80,7 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
     same_page_single_edit_name = 0
     same_page_containment_name = 0
     same_page_containment_core_match = 0
+    same_page_containment_deterministic_core_match = 0
     exact_key = 0
     exact_key_core_match = 0
     core_field_matches = {
@@ -95,6 +99,11 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "velocita": 0,
     }
     containment_semantic_core_field_matches = {
+        "classe_armatura": 0,
+        "punti_ferita": 0,
+        "velocita": 0,
+    }
+    containment_deterministic_core_field_matches = {
         "classe_armatura": 0,
         "punti_ferita": 0,
         "velocita": 0,
@@ -155,6 +164,20 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         exact_key_core_match += int(any(_core_values_match(record, other) for other in exact_matches))
 
         left_attributes = record.get("attributes") or {}
+        deterministic_results = [
+            deterministic_core_field_matches(left_attributes, other.get("attributes") or {})
+            for other in containment_matches
+        ]
+        same_page_containment_deterministic_core_match += int(
+            any(
+                all(
+                    result[f"{field}_deterministic_match"]
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                )
+                for result in deterministic_results
+            )
+        )
+
         for field in core_field_matches:
             core_field_matches[field] += int(
                 any(
@@ -188,6 +211,9 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
                     for other in containment_matches
                 )
             )
+            containment_deterministic_core_field_matches[field] += int(
+                any(result[f"{field}_deterministic_match"] for result in deterministic_results)
+            )
 
     return {
         "monster_primary_with_same_start_page_candidate": same_page,
@@ -196,6 +222,7 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "monster_primary_with_same_page_single_edit_name_candidate": same_page_single_edit_name,
         "monster_primary_with_same_page_containment_name_candidate": same_page_containment_name,
         "monster_primary_with_same_page_containment_and_core_match": same_page_containment_core_match,
+        "monster_primary_with_same_page_containment_and_deterministic_core_match": same_page_containment_deterministic_core_match,
         "monster_containment_classe_armatura_match": containment_core_field_matches[
             "classe_armatura"
         ],
@@ -203,6 +230,15 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
             "punti_ferita"
         ],
         "monster_containment_velocita_match": containment_core_field_matches["velocita"],
+        "monster_containment_classe_armatura_deterministic_match": containment_deterministic_core_field_matches[
+            "classe_armatura"
+        ],
+        "monster_containment_punti_ferita_deterministic_match": containment_deterministic_core_field_matches[
+            "punti_ferita"
+        ],
+        "monster_containment_velocita_deterministic_match": containment_deterministic_core_field_matches[
+            "velocita"
+        ],
         "monster_containment_classe_armatura_semantic_match": containment_semantic_core_field_matches[
             "classe_armatura"
         ],

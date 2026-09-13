@@ -65,9 +65,13 @@ Morso. Attacco con arma da mischia.
         "monster_primary_with_same_page_single_edit_name_candidate": 0,
         "monster_primary_with_same_page_containment_name_candidate": 0,
         "monster_primary_with_same_page_containment_and_core_match": 0,
+        "monster_primary_with_same_page_containment_and_deterministic_core_match": 0,
         "monster_containment_classe_armatura_match": 0,
         "monster_containment_punti_ferita_match": 0,
         "monster_containment_velocita_match": 0,
+        "monster_containment_classe_armatura_deterministic_match": 0,
+        "monster_containment_punti_ferita_deterministic_match": 0,
+        "monster_containment_velocita_deterministic_match": 0,
         "monster_containment_classe_armatura_semantic_match": 0,
         "monster_containment_punti_ferita_semantic_match": 0,
         "monster_containment_velocita_semantic_match": 0,
@@ -136,9 +140,13 @@ def test_agreement_diagnostics_separate_page_name_and_core_failures_without_expo
         "monster_primary_with_same_page_single_edit_name_candidate": 0,
         "monster_primary_with_same_page_containment_name_candidate": 0,
         "monster_primary_with_same_page_containment_and_core_match": 0,
+        "monster_primary_with_same_page_containment_and_deterministic_core_match": 0,
         "monster_containment_classe_armatura_match": 0,
         "monster_containment_punti_ferita_match": 0,
         "monster_containment_velocita_match": 0,
+        "monster_containment_classe_armatura_deterministic_match": 0,
+        "monster_containment_punti_ferita_deterministic_match": 0,
+        "monster_containment_velocita_deterministic_match": 0,
         "monster_containment_classe_armatura_semantic_match": 0,
         "monster_containment_punti_ferita_semantic_match": 0,
         "monster_containment_velocita_semantic_match": 0,
@@ -225,9 +233,9 @@ def test_containment_diagnostics_isolate_core_field_mismatch_without_exposing_na
         "start_page": 12,
         "normalized_name": "private monster alpha",
         "attributes": {
-            "classe_armatura": "14",
-            "punti_ferita": "PF 37; 5d10 + 10",
-            "velocita": "9 m",
+            "classe_armatura": "CA: 14",
+            "punti_ferita": "PF 37; 5 d 10 + 10",
+            "velocita": "Velocità: 9 metri",
         },
     }
 
@@ -235,9 +243,13 @@ def test_containment_diagnostics_isolate_core_field_mismatch_without_exposing_na
 
     assert diagnostics["monster_primary_with_same_page_containment_name_candidate"] == 1
     assert diagnostics["monster_primary_with_same_page_containment_and_core_match"] == 0
-    assert diagnostics["monster_containment_classe_armatura_match"] == 1
+    assert diagnostics["monster_primary_with_same_page_containment_and_deterministic_core_match"] == 0
+    assert diagnostics["monster_containment_classe_armatura_match"] == 0
     assert diagnostics["monster_containment_punti_ferita_match"] == 0
     assert diagnostics["monster_containment_velocita_match"] == 0
+    assert diagnostics["monster_containment_classe_armatura_deterministic_match"] == 1
+    assert diagnostics["monster_containment_punti_ferita_deterministic_match"] == 1
+    assert diagnostics["monster_containment_velocita_deterministic_match"] == 0
     assert diagnostics["monster_containment_classe_armatura_semantic_match"] == 1
     assert diagnostics["monster_containment_punti_ferita_semantic_match"] == 1
     assert diagnostics["monster_containment_velocita_semantic_match"] == 0
