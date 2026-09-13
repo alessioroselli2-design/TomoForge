@@ -14,9 +14,18 @@ from typing import Mapping
 
 _INTEGER_RE = re.compile(r"\d+")
 _FIELD_PREFIXES = {
-    "classe_armatura": re.compile(r"^(?:classe\s+armatura|ca)\s*[:\-]?\s*", re.IGNORECASE),
-    "punti_ferita": re.compile(r"^(?:punti\s+ferita|pf)\s*[:\-]?\s*", re.IGNORECASE),
-    "velocita": re.compile(r"^(?:velocit[aà]|vel)\s*[:\-]?\s*", re.IGNORECASE),
+    "classe_armatura": re.compile(
+        r"^(?:classe\s+armatura|ca)(?=$|[\s:\-])\s*[:\-]?\s*",
+        re.IGNORECASE,
+    ),
+    "punti_ferita": re.compile(
+        r"^(?:punti\s+ferita|pf)(?=$|[\s:\-])\s*[:\-]?\s*",
+        re.IGNORECASE,
+    ),
+    "velocita": re.compile(
+        r"^(?:velocit[aà]|vel)(?=$|[\s:\-])\s*[:\-]?\s*",
+        re.IGNORECASE,
+    ),
 }
 _PUNCTUATION_RE = re.compile(r"[()\[\]{},;:/|]")
 _DICE_RE = re.compile(r"(?<=\d)\s*d\s*(?=\d)", re.IGNORECASE)
@@ -35,10 +44,11 @@ def _deterministic_normalized_value(field: str, value: object) -> str | None:
     """Normalize presentation-only OCR differences while failing closed.
 
     Only deterministic, field-scoped cleanup is applied: Unicode compatibility,
-    known field-label prefixes, common punctuation, meter spelling, dice spacing,
-    sign spacing, and whitespace. Unknown words are preserved, so unexpected OCR
-    text cannot disappear and accidentally create a match. Values with no digits
-    are rejected instead of being considered equal.
+    known field-label prefixes delimited by whitespace/punctuation/end-of-string,
+    common punctuation, meter spelling, dice spacing, sign spacing, and
+    whitespace. Unknown words are preserved, so unexpected OCR text cannot
+    disappear and accidentally create a match. Values with no digits are
+    rejected instead of being considered equal.
     """
     text = unicodedata.normalize("NFKC", str(value or "")).casefold().strip()
     if not text:
