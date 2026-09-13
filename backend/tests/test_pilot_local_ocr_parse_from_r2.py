@@ -62,6 +62,7 @@ Morso. Attacco con arma da mischia.
         "monster_primary_with_same_start_page_candidate": 1,
         "monster_primary_with_same_name_candidate": 1,
         "monster_primary_with_same_page_boundary_name_candidate": 1,
+        "monster_primary_with_same_page_single_edit_name_candidate": 0,
         "monster_primary_with_exact_key_candidate": 1,
         "monster_primary_with_exact_key_and_core_match": 1,
         "monster_exact_key_classe_armatura_match": 1,
@@ -124,6 +125,7 @@ def test_agreement_diagnostics_separate_page_name_and_core_failures_without_expo
         "monster_primary_with_same_start_page_candidate": 1,
         "monster_primary_with_same_name_candidate": 0,
         "monster_primary_with_same_page_boundary_name_candidate": 1,
+        "monster_primary_with_same_page_single_edit_name_candidate": 0,
         "monster_primary_with_exact_key_candidate": 0,
         "monster_primary_with_exact_key_and_core_match": 0,
         "monster_exact_key_classe_armatura_match": 0,
@@ -134,6 +136,30 @@ def test_agreement_diagnostics_separate_page_name_and_core_failures_without_expo
         "monster_exact_key_velocita_semantic_match": 0,
     }
     assert "private monster" not in str(diagnostics)
+
+
+def test_agreement_diagnostics_counts_single_edit_name_only_as_aggregate():
+    primary = {
+        "start_page": 12,
+        "normalized_name": "private monster",
+        "attributes": {},
+    }
+    comparison = {
+        "start_page": 12,
+        "normalized_name": "private monater",
+        "attributes": {},
+    }
+
+    diagnostics = _monster_agreement_diagnostics([primary], [comparison])
+
+    assert diagnostics["monster_primary_with_same_start_page_candidate"] == 1
+    assert diagnostics["monster_primary_with_same_name_candidate"] == 0
+    assert diagnostics["monster_primary_with_same_page_boundary_name_candidate"] == 0
+    assert diagnostics["monster_primary_with_same_page_single_edit_name_candidate"] == 1
+    assert diagnostics["monster_primary_with_exact_key_candidate"] == 0
+    serialized = str(diagnostics)
+    assert "private monster" not in serialized
+    assert "private monater" not in serialized
 
 
 def test_agreement_diagnostics_counts_semantic_matches_without_persisting_source_values():
