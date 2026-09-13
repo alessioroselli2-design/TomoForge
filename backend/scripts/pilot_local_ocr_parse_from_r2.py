@@ -76,6 +76,7 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
     same_page_boundary_name = 0
     same_page_single_edit_name = 0
     same_page_containment_name = 0
+    same_page_containment_core_match = 0
     exact_key = 0
     exact_key_core_match = 0
     core_field_matches = {
@@ -84,6 +85,16 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "velocita": 0,
     }
     semantic_core_field_matches_count = {
+        "classe_armatura": 0,
+        "punti_ferita": 0,
+        "velocita": 0,
+    }
+    containment_core_field_matches = {
+        "classe_armatura": 0,
+        "punti_ferita": 0,
+        "velocita": 0,
+    }
+    containment_semantic_core_field_matches = {
         "classe_armatura": 0,
         "punti_ferita": 0,
         "velocita": 0,
@@ -107,6 +118,14 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
             for other in same_page_matches
             if str(other.get("normalized_name") or "") == normalized_name
         ]
+        containment_matches = [
+            other
+            for other in same_page_matches
+            if compact_name_containment_match(
+                normalized_name,
+                str(other.get("normalized_name") or ""),
+            )
+        ]
 
         same_page += int(bool(same_page_matches))
         same_name += int(bool(same_name_matches))
@@ -128,14 +147,9 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
                 for other in same_page_matches
             )
         )
-        same_page_containment_name += int(
-            any(
-                compact_name_containment_match(
-                    normalized_name,
-                    str(other.get("normalized_name") or ""),
-                )
-                for other in same_page_matches
-            )
+        same_page_containment_name += int(bool(containment_matches))
+        same_page_containment_core_match += int(
+            any(_core_values_match(record, other) for other in containment_matches)
         )
         exact_key += int(bool(exact_matches))
         exact_key_core_match += int(any(_core_values_match(record, other) for other in exact_matches))
@@ -158,6 +172,22 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
                     for other in exact_matches
                 )
             )
+            containment_core_field_matches[field] += int(
+                any(
+                    _norm_value(left_attributes.get(field))
+                    == _norm_value((other.get("attributes") or {}).get(field))
+                    for other in containment_matches
+                )
+            )
+            containment_semantic_core_field_matches[field] += int(
+                any(
+                    semantic_core_field_matches(
+                        left_attributes,
+                        other.get("attributes") or {},
+                    )[f"{field}_semantic_match"]
+                    for other in containment_matches
+                )
+            )
 
     return {
         "monster_primary_with_same_start_page_candidate": same_page,
@@ -165,6 +195,23 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "monster_primary_with_same_page_boundary_name_candidate": same_page_boundary_name,
         "monster_primary_with_same_page_single_edit_name_candidate": same_page_single_edit_name,
         "monster_primary_with_same_page_containment_name_candidate": same_page_containment_name,
+        "monster_primary_with_same_page_containment_and_core_match": same_page_containment_core_match,
+        "monster_containment_classe_armatura_match": containment_core_field_matches[
+            "classe_armatura"
+        ],
+        "monster_containment_punti_ferita_match": containment_core_field_matches[
+            "punti_ferita"
+        ],
+        "monster_containment_velocita_match": containment_core_field_matches["velocita"],
+        "monster_containment_classe_armatura_semantic_match": containment_semantic_core_field_matches[
+            "classe_armatura"
+        ],
+        "monster_containment_punti_ferita_semantic_match": containment_semantic_core_field_matches[
+            "punti_ferita"
+        ],
+        "monster_containment_velocita_semantic_match": containment_semantic_core_field_matches[
+            "velocita"
+        ],
         "monster_primary_with_exact_key_candidate": exact_key,
         "monster_primary_with_exact_key_and_core_match": exact_key_core_match,
         "monster_exact_key_classe_armatura_match": core_field_matches["classe_armatura"],
