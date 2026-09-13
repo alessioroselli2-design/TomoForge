@@ -106,6 +106,25 @@ def test_deterministic_core_normalization_preserves_unknown_text_and_disagreemen
     }
 
 
+def test_deterministic_core_normalization_does_not_strip_prefix_inside_unknown_text():
+    left = {
+        "classe_armatura": "CAfoo 14",
+        "punti_ferita": "PFbar 37",
+        "velocita": "VELbaz 12 m",
+    }
+    right = {
+        "classe_armatura": "foo 14",
+        "punti_ferita": "bar 37",
+        "velocita": "baz 12 m",
+    }
+
+    assert deterministic_core_field_matches(left, right) == {
+        "classe_armatura_deterministic_match": False,
+        "punti_ferita_deterministic_match": False,
+        "velocita_deterministic_match": False,
+    }
+
+
 def test_deterministic_core_normalization_fails_closed_without_numeric_content():
     empty = {
         "classe_armatura": "CA sconosciuta",
