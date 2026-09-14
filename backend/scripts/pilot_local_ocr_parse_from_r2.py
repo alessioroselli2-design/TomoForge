@@ -33,6 +33,7 @@ from services.monster_semantic_diagnostics import (
     deterministic_core_field_matches,
     semantic_core_field_matches,
 )
+from services.monster_speed_token_diagnostics import speed_extra_token_agreement_counts
 from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
 
 
@@ -280,6 +281,7 @@ def _monster_parser_summary(
     }
     if include_residual_single_edit:
         summary.update(residual_single_edit_agreement_counts(primary, comparison))
+        summary.update(speed_extra_token_agreement_counts(primary, comparison))
     return summary
 
 
