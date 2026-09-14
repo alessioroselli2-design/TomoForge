@@ -209,6 +209,37 @@ def _extra_tokens_are_parenthetical(extras: Counter[str], source_value: object) 
     return extras <= _parenthetical_alpha_token_counter(source_value)
 
 
+def _single_extra_alpha_token_profile(
+    left: tuple[str, ...], right: tuple[str, ...]
+) -> tuple[bool, bool, bool]:
+    """Classify one unambiguous extra token by short length and edge position.
+
+    The token itself never leaves this helper. If there is more than one extra
+    token instance, or removing the extra token could match in multiple places,
+    all signals fail closed.
+    """
+    extras, extras_on_right = _extra_alphabetic_token_counter(left, right)
+    if sum(extras.values()) != 1:
+        return False, False, False
+
+    token = next(iter(extras))
+    longer = right if extras_on_right else left
+    shorter = left if extras_on_right else right
+    if len(longer) != len(shorter) + 1:
+        return False, False, False
+
+    positions = [
+        index
+        for index, candidate in enumerate(longer)
+        if candidate == token and longer[:index] + longer[index + 1 :] == shorter
+    ]
+    if len(positions) != 1:
+        return False, False, False
+
+    index = positions[0]
+    return len(token) < 3, index == 0, index == len(longer) - 1
+
+
 def _has_non_alphanumeric_only_variation(left: str, right: str) -> bool:
     """Detect residuals caused only by punctuation, symbols, spaces, or format chars."""
     if not left or not right or left == right:
@@ -270,6 +301,9 @@ def residual_shape_core_field_matches(
         word_order_variation = False
         known_manual_label_extra_alpha_tokens = False
         parenthetical_extra_alpha_tokens = False
+        single_extra_alpha_token_short_lt3 = False
+        single_extra_alpha_token_prefix = False
+        single_extra_alpha_token_suffix = False
         non_alphanumeric_only_variation = False
 
         if pair is not None:
@@ -298,6 +332,11 @@ def residual_shape_core_field_matches(
                     extras,
                     source_value,
                 )
+                (
+                    single_extra_alpha_token_short_lt3,
+                    single_extra_alpha_token_prefix,
+                    single_extra_alpha_token_suffix,
+                ) = _single_extra_alpha_token_profile(left_tokens, right_tokens)
 
             if field == "classe_armatura":
                 non_alphanumeric_only_variation = _has_non_alphanumeric_only_variation(
@@ -314,6 +353,15 @@ def residual_shape_core_field_matches(
         )
         result[f"{field}_residual_parenthetical_extra_alpha_tokens"] = (
             parenthetical_extra_alpha_tokens
+        )
+        result[f"{field}_residual_single_extra_alpha_token_short_lt3"] = (
+            single_extra_alpha_token_short_lt3
+        )
+        result[f"{field}_residual_single_extra_alpha_token_prefix"] = (
+            single_extra_alpha_token_prefix
+        )
+        result[f"{field}_residual_single_extra_alpha_token_suffix"] = (
+            single_extra_alpha_token_suffix
         )
         result[f"{field}_residual_non_alphanumeric_only_variation"] = (
             non_alphanumeric_only_variation
@@ -440,10 +488,16 @@ def residual_shape_agreement_counts(
         "punti_ferita": {
             "known_manual_label_extra_alpha_tokens": 0,
             "parenthetical_extra_alpha_tokens": 0,
+            "single_extra_alpha_token_short_lt3": 0,
+            "single_extra_alpha_token_prefix": 0,
+            "single_extra_alpha_token_suffix": 0,
         },
         "velocita": {
             "known_manual_label_extra_alpha_tokens": 0,
             "parenthetical_extra_alpha_tokens": 0,
+            "single_extra_alpha_token_short_lt3": 0,
+            "single_extra_alpha_token_prefix": 0,
+            "single_extra_alpha_token_suffix": 0,
         },
     }
 
