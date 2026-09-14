@@ -43,13 +43,28 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Monster Manual parser on local OCR
+      - name: Dry-run Monster Manual parser on pages 12-23
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "847921086-Manuale-Dei-Mostri-5e.pdf" \
             --start-page 12 \
             --page-count 12 \
-            --output-dir /tmp/mm-local-ocr-parser-pilot
+            --output-dir /tmp/mm-local-ocr-parser-pilot/window-12-23
+
+      - name: Dry-run Monster Manual parser on pages 24-35
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "847921086-Manuale-Dei-Mostri-5e.pdf" \
+            --start-page 24 \
+            --page-count 12 \
+            --output-dir /tmp/mm-local-ocr-parser-pilot/window-24-35
+
+      - name: Combine privacy-safe aggregate reports
+        run: |
+          python backend/scripts/combine_local_ocr_parser_reports.py \
+            --report /tmp/mm-local-ocr-parser-pilot/window-12-23/report.json \
+            --report /tmp/mm-local-ocr-parser-pilot/window-24-35/report.json \
+            --output /tmp/mm-local-ocr-parser-pilot/report.json
 
       - name: Upload aggregate parser report
         uses: actions/upload-artifact@v4
