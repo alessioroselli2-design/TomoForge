@@ -300,8 +300,14 @@ def test_residual_single_edit_counts_return_only_aggregate_numbers():
         "monster_containment_classe_armatura_residual_non_alphanumeric_only_variation": 0,
         "monster_containment_punti_ferita_residual_known_manual_label_extra_alpha_tokens": 0,
         "monster_containment_punti_ferita_residual_parenthetical_extra_alpha_tokens": 0,
+        "monster_containment_punti_ferita_residual_single_extra_alpha_token_short_lt3": 0,
+        "monster_containment_punti_ferita_residual_single_extra_alpha_token_prefix": 0,
+        "monster_containment_punti_ferita_residual_single_extra_alpha_token_suffix": 0,
         "monster_containment_velocita_residual_known_manual_label_extra_alpha_tokens": 0,
         "monster_containment_velocita_residual_parenthetical_extra_alpha_tokens": 0,
+        "monster_containment_velocita_residual_single_extra_alpha_token_short_lt3": 0,
+        "monster_containment_velocita_residual_single_extra_alpha_token_prefix": 0,
+        "monster_containment_velocita_residual_single_extra_alpha_token_suffix": 0,
     }
     assert all(isinstance(value, int) for value in result.values())
     serialized = str(result)
