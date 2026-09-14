@@ -43,13 +43,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Boo's Astral Menagerie parser on pages 12-23
+      - name: Dry-run Boo's structural diagnostic on pages 12-23 excluding page 21
         run: |
-          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+          python backend/scripts/pilot_boos_structural_diagnostics_from_r2.py \
             --filename "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf" \
-            --start-page 12 \
-            --page-count 12 \
-            --source-language en \
             --output-dir /tmp/boos-astral-menagerie-pilot
 
       - name: Upload aggregate parser report
