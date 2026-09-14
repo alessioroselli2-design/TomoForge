@@ -76,7 +76,7 @@ def test_english_ocr_other_is_promoted_to_review_monster(tmp_path):
     assert record["source_refs"][0]["page"] == 1
 
 
-def test_missing_core_field_stays_other(tmp_path):
+def test_missing_core_field_is_never_promoted_to_monster(tmp_path):
     path = _blank_pdf(tmp_path)
     incomplete = ENGLISH_MONSTER.replace("Speed 30 ft., fly 40 ft.\n", "")
 
@@ -89,14 +89,13 @@ def test_missing_core_field_stays_other(tmp_path):
         source_language="en",
     )
 
-    matches = [
+    promoted = [
         record
         for record in report.records
         if record.get("normalized_name") == "astral stalker"
+        and record.get("reference_type") == "monster"
     ]
-    assert len(matches) == 1
-    assert matches[0]["reference_type"] == "other"
-    assert "ocr_da_verificare" in matches[0]["review_flags"]
+    assert promoted == []
 
 
 def test_non_english_ocr_is_not_reclassified_by_bridge():
