@@ -43,34 +43,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Monstrous Compendium Vol. 4 Eldraine pages 34-60 in bounded windows
+      - name: Dry-run Monstrous Compendium Vol. 1 Spelljammer pages 3-13
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "701858566-RRN5YRR.pdf" \
-            --start-page 34 \
-            --page-count 9 \
+            --start-page 3 \
+            --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/eldraine-pilot/window-34-42
-          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "701858566-RRN5YRR.pdf" \
-            --start-page 43 \
-            --page-count 9 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/eldraine-pilot/window-43-51
-          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "701858566-RRN5YRR.pdf" \
-            --start-page 52 \
-            --page-count 9 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/eldraine-pilot/window-52-60
+            --output-dir /tmp/spelljammer-compendium-v1-pilot/window-3-13
 
-      - name: Upload bounded parser reports
+      - name: Upload bounded parser report
         uses: actions/upload-artifact@v4
         with:
-          name: eldraine-pilot
-          path: /tmp/eldraine-pilot/**/report.json
+          name: spelljammer-compendium-v1-pilot
+          path: /tmp/spelljammer-compendium-v1-pilot/**/report.json
           if-no-files-found: error
           retention-days: 3
