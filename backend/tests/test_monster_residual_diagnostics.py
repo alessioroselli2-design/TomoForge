@@ -1,5 +1,7 @@
 from scripts.pilot_local_ocr_parse_from_r2 import _monster_parser_summary
 from services.monster_residual_diagnostics import (
+    residual_shape_agreement_counts,
+    residual_shape_core_field_matches,
     residual_single_edit_agreement_counts,
     residual_single_edit_core_field_matches,
 )
@@ -73,6 +75,134 @@ def test_residual_single_edit_requires_semantic_agreement_and_deterministic_disa
     }
 
 
+def test_residual_shape_classifies_two_edits_extra_tokens_and_word_order_in_parallel():
+    left = {
+        "classe_armatura": "14 abcdef",
+        "punti_ferita": "37 (5d10+10) robusto",
+        "velocita": "12 m volare rapido",
+    }
+    right = {
+        "classe_armatura": "14 abxyef",
+        "punti_ferita": "37 (5d10+10) robusto antico",
+        "velocita": "12 m rapido volare",
+    }
+
+    result = residual_shape_core_field_matches(left, right)
+
+    assert result["classe_armatura_residual_edit_distance_2_match"] is True
+    assert result["classe_armatura_residual_edit_distance_3_match"] is False
+    assert result["classe_armatura_residual_extra_alpha_tokens"] is False
+    assert result["classe_armatura_residual_word_order_variation"] is False
+
+    assert result["punti_ferita_residual_edit_distance_2_match"] is False
+    assert result["punti_ferita_residual_edit_distance_3_match"] is False
+    assert result["punti_ferita_residual_extra_alpha_tokens"] is True
+    assert result["punti_ferita_residual_word_order_variation"] is False
+
+    assert result["velocita_residual_edit_distance_2_match"] is False
+    assert result["velocita_residual_edit_distance_3_match"] is False
+    assert result["velocita_residual_extra_alpha_tokens"] is False
+    assert result["velocita_residual_word_order_variation"] is True
+
+    serialized = str(result)
+    assert "abcdef" not in serialized
+    assert "antico" not in serialized
+    assert "volare" not in serialized
+
+
+def test_residual_shape_distinguishes_exactly_three_edits():
+    left = {
+        "classe_armatura": "14 abcdef",
+        "punti_ferita": "37",
+        "velocita": "12 m",
+    }
+    right = {
+        "classe_armatura": "14 abcxyz",
+        "punti_ferita": "37",
+        "velocita": "12 m",
+    }
+
+    result = residual_shape_core_field_matches(left, right)
+
+    assert result["classe_armatura_residual_edit_distance_2_match"] is False
+    assert result["classe_armatura_residual_edit_distance_3_match"] is True
+
+
+def test_residual_shape_fails_closed_on_any_numeric_signature_change():
+    left = {
+        "classe_armatura": "14 abcdef",
+        "punti_ferita": "37 (5d10+10) robusto",
+        "velocita": "12 m volare rapido",
+    }
+    changed_numbers = {
+        "classe_armatura": "15 abxyef",
+        "punti_ferita": "37 (5d10+11) robusto antico",
+        "velocita": "13 m rapido volare",
+    }
+
+    result = residual_shape_core_field_matches(left, changed_numbers)
+
+    assert result
+    assert all(value is False for value in result.values())
+
+
+def test_residual_shape_fails_closed_on_missing_numeric_values():
+    left = {
+        "classe_armatura": "armatura abcdef",
+        "punti_ferita": "robusto",
+        "velocita": "volare rapido",
+    }
+    right = {
+        "classe_armatura": "armatura abxyef",
+        "punti_ferita": "robusto antico",
+        "velocita": "rapido volare",
+    }
+
+    result = residual_shape_core_field_matches(left, right)
+
+    assert result
+    assert all(value is False for value in result.values())
+
+
+def test_residual_shape_counts_only_same_page_containment_candidates():
+    primary = [
+        {
+            "start_page": 10,
+            "normalized_name": "mostro prova",
+            "attributes": {
+                "classe_armatura": "14 abcdef",
+                "punti_ferita": "37 (5d10+10) robusto",
+                "velocita": "12 m volare rapido",
+            },
+        }
+    ]
+    comparison = [
+        {
+            "start_page": 10,
+            "normalized_name": "mostro prova alpha",
+            "attributes": {
+                "classe_armatura": "14 abxyef",
+                "punti_ferita": "37 (5d10+10) robusto antico",
+                "velocita": "12 m rapido volare",
+            },
+        }
+    ]
+
+    result = residual_shape_agreement_counts(primary, comparison)
+
+    assert result["monster_containment_classe_armatura_residual_edit_distance_2_match"] == 1
+    assert result["monster_containment_classe_armatura_residual_edit_distance_3_match"] == 0
+    assert result["monster_containment_classe_armatura_residual_extra_alpha_tokens"] == 0
+    assert result["monster_containment_classe_armatura_residual_word_order_variation"] == 0
+    assert result["monster_containment_punti_ferita_residual_extra_alpha_tokens"] == 1
+    assert result["monster_containment_velocita_residual_word_order_variation"] == 1
+    assert all(isinstance(value, int) for value in result.values())
+    serialized = str(result)
+    assert "mostro prova" not in serialized
+    assert "abcdef" not in serialized
+    assert "antico" not in serialized
+
+
 def test_residual_single_edit_counts_return_only_aggregate_numbers():
     primary = [
         {
@@ -107,6 +237,18 @@ def test_residual_single_edit_counts_return_only_aggregate_numbers():
         "monster_exact_key_classe_armatura_residual_single_edit_match": 1,
         "monster_exact_key_punti_ferita_residual_single_edit_match": 1,
         "monster_exact_key_velocita_residual_single_edit_match": 1,
+        "monster_containment_classe_armatura_residual_edit_distance_2_match": 0,
+        "monster_containment_classe_armatura_residual_edit_distance_3_match": 0,
+        "monster_containment_classe_armatura_residual_extra_alpha_tokens": 0,
+        "monster_containment_classe_armatura_residual_word_order_variation": 0,
+        "monster_containment_punti_ferita_residual_edit_distance_2_match": 0,
+        "monster_containment_punti_ferita_residual_edit_distance_3_match": 0,
+        "monster_containment_punti_ferita_residual_extra_alpha_tokens": 0,
+        "monster_containment_punti_ferita_residual_word_order_variation": 0,
+        "monster_containment_velocita_residual_edit_distance_2_match": 0,
+        "monster_containment_velocita_residual_edit_distance_3_match": 0,
+        "monster_containment_velocita_residual_extra_alpha_tokens": 0,
+        "monster_containment_velocita_residual_word_order_variation": 0,
     }
     assert all(isinstance(value, int) for value in result.values())
     serialized = str(result)
@@ -145,9 +287,13 @@ Morso. Attacco con arma da mischia.
     )
 
     key = "monster_exact_key_classe_armatura_residual_single_edit_match"
+    shape_key = "monster_containment_classe_armatura_residual_edit_distance_2_match"
     assert key not in default_summary
+    assert shape_key not in default_summary
     assert key in residual_summary
+    assert shape_key in residual_summary
     assert residual_summary[key] == 0
+    assert residual_summary[shape_key] == 0
     assert all(
         isinstance(value, int)
         for name, value in residual_summary.items()
