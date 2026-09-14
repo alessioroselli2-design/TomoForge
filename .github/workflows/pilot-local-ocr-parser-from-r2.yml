@@ -43,48 +43,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Tortle Package pages 1-10
+      - name: Dry-run Monstrous Compendium Volume Three pages 28-33
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "368524312-The-Tortle-Package.pdf" \
-            --start-page 1 \
-            --page-count 10 \
+            --filename "701858566-RRN5YRR.pdf" \
+            --start-page 28 \
+            --page-count 6 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/tortle-package-pilot/window-1
-
-      - name: Dry-run Tortle Package pages 11-20
-        run: |
-          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "368524312-The-Tortle-Package.pdf" \
-            --start-page 11 \
-            --page-count 10 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/tortle-package-pilot/window-2
-
-      - name: Dry-run Tortle Package pages 21-28
-        run: |
-          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "368524312-The-Tortle-Package.pdf" \
-            --start-page 21 \
-            --page-count 8 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/tortle-package-pilot/window-3
-
-      - name: Combine bounded reports
-        run: |
-          python backend/scripts/combine_local_ocr_parser_reports.py \
-            --report /tmp/tortle-package-pilot/window-1/report.json \
-            --report /tmp/tortle-package-pilot/window-2/report.json \
-            --report /tmp/tortle-package-pilot/window-3/report.json \
-            --output /tmp/tortle-package-pilot/report.json
+            --output-dir /tmp/minecraft-compendium-pilot
 
       - name: Upload aggregate parser report
         uses: actions/upload-artifact@v4
         with:
-          name: tortle-package-pilot
-          path: /tmp/tortle-package-pilot/report.json
+          name: minecraft-compendium-pilot
+          path: /tmp/minecraft-compendium-pilot/report.json
           if-no-files-found: error
           retention-days: 3
