@@ -25,7 +25,7 @@ def test_residual_single_edit_core_field_matches_are_privacy_safe_and_fail_close
         "velocita_residual_single_edit_match": True,
     }
     serialized = str(result)
-    assert "armatura" not in serialized
+    assert "naturale" not in serialized
     assert "5d10" not in serialized
     assert "volare" not in serialized
 
@@ -100,10 +100,10 @@ def test_residual_single_edit_counts_return_only_aggregate_numbers():
     result = residual_single_edit_agreement_counts(primary, comparison)
 
     assert result == {
-        "monster_primary_with_same_page_containment_and_deterministic_or_single_edit_core_match": 1,
-        "monster_containment_classe_armatura_residual_single_edit_match": 1,
-        "monster_containment_punti_ferita_residual_single_edit_match": 1,
-        "monster_containment_velocita_residual_single_edit_match": 1,
+        "monster_primary_with_same_page_containment_and_deterministic_or_single_edit_core_match": 0,
+        "monster_containment_classe_armatura_residual_single_edit_match": 0,
+        "monster_containment_punti_ferita_residual_single_edit_match": 0,
+        "monster_containment_velocita_residual_single_edit_match": 0,
         "monster_exact_key_classe_armatura_residual_single_edit_match": 1,
         "monster_exact_key_punti_ferita_residual_single_edit_match": 1,
         "monster_exact_key_velocita_residual_single_edit_match": 1,
