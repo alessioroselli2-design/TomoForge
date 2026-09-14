@@ -110,6 +110,52 @@ def test_residual_shape_classifies_two_edits_extra_tokens_and_word_order_in_para
     assert "volare" not in serialized
 
 
+def test_residual_shape_refines_known_manual_labels_parentheses_and_ca_symbols():
+    left = {
+        "classe_armatura": "14 armatura naturale.",
+        "punti_ferita": "37 (5d10+10)",
+        "velocita": "12 m, 24 m",
+    }
+    right = {
+        "classe_armatura": "14 armatura naturale",
+        "punti_ferita": "37 (5d10+10) dadi",
+        "velocita": "12 m, 24 m (volare)",
+    }
+
+    result = residual_shape_core_field_matches(left, right)
+
+    assert result["classe_armatura_residual_non_alphanumeric_only_variation"] is True
+    assert result["punti_ferita_residual_known_manual_label_extra_alpha_tokens"] is True
+    assert result["punti_ferita_residual_parenthetical_extra_alpha_tokens"] is False
+    assert result["velocita_residual_known_manual_label_extra_alpha_tokens"] is True
+    assert result["velocita_residual_parenthetical_extra_alpha_tokens"] is True
+
+    serialized = str(result)
+    assert "naturale" not in serialized
+    assert "dadi" not in serialized
+    assert "volare" not in serialized
+
+
+def test_residual_shape_known_manual_label_requires_all_extra_tokens_to_be_known():
+    left = {
+        "classe_armatura": "14 armatura naturale",
+        "punti_ferita": "37 (5d10+10)",
+        "velocita": "12 m, 24 m",
+    }
+    right = {
+        "classe_armatura": "14 armatura naturale",
+        "punti_ferita": "37 (5d10+10) dadi misterioso",
+        "velocita": "12 m, 24 m volare misterioso",
+    }
+
+    result = residual_shape_core_field_matches(left, right)
+
+    assert result["punti_ferita_residual_extra_alpha_tokens"] is True
+    assert result["punti_ferita_residual_known_manual_label_extra_alpha_tokens"] is False
+    assert result["velocita_residual_extra_alpha_tokens"] is True
+    assert result["velocita_residual_known_manual_label_extra_alpha_tokens"] is False
+
+
 def test_residual_shape_distinguishes_exactly_three_edits():
     left = {
         "classe_armatura": "14 abcdef",
@@ -170,9 +216,9 @@ def test_residual_shape_counts_only_same_page_containment_candidates():
             "start_page": 10,
             "normalized_name": "mostro prova",
             "attributes": {
-                "classe_armatura": "14 abcdef",
-                "punti_ferita": "37 (5d10+10) robusto",
-                "velocita": "12 m volare rapido",
+                "classe_armatura": "14 armatura naturale.",
+                "punti_ferita": "37 (5d10+10)",
+                "velocita": "12 m, 24 m",
             },
         }
     ]
@@ -181,26 +227,28 @@ def test_residual_shape_counts_only_same_page_containment_candidates():
             "start_page": 10,
             "normalized_name": "mostro prova alpha",
             "attributes": {
-                "classe_armatura": "14 abxyef",
-                "punti_ferita": "37 (5d10+10) robusto antico",
-                "velocita": "12 m rapido volare",
+                "classe_armatura": "14 armatura naturale",
+                "punti_ferita": "37 (5d10+10) dadi",
+                "velocita": "12 m, 24 m (volare)",
             },
         }
     ]
 
     result = residual_shape_agreement_counts(primary, comparison)
 
-    assert result["monster_containment_classe_armatura_residual_edit_distance_2_match"] == 1
-    assert result["monster_containment_classe_armatura_residual_edit_distance_3_match"] == 0
-    assert result["monster_containment_classe_armatura_residual_extra_alpha_tokens"] == 0
-    assert result["monster_containment_classe_armatura_residual_word_order_variation"] == 0
+    assert result["monster_containment_classe_armatura_residual_non_alphanumeric_only_variation"] == 1
     assert result["monster_containment_punti_ferita_residual_extra_alpha_tokens"] == 1
-    assert result["monster_containment_velocita_residual_word_order_variation"] == 1
+    assert result["monster_containment_punti_ferita_residual_known_manual_label_extra_alpha_tokens"] == 1
+    assert result["monster_containment_punti_ferita_residual_parenthetical_extra_alpha_tokens"] == 0
+    assert result["monster_containment_velocita_residual_extra_alpha_tokens"] == 1
+    assert result["monster_containment_velocita_residual_known_manual_label_extra_alpha_tokens"] == 1
+    assert result["monster_containment_velocita_residual_parenthetical_extra_alpha_tokens"] == 1
     assert all(isinstance(value, int) for value in result.values())
     serialized = str(result)
     assert "mostro prova" not in serialized
-    assert "abcdef" not in serialized
-    assert "antico" not in serialized
+    assert "naturale" not in serialized
+    assert "dadi" not in serialized
+    assert "volare" not in serialized
 
 
 def test_residual_single_edit_counts_return_only_aggregate_numbers():
@@ -249,6 +297,11 @@ def test_residual_single_edit_counts_return_only_aggregate_numbers():
         "monster_containment_velocita_residual_edit_distance_3_match": 0,
         "monster_containment_velocita_residual_extra_alpha_tokens": 0,
         "monster_containment_velocita_residual_word_order_variation": 0,
+        "monster_containment_classe_armatura_residual_non_alphanumeric_only_variation": 0,
+        "monster_containment_punti_ferita_residual_known_manual_label_extra_alpha_tokens": 0,
+        "monster_containment_punti_ferita_residual_parenthetical_extra_alpha_tokens": 0,
+        "monster_containment_velocita_residual_known_manual_label_extra_alpha_tokens": 0,
+        "monster_containment_velocita_residual_parenthetical_extra_alpha_tokens": 0,
     }
     assert all(isinstance(value, int) for value in result.values())
     serialized = str(result)
@@ -288,12 +341,18 @@ Morso. Attacco con arma da mischia.
 
     key = "monster_exact_key_classe_armatura_residual_single_edit_match"
     shape_key = "monster_containment_classe_armatura_residual_edit_distance_2_match"
+    refinement_key = (
+        "monster_containment_classe_armatura_residual_non_alphanumeric_only_variation"
+    )
     assert key not in default_summary
     assert shape_key not in default_summary
+    assert refinement_key not in default_summary
     assert key in residual_summary
     assert shape_key in residual_summary
+    assert refinement_key in residual_summary
     assert residual_summary[key] == 0
     assert residual_summary[shape_key] == 0
+    assert residual_summary[refinement_key] == 0
     assert all(
         isinstance(value, int)
         for name, value in residual_summary.items()
