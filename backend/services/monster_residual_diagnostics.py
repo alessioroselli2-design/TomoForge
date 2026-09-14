@@ -8,6 +8,7 @@ returned data contains booleans or aggregate counts, never OCR text or values.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter
 from typing import Mapping
 
@@ -24,7 +25,63 @@ from services.monster_semantic_diagnostics import (
 
 _CORE_FIELDS = ("classe_armatura", "punti_ferita", "velocita")
 _ALPHA_TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
+_PARENTHETICAL_RE = re.compile(r"\(([^()]*)\)")
 _MAX_RESIDUAL_TEXT_LENGTH = 256
+
+_KNOWN_MANUAL_EXTRA_ALPHA_TOKENS = {
+    "punti_ferita": frozenset(
+        {
+            "d",
+            "dado",
+            "dadi",
+            "vita",
+            "pf",
+            "punti",
+            "ferita",
+            "ferite",
+            "media",
+            "medio",
+            "totale",
+            "hit",
+            "points",
+            "hp",
+            "die",
+            "dice",
+        }
+    ),
+    "velocita": frozenset(
+        {
+            "m",
+            "metro",
+            "metri",
+            "vel",
+            "velocita",
+            "velocità",
+            "camminare",
+            "cammino",
+            "scalare",
+            "arrampicarsi",
+            "nuotare",
+            "volare",
+            "scavare",
+            "fluttuare",
+            "walk",
+            "walking",
+            "climb",
+            "climbing",
+            "swim",
+            "swimming",
+            "fly",
+            "flying",
+            "burrow",
+            "burrowing",
+            "hover",
+            "ft",
+            "foot",
+            "feet",
+        }
+    ),
+}
 
 
 def _same_numeric_signature(left: object, right: object) -> bool:
@@ -99,13 +156,25 @@ def _alphabetic_tokens(value: str) -> tuple[str, ...]:
     return tuple(_ALPHA_TOKEN_RE.findall(value))
 
 
-def _has_extra_alphabetic_tokens(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
-    """Detect a strict token-multiset containment in either direction."""
+def _extra_alphabetic_token_counter(
+    left: tuple[str, ...], right: tuple[str, ...]
+) -> tuple[Counter[str], bool]:
+    """Return strict multiset extras and which side owns them, without text output."""
     left_counts = Counter(left)
     right_counts = Counter(right)
     if left_counts == right_counts:
-        return False
-    return bool(left_counts <= right_counts or right_counts <= left_counts)
+        return Counter(), False
+    if left_counts <= right_counts:
+        return right_counts - left_counts, True
+    if right_counts <= left_counts:
+        return left_counts - right_counts, False
+    return Counter(), False
+
+
+def _has_extra_alphabetic_tokens(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
+    """Detect a strict token-multiset containment in either direction."""
+    extras, _ = _extra_alphabetic_token_counter(left, right)
+    return bool(extras)
 
 
 def _has_word_order_variation(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
@@ -116,6 +185,37 @@ def _has_word_order_variation(left: tuple[str, ...], right: tuple[str, ...]) -> 
         and left != right
         and Counter(left) == Counter(right)
     )
+
+
+def _extra_tokens_are_known_manual_labels(field: str, extras: Counter[str]) -> bool:
+    """Require every residual token to belong to a conservative field allow-list."""
+    known = _KNOWN_MANUAL_EXTRA_ALPHA_TOKENS.get(field, frozenset())
+    return bool(extras and all(token in known for token in extras))
+
+
+def _parenthetical_alpha_token_counter(value: object) -> Counter[str]:
+    """Count alphabetic tokens inside parentheses in memory only."""
+    text = unicodedata.normalize("NFKC", str(value or "")).casefold()
+    tokens: Counter[str] = Counter()
+    for group in _PARENTHETICAL_RE.findall(text):
+        tokens.update(_alphabetic_tokens(group))
+    return tokens
+
+
+def _extra_tokens_are_parenthetical(extras: Counter[str], source_value: object) -> bool:
+    """Return true only when every residual token occurs inside parentheses."""
+    if not extras:
+        return False
+    return extras <= _parenthetical_alpha_token_counter(source_value)
+
+
+def _has_non_alphanumeric_only_variation(left: str, right: str) -> bool:
+    """Detect residuals caused only by punctuation, symbols, spaces, or format chars."""
+    if not left or not right or left == right:
+        return False
+    left_skeleton = "".join(char for char in left if char.isalnum())
+    right_skeleton = "".join(char for char in right if char.isalnum())
+    return bool(left_skeleton and left_skeleton == right_skeleton)
 
 
 def residual_single_edit_core_field_matches(
@@ -168,6 +268,10 @@ def residual_shape_core_field_matches(
         edit_distance = None
         extra_alpha_tokens = False
         word_order_variation = False
+        known_manual_label_extra_alpha_tokens = False
+        parenthetical_extra_alpha_tokens = False
+        non_alphanumeric_only_variation = False
+
         if pair is not None:
             left, right = pair
             edit_distance = _bounded_levenshtein_distance(left, right, max_distance=3)
@@ -176,10 +280,44 @@ def residual_shape_core_field_matches(
             extra_alpha_tokens = _has_extra_alphabetic_tokens(left_tokens, right_tokens)
             word_order_variation = _has_word_order_variation(left_tokens, right_tokens)
 
+            extras, extras_on_right = _extra_alphabetic_token_counter(
+                left_tokens,
+                right_tokens,
+            )
+            if field in _KNOWN_MANUAL_EXTRA_ALPHA_TOKENS:
+                known_manual_label_extra_alpha_tokens = _extra_tokens_are_known_manual_labels(
+                    field,
+                    extras,
+                )
+                source_value = (
+                    right_attributes.get(field)
+                    if extras_on_right
+                    else left_attributes.get(field)
+                )
+                parenthetical_extra_alpha_tokens = _extra_tokens_are_parenthetical(
+                    extras,
+                    source_value,
+                )
+
+            if field == "classe_armatura":
+                non_alphanumeric_only_variation = _has_non_alphanumeric_only_variation(
+                    left,
+                    right,
+                )
+
         result[f"{field}_residual_edit_distance_2_match"] = edit_distance == 2
         result[f"{field}_residual_edit_distance_3_match"] = edit_distance == 3
         result[f"{field}_residual_extra_alpha_tokens"] = extra_alpha_tokens
         result[f"{field}_residual_word_order_variation"] = word_order_variation
+        result[f"{field}_residual_known_manual_label_extra_alpha_tokens"] = (
+            known_manual_label_extra_alpha_tokens
+        )
+        result[f"{field}_residual_parenthetical_extra_alpha_tokens"] = (
+            parenthetical_extra_alpha_tokens
+        )
+        result[f"{field}_residual_non_alphanumeric_only_variation"] = (
+            non_alphanumeric_only_variation
+        )
 
     return result
 
@@ -295,6 +433,19 @@ def residual_shape_agreement_counts(
         field: {signal: 0 for signal in signals}
         for field in _CORE_FIELDS
     }
+    refinement_counts = {
+        "classe_armatura": {
+            "non_alphanumeric_only_variation": 0,
+        },
+        "punti_ferita": {
+            "known_manual_label_extra_alpha_tokens": 0,
+            "parenthetical_extra_alpha_tokens": 0,
+        },
+        "velocita": {
+            "known_manual_label_extra_alpha_tokens": 0,
+            "parenthetical_extra_alpha_tokens": 0,
+        },
+    }
 
     for record in primary:
         start_page = int(record.get("start_page") or 0)
@@ -323,8 +474,28 @@ def residual_shape_agreement_counts(
                     )
                 )
 
-    return {
+            for signal in refinement_counts.get(field, {}):
+                key = f"{field}_residual_{signal}"
+                refinement_counts[field][signal] += int(
+                    any(
+                        residual_shape_core_field_matches(
+                            left_attributes,
+                            other.get("attributes") or {},
+                        )[key]
+                        for other in containment_matches
+                    )
+                )
+
+    result = {
         f"monster_containment_{field}_residual_{signal}": counts[field][signal]
         for field in _CORE_FIELDS
         for signal in signals
     }
+    result.update(
+        {
+            f"monster_containment_{field}_residual_{signal}": value
+            for field, field_counts in refinement_counts.items()
+            for signal, value in field_counts.items()
+        }
+    )
+    return result
