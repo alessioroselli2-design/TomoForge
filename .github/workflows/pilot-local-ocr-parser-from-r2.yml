@@ -43,20 +43,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Monstrous Compendium Volume Three pages 28-33
+      - name: Dry-run Misplaced Monsters Volume One pages 61-67
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "701858566-RRN5YRR.pdf" \
-            --start-page 28 \
-            --page-count 6 \
+            --start-page 61 \
+            --page-count 7 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/minecraft-compendium-pilot
+            --output-dir /tmp/misplaced-monsters-pilot
 
       - name: Upload aggregate parser report
         uses: actions/upload-artifact@v4
         with:
-          name: minecraft-compendium-pilot
-          path: /tmp/minecraft-compendium-pilot/report.json
+          name: misplaced-monsters-pilot
+          path: /tmp/misplaced-monsters-pilot/report.json
           if-no-files-found: error
           retention-days: 3
