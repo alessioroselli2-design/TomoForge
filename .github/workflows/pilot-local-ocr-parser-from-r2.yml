@@ -43,16 +43,37 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Boo's structural diagnostic on pages 12-35 excluding page 21
+      - name: Dry-run Fiendish Folio pages 1-11
         run: |
-          python backend/scripts/pilot_boos_structural_diagnostics_from_r2.py \
-            --filename "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf" \
-            --output-dir /tmp/boos-astral-menagerie-pilot
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "1064688926-9-D-D-5e-Mordenkainen-s-Fiendish-Folio-Vol-1.pdf" \
+            --start-page 1 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/fiendish-folio-pilot/window-1
+
+      - name: Dry-run Fiendish Folio pages 12-22
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "1064688926-9-D-D-5e-Mordenkainen-s-Fiendish-Folio-Vol-1.pdf" \
+            --start-page 12 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/fiendish-folio-pilot/window-2
+
+      - name: Combine bounded reports
+        run: |
+          python backend/scripts/combine_local_ocr_parser_reports.py \
+            --report /tmp/fiendish-folio-pilot/window-1/report.json \
+            --report /tmp/fiendish-folio-pilot/window-2/report.json \
+            --output /tmp/fiendish-folio-pilot/report.json
 
       - name: Upload aggregate parser report
         uses: actions/upload-artifact@v4
         with:
-          name: boos-astral-menagerie-pilot
-          path: /tmp/boos-astral-menagerie-pilot/report.json
+          name: fiendish-folio-volume-1-pilot
+          path: /tmp/fiendish-folio-pilot/report.json
           if-no-files-found: error
           retention-days: 3
