@@ -59,6 +59,7 @@ Morso. Attacco con arma da mischia.
         "monster_candidates_primary": 1,
         "monster_candidates_comparison": 1,
         "monster_candidates_independently_agreed": 1,
+        "monster_candidates_guided_core_merged": 0,
         "monster_primary_with_same_start_page_candidate": 1,
         "monster_primary_with_same_name_candidate": 1,
         "monster_primary_with_same_page_boundary_name_candidate": 1,
@@ -89,6 +90,42 @@ Morso. Attacco con arma da mischia.
     assert "Morso" not in serialized
 
 
+def test_monster_parser_summary_counts_guided_containment_acceptance_only_as_aggregate():
+    primary = """MOSTRO PROVA
+Grande bestia, senza allineamento
+Classe Armatura 14 scudo
+Punti Ferita 37 (5d10+10)
+Velocità 9 m
+Azioni
+Morso. Attacco con arma da mischia.
+"""
+    comparison = """MOSTRO PROVA ALFA
+Grande bestia, senza allineamento
+Classe Armatura 14 + scudo
+Punti Ferita 37 (5d10+10) pf
+Velocità 9 m camminare terreno normale
+Azioni
+Morso. Attacco in mischia.
+"""
+
+    summary = _monster_parser_summary(
+        [(12, primary)],
+        [(12, comparison)],
+        "private-monster-manual.pdf",
+        "it",
+    )
+
+    assert summary["monster_candidates_primary"] == 1
+    assert summary["monster_candidates_comparison"] == 1
+    assert summary["monster_primary_with_same_page_containment_name_candidate"] == 1
+    assert summary["monster_candidates_independently_agreed"] == 1
+    assert summary["monster_candidates_guided_core_merged"] == 1
+    serialized = str(summary)
+    assert "MOSTRO PROVA" not in serialized
+    assert "camminare" not in serialized
+    assert "5d10" not in serialized
+
+
 def test_monster_parser_summary_rejects_core_stat_disagreement():
     primary = """LUPO TERRIBILE
 Grande bestia, senza allineamento
@@ -108,6 +145,7 @@ Morso. Attacco con arma da mischia.
     assert summary["monster_candidates_primary"] == 1
     assert summary["monster_candidates_comparison"] == 1
     assert summary["monster_candidates_independently_agreed"] == 0
+    assert summary["monster_candidates_guided_core_merged"] == 0
     assert summary["monster_primary_with_exact_key_candidate"] == 1
     assert summary["monster_primary_with_exact_key_and_core_match"] == 0
     assert summary["monster_exact_key_classe_armatura_match"] == 0

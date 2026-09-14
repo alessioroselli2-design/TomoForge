@@ -18,6 +18,7 @@ from typing import Iterable
 
 from reference_library import clean_text, compact_text, normalize_reference_name
 from services.monster_guided_matcher import guided_core_merge
+from services.monster_name_diagnostics import compact_name_containment_match
 
 _SIZE_WORDS = (
     "minuscolo",
@@ -337,31 +338,60 @@ def parse_monster_statblocks(
 def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[dict]:
     """Keep records independently supported by both OCR layout modes.
 
-    The normal path still requires exact normalized agreement on all three core
-    fields. When that path fails, one unique same-page/name candidate may use the
-    narrow guided matcher: semantic 1/1/1 plus only the proven residual shapes.
-    Guided matches retain manual review and are explicitly flagged.
+    Exact same-page/name matches keep the existing conservative path. If there is
+    no exact-name candidate, the guided path may consider exactly one same-page
+    strict name-containment candidate. That containment candidate is accepted only
+    when ``guided_core_merge`` passes all semantic and proven residual-shape gates.
+    Guided matches retain manual review and primary provenance.
     """
     comparison_by_key: dict[tuple[int, str], list[dict]] = defaultdict(list)
-    for record in comparison:
-        key = (int(record.get("start_page") or 0), str(record.get("normalized_name") or ""))
-        comparison_by_key[key].append(record)
+    comparison_by_page: dict[int, list[dict]] = defaultdict(list)
+    for other in comparison:
+        start_page = int(other.get("start_page") or 0)
+        normalized_name = str(other.get("normalized_name") or "")
+        comparison_by_key[(start_page, normalized_name)].append(other)
+        comparison_by_page[start_page].append(other)
+
     agreed: list[dict] = []
     for record in primary:
-        key = (int(record.get("start_page") or 0), str(record.get("normalized_name") or ""))
-        matches = comparison_by_key.get(key, [])
-        if len(matches) != 1:
+        start_page = int(record.get("start_page") or 0)
+        normalized_name = str(record.get("normalized_name") or "")
+        exact_matches = comparison_by_key.get((start_page, normalized_name), [])
+        guided_name_containment = False
+
+        if len(exact_matches) == 1:
+            other = exact_matches[0]
+        elif len(exact_matches) == 0:
+            containment_matches = [
+                other
+                for other in comparison_by_page.get(start_page, [])
+                if compact_name_containment_match(
+                    normalized_name,
+                    str(other.get("normalized_name") or ""),
+                )
+            ]
+            if len(containment_matches) != 1:
+                continue
+            other = containment_matches[0]
+            guided_name_containment = True
+        else:
             continue
-        other = matches[0]
+
         left = record.get("attributes") or {}
         right = other.get("attributes") or {}
         exact_core_match = not any(
             _norm(str(left.get(field) or "")) != _norm(str(right.get(field) or ""))
             for field in ("classe_armatura", "punti_ferita", "velocita")
         )
-        guided_values = None if exact_core_match else guided_core_merge(left, right)
-        if not exact_core_match and guided_values is None:
-            continue
+
+        if guided_name_containment:
+            guided_values = guided_core_merge(left, right)
+            if guided_values is None:
+                continue
+        else:
+            guided_values = None if exact_core_match else guided_core_merge(left, right)
+            if not exact_core_match and guided_values is None:
+                continue
 
         review_flags = set(record.get("review_flags") or []) | {"ocr_independent_agreement"}
         attributes = dict(record.get("attributes") or {})

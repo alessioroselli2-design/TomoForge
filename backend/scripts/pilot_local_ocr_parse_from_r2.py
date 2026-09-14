@@ -277,6 +277,11 @@ def _monster_parser_summary(
         "monster_candidates_primary": len(primary),
         "monster_candidates_comparison": len(comparison),
         "monster_candidates_independently_agreed": len(agreed),
+        "monster_candidates_guided_core_merged": sum(
+            1
+            for record in agreed
+            if bool((record.get("attributes") or {}).get("ocr_guided_core_merge"))
+        ),
         **_monster_agreement_diagnostics(primary, comparison),
     }
     if include_residual_single_edit:
