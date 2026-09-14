@@ -28,6 +28,7 @@ from services.monster_name_diagnostics import (
     compact_name_containment_match,
     compact_name_single_edit_match,
 )
+from services.monster_residual_diagnostics import residual_single_edit_agreement_counts
 from services.monster_semantic_diagnostics import (
     deterministic_core_field_matches,
     semantic_core_field_matches,
@@ -264,17 +265,22 @@ def _monster_parser_summary(
     comparison_pages: list[tuple[int, str]],
     source_filename: str,
     source_language: str,
+    *,
+    include_residual_single_edit: bool = False,
 ) -> dict[str, int]:
     """Return privacy-safe aggregate metrics for the conservative monster parser."""
     primary = parse_monster_statblocks(primary_pages, source_filename, source_language)
     comparison = parse_monster_statblocks(comparison_pages, source_filename, source_language)
     agreed = agreed_monster_records(primary, comparison)
-    return {
+    summary = {
         "monster_candidates_primary": len(primary),
         "monster_candidates_comparison": len(comparison),
         "monster_candidates_independently_agreed": len(agreed),
         **_monster_agreement_diagnostics(primary, comparison),
     }
+    if include_residual_single_edit:
+        summary.update(residual_single_edit_agreement_counts(primary, comparison))
+    return summary
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -375,6 +381,7 @@ def main() -> int:
         ordered_comparison_pages,
         safe_name,
         args.source_language,
+        include_residual_single_edit=True,
     )
 
     aggregate = {
