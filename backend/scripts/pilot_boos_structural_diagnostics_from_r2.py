@@ -28,9 +28,25 @@ from services.monster_structural_diagnostics import english_monster_structural_d
 
 BOOS_FILENAME = "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf"
 START_PAGE = 12
-END_PAGE = 23
+END_PAGE = 35
 SKIPPED_PAGE = 21
-SEGMENTS = ((12, 20), (22, 23))
+SEGMENTS = ((12, 20), (22, 33), (34, 35))
+MAX_SEGMENT_PAGES = 12
+
+
+def _validate_segments() -> None:
+    expected_pages = set(range(START_PAGE, END_PAGE + 1)) - {SKIPPED_PAGE}
+    actual_pages: list[int] = []
+    for segment_start, segment_end in SEGMENTS:
+        if segment_start > segment_end:
+            raise RuntimeError("invalid Boo's diagnostic segment")
+        if segment_end - segment_start + 1 > MAX_SEGMENT_PAGES:
+            raise RuntimeError("Boo's diagnostic segment exceeds 12-page safety limit")
+        actual_pages.extend(range(segment_start, segment_end + 1))
+    if len(actual_pages) != len(set(actual_pages)):
+        raise RuntimeError("Boo's diagnostic segments overlap")
+    if set(actual_pages) != expected_pages:
+        raise RuntimeError("Boo's diagnostic segments must cover pages 12-35 except page 21")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -52,6 +68,7 @@ def main() -> int:
     if args.dpi < 120 or args.dpi > 300:
         print("dpi must be 120..300", file=sys.stderr)
         return 2
+    _validate_segments()
 
     os.environ.pop("OPENAI_API_KEY", None)
     os.environ.pop("GEMINI_API_KEY", None)
@@ -148,6 +165,11 @@ def main() -> int:
         "page_count_requested": END_PAGE - START_PAGE + 1,
         "pages_explicitly_skipped": [SKIPPED_PAGE],
         "page_count_effectively_evaluated": len(page_metrics),
+        "segment_count": len(SEGMENTS),
+        "segments": [
+            {"start_page": segment_start, "end_page": segment_end}
+            for segment_start, segment_end in SEGMENTS
+        ],
         "pages_read": pages_read,
         "pages_needing_ocr": sorted(set(pages_needing_ocr)),
         "quality_pages_passed": sum(
@@ -166,8 +188,9 @@ def main() -> int:
             for page in sorted(page_metrics)
         ],
         "diagnostic_note": (
-            "Page 21 is intentionally excluded before OCR. Structural diagnostics "
-            "are aggregate-only and do not modify parser acceptance."
+            "Pages 12-35 are covered in bounded windows. Page 21 is intentionally "
+            "excluded before OCR. Structural diagnostics are aggregate-only and do "
+            "not modify parser acceptance."
         ),
     }
     report_path = output_dir / "report.json"
