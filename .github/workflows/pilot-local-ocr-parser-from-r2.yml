@@ -43,20 +43,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Misplaced Monsters Volume One pages 61-67
+      - name: Dry-run D&D Dossiers pages 68-75
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "701858566-RRN5YRR.pdf" \
-            --start-page 61 \
-            --page-count 7 \
+            --start-page 68 \
+            --page-count 8 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/misplaced-monsters-pilot
+            --output-dir /tmp/dnd-dossiers-pilot
 
       - name: Upload aggregate parser report
         uses: actions/upload-artifact@v4
         with:
-          name: misplaced-monsters-pilot
-          path: /tmp/misplaced-monsters-pilot/report.json
+          name: dnd-dossiers-pilot
+          path: /tmp/dnd-dossiers-pilot/report.json
           if-no-files-found: error
           retention-days: 3
