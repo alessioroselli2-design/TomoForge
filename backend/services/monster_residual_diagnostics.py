@@ -188,7 +188,12 @@ def residual_single_edit_agreement_counts(
     primary: list[dict],
     comparison: list[dict],
 ) -> dict[str, int]:
-    """Return aggregate-only one-edit residual counts for pilot diagnostics."""
+    """Return aggregate-only residual counts for pilot diagnostics.
+
+    The historical single-edit counters remain unchanged; additional residual
+    shape counters are merged in parallel so existing pilot wiring can emit the
+    new diagnostics without altering parser acceptance behavior.
+    """
     exact_counts = {field: 0 for field in _CORE_FIELDS}
     containment_counts = {field: 0 for field in _CORE_FIELDS}
     containment_all_core = 0
@@ -254,7 +259,7 @@ def residual_single_edit_agreement_counts(
             )
         )
 
-    return {
+    result = {
         "monster_primary_with_same_page_containment_and_deterministic_or_single_edit_core_match": containment_all_core,
         "monster_containment_classe_armatura_residual_single_edit_match": containment_counts[
             "classe_armatura"
@@ -271,6 +276,8 @@ def residual_single_edit_agreement_counts(
         ],
         "monster_exact_key_velocita_residual_single_edit_match": exact_counts["velocita"],
     }
+    result.update(residual_shape_agreement_counts(primary, comparison))
+    return result
 
 
 def residual_shape_agreement_counts(
