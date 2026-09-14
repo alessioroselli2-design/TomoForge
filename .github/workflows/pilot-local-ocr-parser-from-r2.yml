@@ -43,37 +43,48 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Fiendish Folio pages 1-11
+      - name: Dry-run Tortle Package pages 1-10
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "1064688926-9-D-D-5e-Mordenkainen-s-Fiendish-Folio-Vol-1.pdf" \
+            --filename "368524312-The-Tortle-Package.pdf" \
             --start-page 1 \
-            --page-count 11 \
+            --page-count 10 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/fiendish-folio-pilot/window-1
+            --output-dir /tmp/tortle-package-pilot/window-1
 
-      - name: Dry-run Fiendish Folio pages 12-22
+      - name: Dry-run Tortle Package pages 11-20
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "1064688926-9-D-D-5e-Mordenkainen-s-Fiendish-Folio-Vol-1.pdf" \
-            --start-page 12 \
-            --page-count 11 \
+            --filename "368524312-The-Tortle-Package.pdf" \
+            --start-page 11 \
+            --page-count 10 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/fiendish-folio-pilot/window-2
+            --output-dir /tmp/tortle-package-pilot/window-2
+
+      - name: Dry-run Tortle Package pages 21-28
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "368524312-The-Tortle-Package.pdf" \
+            --start-page 21 \
+            --page-count 8 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/tortle-package-pilot/window-3
 
       - name: Combine bounded reports
         run: |
           python backend/scripts/combine_local_ocr_parser_reports.py \
-            --report /tmp/fiendish-folio-pilot/window-1/report.json \
-            --report /tmp/fiendish-folio-pilot/window-2/report.json \
-            --output /tmp/fiendish-folio-pilot/report.json
+            --report /tmp/tortle-package-pilot/window-1/report.json \
+            --report /tmp/tortle-package-pilot/window-2/report.json \
+            --report /tmp/tortle-package-pilot/window-3/report.json \
+            --output /tmp/tortle-package-pilot/report.json
 
       - name: Upload aggregate parser report
         uses: actions/upload-artifact@v4
         with:
-          name: fiendish-folio-volume-1-pilot
-          path: /tmp/fiendish-folio-pilot/report.json
+          name: tortle-package-pilot
+          path: /tmp/tortle-package-pilot/report.json
           if-no-files-found: error
           retention-days: 3
