@@ -15,11 +15,19 @@ from services.monster_name_diagnostics import (
 )
 from services.monster_semantic_diagnostics import (
     _deterministic_normalized_value,
+    _numeric_signature,
     deterministic_core_field_matches,
     semantic_core_field_matches,
 )
 
 _CORE_FIELDS = ("classe_armatura", "punti_ferita", "velocita")
+
+
+def _same_numeric_signature(left: object, right: object) -> bool:
+    """Require every in-memory numeric token to agree before edit diagnostics."""
+    left_numbers = _numeric_signature(left)
+    right_numbers = _numeric_signature(right)
+    return bool(left_numbers and right_numbers and left_numbers == right_numbers)
 
 
 def residual_single_edit_core_field_matches(
@@ -28,20 +36,24 @@ def residual_single_edit_core_field_matches(
 ) -> dict[str, bool]:
     """Identify one-edit OCR residue after conservative normalization.
 
-    A field is counted only when its semantic diagnostic already agrees, its
-    deterministic normalized form still disagrees, and those two normalized
-    forms are exactly one compact edit apart. This is intentionally diagnostic
-    only: it does not relax the production agreement gate.
+    A field is counted only when its semantic diagnostic already agrees, every
+    numeric token is identical, its deterministic normalized form still
+    disagrees, and those two normalized forms are exactly one compact edit
+    apart. This is intentionally diagnostic only: it does not relax the
+    production agreement gate.
     """
     semantic = semantic_core_field_matches(left_attributes, right_attributes)
     deterministic = deterministic_core_field_matches(left_attributes, right_attributes)
     result: dict[str, bool] = {}
 
     for field in _CORE_FIELDS:
-        left = _deterministic_normalized_value(field, left_attributes.get(field))
-        right = _deterministic_normalized_value(field, right_attributes.get(field))
+        raw_left = left_attributes.get(field)
+        raw_right = right_attributes.get(field)
+        left = _deterministic_normalized_value(field, raw_left)
+        right = _deterministic_normalized_value(field, raw_right)
         result[f"{field}_residual_single_edit_match"] = bool(
             semantic[f"{field}_semantic_match"]
+            and _same_numeric_signature(raw_left, raw_right)
             and not deterministic[f"{field}_deterministic_match"]
             and left
             and right
