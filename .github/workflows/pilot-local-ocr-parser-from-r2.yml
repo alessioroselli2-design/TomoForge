@@ -43,20 +43,30 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Monstrous Compendium Vol. 1 Spelljammer pages 3-13
+      - name: Dry-run Monstrous Compendium Vol. 2 Dragonlance pages 14-20
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "701858566-RRN5YRR.pdf" \
-            --start-page 3 \
-            --page-count 11 \
+            --start-page 14 \
+            --page-count 7 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/spelljammer-compendium-v1-pilot/window-3-13
+            --output-dir /tmp/dragonlance-compendium-v2-pilot/window-14-20
 
-      - name: Upload bounded parser report
+      - name: Dry-run Monstrous Compendium Vol. 2 Dragonlance pages 21-27
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "701858566-RRN5YRR.pdf" \
+            --start-page 21 \
+            --page-count 7 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/dragonlance-compendium-v2-pilot/window-21-27
+
+      - name: Upload bounded parser reports
         uses: actions/upload-artifact@v4
         with:
-          name: spelljammer-compendium-v1-pilot
-          path: /tmp/spelljammer-compendium-v1-pilot/**/report.json
+          name: dragonlance-compendium-v2-pilot
+          path: /tmp/dragonlance-compendium-v2-pilot/**/report.json
           if-no-files-found: error
           retention-days: 3
