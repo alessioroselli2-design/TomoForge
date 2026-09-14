@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - diag-supabase-read-connection
+  pull_request:
+    branches:
+      - ai-canonical-library
 
 permissions:
   contents: read
@@ -33,6 +36,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt
+
+      - name: Verify anon-key fallback isolation
+        working-directory: backend
+        run: python -m pytest -q tests/test_check_supabase_read_connection.py
 
       - name: Read-only Supabase connection probe
         working-directory: backend
