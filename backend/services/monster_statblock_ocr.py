@@ -27,6 +27,12 @@ _SIZE_WORDS = (
     "grande",
     "enorme",
     "mastodontico",
+    "tiny",
+    "small",
+    "medium",
+    "large",
+    "huge",
+    "gargantuan",
 )
 
 _CREATURE_TYPE_WORDS = (
@@ -46,6 +52,20 @@ _CREATURE_TYPE_WORDS = (
     "non-morto",
     "pianta",
     "umanoide",
+    "aberration",
+    "beast",
+    "celestial",
+    "construct",
+    "dragon",
+    "elemental",
+    "fey",
+    "fiend",
+    "giant",
+    "monstrosity",
+    "ooze",
+    "plant",
+    "undead",
+    "humanoid",
 )
 
 _STRUCTURAL_PREFIXES = (
@@ -74,6 +94,29 @@ _STRUCTURAL_PREFIXES = (
     "reazioni",
     "azioni leggendarie",
     "azioni di tana",
+    "armor class",
+    "hit points",
+    "speed",
+    "str ",
+    "dex ",
+    "con ",
+    "wis ",
+    "cha ",
+    "saving throws",
+    "skills",
+    "damage vulnerabilities",
+    "damage resistances",
+    "damage immunities",
+    "condition immunities",
+    "senses",
+    "languages",
+    "challenge",
+    "proficiency bonus",
+    "actions",
+    "bonus actions",
+    "reactions",
+    "legendary actions",
+    "lair actions",
 )
 
 
@@ -99,7 +142,7 @@ def _line_is_descriptor(line: str) -> bool:
     value = _norm(line)
     return (
         any(re.search(rf"\b{re.escape(size)}\b", value) for size in _SIZE_WORDS)
-        and any(creature_type in value for creature_type in _CREATURE_TYPE_WORDS)
+        and any(re.search(rf"\b{re.escape(creature_type)}\b", value) for creature_type in _CREATURE_TYPE_WORDS)
         and len(value) <= 180
     )
 
@@ -128,7 +171,11 @@ def _line_is_title_candidate(line: str) -> bool:
 
 def _core_anchor(line: str) -> bool:
     value = _norm(line)
-    return value.startswith("classe armatura") or value.startswith("classe d armatura")
+    return (
+        value.startswith("classe armatura")
+        or value.startswith("classe d armatura")
+        or value.startswith("armor class")
+    )
 
 
 def _marker_near(lines: list[str], anchor_index: int, marker: str, lookahead: int = 8) -> bool:
@@ -139,13 +186,29 @@ def _marker_near(lines: list[str], anchor_index: int, marker: str, lookahead: in
     return False
 
 
+def _has_any_marker_near(
+    lines: list[str],
+    anchor_index: int,
+    markers: tuple[str, ...],
+    lookahead: int,
+) -> bool:
+    return any(_marker_near(lines, anchor_index, marker, lookahead) for marker in markers)
+
+
 def _find_header(lines: list[str], anchor_index: int) -> tuple[int, str, str] | None:
     """Return (title line index, title, descriptor) for a valid stat-block anchor."""
-    if not _marker_near(lines, anchor_index, "Punti Ferita", 6):
+    if not _has_any_marker_near(
+        lines,
+        anchor_index,
+        ("Punti Ferita", "Hit Points"),
+        6,
+    ):
         return None
-    if not (
-        _marker_near(lines, anchor_index, "Velocità", 8)
-        or _marker_near(lines, anchor_index, "Velocita", 8)
+    if not _has_any_marker_near(
+        lines,
+        anchor_index,
+        ("Velocità", "Velocita", "Speed"),
+        8,
     ):
         return None
 
@@ -185,45 +248,58 @@ def _first_match(patterns: Iterable[str], text: str) -> str:
 
 
 def _attributes(text: str, descriptor: str) -> dict:
+    """Map Italian and English source labels into one canonical Italian schema."""
     attributes: dict[str, object] = {
         "descrittore_creatura": descriptor,
     }
     patterns = {
         "classe_armatura": (
             r"Classe\s+(?:d['’]\s*)?Armatura\s*[:]?\s*([^\n]{1,80})",
+            r"Armor\s+Class\s*[:]?\s*([^\n]{1,80})",
         ),
         "punti_ferita": (
             r"Punti\s+Ferita\s*[:]?\s*([^\n]{1,100})",
+            r"Hit\s+Points\s*[:]?\s*([^\n]{1,100})",
         ),
         "velocita": (
             r"Velocit[àa]\s*[:]?\s*([^\n]{1,160})",
+            r"Speed\s*[:]?\s*([^\n]{1,160})",
         ),
         "tiri_salvezza": (
             r"Tiri\s+Salvezza\s*[:]?\s*([^\n]{1,220})",
+            r"Saving\s+Throws\s*[:]?\s*([^\n]{1,220})",
         ),
         "abilita": (
             r"Abilit[àa]\s*[:]?\s*([^\n]{1,220})",
+            r"Skills\s*[:]?\s*([^\n]{1,220})",
         ),
         "vulnerabilita_danni": (
             r"Vulnerabilit[àa]\s+ai\s+Danni\s*[:]?\s*([^\n]{1,220})",
+            r"Damage\s+Vulnerabilities\s*[:]?\s*([^\n]{1,220})",
         ),
         "resistenze_danni": (
             r"Resistenze\s+ai\s+Danni\s*[:]?\s*([^\n]{1,220})",
+            r"Damage\s+Resistances\s*[:]?\s*([^\n]{1,220})",
         ),
         "immunita_danni": (
             r"Immunit[àa]\s+ai\s+Danni\s*[:]?\s*([^\n]{1,220})",
+            r"Damage\s+Immunities\s*[:]?\s*([^\n]{1,220})",
         ),
         "immunita_condizioni": (
             r"Immunit[àa]\s+alle\s+Condizioni\s*[:]?\s*([^\n]{1,220})",
+            r"Condition\s+Immunities\s*[:]?\s*([^\n]{1,220})",
         ),
         "sensi": (
             r"Sensi\s*[:]?\s*([^\n]{1,220})",
+            r"Senses\s*[:]?\s*([^\n]{1,220})",
         ),
         "linguaggi": (
             r"Linguaggi\s*[:]?\s*([^\n]{1,220})",
+            r"Languages\s*[:]?\s*([^\n]{1,220})",
         ),
         "grado_sfida": (
             r"Grado\s+di\s+Sfida\s*[:]?\s*([^\n]{1,120})",
+            r"Challenge\s*[:]?\s*([^\n]{1,120})",
         ),
     }
     for field, field_patterns in patterns.items():
@@ -233,23 +309,33 @@ def _attributes(text: str, descriptor: str) -> dict:
 
     # Ability scores are frequently rendered as two OCR rows. Keep them only
     # when all six abbreviations and six numeric values are present together.
-    ability_match = re.search(
-        r"FOR\s+DES\s+COS\s+INT\s+SAG\s+CAR\s+"
-        r"([^\n]{3,220})",
-        text,
-        flags=re.IGNORECASE,
+    ability_headers = (
+        (
+            r"FOR\s+DES\s+COS\s+INT\s+SAG\s+CAR\s+([^\n]{3,220})",
+            ("for", "des", "cos", "int", "sag", "car"),
+        ),
+        (
+            r"STR\s+DEX\s+CON\s+INT\s+WIS\s+CHA\s+([^\n]{3,220})",
+            ("for", "des", "cos", "int", "sag", "car"),
+        ),
     )
-    if ability_match:
+    for pattern, canonical_fields in ability_headers:
+        ability_match = re.search(pattern, text, flags=re.IGNORECASE)
+        if not ability_match:
+            continue
         numbers = re.findall(r"\b\d{1,2}\b", ability_match.group(1))
         if len(numbers) >= 6:
-            attributes["caratteristiche"] = dict(
-                zip(("for", "des", "cos", "int", "sag", "car"), numbers[:6])
-            )
+            attributes["caratteristiche"] = dict(zip(canonical_fields, numbers[:6]))
+            break
 
-    attributes["ha_azioni"] = bool(re.search(r"(?mi)^\s*Azioni\s*$", text))
-    attributes["ha_reazioni"] = bool(re.search(r"(?mi)^\s*Reazioni\s*$", text))
+    attributes["ha_azioni"] = bool(
+        re.search(r"(?mi)^\s*(?:Azioni|Actions)\s*$", text)
+    )
+    attributes["ha_reazioni"] = bool(
+        re.search(r"(?mi)^\s*(?:Reazioni|Reactions)\s*$", text)
+    )
     attributes["ha_azioni_leggendarie"] = bool(
-        re.search(r"(?mi)^\s*Azioni\s+Leggendarie\s*$", text)
+        re.search(r"(?mi)^\s*(?:Azioni\s+Leggendarie|Legendary\s+Actions)\s*$", text)
     )
     return attributes
 
