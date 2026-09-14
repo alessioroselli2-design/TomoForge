@@ -2,9 +2,9 @@
 
 This parser is intentionally separate from the generic heading/table parser.
 Monster pages have dense two-column stat blocks whose attack rows look like
-weapons to a generic document parser.  A candidate is accepted only when a
+weapons to a generic document parser. A candidate is accepted only when a
 size/type descriptor is immediately followed by the core armor/HP/speed
-stat-block markers.  Callers should still require independent OCR agreement
+stat-block markers. Callers should still require independent OCR agreement
 before persisting any candidate.
 """
 
@@ -17,6 +17,7 @@ from hashlib import sha256
 from typing import Iterable
 
 from reference_library import clean_text, compact_text, normalize_reference_name
+from services.monster_guided_matcher import guided_core_merge
 
 _SIZE_WORDS = (
     "minuscolo",
@@ -113,7 +114,7 @@ def _line_is_title_candidate(line: str) -> bool:
         return False
     if _line_is_descriptor(raw):
         return False
-    # A monster title is normally a short heading.  Avoid narrative lines that
+    # A monster title is normally a short heading. Avoid narrative lines that
     # happen to precede a descriptor because OCR column order can interleave text.
     words = normalized.split()
     if len(words) > 8:
@@ -183,7 +184,6 @@ def _first_match(patterns: Iterable[str], text: str) -> str:
 
 
 def _attributes(text: str, descriptor: str) -> dict:
-    flat = clean_text(text)
     attributes: dict[str, object] = {
         "descrittore_creatura": descriptor,
     }
@@ -264,7 +264,7 @@ def parse_monster_statblocks(
 ) -> list[dict]:
     """Parse conservative monster candidates from an ordered page window.
 
-    ``pages`` is a list of ``(1-based page number, OCR text)`` pairs.  A record
+    ``pages`` is a list of ``(1-based page number, OCR text)`` pairs. A record
     can span multiple pages; every touched page is preserved in source_refs.
     """
     flattened: list[tuple[int, str]] = []
@@ -335,11 +335,12 @@ def parse_monster_statblocks(
 
 
 def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[dict]:
-    """Keep only records independently found by both OCR layout modes.
+    """Keep records independently supported by both OCR layout modes.
 
-    Name, start page and the three core stat fields must agree after conservative
-    normalization.  The returned record keeps the primary transcription but is
-    tagged with an explicit independent-agreement flag.
+    The normal path still requires exact normalized agreement on all three core
+    fields. When that path fails, one unique same-page/name candidate may use the
+    narrow guided matcher: semantic 1/1/1 plus only the proven residual shapes.
+    Guided matches retain manual review and are explicitly flagged.
     """
     comparison_by_key: dict[tuple[int, str], list[dict]] = defaultdict(list)
     for record in comparison:
@@ -354,17 +355,25 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
         other = matches[0]
         left = record.get("attributes") or {}
         right = other.get("attributes") or {}
-        if any(
+        exact_core_match = not any(
             _norm(str(left.get(field) or "")) != _norm(str(right.get(field) or ""))
             for field in ("classe_armatura", "punti_ferita", "velocita")
-        ):
+        )
+        guided_values = None if exact_core_match else guided_core_merge(left, right)
+        if not exact_core_match and guided_values is None:
             continue
+
+        review_flags = set(record.get("review_flags") or []) | {"ocr_independent_agreement"}
+        attributes = dict(record.get("attributes") or {})
+        if guided_values is not None:
+            attributes.update(guided_values)
+            attributes["ocr_guided_core_merge"] = True
+            review_flags.add("ocr_guided_core_merge")
+
         copy = {
             **record,
-            "attributes": dict(record.get("attributes") or {}),
-            "review_flags": sorted(
-                set(record.get("review_flags") or []) | {"ocr_independent_agreement"}
-            ),
+            "attributes": attributes,
+            "review_flags": sorted(review_flags),
         }
         copy["attributes"]["ocr_independent_agreement"] = True
         agreed.append(copy)
