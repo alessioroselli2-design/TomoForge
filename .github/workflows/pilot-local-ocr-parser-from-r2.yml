@@ -43,70 +43,70 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Light of Xaryxis pages 1-11
+      - name: Dry-run Tasha pages 1-11
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "647833920-D-D-5ªE-Light-of-Xaryxis.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
             --start-page 1 \
             --page-count 11 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/light-of-xaryxis-pilot/window-1-11
+            --languages ita \
+            --source-language it \
+            --output-dir /tmp/tasha-pilot/window-1-11
 
-      - name: Dry-run Light of Xaryxis pages 12-22
+      - name: Dry-run Tasha pages 12-22
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "647833920-D-D-5ªE-Light-of-Xaryxis.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
             --start-page 12 \
             --page-count 11 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/light-of-xaryxis-pilot/window-12-22
+            --languages ita \
+            --source-language it \
+            --output-dir /tmp/tasha-pilot/window-12-22
 
-      - name: Dry-run Light of Xaryxis pages 23-33
+      - name: Dry-run Tasha pages 23-33
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "647833920-D-D-5ªE-Light-of-Xaryxis.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
             --start-page 23 \
             --page-count 11 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/light-of-xaryxis-pilot/window-23-33
+            --languages ita \
+            --source-language it \
+            --output-dir /tmp/tasha-pilot/window-23-33
 
-      - name: Dry-run Light of Xaryxis pages 34-44
+      - name: Dry-run Tasha pages 34-44
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "647833920-D-D-5ªE-Light-of-Xaryxis.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
             --start-page 34 \
             --page-count 11 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/light-of-xaryxis-pilot/window-34-44
+            --languages ita \
+            --source-language it \
+            --output-dir /tmp/tasha-pilot/window-34-44
 
-      - name: Dry-run Light of Xaryxis pages 45-55
+      - name: Dry-run Tasha pages 45-55
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "647833920-D-D-5ªE-Light-of-Xaryxis.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
             --start-page 45 \
             --page-count 11 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/light-of-xaryxis-pilot/window-45-55
+            --languages ita \
+            --source-language it \
+            --output-dir /tmp/tasha-pilot/window-45-55
 
-      - name: Dry-run Light of Xaryxis pages 56-66
+      - name: Dry-run Tasha pages 56-66
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "647833920-D-D-5ªE-Light-of-Xaryxis.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
             --start-page 56 \
             --page-count 11 \
-            --languages eng \
-            --source-language en \
-            --output-dir /tmp/light-of-xaryxis-pilot/window-56-66
+            --languages ita \
+            --source-language it \
+            --output-dir /tmp/tasha-pilot/window-56-66
 
       - name: Upload bounded parser reports
         uses: actions/upload-artifact@v4
         with:
-          name: light-of-xaryxis-pilot
-          path: /tmp/light-of-xaryxis-pilot/**/report.json
+          name: tasha-pilot
+          path: /tmp/tasha-pilot/**/report.json
           if-no-files-found: error
           retention-days: 3
