@@ -43,30 +43,50 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Monstrous Compendium Vol. 2 Dragonlance pages 14-20
+      - name: Dry-run Boo's Astral Menagerie pages 1-11
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "701858566-RRN5YRR.pdf" \
-            --start-page 14 \
-            --page-count 7 \
+            --filename "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf" \
+            --start-page 1 \
+            --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/dragonlance-compendium-v2-pilot/window-14-20
+            --output-dir /tmp/boos-astral-menagerie-pilot/window-1-11
 
-      - name: Dry-run Monstrous Compendium Vol. 2 Dragonlance pages 21-27
+      - name: Dry-run Boo's Astral Menagerie pages 36-47
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "701858566-RRN5YRR.pdf" \
-            --start-page 21 \
+            --filename "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf" \
+            --start-page 36 \
+            --page-count 12 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/boos-astral-menagerie-pilot/window-36-47
+
+      - name: Dry-run Boo's Astral Menagerie pages 48-59
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf" \
+            --start-page 48 \
+            --page-count 12 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/boos-astral-menagerie-pilot/window-48-59
+
+      - name: Dry-run Boo's Astral Menagerie pages 60-66
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf" \
+            --start-page 60 \
             --page-count 7 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/dragonlance-compendium-v2-pilot/window-21-27
+            --output-dir /tmp/boos-astral-menagerie-pilot/window-60-66
 
       - name: Upload bounded parser reports
         uses: actions/upload-artifact@v4
         with:
-          name: dragonlance-compendium-v2-pilot
-          path: /tmp/dragonlance-compendium-v2-pilot/**/report.json
+          name: boos-astral-menagerie-pilot
+          path: /tmp/boos-astral-menagerie-pilot/**/report.json
           if-no-files-found: error
           retention-days: 3
