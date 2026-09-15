@@ -46,7 +46,7 @@ jobs:
       - name: Dry-run Tasha pages 1-11
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
             --start-page 1 \
             --page-count 11 \
             --languages ita \
@@ -56,7 +56,7 @@ jobs:
       - name: Dry-run Tasha pages 12-22
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
             --start-page 12 \
             --page-count 11 \
             --languages ita \
@@ -66,7 +66,7 @@ jobs:
       - name: Dry-run Tasha pages 23-33
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
             --start-page 23 \
             --page-count 11 \
             --languages ita \
@@ -76,7 +76,7 @@ jobs:
       - name: Dry-run Tasha pages 34-44
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
             --start-page 34 \
             --page-count 11 \
             --languages ita \
@@ -86,7 +86,7 @@ jobs:
       - name: Dry-run Tasha pages 45-55
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
             --start-page 45 \
             --page-count 11 \
             --languages ita \
@@ -96,7 +96,7 @@ jobs:
       - name: Dry-run Tasha pages 56-66
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf" \
+            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
             --start-page 56 \
             --page-count 11 \
             --languages ita \
