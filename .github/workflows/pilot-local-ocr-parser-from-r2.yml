@@ -43,70 +43,70 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Tasha pages 133-143
+      - name: Dry-run Theros pages 1-11
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 133 \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 1 \
             --page-count 11 \
-            --languages ita \
-            --source-language it \
-            --output-dir /tmp/tasha-pilot/window-133-143
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-1-11
 
-      - name: Dry-run Tasha pages 144-154
+      - name: Dry-run Theros pages 12-22
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 144 \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 12 \
             --page-count 11 \
-            --languages ita \
-            --source-language it \
-            --output-dir /tmp/tasha-pilot/window-144-154
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-12-22
 
-      - name: Dry-run Tasha pages 155-165
+      - name: Dry-run Theros pages 23-33
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 155 \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 23 \
             --page-count 11 \
-            --languages ita \
-            --source-language it \
-            --output-dir /tmp/tasha-pilot/window-155-165
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-23-33
 
-      - name: Dry-run Tasha pages 166-176
+      - name: Dry-run Theros pages 34-44
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 166 \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 34 \
             --page-count 11 \
-            --languages ita \
-            --source-language it \
-            --output-dir /tmp/tasha-pilot/window-166-176
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-34-44
 
-      - name: Dry-run Tasha pages 177-187
+      - name: Dry-run Theros pages 45-55
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 177 \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 45 \
             --page-count 11 \
-            --languages ita \
-            --source-language it \
-            --output-dir /tmp/tasha-pilot/window-177-187
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-45-55
 
-      - name: Dry-run Tasha pages 188-198
+      - name: Dry-run Theros pages 56-66
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
-            --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 188 \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 56 \
             --page-count 11 \
-            --languages ita \
-            --source-language it \
-            --output-dir /tmp/tasha-pilot/window-188-198
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-56-66
 
       - name: Upload bounded parser reports
         uses: actions/upload-artifact@v4
         with:
-          name: tasha-pilot
-          path: /tmp/tasha-pilot/**/report.json
+          name: theros-pilot
+          path: /tmp/theros-pilot/**/report.json
           if-no-files-found: error
           retention-days: 3
