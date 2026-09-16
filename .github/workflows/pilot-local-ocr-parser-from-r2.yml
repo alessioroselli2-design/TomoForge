@@ -43,65 +43,65 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Theros pages 1-11
+      - name: Dry-run Theros pages 67-77
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
-            --start-page 1 \
+            --start-page 67 \
             --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/theros-pilot/window-1-11
+            --output-dir /tmp/theros-pilot/window-67-77
 
-      - name: Dry-run Theros pages 12-22
+      - name: Dry-run Theros pages 78-88
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
-            --start-page 12 \
+            --start-page 78 \
             --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/theros-pilot/window-12-22
+            --output-dir /tmp/theros-pilot/window-78-88
 
-      - name: Dry-run Theros pages 23-33
+      - name: Dry-run Theros pages 89-99
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
-            --start-page 23 \
+            --start-page 89 \
             --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/theros-pilot/window-23-33
+            --output-dir /tmp/theros-pilot/window-89-99
 
-      - name: Dry-run Theros pages 34-44
+      - name: Dry-run Theros pages 100-110
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
-            --start-page 34 \
+            --start-page 100 \
             --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/theros-pilot/window-34-44
+            --output-dir /tmp/theros-pilot/window-100-110
 
-      - name: Dry-run Theros pages 45-55
+      - name: Dry-run Theros pages 111-121
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
-            --start-page 45 \
+            --start-page 111 \
             --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/theros-pilot/window-45-55
+            --output-dir /tmp/theros-pilot/window-111-121
 
-      - name: Dry-run Theros pages 56-66
+      - name: Dry-run Theros pages 122-132
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
-            --start-page 56 \
+            --start-page 122 \
             --page-count 11 \
             --languages eng \
             --source-language en \
-            --output-dir /tmp/theros-pilot/window-56-66
+            --output-dir /tmp/theros-pilot/window-122-132
 
       - name: Upload bounded parser reports
         uses: actions/upload-artifact@v4
