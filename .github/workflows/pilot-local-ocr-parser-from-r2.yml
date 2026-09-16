@@ -43,65 +43,65 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Dry-run Tasha pages 67-77
+      - name: Dry-run Tasha pages 133-143
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 67 \
+            --start-page 133 \
             --page-count 11 \
             --languages ita \
             --source-language it \
-            --output-dir /tmp/tasha-pilot/window-67-77
+            --output-dir /tmp/tasha-pilot/window-133-143
 
-      - name: Dry-run Tasha pages 78-88
+      - name: Dry-run Tasha pages 144-154
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 78 \
+            --start-page 144 \
             --page-count 11 \
             --languages ita \
             --source-language it \
-            --output-dir /tmp/tasha-pilot/window-78-88
+            --output-dir /tmp/tasha-pilot/window-144-154
 
-      - name: Dry-run Tasha pages 89-99
+      - name: Dry-run Tasha pages 155-165
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 89 \
+            --start-page 155 \
             --page-count 11 \
             --languages ita \
             --source-language it \
-            --output-dir /tmp/tasha-pilot/window-89-99
+            --output-dir /tmp/tasha-pilot/window-155-165
 
-      - name: Dry-run Tasha pages 100-110
+      - name: Dry-run Tasha pages 166-176
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 100 \
+            --start-page 166 \
             --page-count 11 \
             --languages ita \
             --source-language it \
-            --output-dir /tmp/tasha-pilot/window-100-110
+            --output-dir /tmp/tasha-pilot/window-166-176
 
-      - name: Dry-run Tasha pages 111-121
+      - name: Dry-run Tasha pages 177-187
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 111 \
+            --start-page 177 \
             --page-count 11 \
             --languages ita \
             --source-language it \
-            --output-dir /tmp/tasha-pilot/window-111-121
+            --output-dir /tmp/tasha-pilot/window-177-187
 
-      - name: Dry-run Tasha pages 122-132
+      - name: Dry-run Tasha pages 188-198
         run: |
           python backend/scripts/pilot_local_ocr_parse_from_r2.py \
             --filename "Calderone-Omnicomprensivo-di-TASHA.pdf" \
-            --start-page 122 \
+            --start-page 188 \
             --page-count 11 \
             --languages ita \
             --source-language it \
-            --output-dir /tmp/tasha-pilot/window-122-132
+            --output-dir /tmp/tasha-pilot/window-188-198
 
       - name: Upload bounded parser reports
         uses: actions/upload-artifact@v4
