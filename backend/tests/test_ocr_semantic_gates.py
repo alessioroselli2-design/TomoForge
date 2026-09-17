@@ -1,11 +1,13 @@
 from services.ocr_semantic_gates import (
     CA_FORMAT_ERROR_FLAG,
     CA_OUT_OF_BOUNDS_FLAG,
+    CORRUPTED_ENTITY_NAME_FLAG,
     HP_FORMAT_ERROR_FLAG,
     INVALID_ENTITY_TITLE_FLAG,
     OCR_REVIEW_FLAG,
     apply_ocr_review_gates,
     entity_name_semantic_flags,
+    monster_identity_sanity_flags,
     monster_semantic_numeric_flags,
 )
 from reference_library import reference_is_trusted, reference_review_state
@@ -95,6 +97,39 @@ def test_entity_name_gate_does_not_flag_real_names_or_unnumbered_pass_names():
         assert INVALID_ENTITY_TITLE_FLAG not in entity_name_semantic_flags(name)
 
 
+def test_monster_identity_gate_flags_special_character_noise():
+    for name in [
+        "M:::,, $S$",
+        "Nome|Rotto",
+        "Nome_OCR",
+        "Mostro: Blocco",
+    ]:
+        assert CORRUPTED_ENTITY_NAME_FLAG in monster_identity_sanity_flags(name)
+
+
+def test_monster_identity_gate_flags_repeated_single_letter_spacing():
+    corrupted_names = [
+        "Fo R M E P R E S C E Lte D E L L1A Rc I D R U I Do",
+        "Pec U L I A R Ità D E L Lac E R Ato R E G R I G I O",
+        "U R Lo D I G U E R Ra D E L S I G N O R E D E Lla G U E R R A",
+    ]
+    for name in corrupted_names:
+        assert CORRUPTED_ENTITY_NAME_FLAG in monster_identity_sanity_flags(name)
+
+
+def test_monster_identity_gate_keeps_legitimate_dnd_punctuation():
+    valid_names = [
+        "Graz'Zt",
+        "Fraz-Urb'Luu",
+        "T'Lincalli",
+        "Yuan-Ti Portavoce Degli Incubi",
+        "Grung Guerriero D'Élite",
+        "Abishai Nero",
+    ]
+    for name in valid_names:
+        assert CORRUPTED_ENTITY_NAME_FLAG not in monster_identity_sanity_flags(name)
+
+
 def test_all_ocr_records_are_pending_and_cannot_be_trusted_automatically():
     gated = apply_ocr_review_gates(_monster("14", "45 (7d8 + 14)"))
 
@@ -109,6 +144,14 @@ def test_heading_record_receives_invalid_entity_title_flag():
         _monster("1", "90 (12dl0 + 24)", "Capitolo 2 I Bestiario")
     )
     assert INVALID_ENTITY_TITLE_FLAG in gated["review_flags"]
+    assert gated["review_status"] == "pending"
+
+
+def test_corrupted_monster_name_receives_identity_review_flag():
+    gated = apply_ocr_review_gates(
+        _monster("14", "45 (7d8 + 14)", "M:::,, $S$")
+    )
+    assert CORRUPTED_ENTITY_NAME_FLAG in gated["review_flags"]
     assert gated["review_status"] == "pending"
 
 
