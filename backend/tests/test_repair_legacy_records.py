@@ -22,7 +22,7 @@ def _monster(name: str, ac: str, hp: str) -> dict:
     }
 
 
-def test_zuggtmoy_style_legacy_record_is_reported_with_specific_flags():
+def test_zuggtmoy_style_legacy_record_is_real_repair_not_debris():
     report = analyze_verified_records([
         _monster("Zuggtmoy", "1", "304 (32dl0 + 128)"),
     ])
@@ -30,15 +30,29 @@ def test_zuggtmoy_style_legacy_record_is_reported_with_specific_flags():
     assert report["dry_run"] is True
     assert report["database_writes_performed"] == 0
     assert report["verified_records_analyzed"] == 1
-    assert report["semantic_numeric_healthy"] == 0
-    assert report["semantic_numeric_failed"] == 1
-    assert report["failed_records"] == [
+    assert report["ocr_debris_to_eliminate"] == 0
+    assert report["real_records_to_repair"] == 1
+    assert report["repair_records"] == [
         {
             "name": "Zuggtmoy",
             "reference_type": "monster",
             "flags": ["CA_out_of_bounds", "HP_format_error"],
             "would_review_status": "pending",
         }
+    ]
+
+
+def test_heading_with_bad_stats_is_classified_as_debris_not_repair():
+    report = analyze_verified_records([
+        _monster("C A P I T O L O 6 I B E S T I A R I O", "1", "90 (12dl0 + 24)"),
+    ])
+
+    assert report["ocr_debris_to_eliminate"] == 1
+    assert report["real_records_to_repair"] == 0
+    assert report["ocr_debris_records"][0]["flags"] == [
+        "invalid_entity_title",
+        "CA_out_of_bounds",
+        "HP_format_error",
     ]
 
 
@@ -59,18 +73,18 @@ def test_healthy_verified_records_are_counted_without_auto_approval():
 
     assert report["verified_records_analyzed"] == 2
     assert report["verified_monsters_analyzed"] == 1
-    assert report["semantic_numeric_healthy"] == 2
-    assert report["semantic_numeric_failed"] == 0
-    assert report["failed_records"] == []
+    assert report["healthy_records"] == 2
+    assert report["ocr_debris_to_eliminate"] == 0
+    assert report["real_records_to_repair"] == 0
 
 
-def test_missing_monster_core_values_fail_closed():
+def test_missing_monster_core_values_fail_closed_into_repair_queue():
     report = analyze_verified_records([
         _monster("Mostro incompleto", "armatura naturale", "molti"),
     ])
 
-    assert report["semantic_numeric_failed"] == 1
-    assert report["failed_records"][0]["flags"] == [
+    assert report["real_records_to_repair"] == 1
+    assert report["repair_records"][0]["flags"] == [
         "CA_format_error",
         "HP_format_error",
     ]
