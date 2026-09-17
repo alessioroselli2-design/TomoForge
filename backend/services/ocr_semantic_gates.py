@@ -99,10 +99,12 @@ def monster_identity_sanity_flags(name: Any) -> set[str]:
     explicit suspicious punctuation, runs of unusual punctuation, or at least
     four consecutive standalone single-letter alphabetic tokens such as
     ``F o R M E``. Legitimate apostrophes and hyphens are intentionally allowed.
+    Missing names are left to the existing structural validation path instead
+    of being reclassified by this OCR-specific gate.
     """
     text = unicodedata.normalize("NFKC", str(name or "")).strip()
     if not text:
-        return {CORRUPTED_ENTITY_NAME_FLAG}
+        return set()
     if _SUSPICIOUS_MONSTER_NAME_CHAR_RE.search(text):
         return {CORRUPTED_ENTITY_NAME_FLAG}
     if _SUSPICIOUS_MONSTER_PUNCT_RUN_RE.search(text):
