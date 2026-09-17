@@ -3,15 +3,9 @@
 
 This script is intentionally READ-ONLY. It selects legacy rows currently marked
 ``review_status='verified'`` from ``private_reference_records``, applies the
-current OCR semantic/numeric gates in memory, and prints what *would* require
-review. It never inserts, updates, deletes, upserts, canonicalizes, or changes
-review state in Supabase.
-
-Why scan every verified row instead of filtering on an old OCR flag?
-The legacy auto-approval path could have produced verified OCR records without
-retaining a useful OCR review flag. Scanning all verified rows is therefore the
-fail-closed audit strategy; semantic/numeric anomaly gates only affect monster
-records.
+current OCR semantic/numeric/entity-name gates in memory, and prints what would
+require review or removal. It never inserts, updates, deletes, upserts,
+canonicalizes, or changes review state in Supabase.
 """
 
 from __future__ import annotations
@@ -31,15 +25,13 @@ from services.ocr_semantic_gates import (
     CA_FORMAT_ERROR_FLAG,
     CA_OUT_OF_BOUNDS_FLAG,
     HP_FORMAT_ERROR_FLAG,
+    INVALID_ENTITY_TITLE_FLAG,
     apply_ocr_review_gates,
 )
 
 DRY_RUN_ONLY = True
 PAGE_SIZE = 1000
 
-# Defense in depth: fail before opening a DB connection if a future edit adds a
-# known persistence method. Generic names such as ``insert`` are deliberately
-# excluded because Python containers/path setup legitimately use them.
 _FORBIDDEN_DB_MUTATION_ATTRS = frozenset({
     "insert_one",
     "insert_many",
@@ -53,7 +45,7 @@ _FORBIDDEN_DB_MUTATION_ATTRS = frozenset({
     "apply_migration",
 })
 
-_GATE_FAILURE_FLAGS = frozenset({
+_REPAIR_FAILURE_FLAGS = frozenset({
     CA_OUT_OF_BOUNDS_FLAG,
     CA_FORMAT_ERROR_FLAG,
     HP_FORMAT_ERROR_FLAG,
@@ -92,7 +84,10 @@ def _assert_source_is_read_only() -> None:
         )
 
 
-async def _fetch_verified_records(collection: _ReadOnlyCollection, page_size: int = PAGE_SIZE) -> list[dict]:
+async def _fetch_verified_records(
+    collection: _ReadOnlyCollection,
+    page_size: int = PAGE_SIZE,
+) -> list[dict]:
     """Read every verified row in bounded pages; this function performs SELECT only."""
     rows: list[dict] = []
     offset = 0
@@ -108,14 +103,14 @@ async def _fetch_verified_records(collection: _ReadOnlyCollection, page_size: in
 
 
 def _safe_name(record: dict[str, Any]) -> str:
-    """Return a printable record name without terminal control characters."""
     name = str(record.get("name") or record.get("normalized_name") or "<senza nome>")
     return "".join(ch for ch in name if ch.isprintable()).strip() or "<senza nome>"
 
 
 def analyze_verified_records(records: list[dict[str, Any]]) -> dict[str, Any]:
-    """Apply OCR gates in memory and return a deterministic dry-run report."""
-    failures: list[dict[str, Any]] = []
+    """Classify verified legacy rows without changing any source record."""
+    ocr_debris: list[dict[str, Any]] = []
+    real_repairs: list[dict[str, Any]] = []
     healthy = 0
     monsters = 0
 
@@ -123,33 +118,42 @@ def analyze_verified_records(records: list[dict[str, Any]]) -> dict[str, Any]:
         if record.get("reference_type") == "monster":
             monsters += 1
 
-        # In-memory only: this returns a copy and never persists anything.
         gated = apply_ocr_review_gates(record)
-        activated = sorted(
-            flag
-            for flag in set(gated.get("review_flags") or [])
-            if flag in _GATE_FAILURE_FLAGS
-        )
+        all_flags = set(gated.get("review_flags") or [])
+        repair_flags = sorted(flag for flag in all_flags if flag in _REPAIR_FAILURE_FLAGS)
+        invalid_title = INVALID_ENTITY_TITLE_FLAG in all_flags
 
-        if activated:
-            failures.append({
-                "name": _safe_name(record),
-                "reference_type": str(record.get("reference_type") or "other"),
-                "flags": activated,
-                "would_review_status": str(gated.get("review_status") or "pending"),
-            })
+        item = {
+            "name": _safe_name(record),
+            "reference_type": str(record.get("reference_type") or "other"),
+            "flags": ([INVALID_ENTITY_TITLE_FLAG] if invalid_title else []) + repair_flags,
+            "would_review_status": str(gated.get("review_status") or "pending"),
+        }
+
+        if invalid_title:
+            # A strong heading/title match is classified as OCR debris even if
+            # its bogus monster fields also trigger CA/HP errors. That keeps
+            # false entities out of the genuine repair queue.
+            ocr_debris.append(item)
+        elif repair_flags:
+            real_repairs.append(item)
         else:
             healthy += 1
 
-    failures.sort(key=lambda item: (item["name"].casefold(), item["reference_type"]))
+    key = lambda item: (item["name"].casefold(), item["reference_type"])
+    ocr_debris.sort(key=key)
+    real_repairs.sort(key=key)
+
     return {
         "dry_run": True,
         "database_writes_performed": 0,
         "verified_records_analyzed": len(records),
         "verified_monsters_analyzed": monsters,
-        "semantic_numeric_healthy": healthy,
-        "semantic_numeric_failed": len(failures),
-        "failed_records": failures,
+        "healthy_records": healthy,
+        "ocr_debris_to_eliminate": len(ocr_debris),
+        "real_records_to_repair": len(real_repairs),
+        "ocr_debris_records": ocr_debris,
+        "repair_records": real_repairs,
     }
 
 
@@ -158,17 +162,26 @@ def _print_report(report: dict[str, Any]) -> None:
     print("Database writes performed: 0")
     print(f"Verified records analyzed: {report['verified_records_analyzed']}")
     print(f"Verified monsters analyzed: {report['verified_monsters_analyzed']}")
-    print(f"Healthy against semantic/numeric gates: {report['semantic_numeric_healthy']}")
-    print(f"Failed semantic/numeric gates: {report['semantic_numeric_failed']}")
+    print(f"Healthy records: {report['healthy_records']}")
+    print(f"Scorie OCR da Eliminare: {report['ocr_debris_to_eliminate']}")
+    print(f"Record Reali da Riparare: {report['real_records_to_repair']}")
+
     print()
-    print("Records that would be sent back to review:")
-    if not report["failed_records"]:
+    print("Scorie OCR da Eliminare:")
+    if not report["ocr_debris_records"]:
         print("- none")
     else:
-        for failure in report["failed_records"]:
-            print(f"- {failure['name']} -> {', '.join(failure['flags'])}")
+        for item in report["ocr_debris_records"]:
+            print(f"- {item['name']} -> {', '.join(item['flags'])}")
 
-    # Machine-readable copy for CI/artifacts. Contains no mutation instructions.
+    print()
+    print("Record Reali da Riparare:")
+    if not report["repair_records"]:
+        print("- none")
+    else:
+        for item in report["repair_records"]:
+            print(f"- {item['name']} -> {', '.join(item['flags'])}")
+
     print()
     print("JSON_REPORT")
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
@@ -178,7 +191,6 @@ async def _run() -> int:
     if not DRY_RUN_ONLY:
         raise RuntimeError("Refusing to run: DRY_RUN_ONLY must remain True")
 
-    # Execute before importing/configuring the database connection.
     _assert_source_is_read_only()
 
     from core.db import db
@@ -186,7 +198,6 @@ async def _run() -> int:
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
 
-    # From this point on, the audit receives only the read-only facade.
     collection = _ReadOnlyCollection(db.private_reference_records)
     records = await _fetch_verified_records(collection)
     report = analyze_verified_records(records)
