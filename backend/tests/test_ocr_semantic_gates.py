@@ -2,17 +2,19 @@ from services.ocr_semantic_gates import (
     CA_FORMAT_ERROR_FLAG,
     CA_OUT_OF_BOUNDS_FLAG,
     HP_FORMAT_ERROR_FLAG,
+    INVALID_ENTITY_TITLE_FLAG,
     OCR_REVIEW_FLAG,
     apply_ocr_review_gates,
+    entity_name_semantic_flags,
     monster_semantic_numeric_flags,
 )
 from reference_library import reference_is_trusted, reference_review_state
 
 
-def _monster(ac: str, hp: str) -> dict:
+def _monster(ac: str, hp: str, name: str = "Mostro di prova") -> dict:
     return {
         "reference_type": "monster",
-        "name": "Mostro di prova",
+        "name": name,
         "attributes": {
             "classe_armatura": ac,
             "punti_ferita": hp,
@@ -67,6 +69,25 @@ def test_hp_gate_accepts_canonical_dice_notation():
     assert HP_FORMAT_ERROR_FLAG not in flags
 
 
+def test_entity_name_gate_catches_manual_headings_and_ocr_letter_spacing():
+    invalid_names = [
+        "Capitolo 2 I Bestiario",
+        "C A P I T O L O 6 I B E S T I A R I O",
+        "C A P Itolo 2 I B E St Ia R I O",
+        "Passo 2. Statistiche Base",
+        "Appendice A",
+        "T A B E L L A 4",
+        "Statistiche Dei Mostri Per Grado Di Sfida",
+    ]
+    for name in invalid_names:
+        assert INVALID_ENTITY_TITLE_FLAG in entity_name_semantic_flags(name)
+
+
+def test_entity_name_gate_does_not_flag_real_names_or_unnumbered_pass_names():
+    for name in ["Zuggtmoy", "Yuan-Ti Guardia Della Stirpe", "Passo Velato"]:
+        assert INVALID_ENTITY_TITLE_FLAG not in entity_name_semantic_flags(name)
+
+
 def test_all_ocr_records_are_pending_and_cannot_be_trusted_automatically():
     gated = apply_ocr_review_gates(_monster("14", "45 (7d8 + 14)"))
 
@@ -74,6 +95,14 @@ def test_all_ocr_records_are_pending_and_cannot_be_trusted_automatically():
     assert OCR_REVIEW_FLAG in gated["review_flags"]
     assert reference_review_state(gated) == "review"
     assert reference_is_trusted(gated) is False
+
+
+def test_heading_record_receives_invalid_entity_title_flag():
+    gated = apply_ocr_review_gates(
+        _monster("1", "90 (12dl0 + 24)", "Capitolo 2 I Bestiario")
+    )
+    assert INVALID_ENTITY_TITLE_FLAG in gated["review_flags"]
+    assert gated["review_status"] == "pending"
 
 
 def test_non_monster_ocr_records_still_start_pending():

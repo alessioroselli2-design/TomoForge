@@ -9,12 +9,14 @@ trusted merely because parsing succeeded.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 OCR_REVIEW_FLAG = "ocr_da_verificare"
 CA_OUT_OF_BOUNDS_FLAG = "CA_out_of_bounds"
 CA_FORMAT_ERROR_FLAG = "CA_format_error"
 HP_FORMAT_ERROR_FLAG = "HP_format_error"
+INVALID_ENTITY_TITLE_FLAG = "invalid_entity_title"
 
 _AC_VALUE_RE = re.compile(r"^\s*(\d{1,2})\b")
 _DICE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])\d+d\d+(?![A-Za-z0-9])", re.IGNORECASE)
@@ -24,6 +26,41 @@ _SPLIT_HIT_DICE_COUNT_RE = re.compile(r"\b\d+\s+\d+d\d+\b", re.IGNORECASE)
 _SPLIT_DICE_RE = re.compile(r"(?:\b\d+\s+d\d+\b|\b\d+d\s+\d+\b)", re.IGNORECASE)
 # Typical OCR confusions in the dice token, for example ``32dl0`` for ``32d10``.
 _OCR_DICE_LETTER_RE = re.compile(r"\b\d+d[il|]+\d*\b", re.IGNORECASE)
+
+# Heading detector runs on a compact ASCII view of the name. This makes
+# ``C A P I T O L O 6`` and ``C A P Itolo 6`` both become ``capitolo6``.
+# ``passo`` deliberately requires following Arabic digits to avoid false
+# positives on legitimate D&D names such as "Passo Velato".
+_ENTITY_TITLE_COMPACT_RE = re.compile(
+    r"^(?:"
+    r"capitolo(?:\d+|[ivxlcdm]+)?|"
+    r"passo\d+|"
+    r"appendice(?:[a-z0-9]+)?|"
+    r"tabella(?:\d+|[ivxlcdm]+)?|"
+    r"statistichedeimostri(?:pergradodisfida)?"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _compact_entity_name(name: Any) -> str:
+    """Return a diacritic-free, punctuation/whitespace-free comparison key."""
+    text = unicodedata.normalize("NFKD", str(name or ""))
+    ascii_text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "", ascii_text.casefold())
+
+
+def entity_name_semantic_flags(name: Any) -> set[str]:
+    """Flag manual headings accidentally parsed as library entities.
+
+    The gate is intentionally narrow: it recognizes strong heading prefixes
+    and OCR letter-spacing variants, but does not attempt fuzzy correction or
+    semantic guessing of arbitrary entity names.
+    """
+    compact = _compact_entity_name(name)
+    if compact and _ENTITY_TITLE_COMPACT_RE.match(compact):
+        return {INVALID_ENTITY_TITLE_FLAG}
+    return set()
 
 
 def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str]:
@@ -70,6 +107,7 @@ def apply_ocr_review_gates(record: dict[str, Any]) -> dict[str, Any]:
     gated = dict(record)
     flags = {str(flag) for flag in (record.get("review_flags") or [])}
     flags.add(OCR_REVIEW_FLAG)
+    flags.update(entity_name_semantic_flags(record.get("name")))
 
     if record.get("reference_type") == "monster":
         flags.update(monster_semantic_numeric_flags(record.get("attributes") or {}))
