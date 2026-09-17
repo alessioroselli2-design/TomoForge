@@ -1,4 +1,4 @@
-import pytest
+import asyncio
 
 from scripts.purge_legacy_debris import (
     EXPECTED_DELETE_COUNT,
@@ -62,8 +62,7 @@ def test_delete_snapshot_constants_are_explicitly_94():
     assert EXPECTED_DELETE_IDS_MD5 == "203cb5e825490842f5ad8354ff077156"
 
 
-@pytest.mark.asyncio
-async def test_isolation_preserves_existing_flags_and_never_deletes():
+def test_isolation_preserves_existing_flags_and_never_deletes():
     class Result:
         def __init__(self, count):
             self.matched_count = count
@@ -94,7 +93,7 @@ async def test_isolation_preserves_existing_flags_and_never_deletes():
     )
     collection = FakeCollection(original)
 
-    changed = await _isolate_structural_tables(collection, [dict(original)])
+    changed = asyncio.run(_isolate_structural_tables(collection, [dict(original)]))
 
     assert changed == 1
     assert collection.delete_called is False
@@ -106,8 +105,7 @@ async def test_isolation_preserves_existing_flags_and_never_deletes():
     }
 
 
-@pytest.mark.asyncio
-async def test_isolation_is_idempotent_after_safe_partial_retry():
+def test_isolation_is_idempotent_after_safe_partial_retry():
     class FakeCollection:
         def __init__(self, row):
             self.row = row
@@ -125,5 +123,5 @@ async def test_isolation_is_idempotent_after_safe_partial_retry():
         flags=["ocr_da_verificare", STRUCTURAL_TABLE_FLAG],
     )
 
-    changed = await _isolate_structural_tables(FakeCollection(row), [row])
+    changed = asyncio.run(_isolate_structural_tables(FakeCollection(row), [row]))
     assert changed == 0
