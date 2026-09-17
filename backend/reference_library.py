@@ -203,10 +203,12 @@ def extract_reference_records(
                     current_subclass = record.get("name", "")
 
             if extracted_with_ocr:
-                for record in records:
-                    record["review_flags"] = sorted(
-                        set(record.get("review_flags") or []) | {"ocr_da_verificare"}
-                    )
+                # Apply the same fail-closed gate to every OCR-derived record
+                # before it can reach the ingestion service. The gate never
+                # repairs source text or removes provenance.
+                from services.ocr_semantic_gates import apply_ocr_review_gates
+
+                records = [apply_ocr_review_gates(record) for record in records]
 
             report.records.extend(records)
             if source_language == "es" and not _is_sparse_index_page(lines, source_language):
