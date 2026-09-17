@@ -20,6 +20,7 @@ _AC_VALUE_RE = re.compile(r"^\s*(\d{1,2})\b")
 _DICE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])\d+d\d+(?![A-Za-z0-9])", re.IGNORECASE)
 # Examples intentionally rejected: ``1 3d8``, ``3 d8``, ``3d 8``, ``1 28``.
 _SPLIT_NUMBER_RE = re.compile(r"\b\d+\s+\d+\b")
+_SPLIT_HIT_DICE_COUNT_RE = re.compile(r"\b\d+\s+\d+d\d+\b", re.IGNORECASE)
 _SPLIT_DICE_RE = re.compile(r"(?:\b\d+\s+d\d+\b|\b\d+d\s+\d+\b)", re.IGNORECASE)
 # Typical OCR confusions in the dice token, for example ``32dl0`` for ``32d10``.
 _OCR_DICE_LETTER_RE = re.compile(r"\b\d+d[il|]+\d*\b", re.IGNORECASE)
@@ -44,9 +45,16 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
     hp_text = str(attributes.get("punti_ferita") or "").strip()
     dice_token_ok = bool(_DICE_TOKEN_RE.search(hp_text))
     has_split_number = bool(_SPLIT_NUMBER_RE.search(hp_text))
+    has_split_hit_dice_count = bool(_SPLIT_HIT_DICE_COUNT_RE.search(hp_text))
     has_split_dice = bool(_SPLIT_DICE_RE.search(hp_text))
     has_ocr_dice_letters = bool(_OCR_DICE_LETTER_RE.search(hp_text))
-    if not dice_token_ok or has_split_number or has_split_dice or has_ocr_dice_letters:
+    if (
+        not dice_token_ok
+        or has_split_number
+        or has_split_hit_dice_count
+        or has_split_dice
+        or has_ocr_dice_letters
+    ):
         flags.add(HP_FORMAT_ERROR_FLAG)
 
     return flags
