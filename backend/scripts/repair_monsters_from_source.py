@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -575,9 +576,13 @@ async def _apply_update(
     if checksum:
         query["source_text_checksum"] = checksum
 
+    write_payload = {
+        **proposal,
+        "updated_at": datetime.now(timezone.utc),
+    }
     result = await collection.update_one(
         query,
-        {"$set": proposal},
+        {"$set": write_payload},
     )
     if result.matched_count != 1:
         raise RepairBlocked(
@@ -607,6 +612,10 @@ async def _apply_update(
         raise RuntimeError(
             "post-update semantic/numeric verification failed"
         )
+    if str(verify.get("updated_at") or "") == str(
+        legacy.get("updated_at") or ""
+    ):
+        raise RuntimeError("post-update updated_at verification failed")
 
 
 def _json_view(record: dict[str, Any]) -> dict[str, Any]:
