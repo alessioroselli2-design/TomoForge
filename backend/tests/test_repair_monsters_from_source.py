@@ -2,6 +2,9 @@ from scripts.repair_monsters_from_source import (
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
     RepairBlocked,
+    _layout_ocr_settings,
+    _layout_profile,
+    _layout_segments,
     build_repair_proposal,
     resolve_source,
     select_failed_monsters,
@@ -40,6 +43,7 @@ def test_resolve_source_accepts_active_authority():
     record = _monster("Zuggtmoy", "1", "304 (32dl0 + 1 28)")
     active_sources = [{
         "physical_filename": "Mostri del multiverso 201-294.pdf",
+        "logical_source_id": "mpmm_2022_it",
         "source_role": "authority",
         "source_status": "active",
         "physical_pages": 94,
@@ -73,6 +77,37 @@ def test_resolve_source_blocks_extraction_aid_alias():
         raise AssertionError("extraction_aid must be blocked")
 
 
+def test_mpmm_layout_profile_splits_columns_and_uses_independent_ocr_modes():
+    source = {"logical_source_id": "mpmm_2022_it"}
+
+    assert _layout_profile(source) == "two_column_vertical"
+    assert _layout_segments(source) == (
+        ("left", (0.0, 0.0, 0.5, 1.0)),
+        ("right", (0.5, 0.0, 1.0, 1.0)),
+    )
+    assert _layout_ocr_settings(
+        source,
+        dpi=220,
+        psm=6,
+        comparison_psm=4,
+    ) == (300, 3, 4)
+
+
+def test_non_two_column_source_keeps_full_page_settings():
+    source = {"logical_source_id": "tce_2020_it"}
+
+    assert _layout_profile(source) == "full_page"
+    assert _layout_segments(source) == (
+        ("full", (0.0, 0.0, 1.0, 1.0)),
+    )
+    assert _layout_ocr_settings(
+        source,
+        dpi=220,
+        psm=6,
+        comparison_psm=4,
+    ) == (220, 6, 4)
+
+
 def test_build_repair_proposal_replaces_only_core_and_forces_pending_review():
     legacy = _monster(
         "Zuggtmoy",
@@ -88,7 +123,7 @@ def test_build_repair_proposal_replaces_only_core_and_forces_pending_review():
             "classe_armatura": "18 (armatura naturale)",
             "punti_ferita": "304 (32d10 + 128)",
             "velocita": "9 m",
-            "grado_sfida": "999",  # must not overwrite non-core legacy fields
+            "grado_sfida": "999",
         },
     }
 
