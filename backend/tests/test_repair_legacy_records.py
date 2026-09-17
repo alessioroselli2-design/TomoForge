@@ -1,4 +1,7 @@
+import pytest
+
 from scripts.repair_legacy_records import (
+    _ReadOnlyCollection,
     _assert_source_is_read_only,
     analyze_verified_records,
 )
@@ -74,6 +77,22 @@ def test_missing_monster_core_values_fail_closed():
 
 
 def test_script_source_contains_no_database_mutation_method_calls():
-    # This check parses the real script source and raises if mutation methods
-    # such as update/insert/delete/upsert have been introduced.
     _assert_source_is_read_only()
+
+
+def test_read_only_collection_exposes_find_but_not_mutation_methods():
+    class FakeCollection:
+        def find(self, query):
+            return ("find", query)
+
+        def update_one(self, *_args, **_kwargs):  # pragma: no cover - must stay inaccessible
+            raise AssertionError("mutation must never be reachable")
+
+    collection = _ReadOnlyCollection(FakeCollection())
+
+    assert collection.find({"review_status": "verified"}) == (
+        "find",
+        {"review_status": "verified"},
+    )
+    with pytest.raises(AttributeError):
+        collection.update_one({}, {})
