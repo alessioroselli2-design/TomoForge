@@ -29,12 +29,12 @@ _OCR_DICE_LETTER_RE = re.compile(r"\b\d+d[il|]+\d*\b", re.IGNORECASE)
 
 # Heading detector runs on a compact ASCII view of the name. This makes
 # ``C A P I T O L O 6`` and ``C A P Itolo 6`` both become ``capitolo6``.
-# ``passo`` deliberately requires a following number/Roman numeral to avoid
-# false positives on legitimate D&D names such as "Passo Velato".
+# ``passo`` deliberately requires following Arabic digits to avoid false
+# positives on legitimate D&D names such as "Passo Velato".
 _ENTITY_TITLE_COMPACT_RE = re.compile(
     r"^(?:"
     r"capitolo(?:\d+|[ivxlcdm]+)?|"
-    r"passo(?:\d+|[ivxlcdm]+)|"
+    r"passo\d+|"
     r"appendice(?:[a-z0-9]+)?|"
     r"tabella(?:\d+|[ivxlcdm]+)?|"
     r"statistichedeimostri(?:pergradodisfida)?"
