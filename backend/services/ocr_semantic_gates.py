@@ -24,6 +24,9 @@ _DICE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])\d+d\d+(?![A-Za-z0-9])", re.IGNORE
 _SPLIT_NUMBER_RE = re.compile(r"\b\d+\s+\d+\b")
 _SPLIT_HIT_DICE_COUNT_RE = re.compile(r"\b\d+\s+\d+d\d+\b", re.IGNORECASE)
 _SPLIT_DICE_RE = re.compile(r"(?:\b\d+\s+d\d+\b|\b\d+d\s+\d+\b)", re.IGNORECASE)
+# Reject a split inside the die-face number itself, for example ``4d1 2`` for
+# ``4d12``. Without this check ``4d1`` looks like a superficially valid token.
+_SPLIT_DICE_FACES_RE = re.compile(r"\b\d+d\d+\s+\d+\b", re.IGNORECASE)
 # Typical OCR confusions in the dice token, for example ``32dl0`` for ``32d10``.
 _OCR_DICE_LETTER_RE = re.compile(r"\b\d+d[il|]+\d*\b", re.IGNORECASE)
 
@@ -84,12 +87,14 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
     has_split_number = bool(_SPLIT_NUMBER_RE.search(hp_text))
     has_split_hit_dice_count = bool(_SPLIT_HIT_DICE_COUNT_RE.search(hp_text))
     has_split_dice = bool(_SPLIT_DICE_RE.search(hp_text))
+    has_split_dice_faces = bool(_SPLIT_DICE_FACES_RE.search(hp_text))
     has_ocr_dice_letters = bool(_OCR_DICE_LETTER_RE.search(hp_text))
     if (
         not dice_token_ok
         or has_split_number
         or has_split_hit_dice_count
         or has_split_dice
+        or has_split_dice_faces
         or has_ocr_dice_letters
     ):
         flags.add(HP_FORMAT_ERROR_FLAG)

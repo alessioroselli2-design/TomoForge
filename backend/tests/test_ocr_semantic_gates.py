@@ -62,6 +62,13 @@ def test_hp_gate_rejects_split_leading_hit_dice_even_if_valid_subtoken_exists():
     assert HP_FORMAT_ERROR_FLAG in flags
 
 
+def test_hp_gate_rejects_split_die_face_digits_quetzalcoatlus_case():
+    flags = monster_semantic_numeric_flags(
+        _monster("13", "30 (4d1 2 + 4)")["attributes"]
+    )
+    assert HP_FORMAT_ERROR_FLAG in flags
+
+
 def test_hp_gate_accepts_canonical_dice_notation():
     flags = monster_semantic_numeric_flags(
         _monster("14", "45 (7d8 + 14)")["attributes"]
