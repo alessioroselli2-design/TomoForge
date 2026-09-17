@@ -7,6 +7,7 @@ from scripts.repair_monsters_from_source import (
     _layout_segments,
     build_repair_proposal,
     resolve_source,
+    select_corrupted_name_monsters,
     select_failed_monsters,
 )
 
@@ -37,6 +38,25 @@ def test_select_failed_monsters_keeps_real_corruption_and_excludes_heading():
 
     selected = select_failed_monsters(records)
     assert [row["id"] for row in selected] == ["bad"]
+
+
+def test_select_failed_monsters_isolates_corrupted_legacy_names():
+    records = [
+        _monster("Graz'Zt", "20", "346 (33dl0 + 1 65)", record_id="real"),
+        _monster("M:::,, $S$", "1", "20 (3d8 + 6)", record_id="symbols"),
+        _monster(
+            "Fo R M E P R E S C E Lte D E L L1A Rc I D R U I Do",
+            "14",
+            "1",
+            record_id="letterspaced",
+        ),
+    ]
+
+    selected = select_failed_monsters(records)
+    isolated = select_corrupted_name_monsters(records)
+
+    assert [row["id"] for row in selected] == ["real"]
+    assert {row["id"] for row in isolated} == {"symbols", "letterspaced"}
 
 
 def test_resolve_source_accepts_active_authority():
@@ -159,3 +179,23 @@ def test_build_repair_proposal_rejects_still_corrupt_candidate():
         assert exc.reason == "repaired_candidate_failed_gates"
     else:
         raise AssertionError("corrupt candidate must be rejected")
+
+
+def test_build_repair_proposal_rejects_corrupted_candidate_name():
+    legacy = _monster("Zuggtmoy", "1", "304 (32dl0 + 1 28)")
+    candidate = {
+        "name": "M:::,, $S$",
+        "reference_type": "monster",
+        "attributes": {
+            "classe_armatura": "18",
+            "punti_ferita": "304 (32d10 + 128)",
+            "velocita": "9 m",
+        },
+    }
+
+    try:
+        build_repair_proposal(legacy, candidate)
+    except RepairBlocked as exc:
+        assert exc.reason == "repaired_candidate_corrupted_name"
+    else:
+        raise AssertionError("candidate with corrupt identity must be rejected")

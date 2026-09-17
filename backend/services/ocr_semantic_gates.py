@@ -17,6 +17,7 @@ CA_OUT_OF_BOUNDS_FLAG = "CA_out_of_bounds"
 CA_FORMAT_ERROR_FLAG = "CA_format_error"
 HP_FORMAT_ERROR_FLAG = "HP_format_error"
 INVALID_ENTITY_TITLE_FLAG = "invalid_entity_title"
+CORRUPTED_ENTITY_NAME_FLAG = "corrupted_entity_name"
 
 _AC_VALUE_RE = re.compile(r"^\s*(\d{1,2})\b")
 _DICE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])\d+d\d+(?![A-Za-z0-9])", re.IGNORECASE)
@@ -45,12 +46,37 @@ _ENTITY_TITLE_COMPACT_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Monster identity sanity is deliberately stricter than normal title parsing.
+# Apostrophes/hyphens remain valid for names such as Graz'Zt, Fraz-Urb'Luu,
+# T'Lincalli and Yuan-Ti. These characters are strong OCR-noise indicators in
+# a monster name and should never reach source-guided mutation unattended.
+_SUSPICIOUS_MONSTER_NAME_CHAR_RE = re.compile(r"[:$|_]")
+_SUSPICIOUS_MONSTER_PUNCT_RUN_RE = re.compile(
+    r"[^\w\s'’\-]{2,}",
+    re.UNICODE,
+)
+
 
 def _compact_entity_name(name: Any) -> str:
     """Return a diacritic-free, punctuation/whitespace-free comparison key."""
     text = unicodedata.normalize("NFKD", str(name or ""))
     ascii_text = "".join(ch for ch in text if not unicodedata.combining(ch))
     return re.sub(r"[^a-z0-9]+", "", ascii_text.casefold())
+
+
+def _max_single_letter_token_run(name: Any) -> int:
+    """Return longest run of standalone alphabetic one-letter OCR tokens."""
+    text = unicodedata.normalize("NFKC", str(name or ""))
+    longest = 0
+    current = 0
+    for raw_token in text.split():
+        token = raw_token.strip(".,;!?()[]{}<>\"“”")
+        if len(token) == 1 and token.isalpha():
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    return longest
 
 
 def entity_name_semantic_flags(name: Any) -> set[str]:
@@ -63,6 +89,28 @@ def entity_name_semantic_flags(name: Any) -> set[str]:
     compact = _compact_entity_name(name)
     if compact and _ENTITY_TITLE_COMPACT_RE.match(compact):
         return {INVALID_ENTITY_TITLE_FLAG}
+    return set()
+
+
+def monster_identity_sanity_flags(name: Any) -> set[str]:
+    """Flag monster names that look structurally corrupted by OCR.
+
+    This is not a fuzzy spellchecker. It only catches strong structural noise:
+    explicit suspicious punctuation, runs of unusual punctuation, or at least
+    four consecutive standalone single-letter alphabetic tokens such as
+    ``F o R M E``. Legitimate apostrophes and hyphens are intentionally allowed.
+    Missing names are left to the existing structural validation path instead
+    of being reclassified by this OCR-specific gate.
+    """
+    text = unicodedata.normalize("NFKC", str(name or "")).strip()
+    if not text:
+        return set()
+    if _SUSPICIOUS_MONSTER_NAME_CHAR_RE.search(text):
+        return {CORRUPTED_ENTITY_NAME_FLAG}
+    if _SUSPICIOUS_MONSTER_PUNCT_RUN_RE.search(text):
+        return {CORRUPTED_ENTITY_NAME_FLAG}
+    if _max_single_letter_token_run(text) >= 4:
+        return {CORRUPTED_ENTITY_NAME_FLAG}
     return set()
 
 
@@ -115,6 +163,7 @@ def apply_ocr_review_gates(record: dict[str, Any]) -> dict[str, Any]:
     flags.update(entity_name_semantic_flags(record.get("name")))
 
     if record.get("reference_type") == "monster":
+        flags.update(monster_identity_sanity_flags(record.get("name")))
         flags.update(monster_semantic_numeric_flags(record.get("attributes") or {}))
 
     gated["review_flags"] = sorted(flags)

@@ -3,16 +3,17 @@
 
 Default mode is a read-only single-record dry-run (Zuggtmoy). The script:
 1. selects legacy verified monsters that fail current semantic/numeric gates;
-2. resolves provenance against the live active source registry;
-3. materializes the exact source PDF locally and verifies its SHA-256;
-4. OCRs at most a 3-page window (target page +/- 1) with two independent
+2. removes manual headings and structurally corrupted OCR names from repair;
+3. resolves provenance against the live active source registry;
+4. materializes the exact source PDF locally and verifies its SHA-256;
+5. OCRs at most a 3-page window (target page +/- 1) with two independent
    Tesseract layout modes;
-5. applies a source-specific layout profile when a manual is known to use
+6. applies a source-specific layout profile when a manual is known to use
    two-column stat blocks, OCRing each column independently before parsing;
-6. requires an independently-agreed monster candidate matching the known name;
-7. requires the repaired core attributes to pass ocr_semantic_gates;
-8. prints BEFORE/AFTER JSON; and
-9. performs no UPDATE unless --execute is explicitly supplied.
+7. requires an independently-agreed monster candidate matching the known name;
+8. requires the repaired core attributes to pass ocr_semantic_gates;
+9. prints BEFORE/AFTER JSON plus a separate corrupt-name bucket; and
+10. performs no UPDATE unless --execute is explicitly supplied.
 
 The script never auto-approves or canonicalizes. Even a successful repair is
 written as review_status='pending' with review flag 'ocr_da_verificare'.
@@ -47,11 +48,13 @@ from services.monster_statblock_ocr import agreed_monster_records, parse_monster
 from services.ocr_semantic_gates import (
     CA_FORMAT_ERROR_FLAG,
     CA_OUT_OF_BOUNDS_FLAG,
+    CORRUPTED_ENTITY_NAME_FLAG,
     HP_FORMAT_ERROR_FLAG,
     INVALID_ENTITY_TITLE_FLAG,
     OCR_REVIEW_FLAG,
     apply_ocr_review_gates,
     entity_name_semantic_flags,
+    monster_identity_sanity_flags,
     monster_semantic_numeric_flags,
 )
 
@@ -62,6 +65,7 @@ ELIGIBLE_SOURCE_ROLES = {"authority", "ingest_copy"}
 CRITICAL_GATE_FLAGS = {
     CA_FORMAT_ERROR_FLAG,
     CA_OUT_OF_BOUNDS_FLAG,
+    CORRUPTED_ENTITY_NAME_FLAG,
     HP_FORMAT_ERROR_FLAG,
     INVALID_ENTITY_TITLE_FLAG,
 }
@@ -112,27 +116,53 @@ async def _fetch_all(collection: Any, query: dict[str, Any]) -> list[dict[str, A
 
 
 def _legacy_failure_flags(record: dict[str, Any]) -> set[str]:
+    """Return current failure flags, including identity only for numeric failures."""
     if str(record.get("reference_type") or "") != "monster":
         return set()
-    if entity_name_semantic_flags(record.get("name")):
-        return {INVALID_ENTITY_TITLE_FLAG}
-    return monster_semantic_numeric_flags(record.get("attributes") or {})
+    title_flags = entity_name_semantic_flags(record.get("name"))
+    if title_flags:
+        return title_flags
+    numeric_flags = monster_semantic_numeric_flags(record.get("attributes") or {})
+    if not numeric_flags:
+        return set()
+    return numeric_flags | monster_identity_sanity_flags(record.get("name"))
+
+
+def _record_sort_key(record: dict[str, Any]) -> tuple[str, str]:
+    return (
+        str(record.get("name") or "").casefold(),
+        str(record.get("id") or ""),
+    )
 
 
 def select_failed_monsters(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Select genuine verified monsters failing CA/HP gates, excluding headings."""
+    """Select failed monsters whose identity is safe enough for source repair."""
     selected = []
     for record in records:
         flags = _legacy_failure_flags(record)
-        if flags and INVALID_ENTITY_TITLE_FLAG not in flags:
+        if not flags:
+            continue
+        if INVALID_ENTITY_TITLE_FLAG in flags:
+            continue
+        if CORRUPTED_ENTITY_NAME_FLAG in flags:
+            continue
+        selected.append(record)
+    return sorted(selected, key=_record_sort_key)
+
+
+def select_corrupted_name_monsters(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Isolate numerically failed monsters whose names look like OCR debris."""
+    selected = []
+    for record in records:
+        flags = _legacy_failure_flags(record)
+        if (
+            CORRUPTED_ENTITY_NAME_FLAG in flags
+            and INVALID_ENTITY_TITLE_FLAG not in flags
+        ):
             selected.append(record)
-    return sorted(
-        selected,
-        key=lambda row: (
-            str(row.get("name") or "").casefold(),
-            str(row.get("id") or ""),
-        ),
-    )
+    return sorted(selected, key=_record_sort_key)
 
 
 def _first_source_ref(record: dict[str, Any]) -> dict[str, Any]:
@@ -510,6 +540,8 @@ def build_repair_proposal(
         raise RepairBlocked("repaired_candidate_missing_speed")
     if entity_name_semantic_flags(candidate.get("name")):
         raise RepairBlocked("repaired_candidate_invalid_title")
+    if monster_identity_sanity_flags(candidate.get("name")):
+        raise RepairBlocked("repaired_candidate_corrupted_name")
 
     merged_attributes = dict(legacy.get("attributes") or {})
     for field in ("classe_armatura", "punti_ferita", "velocita"):
@@ -537,14 +569,14 @@ def build_repair_proposal(
             "post_merge_gate_failure",
             ",".join(sorted(post_flags)),
         )
-    if INVALID_ENTITY_TITLE_FLAG in set(
-        gated.get("review_flags") or []
-    ):
+    gated_flags = set(gated.get("review_flags") or [])
+    if INVALID_ENTITY_TITLE_FLAG in gated_flags:
         raise RepairBlocked("post_merge_invalid_title")
+    if CORRUPTED_ENTITY_NAME_FLAG in gated_flags:
+        raise RepairBlocked("post_merge_corrupted_name")
     if (
         gated.get("review_status") != "pending"
-        or OCR_REVIEW_FLAG
-        not in set(gated.get("review_flags") or [])
+        or OCR_REVIEW_FLAG not in gated_flags
     ):
         raise AssertionError(
             "OCR repair proposal lost mandatory review state"
@@ -566,6 +598,11 @@ async def _apply_update(
         raise RepairBlocked(
             "canonical_record_linked",
             "Refusing to mutate a record already linked to canonical data",
+        )
+    if monster_identity_sanity_flags(legacy.get("name")):
+        raise RepairBlocked(
+            "corrupted_entity_name",
+            "Refusing to mutate a monster with a structurally corrupt legacy name",
         )
 
     query: dict[str, Any] = {
@@ -606,6 +643,8 @@ async def _apply_update(
         raise RuntimeError(
             "post-update review flags verification failed"
         )
+    if CORRUPTED_ENTITY_NAME_FLAG in verify_flags:
+        raise RuntimeError("post-update corrupted name verification failed")
     if monster_semantic_numeric_flags(
         verify.get("attributes") or {}
     ):
@@ -626,6 +665,16 @@ def _json_view(record: dict[str, Any]) -> dict[str, Any]:
         "review_flags": record.get("review_flags") or [],
         "review_status": record.get("review_status"),
         "source_refs": record.get("source_refs") or [],
+    }
+
+
+def _corrupted_name_report(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "record_id": record.get("id"),
+        "name": record.get("name"),
+        "review_flags": [CORRUPTED_ENTITY_NAME_FLAG],
+        "classification": "Record con Nome Corrotto (Scorie OCR)",
+        "executed": False,
     }
 
 
@@ -736,7 +785,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Process every currently failed legacy monster",
+        help="Process every currently failed legacy monster with a sane name",
     )
     parser.add_argument(
         "--execute",
@@ -788,6 +837,7 @@ async def _run(args: argparse.Namespace) -> int:
         },
     )
     failures = select_failed_monsters(verified)
+    corrupted_names = select_corrupted_name_monsters(verified)
     active_sources = await _fetch_all(
         source_collection,
         {"source_status": "active"},
@@ -795,7 +845,9 @@ async def _run(args: argparse.Namespace) -> int:
 
     summary = {
         "verified_monsters": len(verified),
+        "failed_monsters_total": len(failures) + len(corrupted_names),
         "failed_monsters_selected": len(failures),
+        "corrupted_entity_names": len(corrupted_names),
         "expected_initial_failures": EXPECTED_INITIAL_FAILURES,
         "dry_run": not args.execute,
     }
@@ -808,13 +860,23 @@ async def _run(args: argparse.Namespace) -> int:
         )
     )
 
-    if not failures:
+    if not failures and not corrupted_names:
         return 0
 
     if args.all:
         targets = failures
     else:
         wanted = str(args.name or "").casefold()
+        corrupt_wanted = [
+            record
+            for record in corrupted_names
+            if str(record.get("name") or "").casefold() == wanted
+        ]
+        if corrupt_wanted:
+            raise RuntimeError(
+                f"Monster {args.name!r} is isolated by "
+                f"{CORRUPTED_ENTITY_NAME_FLAG} and cannot enter repair"
+            )
         targets = [
             record
             for record in failures
@@ -856,11 +918,22 @@ async def _run(args: argparse.Namespace) -> int:
     finally:
         pdf_cache.close()
 
+    name_corruption_bucket = {
+        "label": "Record con Nome Corrotto (Scorie OCR)",
+        "count": len(corrupted_names),
+        "records": [
+            _corrupted_name_report(record)
+            for record in corrupted_names
+        ],
+    }
     final = {
         "dry_run": not args.execute,
+        "failed_monsters_total": len(failures) + len(corrupted_names),
         "targets": len(targets),
         "repairable": len(reports),
         "blocked": len(blocked),
+        "corrupted_entity_names": len(corrupted_names),
+        "name_corruption_bucket": name_corruption_bucket,
         "updates_performed": sum(
             1
             for report in reports
@@ -877,7 +950,7 @@ async def _run(args: argparse.Namespace) -> int:
             sort_keys=True,
         )
     )
-    return 0 if reports or blocked else 1
+    return 0 if reports or blocked or corrupted_names else 1
 
 
 def main() -> int:
