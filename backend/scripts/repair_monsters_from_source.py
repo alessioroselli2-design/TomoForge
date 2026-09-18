@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 from datetime import datetime, timezone
 import json
 import os
@@ -69,6 +70,36 @@ CRITICAL_GATE_FLAGS = {
     HP_FORMAT_ERROR_FLAG,
     INVALID_ENTITY_TITLE_FLAG,
 }
+
+EXPECTED_HEALTHY22_COUNT = 22
+EXPECTED_HEALTHY22_IDS_MD5 = "3c1f0be4ba3b7429694fe1a797c50870"
+HEALTHY22_CONFIRMATION_TOKEN = (
+    "REPAIR-HEALTHY22-22-3c1f0be4ba3b7429694fe1a797c50870"
+)
+HEALTHY22_TARGETS: tuple[dict[str, str], ...] = (
+    {"id": "ref_09eb88310e015ab6aa41d9dc35874f48", "name": "Grung Guerriero D'Élite", "source_text_checksum": "3b83895b29020edb44eee6a37161661d6fb2833041b5e4b46efea0e66f565790"},
+    {"id": "ref_13c451b5c15a5014a05870c538c1027f", "name": "Abishai Nero", "source_text_checksum": "8b0f24b28b6b5c134abd1f043d4949d926ceb7dce9ce41f895f7da1ad47e33e0"},
+    {"id": "ref_1f9f9e07e45c598aabfbf96b74f6da5c", "name": "Supremo", "source_text_checksum": "d4c1ff1ebf2e2517e5ffb03059cb0d0582a52a5e0a1e54d7ba82fbf302b0daf7"},
+    {"id": "ref_4f37ea01e1385ebaa14bd94e9927c3fb", "name": "Di Tenebre", "source_text_checksum": "a5fe712f86535281be78a8fdc54a7cf3cd5b4581b7a2fd56ea36bcb44b9fc9b4"},
+    {"id": "ref_4fc3bf9cf15f5e109f9a305789da3396", "name": "Di Bronzo", "source_text_checksum": "ff8f58d6047f2fd38b18326e414e9120cdafdc7dd48458813c2fb4b0331abd73"},
+    {"id": "ref_774152a7b21953f99d394f65a852c8ca", "name": "Abishai Bianco", "source_text_checksum": "53d7c69d77be68865f9c6db8fe6ad6d95094c2d9209a93841c299c9eceda30e1"},
+    {"id": "ref_7b77784c85825bfdbf0ee87caa77685c", "name": "Abishai Verde", "source_text_checksum": "47127852a9f847f7b40eed01b98d3501f0d12ff16162716e6e02d70507ac5f31"},
+    {"id": "ref_86e7c81f54295e38bf97d70b8dd37f74", "name": "Idroloth", "source_text_checksum": "761338350331d83b7710b3fbc10812827dfb2480e2227b97b24edf9af586cb42"},
+    {"id": "ref_872a575e21a65e0e9ef677227c7aee61", "name": "Petron", "source_text_checksum": "53a51b79e011cab1bf2a33bcfeb417f63da9f000a848546efaf3593b86e6cd23"},
+    {"id": "ref_8be52d9c63b0507fb8a1ee943dfef4a7", "name": "Predatore D'Acciaio", "source_text_checksum": "dbb31095d0be61ee7176b349b0049c58fa2c2886a4e6f92bd7944ba8d2301d73"},
+    {"id": "ref_92e3b080e4fe5ba58c7bf439251876a2", "name": "Mente", "source_text_checksum": "4ea538392992e57c9dc0224f46f40b51aaf78ebe1a029f67bfbe48b28f893b5b"},
+    {"id": "ref_95407fdd26ae57e88fc3943545bd5cc4", "name": "Mago Trasmutatore", "source_text_checksum": "38c12e6bac483312455092a88e43c99107ac8eef1bb57c566e2957b7380cb862"},
+    {"id": "ref_9675b27dfcf2508895f60fa16f372c25", "name": "Graz'Zt", "source_text_checksum": "09ab11db46773be1ea31bfd4e74bd90a2a9f79fcd0443e1f6cd6ef9afe66ffbe"},
+    {"id": "ref_a2996e4f64235368b2f419b83e1a1aa3", "name": "Coboldo Stregone A Scaglie", "source_text_checksum": "f91892a56c6554a856e1dc621f8e1960c744220fd2430a0c9b73190981380bfb"},
+    {"id": "ref_ab32494230d3599c84042660933cecf1", "name": "Dell'Ombra", "source_text_checksum": "b264b48ea1969c59a59bf4147a8a92d7dfc3dd64c534f04dd1095a30d865e1f6"},
+    {"id": "ref_abaf4a8fe2395260991a96729a200351", "name": "Cacciatore Di Baphomet", "source_text_checksum": "94e2b86aa7bbd78a46dc484cf7e9b36b4290e38afea7d7ab7a8ac7dd152e93d1"},
+    {"id": "ref_bb4edf45dab45e2a849aead637d922f7", "name": "Duergar Kavalracni", "source_text_checksum": "4c46e8046628ec6513bd94ce6e39db47b8785b3aebf8fc9af84dcb8378e9752a"},
+    {"id": "ref_e0ed42b772a1564d8208dbee3557dae2", "name": "Mirmidone Elementale D'Aria", "source_text_checksum": "6a066bac120437f27ae5e6552ea6226a796e9dd8f9741f11f45b181a889581c3"},
+    {"id": "ref_e35ab09f132e526292e86469507b55b0", "name": "Di Quercia", "source_text_checksum": "6b4bebe3fbc20186debbbc7cda213ef1754a05175af27d6e704f1f32304fe5f1"},
+    {"id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a", "name": "Githyanki Kith'Rak", "source_text_checksum": "15154d968982915f1aa1342e7f53ed67bd707e9c8c110b38dadfd64874217fbb"},
+    {"id": "ref_f42275a1fc7956a88a2449eb3fc6d22d", "name": "Dell'Oscurità", "source_text_checksum": "933e922d521771cf049231668f6d4264875f3fba6e7de7110159087e17bc19f5"},
+    {"id": "ref_fc9b6c580dc85c0a9ca6ec918192c216", "name": "Statua Sacra", "source_text_checksum": "194a9e65755a7efab06c3192afa0a1b606032a676a6fda9e495ab072d5304be2"},
+)
 
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
@@ -163,6 +194,75 @@ def select_corrupted_name_monsters(
         ):
             selected.append(record)
     return sorted(selected, key=_record_sort_key)
+
+
+def _ids_md5(records: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> str:
+    joined = ",".join(sorted(str(record["id"]) for record in records))
+    return hashlib.md5(
+        joined.encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+
+
+def select_healthy22_targets(
+    failures: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve the reviewed 22-row batch by exact sealed identity."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in HEALTHY22_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(
+                f"Sealed healthy22 target missing from current failures: {expected['id']}"
+            )
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Healthy22 name drift: {expected['id']}")
+        if str(record.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+            raise RuntimeError(f"Healthy22 checksum drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Healthy22 status drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Healthy22 canonical link detected: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Healthy22 unexpected pre-existing review flags: {expected['id']}")
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(f"Healthy22 identity gate failure: {expected['id']}")
+        targets.append(record)
+
+    if (
+        len(targets) != EXPECTED_HEALTHY22_COUNT
+        or _ids_md5(targets) != EXPECTED_HEALTHY22_IDS_MD5
+    ):
+        raise RuntimeError("Healthy22 target count/fingerprint drift")
+    return targets
+
+
+async def _revalidate_target_snapshots(
+    collection: Any,
+    originals: list[dict[str, Any]],
+) -> None:
+    """Abort the batch if any reviewed target changed while OCR was running."""
+    protected_fields = (
+        "name",
+        "reference_type",
+        "attributes",
+        "review_flags",
+        "review_status",
+        "source_refs",
+        "source_text_checksum",
+        "canonical_id",
+        "updated_at",
+    )
+    for original in originals:
+        current = await collection.find_one({"id": str(original["id"])})
+        if current is None:
+            raise RuntimeError(f"Healthy22 target disappeared: {original['id']}")
+        for field in protected_fields:
+            if current.get(field) != original.get(field):
+                raise RuntimeError(
+                    f"Healthy22 concurrent drift for {original['id']}: {field}"
+                )
 
 
 def _first_source_ref(record: dict[str, Any]) -> dict[str, Any]:
@@ -788,9 +888,20 @@ def _parser() -> argparse.ArgumentParser:
         help="Process every currently failed legacy monster with a sane name",
     )
     parser.add_argument(
+        "--target-set",
+        choices=("healthy22",),
+        default=None,
+        help="Process only an exact reviewed sealed target set",
+    )
+    parser.add_argument(
         "--execute",
         action="store_true",
         help="Apply validated repairs; default is dry-run",
+    )
+    parser.add_argument(
+        "--confirm",
+        default="",
+        help="Exact confirmation token required for sealed batch execution",
     )
     parser.add_argument(
         "--pdf-root",
@@ -813,10 +924,18 @@ async def _run(args: argparse.Namespace) -> int:
         raise RuntimeError("OCR layout modes must differ")
     if not 120 <= args.dpi <= 300:
         raise RuntimeError("dpi must be between 120 and 300")
-    if args.execute and not args.all and not args.name:
+    if args.all and args.target_set:
+        raise RuntimeError("--all and --target-set are mutually exclusive")
+    if args.execute and not args.all and not args.target_set and not args.name:
         raise RuntimeError(
-            "execution requires an explicit --name or --all"
+            "execution requires an explicit --name, --all, or --target-set"
         )
+    if (
+        args.execute
+        and args.target_set == "healthy22"
+        and args.confirm != HEALTHY22_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Healthy22 confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -863,7 +982,10 @@ async def _run(args: argparse.Namespace) -> int:
     if not failures and not corrupted_names:
         return 0
 
-    if args.all:
+    sealed_batch = args.target_set == "healthy22"
+    if sealed_batch:
+        targets = select_healthy22_targets(failures)
+    elif args.all:
         targets = failures
     else:
         wanted = str(args.name or "").casefold()
@@ -895,6 +1017,11 @@ async def _run(args: argparse.Namespace) -> int:
     )
     reports = []
     blocked = []
+    stage_args = argparse.Namespace(**vars(args))
+    if sealed_batch:
+        # No live write is allowed until every one of the 22 proposals has
+        # completed OCR, independent agreement and semantic/numeric gates.
+        stage_args.execute = False
     try:
         for record in targets:
             try:
@@ -904,7 +1031,7 @@ async def _run(args: argparse.Namespace) -> int:
                         record,
                         active_sources,
                         pdf_cache,
-                        args,
+                        stage_args,
                     )
                 )
             except RepairBlocked as exc:
@@ -917,6 +1044,32 @@ async def _run(args: argparse.Namespace) -> int:
                 })
     finally:
         pdf_cache.close()
+
+    if sealed_batch and args.execute:
+        if blocked or len(reports) != EXPECTED_HEALTHY22_COUNT:
+            raise RuntimeError(
+                "Healthy22 batch refused: all 22 proposals must be repairable before any UPDATE"
+            )
+        await _revalidate_target_snapshots(records_collection, targets)
+        originals = {str(record["id"]): record for record in targets}
+        for report in reports:
+            expected_flags = sorted([OCR_REVIEW_FLAG, REPAIR_FLAG])
+            actual_flags = sorted(str(flag) for flag in report["after"]["review_flags"])
+            if actual_flags != expected_flags:
+                raise RuntimeError(
+                    f"Healthy22 unexpected proposal flags for {report['record_id']}: {actual_flags!r}"
+                )
+            proposal = {
+                "attributes": report["after"]["attributes"],
+                "review_flags": report["after"]["review_flags"],
+                "review_status": "pending",
+            }
+            await _apply_update(
+                records_collection,
+                originals[str(report["record_id"])],
+                proposal,
+            )
+            report["executed"] = True
 
     name_corruption_bucket = {
         "label": "Record con Nome Corrotto (Scorie OCR)",
