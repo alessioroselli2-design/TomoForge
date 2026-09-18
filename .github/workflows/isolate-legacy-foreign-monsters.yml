@@ -1,6 +1,11 @@
 name: Isolate legacy foreign monsters
 
 on:
+  push:
+    branches:
+      - ai-canonical-library
+    paths:
+      - .github/legacy-foreign-isolation-request.txt
   workflow_dispatch:
     inputs:
       execute:
@@ -48,20 +53,36 @@ jobs:
           python -m pip install -r backend/requirements.txt
 
       - name: Preview sealed isolation
-        if: ${{ !inputs.execute }}
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.execute }}
         run: |
           set -o pipefail
           python backend/scripts/isolate_legacy_foreign_monsters.py \
             | tee /tmp/foreign-isolation.log
 
-      - name: Execute sealed isolation
-        if: ${{ inputs.execute }}
+      - name: Execute sealed isolation from manual dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.execute }}
         run: |
           set -o pipefail
           python backend/scripts/isolate_legacy_foreign_monsters.py \
             --execute \
             --confirm "${{ inputs.confirm }}" \
             | tee /tmp/foreign-isolation.log
+
+      - name: Execute sealed isolation from approved marker
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          set -o pipefail
+          python backend/scripts/isolate_legacy_foreign_monsters.py \
+            --execute \
+            --confirm "ISOLATE-LEGACY-FOREIGN-29-223ab533a712d0871982a7451da551ea" \
+            | tee /tmp/foreign-isolation.log
+
+      - name: Assert exact isolation completion
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          grep -q '"targets": 29' /tmp/foreign-isolation.log
+          grep -q '"isolated": 29' /tmp/foreign-isolation.log
+          grep -q '"review_status": "needs_review"' /tmp/foreign-isolation.log
 
       - name: Upload report
         uses: actions/upload-artifact@v4
