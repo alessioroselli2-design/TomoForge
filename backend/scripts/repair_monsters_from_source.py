@@ -101,10 +101,36 @@ HEALTHY22_TARGETS: tuple[dict[str, str], ...] = (
     {"id": "ref_fc9b6c580dc85c0a9ca6ec918192c216", "name": "Statua Sacra", "source_text_checksum": "194a9e65755a7efab06c3192afa0a1b606032a676a6fda9e495ab072d5304be2"},
 )
 
+EXPECTED_BIGBY19_COUNT = 19
+EXPECTED_BIGBY19_IDS_MD5 = "16bfa1dc27d5d580b5c2703b5d7f1bf9"
+BIGBY19_TARGETS: tuple[dict[str, str], ...] = (
+    {"id": "ref_c106f9a6c3115dbf8578f832b04e3a3a", "name": "Altisauro", "source_text_checksum": "9680a14028c359d550587f69d890881a64731f0b51e30941476ff5e995debf2e"},
+    {"id": "ref_28900cffd313554b81303ff3ce407cc1", "name": "Ammantato", "source_text_checksum": "b50cc4278a7fdd606f50a20f5b6f37d2fe4ce354094c8e2d60ffb73bd4e1e0e0"},
+    {"id": "ref_5200eb51f6f555d5a52800dc3cfef0c4", "name": "Araldo Delle Tempeste", "source_text_checksum": "e64fd24af1656e2725f0ed425236226685a88d5dcc4df0a20ede61c7cb28279f"},
+    {"id": "ref_e42d82c62c7b5bdba13c3c73663966ff", "name": "Cerato Po", "source_text_checksum": "a9365115d6e07317f75a602c6fcaea2d92e497e5c7c0a15cc8f273f452e0f2c3"},
+    {"id": "ref_c2a7d3e06e52569e851f737c33260f9d", "name": "Colline", "source_text_checksum": "e66ab0e6fec743bc407b15e32a7d554927182e986521d5b4b09f274dade5c61f"},
+    {"id": "ref_42d5121498575f11a310f549f441f4d7", "name": "Colosso Di Carne", "source_text_checksum": "827fb11acf989da9b32881d1ed85b4fcfd2570e8da0d72f70d6fede7e46d98a9"},
+    {"id": "ref_83a6b991bfec5efdb2dda4da60d408bb", "name": "Colosso Runico", "source_text_checksum": "f1a8cbfb271853c0ec69468baa007afcabd94fe2bc0f5f68575028134c4494b5"},
+    {"id": "ref_9ac0de67090652bdbe5e7fd1e01d00cb", "name": "Granchio Delle Tempeste", "source_text_checksum": "864505c5fc606dd81383ea6eae6395146e6ac5c9f94ca9ca41130acb2eaea9d0"},
+    {"id": "ref_6d3eaf35463d556f961bbb7baa8d2b70", "name": "Ììtanoronte", "source_text_checksum": "a89571d106cf80b7d951673196b67f4929c609da73318cdae7c47ea64c193d5c"},
+    {"id": "ref_c5f631a36b5f51dc9123a728f65c2ec9", "name": "Linguarupestre", "source_text_checksum": "9aee292abcf550f1a6e1abd97f366c0eaa793ee8b91b576132def21910e5c05f"},
+    {"id": "ref_e965d3715ce456e1967dfdae85d0cdc3", "name": "Malvagia", "source_text_checksum": "aadc43f3446180bc087dbb0372b931d0ce9c7ea104edfa014ded112d89e263cc"},
+    {"id": "ref_24fdfda426f35dc2b05cfdd7e17248d9", "name": "Malvagio", "source_text_checksum": "9e1b4b12e262e78a4fa258bd49be6a910ec257a8e6674499dbda98f0370d4b3b"},
+    {"id": "ref_9b3fc6257b9f52819f603a4458318743", "name": "Mietitore", "source_text_checksum": "0417021c265927527cd35f5f88fd3e85a8fc03e3855a20e938aed407eb0ceaa1"},
+    {"id": "ref_a4ca7d65762650dc8e24dcbde06a6342", "name": "Modellaghiaccio", "source_text_checksum": "0980bdaf9d426461e5666e89042b035985c551f66219878446fd7ca6621f0d4b"},
+    {"id": "ref_1535557d71cd52849aba54a8418fbb2e", "name": "Pietre", "source_text_checksum": "351921045f55fdbc063e9e3cc7eeb315b908e7aba9e0bdafb93706abc56587ef"},
+    {"id": "ref_77ef6b47608e5575b9723e8d11de2011", "name": "Regi Sauro", "source_text_checksum": "d30260741443c7f8d55c21df7cb772b46f4753f2a16da0b54816630bd1b676be"},
+    {"id": "ref_8b550003f8045cc29a5edcfe9a6bce3b", "name": "Spirito Delle Tempeste", "source_text_checksum": "e28beb1d2d7a863ee680be953c36205b92fca6af2a24f77decc90c5988158399"},
+    {"id": "ref_6b5c8da8abbf545e9f2ea14f88155b78", "name": "T'Erra Malvagia", "source_text_checksum": "6c01eae905b17ddbe67d9854820a8b6cbe88afb25525e7c7f63eb41763481ff4"},
+    {"id": "ref_b0418fbbc1d85eaabb98d5891a4a45ab", "name": "Tempeste", "source_text_checksum": "e18c357eaea02487161d323745a1e06a55f440288eb633c4681da262cb570397"},
+)
+
+
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "mpmm_2022_it",  # Mordenkainen Presenta: Mostri del Multiverso
+    "bgg_2023_it",   # Bigby Presenta: La Gloria dei Giganti
 }
 TWO_COLUMN_MIN_DPI = 300
 TWO_COLUMN_PRIMARY_PSM = 3
@@ -235,6 +261,38 @@ def select_healthy22_targets(
         or _ids_md5(targets) != EXPECTED_HEALTHY22_IDS_MD5
     ):
         raise RuntimeError("Healthy22 target count/fingerprint drift")
+    return targets
+
+
+def select_bigby19_targets(
+    failures: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve the 19 reviewed Bigby disagreement rows for dry-run audit only."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in BIGBY19_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(
+                f"Sealed bigby19 target missing from current failures: {expected['id']}"
+            )
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Bigby19 name drift: {expected['id']}")
+        if str(record.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+            raise RuntimeError(f"Bigby19 checksum drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Bigby19 status drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Bigby19 canonical link detected: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Bigby19 unexpected pre-existing review flags: {expected['id']}")
+        targets.append(record)
+
+    if (
+        len(targets) != EXPECTED_BIGBY19_COUNT
+        or _ids_md5(targets) != EXPECTED_BIGBY19_IDS_MD5
+    ):
+        raise RuntimeError("Bigby19 target count/fingerprint drift")
     return targets
 
 
@@ -889,7 +947,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target-set",
-        choices=("healthy22",),
+        choices=("healthy22", "bigby19"),
         default=None,
         help="Process only an exact reviewed sealed target set",
     )
@@ -930,6 +988,8 @@ async def _run(args: argparse.Namespace) -> int:
         raise RuntimeError(
             "execution requires an explicit --name, --all, or --target-set"
         )
+    if args.execute and args.target_set == "bigby19":
+        raise RuntimeError("bigby19 is a dry-run-only audit target set")
     if (
         args.execute
         and args.target_set == "healthy22"
@@ -985,6 +1045,8 @@ async def _run(args: argparse.Namespace) -> int:
     sealed_batch = args.target_set == "healthy22"
     if sealed_batch:
         targets = select_healthy22_targets(failures)
+    elif args.target_set == "bigby19":
+        targets = select_bigby19_targets(failures)
     elif args.all:
         targets = failures
     else:
