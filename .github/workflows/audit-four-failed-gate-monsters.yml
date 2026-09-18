@@ -1,12 +1,7 @@
 name: Audit four failed-gate monsters
 
 on:
-  push:
-    branches:
-      - audit-blocked-legacy-monsters
-    paths:
-      - backend/scripts/audit_failed_gate_monsters.py
-      - .github/workflows/audit-four-failed-gate-monsters.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
