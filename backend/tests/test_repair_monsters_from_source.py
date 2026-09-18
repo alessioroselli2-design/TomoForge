@@ -1,4 +1,6 @@
 from scripts.repair_monsters_from_source import (
+    EXPECTED_HEALTHY22_COUNT,
+    HEALTHY22_TARGETS,
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
     RepairBlocked,
@@ -9,6 +11,7 @@ from scripts.repair_monsters_from_source import (
     resolve_source,
     select_corrupted_name_monsters,
     select_failed_monsters,
+    select_healthy22_targets,
 )
 
 
@@ -199,3 +202,46 @@ def test_build_repair_proposal_rejects_corrupted_candidate_name():
         assert exc.reason == "repaired_candidate_corrupted_name"
     else:
         raise AssertionError("candidate with corrupt identity must be rejected")
+
+
+
+def test_healthy22_sealed_target_set_resolves_exact_reviewed_batch():
+    records = []
+    for expected in HEALTHY22_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = expected["source_text_checksum"]
+        records.append(row)
+
+    selected = select_healthy22_targets(records)
+
+    assert len(selected) == EXPECTED_HEALTHY22_COUNT == 22
+    assert {row["id"] for row in selected} == {
+        expected["id"] for expected in HEALTHY22_TARGETS
+    }
+
+
+def test_healthy22_sealed_target_set_rejects_preexisting_review_flags():
+    records = []
+    for expected in HEALTHY22_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = expected["source_text_checksum"]
+        records.append(row)
+
+    records[0]["review_flags"] = ["unexpected"]
+
+    try:
+        select_healthy22_targets(records)
+    except RuntimeError as exc:
+        assert "review flags" in str(exc)
+    else:
+        raise AssertionError("sealed healthy22 batch must reject pre-existing flags")
