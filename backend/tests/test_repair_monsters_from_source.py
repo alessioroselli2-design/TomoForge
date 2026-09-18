@@ -3,7 +3,9 @@ from datetime import datetime
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
+    BIGBY4_TARGETS,
     EXPECTED_BIGBY19_COUNT,
+    EXPECTED_BIGBY4_COUNT,
     EXPECTED_HEALTHY22_COUNT,
     HEALTHY22_TARGETS,
     OCR_REVIEW_FLAG,
@@ -16,6 +18,7 @@ from scripts.repair_monsters_from_source import (
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
+    select_bigby4_targets,
     select_corrupted_name_monsters,
     select_failed_monsters,
     select_healthy22_targets,
@@ -340,3 +343,46 @@ def test_bigby19_sealed_target_set_resolves_exact_reviewed_batch():
     assert {row["id"] for row in selected} == {
         expected["id"] for expected in BIGBY19_TARGETS
     }
+
+
+
+def test_bigby4_sealed_target_set_resolves_exact_approved_batch():
+    records = []
+    for expected in BIGBY4_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = expected["source_text_checksum"]
+        records.append(row)
+
+    selected = select_bigby4_targets(records)
+
+    assert len(selected) == EXPECTED_BIGBY4_COUNT == 4
+    assert {row["id"] for row in selected} == {
+        expected["id"] for expected in BIGBY4_TARGETS
+    }
+
+
+def test_bigby4_sealed_target_set_rejects_review_flag_drift():
+    records = []
+    for expected in BIGBY4_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = expected["source_text_checksum"]
+        records.append(row)
+
+    records[0]["review_flags"] = ["unexpected"]
+
+    try:
+        select_bigby4_targets(records)
+    except RuntimeError as exc:
+        assert "review flags" in str(exc)
+    else:
+        raise AssertionError("sealed bigby4 batch must reject pre-existing flags")

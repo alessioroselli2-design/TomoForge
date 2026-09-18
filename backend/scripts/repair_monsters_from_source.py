@@ -125,6 +125,18 @@ BIGBY19_TARGETS: tuple[dict[str, str], ...] = (
     {"id": "ref_b0418fbbc1d85eaabb98d5891a4a45ab", "name": "Tempeste", "source_text_checksum": "e18c357eaea02487161d323745a1e06a55f440288eb633c4681da262cb570397"},
 )
 
+EXPECTED_BIGBY4_COUNT = 4
+EXPECTED_BIGBY4_IDS_MD5 = "82a891bb16d48d70e063b3c535fa0839"
+BIGBY4_CONFIRMATION_TOKEN = (
+    "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
+)
+BIGBY4_TARGETS: tuple[dict[str, str], ...] = (
+    {"id": "ref_28900cffd313554b81303ff3ce407cc1", "name": "Ammantato", "source_text_checksum": "b50cc4278a7fdd606f50a20f5b6f37d2fe4ce354094c8e2d60ffb73bd4e1e0e0"},
+    {"id": "ref_5200eb51f6f555d5a52800dc3cfef0c4", "name": "Araldo Delle Tempeste", "source_text_checksum": "e64fd24af1656e2725f0ed425236226685a88d5dcc4df0a20ede61c7cb28279f"},
+    {"id": "ref_c5f631a36b5f51dc9123a728f65c2ec9", "name": "Linguarupestre", "source_text_checksum": "9aee292abcf550f1a6e1abd97f366c0eaa793ee8b91b576132def21910e5c05f"},
+    {"id": "ref_8b550003f8045cc29a5edcfe9a6bce3b", "name": "Spirito Delle Tempeste", "source_text_checksum": "e28beb1d2d7a863ee680be953c36205b92fca6af2a24f77decc90c5988158399"},
+)
+
 
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
@@ -296,6 +308,40 @@ def select_bigby19_targets(
     return targets
 
 
+def select_bigby4_targets(
+    failures: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve the four approved Bigby repair rows by exact sealed identity."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in BIGBY4_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(
+                f"Sealed bigby4 target missing from current failures: {expected['id']}"
+            )
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Bigby4 name drift: {expected['id']}")
+        if str(record.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+            raise RuntimeError(f"Bigby4 checksum drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Bigby4 status drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Bigby4 canonical link detected: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Bigby4 unexpected pre-existing review flags: {expected['id']}")
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(f"Bigby4 identity gate failure: {expected['id']}")
+        targets.append(record)
+
+    if (
+        len(targets) != EXPECTED_BIGBY4_COUNT
+        or _ids_md5(targets) != EXPECTED_BIGBY4_IDS_MD5
+    ):
+        raise RuntimeError("Bigby4 target count/fingerprint drift")
+    return targets
+
+
 async def _revalidate_target_snapshots(
     collection: Any,
     originals: list[dict[str, Any]],
@@ -315,11 +361,11 @@ async def _revalidate_target_snapshots(
     for original in originals:
         current = await collection.find_one({"id": str(original["id"])})
         if current is None:
-            raise RuntimeError(f"Healthy22 target disappeared: {original['id']}")
+            raise RuntimeError(f"Sealed target disappeared: {original['id']}")
         for field in protected_fields:
             if current.get(field) != original.get(field):
                 raise RuntimeError(
-                    f"Healthy22 concurrent drift for {original['id']}: {field}"
+                    f"Sealed target concurrent drift for {original['id']}: {field}"
                 )
 
 
@@ -947,7 +993,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target-set",
-        choices=("healthy22", "bigby19"),
+        choices=("healthy22", "bigby19", "bigby4"),
         default=None,
         help="Process only an exact reviewed sealed target set",
     )
@@ -996,6 +1042,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != HEALTHY22_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Healthy22 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "bigby4"
+        and args.confirm != BIGBY4_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Bigby4 confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -1042,12 +1094,23 @@ async def _run(args: argparse.Namespace) -> int:
     if not failures and not corrupted_names:
         return 0
 
-    sealed_batch = args.target_set == "healthy22"
-    if sealed_batch:
+    sealed_batch = args.target_set in {"healthy22", "bigby4"}
+    if args.target_set == "healthy22":
         targets = select_healthy22_targets(failures)
+        sealed_expected_count = EXPECTED_HEALTHY22_COUNT
+        sealed_label = "Healthy22"
+    elif args.target_set == "bigby4":
+        targets = select_bigby4_targets(failures)
+        sealed_expected_count = EXPECTED_BIGBY4_COUNT
+        sealed_label = "Bigby4"
     elif args.target_set == "bigby19":
         targets = select_bigby19_targets(failures)
+        sealed_expected_count = None
+        sealed_label = "Bigby19"
     elif args.all:
+        targets = failures
+        sealed_expected_count = None
+        sealed_label = "all"
         targets = failures
     else:
         wanted = str(args.name or "").casefold()
@@ -1108,9 +1171,10 @@ async def _run(args: argparse.Namespace) -> int:
         pdf_cache.close()
 
     if sealed_batch and args.execute:
-        if blocked or len(reports) != EXPECTED_HEALTHY22_COUNT:
+        if blocked or len(reports) != sealed_expected_count:
             raise RuntimeError(
-                "Healthy22 batch refused: all 22 proposals must be repairable before any UPDATE"
+                f"{sealed_label} batch refused: all {sealed_expected_count} proposals "
+                "must be repairable before any UPDATE"
             )
         await _revalidate_target_snapshots(records_collection, targets)
         originals = {str(record["id"]): record for record in targets}
@@ -1119,7 +1183,8 @@ async def _run(args: argparse.Namespace) -> int:
             actual_flags = sorted(str(flag) for flag in report["after"]["review_flags"])
             if actual_flags != expected_flags:
                 raise RuntimeError(
-                    f"Healthy22 unexpected proposal flags for {report['record_id']}: {actual_flags!r}"
+                    f"{sealed_label} unexpected proposal flags for "
+                    f"{report['record_id']}: {actual_flags!r}"
                 )
             proposal = {
                 "attributes": report["after"]["attributes"],
