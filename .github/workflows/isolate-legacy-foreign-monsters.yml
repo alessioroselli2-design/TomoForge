@@ -1,0 +1,72 @@
+name: Isolate legacy foreign monsters
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: "Set true to isolate the sealed 29-row target set"
+        required: true
+        default: false
+        type: boolean
+      confirm:
+        description: "Exact confirmation token required when execute=true"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-isolate-legacy-foreign-monsters
+  cancel-in-progress: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+
+      - name: Preview sealed isolation
+        if: ${{ !inputs.execute }}
+        run: |
+          set -o pipefail
+          python backend/scripts/isolate_legacy_foreign_monsters.py \
+            | tee /tmp/foreign-isolation.log
+
+      - name: Execute sealed isolation
+        if: ${{ inputs.execute }}
+        run: |
+          set -o pipefail
+          python backend/scripts/isolate_legacy_foreign_monsters.py \
+            --execute \
+            --confirm "${{ inputs.confirm }}" \
+            | tee /tmp/foreign-isolation.log
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-foreign-isolation-report
+          path: /tmp/foreign-isolation.log
+          if-no-files-found: error
+          retention-days: 3
