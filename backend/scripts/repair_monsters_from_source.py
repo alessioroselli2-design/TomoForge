@@ -715,7 +715,7 @@ async def _apply_update(
 
     write_payload = {
         **proposal,
-        "updated_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     result = await collection.update_one(
         query,
