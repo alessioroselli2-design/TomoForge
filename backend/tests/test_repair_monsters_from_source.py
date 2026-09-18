@@ -1,9 +1,13 @@
+import asyncio
+from datetime import datetime
+
 from scripts.repair_monsters_from_source import (
     EXPECTED_HEALTHY22_COUNT,
     HEALTHY22_TARGETS,
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
     RepairBlocked,
+    _apply_update,
     _layout_ocr_settings,
     _layout_profile,
     _layout_segments,
@@ -245,3 +249,54 @@ def test_healthy22_sealed_target_set_rejects_preexisting_review_flags():
         assert "review flags" in str(exc)
     else:
         raise AssertionError("sealed healthy22 batch must reject pre-existing flags")
+
+
+
+class _UpdateResult:
+    matched_count = 1
+
+
+class _SerializableUpdateCollection:
+    def __init__(self, legacy):
+        self.row = dict(legacy)
+        self.last_payload = None
+
+    async def update_one(self, query, update):
+        assert query["id"] == self.row["id"]
+        self.last_payload = dict(update["$set"])
+        # Regression guard: this mirrors JSON serialization requirements.
+        assert isinstance(self.last_payload["updated_at"], str)
+        datetime.fromisoformat(self.last_payload["updated_at"])
+        self.row.update(self.last_payload)
+        return _UpdateResult()
+
+    async def find_one(self, query):
+        assert query["id"] == self.row["id"]
+        return dict(self.row)
+
+
+def test_apply_update_serializes_updated_at_as_utc_iso_string():
+    legacy = _monster(
+        "Zuggtmoy",
+        "1",
+        "304 (32dl0 + 1 28)",
+    )
+    legacy["source_text_checksum"] = "checksum"
+    legacy["updated_at"] = "2026-09-04T05:00:00+00:00"
+    proposal = {
+        "attributes": {
+            **legacy["attributes"],
+            "classe_armatura": "18 (armatura naturale)",
+            "punti_ferita": "304 (32d10 + 128)",
+            "velocita": "9 m",
+        },
+        "review_flags": [OCR_REVIEW_FLAG, REPAIR_FLAG],
+        "review_status": "pending",
+    }
+    collection = _SerializableUpdateCollection(legacy)
+
+    asyncio.run(_apply_update(collection, legacy, proposal))
+
+    timestamp = collection.last_payload["updated_at"]
+    parsed = datetime.fromisoformat(timestamp)
+    assert parsed.utcoffset().total_seconds() == 0

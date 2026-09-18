@@ -60,6 +60,7 @@ def test_apply_update_sets_fresh_utc_updated_at_and_preserves_guards():
     assert payload["attributes"] == proposal["attributes"]
     assert payload["review_status"] == "pending"
     assert payload["review_flags"] == [OCR_REVIEW_FLAG, REPAIR_FLAG]
-    assert isinstance(payload["updated_at"], datetime)
-    assert payload["updated_at"].tzinfo == timezone.utc
-    assert before <= payload["updated_at"] <= after
+    assert isinstance(payload["updated_at"], str)
+    parsed_updated_at = datetime.fromisoformat(payload["updated_at"])
+    assert parsed_updated_at.tzinfo == timezone.utc
+    assert before <= parsed_updated_at <= after
