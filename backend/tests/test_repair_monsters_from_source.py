@@ -2,6 +2,8 @@ import asyncio
 from datetime import datetime
 
 from scripts.repair_monsters_from_source import (
+    BIGBY19_TARGETS,
+    EXPECTED_BIGBY19_COUNT,
     EXPECTED_HEALTHY22_COUNT,
     HEALTHY22_TARGETS,
     OCR_REVIEW_FLAG,
@@ -13,6 +15,7 @@ from scripts.repair_monsters_from_source import (
     _layout_segments,
     build_repair_proposal,
     resolve_source,
+    select_bigby19_targets,
     select_corrupted_name_monsters,
     select_failed_monsters,
     select_healthy22_targets,
@@ -106,6 +109,22 @@ def test_resolve_source_blocks_extraction_aid_alias():
 
 def test_mpmm_layout_profile_splits_columns_and_uses_independent_ocr_modes():
     source = {"logical_source_id": "mpmm_2022_it"}
+
+    assert _layout_profile(source) == "two_column_vertical"
+    assert _layout_segments(source) == (
+        ("left", (0.0, 0.0, 0.5, 1.0)),
+        ("right", (0.5, 0.0, 1.0, 1.0)),
+    )
+    assert _layout_ocr_settings(
+        source,
+        dpi=220,
+        psm=6,
+        comparison_psm=4,
+    ) == (300, 3, 4)
+
+
+def test_bigby_layout_profile_splits_columns_and_uses_independent_ocr_modes():
+    source = {"logical_source_id": "bgg_2023_it"}
 
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
@@ -300,3 +319,24 @@ def test_apply_update_serializes_updated_at_as_utc_iso_string():
     timestamp = collection.last_payload["updated_at"]
     parsed = datetime.fromisoformat(timestamp)
     assert parsed.utcoffset().total_seconds() == 0
+
+
+
+def test_bigby19_sealed_target_set_resolves_exact_reviewed_batch():
+    records = []
+    for expected in BIGBY19_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = expected["source_text_checksum"]
+        records.append(row)
+
+    selected = select_bigby19_targets(records)
+
+    assert len(selected) == EXPECTED_BIGBY19_COUNT == 19
+    assert {row["id"] for row in selected} == {
+        expected["id"] for expected in BIGBY19_TARGETS
+    }
