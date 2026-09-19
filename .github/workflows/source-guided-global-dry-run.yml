@@ -1,6 +1,15 @@
 name: Global source-guided monster dry-run
 
 on:
+  # GitHub only exposes workflow_dispatch for workflows present on the default
+  # branch. The canonical library lives on a separate branch, so use a sealed
+  # request file to make the dry-run launchable there as well.
+  push:
+    branches:
+      - ai-canonical-library
+    paths:
+      - .github/source-guided-global-dry-run-request.txt
+      - .github/workflows/source-guided-global-dry-run.yml
   workflow_dispatch:
 
 permissions:
