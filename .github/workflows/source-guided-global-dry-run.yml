@@ -2,6 +2,9 @@ name: Global source-guided monster dry-run
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - ops/global-dry-run-20260919
 
 permissions:
   contents: read
