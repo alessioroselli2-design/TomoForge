@@ -31,7 +31,6 @@ if str(BACKEND_DIR) not in sys.path:
 
 from scripts.audit_manual_import_readiness import fetch_all
 from scripts.audit_zero_import_logical_source_peers import (
-    _norm,
     summarize_zero_import_logical_source_peers,
 )
 
