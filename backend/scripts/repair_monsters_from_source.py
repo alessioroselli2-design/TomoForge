@@ -1111,6 +1111,7 @@ def _ocr_source_window(
     languages: str,
     psm: int,
     comparison_psm: int,
+    target_name: str,
 ) -> tuple[
     list[tuple[int, str]],
     list[tuple[int, str]],
@@ -1192,7 +1193,6 @@ def _ocr_source_window(
                     agreement = _agreement_metrics(
                         primary,
                         comparison,
-                        target_name,
                     )
                     segment_metrics[segment_name] = agreement
 
