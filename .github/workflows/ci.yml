@@ -1,8 +1,14 @@
 name: CI
 
 on:
-  push:
   pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
 
 permissions:
   contents: read
@@ -20,6 +26,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -34,13 +42,45 @@ jobs:
       - name: Install backend dependencies
         run: uv sync --frozen
 
-      - name: Ruff format check
-        run: uv run ruff format --check backend
+      - name: Detect changed Python files
+        id: changed_python
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          : > /tmp/changed-python-files
 
-      - name: Ruff lint
-        run: uv run ruff check backend
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git diff --name-only -z "$PR_BASE_SHA" "$PR_HEAD_SHA" -- '*.py' > /tmp/changed-python-files
+          elif [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
+            git ls-files -z '*.py' > /tmp/changed-python-files
+          else
+            git diff --name-only -z "$BEFORE_SHA" "$CURRENT_SHA" -- '*.py' > /tmp/changed-python-files
+          fi
 
-      - name: Run backend test suite
+          if [[ -s /tmp/changed-python-files ]]; then
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            echo "Python files selected for Ruff:"
+            tr '\0' '\n' < /tmp/changed-python-files
+          else
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+            echo "No Python files changed; Ruff checks are not applicable to this change."
+          fi
+
+      - name: Ruff format check on changed Python files
+        if: steps.changed_python.outputs.has_files == 'true'
+        run: xargs -0 -r uv run ruff format --check < /tmp/changed-python-files
+
+      - name: Ruff lint on changed Python files
+        if: steps.changed_python.outputs.has_files == 'true'
+        run: xargs -0 -r uv run ruff check < /tmp/changed-python-files
+
+      - name: Run full backend test suite
         working-directory: backend
         run: uv run pytest
 
