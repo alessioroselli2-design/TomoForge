@@ -8,8 +8,6 @@ the repository and rule records keep their original provenance.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
-
 SOURCE_FILENAME_ALIASES = {
     "Manuale_del_giocatore__1787259882002.pdf": "Manuale del giocatore .pdf",
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf": "Guida onnicomprensiva di Xanathar .pdf",
