@@ -15,15 +15,31 @@ os.environ.setdefault(
 )
 
 
-@pytest.fixture(autouse=True)
-def _disable_preload_recovery_during_tests(monkeypatch):
-    """Prevent TestClient lifespan from reaching a real Supabase instance.
+_REAL_PRELOAD_RECOVERY_TESTS = {
+    "test_startup_reclaims_only_expired_preload_leases",
+    "test_startup_requeues_legacy_translation_consent_job_for_processing",
+    "test_startup_requeues_completed_manual_when_its_parser_revision_changes",
+}
 
-    Tests that explicitly exercise lifespan recovery can still monkeypatch
-    server.resume_manual_preload_workers with their own implementation.
+
+@pytest.fixture(autouse=True)
+def _isolate_preload_recovery(monkeypatch, request):
+    """Keep TestClient startup away from real Supabase during unit tests.
+
+    The dedicated preload-recovery tests are explicitly exempt so they still
+    exercise the real recovery implementation with their injected fake DB.
     """
 
+    import server
     import services.preload as preload_mod
+
+    if request.node.name in _REAL_PRELOAD_RECOVERY_TESTS:
+        monkeypatch.setattr(
+            server,
+            "resume_manual_preload_workers",
+            preload_mod.resume_manual_preload_workers,
+        )
+        return
 
     async def _no_preload_recovery(*_args, **_kwargs):
         return None
@@ -33,15 +49,6 @@ def _disable_preload_recovery_during_tests(monkeypatch):
         "resume_manual_preload_workers",
         _no_preload_recovery,
     )
-
-    # Most tests import server during collection. Patch that already-imported
-    # compatibility symbol too; if server is reloaded later, it imports the
-    # patched service function above.
-    try:
-        import server
-    except ImportError:
-        return
-
     monkeypatch.setattr(
         server,
         "resume_manual_preload_workers",
