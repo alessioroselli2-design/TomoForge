@@ -1,0 +1,4 @@
+Global source-guided monster dry-run request.
+
+This file intentionally triggers the read-only workflow on ai-canonical-library.
+Request: 2026-09-19-micro-ocr-validation

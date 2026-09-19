@@ -24,11 +24,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import csv
 import hashlib
+import io
 from datetime import datetime, timezone
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -147,6 +150,8 @@ TWO_COLUMN_LOGICAL_SOURCE_IDS = {
 TWO_COLUMN_MIN_DPI = 300
 TWO_COLUMN_PRIMARY_PSM = 3
 TWO_COLUMN_COMPARISON_PSM = 4
+HIT_POINTS_WHITELIST = "0123456789d+() "
+HIT_POINTS_CONTRAST = 2.0
 
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
@@ -553,6 +558,131 @@ def _clip_rect(
     )
 
 
+def _micro_ocr_hit_points_line(
+    image_path: Path,
+    languages: str,
+    psm: int,
+    page_text: str,
+) -> str:
+    """Re-OCR only the numeric part of the PF line with a strict whitelist.
+
+    The ordinary segment OCR is retained for every other field. Tesseract TSV
+    coordinates let us crop immediately after the ``Punti Ferita`` label, so
+    the whitelist cannot remove or alter surrounding stat-block content.
+    """
+    import fitz
+
+    hp_line_pattern = re.compile(
+        r"^(?P<label>[ \t]*Punti[ \t]+Ferita[ \t]*)(?P<value>.*)$",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    if not hp_line_pattern.search(page_text):
+        return page_text
+
+    command = [
+        "tesseract", str(image_path), "stdout", "-l", languages,
+        "--psm", str(psm), "tsv", "quiet",
+    ]
+    completed = subprocess.run(
+        command,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                str(row.get(field) or "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+
+    label_words: list[dict[str, str]] | None = None
+    for words in grouped.values():
+        normalized = " ".join(str(word["text"]) for word in words).casefold()
+        if "punti" in normalized and "ferita" in normalized:
+            label_words = words
+            break
+    if label_words is None:
+        return page_text
+
+    ferita_index = next(
+        (
+            index for index, word in enumerate(label_words)
+            if "ferita" in str(word["text"]).casefold()
+        ),
+        None,
+    )
+    if ferita_index is None:
+        return page_text
+
+    label_end = int(label_words[ferita_index]["left"]) + int(
+        label_words[ferita_index]["width"]
+    )
+    line_top = min(int(word["top"]) for word in label_words)
+    line_bottom = max(
+        int(word["top"]) + int(word["height"])
+        for word in label_words
+    )
+    source_pixmap = fitz.Pixmap(str(image_path))
+    grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
+    padding = max(2, (line_bottom - line_top) // 3)
+    crop_rect = fitz.IRect(
+        max(0, label_end),
+        max(0, line_top - padding),
+        grayscale.width,
+        min(grayscale.height, line_bottom + padding),
+    )
+    crop_width = crop_rect.x1 - crop_rect.x0
+    crop_height = crop_rect.y1 - crop_rect.y0
+    source_samples = grayscale.samples
+    crop_samples = b"".join(
+        source_samples[
+            row * grayscale.stride + crop_rect.x0:
+            row * grayscale.stride + crop_rect.x1
+        ]
+        for row in range(crop_rect.y0, crop_rect.y1)
+    )
+    contrasted_samples = bytes(
+        max(0, min(255, round(128 + (sample - 128) * HIT_POINTS_CONTRAST)))
+        for sample in crop_samples
+    )
+    contrasted = fitz.Pixmap(
+        fitz.csGRAY,
+        crop_width,
+        crop_height,
+        contrasted_samples,
+        False,
+    )
+    with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
+        crop_path = Path(tmp) / "hit-points.png"
+        contrasted.save(crop_path)
+        micro = subprocess.run(
+            [
+                "tesseract", str(crop_path), "stdout", "-l", languages,
+                "--psm", "7", "-c",
+                f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
+                "quiet",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        ).stdout
+
+    value = " ".join(micro.split())
+    if not value or not re.search(r"\d", value):
+        return page_text
+    return hp_line_pattern.sub(
+        lambda match: f"{match.group('label')}{value}",
+        page_text,
+        count=1,
+    )
+
+
 def _ocr_source_window(
     pdf_path: Path,
     target_page: int,
@@ -623,10 +753,22 @@ def _ocr_source_window(
                         languages,
                         primary_psm,
                     )
+                    primary = _micro_ocr_hit_points_line(
+                        image_path,
+                        languages,
+                        primary_psm,
+                        primary,
+                    )
                     comparison = _run_tesseract(
                         image_path,
                         languages,
                         secondary_psm,
+                    )
+                    comparison = _micro_ocr_hit_points_line(
+                        image_path,
+                        languages,
+                        secondary_psm,
+                        comparison,
                     )
                     agreement = _agreement_metrics(
                         primary,
