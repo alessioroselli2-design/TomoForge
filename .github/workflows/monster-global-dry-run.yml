@@ -1,0 +1,105 @@
+name: Monster Global Dry Run
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/monster-global-dry-run.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  monster-global-dry-run:
+    name: Monster global dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify required credentials are configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required GitHub Actions secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: |
+          uv sync --frozen
+          uv pip install boto3
+
+      - name: Install local OCR engine
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita tesseract-ocr-eng
+
+      - name: Run read-only global monster repair dry-run
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python backend/scripts/repair_monsters_from_source.py --all --allow-r2-download | tee monster-global-dry-run.log
+
+      - name: Extract final JSON report
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lines = Path("monster-global-dry-run.log").read_text(encoding="utf-8").splitlines()
+          marker = "FINAL_REPORT"
+          try:
+              index = lines.index(marker)
+          except ValueError as exc:
+              raise SystemExit("FINAL_REPORT marker not found") from exc
+
+          if index + 1 >= len(lines):
+              raise SystemExit("FINAL_REPORT payload missing")
+
+          payload = json.loads(lines[index + 1])
+          Path("monster-global-dry-run-final.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Upload dry-run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monster-global-dry-run
+          path: |
+            monster-global-dry-run.log
+            monster-global-dry-run-final.json
+          if-no-files-found: warn
