@@ -1,0 +1,82 @@
+name: Validate Micro-OCR targeting and fallback
+
+on:
+  push:
+    branches:
+      - tmp-deep-ocr-quetz-fraz
+    paths:
+      - .github/workflows/validate-micro-ocr-quetz-fraz.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PYTHONUNBUFFERED: "1"
+      TOMOFORGE_DEEP_OCR_DIAGNOSTIC: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Run targeted Micro-OCR regression tests
+        run: |
+          cd backend
+          pytest -q tests/test_repair_monsters_from_source.py -k 'micro_ocr'
+
+      - name: Dry-run Quetzalcoatlus
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --name Quetzalcoatlus \
+            --allow-r2-download \
+            | tee /tmp/quetzalcoatlus-micro-ocr-fix.log
+
+      - name: Dry-run Fraz-Urb'Luu
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --name "Fraz-Urb'Luu" \
+            --allow-r2-download \
+            | tee /tmp/fraz-urb-luu-micro-ocr-fix.log
+
+      - name: Assert read-only
+        run: |
+          ! grep -q '"dry_run": false' /tmp/quetzalcoatlus-micro-ocr-fix.log
+          ! grep -q '"dry_run": false' /tmp/fraz-urb-luu-micro-ocr-fix.log
+          grep -q 'MICRO_OCR_RAW_HP' /tmp/quetzalcoatlus-micro-ocr-fix.log
+          grep -q 'MICRO_OCR_RAW_HP' /tmp/fraz-urb-luu-micro-ocr-fix.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: micro-ocr-quetz-fraz-fix-dry-run
+          path: |
+            /tmp/quetzalcoatlus-micro-ocr-fix.log
+            /tmp/fraz-urb-luu-micro-ocr-fix.log
+          if-no-files-found: error
+          retention-days: 3
