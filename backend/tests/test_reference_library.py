@@ -3218,7 +3218,6 @@ def test_rate_limited_batch_retries_each_record_individually_and_saves_successes
     barbaro = make_reference("Bárbaro", reference_type="class")
     ladron = make_reference("Ladrón", reference_type="class")
     barbaro_id = barbaro["id"]
-    ladron_id = ladron["id"]
 
     # The batch (2 records) is rate-limited; individual retries: Bárbaro succeeds,
     # Ladrón is still rate-limited.  Use an ordered iterator so the mock is
