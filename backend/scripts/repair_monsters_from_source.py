@@ -334,7 +334,7 @@ HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
 STANDARD_HIT_DIE_FACES = (4, 6, 8, 10, 12, 20, 100)
 VALID_HIT_DICE_RE = re.compile(
-    r"\\b\\d+d(?:" + "|".join(str(face) for face in STANDARD_HIT_DIE_FACES) + r")\\b",
+    r"\b\d+d(?:" + "|".join(str(face) for face in STANDARD_HIT_DIE_FACES) + r")\b",
     re.IGNORECASE,
 )
 
@@ -855,7 +855,7 @@ def _select_target_hp_text_line(
 
     target_index = target_indexes[0]
     for index in range(target_index + 1, min(len(lines), target_index + 12)):
-        if re.match(r"^[ \\t]*Punti[ \\t]+Ferita\\b", lines[index], re.IGNORECASE):
+        if re.match(r"^[ \t]*Punti[ \t]+Ferita\b", lines[index], re.IGNORECASE):
             return lines, index
     return None
 
@@ -966,7 +966,7 @@ def _micro_ocr_hit_points_line(
         stderr=subprocess.PIPE,
         text=True,
     )
-    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\\t"))
+    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
     for row in rows:
         if str(row.get("text") or "").strip():
@@ -1086,7 +1086,7 @@ def _micro_ocr_hit_points_line(
         return page_text
 
     label_match = re.match(
-        r"^(?P<label>[ \\t]*Punti[ \\t]+Ferita[ \\t]*)(?P<value>.*)$",
+        r"^(?P<label>[ \t]*Punti[ \t]+Ferita[ \t]*)(?P<value>.*)$",
         text_lines[hp_text_index],
         re.IGNORECASE,
     )
