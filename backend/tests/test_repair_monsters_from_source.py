@@ -32,16 +32,17 @@ from scripts.repair_monsters_from_source import (
 
 def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):
     image_path = tmp_path / "column.png"
-    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
     image.clear_with(255)
     image.save(image_path)
     tsv = (
         "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
-        "5\t1\t1\t1\t1\t1\t20\t50\t45\t20\t95\tPunti\n"
-        "5\t1\t1\t1\t1\t2\t72\t50\t50\t20\t95\tFerita\n"
-        "5\t1\t1\t1\t1\t3\t135\t50\t30\t20\t90\t127\n"
-        "5\t1\t1\t1\t1\t4\t175\t50\t70\t20\t80\t(15d12\n"
-        "5\t1\t1\t1\t1\t5\t250\t50\t35\t20\t90\t+30)\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t140\t20\t95\tLinguarupestre\n"
+        "5\t1\t1\t1\t2\t1\t20\t70\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t70\t50\t20\t95\tFerita\n"
+        "5\t1\t1\t1\t2\t3\t135\t70\t30\t20\t90\t127\n"
+        "5\t1\t1\t1\t2\t4\t175\t70\t70\t20\t80\t(15d12\n"
+        "5\t1\t1\t1\t2\t5\t250\t70\t35\t20\t90\t+30)\n"
     )
     responses = [
         CompletedProcess([], 0, stdout=tsv, stderr=""),
@@ -56,7 +57,9 @@ def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):
             image_path,
             "ita",
             3,
-            "Classe Armatura 17\nPunti Ferita 127 (15412 + 30)\nVelocità 3 m",
+            "LINGUARUPESTRE\nClasse Armatura 17\n"
+            "Punti Ferita 127 (15412 + 30)\nVelocità 3 m",
+            "Linguarupestre",
         )
 
     assert "Punti Ferita 127 (15d12 + 30)" in result
@@ -80,10 +83,85 @@ def test_hp_micro_ocr_does_not_touch_non_hp_text(tmp_path):
             "ita",
             3,
             "Classe Armatura 17\nVelocità 3 m",
+            "Quetzalcoatlus",
         )
 
     assert result == "Classe Armatura 17\nVelocità 3 m"
     run.assert_not_called()
+
+
+def test_hp_micro_ocr_targets_pf_after_named_monster(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 700, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t100\t20\t95\tAltroMostro\n"
+        "5\t1\t1\t1\t2\t1\t20\t60\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t60\t50\t20\t95\tFerita\n"
+        "5\t1\t2\t1\t1\t1\t20\t220\t130\t20\t95\tQuetzalcoatlus\n"
+        "5\t1\t2\t1\t2\t1\t20\t270\t45\t20\t95\tPunti\n"
+        "5\t1\t2\t1\t2\t2\t72\t270\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d12 + 4)\n", stderr=""),
+    ]
+    page_text = (
+        "ALTRO MOSTRO\nPunti Ferita 76 (8d12 + 24)\n"
+        "QUETZALCOATLUS\nClasse Armatura 13\n"
+        "Punti Ferita 30 (4412 + 4)\nVelocità 3 m"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Quetzalcoatlus",
+        )
+
+    assert "Punti Ferita 76 (8d12 + 24)" in result
+    assert "Punti Ferita 30 (4d12 + 4)" in result
+
+
+def test_hp_micro_ocr_retries_low_contrast_when_d_is_read_as_four(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 700, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t110\t20\t95\tFraz-Urb'Luu\n"
+        "5\t1\t1\t1\t2\t1\t20\t70\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t70\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="337 (27410 + 189)\n", stderr=""),
+        CompletedProcess([], 0, stdout="337 (27d10 + 189)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "FRAZ-URB'LUU\nPunti Ferita 337 (27410 + 189)\nVelocità 12 m",
+            "Fraz-Urb'Luu",
+        )
+
+    assert "Punti Ferita 337 (27d10 + 189)" in result
+    assert len(run.call_args_list) == 3
+
 
 
 def _monster(name, ac, hp, *, record_id="m1", flags=None):
