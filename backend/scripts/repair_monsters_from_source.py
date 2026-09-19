@@ -331,6 +331,12 @@ TWO_COLUMN_PRIMARY_PSM = 3
 TWO_COLUMN_COMPARISON_PSM = 4
 HIT_POINTS_WHITELIST = "0123456789d+() "
 HIT_POINTS_CONTRAST = 2.0
+HIT_POINTS_FALLBACK_CONTRAST = 1.2
+STANDARD_HIT_DIE_FACES = (4, 6, 8, 10, 12, 20, 100)
+VALID_HIT_DICE_RE = re.compile(
+    r"\\b\\d+d(?:" + "|".join(str(face) for face in STANDARD_HIT_DIE_FACES) + r")\\b",
+    re.IGNORECASE,
+)
 
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
@@ -652,6 +658,7 @@ def _layout_ocr_settings(
     dpi: int,
     psm: int,
     comparison_psm: int,
+    target_name: str,
 ) -> tuple[int, int, int]:
     """Return (dpi, primary_psm, comparison_psm) for the resolved source."""
     if _layout_profile(source) == "two_column_vertical":
@@ -742,27 +749,204 @@ def _clip_rect(
     )
 
 
+def _compact_target_text(value: Any) -> str:
+    return re.sub(
+        r"[^a-z0-9]+",
+        "",
+        normalize_reference_name(str(value or "")).casefold(),
+    )
+
+
+def _line_text(words: list[dict[str, str]]) -> str:
+    return " ".join(str(word.get("text") or "") for word in words).strip()
+
+
+def _line_top(words: list[dict[str, str]]) -> int:
+    return min(int(word["top"]) for word in words)
+
+
+def _line_bottom(words: list[dict[str, str]]) -> int:
+    return max(int(word["top"]) + int(word["height"]) for word in words)
+
+
+def _line_block(words: list[dict[str, str]]) -> str:
+    return str(words[0].get("block_num") or "") if words else ""
+
+
+def _matches_target_name(line: str, target_name: str) -> bool:
+    line_compact = _compact_target_text(line)
+    target_compact = _compact_target_text(target_name)
+    if not line_compact or not target_compact:
+        return False
+    return (
+        line_compact == target_compact
+        or (
+            len(line_compact) >= 6
+            and len(target_compact) >= 6
+            and (
+                target_compact in line_compact
+                or line_compact in target_compact
+            )
+        )
+    )
+
+
+def _select_target_hp_tsv_line(
+    grouped_lines: list[list[dict[str, str]]],
+    target_name: str,
+    image_height: int,
+) -> list[dict[str, str]] | None:
+    """Pick the nearest PF line below the target monster name, fail-closed."""
+    ordered = sorted(
+        grouped_lines,
+        key=lambda words: (_line_top(words), int(words[0].get("left") or 0)),
+    )
+    target_candidates = [
+        words
+        for words in ordered
+        if _matches_target_name(_line_text(words), target_name)
+    ]
+    if not target_candidates:
+        return None
+
+    # Prefer the strongest/longest OCR rendering of the target name.
+    target_words = max(
+        target_candidates,
+        key=lambda words: len(_compact_target_text(_line_text(words))),
+    )
+    target_bottom = _line_bottom(target_words)
+    target_height = max(1, target_bottom - _line_top(target_words))
+    target_block = _line_block(target_words)
+    max_distance = max(target_height * 12, int(image_height * 0.18))
+
+    hp_candidates: list[tuple[int, int, list[dict[str, str]]]] = []
+    for words in ordered:
+        text = _line_text(words).casefold()
+        if "punti" not in text or "ferita" not in text:
+            continue
+        top = _line_top(words)
+        if top <= target_bottom:
+            continue
+        distance = top - target_bottom
+        if distance > max_distance:
+            continue
+        same_block_penalty = 0 if _line_block(words) == target_block else 1
+        hp_candidates.append((same_block_penalty, distance, words))
+
+    if not hp_candidates:
+        return None
+    hp_candidates.sort(key=lambda item: (item[0], item[1]))
+    return hp_candidates[0][2]
+
+
+def _select_target_hp_text_line(
+    page_text: str,
+    target_name: str,
+) -> tuple[list[str], int] | None:
+    """Locate the first PF text line after the target name in OCR reading order."""
+    lines = page_text.splitlines()
+    target_indexes = [
+        index
+        for index, line in enumerate(lines)
+        if _matches_target_name(line, target_name)
+    ]
+    if not target_indexes:
+        return None
+
+    target_index = target_indexes[0]
+    for index in range(target_index + 1, min(len(lines), target_index + 12)):
+        if re.match(r"^[ \\t]*Punti[ \\t]+Ferita\\b", lines[index], re.IGNORECASE):
+            return lines, index
+    return None
+
+
+def _contrast_samples(samples: bytes, factor: float) -> bytes:
+    return bytes(
+        max(0, min(255, round(128 + (sample - 128) * factor)))
+        for sample in samples
+    )
+
+
+def _otsu_samples(samples: bytes) -> bytes:
+    histogram = [0] * 256
+    for sample in samples:
+        histogram[sample] += 1
+
+    total = len(samples)
+    if not total:
+        return samples
+    weighted_total = sum(index * count for index, count in enumerate(histogram))
+    background_weight = 0
+    background_sum = 0
+    best_threshold = 127
+    best_variance = -1.0
+
+    for threshold, count in enumerate(histogram):
+        background_weight += count
+        if background_weight == 0:
+            continue
+        foreground_weight = total - background_weight
+        if foreground_weight == 0:
+            break
+        background_sum += threshold * count
+        background_mean = background_sum / background_weight
+        foreground_mean = (
+            weighted_total - background_sum
+        ) / foreground_weight
+        variance = (
+            background_weight
+            * foreground_weight
+            * (background_mean - foreground_mean) ** 2
+        )
+        if variance > best_variance:
+            best_variance = variance
+            best_threshold = threshold
+
+    return bytes(0 if sample <= best_threshold else 255 for sample in samples)
+
+
+def _run_hp_micro_tesseract(
+    image_path: Path,
+    languages: str,
+) -> str:
+    return subprocess.run(
+        [
+            "tesseract",
+            str(image_path),
+            "stdout",
+            "-l",
+            languages,
+            "--psm",
+            "7",
+            "-c",
+            f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
+            "quiet",
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    ).stdout
+
+
+def _has_valid_hit_dice(value: str) -> bool:
+    return bool(VALID_HIT_DICE_RE.search(str(value or "")))
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
     psm: int,
     page_text: str,
+    target_name: str,
 ) -> str:
-    """Re-OCR only the numeric part of the PF line with a strict whitelist.
-
-    The ordinary segment OCR is retained for every other field. Tesseract TSV
-    coordinates let us crop immediately after the ``Punti Ferita`` label, so
-    the whitelist cannot remove or alter surrounding stat-block content.
-    """
+    """Re-OCR only the target monster's PF value with fail-closed fallbacks."""
     import fitz
 
-    hp_line_pattern = re.compile(
-        r"^(?P<label>[ \t]*Punti[ \t]+Ferita[ \t]*)(?P<value>.*)$",
-        re.IGNORECASE | re.MULTILINE,
-    )
-    hp_match = hp_line_pattern.search(page_text)
-    if not hp_match:
+    target_text_line = _select_target_hp_text_line(page_text, target_name)
+    if target_text_line is None:
         return page_text
+    text_lines, hp_text_index = target_text_line
 
     command = [
         "tesseract",
@@ -782,7 +966,7 @@ def _micro_ocr_hit_points_line(
         stderr=subprocess.PIPE,
         text=True,
     )
-    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
+    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\\t"))
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
     for row in rows:
         if str(row.get("text") or "").strip():
@@ -792,12 +976,13 @@ def _micro_ocr_hit_points_line(
             )
             grouped.setdefault(key, []).append(row)
 
-    label_words: list[dict[str, str]] | None = None
-    for words in grouped.values():
-        normalized = " ".join(str(word["text"]) for word in words).casefold()
-        if "punti" in normalized and "ferita" in normalized:
-            label_words = words
-            break
+    source_pixmap = fitz.Pixmap(str(image_path))
+    grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
+    label_words = _select_target_hp_tsv_line(
+        list(grouped.values()),
+        target_name,
+        grayscale.height,
+    )
     if label_words is None:
         return page_text
 
@@ -815,10 +1000,8 @@ def _micro_ocr_hit_points_line(
     label_end = int(label_words[ferita_index]["left"]) + int(
         label_words[ferita_index]["width"]
     )
-    line_top = min(int(word["top"]) for word in label_words)
-    line_bottom = max(int(word["top"]) + int(word["height"]) for word in label_words)
-    source_pixmap = fitz.Pixmap(str(image_path))
-    grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
+    line_top = _line_top(label_words)
+    line_bottom = _line_bottom(label_words)
     padding = max(2, (line_bottom - line_top) // 3)
     crop_rect = fitz.IRect(
         max(0, label_end),
@@ -836,63 +1019,86 @@ def _micro_ocr_hit_points_line(
         ]
         for row in range(crop_rect.y0, crop_rect.y1)
     )
-    contrasted_samples = bytes(
-        max(0, min(255, round(128 + (sample - 128) * HIT_POINTS_CONTRAST)))
-        for sample in crop_samples
-    )
-    contrasted = fitz.Pixmap(
-        fitz.csGRAY,
-        crop_width,
-        crop_height,
-        contrasted_samples,
-        False,
-    )
-    with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
-        crop_path = Path(tmp) / "hit-points.png"
-        contrasted.save(crop_path)
-        micro = subprocess.run(
-            [
-                "tesseract",
-                str(crop_path),
-                "stdout",
-                "-l",
-                languages,
-                "--psm",
-                "7",
-                "-c",
-                f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
-                "quiet",
-            ],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        ).stdout
 
-    value = " ".join(micro.split())
+    attempts: list[dict[str, str]] = []
+    with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
+        tmp_root = Path(tmp)
+        variants = (
+            ("contrast_2_0", _contrast_samples(crop_samples, HIT_POINTS_CONTRAST)),
+            (
+                "contrast_1_2",
+                _contrast_samples(crop_samples, HIT_POINTS_FALLBACK_CONTRAST),
+            ),
+            ("otsu", _otsu_samples(crop_samples)),
+        )
+        for variant_name, variant_samples in variants:
+            variant = fitz.Pixmap(
+                fitz.csGRAY,
+                crop_width,
+                crop_height,
+                variant_samples,
+                False,
+            )
+            crop_path = tmp_root / f"hit-points-{variant_name}.png"
+            variant.save(crop_path)
+            raw = _run_hp_micro_tesseract(crop_path, languages)
+            normalized = " ".join(raw.split())
+            attempts.append(
+                {
+                    "variant": variant_name,
+                    "raw_text": raw,
+                    "normalized_text": normalized,
+                }
+            )
+
+    chosen = next(
+        (
+            attempt
+            for attempt in attempts
+            if _has_valid_hit_dice(attempt["normalized_text"])
+        ),
+        None,
+    )
+    if chosen is None:
+        chosen = attempts[0] if attempts else {
+            "variant": "none",
+            "raw_text": "",
+            "normalized_text": "",
+        }
+
     if os.getenv("TOMOFORGE_DEEP_OCR_DIAGNOSTIC") == "1":
         print(
             "MICRO_OCR_RAW_HP "
             + json.dumps(
                 {
                     "image": image_path.name,
+                    "target_name": target_name,
                     "input_psm": psm,
                     "micro_psm": 7,
-                    "source_pf_line": hp_match.group(0),
-                    "raw_text": micro,
-                    "normalized_text": value,
+                    "source_pf_line": text_lines[hp_text_index],
+                    "selected_variant": chosen["variant"],
+                    "raw_text": chosen["raw_text"],
+                    "normalized_text": chosen["normalized_text"],
+                    "attempts": attempts,
                 },
                 ensure_ascii=False,
                 sort_keys=True,
             )
         )
-    if not value or not re.search(r"\d", value):
+
+    value = chosen["normalized_text"]
+    if not value or not _has_valid_hit_dice(value):
         return page_text
-    return hp_line_pattern.sub(
-        lambda match: f"{match.group('label')}{value}",
-        page_text,
-        count=1,
+
+    label_match = re.match(
+        r"^(?P<label>[ \\t]*Punti[ \\t]+Ferita[ \\t]*)(?P<value>.*)$",
+        text_lines[hp_text_index],
+        re.IGNORECASE,
     )
+    if label_match is None:
+        return page_text
+    text_lines[hp_text_index] = f"{label_match.group('label')}{value}"
+    return "\\n".join(text_lines)
 
 
 def _ocr_source_window(
@@ -969,6 +1175,7 @@ def _ocr_source_window(
                         languages,
                         primary_psm,
                         primary,
+                        target_name,
                     )
                     comparison = _run_tesseract(
                         image_path,
@@ -980,10 +1187,12 @@ def _ocr_source_window(
                         languages,
                         secondary_psm,
                         comparison,
+                        target_name,
                     )
                     agreement = _agreement_metrics(
                         primary,
                         comparison,
+                        target_name,
                     )
                     segment_metrics[segment_name] = agreement
 
@@ -1230,6 +1439,7 @@ async def _repair_one(
         languages=args.languages,
         psm=args.psm,
         comparison_psm=args.comparison_psm,
+        target_name=str(record.get("name") or ""),
     )
     candidate = _agreed_target_candidate(
         primary_pages,
