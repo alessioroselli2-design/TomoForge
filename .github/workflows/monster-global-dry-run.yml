@@ -1,0 +1,92 @@
+name: Monster Global Dry Run
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  monster-dry-run:
+    name: Global monster repair dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Install Tesseract Italian OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+
+      - name: Verify required server credentials are mapped
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub secret $name is not configured"
+              exit 2
+            fi
+          done
+
+      - name: Run global source-guided monster repair dry-run
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python backend/scripts/repair_monsters_from_source.py --all --allow-r2-download | tee /tmp/monster-dry-run.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lines = Path("/tmp/monster-dry-run.log").read_text(encoding="utf-8").splitlines()
+          try:
+              index = lines.index("FINAL_REPORT")
+          except ValueError as exc:
+              raise SystemExit("FINAL_REPORT marker missing") from exc
+
+          report = json.loads(lines[index + 1])
+          Path("monster-dry-run-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({
+              "dry_run": report.get("dry_run"),
+              "targets": report.get("targets"),
+              "repairable": report.get("repairable"),
+              "blocked": report.get("blocked"),
+              "updates_performed": report.get("updates_performed"),
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Upload final JSON report
+        uses: actions/upload-artifact@v4
+        with:
+          name: monster-global-dry-run-report
+          path: monster-dry-run-report.json
+          if-no-files-found: error
