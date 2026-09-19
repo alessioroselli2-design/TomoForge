@@ -760,7 +760,8 @@ def _micro_ocr_hit_points_line(
         r"^(?P<label>[ \t]*Punti[ \t]+Ferita[ \t]*)(?P<value>.*)$",
         re.IGNORECASE | re.MULTILINE,
     )
-    if not hp_line_pattern.search(page_text):
+    hp_match = hp_line_pattern.search(page_text)
+    if not hp_match:
         return page_text
 
     command = [
@@ -877,6 +878,7 @@ def _micro_ocr_hit_points_line(
                     "image": image_path.name,
                     "input_psm": psm,
                     "micro_psm": 7,
+                    "source_pf_line": hp_match.group(0),
                     "raw_text": micro,
                     "normalized_text": value,
                 },
