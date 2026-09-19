@@ -1,0 +1,56 @@
+name: Format work branch
+
+on:
+  push:
+    branches:
+      - work
+
+permissions:
+  contents: write
+
+jobs:
+  ruff-format-work:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/work'
+    steps:
+      - name: Check out work
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install project tooling
+        run: uv sync --frozen
+
+      - name: Format changed Python files only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin develop
+          mapfile -d '' files < <(git diff --name-only -z origin/develop...HEAD -- '*.py')
+          if (( ${#files[@]} == 0 )); then
+            echo "No changed Python files."
+            exit 0
+          fi
+          printf '%s\0' "${files[@]}" | xargs -0 -r uv run ruff format
+
+      - name: Commit formatting if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No Ruff formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*.py'
+          git commit -m "style: apply Ruff formatting to work port"
+          git push origin HEAD:work
