@@ -942,11 +942,6 @@ def _micro_ocr_hit_points_line(
     """Re-OCR only the target monster's PF value with fail-closed fallbacks."""
     import fitz
 
-    target_text_line = _select_target_hp_text_line(page_text, target_name)
-    if target_text_line is None:
-        return page_text
-    text_lines, hp_text_index = target_text_line
-
     command = [
         "tesseract",
         str(image_path),
@@ -977,13 +972,68 @@ def _micro_ocr_hit_points_line(
 
     source_pixmap = fitz.Pixmap(str(image_path))
     grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
+    grouped_lines = list(grouped.values())
     label_words = _select_target_hp_tsv_line(
-        list(grouped.values()),
+        grouped_lines,
         target_name,
         grayscale.height,
     )
     if label_words is None:
+        if os.getenv("TOMOFORGE_DEEP_OCR_DIAGNOSTIC") == "1":
+            print(
+                "MICRO_OCR_TARGET_MISS "
+                + json.dumps(
+                    {
+                        "image": image_path.name,
+                        "target_name": target_name,
+                        "reason": "target_or_pf_not_found_in_tsv",
+                        "tsv_lines": [_line_text(words) for words in grouped_lines],
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
         return page_text
+
+    ordered_lines = sorted(
+        grouped_lines,
+        key=lambda words: (_line_top(words), int(words[0].get("left") or 0)),
+    )
+    hp_tsv_lines = [
+        words
+        for words in ordered_lines
+        if "punti" in _line_text(words).casefold()
+        and "ferita" in _line_text(words).casefold()
+    ]
+    try:
+        hp_ordinal = hp_tsv_lines.index(label_words)
+    except ValueError:
+        return page_text
+
+    text_lines = page_text.splitlines()
+    hp_text_indexes = [
+        index
+        for index, line in enumerate(text_lines)
+        if re.match(r"^[ \t]*Punti[ \t]+Ferita\b", line, re.IGNORECASE)
+    ]
+    if hp_ordinal >= len(hp_text_indexes):
+        if os.getenv("TOMOFORGE_DEEP_OCR_DIAGNOSTIC") == "1":
+            print(
+                "MICRO_OCR_TARGET_MISS "
+                + json.dumps(
+                    {
+                        "image": image_path.name,
+                        "target_name": target_name,
+                        "reason": "pf_ordinal_missing_in_page_text",
+                        "hp_ordinal": hp_ordinal,
+                        "page_pf_lines": [text_lines[index] for index in hp_text_indexes],
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+        return page_text
+    hp_text_index = hp_text_indexes[hp_ordinal]
 
     ferita_index = next(
         (
@@ -1092,7 +1142,7 @@ def _micro_ocr_hit_points_line(
     if label_match is None:
         return page_text
     text_lines[hp_text_index] = f"{label_match.group('label')}{value}"
-    return "\\n".join(text_lines)
+    return "\n".join(text_lines)
 
 
 def _ocr_source_window(
