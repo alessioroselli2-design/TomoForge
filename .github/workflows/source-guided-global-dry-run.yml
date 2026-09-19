@@ -2,9 +2,9 @@ name: Global source-guided monster dry-run
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
     branches:
-      - develop
+      - ops/final-global-monster-dry-run
     paths:
       - .github/workflows/source-guided-global-dry-run.yml
 
