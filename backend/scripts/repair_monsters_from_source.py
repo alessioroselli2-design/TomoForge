@@ -658,7 +658,6 @@ def _layout_ocr_settings(
     dpi: int,
     psm: int,
     comparison_psm: int,
-    target_name: str,
 ) -> tuple[int, int, int]:
     """Return (dpi, primary_psm, comparison_psm) for the resolved source."""
     if _layout_profile(source) == "two_column_vertical":
