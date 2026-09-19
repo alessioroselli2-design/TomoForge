@@ -1021,6 +1021,7 @@ def _micro_ocr_hit_points_line(
     )
 
     attempts: list[dict[str, str]] = []
+    chosen: dict[str, str] | None = None
     with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
         tmp_root = Path(tmp)
         variants = (
@@ -1043,22 +1044,16 @@ def _micro_ocr_hit_points_line(
             variant.save(crop_path)
             raw = _run_hp_micro_tesseract(crop_path, languages)
             normalized = " ".join(raw.split())
-            attempts.append(
-                {
-                    "variant": variant_name,
-                    "raw_text": raw,
-                    "normalized_text": normalized,
-                }
-            )
+            attempt = {
+                "variant": variant_name,
+                "raw_text": raw,
+                "normalized_text": normalized,
+            }
+            attempts.append(attempt)
+            if _has_valid_hit_dice(normalized):
+                chosen = attempt
+                break
 
-    chosen = next(
-        (
-            attempt
-            for attempt in attempts
-            if _has_valid_hit_dice(attempt["normalized_text"])
-        ),
-        None,
-    )
     if chosen is None:
         chosen = attempts[0] if attempts else {
             "variant": "none",
