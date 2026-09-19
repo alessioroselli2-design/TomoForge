@@ -1,5 +1,9 @@
 import asyncio
 from datetime import datetime
+from subprocess import CompletedProcess
+from unittest.mock import patch
+
+import fitz
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
@@ -15,6 +19,7 @@ from scripts.repair_monsters_from_source import (
     _layout_ocr_settings,
     _layout_profile,
     _layout_segments,
+    _micro_ocr_hit_points_line,
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
@@ -23,6 +28,62 @@ from scripts.repair_monsters_from_source import (
     select_failed_monsters,
     select_healthy22_targets,
 )
+
+
+def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t1\t2\t72\t50\t50\t20\t95\tFerita\n"
+        "5\t1\t1\t1\t1\t3\t135\t50\t30\t20\t90\t127\n"
+        "5\t1\t1\t1\t1\t4\t175\t50\t70\t20\t80\t(15d12\n"
+        "5\t1\t1\t1\t1\t5\t250\t50\t35\t20\t90\t+30)\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="127 (15d12 + 30)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Classe Armatura 17\nPunti Ferita 127 (15412 + 30)\nVelocità 3 m",
+        )
+
+    assert "Punti Ferita 127 (15d12 + 30)" in result
+    assert len(run.call_args_list) == 2
+    assert "tsv" in run.call_args_list[0].args[0]
+    micro_command = run.call_args_list[1].args[0]
+    assert "--psm" in micro_command
+    assert "7" in micro_command
+    assert "tessedit_char_whitelist=0123456789d+() " in micro_command
+
+
+def test_hp_micro_ocr_does_not_touch_non_hp_text(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 100, 100), False)
+    image.clear_with(255)
+    image.save(image_path)
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Classe Armatura 17\nVelocità 3 m",
+        )
+
+    assert result == "Classe Armatura 17\nVelocità 3 m"
+    run.assert_not_called()
 
 
 def _monster(name, ac, hp, *, record_id="m1", flags=None):
