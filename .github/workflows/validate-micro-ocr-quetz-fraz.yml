@@ -5,6 +5,8 @@ on:
     branches:
       - tmp-deep-ocr-quetz-fraz
     paths:
+      - backend/scripts/repair_monsters_from_source.py
+      - backend/tests/test_repair_monsters_from_source.py
       - .github/workflows/validate-micro-ocr-quetz-fraz.yml
 
 permissions:
