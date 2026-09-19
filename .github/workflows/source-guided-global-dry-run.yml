@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: tomoforge-source-guided-global-dry-run
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   global-dry-run:
