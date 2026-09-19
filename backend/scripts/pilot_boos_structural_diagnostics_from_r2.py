@@ -22,8 +22,13 @@ if str(BACKEND_DIR) not in sys.path:
 
 from reference_library import extract_reference_records
 from scripts.pilot_local_ocr_from_r2 import _agreement_metrics, _run_tesseract
-from scripts.pilot_local_ocr_parse_from_r2 import _monster_parser_summary, _record_summary
-from services.monster_structural_diagnostics import english_monster_structural_diagnostics
+from scripts.pilot_local_ocr_parse_from_r2 import (
+    _monster_parser_summary,
+    _record_summary,
+)
+from services.monster_structural_diagnostics import (
+    english_monster_structural_diagnostics,
+)
 
 
 BOOS_FILENAME = "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf"
@@ -46,11 +51,15 @@ def _validate_segments() -> None:
     if len(actual_pages) != len(set(actual_pages)):
         raise RuntimeError("Boo's diagnostic segments overlap")
     if set(actual_pages) != expected_pages:
-        raise RuntimeError("Boo's diagnostic segments must cover pages 12-35 except page 21")
+        raise RuntimeError(
+            "Boo's diagnostic segments must cover pages 12-35 except page 21"
+        )
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Boo's bounded structural OCR diagnostic")
+    parser = argparse.ArgumentParser(
+        description="Boo's bounded structural OCR diagnostic"
+    )
     parser.add_argument("--filename", default=BOOS_FILENAME)
     parser.add_argument("--dpi", type=int, default=220)
     parser.add_argument("--languages", default="eng")
@@ -111,7 +120,9 @@ def main() -> int:
             if page_number == SKIPPED_PAGE:
                 raise AssertionError("page 21 must never enter OCR")
             image_path = tmp_path / f"page-{page_number:04d}.png"
-            page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(image_path)
+            page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(
+                image_path
+            )
             primary = _run_tesseract(image_path, args.languages, args.psm)
             comparison = _run_tesseract(image_path, args.languages, args.comparison_psm)
             agreement = _agreement_metrics(primary, comparison)
@@ -184,8 +195,7 @@ def main() -> int:
         **monster_summary,
         **structural_summary,
         "page_quality": [
-            {"page": page, **page_metrics[page]}
-            for page in sorted(page_metrics)
+            {"page": page, **page_metrics[page]} for page in sorted(page_metrics)
         ],
         "diagnostic_note": (
             "Pages 12-35 are covered in bounded windows. Page 21 is intentionally "
@@ -194,7 +204,9 @@ def main() -> int:
         ),
     }
     report_path = output_dir / "report.json"
-    report_path.write_text(json.dumps(aggregate, ensure_ascii=False, indent=2), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(aggregate, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(
         "BOOS_STRUCTURAL_SUMMARY\t"
         f"quality_evaluated={aggregate['quality_pages_evaluated']}\t"

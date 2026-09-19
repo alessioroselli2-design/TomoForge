@@ -3,11 +3,17 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from scripts.audit_bounded_native_text_parser_probe import bounded_native_text_parser_probe_windows
+from scripts.audit_bounded_native_text_parser_probe import (
+    bounded_native_text_parser_probe_windows,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SPANISH_PHB = REPO_ROOT / "attached_assets" / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+SPANISH_PHB = (
+    REPO_ROOT
+    / "attached_assets"
+    / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+)
 EXPECTED_SHA256 = "22987ea29717120c7b3ec4650017faa9fb0c0e9e7542be1357eda6b780ae71ad"
 
 

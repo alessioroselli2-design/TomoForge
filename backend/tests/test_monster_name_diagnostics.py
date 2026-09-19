@@ -15,7 +15,9 @@ def test_compact_name_boundary_match_rejects_real_character_difference():
 
 
 def test_compact_name_boundary_match_rejects_missing_word():
-    assert compact_name_boundary_match("private elder monster", "private monster") is False
+    assert (
+        compact_name_boundary_match("private elder monster", "private monster") is False
+    )
 
 
 def test_compact_name_boundary_match_rejects_empty_names():
@@ -43,11 +45,16 @@ def test_compact_name_single_edit_match_ignores_word_boundaries_before_distance(
 
 
 def test_compact_name_single_edit_match_rejects_exact_boundary_only_match():
-    assert compact_name_single_edit_match("private monster", "private mon ster") is False
+    assert (
+        compact_name_single_edit_match("private monster", "private mon ster") is False
+    )
 
 
 def test_compact_name_single_edit_match_rejects_larger_difference():
-    assert compact_name_single_edit_match("private elder monster", "private monster") is False
+    assert (
+        compact_name_single_edit_match("private elder monster", "private monster")
+        is False
+    )
     assert compact_name_single_edit_match("private monster", "public monster") is False
 
 
@@ -59,17 +66,27 @@ def test_compact_name_single_edit_match_rejects_empty_names_and_returns_bool():
 
 
 def test_compact_name_containment_match_accepts_missing_or_extra_fragment():
-    assert compact_name_containment_match("private monster", "private elder monster") is False
-    assert compact_name_containment_match("private monster", "private monsterling") is True
+    assert (
+        compact_name_containment_match("private monster", "private elder monster")
+        is False
+    )
+    assert (
+        compact_name_containment_match("private monster", "private monsterling") is True
+    )
     assert compact_name_containment_match("monster", "private monster") is True
 
 
 def test_compact_name_containment_match_ignores_word_boundaries():
-    assert compact_name_containment_match("private monster", "private mon sterling") is True
+    assert (
+        compact_name_containment_match("private monster", "private mon sterling")
+        is True
+    )
 
 
 def test_compact_name_containment_match_rejects_exact_empty_and_short_fragments():
-    assert compact_name_containment_match("private monster", "private mon ster") is False
+    assert (
+        compact_name_containment_match("private monster", "private mon ster") is False
+    )
     assert compact_name_containment_match("", "private monster") is False
     assert compact_name_containment_match("abc", "privateabcmonster") is False
 

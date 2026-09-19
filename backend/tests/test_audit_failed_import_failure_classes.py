@@ -1,4 +1,6 @@
-from scripts.audit_failed_import_failure_classes import summarize_failed_import_failure_classes
+from scripts.audit_failed_import_failure_classes import (
+    summarize_failed_import_failure_classes,
+)
 
 
 def test_failure_classes_are_separated_without_authorizing_retry():

@@ -28,7 +28,9 @@ def _authorization(**overrides):
 
 
 def test_accepts_exact_single_live_candidate():
-    errors, rows = validate_batch_authorization(_authorization(), _fresh_plan(), "a" * 64)
+    errors, rows = validate_batch_authorization(
+        _authorization(), _fresh_plan(), "a" * 64
+    )
     assert errors == []
     assert rows == [{"record_id": "ref_a", "logical_source_id": "src_a"}]
 
@@ -47,7 +49,9 @@ def test_rejects_stale_global_fingerprint():
 
 def test_rejects_candidate_not_in_fresh_deterministic_plan():
     errors, _ = validate_batch_authorization(
-        _authorization(candidates=[{"record_id": "ref_x", "logical_source_id": "src_x"}]),
+        _authorization(
+            candidates=[{"record_id": "ref_x", "logical_source_id": "src_x"}]
+        ),
         _fresh_plan(),
         "a" * 64,
     )
@@ -76,7 +80,9 @@ def test_rejects_batch_larger_than_hard_cap():
     errors, _ = validate_batch_authorization(
         _authorization(candidates=candidates), {"candidates": candidates}, "a" * 64
     )
-    assert f"batch must contain between 1 and {MAX_MICROBATCH_WRITES} candidates" in errors
+    assert (
+        f"batch must contain between 1 and {MAX_MICROBATCH_WRITES} candidates" in errors
+    )
 
 
 def test_enrich_source_refs_preserves_existing_fields_and_adds_catalog_metadata():

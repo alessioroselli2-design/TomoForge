@@ -4,6 +4,7 @@ This module intentionally has no dependency on the reference parser or AI
 services. Both layers can therefore enforce the same fingerprint without
 creating an import cycle.
 """
+
 from __future__ import annotations
 
 import json

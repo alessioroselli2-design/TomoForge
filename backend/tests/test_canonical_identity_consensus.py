@@ -14,8 +14,7 @@ def record(identifier, **changes):
         "normalized_name": "colpo fortunato",
         "source_name": "Golpe De Suerte",
         "full_text": (
-            "Quando effettui una prova puoi ottenere "
-            "un risultato favorevole."
+            "Quando effettui una prova puoi ottenere un risultato favorevole."
         ),
         "source_full_text": "",
         "source_key": f"{identifier}.pdf",

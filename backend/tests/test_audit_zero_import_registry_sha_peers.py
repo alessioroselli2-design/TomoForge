@@ -3,7 +3,20 @@ from scripts.audit_zero_import_registry_sha_peers import (
 )
 
 
-def _source(source_id, sha, logical_id, *, status="active", import_state="catalogued", records=0, start=1, end=10, pages=10, size=1000, text_mode="vision_required"):
+def _source(
+    source_id,
+    sha,
+    logical_id,
+    *,
+    status="active",
+    import_state="catalogued",
+    records=0,
+    start=1,
+    end=10,
+    pages=10,
+    size=1000,
+    text_mode="vision_required",
+):
     return {
         "id": source_id,
         "physical_filename": f"{source_id}.pdf",
@@ -39,8 +52,12 @@ def test_exact_excluded_duplicate_peer_is_diagnostic_and_narrows_residual():
     assert result["residual_sources_with_imported_registry_sha_peer"] == 0
     assert result["residual_sources_with_exact_excluded_duplicate_peer"] == 1
     assert result["source_ids_with_exact_excluded_duplicate_peer"] == ["active"]
-    assert result["residual_sources_still_unexplained_after_duplicate_peer_evidence"] == 1
-    assert result["source_ids_still_unexplained_after_duplicate_peer_evidence"] == ["no-peer"]
+    assert (
+        result["residual_sources_still_unexplained_after_duplicate_peer_evidence"] == 1
+    )
+    assert result["source_ids_still_unexplained_after_duplicate_peer_evidence"] == [
+        "no-peer"
+    ]
     assert result["excluded_duplicate_peer_does_not_prove_usable_text"] is True
     assert result["automatic_import_authorized"] is False
     assert result["database_write_authorized"] is False
@@ -79,7 +96,9 @@ def test_peer_must_match_full_range_size_and_logical_identity():
 
     assert result["residual_sources_with_exact_registry_sha_peer"] == 1
     assert result["residual_sources_with_exact_excluded_duplicate_peer"] == 0
-    assert result["source_ids_still_unexplained_after_duplicate_peer_evidence"] == ["active"]
+    assert result["source_ids_still_unexplained_after_duplicate_peer_evidence"] == [
+        "active"
+    ]
 
 
 def test_imported_sha_peer_is_reported_but_never_authorizes_import():

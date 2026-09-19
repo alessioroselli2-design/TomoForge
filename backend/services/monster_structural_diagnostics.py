@@ -59,8 +59,10 @@ def _signals(text: str) -> dict[str, bool]:
     )
     core_pair = armor_class and hit_points
     core_triplet = core_pair and speed
-    monster_like_bundle = core_triplet and ability_header and (
-        challenge_or_proficiency or actions_heading or metadata >= 3
+    monster_like_bundle = (
+        core_triplet
+        and ability_header
+        and (challenge_or_proficiency or actions_heading or metadata >= 3)
     )
     return {
         "armor_class": armor_class,
@@ -94,9 +96,7 @@ def english_monster_structural_diagnostics(
 
     page_signals = {page: _signals(text) for page, text in pages}
     monster_like_pages = {
-        page
-        for page, signals in page_signals.items()
-        if signals["monster_like_bundle"]
+        page for page, signals in page_signals.items() if signals["monster_like_bundle"]
     }
 
     other_records_with_core_pair = 0

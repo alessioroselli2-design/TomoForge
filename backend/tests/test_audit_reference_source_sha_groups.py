@@ -1,4 +1,6 @@
-from scripts.audit_reference_source_sha_groups import summarize_reference_source_sha_groups
+from scripts.audit_reference_source_sha_groups import (
+    summarize_reference_source_sha_groups,
+)
 
 
 def test_classifies_duplicates_and_split_compilations_conservatively():

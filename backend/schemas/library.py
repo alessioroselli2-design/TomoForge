@@ -31,6 +31,7 @@ class ReferenceImportResult(BaseModel):
 
 class ManualPreloadInput(BaseModel):
     """Automatic preload intent; legacy consent fields remain API-compatible."""
+
     filename: Optional[str] = None
     enable_translation: bool = False
     enable_ocr: bool = False

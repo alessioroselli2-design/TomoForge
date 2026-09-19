@@ -3,7 +3,9 @@ from scripts.audit_shared_physical_source_slices import (
 )
 
 
-def _source(source_id: str, logical_id: str, start: int, end: int, *, sha: str = "abc") -> dict:
+def _source(
+    source_id: str, logical_id: str, start: int, end: int, *, sha: str = "abc"
+) -> dict:
     return {
         "id": source_id,
         "source_status": "active",
@@ -38,7 +40,11 @@ def test_disjoint_logical_slices_explain_repeated_physical_filename_without_reso
     assert result["physical_layout_explained_by_shared_slices_source_count"] == 3
     assert result["physical_layout_unexplained_source_count"] == 0
     assert result["unresolved_repeated_physical_identity_group_count"] == 0
-    assert result["source_ids_in_shared_physical_artifact_disjoint_slices"] == ["a", "b", "c"]
+    assert result["source_ids_in_shared_physical_artifact_disjoint_slices"] == [
+        "a",
+        "b",
+        "c",
+    ]
     assert result["source_ids_with_unexplained_physical_layout"] == []
     assert result["physical_layout_explanation_is_not_provenance_resolution"] is True
     assert result["shared_physical_slices_are_diagnostic_only"] is True
@@ -66,7 +72,9 @@ def test_partition_keeps_unique_and_unresolved_repeated_sources_unexplained():
     unique = _source("unique", "solo", 51, 60)
     unique["physical_filename"] = "Unique.pdf"
 
-    result = summarize_shared_physical_source_slices(overlapping + different_sha + [unique])
+    result = summarize_shared_physical_source_slices(
+        overlapping + different_sha + [unique]
+    )
 
     assert result["zero_import_vision_sources_total"] == 5
     assert result["repeated_physical_filename_group_count"] == 2

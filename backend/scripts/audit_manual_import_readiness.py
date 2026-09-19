@@ -34,7 +34,12 @@ async def fetch_all(collection: Any, page_size: int = 1000) -> list[dict]:
 
 def _has_record_activity(job: dict) -> bool:
     """Return whether a failed job reports any record-level work before failure."""
-    for field in ("records_imported", "records_updated", "records_flagged", "records_skipped"):
+    for field in (
+        "records_imported",
+        "records_updated",
+        "records_flagged",
+        "records_skipped",
+    ):
         value = job.get(field)
         if isinstance(value, (int, float)) and value > 0:
             return True
@@ -76,9 +81,13 @@ def _normalize_manual_identity(filename: str) -> str:
     return re.sub(r"\s+", " ", stem)
 
 
-def _manual_source_duplicate_reconciliation_state(job: dict, sources: list[dict]) -> str:
+def _manual_source_duplicate_reconciliation_state(
+    job: dict, sources: list[dict]
+) -> str:
     """Classify duplicate guards against catalog identities without authorizing writes or retries."""
-    if not _is_manual_source_duplicate_failure(job) or not _is_non_schema_investigation_candidate(job):
+    if not _is_manual_source_duplicate_failure(
+        job
+    ) or not _is_non_schema_investigation_candidate(job):
         return "not_candidate"
 
     identity = _normalize_manual_identity(_manual_source_duplicate_payload(job))
@@ -86,14 +95,22 @@ def _manual_source_duplicate_reconciliation_state(job: dict, sources: list[dict]
         return "unmatched"
 
     matches = [
-        source for source in sources
-        if _normalize_manual_identity(str(source.get("physical_filename") or "")) == identity
+        source
+        for source in sources
+        if _normalize_manual_identity(str(source.get("physical_filename") or ""))
+        == identity
     ]
     if not matches:
         return "unmatched"
 
-    logical_ids = {str(source.get("logical_source_id") or "") for source in matches if source.get("logical_source_id")}
-    has_active = any(str(source.get("source_status") or "") == "active" for source in matches)
+    logical_ids = {
+        str(source.get("logical_source_id") or "")
+        for source in matches
+        if source.get("logical_source_id")
+    }
+    has_active = any(
+        str(source.get("source_status") or "") == "active" for source in matches
+    )
     if len(logical_ids) == 1 and has_active:
         return "reconciled_single_logical_source"
     return "ambiguous"
@@ -141,7 +158,9 @@ def _is_non_schema_investigation_candidate(job: dict) -> bool:
     )
 
 
-def summarize_import_readiness(jobs: list[dict], sources: list[dict] | None = None) -> dict[str, Any]:
+def summarize_import_readiness(
+    jobs: list[dict], sources: list[dict] | None = None
+) -> dict[str, Any]:
     """Return aggregate structured-import readiness without leaking job or source details."""
     sources = sources or []
     statuses = Counter(str(job.get("status") or "unknown") for job in jobs)
@@ -150,7 +169,8 @@ def summarize_import_readiness(jobs: list[dict], sources: list[dict] | None = No
     completed = statuses["completed"]
     total = len(jobs)
     reconciliation_states = [
-        _manual_source_duplicate_reconciliation_state(job, sources) for job in failed
+        _manual_source_duplicate_reconciliation_state(job, sources)
+        for job in failed
         if _is_manual_source_duplicate_failure(job)
     ]
 
@@ -160,10 +180,14 @@ def summarize_import_readiness(jobs: list[dict], sources: list[dict] | None = No
         "jobs_completed": completed,
         "jobs_failed": statuses["failed"],
         "jobs_incomplete": total - completed,
-        "failed_jobs_with_record_activity": sum(_has_record_activity(job) for job in failed),
+        "failed_jobs_with_record_activity": sum(
+            _has_record_activity(job) for job in failed
+        ),
         "failed_jobs_with_ocr_backlog": sum(_has_ocr_backlog(job) for job in failed),
         "failed_jobs_without_ocr_backlog": len(failed_without_ocr_backlog),
-        "failed_jobs_schema_cache_miss": sum(_is_schema_cache_failure(job) for job in failed),
+        "failed_jobs_schema_cache_miss": sum(
+            _is_schema_cache_failure(job) for job in failed
+        ),
         "failed_jobs_schema_cache_miss_without_ocr_backlog": sum(
             _is_schema_cache_failure(job) for job in failed_without_ocr_backlog
         ),
@@ -174,15 +198,25 @@ def summarize_import_readiness(jobs: list[dict], sources: list[dict] | None = No
             _is_manual_source_duplicate_failure(job) for job in failed
         ),
         "failed_jobs_manual_source_duplicate_reconciliation_candidates": sum(
-            _is_manual_source_duplicate_failure(job) and _is_non_schema_investigation_candidate(job)
+            _is_manual_source_duplicate_failure(job)
+            and _is_non_schema_investigation_candidate(job)
             for job in failed
         ),
-        "failed_jobs_manual_source_duplicate_reconciled": reconciliation_states.count("reconciled_single_logical_source"),
-        "failed_jobs_manual_source_duplicate_ambiguous": reconciliation_states.count("ambiguous"),
-        "failed_jobs_manual_source_duplicate_unmatched": reconciliation_states.count("unmatched"),
-        "failed_jobs_duplicate_like": sum(_is_duplicate_like_failure(job) for job in failed),
+        "failed_jobs_manual_source_duplicate_reconciled": reconciliation_states.count(
+            "reconciled_single_logical_source"
+        ),
+        "failed_jobs_manual_source_duplicate_ambiguous": reconciliation_states.count(
+            "ambiguous"
+        ),
+        "failed_jobs_manual_source_duplicate_unmatched": reconciliation_states.count(
+            "unmatched"
+        ),
+        "failed_jobs_duplicate_like": sum(
+            _is_duplicate_like_failure(job) for job in failed
+        ),
         "failed_jobs_duplicate_like_investigation_candidates": sum(
-            _is_duplicate_like_failure(job) and _is_non_schema_investigation_candidate(job)
+            _is_duplicate_like_failure(job)
+            and _is_non_schema_investigation_candidate(job)
             for job in failed
         ),
         "failed_jobs_schema_cache_retry_candidates": sum(
@@ -201,7 +235,9 @@ def summarize_import_readiness(jobs: list[dict], sources: list[dict] | None = No
         "failed_jobs_translation_processing_confirmed": sum(
             job.get("translation_processing_confirmed") is True for job in failed
         ),
-        "structured_import_stable": total > 0 and statuses["failed"] == 0 and completed == total,
+        "structured_import_stable": total > 0
+        and statuses["failed"] == 0
+        and completed == total,
     }
 
 

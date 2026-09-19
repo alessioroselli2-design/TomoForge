@@ -60,7 +60,9 @@ def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, An
         if filename:
             by_filename[filename].append(source)
 
-    repeated_filename_groups = [group for group in by_filename.values() if len(group) > 1]
+    repeated_filename_groups = [
+        group for group in by_filename.values() if len(group) > 1
+    ]
     repeated_source_ids = sorted(
         str(source.get("id")) for group in repeated_filename_groups for source in group
     )
@@ -71,10 +73,15 @@ def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, An
     unresolved_source_ids: list[str] = []
 
     for group in repeated_filename_groups:
-        shas = {str(source.get("physical_sha256") or "").strip().casefold() for source in group}
+        shas = {
+            str(source.get("physical_sha256") or "").strip().casefold()
+            for source in group
+        }
         sizes = {source.get("physical_size_bytes") for source in group}
         page_counts = {source.get("physical_pages") for source in group}
-        logical_ids = [str(source.get("logical_source_id") or "").strip() for source in group]
+        logical_ids = [
+            str(source.get("logical_source_id") or "").strip() for source in group
+        ]
         slices = [_valid_slice(source) for source in group]
 
         same_physical_artifact = (
@@ -85,8 +92,8 @@ def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, An
             and len(page_counts) == 1
             and None not in page_counts
         )
-        unique_logical_sources = (
-            all(logical_ids) and len(set(logical_ids)) == len(logical_ids)
+        unique_logical_sources = all(logical_ids) and len(set(logical_ids)) == len(
+            logical_ids
         )
         valid_slices = all(value is not None for value in slices)
         sorted_slices = sorted(value for value in slices if value is not None)
@@ -106,10 +113,14 @@ def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, An
     repeated_id_set = set(repeated_source_ids)
     shared_slice_id_set = set(shared_slice_source_ids)
     unique_filename_source_ids = sorted(
-        source_id for source_id in blocked_source_ids if source_id not in repeated_id_set
+        source_id
+        for source_id in blocked_source_ids
+        if source_id not in repeated_id_set
     )
     physical_layout_unexplained_source_ids = sorted(
-        source_id for source_id in blocked_source_ids if source_id not in shared_slice_id_set
+        source_id
+        for source_id in blocked_source_ids
+        if source_id not in shared_slice_id_set
     )
 
     return {
@@ -117,17 +128,29 @@ def summarize_shared_physical_source_slices(sources: list[dict]) -> dict[str, An
         "repeated_physical_filename_group_count": len(repeated_filename_groups),
         "repeated_physical_filename_source_count": len(repeated_source_ids),
         "shared_physical_artifact_disjoint_slice_group_count": shared_slice_group_count,
-        "shared_physical_artifact_disjoint_slice_source_count": len(shared_slice_source_ids),
+        "shared_physical_artifact_disjoint_slice_source_count": len(
+            shared_slice_source_ids
+        ),
         "unique_physical_filename_source_count": len(unique_filename_source_ids),
-        "physical_layout_explained_by_shared_slices_source_count": len(shared_slice_source_ids),
-        "physical_layout_unexplained_source_count": len(physical_layout_unexplained_source_ids),
+        "physical_layout_explained_by_shared_slices_source_count": len(
+            shared_slice_source_ids
+        ),
+        "physical_layout_unexplained_source_count": len(
+            physical_layout_unexplained_source_ids
+        ),
         "unresolved_repeated_physical_identity_group_count": unresolved_group_count,
-        "unresolved_repeated_physical_identity_source_count": len(unresolved_source_ids),
+        "unresolved_repeated_physical_identity_source_count": len(
+            unresolved_source_ids
+        ),
         "source_ids_with_repeated_physical_filename": repeated_source_ids,
-        "source_ids_in_shared_physical_artifact_disjoint_slices": sorted(shared_slice_source_ids),
+        "source_ids_in_shared_physical_artifact_disjoint_slices": sorted(
+            shared_slice_source_ids
+        ),
         "source_ids_with_unique_physical_filename": unique_filename_source_ids,
         "source_ids_with_unexplained_physical_layout": physical_layout_unexplained_source_ids,
-        "source_ids_with_unresolved_repeated_physical_identity": sorted(unresolved_source_ids),
+        "source_ids_with_unresolved_repeated_physical_identity": sorted(
+            unresolved_source_ids
+        ),
         "physical_layout_explanation_is_not_provenance_resolution": True,
         "shared_physical_slices_are_diagnostic_only": True,
         "shared_physical_slices_do_not_authorize_import": True,

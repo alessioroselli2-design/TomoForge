@@ -134,21 +134,29 @@ async def _load_structural_tables(collection: Any) -> list[dict[str, Any]]:
     for record_id, expected_name in STRUCTURAL_TABLE_TARGETS:
         row = await collection.find_one({"id": record_id})
         if row is None:
-            raise RuntimeError(f"Structural table missing: {record_id} / {expected_name}")
+            raise RuntimeError(
+                f"Structural table missing: {record_id} / {expected_name}"
+            )
         if str(row.get("name") or "") != expected_name:
             raise RuntimeError(
                 f"Structural table name drift for {record_id}: "
                 f"expected {expected_name!r}, got {row.get('name')!r}"
             )
         if str(row.get("reference_type") or "") == "monster":
-            raise RuntimeError(f"Structural table unexpectedly typed as monster: {record_id}")
+            raise RuntimeError(
+                f"Structural table unexpectedly typed as monster: {record_id}"
+            )
         if _heading_family(expected_name) != "tabella":
-            raise RuntimeError(f"Structural table no longer matches table gate: {expected_name}")
+            raise RuntimeError(
+                f"Structural table no longer matches table gate: {expected_name}"
+            )
         rows.append(row)
     return rows
 
 
-async def _preflight(collection: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+async def _preflight(
+    collection: Any,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     verified = await _fetch_verified_records(collection)
     delete_targets = _select_delete_targets(verified)
     isolate_targets = await _load_structural_tables(collection)
@@ -162,13 +170,19 @@ async def _preflight(collection: Any) -> tuple[list[dict[str, Any]], list[dict[s
     delete_md5 = _ids_md5(delete_targets)
     isolate_md5 = _ids_md5(isolate_targets)
 
-    if len(delete_targets) != EXPECTED_DELETE_COUNT or delete_md5 != EXPECTED_DELETE_IDS_MD5:
+    if (
+        len(delete_targets) != EXPECTED_DELETE_COUNT
+        or delete_md5 != EXPECTED_DELETE_IDS_MD5
+    ):
         raise RuntimeError(
             "DELETE target drift detected: "
             f"count={len(delete_targets)} md5={delete_md5}; "
             f"expected count={EXPECTED_DELETE_COUNT} md5={EXPECTED_DELETE_IDS_MD5}"
         )
-    if len(isolate_targets) != EXPECTED_ISOLATE_COUNT or isolate_md5 != EXPECTED_ISOLATE_IDS_MD5:
+    if (
+        len(isolate_targets) != EXPECTED_ISOLATE_COUNT
+        or isolate_md5 != EXPECTED_ISOLATE_IDS_MD5
+    ):
         raise RuntimeError(
             "Isolation target drift detected: "
             f"count={len(isolate_targets)} md5={isolate_md5}; "
@@ -190,14 +204,18 @@ async def _preflight(collection: Any) -> tuple[list[dict[str, Any]], list[dict[s
     return delete_targets, isolate_targets
 
 
-async def _isolate_structural_tables(collection: Any, rows: list[dict[str, Any]]) -> int:
+async def _isolate_structural_tables(
+    collection: Any, rows: list[dict[str, Any]]
+) -> int:
     """Preserve each table row and its existing flags; only add isolation state."""
     changed = 0
     for snapshot in rows:
         record_id = str(snapshot["id"])
         current = await collection.find_one({"id": record_id})
         if current is None:
-            raise RuntimeError(f"Structural table disappeared before update: {record_id}")
+            raise RuntimeError(
+                f"Structural table disappeared before update: {record_id}"
+            )
 
         flags = {str(flag) for flag in (current.get("review_flags") or [])}
         status = str(current.get("review_status") or "")
@@ -211,10 +229,12 @@ async def _isolate_structural_tables(collection: Any, rows: list[dict[str, Any]]
         flags.add(STRUCTURAL_TABLE_FLAG)
         result = await collection.update_one(
             {"id": record_id, "review_status": "verified"},
-            {"$set": {
-                "review_status": "needs_review",
-                "review_flags": sorted(flags),
-            }},
+            {
+                "$set": {
+                    "review_status": "needs_review",
+                    "review_flags": sorted(flags),
+                }
+            },
         )
         if result.matched_count != 1:
             raise RuntimeError(
@@ -223,9 +243,17 @@ async def _isolate_structural_tables(collection: Any, rows: list[dict[str, Any]]
         changed += 1
 
         verify = await collection.find_one({"id": record_id})
-        verify_flags = {str(flag) for flag in ((verify or {}).get("review_flags") or [])}
-        if not verify or verify.get("review_status") != "needs_review" or STRUCTURAL_TABLE_FLAG not in verify_flags:
-            raise RuntimeError(f"Structural table post-update verification failed: {record_id}")
+        verify_flags = {
+            str(flag) for flag in ((verify or {}).get("review_flags") or [])
+        }
+        if (
+            not verify
+            or verify.get("review_status") != "needs_review"
+            or STRUCTURAL_TABLE_FLAG not in verify_flags
+        ):
+            raise RuntimeError(
+                f"Structural table post-update verification failed: {record_id}"
+            )
 
     return changed
 
@@ -234,7 +262,9 @@ def _delete_confirmed_debris(collection: Any, rows: list[dict[str, Any]]) -> int
     """Delete the exact preflighted 94 IDs in one database statement."""
     ids = sorted(str(row["id"]) for row in rows)
     if len(ids) != EXPECTED_DELETE_COUNT or _ids_md5(rows) != EXPECTED_DELETE_IDS_MD5:
-        raise RuntimeError("Refusing DELETE: in-memory target no longer matches sealed snapshot")
+        raise RuntimeError(
+            "Refusing DELETE: in-memory target no longer matches sealed snapshot"
+        )
 
     result = (
         collection.client.table(collection.name)
@@ -262,26 +292,40 @@ async def _verify_final_state(
         if await collection.find_one({"id": str(row["id"])}) is not None:
             remaining_deleted.append(str(row["id"]))
     if remaining_deleted:
-        raise RuntimeError(f"Post-delete verification found surviving debris: {remaining_deleted}")
+        raise RuntimeError(
+            f"Post-delete verification found surviving debris: {remaining_deleted}"
+        )
 
     for snapshot in table_rows:
         row = await collection.find_one({"id": str(snapshot["id"])})
         flags = {str(flag) for flag in ((row or {}).get("review_flags") or [])}
-        if not row or row.get("review_status") != "needs_review" or STRUCTURAL_TABLE_FLAG not in flags:
-            raise RuntimeError(f"Structural table final verification failed: {snapshot['id']}")
+        if (
+            not row
+            or row.get("review_status") != "needs_review"
+            or STRUCTURAL_TABLE_FLAG not in flags
+        ):
+            raise RuntimeError(
+                f"Structural table final verification failed: {snapshot['id']}"
+            )
 
 
-def _print_plan(delete_rows: list[dict[str, Any]], table_rows: list[dict[str, Any]]) -> None:
+def _print_plan(
+    delete_rows: list[dict[str, Any]], table_rows: list[dict[str, Any]]
+) -> None:
     print("TOMOFORGE LEGACY DEBRIS PURGE — GUARDED EXECUTOR")
     print(f"DELETE targets sealed: {len(delete_rows)} ({_ids_md5(delete_rows)})")
     print(f"Structural tables sealed: {len(table_rows)} ({_ids_md5(table_rows)})")
-    print("Structural tables are excluded from DELETE and retain existing review flags.")
+    print(
+        "Structural tables are excluded from DELETE and retain existing review flags."
+    )
     print("No write occurs without --execute plus the exact confirmation token.")
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--execute", action="store_true", help="Perform the guarded live writes")
+    parser.add_argument(
+        "--execute", action="store_true", help="Perform the guarded live writes"
+    )
     parser.add_argument("--confirm", default="", help="Exact sealed confirmation token")
     return parser.parse_args()
 
@@ -300,7 +344,9 @@ async def _run(args: argparse.Namespace) -> int:
         print("PREVIEW ONLY: database writes performed: 0")
         return 0
     if args.confirm != CONFIRMATION_TOKEN:
-        raise RuntimeError("Refusing execution: confirmation token does not match sealed target")
+        raise RuntimeError(
+            "Refusing execution: confirmation token does not match sealed target"
+        )
 
     isolated_now = await _isolate_structural_tables(collection, table_rows)
 
@@ -312,7 +358,9 @@ async def _run(args: argparse.Namespace) -> int:
         len(delete_rows_after_isolation) != EXPECTED_DELETE_COUNT
         or _ids_md5(delete_rows_after_isolation) != EXPECTED_DELETE_IDS_MD5
     ):
-        raise RuntimeError("DELETE target drift after table isolation; no DELETE performed")
+        raise RuntimeError(
+            "DELETE target drift after table isolation; no DELETE performed"
+        )
 
     deleted = _delete_confirmed_debris(collection, delete_rows_after_isolation)
     await _verify_final_state(collection, delete_rows_after_isolation, table_rows)

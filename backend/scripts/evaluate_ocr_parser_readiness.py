@@ -5,6 +5,7 @@ This helper evaluates whether OCR output contains enough stable D&D stat-block
 structure to justify a later bounded parser pilot. It never writes Supabase,
 creates canonical records, repairs OCR text, or authorizes automatic import.
 """
+
 from __future__ import annotations
 
 import json
@@ -39,15 +40,21 @@ def _word_count(text: str) -> int:
 def evaluate_ocr_parser_readiness(text: Any) -> dict[str, Any]:
     """Return structural evidence only; never parse or persist source content."""
     value = str(text or "")
-    core_hits = sorted(name for name, pattern in _CORE_PATTERNS.items() if pattern.search(value))
-    ability_hits = sorted(name for name, pattern in _ABILITY_PATTERNS.items() if pattern.search(value))
+    core_hits = sorted(
+        name for name, pattern in _CORE_PATTERNS.items() if pattern.search(value)
+    )
+    ability_hits = sorted(
+        name for name, pattern in _ABILITY_PATTERNS.items() if pattern.search(value)
+    )
     words = _word_count(value)
 
     # Conservative gate: a monster stat block should expose the three core
     # defensive/movement labels and most ability headings. "Azioni" is useful
     # evidence but not mandatory because a bounded page may split the block.
     required_core = {"armor_class", "hit_points", "speed"}
-    candidate = required_core.issubset(core_hits) and len(ability_hits) >= 4 and words >= 80
+    candidate = (
+        required_core.issubset(core_hits) and len(ability_hits) >= 4 and words >= 80
+    )
 
     return {
         "classification": PARSER_CANDIDATE if candidate else REVIEW_REQUIRED,
@@ -66,7 +73,11 @@ def evaluate_ocr_parser_readiness(text: Any) -> dict[str, Any]:
 
 def main() -> int:
     text = sys.stdin.read()
-    print(json.dumps(evaluate_ocr_parser_readiness(text), ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            evaluate_ocr_parser_readiness(text), ensure_ascii=False, sort_keys=True
+        )
+    )
     return 0
 
 

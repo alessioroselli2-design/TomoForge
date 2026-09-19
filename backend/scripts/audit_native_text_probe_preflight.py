@@ -22,7 +22,9 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from scripts.audit_manual_import_readiness import fetch_all
-from scripts.audit_multilingual_parser_support import summarize_multilingual_parser_support
+from scripts.audit_multilingual_parser_support import (
+    summarize_multilingual_parser_support,
+)
 from scripts.audit_zero_import_registry_sha_peers import _norm
 
 
@@ -66,10 +68,13 @@ def summarize_native_text_probe_preflight(sources: list[dict]) -> dict[str, Any]
             ready_pairs.append(pair_id)
 
     return {
-        "native_text_probe_preflight_pairs_checked": len(ready_pairs) + len(blocked_pairs),
+        "native_text_probe_preflight_pairs_checked": len(ready_pairs)
+        + len(blocked_pairs),
         "native_text_probe_preflight_ready_pairs": sorted(ready_pairs),
         "native_text_probe_preflight_ready_count": len(ready_pairs),
-        "native_text_probe_preflight_blocked_pairs": dict(sorted(blocked_pairs.items())),
+        "native_text_probe_preflight_blocked_pairs": dict(
+            sorted(blocked_pairs.items())
+        ),
         "native_text_probe_preflight_blocked_count": len(blocked_pairs),
         "preflight_reads_pdf_bytes": False,
         "specific_pdf_parse_verified": False,

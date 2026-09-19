@@ -38,7 +38,9 @@ def _ref_filenames(source_refs: Any) -> set[str]:
     }
 
 
-def summarize_reciprocal_provenance(jobs: list[dict], sources: list[dict], records: list[dict]) -> dict[str, Any]:
+def summarize_reciprocal_provenance(
+    jobs: list[dict], sources: list[dict], records: list[dict]
+) -> dict[str, Any]:
     by_alias: dict[str, list[dict]] = {}
     for source in sources:
         key = _normalized_filename_alias_key(str(source.get("physical_filename") or ""))
@@ -47,7 +49,11 @@ def summarize_reciprocal_provenance(jobs: list[dict], sources: list[dict], recor
 
     candidates: list[dict[str, Any]] = []
     for job in jobs:
-        if str(job.get("status") or "") != "failed" or "manual_source_missing" not in str(job.get("last_error") or ""):
+        if str(
+            job.get("status") or ""
+        ) != "failed" or "manual_source_missing" not in str(
+            job.get("last_error") or ""
+        ):
             continue
         filename = str(job.get("filename") or "").strip()
         key = _normalized_filename_alias_key(filename)
@@ -69,30 +75,46 @@ def summarize_reciprocal_provenance(jobs: list[dict], sources: list[dict], recor
                 companion_counts[companion] += 1
 
         companions = []
-        for companion, forward_count in sorted(companion_counts.items(), key=lambda item: (-item[1], item[0])):
-            companion_records = [r for r in records if str(r.get("source_key") or "").strip() == companion]
-            reverse_count = sum(filename in _ref_filenames(r.get("source_refs")) for r in companion_records)
-            companions.append({
-                "filename": companion,
-                "forward_mixed_records": forward_count,
-                "companion_source_records": len(companion_records),
-                "reciprocal_records": reverse_count,
-                "has_reciprocal_provenance": reverse_count > 0,
-            })
+        for companion, forward_count in sorted(
+            companion_counts.items(), key=lambda item: (-item[1], item[0])
+        ):
+            companion_records = [
+                r
+                for r in records
+                if str(r.get("source_key") or "").strip() == companion
+            ]
+            reverse_count = sum(
+                filename in _ref_filenames(r.get("source_refs"))
+                for r in companion_records
+            )
+            companions.append(
+                {
+                    "filename": companion,
+                    "forward_mixed_records": forward_count,
+                    "companion_source_records": len(companion_records),
+                    "reciprocal_records": reverse_count,
+                    "has_reciprocal_provenance": reverse_count > 0,
+                }
+            )
 
-        candidates.append({
-            "job_id": str(job.get("id") or "").strip(),
-            "job_filename": filename,
-            "logical_source_id": str(source.get("logical_source_id") or "").strip(),
-            "companions": companions,
-            "all_companions_reciprocal": bool(companions) and all(c["has_reciprocal_provenance"] for c in companions),
-            "hash_confirmed": False,
-            "requires_manual_reconciliation": True,
-        })
+        candidates.append(
+            {
+                "job_id": str(job.get("id") or "").strip(),
+                "job_filename": filename,
+                "logical_source_id": str(source.get("logical_source_id") or "").strip(),
+                "companions": companions,
+                "all_companions_reciprocal": bool(companions)
+                and all(c["has_reciprocal_provenance"] for c in companions),
+                "hash_confirmed": False,
+                "requires_manual_reconciliation": True,
+            }
+        )
 
     return {
         "review_only_alias_candidates": len(candidates),
-        "candidates": sorted(candidates, key=lambda c: (c["job_id"], c["job_filename"])),
+        "candidates": sorted(
+            candidates, key=lambda c: (c["job_id"], c["job_filename"])
+        ),
         "reciprocity_confirms_identity": False,
         "automatic_retry_authorized": False,
         "database_write_authorized": False,
@@ -105,6 +127,7 @@ def summarize_reciprocal_provenance(jobs: list[dict], sources: list[dict], recor
 
 async def _run() -> int:
     from core.db import db
+
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
     jobs, sources, records = await asyncio.gather(
@@ -112,7 +135,11 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_reference_records),
     )
-    print(json.dumps(summarize_reciprocal_provenance(jobs, sources, records), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_reciprocal_provenance(jobs, sources, records), sort_keys=True
+        )
+    )
     return 0
 
 

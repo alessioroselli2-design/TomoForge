@@ -32,24 +32,28 @@ from services.ocr_semantic_gates import (
 DRY_RUN_ONLY = True
 PAGE_SIZE = 1000
 
-_FORBIDDEN_DB_MUTATION_ATTRS = frozenset({
-    "insert_one",
-    "insert_many",
-    "update_one",
-    "update_many",
-    "delete_one",
-    "delete_many",
-    "replace_one",
-    "upsert",
-    "execute_sql",
-    "apply_migration",
-})
+_FORBIDDEN_DB_MUTATION_ATTRS = frozenset(
+    {
+        "insert_one",
+        "insert_many",
+        "update_one",
+        "update_many",
+        "delete_one",
+        "delete_many",
+        "replace_one",
+        "upsert",
+        "execute_sql",
+        "apply_migration",
+    }
+)
 
-_REPAIR_FAILURE_FLAGS = frozenset({
-    CA_OUT_OF_BOUNDS_FLAG,
-    CA_FORMAT_ERROR_FLAG,
-    HP_FORMAT_ERROR_FLAG,
-})
+_REPAIR_FAILURE_FLAGS = frozenset(
+    {
+        CA_OUT_OF_BOUNDS_FLAG,
+        CA_FORMAT_ERROR_FLAG,
+        HP_FORMAT_ERROR_FLAG,
+    }
+)
 
 
 class _ReadOnlyCollection:
@@ -71,12 +75,14 @@ def _assert_source_is_read_only() -> None:
     """Refuse to run if this file contains a known DB persistence method call."""
     source = Path(__file__).read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(__file__))
-    found = sorted({
-        node.attr
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Attribute)
-        and node.attr in _FORBIDDEN_DB_MUTATION_ATTRS
-    })
+    found = sorted(
+        {
+            node.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute)
+            and node.attr in _FORBIDDEN_DB_MUTATION_ATTRS
+        }
+    )
     if found:
         raise RuntimeError(
             "Dry-run safety check failed: database mutation calls detected: "
@@ -120,13 +126,16 @@ def analyze_verified_records(records: list[dict[str, Any]]) -> dict[str, Any]:
 
         gated = apply_ocr_review_gates(record)
         all_flags = set(gated.get("review_flags") or [])
-        repair_flags = sorted(flag for flag in all_flags if flag in _REPAIR_FAILURE_FLAGS)
+        repair_flags = sorted(
+            flag for flag in all_flags if flag in _REPAIR_FAILURE_FLAGS
+        )
         invalid_title = INVALID_ENTITY_TITLE_FLAG in all_flags
 
         item = {
             "name": _safe_name(record),
             "reference_type": str(record.get("reference_type") or "other"),
-            "flags": ([INVALID_ENTITY_TITLE_FLAG] if invalid_title else []) + repair_flags,
+            "flags": ([INVALID_ENTITY_TITLE_FLAG] if invalid_title else [])
+            + repair_flags,
             "would_review_status": str(gated.get("review_status") or "pending"),
         }
 

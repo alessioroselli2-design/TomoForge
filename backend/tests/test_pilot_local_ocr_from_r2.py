@@ -43,8 +43,8 @@ def test_agreement_metrics_reward_consistent_transcriptions():
 
 
 def test_agreement_metrics_reject_divergent_transcriptions():
-    primary = ("classe armatura punti ferita velocità azioni creatura " * 120)
-    comparison = ("alfabeto rumore diverso senza corrispondenza testuale " * 120)
+    primary = "classe armatura punti ferita velocità azioni creatura " * 120
+    comparison = "alfabeto rumore diverso senza corrispondenza testuale " * 120
     metrics = _agreement_metrics(primary, comparison)
     assert metrics["token_dice"] < 0.2
     assert metrics["unique_jaccard"] < 0.2

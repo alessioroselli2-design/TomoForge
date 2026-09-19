@@ -58,7 +58,9 @@ def _text_quality(text: str) -> dict[str, Any]:
         "chars": len(value),
         "nonspace_chars": len(nonspace),
         "letter_ratio": round(len(letters) / len(nonspace), 4) if nonspace else 0.0,
-        "printable_ratio": round(len(printable) / len(nonspace), 4) if nonspace else 0.0,
+        "printable_ratio": round(len(printable) / len(nonspace), 4)
+        if nonspace
+        else 0.0,
         "word_count": len(words),
     }
 
@@ -80,10 +82,7 @@ def _agreement_metrics(primary: str, comparison: str) -> dict[str, Any]:
     left_unique = set(left)
     right_unique = set(right)
     union = left_unique | right_unique
-    unique_jaccard = (
-        len(left_unique & right_unique) / len(union)
-        if union else 0.0
-    )
+    unique_jaccard = len(left_unique & right_unique) / len(union) if union else 0.0
     lengths = (len(primary or ""), len(comparison or ""))
     length_ratio = min(lengths) / max(lengths) if max(lengths) else 0.0
     left_markers = _structural_marker_hits(primary)
@@ -152,14 +151,18 @@ def _run_tesseract(image_path: Path, languages: str, psm: int) -> str:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Bounded local OCR pilot for an R2 manual")
+    parser = argparse.ArgumentParser(
+        description="Bounded local OCR pilot for an R2 manual"
+    )
     parser.add_argument("--filename", required=True)
     parser.add_argument(
         "--expected-sha256",
         required=True,
         help="SHA-256 recorded in the authoritative source registry",
     )
-    parser.add_argument("--start-page", type=int, required=True, help="1-based first PDF page")
+    parser.add_argument(
+        "--start-page", type=int, required=True, help="1-based first PDF page"
+    )
     parser.add_argument("--page-count", type=int, default=12)
     parser.add_argument("--dpi", type=int, default=220)
     parser.add_argument("--languages", default="ita+eng")
@@ -231,9 +234,13 @@ def main() -> int:
             page = document.load_page(page_number - 1)
             native_text = page.get_text("text") or ""
             image_path = Path(tmp) / f"page-{page_number:04d}.png"
-            page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(image_path)
+            page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(
+                image_path
+            )
             primary_text = _run_tesseract(image_path, args.languages, args.psm)
-            comparison_text = _run_tesseract(image_path, args.languages, args.comparison_psm)
+            comparison_text = _run_tesseract(
+                image_path, args.languages, args.comparison_psm
+            )
             agreement = _agreement_metrics(primary_text, comparison_text)
             page_report = {
                 "page": page_number,
@@ -275,7 +282,9 @@ def main() -> int:
         "pages": pages,
     }
     report_path = output_dir / "report.json"
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"OCR_REPORT={report_path}")
     return 0
 

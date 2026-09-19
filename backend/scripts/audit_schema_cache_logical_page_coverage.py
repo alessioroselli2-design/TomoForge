@@ -166,7 +166,9 @@ def main() -> int:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        print(f"Schema-cache logical page coverage audit failed: {exc}", file=sys.stderr)
+        print(
+            f"Schema-cache logical page coverage audit failed: {exc}", file=sys.stderr
+        )
         return 1
 
 

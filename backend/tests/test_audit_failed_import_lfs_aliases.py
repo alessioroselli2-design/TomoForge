@@ -8,9 +8,7 @@ from scripts.audit_failed_import_lfs_aliases import (
 
 def _pointer(oid: str, size: int = 1234) -> str:
     return (
-        "version https://git-lfs.github.com/spec/v1\n"
-        f"oid sha256:{oid}\n"
-        f"size {size}\n"
+        f"version https://git-lfs.github.com/spec/v1\noid sha256:{oid}\nsize {size}\n"
     )
 
 
@@ -18,9 +16,10 @@ def test_parse_lfs_pointer_requires_complete_pointer():
     oid = "a" * 64
     assert parse_lfs_pointer(_pointer(oid, 99)) == {"oid_sha256": oid, "size": 99}
     assert parse_lfs_pointer("not an lfs pointer") is None
-    assert parse_lfs_pointer(
-        "version https://git-lfs.github.com/spec/v1\nsize 99\n"
-    ) is None
+    assert (
+        parse_lfs_pointer("version https://git-lfs.github.com/spec/v1\nsize 99\n")
+        is None
+    )
 
 
 def test_audit_flags_shared_lfs_object_without_authorizing_retry(tmp_path: Path):

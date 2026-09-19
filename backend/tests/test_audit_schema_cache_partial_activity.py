@@ -1,4 +1,6 @@
-from scripts.audit_schema_cache_partial_activity import summarize_schema_cache_partial_activity
+from scripts.audit_schema_cache_partial_activity import (
+    summarize_schema_cache_partial_activity,
+)
 
 
 def test_schema_cache_partial_activity_is_read_only_and_private():
@@ -41,14 +43,16 @@ def test_schema_cache_partial_activity_is_read_only_and_private():
 
 
 def test_schema_cache_without_partial_activity_is_not_reconciliation_candidate():
-    result = summarize_schema_cache_partial_activity([
-        {
-            "status": "failed",
-            "last_error": "PGRST204 missing field in schema cache",
-            "records_imported": 0,
-            "attempt_count": 1,
-        }
-    ])
+    result = summarize_schema_cache_partial_activity(
+        [
+            {
+                "status": "failed",
+                "last_error": "PGRST204 missing field in schema cache",
+                "records_imported": 0,
+                "attempt_count": 1,
+            }
+        ]
+    )
 
     assert result["failed_schema_cache_jobs"] == 1
     assert result["failed_schema_cache_jobs_with_record_activity"] == 0

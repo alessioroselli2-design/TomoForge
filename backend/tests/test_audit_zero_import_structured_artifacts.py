@@ -37,7 +37,10 @@ def test_structured_artifact_audit_is_conservative():
     result = summarize_zero_import_structured_artifacts(sources, analyses)
 
     assert result["zero_import_vision_sources_total"] == 4
-    assert result["zero_import_sources_with_filename_and_page_count_artifact_evidence"] == 1
+    assert (
+        result["zero_import_sources_with_filename_and_page_count_artifact_evidence"]
+        == 1
+    )
     assert result["zero_import_sources_with_filename_only_artifact_evidence"] == 1
     assert result["zero_import_sources_with_ambiguous_artifact_evidence"] == 1
     assert result["zero_import_sources_with_ambiguous_source_identity"] == 0
@@ -45,8 +48,13 @@ def test_structured_artifact_audit_is_conservative():
     assert result["zero_import_sources_with_historical_extracted_text"] == 1
     assert result["zero_import_sources_with_historical_zero_text"] == 1
     assert result["zero_import_sources_with_exact_historical_text_review_evidence"] == 1
-    assert result["zero_import_sources_with_inconclusive_structured_artifact_evidence"] == 1
-    assert result["source_ids_with_filename_and_page_count_artifact_evidence"] == ["exact"]
+    assert (
+        result["zero_import_sources_with_inconclusive_structured_artifact_evidence"]
+        == 1
+    )
+    assert result["source_ids_with_filename_and_page_count_artifact_evidence"] == [
+        "exact"
+    ]
     assert result["source_ids_with_filename_only_artifact_evidence"] == ["name-only"]
     assert result["source_ids_with_ambiguous_artifact_evidence"] == ["ambiguous"]
     assert result["source_ids_with_ambiguous_source_identity"] == []

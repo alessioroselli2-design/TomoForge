@@ -39,11 +39,15 @@ def failed_record(**overrides):
 def test_retry_status_counts_retryable_and_blocked_failures():
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_many([
-            failed_record(id="retryable"),
-            failed_record(id="blocked", translation_error="manual_intervention_required"),
-            failed_record(id="human", review_status="verified"),
-        ])
+        await db.private_reference_records.insert_many(
+            [
+                failed_record(id="retryable"),
+                failed_record(
+                    id="blocked", translation_error="manual_intervention_required"
+                ),
+                failed_record(id="human", review_status="verified"),
+            ]
+        )
 
         status = await translation_retry_status("owner-1", db=db)
 
@@ -63,23 +67,25 @@ def test_retry_status_counts_retryable_and_blocked_failures():
 def test_retry_status_stays_blocked_for_processing_and_pending_translations():
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_many([
-            failed_record(
-                id="processing",
-                translation_status="processing",
-                translation_error="",
-            ),
-            failed_record(
-                id="pending",
-                translation_status="pending",
-                translation_error="",
-            ),
-            failed_record(
-                id="translated",
-                translation_status="translated",
-                translation_error="",
-            ),
-        ])
+        await db.private_reference_records.insert_many(
+            [
+                failed_record(
+                    id="processing",
+                    translation_status="processing",
+                    translation_error="",
+                ),
+                failed_record(
+                    id="pending",
+                    translation_status="pending",
+                    translation_error="",
+                ),
+                failed_record(
+                    id="translated",
+                    translation_status="translated",
+                    translation_error="",
+                ),
+            ]
+        )
 
         status = await translation_retry_status("owner-1", db=db)
 
@@ -96,11 +102,13 @@ def test_retry_status_stays_blocked_for_processing_and_pending_translations():
 def test_retry_worker_is_bounded_and_reuses_single_record_retry(monkeypatch):
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_many([
-            failed_record(id="ref-1"),
-            failed_record(id="ref-2"),
-            failed_record(id="ref-3"),
-        ])
+        await db.private_reference_records.insert_many(
+            [
+                failed_record(id="ref-1"),
+                failed_record(id="ref-2"),
+                failed_record(id="ref-3"),
+            ]
+        )
         retried = []
 
         async def fake_retry(user_id, reference_id, *, db):
@@ -109,12 +117,16 @@ def test_retry_worker_is_bounded_and_reuses_single_record_retry(monkeypatch):
                 {"id": reference_id, "user_id": user_id},
                 {"$set": {"translation_status": "translated", "translation_error": ""}},
             )
-            return await db.private_reference_records.find_one({
-                "id": reference_id,
-                "user_id": user_id,
-            })
+            return await db.private_reference_records.find_one(
+                {
+                    "id": reference_id,
+                    "user_id": user_id,
+                }
+            )
 
-        monkeypatch.setattr(retry_mod, "retry_private_reference_translation", fake_retry)
+        monkeypatch.setattr(
+            retry_mod, "retry_private_reference_translation", fake_retry
+        )
 
         result = await run_translation_retries("owner-1", db=db, batch_size=2)
 
@@ -134,12 +146,16 @@ def test_retry_worker_reports_persistent_failure(monkeypatch):
         await db.private_reference_records.insert_one(failed_record())
 
         async def fake_retry(user_id, reference_id, *, db):
-            return await db.private_reference_records.find_one({
-                "id": reference_id,
-                "user_id": user_id,
-            })
+            return await db.private_reference_records.find_one(
+                {
+                    "id": reference_id,
+                    "user_id": user_id,
+                }
+            )
 
-        monkeypatch.setattr(retry_mod, "retry_private_reference_translation", fake_retry)
+        monkeypatch.setattr(
+            retry_mod, "retry_private_reference_translation", fake_retry
+        )
 
         result = await run_translation_retries("owner-1", db=db, batch_size=5)
 
@@ -155,14 +171,18 @@ def test_retry_worker_reports_persistent_failure(monkeypatch):
 def test_owner_record_reader_paginates_complete_retry_corpus():
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_many([
-            failed_record(id=f"ref-{index}") for index in range(5)
-        ])
+        await db.private_reference_records.insert_many(
+            [failed_record(id=f"ref-{index}") for index in range(5)]
+        )
 
         records = await list_owner_reference_records("owner-1", db=db, page_size=2)
 
         assert [record["id"] for record in records] == [
-            "ref-0", "ref-1", "ref-2", "ref-3", "ref-4",
+            "ref-0",
+            "ref-1",
+            "ref-2",
+            "ref-3",
+            "ref-4",
         ]
 
     asyncio.run(scenario())

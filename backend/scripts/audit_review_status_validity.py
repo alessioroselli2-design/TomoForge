@@ -19,7 +19,11 @@ REVIEW_STATUSES = {"verified", "needs_review", "pending"}
 
 def summarize_review_status_validity(records: list[dict]) -> dict:
     counts = Counter(str(row.get("review_status") or "unknown") for row in records)
-    unexpected = {status: count for status, count in counts.items() if status not in REVIEW_STATUSES}
+    unexpected = {
+        status: count
+        for status, count in counts.items()
+        if status not in REVIEW_STATUSES
+    }
     return {
         "records_total": len(records),
         "review_status_breakdown": dict(sorted(counts.items())),

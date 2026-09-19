@@ -33,7 +33,9 @@ def test_repeated_raw_control_bytes_require_vision_review():
 
 
 def test_replacement_character_requires_vision_review():
-    result = evaluate_text_extraction_quality("Mostly readable text with one \ufffd replacement")
+    result = evaluate_text_extraction_quality(
+        "Mostly readable text with one \ufffd replacement"
+    )
 
     assert result["classification"] == VISION_REVIEW_REQUIRED
     assert result["requires_vision_review"] is True
@@ -41,9 +43,7 @@ def test_replacement_character_requires_vision_review():
 
 
 def test_single_control_artifact_does_not_force_vision_when_ratio_is_small():
-    result = evaluate_text_extraction_quality(
-        "A" * 200 + "\x18" + "B" * 200
-    )
+    result = evaluate_text_extraction_quality("A" * 200 + "\x18" + "B" * 200)
 
     assert result["classification"] == TEXT_USABLE
     assert result["requires_vision_review"] is False

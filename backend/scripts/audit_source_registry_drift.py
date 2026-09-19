@@ -66,7 +66,10 @@ async def _run() -> int:
         raise RuntimeError("Supabase is not configured")
 
     rows = await db.private_reference_sources.find({}).to_list(5000)
-    expected = {_segment_key(_expected_row(segment)): _expected_row(segment) for segment in SOURCE_SEGMENTS}
+    expected = {
+        _segment_key(_expected_row(segment)): _expected_row(segment)
+        for segment in SOURCE_SEGMENTS
+    }
     actual = {_segment_key(row): row for row in rows}
 
     missing = sorted(set(expected) - set(actual))

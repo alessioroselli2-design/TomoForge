@@ -6,6 +6,7 @@ compatibility symbols still used by backend tests. Route handlers use FastAPI's
 ``Depends()`` system for db and provider dependencies so tests can pass fakes
 directly as kwargs.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

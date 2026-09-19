@@ -25,7 +25,9 @@ from scripts.audit_manual_import_readiness import fetch_all
 
 
 _MISSING_COLUMN_PATTERNS = (
-    re.compile(r"could not find the ['\"](?P<column>[a-zA-Z_][a-zA-Z0-9_]*)['\"] column", re.I),
+    re.compile(
+        r"could not find the ['\"](?P<column>[a-zA-Z_][a-zA-Z0-9_]*)['\"] column", re.I
+    ),
     re.compile(r"could not find the (?P<column>[a-zA-Z_][a-zA-Z0-9_]*) column", re.I),
 )
 
@@ -44,7 +46,12 @@ def _missing_column(error: str) -> str | None:
 def _has_record_activity(job: dict[str, Any]) -> bool:
     return any(
         isinstance(job.get(field), (int, float)) and job.get(field, 0) > 0
-        for field in ("records_imported", "records_updated", "records_flagged", "records_skipped")
+        for field in (
+            "records_imported",
+            "records_updated",
+            "records_flagged",
+            "records_skipped",
+        )
     )
 
 
@@ -72,9 +79,15 @@ def summarize_schema_cache_recovery(
             schema_jobs.append((job, column))
 
     now_present = [(job, column) for job, column in schema_jobs if column in columns]
-    still_absent = [(job, column) for job, column in schema_jobs if column not in columns]
-    now_present_partial = [(job, column) for job, column in now_present if _has_record_activity(job)]
-    now_present_retried = [(job, column) for job, column in now_present if _was_retried(job)]
+    still_absent = [
+        (job, column) for job, column in schema_jobs if column not in columns
+    ]
+    now_present_partial = [
+        (job, column) for job, column in now_present if _has_record_activity(job)
+    ]
+    now_present_retried = [
+        (job, column) for job, column in now_present if _was_retried(job)
+    ]
     now_present_partial_retried = [
         (job, column) for job, column in now_present_partial if _was_retried(job)
     ]
@@ -89,11 +102,19 @@ def summarize_schema_cache_recovery(
         "failed_schema_cache_columns_now_present": len(now_present),
         "failed_schema_cache_columns_still_absent": len(still_absent),
         "now_present_with_record_activity": len(now_present_partial),
-        "now_present_without_record_activity": sum(not _has_record_activity(job) for job, _ in now_present),
+        "now_present_without_record_activity": sum(
+            not _has_record_activity(job) for job, _ in now_present
+        ),
         "now_present_with_prior_retry": len(now_present_retried),
-        "now_present_with_record_activity_and_prior_retry": len(now_present_partial_retried),
-        "now_present_partial_jobs_requiring_manual_reconciliation": len(now_present_partial),
-        "now_present_jobs_requiring_manual_reconciliation": len(now_present_requiring_manual_reconciliation),
+        "now_present_with_record_activity_and_prior_retry": len(
+            now_present_partial_retried
+        ),
+        "now_present_partial_jobs_requiring_manual_reconciliation": len(
+            now_present_partial
+        ),
+        "now_present_jobs_requiring_manual_reconciliation": len(
+            now_present_requiring_manual_reconciliation
+        ),
         "live_record_columns_observed": len(columns),
         "historical_failure_may_be_stale": bool(now_present),
         "prior_retry_is_review_only": bool(now_present_retried),

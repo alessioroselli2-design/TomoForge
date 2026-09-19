@@ -1,6 +1,10 @@
 import pytest
 
-from scripts.import_local_ocr_from_r2 import _MAX_PAGES, _OCR_REVISION, _validate_page_window
+from scripts.import_local_ocr_from_r2 import (
+    _MAX_PAGES,
+    _OCR_REVISION,
+    _validate_page_window,
+)
 
 
 def test_local_ocr_live_import_is_hard_bounded_to_three_pages():

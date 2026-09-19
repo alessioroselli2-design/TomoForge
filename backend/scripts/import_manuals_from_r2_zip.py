@@ -6,6 +6,7 @@ back to the bucket as its original basename. Existing objects are preserved by
 default. The character sheet is stored under resources/ instead of being fed to
 the rules importer. No OCR/import work is performed here.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,7 +35,9 @@ def r2_client():
         aws_access_key_id=required_env("R2_ACCESS_KEY_ID"),
         aws_secret_access_key=required_env("R2_SECRET_ACCESS_KEY"),
         region_name="auto",
-        config=Config(signature_version="s3v4", retries={"max_attempts": 8, "mode": "standard"}),
+        config=Config(
+            signature_version="s3v4", retries={"max_attempts": 8, "mode": "standard"}
+        ),
     )
 
 
@@ -59,7 +62,9 @@ def object_exists(client, bucket: str, key: str) -> bool:
         client.head_object(Bucket=bucket, Key=key)
         return True
     except client.exceptions.ClientError as exc:
-        status = int(exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) or 0)
+        status = int(
+            exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) or 0
+        )
         if status == 404:
             return False
         raise
@@ -67,9 +72,15 @@ def object_exists(client, bucket: str, key: str) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--zip-key", required=True, help="R2 object key for the uploaded ZIP")
-    parser.add_argument("--overwrite", action="store_true", help="Replace objects already present")
-    parser.add_argument("--delete-zip", action="store_true", help="Delete the source ZIP after success")
+    parser.add_argument(
+        "--zip-key", required=True, help="R2 object key for the uploaded ZIP"
+    )
+    parser.add_argument(
+        "--overwrite", action="store_true", help="Replace objects already present"
+    )
+    parser.add_argument(
+        "--delete-zip", action="store_true", help="Delete the source ZIP after success"
+    )
     args = parser.parse_args()
 
     bucket = os.getenv("R2_BUCKET", "tomoforge-manuals").strip() or "tomoforge-manuals"
@@ -97,7 +108,9 @@ def main() -> int:
                     continue
                 key = target_key(filename)
                 if key in seen_targets:
-                    raise RuntimeError(f"ZIP contains duplicate PDF target name: {filename!r}")
+                    raise RuntimeError(
+                        f"ZIP contains duplicate PDF target name: {filename!r}"
+                    )
                 seen_targets.add(key)
 
                 if not args.overwrite and object_exists(client, bucket, key):

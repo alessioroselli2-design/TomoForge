@@ -33,6 +33,4 @@ def test_diff_reports_only_changed_metadata():
         "notes": "",
     }
     actual = {**expected, "text_mode": "vision_required"}
-    assert _diff(expected, actual) == {
-        "text_mode": ("vision_required", "text")
-    }
+    assert _diff(expected, actual) == {"text_mode": ("vision_required", "text")}

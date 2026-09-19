@@ -12,7 +12,7 @@ def _nonempty_json(value: Any) -> bool:
 
 
 def _has_unbalanced_delimiters(value: str) -> bool:
-    pairs = {')': '(', ']': '[', '}': '{'}
+    pairs = {")": "(", "]": "[", "}": "{"}
     openings = set(pairs.values())
     stack: list[str] = []
     for char in value:
@@ -84,7 +84,9 @@ def is_deterministic_review_candidate(record: dict[str, Any]) -> bool:
         ("full_text", "source_full_text"),
         ("attributes", "source_attributes"),
     )
-    return all(record.get(current) == record.get(source) for current, source in exact_pairs)
+    return all(
+        record.get(current) == record.get(source) for current, source in exact_pairs
+    )
 
 
 def select_deterministic_review_batch(
@@ -94,6 +96,8 @@ def select_deterministic_review_batch(
     if limit < 1:
         raise ValueError("limit must be at least 1")
 
-    candidates = [record for record in records if is_deterministic_review_candidate(record)]
+    candidates = [
+        record for record in records if is_deterministic_review_candidate(record)
+    ]
     candidates.sort(key=lambda record: str(record.get("id") or ""))
     return candidates[:limit]

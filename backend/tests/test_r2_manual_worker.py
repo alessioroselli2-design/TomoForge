@@ -22,10 +22,7 @@ def test_safe_pdf_name_strips_prefix_but_rejects_non_pdf():
 
 
 def test_canonical_filename_maps_legacy_replit_alias():
-    assert (
-        _canonical_filename("Ranger__1787233073462.pdf")
-        == "Ranger .pdf"
-    )
+    assert _canonical_filename("Ranger__1787233073462.pdf") == "Ranger .pdf"
 
 
 def test_pending_sources_skip_completed_or_already_imported_sources():
@@ -51,8 +48,7 @@ def test_local_filename_reuses_existing_alias_job():
         }
     }
     assert (
-        _local_filename_for_source("Ranger .pdf", jobs)
-        == "Ranger__1787233073462.pdf"
+        _local_filename_for_source("Ranger .pdf", jobs) == "Ranger__1787233073462.pdf"
     )
 
 
@@ -98,13 +94,16 @@ def test_bounded_worker_rejects_retryable_chunk_without_progress(monkeypatch):
 
     monkeypatch.setattr(worker, "_claim_selected_preload_job", fake_claim)
     import services.preload as preload
+
     monkeypatch.setattr(preload, "process_manual_preload_job", fake_process)
 
-    db = _FakeDB({
-        "status": "queued",
-        "current_page": 13,
-        "last_error": "temporary_provider_error",
-    })
+    db = _FakeDB(
+        {
+            "status": "queued",
+            "current_page": 13,
+            "last_error": "temporary_provider_error",
+        }
+    )
 
     with pytest.raises(RuntimeError, match="made no progress"):
         asyncio.run(worker._process_selected_chunks(db, "owner", "Large.pdf", 1))
@@ -119,15 +118,16 @@ def test_bounded_worker_accepts_advanced_checkpoint(monkeypatch):
 
     monkeypatch.setattr(worker, "_claim_selected_preload_job", fake_claim)
     import services.preload as preload
+
     monkeypatch.setattr(preload, "process_manual_preload_job", fake_process)
 
-    db = _FakeDB({
-        "status": "queued",
-        "current_page": 25,
-        "last_error": "",
-    })
-
-    result = asyncio.run(
-        worker._process_selected_chunks(db, "owner", "Large.pdf", 1)
+    db = _FakeDB(
+        {
+            "status": "queued",
+            "current_page": 25,
+            "last_error": "",
+        }
     )
+
+    result = asyncio.run(worker._process_selected_chunks(db, "owner", "Large.pdf", 1))
     assert result["current_page"] == 25

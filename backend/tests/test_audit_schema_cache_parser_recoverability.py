@@ -1,4 +1,6 @@
-from scripts.audit_schema_cache_parser_recoverability import summarize_schema_cache_parser_recoverability
+from scripts.audit_schema_cache_parser_recoverability import (
+    summarize_schema_cache_parser_recoverability,
+)
 
 
 def _job(filename="Book_123.pdf", page_count=4, pages_needing_ocr=None):
@@ -17,7 +19,11 @@ def _job(filename="Book_123.pdf", page_count=4, pages_needing_ocr=None):
 
 
 def _source(text_mode="text", filename="Book_123.pdf", status="active"):
-    return {"physical_filename": filename, "source_status": status, "text_mode": text_mode}
+    return {
+        "physical_filename": filename,
+        "source_status": status,
+        "text_mode": text_mode,
+    }
 
 
 def _record(*pages, filename="Book_123.pdf"):

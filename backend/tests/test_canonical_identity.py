@@ -44,9 +44,7 @@ def test_similar_translated_name_ranks_above_unrelated_rule():
         source_name="Colpo Di Fortuna",
         source_language="it",
         translation_status="not_required",
-        full_text=(
-            "Quando effettui una prova puoi ottenere un risultato favorevole."
-        ),
+        full_text=("Quando effettui una prova puoi ottenere un risultato favorevole."),
     )
 
     unrelated = record(
@@ -58,9 +56,8 @@ def test_similar_translated_name_ranks_above_unrelated_rule():
         full_text="Puoi assumere magicamente la forma di una bestia.",
     )
 
-    assert (
-        identity_candidate_score(source, equivalent)
-        > identity_candidate_score(source, unrelated)
+    assert identity_candidate_score(source, equivalent) > identity_candidate_score(
+        source, unrelated
     )
 
 
@@ -249,6 +246,7 @@ def test_catalog_fingerprint_changes_when_candidate_changes():
 
     assert before != after
 
+
 def test_high_confidence_ai_match_with_weak_local_candidate_is_rejected():
     source = record(
         "source-weak",
@@ -295,10 +293,7 @@ def test_ai_cannot_choose_candidate_too_far_down_local_ranking():
         "source-rank",
         name="Ricolmi Di Energia",
         normalized_name="ricolmi di energia",
-        full_text=(
-            "Manifesti energia ed entusiasmo "
-            "attraverso una caratteristica."
-        ),
+        full_text=("Manifesti energia ed entusiasmo attraverso una caratteristica."),
     )
 
     candidates = [
@@ -360,4 +355,3 @@ def test_ai_cannot_choose_candidate_too_far_down_local_ranking():
     assert result["status"] == "uncertain"
     assert result["matched_source_record_id"] == ""
     assert "candidate_rank=4" in result["notes"]
-

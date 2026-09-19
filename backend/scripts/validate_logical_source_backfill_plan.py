@@ -28,13 +28,17 @@ from scripts.build_logical_source_backfill_dry_run import build_backfill_plan  #
 
 def candidate_fingerprint(candidates: list[dict[str, str]]) -> str:
     """Return a stable SHA-256 for the exact ordered candidate set."""
-    payload = json.dumps(candidates, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    payload = json.dumps(
+        candidates, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _valid_sha256(value: Any) -> bool:
-    return isinstance(value, str) and len(value) == 64 and all(
-        ch in "0123456789abcdef" for ch in value.lower()
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(ch in "0123456789abcdef" for ch in value.lower())
     )
 
 
@@ -57,8 +61,12 @@ def validate_approval_manifest(
 
     if approval_manifest.get("candidate_count") != fresh_plan.get("proposed_backfills"):
         errors.append("fresh candidate count does not match approval manifest")
-    if approval_manifest.get("ambiguous_excluded_count") != fresh_plan.get("excluded_ambiguous"):
-        errors.append("fresh ambiguous exclusion count does not match approval manifest")
+    if approval_manifest.get("ambiguous_excluded_count") != fresh_plan.get(
+        "excluded_ambiguous"
+    ):
+        errors.append(
+            "fresh ambiguous exclusion count does not match approval manifest"
+        )
 
     pinned_sha256 = approval_manifest.get("candidate_sha256")
     if not _valid_sha256(pinned_sha256):
@@ -96,13 +104,17 @@ def validate_backfill_plan(
     fresh_candidates = fresh_plan["candidates"]
 
     if saved_candidates != fresh_candidates:
-        errors.append("saved candidate set is stale or differs from current live inputs")
+        errors.append(
+            "saved candidate set is stale or differs from current live inputs"
+        )
 
     count = saved_plan.get("proposed_backfills")
     if count != len(saved_candidates):
         errors.append("saved proposed_backfills does not match candidate count")
 
-    saved_ids = [row.get("record_id") for row in saved_candidates if isinstance(row, dict)]
+    saved_ids = [
+        row.get("record_id") for row in saved_candidates if isinstance(row, dict)
+    ]
     if len(saved_ids) != len(set(saved_ids)):
         errors.append("saved plan contains duplicate candidate record ids")
 
@@ -135,12 +147,14 @@ def validate_backfill_plan(
         "saved_plan_sha256": saved_sha256,
         "fresh_plan_sha256": fresh_sha256,
         "approval_manifest_checked": approval_manifest is not None,
-        "approval_manifest_valid": approval_manifest is not None and not approval_errors,
+        "approval_manifest_valid": approval_manifest is not None
+        and not approval_errors,
         "approval_candidate_sha256": approval_manifest.get("candidate_sha256")
         if approval_manifest is not None
         else None,
         "expected_candidate_sha256": expected_candidate_sha256.lower()
-        if expected_candidate_sha256 is not None and _valid_sha256(expected_candidate_sha256)
+        if expected_candidate_sha256 is not None
+        and _valid_sha256(expected_candidate_sha256)
         else expected_candidate_sha256,
     }
 
@@ -182,7 +196,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Read-only preflight for a saved logical-source backfill dry-run"
     )
-    parser.add_argument("--plan", type=Path, required=True, help="Path to saved dry-run JSON")
+    parser.add_argument(
+        "--plan", type=Path, required=True, help="Path to saved dry-run JSON"
+    )
     parser.add_argument(
         "--approval",
         type=Path,

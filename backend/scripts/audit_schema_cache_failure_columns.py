@@ -39,7 +39,9 @@ def _missing_schema_cache_column(job: dict) -> str:
 
 
 def summarize_schema_cache_failure_columns(jobs: list[dict]) -> dict[str, Any]:
-    failed = [job for job in jobs if str(job.get("status") or "").strip().lower() == "failed"]
+    failed = [
+        job for job in jobs if str(job.get("status") or "").strip().lower() == "failed"
+    ]
     schema_failures = [job for job in failed if _is_schema_cache_failure(job)]
     columns = Counter(_missing_schema_cache_column(job) for job in schema_failures)
 

@@ -1,13 +1,45 @@
-from scripts.audit_vision_structured_presence import summarize_vision_structured_presence
+from scripts.audit_vision_structured_presence import (
+    summarize_vision_structured_presence,
+)
 
 
 def test_presence_counts_do_not_claim_ocr_completion():
     sources = [
-        {"id": "v0", "source_status": "active", "import_state": "catalogued", "text_mode": "vision_required", "imported_record_count": 0},
-        {"id": "v1", "source_status": "active", "import_state": "catalogued", "text_mode": "vision_required", "imported_record_count": 2},
-        {"id": "m0", "source_status": "active", "import_state": "catalogued", "text_mode": "mixed", "imported_record_count": None},
-        {"id": "text", "source_status": "active", "import_state": "catalogued", "text_mode": "text", "imported_record_count": 10},
-        {"id": "inactive", "source_status": "superseded", "import_state": "catalogued", "text_mode": "vision_required", "imported_record_count": 5},
+        {
+            "id": "v0",
+            "source_status": "active",
+            "import_state": "catalogued",
+            "text_mode": "vision_required",
+            "imported_record_count": 0,
+        },
+        {
+            "id": "v1",
+            "source_status": "active",
+            "import_state": "catalogued",
+            "text_mode": "vision_required",
+            "imported_record_count": 2,
+        },
+        {
+            "id": "m0",
+            "source_status": "active",
+            "import_state": "catalogued",
+            "text_mode": "mixed",
+            "imported_record_count": None,
+        },
+        {
+            "id": "text",
+            "source_status": "active",
+            "import_state": "catalogued",
+            "text_mode": "text",
+            "imported_record_count": 10,
+        },
+        {
+            "id": "inactive",
+            "source_status": "superseded",
+            "import_state": "catalogued",
+            "text_mode": "vision_required",
+            "imported_record_count": 5,
+        },
     ]
 
     result = summarize_vision_structured_presence(sources)
@@ -17,8 +49,16 @@ def test_presence_counts_do_not_claim_ocr_completion():
     assert result["sources_without_structured_records"] == 2
     assert result["structured_presence_percent"] == 33.33
     assert result["by_text_mode"] == {
-        "mixed": {"sources": 1, "with_structured_records": 0, "without_structured_records": 1},
-        "vision_required": {"sources": 2, "with_structured_records": 1, "without_structured_records": 1},
+        "mixed": {
+            "sources": 1,
+            "with_structured_records": 0,
+            "without_structured_records": 1,
+        },
+        "vision_required": {
+            "sources": 2,
+            "with_structured_records": 1,
+            "without_structured_records": 1,
+        },
     }
     assert result["source_ids_with_structured_records"] == ["v1"]
     assert result["source_ids_without_structured_records"] == ["m0", "v0"]
@@ -36,9 +76,17 @@ def test_presence_counts_do_not_claim_ocr_completion():
 
 
 def test_presence_normalizes_registry_metadata_without_upgrading_semantics():
-    result = summarize_vision_structured_presence([
-        {"id": "done", "source_status": " ACTIVE ", "import_state": " Catalogued ", "text_mode": " Mixed ", "imported_record_count": 1}
-    ])
+    result = summarize_vision_structured_presence(
+        [
+            {
+                "id": "done",
+                "source_status": " ACTIVE ",
+                "import_state": " Catalogued ",
+                "text_mode": " Mixed ",
+                "imported_record_count": 1,
+            }
+        ]
+    )
 
     assert result["active_catalogued_vision_or_mixed_sources"] == 1
     assert result["sources_with_structured_records"] == 1

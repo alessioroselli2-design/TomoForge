@@ -107,7 +107,9 @@ def summarize_failed_alias_mixed_contributors(
         "mixed_provenance_records_total": sum(
             candidate["mixed_provenance_records"] for candidate in candidates
         ),
-        "candidates": sorted(candidates, key=lambda c: (c["job_id"], c["job_filename"])),
+        "candidates": sorted(
+            candidates, key=lambda c: (c["job_id"], c["job_filename"])
+        ),
         "record_link_is_exact_source_key_only": True,
         "companion_counts_are_per_record": True,
         "registry_identity_confirmed": False,
@@ -131,7 +133,12 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_reference_records),
     )
-    print(json.dumps(summarize_failed_alias_mixed_contributors(jobs, sources, records), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_failed_alias_mixed_contributors(jobs, sources, records),
+            sort_keys=True,
+        )
+    )
     return 0
 
 

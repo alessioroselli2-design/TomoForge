@@ -30,7 +30,9 @@ def _source_failure(error: str) -> bool:
     return "manual_source_missing" in error or "manual_source_duplicate" in error
 
 
-def _load_historical_page_counts(paths: list[Path] | tuple[Path, ...]) -> dict[str, set[int]]:
+def _load_historical_page_counts(
+    paths: list[Path] | tuple[Path, ...],
+) -> dict[str, set[int]]:
     evidence: dict[str, set[int]] = {}
     for path in paths:
         if not path.is_file():

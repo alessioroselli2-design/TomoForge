@@ -14,7 +14,7 @@ class FakeCollection:
 
     async def to_list(self, limit, offset=0):
         self.offsets.append(offset)
-        return self.rows[offset:offset + limit]
+        return self.rows[offset : offset + limit]
 
 
 def test_fetch_all_reads_every_page_without_duplication():
@@ -28,14 +28,47 @@ def test_fetch_all_reads_every_page_without_duplication():
 
 def test_summarize_readiness_reports_only_aggregate_state():
     records = [
-        {"review_status": "verified", "ai_review_status": "verified", "translation_status": "not_required", "canonical_id": None, "reference_type": "spell", "name": "Private rule text"},
-        {"review_status": "needs_review", "ai_review_status": "pending", "translation_status": "failed", "canonical_id": "canon-1", "reference_type": "spell", "full_text": "Sensitive source text"},
-        {"review_status": "pending", "ai_review_status": "low_confidence", "translation_status": "translated", "canonical_id": "", "reference_type": "feat"},
+        {
+            "review_status": "verified",
+            "ai_review_status": "verified",
+            "translation_status": "not_required",
+            "canonical_id": None,
+            "reference_type": "spell",
+            "name": "Private rule text",
+        },
+        {
+            "review_status": "needs_review",
+            "ai_review_status": "pending",
+            "translation_status": "failed",
+            "canonical_id": "canon-1",
+            "reference_type": "spell",
+            "full_text": "Sensitive source text",
+        },
+        {
+            "review_status": "pending",
+            "ai_review_status": "low_confidence",
+            "translation_status": "translated",
+            "canonical_id": "",
+            "reference_type": "feat",
+        },
     ]
     sources = [
-        {"source_status": "active", "text_mode": "text", "import_state": "catalogued", "physical_filename": "private.pdf"},
-        {"source_status": "duplicate", "text_mode": "vision_required", "import_state": "excluded"},
-        {"source_status": "superseded", "text_mode": "mixed", "import_state": "catalogued"},
+        {
+            "source_status": "active",
+            "text_mode": "text",
+            "import_state": "catalogued",
+            "physical_filename": "private.pdf",
+        },
+        {
+            "source_status": "duplicate",
+            "text_mode": "vision_required",
+            "import_state": "excluded",
+        },
+        {
+            "source_status": "superseded",
+            "text_mode": "mixed",
+            "import_state": "catalogued",
+        },
     ]
     canonical = [
         {"verification_status": "verified", "full_text": "canonical private text"},
@@ -50,7 +83,11 @@ def test_summarize_readiness_reports_only_aggregate_state():
         "records_needs_review": 1,
         "records_pending": 1,
         "review_status_breakdown": {"needs_review": 1, "pending": 1, "verified": 1},
-        "ai_review_status_breakdown": {"low_confidence": 1, "pending": 1, "verified": 1},
+        "ai_review_status_breakdown": {
+            "low_confidence": 1,
+            "pending": 1,
+            "verified": 1,
+        },
         "ai_review_unexpected_states": {},
         "ai_review_statuses_valid": True,
         "records_ai_verified": 1,
@@ -131,10 +168,30 @@ def test_summarize_readiness_orders_review_queue_by_count_then_type():
 
 def test_summarize_readiness_groups_processing_state_without_content():
     records = [
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "ai_review_status": "pending"},
-        {"review_status": "pending", "source_language": "it", "translation_status": "not_required", "ai_review_status": "pending"},
-        {"review_status": "needs_review", "source_language": "es", "translation_status": "failed", "ai_review_status": "pending"},
-        {"review_status": "verified", "source_language": "es", "translation_status": "failed", "ai_review_status": "pending"},
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "ai_review_status": "pending",
+        },
+        {
+            "review_status": "pending",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "ai_review_status": "pending",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "es",
+            "translation_status": "failed",
+            "ai_review_status": "pending",
+        },
+        {
+            "review_status": "verified",
+            "source_language": "es",
+            "translation_status": "failed",
+            "ai_review_status": "pending",
+        },
     ]
 
     result = summarize_readiness(records, [], [])
@@ -148,12 +205,42 @@ def test_summarize_readiness_groups_processing_state_without_content():
 
 def test_summarize_readiness_isolates_no_translation_review_queue_by_type():
     records = [
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
-        {"review_status": "pending", "source_language": "it", "translation_status": "not_required", "reference_type": "spell"},
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
-        {"review_status": "verified", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
-        {"review_status": "needs_review", "source_language": "es", "translation_status": "not_required", "reference_type": "weapon"},
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "failed", "reference_type": "weapon"},
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "weapon",
+        },
+        {
+            "review_status": "pending",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "spell",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "weapon",
+        },
+        {
+            "review_status": "verified",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "weapon",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "es",
+            "translation_status": "not_required",
+            "reference_type": "weapon",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "failed",
+            "reference_type": "weapon",
+        },
     ]
 
     result = summarize_readiness(records, [], [])
@@ -167,8 +254,16 @@ def test_summarize_readiness_isolates_no_translation_review_queue_by_type():
 def test_summarize_readiness_reconciles_unexpected_source_states():
     sources = [
         {"source_status": "active", "text_mode": "text", "import_state": "catalogued"},
-        {"source_status": "document", "text_mode": "document", "import_state": "catalogued"},
-        {"source_status": "misidentified", "text_mode": None, "import_state": "excluded"},
+        {
+            "source_status": "document",
+            "text_mode": "document",
+            "import_state": "catalogued",
+        },
+        {
+            "source_status": "misidentified",
+            "text_mode": None,
+            "import_state": "excluded",
+        },
     ]
 
     result = summarize_readiness([], sources, [])
@@ -189,7 +284,9 @@ def test_summarize_readiness_reconciles_unexpected_source_states():
     }
     assert sum(result["source_status_breakdown"].values()) == result["sources_total"]
     assert sum(result["source_text_mode_breakdown"].values()) == result["sources_total"]
-    assert sum(result["source_import_state_breakdown"].values()) == result["sources_total"]
+    assert (
+        sum(result["source_import_state_breakdown"].values()) == result["sources_total"]
+    )
 
 
 def test_summarize_readiness_uses_only_live_canonical_schema_statuses():

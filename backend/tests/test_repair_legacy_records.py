@@ -23,9 +23,11 @@ def _monster(name: str, ac: str, hp: str) -> dict:
 
 
 def test_zuggtmoy_style_legacy_record_is_real_repair_not_debris():
-    report = analyze_verified_records([
-        _monster("Zuggtmoy", "1", "304 (32dl0 + 128)"),
-    ])
+    report = analyze_verified_records(
+        [
+            _monster("Zuggtmoy", "1", "304 (32dl0 + 128)"),
+        ]
+    )
 
     assert report["dry_run"] is True
     assert report["database_writes_performed"] == 0
@@ -43,9 +45,11 @@ def test_zuggtmoy_style_legacy_record_is_real_repair_not_debris():
 
 
 def test_heading_with_bad_stats_is_classified_as_debris_not_repair():
-    report = analyze_verified_records([
-        _monster("C A P I T O L O 6 I B E S T I A R I O", "1", "90 (12dl0 + 24)"),
-    ])
+    report = analyze_verified_records(
+        [
+            _monster("C A P I T O L O 6 I B E S T I A R I O", "1", "90 (12dl0 + 24)"),
+        ]
+    )
 
     assert report["ocr_debris_to_eliminate"] == 1
     assert report["real_records_to_repair"] == 0
@@ -79,9 +83,11 @@ def test_healthy_verified_records_are_counted_without_auto_approval():
 
 
 def test_missing_monster_core_values_fail_closed_into_repair_queue():
-    report = analyze_verified_records([
-        _monster("Mostro incompleto", "armatura naturale", "molti"),
-    ])
+    report = analyze_verified_records(
+        [
+            _monster("Mostro incompleto", "armatura naturale", "molti"),
+        ]
+    )
 
     assert report["real_records_to_repair"] == 1
     assert report["repair_records"][0]["flags"] == [
@@ -99,7 +105,9 @@ def test_read_only_collection_exposes_find_but_not_mutation_methods():
         def find(self, query):
             return ("find", query)
 
-        def update_one(self, *_args, **_kwargs):  # pragma: no cover - must stay inaccessible
+        def update_one(
+            self, *_args, **_kwargs
+        ):  # pragma: no cover - must stay inaccessible
             raise AssertionError("mutation must never be reachable")
 
     collection = _ReadOnlyCollection(FakeCollection())

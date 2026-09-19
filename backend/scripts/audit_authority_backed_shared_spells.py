@@ -7,6 +7,7 @@ identity to be traceable to an active registry source whose source_role is
 record identity and never authorizes retry, database writes, review mutation, or
 canonicalization.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -67,17 +68,25 @@ def summarize_authority_backed_shared_spell_evidence(
         )
         row = dict(pair)
         row["mixed_records_with_active_authority_same_identity"] = authority_matches
-        row["mixed_records_without_active_authority_same_identity"] = len(owner_records) - authority_matches
-        row["active_authority_same_identity_is_supporting_evidence"] = authority_matches > 0
+        row["mixed_records_without_active_authority_same_identity"] = (
+            len(owner_records) - authority_matches
+        )
+        row["active_authority_same_identity_is_supporting_evidence"] = (
+            authority_matches > 0
+        )
         rows.append(row)
 
     shared_rows = [row for row in rows if row["shared_class_card_candidate"]]
     shared_with_authority = sum(
-        1 for row in shared_rows if row["active_authority_same_identity_is_supporting_evidence"]
+        1
+        for row in shared_rows
+        if row["active_authority_same_identity_is_supporting_evidence"]
     )
 
     return {
-        "unidirectional_pairs": sorted(rows, key=lambda r: (r["job_filename"], r["companion_filename"])),
+        "unidirectional_pairs": sorted(
+            rows, key=lambda r: (r["job_filename"], r["companion_filename"])
+        ),
         "active_authority_registry_filenames": len(authority_filenames),
         "active_authority_structured_identities": len(authority_identities),
         "shared_class_card_candidate_pairs": len(shared_rows),
@@ -93,6 +102,7 @@ def summarize_authority_backed_shared_spell_evidence(
 
 async def _run() -> int:
     from core.db import db
+
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
     jobs, sources, records = await asyncio.gather(
@@ -100,7 +110,12 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_reference_records),
     )
-    print(json.dumps(summarize_authority_backed_shared_spell_evidence(jobs, sources, records), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_authority_backed_shared_spell_evidence(jobs, sources, records),
+            sort_keys=True,
+        )
+    )
     return 0
 
 

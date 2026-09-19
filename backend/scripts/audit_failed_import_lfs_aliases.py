@@ -108,7 +108,9 @@ def summarize_failed_import_lfs_aliases(
             {
                 "oid_sha256": oid,
                 "job_count": len(members),
-                "jobs": sorted(members, key=lambda item: str(item.get("filename") or "")),
+                "jobs": sorted(
+                    members, key=lambda item: str(item.get("filename") or "")
+                ),
             }
         )
 

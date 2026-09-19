@@ -90,7 +90,9 @@ def _ambiguous_hint_paths(
         for path, pair_keys in sorted(path_to_pairs.items())
         if len(pair_keys) > 1
     }
-    ambiguous_pairs = {pair_key for pair_keys in ambiguous.values() for pair_key in pair_keys}
+    ambiguous_pairs = {
+        pair_key for pair_keys in ambiguous.values() for pair_key in pair_keys
+    }
     return ambiguous, ambiguous_pairs
 
 
@@ -120,7 +122,9 @@ def summarize_concordant_text_peer_repo_artifacts(
             all_pair_keys.add(key)
 
             sha_hits = sorted(
-                path for path, strings in artifact_strings.items() if peer_sha and peer_sha in strings
+                path
+                for path, strings in artifact_strings.items()
+                if peer_sha and peer_sha in strings
             )
             identity_bound_hits = sorted(
                 path
@@ -136,7 +140,9 @@ def summarize_concordant_text_peer_repo_artifacts(
                 if peer_filename and peer_filename in strings
             )
             title_hits = sorted(
-                path for path, strings in artifact_strings.items() if peer_title and peer_title in strings
+                path
+                for path, strings in artifact_strings.items()
+                if peer_title and peer_title in strings
             )
 
             if sha_hits:
@@ -171,7 +177,9 @@ def summarize_concordant_text_peer_repo_artifacts(
         "concordant_text_peer_pairs": len(all_pair_keys),
         "pairs_with_exact_sha_structured_artifact": len(exact_sha_pairs),
         "pairs_with_identity_bound_exact_sha_artifact": len(identity_bound_sha_pairs),
-        "pairs_with_exact_sha_but_no_identity_binding": len(exact_sha_pairs - identity_bound_sha_pairs),
+        "pairs_with_exact_sha_but_no_identity_binding": len(
+            exact_sha_pairs - identity_bound_sha_pairs
+        ),
         "pairs_with_filename_only_or_additional_hint": len(filename_paths),
         "pairs_with_title_only_or_additional_hint": len(title_paths),
         "pairs_with_nominal_hint_but_no_exact_sha": len(nominal_hint_pairs),
@@ -180,13 +188,17 @@ def summarize_concordant_text_peer_repo_artifacts(
         "pairs_with_no_repository_artifact_evidence": len(no_artifact_evidence_pairs),
         "exact_sha_pair_ids": sorted(exact_sha_pairs),
         "identity_bound_exact_sha_pair_ids": sorted(identity_bound_sha_pairs),
-        "exact_sha_without_identity_binding_pair_ids": sorted(exact_sha_pairs - identity_bound_sha_pairs),
+        "exact_sha_without_identity_binding_pair_ids": sorted(
+            exact_sha_pairs - identity_bound_sha_pairs
+        ),
         "unique_nominal_hint_pair_ids": sorted(unique_nominal_pairs),
         "ambiguous_nominal_hint_pair_ids": sorted(ambiguous_nominal_pairs),
         "no_repository_artifact_evidence_pair_ids": sorted(no_artifact_evidence_pairs),
         "evidence_buckets_are_exhaustive": evidence_buckets_are_exhaustive,
         "exact_sha_artifact_paths_by_pair": dict(sorted(exact_sha_paths.items())),
-        "identity_bound_exact_sha_artifact_paths_by_pair": dict(sorted(identity_bound_sha_paths.items())),
+        "identity_bound_exact_sha_artifact_paths_by_pair": dict(
+            sorted(identity_bound_sha_paths.items())
+        ),
         "filename_artifact_paths_by_pair": dict(sorted(filename_paths.items())),
         "title_artifact_paths_by_pair": dict(sorted(title_paths.items())),
         "ambiguous_nominal_artifact_paths": ambiguous_nominal_paths,
@@ -216,10 +228,14 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_manual_import_jobs),
     )
-    artifact_strings = load_structured_artifact_strings(REPO_ROOT / ".agents" / "outputs")
+    artifact_strings = load_structured_artifact_strings(
+        REPO_ROOT / ".agents" / "outputs"
+    )
     print(
         json.dumps(
-            summarize_concordant_text_peer_repo_artifacts(sources, jobs, artifact_strings),
+            summarize_concordant_text_peer_repo_artifacts(
+                sources, jobs, artifact_strings
+            ),
             sort_keys=True,
         )
     )
@@ -230,7 +246,10 @@ def main() -> int:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        print(f"Concordant text-peer repository artifact audit failed: {exc}", file=sys.stderr)
+        print(
+            f"Concordant text-peer repository artifact audit failed: {exc}",
+            file=sys.stderr,
+        )
         return 1
 
 

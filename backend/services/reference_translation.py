@@ -5,6 +5,7 @@ Italian search/display and are never proof that the underlying rule is correct.
 Provider transport stays in ``services.library``; this module owns only the
 language policy, prompt contract, validation, and safe record transformation.
 """
+
 from __future__ import annotations
 
 import copy
@@ -26,10 +27,17 @@ _LANGUAGE_NAMES = {
 }
 
 
-def translation_required(source_language: Any, target_language: str = TARGET_LANGUAGE) -> bool:
+def translation_required(
+    source_language: Any, target_language: str = TARGET_LANGUAGE
+) -> bool:
     source = normalize_language(source_language)
     target = normalize_language(target_language)
-    return bool(source and target and source != target and source in TRANSLATABLE_SOURCE_LANGUAGES)
+    return bool(
+        source
+        and target
+        and source != target
+        and source in TRANSLATABLE_SOURCE_LANGUAGES
+    )
 
 
 def translation_source_record(record: dict) -> dict:
@@ -37,7 +45,9 @@ def translation_source_record(record: dict) -> dict:
     return {
         "id": record["id"],
         "name": record.get("source_name") or record.get("name") or "",
-        "description": record.get("source_description") or record.get("description") or "",
+        "description": record.get("source_description")
+        or record.get("description")
+        or "",
         "full_text": record.get("source_full_text") or record.get("full_text") or "",
         "attributes": copy.deepcopy(
             record.get("source_attributes")
@@ -74,14 +84,16 @@ def build_translation_prompt(
         "dettagli. Mantieni invariati ID, numeri, dadi, formule, unità, sigle e struttura "
         "delle chiavi. Se un nome proprio o termine tecnico non è traducibile con certezza, "
         "conservalo invece di inventare una traduzione. Restituisci esclusivamente JSON valido "
-        "nel formato {\"records\":[{\"id\":\"...\",\"name\":\"...\","
-        "\"description\":\"...\",\"full_text\":\"...\",\"attributes\":{...}}]}. "
+        'nel formato {"records":[{"id":"...","name":"...",'
+        '"description":"...","full_text":"...","attributes":{...}}]}. '
         "Ogni ID ricevuto deve comparire esattamente una volta e non devono comparire ID extra.\n\n"
         + json.dumps(source_rows, ensure_ascii=False, separators=(",", ":"))
     )
 
 
-def validate_translation_payload(payload: object, records: Iterable[dict]) -> tuple[dict[str, dict], str]:
+def validate_translation_payload(
+    payload: object, records: Iterable[dict]
+) -> tuple[dict[str, dict], str]:
     """Validate a provider response without accepting partial or invented batches."""
     source_records = list(records)
     expected_ids = {str(record["id"]) for record in source_records}
@@ -102,7 +114,12 @@ def validate_translation_payload(payload: object, records: Iterable[dict]) -> tu
         description = clean_text(str(item.get("description") or ""))
         full_text = clean_text(str(item.get("full_text") or ""))
         attributes = item.get("attributes")
-        if not name or not description or not full_text or not isinstance(attributes, dict):
+        if (
+            not name
+            or not description
+            or not full_text
+            or not isinstance(attributes, dict)
+        ):
             return {}, "provider_translation_incomplete"
         translated[record_id] = {
             "name": name,
@@ -124,7 +141,9 @@ def apply_translation(record: dict, translated: dict) -> dict:
     localized.setdefault("source_name", record.get("name") or "")
     localized.setdefault("source_description", record.get("description") or "")
     localized.setdefault("source_full_text", record.get("full_text") or "")
-    localized.setdefault("source_attributes", copy.deepcopy(record.get("attributes") or {}))
+    localized.setdefault(
+        "source_attributes", copy.deepcopy(record.get("attributes") or {})
+    )
 
     localized["name"] = translated["name"]
     localized["normalized_name"] = normalize_reference_name(translated["name"])

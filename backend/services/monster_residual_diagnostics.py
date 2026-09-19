@@ -120,7 +120,9 @@ def _residual_normalized_pair(
     return left, right
 
 
-def _bounded_levenshtein_distance(left: str, right: str, max_distance: int = 3) -> int | None:
+def _bounded_levenshtein_distance(
+    left: str, right: str, max_distance: int = 3
+) -> int | None:
     """Return exact edit distance only when it is within a small fixed bound."""
     left = "".join(left.split())
     right = "".join(right.split())
@@ -319,9 +321,11 @@ def residual_shape_core_field_matches(
                 right_tokens,
             )
             if field in _KNOWN_MANUAL_EXTRA_ALPHA_TOKENS:
-                known_manual_label_extra_alpha_tokens = _extra_tokens_are_known_manual_labels(
-                    field,
-                    extras,
+                known_manual_label_extra_alpha_tokens = (
+                    _extra_tokens_are_known_manual_labels(
+                        field,
+                        extras,
+                    )
                 )
                 source_value = (
                     right_attributes.get(field)
@@ -453,14 +457,18 @@ def residual_single_edit_agreement_counts(
         "monster_containment_punti_ferita_residual_single_edit_match": containment_counts[
             "punti_ferita"
         ],
-        "monster_containment_velocita_residual_single_edit_match": containment_counts["velocita"],
+        "monster_containment_velocita_residual_single_edit_match": containment_counts[
+            "velocita"
+        ],
         "monster_exact_key_classe_armatura_residual_single_edit_match": exact_counts[
             "classe_armatura"
         ],
         "monster_exact_key_punti_ferita_residual_single_edit_match": exact_counts[
             "punti_ferita"
         ],
-        "monster_exact_key_velocita_residual_single_edit_match": exact_counts["velocita"],
+        "monster_exact_key_velocita_residual_single_edit_match": exact_counts[
+            "velocita"
+        ],
     }
     result.update(residual_shape_agreement_counts(primary, comparison))
     return result
@@ -477,10 +485,7 @@ def residual_shape_agreement_counts(
         "extra_alpha_tokens",
         "word_order_variation",
     )
-    counts = {
-        field: {signal: 0 for signal in signals}
-        for field in _CORE_FIELDS
-    }
+    counts = {field: {signal: 0 for signal in signals} for field in _CORE_FIELDS}
     refinement_counts = {
         "classe_armatura": {
             "non_alphanumeric_only_variation": 0,

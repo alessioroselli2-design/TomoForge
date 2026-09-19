@@ -1,4 +1,6 @@
-from scripts.audit_schema_cache_external_ocr_evidence import summarize_external_ocr_evidence
+from scripts.audit_schema_cache_external_ocr_evidence import (
+    summarize_external_ocr_evidence,
+)
 
 
 def _schema_cache_job(**overrides):
@@ -34,7 +36,12 @@ def test_confirmation_and_backlog_are_not_artifact_evidence():
     assert result["database_write_authorized"] is False
     assert result["canonicalization_authorized"] is False
     assert result["jobs"][0]["pages_needing_ocr_entries"] == 3
-    assert result["jobs"][0]["external_processing_confirmation_counts_as_artifact_evidence"] is False
+    assert (
+        result["jobs"][0][
+            "external_processing_confirmation_counts_as_artifact_evidence"
+        ]
+        is False
+    )
     assert result["jobs"][0]["ocr_backlog_marker_counts_as_artifact_evidence"] is False
 
 
@@ -44,7 +51,12 @@ def test_explicit_locator_is_only_a_candidate_until_store_is_verified():
             _schema_cache_job(
                 pages_needing_ocr=[
                     {"page": 12, "r2_key": "ocr/manual/page-012.ocr.json"},
-                    {"page": 13, "nested": {"text_url": "https://example.invalid/page-013.ocr.txt"}},
+                    {
+                        "page": 13,
+                        "nested": {
+                            "text_url": "https://example.invalid/page-013.ocr.txt"
+                        },
+                    },
                 ]
             )
         ]

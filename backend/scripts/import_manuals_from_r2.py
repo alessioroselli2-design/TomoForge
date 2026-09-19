@@ -120,20 +120,14 @@ async def _infer_owner_id(db: Any) -> str:
     owners: set[str] = set()
 
     jobs = await db.private_manual_import_jobs.find({}).to_list(2000)
-    owners.update(
-        str(row.get("user_id") or "")
-        for row in jobs
-        if row.get("user_id")
-    )
+    owners.update(str(row.get("user_id") or "") for row in jobs if row.get("user_id"))
 
     if not owners:
         offset = 0
         while True:
             page = await db.private_reference_records.find({}).to_list(1000, offset)
             owners.update(
-                str(row.get("user_id") or "")
-                for row in page
-                if row.get("user_id")
+                str(row.get("user_id") or "") for row in page if row.get("user_id")
             )
             if len(page) < 1000:
                 break
@@ -162,9 +156,9 @@ async def _existing_source_state(
     imported: set[str] = set()
     offset = 0
     while True:
-        page = await db.private_reference_records.find(
-            {"user_id": user_id}
-        ).to_list(1000, offset)
+        page = await db.private_reference_records.find({"user_id": user_id}).to_list(
+            1000, offset
+        )
         for row in page:
             source_key = str(row.get("source_key") or "").strip()
             if source_key:
@@ -178,9 +172,9 @@ async def _existing_source_state(
         offset += 1000
 
     jobs: dict[str, dict[str, str]] = {}
-    for job in await db.private_manual_import_jobs.find(
-        {"user_id": user_id}
-    ).to_list(2000):
+    for job in await db.private_manual_import_jobs.find({"user_id": user_id}).to_list(
+        2000
+    ):
         filename = str(job.get("filename") or "").strip()
         if not filename:
             continue
@@ -272,7 +266,9 @@ def _download_source(
     return target
 
 
-async def _claim_selected_preload_job(db: Any, user_id: str, filename: str) -> dict | None:
+async def _claim_selected_preload_job(
+    db: Any, user_id: str, filename: str
+) -> dict | None:
     """Lease only the requested source so an R2 run cannot drain unrelated jobs."""
     from core.config import MANUAL_PRELOAD_LEASE_SECONDS, utc_now
 
@@ -286,8 +282,7 @@ async def _claim_selected_preload_job(db: Any, user_id: str, filename: str) -> d
     now = int(time.time())
     status = str(job.get("status") or "")
     lease_expired = (
-        status == "processing"
-        and int(job.get("lease_expires_at") or 0) < now
+        status == "processing" and int(job.get("lease_expires_at") or 0) < now
     )
     if status != "queued" and not lease_expired:
         return None
@@ -302,12 +297,14 @@ async def _claim_selected_preload_job(db: Any, user_id: str, filename: str) -> d
                 {"status": "processing", "lease_expires_at": {"$lt": now}},
             ],
         },
-        {"$set": {
-            "status": "processing",
-            "lease_id": lease_id,
-            "lease_expires_at": now + MANUAL_PRELOAD_LEASE_SECONDS,
-            "updated_at": utc_now(),
-        }},
+        {
+            "$set": {
+                "status": "processing",
+                "lease_id": lease_id,
+                "lease_expires_at": now + MANUAL_PRELOAD_LEASE_SECONDS,
+                "updated_at": utc_now(),
+            }
+        },
     )
     if not claimed.matched_count:
         return None
@@ -351,9 +348,7 @@ async def _process_selected_chunks(
             return current
         if status == "failed":
             error = str((current or {}).get("last_error") or "unknown")
-            raise RuntimeError(
-                f"Manual import failed for {filename}: {error}"
-            )
+            raise RuntimeError(f"Manual import failed for {filename}: {error}")
         if status != "queued":
             raise RuntimeError(
                 f"Unexpected manual checkpoint status for {filename}: {status or 'missing'}"
@@ -374,9 +369,11 @@ async def _process_selected_chunks(
 
 
 async def _run_import(args: argparse.Namespace) -> int:
-    target_dir = Path(
-        os.getenv("REFERENCE_MANUAL_DIRECTORY", args.target_dir)
-    ).expanduser().resolve()
+    target_dir = (
+        Path(os.getenv("REFERENCE_MANUAL_DIRECTORY", args.target_dir))
+        .expanduser()
+        .resolve()
+    )
     os.environ["REFERENCE_MANUAL_DIRECTORY"] = str(target_dir)
 
     # core.config reads REFERENCE_MANUAL_DIRECTORY at import time.
@@ -414,10 +411,7 @@ async def _run_import(args: argparse.Namespace) -> int:
     for canonical in selected:
         metadata = importable[canonical]
         local_filename = _local_filename_for_source(canonical, jobs)
-        print(
-            f"Downloading {metadata['object_name']} from R2 "
-            f"as {local_filename}..."
-        )
+        print(f"Downloading {metadata['object_name']} from R2 as {local_filename}...")
         local_path = _download_source(
             client,
             bucket,

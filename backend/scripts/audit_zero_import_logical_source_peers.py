@@ -83,7 +83,9 @@ def summarize_zero_import_logical_source_peers(
         sha_summary["source_ids_still_unexplained_after_duplicate_peer_evidence"]
     )
     unresolved = [
-        source for source in sources if str(source.get("id") or "").strip() in unresolved_ids
+        source
+        for source in sources
+        if str(source.get("id") or "").strip() in unresolved_ids
     ]
 
     by_logical_id: dict[str, list[dict]] = defaultdict(list)
@@ -149,7 +151,9 @@ def summarize_zero_import_logical_source_peers(
                 exact_jobs = jobs_by_sha.get(peer_sha, []) if peer_sha else []
                 if exact_jobs:
                     exact_job_peer_ids.append(peer_id)
-                    if any(_norm(job.get("status")) == "completed" for job in exact_jobs):
+                    if any(
+                        _norm(job.get("status")) == "completed" for job in exact_jobs
+                    ):
                         completed_job_peer_ids.append(peer_id)
 
             if concordant_peer_ids:
@@ -170,11 +174,16 @@ def summarize_zero_import_logical_source_peers(
                     sorted(rejected_peer_reasons.items())
                 )
 
-        if any(_int_or_none(peer.get("imported_record_count")) not in (None, 0) for peer in peers):
+        if any(
+            _int_or_none(peer.get("imported_record_count")) not in (None, 0)
+            for peer in peers
+        ):
             with_imported_peer_ids.append(source_id)
 
     return {
-        "zero_import_vision_sources_total": sha_summary["zero_import_vision_sources_total"],
+        "zero_import_vision_sources_total": sha_summary[
+            "zero_import_vision_sources_total"
+        ],
         "sources_excluded_as_verified_shared_slices": sha_summary[
             "sources_excluded_as_verified_shared_slices"
         ],

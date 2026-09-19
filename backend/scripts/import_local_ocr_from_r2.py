@@ -46,7 +46,9 @@ def _validate_page_window(start_page: int, page_count: int) -> tuple[int, int]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Bounded local OCR import from private R2")
+    parser = argparse.ArgumentParser(
+        description="Bounded local OCR import from private R2"
+    )
     parser.add_argument("--filename", required=True)
     parser.add_argument("--start-page", type=int, required=True)
     parser.add_argument("--page-count", type=int, default=3)
@@ -55,7 +57,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--psm", type=int, default=6)
     parser.add_argument("--comparison-psm", type=int, default=4)
     parser.add_argument("--target-dir", default="/tmp/tomoforge-local-ocr-import")
-    parser.add_argument("--report", default="/tmp/tomoforge-local-ocr-import-report.json")
+    parser.add_argument(
+        "--report", default="/tmp/tomoforge-local-ocr-import-report.json"
+    )
     return parser
 
 
@@ -114,10 +118,14 @@ async def _run(args: argparse.Namespace) -> int:
         bounded_end_page = min(end_page, page_count)
 
         scale = args.dpi / 72.0
-        with tempfile.TemporaryDirectory(prefix="tomoforge-live-local-ocr-") as image_dir:
+        with tempfile.TemporaryDirectory(
+            prefix="tomoforge-live-local-ocr-"
+        ) as image_dir:
             image_root = Path(image_dir)
 
-            def local_ocr(page: Any, page_number: int, source_language: str = "") -> str:
+            def local_ocr(
+                page: Any, page_number: int, source_language: str = ""
+            ) -> str:
                 image_path = image_root / f"page-{page_number:04d}.png"
                 # Use the page's own PyMuPDF pixmap API, avoiding source bytes in logs/artifacts.
                 import pymupdf as fitz
@@ -128,7 +136,9 @@ async def _run(args: argparse.Namespace) -> int:
                     colorspace=fitz.csGRAY,
                 ).save(image_path)
                 primary = _run_tesseract(image_path, args.languages, args.psm)
-                comparison = _run_tesseract(image_path, args.languages, args.comparison_psm)
+                comparison = _run_tesseract(
+                    image_path, args.languages, args.comparison_psm
+                )
                 agreement = _agreement_metrics(primary, comparison)
                 quality_by_page[page_number] = agreement
                 print(
@@ -165,13 +175,16 @@ async def _run(args: argparse.Namespace) -> int:
                 library_service.openai_ocr_manual_page = original_ocr
 
         source_report = next(
-            (source for source in result.sources if source.get("filename") == safe_name),
+            (
+                source
+                for source in result.sources
+                if source.get("filename") == safe_name
+            ),
             {},
         )
         evaluated = sorted(quality_by_page)
         failed_quality_pages = [
-            page for page in evaluated
-            if not quality_by_page[page].get("quality_pass")
+            page for page in evaluated if not quality_by_page[page].get("quality_pass")
         ]
         unresolved_pages = sorted(set(source_report.get("pages_needing_ocr") or []))
 
@@ -182,7 +195,11 @@ async def _run(args: argparse.Namespace) -> int:
         ).to_list(5000)
         touched = 0
         for record in records:
-            refs = [ref for ref in (record.get("source_refs") or []) if isinstance(ref, dict)]
+            refs = [
+                ref
+                for ref in (record.get("source_refs") or [])
+                if isinstance(ref, dict)
+            ]
             if not any(
                 start_page <= int(ref.get("page") or 0) <= bounded_end_page
                 for ref in refs
@@ -194,29 +211,35 @@ async def _run(args: argparse.Namespace) -> int:
                 page = int(ref.get("page") or 0)
                 updated_ref = dict(ref)
                 if start_page <= page <= bounded_end_page:
-                    updated_ref.update({
-                        "extraction_mode": "local_ocr",
-                        "ocr_provider": "tesseract",
-                        "ocr_revision": _OCR_REVISION,
-                        "ocr_languages": args.languages,
-                        "ocr_dpi": args.dpi,
-                        "ocr_primary_psm": args.psm,
-                        "ocr_comparison_psm": args.comparison_psm,
-                        "ocr_quality_pass": bool(
-                            quality_by_page.get(page, {}).get("quality_pass")
-                        ),
-                    })
+                    updated_ref.update(
+                        {
+                            "extraction_mode": "local_ocr",
+                            "ocr_provider": "tesseract",
+                            "ocr_revision": _OCR_REVISION,
+                            "ocr_languages": args.languages,
+                            "ocr_dpi": args.dpi,
+                            "ocr_primary_psm": args.psm,
+                            "ocr_comparison_psm": args.comparison_psm,
+                            "ocr_quality_pass": bool(
+                                quality_by_page.get(page, {}).get("quality_pass")
+                            ),
+                        }
+                    )
                     changed = changed or updated_ref != ref
                 updated_refs.append(updated_ref)
             if changed:
-                flags = sorted(set(record.get("review_flags") or []) | {"ocr_da_verificare"})
+                flags = sorted(
+                    set(record.get("review_flags") or []) | {"ocr_da_verificare"}
+                )
                 await db.private_reference_records.update_one(
                     {"id": record["id"], "user_id": user_id},
-                    {"$set": {
-                        "source_refs": updated_refs,
-                        "review_flags": flags,
-                        "review_status": "needs_review",
-                    }},
+                    {
+                        "$set": {
+                            "source_refs": updated_refs,
+                            "review_flags": flags,
+                            "review_status": "needs_review",
+                        }
+                    },
                 )
                 touched += 1
 

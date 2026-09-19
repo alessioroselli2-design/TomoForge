@@ -4,11 +4,17 @@ import hashlib
 from pathlib import Path
 
 from reference_library import CHARACTER_CREATION_REFERENCE_TYPES
-from scripts.audit_bounded_native_text_parser_probe import bounded_native_text_parser_probe_windows
+from scripts.audit_bounded_native_text_parser_probe import (
+    bounded_native_text_parser_probe_windows,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SPANISH_PHB = REPO_ROOT / "attached_assets" / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+SPANISH_PHB = (
+    REPO_ROOT
+    / "attached_assets"
+    / "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+)
 EXPECTED_SHA256 = "22987ea29717120c7b3ec4650017faa9fb0c0e9e7542be1357eda6b780ae71ad"
 
 
@@ -64,15 +70,27 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
     non_useful_named_count = sum(expected_non_useful_named_types.values())
     assert useful_named_count > 0
     assert result["best_window_useful_named_records_detected"] == useful_named_count
-    assert result["best_window_non_useful_named_records_detected"] == non_useful_named_count
+    assert (
+        result["best_window_non_useful_named_records_detected"]
+        == non_useful_named_count
+    )
     assert best["non_useful_named_record_types"] == expected_non_useful_named_types
-    assert result["best_window_non_useful_named_record_types"] == expected_non_useful_named_types
-    assert sum(result["best_window_non_useful_named_record_types"].values()) == non_useful_named_count
+    assert (
+        result["best_window_non_useful_named_record_types"]
+        == expected_non_useful_named_types
+    )
+    assert (
+        sum(result["best_window_non_useful_named_record_types"].values())
+        == non_useful_named_count
+    )
     assert all(
         reference_type not in CHARACTER_CREATION_REFERENCE_TYPES
         for reference_type in result["best_window_non_useful_named_record_types"]
     )
-    assert result["best_window_useful_named_share"] == useful_named_count / best["named_records_detected"]
+    assert (
+        result["best_window_useful_named_share"]
+        == useful_named_count / best["named_records_detected"]
+    )
     assert 0 < result["best_window_useful_named_share"] <= 1
     assert result["useful_named_share_is_diagnostic_only"] is True
     assert result["non_useful_named_types_are_diagnostic_only"] is True
@@ -80,12 +98,18 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
     # Completeness is an exact diagnostic, not an arbitrary quality threshold:
     # true means every named record in scope belongs to the useful taxonomy.
     assert best["useful_named_signal_is_complete"] is (non_useful_named_count == 0)
-    assert result["best_window_useful_named_signal_is_complete"] is (non_useful_named_count == 0)
+    assert result["best_window_useful_named_signal_is_complete"] is (
+        non_useful_named_count == 0
+    )
     assert result["useful_named_signal_completeness_is_diagnostic_only"] is True
 
-    assert sum(result["named_record_types_total"].values()) == result["named_records_detected_total"]
     assert (
-        result["useful_named_records_detected_total"] + result["non_useful_named_records_detected_total"]
+        sum(result["named_record_types_total"].values())
+        == result["named_records_detected_total"]
+    )
+    assert (
+        result["useful_named_records_detected_total"]
+        + result["non_useful_named_records_detected_total"]
         == result["named_records_detected_total"]
     )
     assert (
@@ -97,7 +121,8 @@ def test_spanish_phb_best_window_has_deterministic_dominant_reference_type() -> 
         for reference_type in result["non_useful_named_record_types_total"]
     )
     assert result["useful_named_signal_is_complete_total"] is (
-        result["named_records_detected_total"] > 0 and result["non_useful_named_records_detected_total"] == 0
+        result["named_records_detected_total"] > 0
+        and result["non_useful_named_records_detected_total"] == 0
     )
 
     # The diagnostic stays inside the previously reviewed 12-page native-text probe.

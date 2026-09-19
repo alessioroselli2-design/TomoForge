@@ -3,6 +3,7 @@
 The first pass uses the normal identity resolver. Only a locally-gated AI match
 is sent to a second, stricter verifier. No database writes happen here.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,10 +58,7 @@ def strict_openai_identity_verifier(
 
     payload = {
         "record": _prompt_record(record),
-        "candidates": [
-            _prompt_record(candidate)
-            for candidate in candidates
-        ],
+        "candidates": [_prompt_record(candidate) for candidate in candidates],
     }
 
     prompt = (
@@ -112,9 +110,7 @@ def strict_openai_identity_verifier(
 
     response.raise_for_status()
 
-    return json.loads(
-        response.json()["choices"][0]["message"]["content"]
-    )
+    return json.loads(response.json()["choices"][0]["message"]["content"])
 
 
 async def resolve_identity_consensus(
@@ -147,22 +143,14 @@ async def resolve_identity_consensus(
     second = await resolve_identity(
         record,
         records,
-        comparator=(
-            second_comparator
-            or strict_openai_identity_verifier
-        ),
+        comparator=(second_comparator or strict_openai_identity_verifier),
     )
 
-    first_id = str(
-        first.get("matched_source_record_id") or ""
-    )
-    second_id = str(
-        second.get("matched_source_record_id") or ""
-    )
+    first_id = str(first.get("matched_source_record_id") or "")
+    second_id = str(second.get("matched_source_record_id") or "")
 
-    fingerprints_match = (
-        first.get("catalog_fingerprint")
-        == second.get("catalog_fingerprint")
+    fingerprints_match = first.get("catalog_fingerprint") == second.get(
+        "catalog_fingerprint"
     )
 
     if (
@@ -203,9 +191,7 @@ async def resolve_identity_consensus(
             float(second.get("confidence", 0)),
             CONSENSUS_UNCERTAIN_CONFIDENCE_CAP,
         ),
-        "notes": (
-            f"Consensus non raggiunto: {details}"
-        )[:1200],
+        "notes": (f"Consensus non raggiunto: {details}")[:1200],
         "consensus": "disagreed",
         "consensus_passes": 2,
     }

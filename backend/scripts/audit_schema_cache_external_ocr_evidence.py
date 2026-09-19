@@ -23,7 +23,11 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from scripts.audit_manual_import_readiness import _has_record_activity, _is_schema_cache_failure, fetch_all
+from scripts.audit_manual_import_readiness import (
+    _has_record_activity,
+    _is_schema_cache_failure,
+    fetch_all,
+)
 
 _ARTIFACT_LOCATOR_KEYS = {
     "artifact_key",
@@ -43,7 +47,11 @@ def _iter_locator_values(value: Any) -> Iterable[tuple[str, str]]:
     if isinstance(value, dict):
         for key, child in value.items():
             normalized_key = str(key).strip().lower()
-            if normalized_key in _ARTIFACT_LOCATOR_KEYS and isinstance(child, str) and child.strip():
+            if (
+                normalized_key in _ARTIFACT_LOCATOR_KEYS
+                and isinstance(child, str)
+                and child.strip()
+            ):
                 yield normalized_key, child.strip()
             yield from _iter_locator_values(child)
     elif isinstance(value, list):
@@ -70,7 +78,9 @@ def summarize_external_ocr_evidence(jobs: list[dict]) -> dict[str, Any]:
         per_job.append(
             {
                 "filename": job.get("filename"),
-                "external_processing_confirmed": bool(job.get("external_processing_confirmed")),
+                "external_processing_confirmed": bool(
+                    job.get("external_processing_confirmed")
+                ),
                 "pages_needing_ocr_entries": backlog_entries,
                 "explicit_external_artifact_locator_candidates": len(locators),
                 "external_processing_confirmation_counts_as_artifact_evidence": False,

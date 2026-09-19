@@ -35,7 +35,10 @@ def test_reference_rule_source_preserves_physical_and_canonical_provenance():
     assert source["canonical_id"] == "canonical-1"
     assert source["canonical_verification_status"] == "verified"
     assert source["canonical_selected"] is True
-    assert source["canonical_source_refs"] == record["ai_review_corrections"]["canonical_source_refs"]
+    assert (
+        source["canonical_source_refs"]
+        == record["ai_review_corrections"]["canonical_source_refs"]
+    )
 
 
 def test_reference_rule_source_does_not_invent_canonical_provenance_when_unlinked():

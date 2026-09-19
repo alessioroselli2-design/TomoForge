@@ -1,4 +1,6 @@
-from scripts.audit_failed_import_registry_sha import summarize_failed_import_registry_sha
+from scripts.audit_failed_import_registry_sha import (
+    summarize_failed_import_registry_sha,
+)
 
 
 def test_registry_sha_audit_classifies_matches_conservatively():

@@ -60,7 +60,9 @@ def summarize_schema_cache_logical_provenance(
     for record in records:
         key = str(record.get("source_key") or "").strip()
         if key:
-            record_counts_by_source_key[key] = record_counts_by_source_key.get(key, 0) + 1
+            record_counts_by_source_key[key] = (
+                record_counts_by_source_key.get(key, 0) + 1
+            )
 
     with_exact_record_provenance = 0
     reconciled_logical_identity = 0

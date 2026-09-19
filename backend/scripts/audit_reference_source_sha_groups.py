@@ -27,11 +27,18 @@ def _non_overlapping_ranges(rows: list[dict]) -> bool:
     ranges: list[tuple[int, int]] = []
     for row in rows:
         start, end = row.get("page_start"), row.get("page_end")
-        if not isinstance(start, int) or not isinstance(end, int) or start < 1 or end < start:
+        if (
+            not isinstance(start, int)
+            or not isinstance(end, int)
+            or start < 1
+            or end < start
+        ):
             return False
         ranges.append((start, end))
     ranges.sort()
-    return all(previous[1] < current[0] for previous, current in zip(ranges, ranges[1:]))
+    return all(
+        previous[1] < current[0] for previous, current in zip(ranges, ranges[1:])
+    )
 
 
 def summarize_reference_source_sha_groups(sources: list[dict]) -> dict[str, Any]:

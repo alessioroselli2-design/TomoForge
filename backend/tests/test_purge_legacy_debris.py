@@ -14,7 +14,14 @@ from scripts.purge_legacy_debris import (
 )
 
 
-def _row(record_id: str, name: str, reference_type: str = "other", *, status="verified", flags=None):
+def _row(
+    record_id: str,
+    name: str,
+    reference_type: str = "other",
+    *,
+    status="verified",
+    flags=None,
+):
     return {
         "id": record_id,
         "name": name,
@@ -29,7 +36,10 @@ def test_heading_family_matches_confirmed_debris_but_not_real_name():
     assert _heading_family("Appendice A: Stati") == "appendice"
     assert _heading_family("Passo 4. Grado Di Sfida Finale") == "passo"
     assert _heading_family("Tabell A Degli Oggetti Magici C") == "tabella"
-    assert _heading_family("Statistiche Dei Mostri Per Grado Di Sfida") == "statistiche_dei_mostri"
+    assert (
+        _heading_family("Statistiche Dei Mostri Per Grado Di Sfida")
+        == "statistiche_dei_mostri"
+    )
     assert _heading_family("Passo Velato") is None
     assert _heading_family("Zuggtmoy") is None
 

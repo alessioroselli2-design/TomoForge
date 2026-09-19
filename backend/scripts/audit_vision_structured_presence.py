@@ -26,7 +26,9 @@ def _norm(value: Any) -> str:
     return str(value or "").strip().casefold()
 
 
-def summarize_vision_structured_presence(sources: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize_vision_structured_presence(
+    sources: list[dict[str, Any]],
+) -> dict[str, Any]:
     scoped = [
         source
         for source in sources
@@ -61,12 +63,15 @@ def summarize_vision_structured_presence(sources: list[dict[str, Any]]) -> dict[
         "sources_with_structured_records": with_records,
         "sources_without_structured_records": without_records,
         "structured_presence_ratio": presence_ratio,
-        "structured_presence_percent": round(presence_ratio * 100, 2) if presence_ratio is not None else None,
+        "structured_presence_percent": round(presence_ratio * 100, 2)
+        if presence_ratio is not None
+        else None,
         "by_text_mode": {
             mode: {
                 "sources": by_mode_total[mode],
                 "with_structured_records": by_mode_with_records[mode],
-                "without_structured_records": by_mode_total[mode] - by_mode_with_records[mode],
+                "without_structured_records": by_mode_total[mode]
+                - by_mode_with_records[mode],
             }
             for mode in sorted(by_mode_total)
         },

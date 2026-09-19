@@ -30,10 +30,12 @@ def _report(start: int, end: int, agreed: int, guided: int) -> dict:
 
 
 def test_combine_reports_sums_only_aggregate_counts_across_bounded_windows():
-    combined = combine_reports([
-        _report(12, 23, agreed=1, guided=1),
-        _report(24, 35, agreed=2, guided=1),
-    ])
+    combined = combine_reports(
+        [
+            _report(12, 23, agreed=1, guided=1),
+            _report(24, 35, agreed=2, guided=1),
+        ]
+    )
 
     assert combined["sample_mode"] == "bounded_multi_window"
     assert combined["start_page"] == 12

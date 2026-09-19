@@ -43,7 +43,9 @@ def summarize_multilingual_parser_support(
     """Classify text-only multilingual aids by explicit parser-language support."""
 
     base = summarize_multilingual_extraction_aids(sources)
-    supported_languages = {_norm(value) for value in explicit_parser_languages if _norm(value)}
+    supported_languages = {
+        _norm(value) for value in explicit_parser_languages if _norm(value)
+    }
     source_by_id = {
         str(source.get("id") or "").strip(): source
         for source in sources
@@ -76,11 +78,19 @@ def summarize_multilingual_parser_support(
     )
     return {
         "text_only_multilingual_aid_pairs_checked": len(states),
-        "text_only_multilingual_aid_pairs_with_explicit_parser_language_support": len(supported_pairs),
-        "text_only_multilingual_aid_pairs_without_explicit_parser_language_support": len(unsupported_pairs),
+        "text_only_multilingual_aid_pairs_with_explicit_parser_language_support": len(
+            supported_pairs
+        ),
+        "text_only_multilingual_aid_pairs_without_explicit_parser_language_support": len(
+            unsupported_pairs
+        ),
         "parser_language_support_state_by_pair": dict(sorted(states.items())),
-        "text_only_multilingual_aid_pair_ids_with_explicit_parser_language_support": sorted(supported_pairs),
-        "text_only_multilingual_aid_pair_ids_without_explicit_parser_language_support": sorted(unsupported_pairs),
+        "text_only_multilingual_aid_pair_ids_with_explicit_parser_language_support": sorted(
+            supported_pairs
+        ),
+        "text_only_multilingual_aid_pair_ids_without_explicit_parser_language_support": sorted(
+            unsupported_pairs
+        ),
         "zero_import_difficult_sources_with_text_only_aid_and_explicit_parser_language_support": sorted(
             difficult_with_text_only & supported_targets
         ),

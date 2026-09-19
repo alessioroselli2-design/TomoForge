@@ -48,7 +48,9 @@ Grado di Sfida 1 (200 PE)
 Azioni
 Morso. Attacco con arma da mischia.
 """
-    comparison = primary.replace("Morso. Attacco con arma da mischia.", "Morso. Attacco in mischia.")
+    comparison = primary.replace(
+        "Morso. Attacco con arma da mischia.", "Morso. Attacco in mischia."
+    )
     summary = _monster_parser_summary(
         [(12, primary)],
         [(12, comparison)],
@@ -281,7 +283,12 @@ def test_containment_diagnostics_isolate_core_field_mismatch_without_exposing_na
 
     assert diagnostics["monster_primary_with_same_page_containment_name_candidate"] == 1
     assert diagnostics["monster_primary_with_same_page_containment_and_core_match"] == 0
-    assert diagnostics["monster_primary_with_same_page_containment_and_deterministic_core_match"] == 0
+    assert (
+        diagnostics[
+            "monster_primary_with_same_page_containment_and_deterministic_core_match"
+        ]
+        == 0
+    )
     assert diagnostics["monster_containment_classe_armatura_match"] == 0
     assert diagnostics["monster_containment_punti_ferita_match"] == 0
     assert diagnostics["monster_containment_velocita_match"] == 0

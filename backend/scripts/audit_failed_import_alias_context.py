@@ -31,11 +31,18 @@ def _positive_int(value: Any) -> int | None:
 def _job_has_prior_record_activity(job: dict) -> bool:
     return any(
         isinstance(job.get(field), int) and int(job.get(field) or 0) > 0
-        for field in ("records_imported", "records_updated", "records_flagged", "records_skipped")
+        for field in (
+            "records_imported",
+            "records_updated",
+            "records_flagged",
+            "records_skipped",
+        )
     )
 
 
-def summarize_failed_import_alias_context(jobs: list[dict], sources: list[dict]) -> dict[str, Any]:
+def summarize_failed_import_alias_context(
+    jobs: list[dict], sources: list[dict]
+) -> dict[str, Any]:
     by_alias: dict[str, list[dict]] = {}
     for source in sources:
         key = _normalized_filename_alias_key(str(source.get("physical_filename") or ""))
@@ -90,15 +97,21 @@ def summarize_failed_import_alias_context(jobs: list[dict], sources: list[dict])
 
     return {
         "review_only_alias_candidates": len(candidates),
-        "alias_candidates_with_language_match": sum(bool(c["language_match"]) for c in candidates),
-        "alias_candidates_with_page_count_match": sum(bool(c["page_count_match"]) for c in candidates),
+        "alias_candidates_with_language_match": sum(
+            bool(c["language_match"]) for c in candidates
+        ),
+        "alias_candidates_with_page_count_match": sum(
+            bool(c["page_count_match"]) for c in candidates
+        ),
         "alias_candidates_with_prior_record_activity": sum(
             bool(c["prior_record_activity"]) for c in candidates
         ),
         "alias_candidate_logical_source_ids": sorted(
             {str(c["logical_source_id"]) for c in candidates if c["logical_source_id"]}
         ),
-        "candidates": sorted(candidates, key=lambda c: (c["job_id"], c["job_filename"])),
+        "candidates": sorted(
+            candidates, key=lambda c: (c["job_id"], c["job_filename"])
+        ),
         "alias_context_is_diagnostic_only": True,
         "registry_identity_confirmed": False,
         "automatic_retry_authorized": False,
@@ -120,7 +133,9 @@ async def _run() -> int:
         fetch_all(db.private_manual_import_jobs),
         fetch_all(db.private_reference_sources),
     )
-    print(json.dumps(summarize_failed_import_alias_context(jobs, sources), sort_keys=True))
+    print(
+        json.dumps(summarize_failed_import_alias_context(jobs, sources), sort_keys=True)
+    )
     return 0
 
 

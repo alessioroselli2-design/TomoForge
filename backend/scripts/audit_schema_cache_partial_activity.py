@@ -29,23 +29,24 @@ from scripts.audit_manual_import_readiness import (
 
 def summarize_schema_cache_partial_activity(jobs: list[dict]) -> dict[str, Any]:
     failed_schema = [
-        job for job in jobs
-        if str(job.get("status") or "unknown") == "failed" and _is_schema_cache_failure(job)
+        job
+        for job in jobs
+        if str(job.get("status") or "unknown") == "failed"
+        and _is_schema_cache_failure(job)
     ]
     with_activity = [job for job in failed_schema if _has_record_activity(job)]
     without_ocr = [job for job in with_activity if not _has_ocr_backlog(job)]
     retried = [job for job in with_activity if _was_retried(job)]
-    read_only_candidates = [
-        job for job in with_activity
-        if not _has_ocr_backlog(job)
-    ]
+    read_only_candidates = [job for job in with_activity if not _has_ocr_backlog(job)]
 
     return {
         "failed_schema_cache_jobs": len(failed_schema),
         "failed_schema_cache_jobs_with_record_activity": len(with_activity),
         "failed_schema_cache_jobs_with_activity_without_ocr": len(without_ocr),
         "failed_schema_cache_jobs_with_activity_retried": len(retried),
-        "failed_schema_cache_jobs_for_read_only_reconciliation": len(read_only_candidates),
+        "failed_schema_cache_jobs_for_read_only_reconciliation": len(
+            read_only_candidates
+        ),
         "automatic_retry_authorized": False,
         "database_write_authorized": False,
     }

@@ -67,7 +67,9 @@ def summarize_failed_alias_record_provenance(
         if job_sha and source_sha and job_sha == source_sha:
             continue
 
-        linked = [r for r in records if str(r.get("source_key") or "").strip() == filename]
+        linked = [
+            r for r in records if str(r.get("source_key") or "").strip() == filename
+        ]
         refs_mention_job = 0
         refs_exclusive_to_job = 0
         refs_mixed_with_other_files = 0
@@ -86,7 +88,9 @@ def summarize_failed_alias_record_provenance(
             else:
                 refs_missing_filename += 1
 
-            record_language = str(record.get("source_language") or "").strip().casefold()
+            record_language = (
+                str(record.get("source_language") or "").strip().casefold()
+            )
             if job_language and record_language == job_language:
                 language_matches += 1
 
@@ -122,7 +126,9 @@ def summarize_failed_alias_record_provenance(
         "records_missing_job_filename_in_source_refs": sum(
             c["records_missing_job_filename_in_source_refs"] for c in candidates
         ),
-        "candidates": sorted(candidates, key=lambda c: (c["job_id"], c["job_filename"])),
+        "candidates": sorted(
+            candidates, key=lambda c: (c["job_id"], c["job_filename"])
+        ),
         "record_link_is_exact_source_key_only": True,
         "registry_identity_confirmed": False,
         "automatic_retry_authorized": False,
@@ -145,7 +151,12 @@ async def _run() -> int:
         fetch_all(db.private_reference_sources),
         fetch_all(db.private_reference_records),
     )
-    print(json.dumps(summarize_failed_alias_record_provenance(jobs, sources, records), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_failed_alias_record_provenance(jobs, sources, records),
+            sort_keys=True,
+        )
+    )
     return 0
 
 

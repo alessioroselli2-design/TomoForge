@@ -201,7 +201,9 @@ def summarize_multilingual_extraction_aids(sources: list[dict]) -> dict[str, Any
         "multilingual_extraction_aid_pair_match_types": dict(
             sorted(pair_match_types.items())
         ),
-        "multilingual_extraction_aid_peer_ids_by_source": dict(sorted(peer_map.items())),
+        "multilingual_extraction_aid_peer_ids_by_source": dict(
+            sorted(peer_map.items())
+        ),
         "structured_multilingual_extraction_aid_peer_ids_by_source": dict(
             sorted(structured_peer_map.items())
         ),

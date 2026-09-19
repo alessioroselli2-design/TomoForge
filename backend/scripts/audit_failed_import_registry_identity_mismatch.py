@@ -25,7 +25,9 @@ if str(BACKEND_DIR) not in sys.path:
 
 from scripts.audit_manual_import_readiness import fetch_all
 
-_LONG_NUMERIC_SUFFIX_RE = re.compile(r"(?:[_-](?:ok)[_-]?)?(?:[_-]?\d{10,})$", re.IGNORECASE)
+_LONG_NUMERIC_SUFFIX_RE = re.compile(
+    r"(?:[_-](?:ok)[_-]?)?(?:[_-]?\d{10,})$", re.IGNORECASE
+)
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 _DUPLICATE_ERROR_PREFIX = "manual_source_duplicate:"
 
@@ -55,7 +57,9 @@ def summarize_failed_import_registry_identity_mismatch(
 ) -> dict[str, Any]:
     by_identity: dict[str, list[dict]] = {}
     for source in sources:
-        identity = normalized_artifact_identity(str(source.get("physical_filename") or ""))
+        identity = normalized_artifact_identity(
+            str(source.get("physical_filename") or "")
+        )
         if identity:
             by_identity.setdefault(identity, []).append(source)
 
@@ -85,7 +89,9 @@ def summarize_failed_import_registry_identity_mismatch(
         if duplicate_target:
             duplicate_claims += 1
             target_identity = normalized_artifact_identity(duplicate_target)
-            target_candidates = by_identity.get(target_identity, []) if target_identity else []
+            target_candidates = (
+                by_identity.get(target_identity, []) if target_identity else []
+            )
             if identity and target_identity and identity != target_identity:
                 cross_identity_duplicate_claims += 1
                 job_id = str(job.get("id") or "").strip()
@@ -93,8 +99,12 @@ def summarize_failed_import_registry_identity_mismatch(
                     cross_identity_duplicate_job_ids.append(job_id)
 
                 if len(candidates) == 1 and len(target_candidates) == 1:
-                    job_logical_source = str(candidates[0].get("logical_source_id") or "").strip()
-                    target_logical_source = str(target_candidates[0].get("logical_source_id") or "").strip()
+                    job_logical_source = str(
+                        candidates[0].get("logical_source_id") or ""
+                    ).strip()
+                    target_logical_source = str(
+                        target_candidates[0].get("logical_source_id") or ""
+                    ).strip()
                     if (
                         job_logical_source
                         and target_logical_source
@@ -145,14 +155,18 @@ def summarize_failed_import_registry_identity_mismatch(
         "failed_jobs_with_cross_identity_duplicate_claim": cross_identity_duplicate_claims,
         "failed_jobs_with_registry_distinct_logical_source_duplicate_claim": registry_distinct_logical_source_claims,
         "mismatched_failed_job_ids": sorted(set(mismatched_job_ids)),
-        "cross_identity_duplicate_failed_job_ids": sorted(set(cross_identity_duplicate_job_ids)),
+        "cross_identity_duplicate_failed_job_ids": sorted(
+            set(cross_identity_duplicate_job_ids)
+        ),
         "registry_distinct_logical_source_duplicate_failed_job_ids": sorted(
             set(registry_distinct_logical_source_job_ids)
         ),
         "normalized_filename_evidence_is_diagnostic_only": True,
         "duplicate_target_identity_is_diagnostic_only": True,
         "registry_logical_source_evidence_is_diagnostic_only": True,
-        "cross_identity_duplicate_requires_manual_reconciliation": bool(cross_identity_duplicate_claims),
+        "cross_identity_duplicate_requires_manual_reconciliation": bool(
+            cross_identity_duplicate_claims
+        ),
         "registry_distinct_logical_source_duplicate_requires_manual_reconciliation": bool(
             registry_distinct_logical_source_claims
         ),
@@ -188,7 +202,10 @@ def main() -> int:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        print(f"Failed import registry identity mismatch audit failed: {exc}", file=sys.stderr)
+        print(
+            f"Failed import registry identity mismatch audit failed: {exc}",
+            file=sys.stderr,
+        )
         return 1
 
 

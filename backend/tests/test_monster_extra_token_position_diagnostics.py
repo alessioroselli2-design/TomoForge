@@ -117,12 +117,38 @@ def test_aggregate_position_and_length_counters_return_only_integers():
 
     result = residual_shape_agreement_counts(primary, comparison)
 
-    assert result["monster_containment_punti_ferita_residual_single_extra_alpha_token_short_lt3"] == 1
-    assert result["monster_containment_punti_ferita_residual_single_extra_alpha_token_prefix"] == 1
-    assert result["monster_containment_punti_ferita_residual_single_extra_alpha_token_suffix"] == 0
-    assert result["monster_containment_velocita_residual_single_extra_alpha_token_short_lt3"] == 1
-    assert result["monster_containment_velocita_residual_single_extra_alpha_token_prefix"] == 0
-    assert result["monster_containment_velocita_residual_single_extra_alpha_token_suffix"] == 1
+    assert (
+        result[
+            "monster_containment_punti_ferita_residual_single_extra_alpha_token_short_lt3"
+        ]
+        == 1
+    )
+    assert (
+        result[
+            "monster_containment_punti_ferita_residual_single_extra_alpha_token_prefix"
+        ]
+        == 1
+    )
+    assert (
+        result[
+            "monster_containment_punti_ferita_residual_single_extra_alpha_token_suffix"
+        ]
+        == 0
+    )
+    assert (
+        result[
+            "monster_containment_velocita_residual_single_extra_alpha_token_short_lt3"
+        ]
+        == 1
+    )
+    assert (
+        result["monster_containment_velocita_residual_single_extra_alpha_token_prefix"]
+        == 0
+    )
+    assert (
+        result["monster_containment_velocita_residual_single_extra_alpha_token_suffix"]
+        == 1
+    )
     assert all(isinstance(value, int) for value in result.values())
 
     serialized = str(result)

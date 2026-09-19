@@ -1,4 +1,6 @@
-from scripts.audit_failed_import_source_provenance import summarize_failed_import_source_provenance
+from scripts.audit_failed_import_source_provenance import (
+    summarize_failed_import_source_provenance,
+)
 
 
 def test_duplicate_target_alias_conflict_stays_diagnostic_and_review_only():

@@ -106,7 +106,9 @@ def _monster(name, ac, hp, *, record_id="m1", flags=None):
 def test_select_failed_monsters_keeps_real_corruption_and_excludes_heading():
     records = [
         _monster("Zuggtmoy", "1", "304 (32dl0 + 1 28)", record_id="bad"),
-        _monster("Yuan-Ti Guardia Della Stirpe", "14", "45 (7d8 + 14)", record_id="good"),
+        _monster(
+            "Yuan-Ti Guardia Della Stirpe", "14", "45 (7d8 + 14)", record_id="good"
+        ),
         _monster("Capitolo 2 I Bestiario", "1", "20 (3d8 + 6)", record_id="heading"),
     ]
 
@@ -135,13 +137,15 @@ def test_select_failed_monsters_isolates_corrupted_legacy_names():
 
 def test_resolve_source_accepts_active_authority():
     record = _monster("Zuggtmoy", "1", "304 (32dl0 + 1 28)")
-    active_sources = [{
-        "physical_filename": "Mostri del multiverso 201-294.pdf",
-        "logical_source_id": "mpmm_2022_it",
-        "source_role": "authority",
-        "source_status": "active",
-        "physical_pages": 94,
-    }]
+    active_sources = [
+        {
+            "physical_filename": "Mostri del multiverso 201-294.pdf",
+            "logical_source_id": "mpmm_2022_it",
+            "source_role": "authority",
+            "source_status": "active",
+            "physical_pages": 94,
+        }
+    ]
 
     source, ref = resolve_source(record, active_sources)
     assert source["source_role"] == "authority"
@@ -151,17 +155,21 @@ def test_resolve_source_accepts_active_authority():
 def test_resolve_source_blocks_extraction_aid_alias():
     record = {
         **_monster("Legacy Spanish Monster", "1", "20 (3d8 + 6)"),
-        "source_refs": [{
-            "filename": "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf",
-            "page": 915,
-        }],
+        "source_refs": [
+            {
+                "filename": "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf",
+                "page": 915,
+            }
+        ],
     }
-    active_sources = [{
-        "physical_filename": "731764731-D-D-Manual-Del-Jugador-5e(1).pdf",
-        "source_role": "extraction_aid",
-        "source_status": "active",
-        "physical_pages": 1018,
-    }]
+    active_sources = [
+        {
+            "physical_filename": "731764731-D-D-Manual-Del-Jugador-5e(1).pdf",
+            "source_role": "extraction_aid",
+            "source_status": "active",
+            "physical_pages": 1018,
+        }
+    ]
 
     try:
         resolve_source(record, active_sources)
@@ -207,9 +215,7 @@ def test_non_two_column_source_keeps_full_page_settings():
     source = {"logical_source_id": "tce_2020_it"}
 
     assert _layout_profile(source) == "full_page"
-    assert _layout_segments(source) == (
-        ("full", (0.0, 0.0, 1.0, 1.0)),
-    )
+    assert _layout_segments(source) == (("full", (0.0, 0.0, 1.0, 1.0)),)
     assert _layout_ocr_settings(
         source,
         dpi=220,
@@ -291,7 +297,6 @@ def test_build_repair_proposal_rejects_corrupted_candidate_name():
         raise AssertionError("candidate with corrupt identity must be rejected")
 
 
-
 def test_healthy22_sealed_target_set_resolves_exact_reviewed_batch():
     records = []
     for expected in HEALTHY22_TARGETS:
@@ -332,7 +337,6 @@ def test_healthy22_sealed_target_set_rejects_preexisting_review_flags():
         assert "review flags" in str(exc)
     else:
         raise AssertionError("sealed healthy22 batch must reject pre-existing flags")
-
 
 
 class _UpdateResult:
@@ -385,7 +389,6 @@ def test_apply_update_serializes_updated_at_as_utc_iso_string():
     assert parsed.utcoffset().total_seconds() == 0
 
 
-
 def test_bigby19_sealed_target_set_resolves_exact_reviewed_batch():
     records = []
     for expected in BIGBY19_TARGETS:
@@ -404,7 +407,6 @@ def test_bigby19_sealed_target_set_resolves_exact_reviewed_batch():
     assert {row["id"] for row in selected} == {
         expected["id"] for expected in BIGBY19_TARGETS
     }
-
 
 
 def test_bigby4_sealed_target_set_resolves_exact_approved_batch():

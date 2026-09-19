@@ -105,12 +105,55 @@ def test_validator_accepts_complete_exact_batch():
     "payload,error",
     [
         ({}, "provider_translation_invalid"),
-        ({"records": [{"id": "invented", "name": "x", "description": "y", "full_text": "z", "attributes": {}}]}, "provider_translation_invalid"),
-        ({"records": [{"id": "r1", "name": "x", "description": "y", "full_text": "z", "attributes": {}}]}, "provider_translation_incomplete"),
-        ({"records": [
-            {"id": "r1", "name": "x", "description": "y", "full_text": "z", "attributes": {}},
-            {"id": "r1", "name": "x", "description": "y", "full_text": "z", "attributes": {}},
-        ]}, "provider_translation_invalid"),
+        (
+            {
+                "records": [
+                    {
+                        "id": "invented",
+                        "name": "x",
+                        "description": "y",
+                        "full_text": "z",
+                        "attributes": {},
+                    }
+                ]
+            },
+            "provider_translation_invalid",
+        ),
+        (
+            {
+                "records": [
+                    {
+                        "id": "r1",
+                        "name": "x",
+                        "description": "y",
+                        "full_text": "z",
+                        "attributes": {},
+                    }
+                ]
+            },
+            "provider_translation_incomplete",
+        ),
+        (
+            {
+                "records": [
+                    {
+                        "id": "r1",
+                        "name": "x",
+                        "description": "y",
+                        "full_text": "z",
+                        "attributes": {},
+                    },
+                    {
+                        "id": "r1",
+                        "name": "x",
+                        "description": "y",
+                        "full_text": "z",
+                        "attributes": {},
+                    },
+                ]
+            },
+            "provider_translation_invalid",
+        ),
     ],
 )
 def test_validator_rejects_partial_extra_or_duplicate_ids(payload, error):

@@ -148,9 +148,7 @@ def test_heading_record_receives_invalid_entity_title_flag():
 
 
 def test_corrupted_monster_name_receives_identity_review_flag():
-    gated = apply_ocr_review_gates(
-        _monster("14", "45 (7d8 + 14)", "M:::,, $S$")
-    )
+    gated = apply_ocr_review_gates(_monster("14", "45 (7d8 + 14)", "M:::,, $S$"))
     assert CORRUPTED_ENTITY_NAME_FLAG in gated["review_flags"]
     assert gated["review_status"] == "pending"
 

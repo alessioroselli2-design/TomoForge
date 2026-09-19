@@ -2,7 +2,9 @@ import json
 from pathlib import Path
 
 
-APPROVAL_PATH = Path(__file__).resolve().parents[1] / "provenance_backfill_approval.json"
+APPROVAL_PATH = (
+    Path(__file__).resolve().parents[1] / "provenance_backfill_approval.json"
+)
 
 
 def _approval():

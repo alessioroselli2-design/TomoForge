@@ -34,11 +34,16 @@ from services.monster_semantic_diagnostics import (
     semantic_core_field_matches,
 )
 from services.monster_speed_token_diagnostics import speed_extra_token_agreement_counts
-from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
+from services.monster_statblock_ocr import (
+    agreed_monster_records,
+    parse_monster_statblocks,
+)
 
 
 def _record_summary(records: list[dict]) -> dict[str, Any]:
-    type_counts = Counter(str(record.get("reference_type") or "other") for record in records)
+    type_counts = Counter(
+        str(record.get("reference_type") or "other") for record in records
+    )
     flagged = sum(1 for record in records if record.get("review_flags"))
     ocr_flagged = sum(
         1
@@ -69,12 +74,15 @@ def _core_values_match(left: dict, right: dict) -> bool:
     left_attributes = left.get("attributes") or {}
     right_attributes = right.get("attributes") or {}
     return all(
-        _norm_value(left_attributes.get(field)) == _norm_value(right_attributes.get(field))
+        _norm_value(left_attributes.get(field))
+        == _norm_value(right_attributes.get(field))
         for field in ("classe_armatura", "punti_ferita", "velocita")
     )
 
 
-def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) -> dict[str, int]:
+def _monster_agreement_diagnostics(
+    primary: list[dict], comparison: list[dict]
+) -> dict[str, int]:
     """Explain agreement failures using counts only, never private OCR content."""
     same_page = 0
     same_name = 0
@@ -163,11 +171,15 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
             any(_core_values_match(record, other) for other in containment_matches)
         )
         exact_key += int(bool(exact_matches))
-        exact_key_core_match += int(any(_core_values_match(record, other) for other in exact_matches))
+        exact_key_core_match += int(
+            any(_core_values_match(record, other) for other in exact_matches)
+        )
 
         left_attributes = record.get("attributes") or {}
         deterministic_results = [
-            deterministic_core_field_matches(left_attributes, other.get("attributes") or {})
+            deterministic_core_field_matches(
+                left_attributes, other.get("attributes") or {}
+            )
             for other in containment_matches
         ]
         same_page_containment_deterministic_core_match += int(
@@ -214,7 +226,10 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
                 )
             )
             containment_deterministic_core_field_matches[field] += int(
-                any(result[f"{field}_deterministic_match"] for result in deterministic_results)
+                any(
+                    result[f"{field}_deterministic_match"]
+                    for result in deterministic_results
+                )
             )
 
     return {
@@ -231,7 +246,9 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         "monster_containment_punti_ferita_match": containment_core_field_matches[
             "punti_ferita"
         ],
-        "monster_containment_velocita_match": containment_core_field_matches["velocita"],
+        "monster_containment_velocita_match": containment_core_field_matches[
+            "velocita"
+        ],
         "monster_containment_classe_armatura_deterministic_match": containment_deterministic_core_field_matches[
             "classe_armatura"
         ],
@@ -252,12 +269,20 @@ def _monster_agreement_diagnostics(primary: list[dict], comparison: list[dict]) 
         ],
         "monster_primary_with_exact_key_candidate": exact_key,
         "monster_primary_with_exact_key_and_core_match": exact_key_core_match,
-        "monster_exact_key_classe_armatura_match": core_field_matches["classe_armatura"],
+        "monster_exact_key_classe_armatura_match": core_field_matches[
+            "classe_armatura"
+        ],
         "monster_exact_key_punti_ferita_match": core_field_matches["punti_ferita"],
         "monster_exact_key_velocita_match": core_field_matches["velocita"],
-        "monster_exact_key_classe_armatura_semantic_match": semantic_core_field_matches_count["classe_armatura"],
-        "monster_exact_key_punti_ferita_semantic_match": semantic_core_field_matches_count["punti_ferita"],
-        "monster_exact_key_velocita_semantic_match": semantic_core_field_matches_count["velocita"],
+        "monster_exact_key_classe_armatura_semantic_match": semantic_core_field_matches_count[
+            "classe_armatura"
+        ],
+        "monster_exact_key_punti_ferita_semantic_match": semantic_core_field_matches_count[
+            "punti_ferita"
+        ],
+        "monster_exact_key_velocita_semantic_match": semantic_core_field_matches_count[
+            "velocita"
+        ],
     }
 
 
@@ -271,7 +296,9 @@ def _monster_parser_summary(
 ) -> dict[str, int]:
     """Return privacy-safe aggregate metrics for the conservative monster parser."""
     primary = parse_monster_statblocks(primary_pages, source_filename, source_language)
-    comparison = parse_monster_statblocks(comparison_pages, source_filename, source_language)
+    comparison = parse_monster_statblocks(
+        comparison_pages, source_filename, source_language
+    )
     agreed = agreed_monster_records(primary, comparison)
     summary = {
         "monster_candidates_primary": len(primary),
@@ -354,7 +381,9 @@ def main() -> int:
 
         def local_ocr(page: Any, page_number: int) -> str:
             image_path = tmp_path / f"page-{page_number:04d}.png"
-            page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(image_path)
+            page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csGRAY).save(
+                image_path
+            )
             primary = _run_tesseract(image_path, args.languages, args.psm)
             comparison = _run_tesseract(image_path, args.languages, args.comparison_psm)
             agreement = _agreement_metrics(primary, comparison)
@@ -411,12 +440,13 @@ def main() -> int:
         **_record_summary(report.records),
         **monster_summary,
         "page_quality": [
-            {"page": page, **page_metrics[page]}
-            for page in sorted(page_metrics)
+            {"page": page, **page_metrics[page]} for page in sorted(page_metrics)
         ],
     }
     report_path = output_dir / "report.json"
-    report_path.write_text(json.dumps(aggregate, ensure_ascii=False, indent=2), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(aggregate, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(
         "PARSER_SUMMARY\t"
         f"pages_read={aggregate['pages_read']}\t"

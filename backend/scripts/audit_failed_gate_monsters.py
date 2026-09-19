@@ -28,7 +28,10 @@ from services.ocr_semantic_gates import monster_semantic_numeric_flags
 TARGETS: tuple[dict[str, str], ...] = (
     {"id": "ref_d3a9aeba19775d698d1dae2577086c2e", "name": "Di Terra"},
     {"id": "ref_b5a471157553590992c4b3af5c57deda", "name": "Fraz-Urb'Luu"},
-    {"id": "ref_650f39bad9ac50c3a9d2ffcfde535f45", "name": "Lavamandra Warlock Di Imix"},
+    {
+        "id": "ref_650f39bad9ac50c3a9d2ffcfde535f45",
+        "name": "Lavamandra Warlock Di Imix",
+    },
     {"id": "ref_94dd0655e7fc518aaf9e3ad214e0dba7", "name": "Quetzalcoatlus"},
 )
 
@@ -135,63 +138,71 @@ async def _run(args: argparse.Namespace) -> int:
                 target_page,
             )
 
-            reports.append({
-                "id": expected["id"],
-                "name": expected["name"],
-                "source": {
-                    "physical_filename": source.get("physical_filename"),
-                    "physical_page": target_page,
-                    "logical_page": source_ref.get("logical_page"),
-                    "logical_source_id": source.get("logical_source_id"),
-                },
-                "layout": {
-                    "profile": quality[target_page]["layout_profile"],
-                    "effective_dpi": quality[target_page]["effective_dpi"],
-                    "primary_psm": quality[target_page]["primary_psm"],
-                    "comparison_psm": quality[target_page]["comparison_psm"],
-                },
-                "primary_match_count": len(primary_matches),
-                "comparison_match_count": len(comparison_matches),
-                "primary": [
-                    {
-                        "attributes": match.get("attributes") or {},
-                        "gate_flags": sorted(
-                            monster_semantic_numeric_flags(
-                                match.get("attributes") or {}
-                            )
-                        ),
-                        "raw_core_excerpt": _core_excerpt(match.get("full_text") or ""),
-                    }
-                    for match in primary_matches
-                ],
-                "comparison": [
-                    {
-                        "attributes": match.get("attributes") or {},
-                        "gate_flags": sorted(
-                            monster_semantic_numeric_flags(
-                                match.get("attributes") or {}
-                            )
-                        ),
-                        "raw_core_excerpt": _core_excerpt(match.get("full_text") or ""),
-                    }
-                    for match in comparison_matches
-                ],
-                "writes_performed": 0,
-            })
+            reports.append(
+                {
+                    "id": expected["id"],
+                    "name": expected["name"],
+                    "source": {
+                        "physical_filename": source.get("physical_filename"),
+                        "physical_page": target_page,
+                        "logical_page": source_ref.get("logical_page"),
+                        "logical_source_id": source.get("logical_source_id"),
+                    },
+                    "layout": {
+                        "profile": quality[target_page]["layout_profile"],
+                        "effective_dpi": quality[target_page]["effective_dpi"],
+                        "primary_psm": quality[target_page]["primary_psm"],
+                        "comparison_psm": quality[target_page]["comparison_psm"],
+                    },
+                    "primary_match_count": len(primary_matches),
+                    "comparison_match_count": len(comparison_matches),
+                    "primary": [
+                        {
+                            "attributes": match.get("attributes") or {},
+                            "gate_flags": sorted(
+                                monster_semantic_numeric_flags(
+                                    match.get("attributes") or {}
+                                )
+                            ),
+                            "raw_core_excerpt": _core_excerpt(
+                                match.get("full_text") or ""
+                            ),
+                        }
+                        for match in primary_matches
+                    ],
+                    "comparison": [
+                        {
+                            "attributes": match.get("attributes") or {},
+                            "gate_flags": sorted(
+                                monster_semantic_numeric_flags(
+                                    match.get("attributes") or {}
+                                )
+                            ),
+                            "raw_core_excerpt": _core_excerpt(
+                                match.get("full_text") or ""
+                            ),
+                        }
+                        for match in comparison_matches
+                    ],
+                    "writes_performed": 0,
+                }
+            )
     finally:
         pdf_cache.close()
 
     print("FINAL_REPORT")
-    print(json.dumps(
-        {
-            "dry_run": True,
-            "targets": len(TARGETS),
-            "writes_performed": 0,
-            "reports": reports,
-        },
-        ensure_ascii=False,
-        sort_keys=True,
-    ))
+    print(
+        json.dumps(
+            {
+                "dry_run": True,
+                "targets": len(TARGETS),
+                "writes_performed": 0,
+                "reports": reports,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

@@ -142,7 +142,10 @@ def _line_is_descriptor(line: str) -> bool:
     value = _norm(line)
     return (
         any(re.search(rf"\b{re.escape(size)}\b", value) for size in _SIZE_WORDS)
-        and any(re.search(rf"\b{re.escape(creature_type)}\b", value) for creature_type in _CREATURE_TYPE_WORDS)
+        and any(
+            re.search(rf"\b{re.escape(creature_type)}\b", value)
+            for creature_type in _CREATURE_TYPE_WORDS
+        )
         and len(value) <= 180
     )
 
@@ -165,7 +168,9 @@ def _line_is_title_candidate(line: str) -> bool:
         return False
     letters = [ch for ch in raw if ch.isalpha()]
     upper_ratio = sum(ch.isupper() for ch in letters) / max(len(letters), 1)
-    titleish_ratio = sum(word[:1].isupper() for word in raw.split() if word) / max(len(raw.split()), 1)
+    titleish_ratio = sum(word[:1].isupper() for word in raw.split() if word) / max(
+        len(raw.split()), 1
+    )
     return upper_ratio >= 0.62 or titleish_ratio >= 0.7
 
 
@@ -178,7 +183,9 @@ def _core_anchor(line: str) -> bool:
     )
 
 
-def _marker_near(lines: list[str], anchor_index: int, marker: str, lookahead: int = 8) -> bool:
+def _marker_near(
+    lines: list[str], anchor_index: int, marker: str, lookahead: int = 8
+) -> bool:
     marker_norm = _norm(marker)
     for line in lines[anchor_index : min(len(lines), anchor_index + lookahead + 1)]:
         if _norm(line).startswith(marker_norm):
@@ -192,7 +199,9 @@ def _has_any_marker_near(
     markers: tuple[str, ...],
     lookahead: int,
 ) -> bool:
-    return any(_marker_near(lines, anchor_index, marker, lookahead) for marker in markers)
+    return any(
+        _marker_near(lines, anchor_index, marker, lookahead) for marker in markers
+    )
 
 
 def _find_header(lines: list[str], anchor_index: int) -> tuple[int, str, str] | None:
@@ -328,9 +337,7 @@ def _attributes(text: str, descriptor: str) -> dict:
             attributes["caratteristiche"] = dict(zip(canonical_fields, numbers[:6]))
             break
 
-    attributes["ha_azioni"] = bool(
-        re.search(r"(?mi)^\s*(?:Azioni|Actions)\s*$", text)
-    )
+    attributes["ha_azioni"] = bool(re.search(r"(?mi)^\s*(?:Azioni|Actions)\s*$", text))
     attributes["ha_reazioni"] = bool(
         re.search(r"(?mi)^\s*(?:Reazioni|Reactions)\s*$", text)
     )
@@ -341,7 +348,10 @@ def _attributes(text: str, descriptor: str) -> dict:
 
 
 def _core_attributes_are_complete(attributes: dict) -> bool:
-    return all(attributes.get(field) for field in ("classe_armatura", "punti_ferita", "velocita"))
+    return all(
+        attributes.get(field)
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    )
 
 
 def parse_monster_statblocks(
@@ -380,7 +390,9 @@ def parse_monster_statblocks(
     starts.sort(key=lambda item: item[0])
     records: list[dict] = []
     for position, (start_index, start_page, title, descriptor) in enumerate(starts):
-        next_start = starts[position + 1][0] if position + 1 < len(starts) else len(flattened)
+        next_start = (
+            starts[position + 1][0] if position + 1 < len(starts) else len(flattened)
+        )
         block_pairs = flattened[start_index:next_start]
         block_lines = [line for _, line in block_pairs if line]
         block_text = "\n".join(block_lines)
@@ -479,7 +491,9 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
             if not exact_core_match and guided_values is None:
                 continue
 
-        review_flags = set(record.get("review_flags") or []) | {"ocr_independent_agreement"}
+        review_flags = set(record.get("review_flags") or []) | {
+            "ocr_independent_agreement"
+        }
         attributes = dict(record.get("attributes") or {})
         if guided_values is not None:
             attributes.update(guided_values)

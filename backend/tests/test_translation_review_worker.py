@@ -55,14 +55,21 @@ def test_worker_persists_current_verdict_and_skips_it_on_next_run():
         )
         stored = await db.private_reference_records.find_one({"id": "ref-1"})
         second = await run_translation_reviews(
-            "owner-1", db=db, batch_size=5, comparator=lambda _record: (_ for _ in ()).throw(RuntimeError("must not run"))
+            "owner-1",
+            db=db,
+            batch_size=5,
+            comparator=lambda _record: (_ for _ in ()).throw(
+                RuntimeError("must not run")
+            ),
         )
 
         assert first["processed_records"] == 1
         assert first["ai_verified"] == 1
         assert stored["translation_review_status"] == "ai_verified"
         assert stored["translation_review_confidence"] == 0.99
-        assert stored["translation_review_fingerprint"] == translation_verification_fingerprint(stored)
+        assert stored[
+            "translation_review_fingerprint"
+        ] == translation_verification_fingerprint(stored)
         assert second["processed_records"] == 0
         assert second["ai_verified"] == 1
         assert second["ready_for_canonicalization"] is True
@@ -79,7 +86,9 @@ def test_provider_failure_remains_retryable():
             "owner-1",
             db=db,
             batch_size=1,
-            comparator=lambda _record: (_ for _ in ()).throw(RuntimeError("provider down")),
+            comparator=lambda _record: (_ for _ in ()).throw(
+                RuntimeError("provider down")
+            ),
         )
         retried = await run_translation_reviews(
             "owner-1", db=db, batch_size=1, comparator=verified_answer
@@ -99,7 +108,9 @@ def test_stale_verdict_returns_to_pending_until_rechecked():
     async def scenario():
         db = FakeDB()
         value = translated_record(translation_review_status="ai_verified")
-        value["translation_review_fingerprint"] = translation_verification_fingerprint(value)
+        value["translation_review_fingerprint"] = translation_verification_fingerprint(
+            value
+        )
         value["full_text"] += " Testo modificato."
         await db.private_reference_records.insert_one(value)
 
@@ -115,11 +126,13 @@ def test_stale_verdict_returns_to_pending_until_rechecked():
 def test_untranslated_failures_and_processing_block_canonicalization_readiness():
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_many([
-            translated_record(id="failed", translation_status="failed"),
-            translated_record(id="processing", translation_status="processing"),
-            translated_record(id="pending", translation_status="pending"),
-        ])
+        await db.private_reference_records.insert_many(
+            [
+                translated_record(id="failed", translation_status="failed"),
+                translated_record(id="processing", translation_status="processing"),
+                translated_record(id="pending", translation_status="pending"),
+            ]
+        )
 
         status = await translation_review_status("owner-1", db=db)
 
@@ -138,17 +151,21 @@ def test_untranslated_failures_and_processing_block_canonicalization_readiness()
 def test_explicit_human_review_remains_a_translation_gate_override():
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_one(translated_record(
-            translation_status="failed",
-            review_status="verified",
-        ))
+        await db.private_reference_records.insert_one(
+            translated_record(
+                translation_status="failed",
+                review_status="verified",
+            )
+        )
 
         status = await translation_review_status("owner-1", db=db)
         result = await run_translation_reviews(
             "owner-1",
             db=db,
             batch_size=5,
-            comparator=lambda _record: (_ for _ in ()).throw(RuntimeError("must not run")),
+            comparator=lambda _record: (_ for _ in ()).throw(
+                RuntimeError("must not run")
+            ),
         )
 
         assert status["human_verified"] == 1
@@ -163,14 +180,18 @@ def test_explicit_human_review_remains_a_translation_gate_override():
 def test_owner_record_reader_paginates_the_complete_corpus():
     async def scenario():
         db = FakeDB()
-        await db.private_reference_records.insert_many([
-            translated_record(id=f"ref-{index}") for index in range(5)
-        ])
+        await db.private_reference_records.insert_many(
+            [translated_record(id=f"ref-{index}") for index in range(5)]
+        )
 
         records = await list_owner_reference_records("owner-1", db=db, page_size=2)
 
         assert [record["id"] for record in records] == [
-            "ref-0", "ref-1", "ref-2", "ref-3", "ref-4",
+            "ref-0",
+            "ref-1",
+            "ref-2",
+            "ref-3",
+            "ref-4",
         ]
 
     asyncio.run(scenario())

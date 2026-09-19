@@ -18,16 +18,18 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-SPELL_CARD_AIDS = frozenset({
-    "Bardo .pdf",
-    "Chierico.pdf",
-    "Druido .pdf",
-    "Mago .pdf",
-    "Paladino .pdf",
-    "Ranger .pdf",
-    "Stregone .pdf",
-    "Warlock .pdf",
-})
+SPELL_CARD_AIDS = frozenset(
+    {
+        "Bardo .pdf",
+        "Chierico.pdf",
+        "Druido .pdf",
+        "Mago .pdf",
+        "Paladino .pdf",
+        "Ranger .pdf",
+        "Stregone .pdf",
+        "Warlock .pdf",
+    }
+)
 
 CATALOGUE_EXCLUDED_STATUSES = frozenset({"duplicate", "misidentified", "document"})
 
@@ -66,7 +68,9 @@ def _catalogue_gate_reason(filename: str, catalogue_rows: list[dict]) -> str:
     if modes != ["text"]:
         return f"durable catalogue text mode {','.join(modes)}"
 
-    languages = sorted({str(row.get("language") or "unknown").lower() for row in matching})
+    languages = sorted(
+        {str(row.get("language") or "unknown").lower() for row in matching}
+    )
     if languages != ["it"]:
         return f"durable catalogue language {','.join(languages)}"
     return ""
@@ -167,7 +171,10 @@ def main() -> int:
     try:
         return asyncio.run(_run(args))
     except Exception as exc:
-        print(f"Native-text R2 batch failed before source processing: {exc}", file=sys.stderr)
+        print(
+            f"Native-text R2 batch failed before source processing: {exc}",
+            file=sys.stderr,
+        )
         return 1
 
 

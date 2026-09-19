@@ -4,6 +4,7 @@ This layer answers one question only: does the Italian localization faithfully
 represent the immutable source snapshot? It never decides which rule source is
 canonical, never repairs content, and never overrides OCR/source uncertainty.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -89,8 +90,8 @@ def build_translation_verification_prompt(record: dict) -> str:
         "Differenze puramente linguistiche sono accettabili. I source_review_flags descrivono "
         "incertezze dell'estrazione e NON possono essere risolti da questa verifica di traduzione. "
         "Restituisci esclusivamente JSON nel formato "
-        "{\"status\":\"verified|conflict|low_confidence\",\"confidence\":0.0," 
-        "\"conflict_fields\":[\"...\"],\"notes\":\"...\"}. "
+        '{"status":"verified|conflict|low_confidence","confidence":0.0,'
+        '"conflict_fields":["..."],"notes":"..."}. '
         "Usa conflict se la traduzione omette, aggiunge o altera contenuto; low_confidence se non "
         "puoi stabilire la fedeltà con sicurezza.\n\n"
         + json.dumps(_prompt_payload(record), ensure_ascii=False, separators=(",", ":"))
@@ -110,7 +111,10 @@ def openai_translation_comparator(record: dict) -> dict[str, Any]:
             "model": OPENAI_TEXT_MODEL,
             "messages": [
                 {"role": "system", "content": "Return strict JSON only."},
-                {"role": "user", "content": build_translation_verification_prompt(record)},
+                {
+                    "role": "user",
+                    "content": build_translation_verification_prompt(record),
+                },
             ],
             "response_format": {"type": "json_object"},
             "temperature": 0,
@@ -129,7 +133,14 @@ async def _compare(comparator: TranslationComparator, record: dict) -> dict[str,
     return await result if inspect.isawaitable(result) else result
 
 
-def _result(record: dict, status: str, confidence: float, notes: str, conflicts: list[str], model: str) -> dict:
+def _result(
+    record: dict,
+    status: str,
+    confidence: float,
+    notes: str,
+    conflicts: list[str],
+    model: str,
+) -> dict:
     return {
         "status": status,
         "confidence": confidence,
@@ -149,7 +160,14 @@ async def verify_translation(
 ) -> dict:
     """Verify localization fidelity without changing the supplied record."""
     if not translation_required(record.get("source_language")):
-        return _result(record, TRANSLATION_NOT_REQUIRED, 1.0, "Italian source; translation verification not required.", [], "")
+        return _result(
+            record,
+            TRANSLATION_NOT_REQUIRED,
+            1.0,
+            "Italian source; translation verification not required.",
+            [],
+            "",
+        )
     if record.get("translation_status") != "translated":
         return _result(
             record,
@@ -160,10 +178,26 @@ async def verify_translation(
             "",
         )
 
-    if not _clean(record.get("source_name")) or not _clean(record.get("source_full_text")):
-        return _result(record, TRANSLATION_CONFLICT, 1.0, "Immutable source snapshot is incomplete.", ["source_snapshot"], "deterministic")
+    if not _clean(record.get("source_name")) or not _clean(
+        record.get("source_full_text")
+    ):
+        return _result(
+            record,
+            TRANSLATION_CONFLICT,
+            1.0,
+            "Immutable source snapshot is incomplete.",
+            ["source_snapshot"],
+            "deterministic",
+        )
     if not _clean(record.get("name")) or not _clean(record.get("full_text")):
-        return _result(record, TRANSLATION_CONFLICT, 1.0, "Italian translation is incomplete.", ["translation"], "deterministic")
+        return _result(
+            record,
+            TRANSLATION_CONFLICT,
+            1.0,
+            "Italian translation is incomplete.",
+            ["translation"],
+            "deterministic",
+        )
 
     source_tokens = mechanical_tokens(
         f"{record.get('source_name', '')} {record.get('source_description', '')} {record.get('source_full_text', '')}"
@@ -193,7 +227,9 @@ async def verify_translation(
         if not math.isfinite(confidence) or not 0 <= confidence <= 1:
             raise ValueError("AI returned an invalid confidence")
         conflicts = answer.get("conflict_fields") or []
-        if not isinstance(conflicts, list) or any(not isinstance(field, str) for field in conflicts):
+        if not isinstance(conflicts, list) or any(
+            not isinstance(field, str) for field in conflicts
+        ):
             raise ValueError("AI returned invalid conflict fields")
         notes = _clean(answer.get("notes"))
 
@@ -206,7 +242,11 @@ async def verify_translation(
             if status == TRANSLATION_LOW_CONFIDENCE and not conflicts:
                 conflicts = ["translation_fidelity"]
         elif raw_status == "conflict":
-            status = TRANSLATION_CONFLICT if confidence >= 0.75 else TRANSLATION_LOW_CONFIDENCE
+            status = (
+                TRANSLATION_CONFLICT
+                if confidence >= 0.75
+                else TRANSLATION_LOW_CONFIDENCE
+            )
             if not conflicts:
                 conflicts = ["translation_fidelity"]
         else:

@@ -59,7 +59,9 @@ def summarize_zero_import_structured_artifacts(
         if key:
             analyses_by_key.setdefault(key, []).append(analysis)
 
-    blocked_sources = [source for source in sources if _is_blocked_zero_import_source(source)]
+    blocked_sources = [
+        source for source in sources if _is_blocked_zero_import_source(source)
+    ]
     source_ids_by_key: dict[str, list[str]] = {}
     for source in blocked_sources:
         source_id = str(source.get("id") or "").strip()
@@ -135,13 +137,19 @@ def summarize_zero_import_structured_artifacts(
 
     return {
         "zero_import_vision_sources_total": len(blocked_ids),
-        "zero_import_sources_with_filename_and_page_count_artifact_evidence": len(exact_ids),
-        "zero_import_sources_with_filename_only_artifact_evidence": len(filename_only_ids),
+        "zero_import_sources_with_filename_and_page_count_artifact_evidence": len(
+            exact_ids
+        ),
+        "zero_import_sources_with_filename_only_artifact_evidence": len(
+            filename_only_ids
+        ),
         "zero_import_sources_with_ambiguous_artifact_evidence": len(ambiguous_ids),
         "zero_import_sources_with_ambiguous_source_identity": len(
             source_identity_ambiguous_ids
         ),
-        "zero_import_sources_without_structured_artifact_evidence": len(no_artifact_ids),
+        "zero_import_sources_without_structured_artifact_evidence": len(
+            no_artifact_ids
+        ),
         "zero_import_sources_with_historical_extracted_text": len(text_present_ids),
         "zero_import_sources_with_historical_zero_text": len(zero_text_ids),
         "zero_import_sources_with_exact_historical_text_review_evidence": len(
@@ -153,7 +161,9 @@ def summarize_zero_import_structured_artifacts(
         "source_ids_with_filename_and_page_count_artifact_evidence": sorted(exact_ids),
         "source_ids_with_filename_only_artifact_evidence": sorted(filename_only_ids),
         "source_ids_with_ambiguous_artifact_evidence": sorted(ambiguous_ids),
-        "source_ids_with_ambiguous_source_identity": sorted(source_identity_ambiguous_ids),
+        "source_ids_with_ambiguous_source_identity": sorted(
+            source_identity_ambiguous_ids
+        ),
         "source_ids_without_structured_artifact_evidence": sorted(no_artifact_ids),
         "source_ids_with_historical_extracted_text": sorted(text_present_ids),
         "source_ids_with_historical_zero_text": sorted(zero_text_ids),
@@ -185,7 +195,9 @@ async def _run() -> int:
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
     sources = await fetch_all(db.private_reference_sources)
-    analyses = _load_json_list(REPO_DIR / ".agents" / "outputs" / "spell-pdf-analysis.json")
+    analyses = _load_json_list(
+        REPO_DIR / ".agents" / "outputs" / "spell-pdf-analysis.json"
+    )
     print(
         json.dumps(
             summarize_zero_import_structured_artifacts(sources, analyses),

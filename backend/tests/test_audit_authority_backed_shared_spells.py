@@ -1,16 +1,20 @@
-from scripts.audit_authority_backed_shared_spells import summarize_authority_backed_shared_spell_evidence
+from scripts.audit_authority_backed_shared_spells import (
+    summarize_authority_backed_shared_spell_evidence,
+)
 
 
 def _fixture():
     owner = "Bardo__1787233073462.pdf"
     companion = "Stregone__1787233073462.pdf"
-    jobs = [{
-        "id": "job-bardo",
-        "filename": owner,
-        "status": "failed",
-        "last_error": "manual_source_missing",
-        "source_fingerprint": "job-sha",
-    }]
+    jobs = [
+        {
+            "id": "job-bardo",
+            "filename": owner,
+            "status": "failed",
+            "last_error": "manual_source_missing",
+            "source_fingerprint": "job-sha",
+        }
+    ]
     sources = [
         {
             "physical_filename": "Bardo .pdf",
@@ -55,7 +59,12 @@ def test_active_authority_identity_is_support_only():
     result = summarize_authority_backed_shared_spell_evidence(jobs, sources, records)
 
     assert result["shared_class_card_candidate_pairs"] == 1
-    assert result["shared_class_card_candidate_pairs_with_active_authority_identity_evidence"] == 1
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_with_active_authority_identity_evidence"
+        ]
+        == 1
+    )
     assert result["active_authority_registry_filenames"] == 1
     assert result["authority_identity_evidence_is_confirmation"] is False
     assert result["automatic_retry_authorized"] is False
@@ -77,7 +86,12 @@ def test_extraction_aid_does_not_count_as_authority():
     result = summarize_authority_backed_shared_spell_evidence(jobs, sources, records)
 
     assert result["active_authority_registry_filenames"] == 0
-    assert result["shared_class_card_candidate_pairs_with_active_authority_identity_evidence"] == 0
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_with_active_authority_identity_evidence"
+        ]
+        == 0
+    )
     pair = result["unidirectional_pairs"][0]
     assert pair["mixed_records_with_active_authority_same_identity"] == 0
     assert pair["active_authority_same_identity_is_supporting_evidence"] is False
@@ -90,4 +104,9 @@ def test_superseded_authority_does_not_count_as_active_authority():
     result = summarize_authority_backed_shared_spell_evidence(jobs, sources, records)
 
     assert result["active_authority_registry_filenames"] == 0
-    assert result["shared_class_card_candidate_pairs_with_active_authority_identity_evidence"] == 0
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_with_active_authority_identity_evidence"
+        ]
+        == 0
+    )

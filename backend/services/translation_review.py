@@ -5,6 +5,7 @@ worker only compares an already translated record with its stored source
 snapshot and persists a separate verdict that can be invalidated by the
 translation-verification fingerprint.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -19,11 +20,13 @@ from services.translation_verification import (
     verify_translation,
 )
 
-CURRENT_REVIEW_STATES = frozenset({
-    TRANSLATION_AI_VERIFIED,
-    TRANSLATION_CONFLICT,
-    TRANSLATION_LOW_CONFIDENCE,
-})
+CURRENT_REVIEW_STATES = frozenset(
+    {
+        TRANSLATION_AI_VERIFIED,
+        TRANSLATION_CONFLICT,
+        TRANSLATION_LOW_CONFIDENCE,
+    }
+)
 
 
 async def list_owner_reference_records(
@@ -47,12 +50,17 @@ def _needs_translation_review(record: dict) -> bool:
     ):
         return False
     status = str(record.get("translation_review_status") or "pending")
-    return status not in CURRENT_REVIEW_STATES or not translation_verification_is_current(record)
+    return (
+        status not in CURRENT_REVIEW_STATES
+        or not translation_verification_is_current(record)
+    )
 
 
 def summarize_translation_review(records: list[dict], user_id: str) -> dict[str, Any]:
     """Return the owner-scoped translation gate without reading or writing data."""
-    translated = [record for record in records if record.get("translation_status") == "translated"]
+    translated = [
+        record for record in records if record.get("translation_status") == "translated"
+    ]
     counts = {
         "ai_verified": 0,
         "conflict": 0,
@@ -68,10 +76,9 @@ def summarize_translation_review(records: list[dict], user_id: str) -> dict[str,
     translatable_total = 0
     for record in records:
         translation_status = str(record.get("translation_status") or "not_required")
-        is_translation_candidate = (
-            translation_required(record.get("source_language"))
-            or translation_status in {"translated", "failed", "processing"}
-        )
+        is_translation_candidate = translation_required(
+            record.get("source_language")
+        ) or translation_status in {"translated", "failed", "processing"}
         if not is_translation_candidate:
             continue
         translatable_total += 1
@@ -120,9 +127,7 @@ def summarize_translation_review(records: list[dict], user_id: str) -> dict[str,
         "translation_not_ready": not_ready,
         "verification_complete": translatable_total - blocking_total,
         "ready_for_canonicalization": (
-            counts["pending"] == 0
-            and counts["failed"] == 0
-            and not_ready == 0
+            counts["pending"] == 0 and counts["failed"] == 0 and not_ready == 0
         ),
     }
 
@@ -155,15 +160,17 @@ async def run_translation_reviews(
         verdict = await verify_translation(record, comparator=comparator)
         await db.private_reference_records.update_one(
             {"id": record["id"], "user_id": user_id},
-            {"$set": {
-                "translation_review_status": verdict["status"],
-                "translation_review_confidence": verdict["confidence"],
-                "translation_review_model": verdict["model"],
-                "translation_reviewed_at": verdict["reviewed_at"],
-                "translation_review_notes": verdict["notes"],
-                "translation_review_conflict_fields": verdict["conflict_fields"],
-                "translation_review_fingerprint": verdict["fingerprint"],
-            }},
+            {
+                "$set": {
+                    "translation_review_status": verdict["status"],
+                    "translation_review_confidence": verdict["confidence"],
+                    "translation_review_model": verdict["model"],
+                    "translation_reviewed_at": verdict["reviewed_at"],
+                    "translation_review_notes": verdict["notes"],
+                    "translation_review_conflict_fields": verdict["conflict_fields"],
+                    "translation_review_fingerprint": verdict["fingerprint"],
+                }
+            },
         )
         processed += 1
 

@@ -1,4 +1,6 @@
-from scripts.audit_multilingual_parser_support import summarize_multilingual_parser_support
+from scripts.audit_multilingual_parser_support import (
+    summarize_multilingual_parser_support,
+)
 
 
 def _source(
@@ -39,9 +41,10 @@ def test_spanish_text_aid_is_only_a_bounded_parser_probe_candidate():
     result = summarize_multilingual_parser_support([italian, spanish])
 
     assert result["text_only_multilingual_aid_pairs_checked"] == 1
-    assert result[
-        "text_only_multilingual_aid_pairs_with_explicit_parser_language_support"
-    ] == 1
+    assert (
+        result["text_only_multilingual_aid_pairs_with_explicit_parser_language_support"]
+        == 1
+    )
     assert result[
         "text_only_multilingual_aid_pair_ids_with_explicit_parser_language_support"
     ] == ["phb-it->phb-es"]
@@ -72,9 +75,12 @@ def test_text_aid_without_explicit_language_heuristics_stays_blocked():
 
     result = summarize_multilingual_parser_support([italian, russian])
 
-    assert result[
-        "text_only_multilingual_aid_pairs_without_explicit_parser_language_support"
-    ] == 1
+    assert (
+        result[
+            "text_only_multilingual_aid_pairs_without_explicit_parser_language_support"
+        ]
+        == 1
+    )
     assert result[
         "text_only_multilingual_aid_pair_ids_without_explicit_parser_language_support"
     ] == ["vgtm-it->vgtm-ru"]
@@ -103,9 +109,10 @@ def test_structured_peer_is_not_reclassified_as_text_only_parser_candidate():
     result = summarize_multilingual_parser_support([italian, spanish])
 
     assert result["text_only_multilingual_aid_pairs_checked"] == 0
-    assert result[
-        "text_only_multilingual_aid_pairs_with_explicit_parser_language_support"
-    ] == 0
+    assert (
+        result["text_only_multilingual_aid_pairs_with_explicit_parser_language_support"]
+        == 0
+    )
     assert result["parser_language_support_state_by_pair"] == {}
 
 

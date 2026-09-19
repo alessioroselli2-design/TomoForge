@@ -21,9 +21,17 @@ def test_runtime_alias_maps_to_registered_phb():
 
 def test_planescape_physical_pdf_maps_three_logical_books():
     filename = "762692978-D-D-5e-Planescape-Adventure-in-the-Multiverse.pdf"
-    assert source_metadata_for_page(filename, 10)["logical_source_id"] == "ps_sigil_2023_en"
-    assert source_metadata_for_page(filename, 120)["logical_source_id"] == "ps_tofw_2023_en"
-    assert source_metadata_for_page(filename, 220)["logical_source_id"] == "ps_mpp_2023_en"
+    assert (
+        source_metadata_for_page(filename, 10)["logical_source_id"]
+        == "ps_sigil_2023_en"
+    )
+    assert (
+        source_metadata_for_page(filename, 120)["logical_source_id"]
+        == "ps_tofw_2023_en"
+    )
+    assert (
+        source_metadata_for_page(filename, 220)["logical_source_id"] == "ps_mpp_2023_en"
+    )
     assert source_metadata_for_page(filename, 120)["logical_page"] == 22
 
 
@@ -31,8 +39,16 @@ def test_multiverse_parts_share_logical_source_with_logical_page_offsets():
     first = source_metadata_for_page("Mostri del multi verso 1-100.pdf", 5)
     second = source_metadata_for_page("Mostri del multiverso 101-200.pdf", 5)
     third = source_metadata_for_page("Mostri del multiverso 201-294.pdf", 5)
-    assert {first["logical_source_id"], second["logical_source_id"], third["logical_source_id"]} == {"mpmm_2022_it"}
-    assert (first["logical_page"], second["logical_page"], third["logical_page"]) == (5, 105, 205)
+    assert {
+        first["logical_source_id"],
+        second["logical_source_id"],
+        third["logical_source_id"],
+    } == {"mpmm_2022_it"}
+    assert (first["logical_page"], second["logical_page"], third["logical_page"]) == (
+        5,
+        105,
+        205,
+    )
 
 
 def test_compilation_page_maps_to_its_logical_source():
@@ -52,12 +68,16 @@ def test_duplicates_documents_misidentified_and_unknown_sources_do_not_auto_impo
 
 
 def test_audited_mixed_and_vision_modes_are_registered():
-    assert source_metadata_for_page(
-        "536195827-Minsc-and-Boo-s-Journal-of-Villainy.pdf"
-    )["text_mode"] == "mixed"
-    assert source_metadata_for_page(
-        "647833920-D-D-5ªE-Light-of-Xaryxis.pdf"
-    )["text_mode"] == "mixed"
+    assert (
+        source_metadata_for_page("536195827-Minsc-and-Boo-s-Journal-of-Villainy.pdf")[
+            "text_mode"
+        ]
+        == "mixed"
+    )
+    assert (
+        source_metadata_for_page("647833920-D-D-5ªE-Light-of-Xaryxis.pdf")["text_mode"]
+        == "mixed"
+    )
     volo = source_metadata_for_page("616924846-Volo-s-Guide-to-Monsters.pdf")
     assert volo["source_role"] == "visual_authority"
     assert volo["text_mode"] == "vision_required"
@@ -72,9 +92,12 @@ def test_visual_aids_are_not_independent_rule_import_sources():
         assert source_metadata_for_page(filename)["source_role"] == "visual_aid"
         assert not source_is_rule_source(filename)
         assert source_import_segments(filename) == ()
-    assert source_metadata_for_page(
-        "589043473-Mordenkainens-Tome-of-Foes.pdf"
-    )["text_mode"] == "vision_required"
+    assert (
+        source_metadata_for_page("589043473-Mordenkainens-Tome-of-Foes.pdf")[
+            "text_mode"
+        ]
+        == "vision_required"
+    )
 
 
 def test_extraction_aids_remain_available_but_hard_exclusions_do_not():
@@ -118,19 +141,33 @@ def test_manual_metadata_uses_registered_language_and_ocr_mode():
 
 def record(authority, *, role="authority", status="active"):
     return {
-        "source_refs": [{
-            "filename": "source.pdf",
-            "authority_class": authority,
-            "source_role": role,
-            "source_status": status,
-            "ruleset": "2014",
-        }]
+        "source_refs": [
+            {
+                "filename": "source.pdf",
+                "authority_class": authority,
+                "source_role": role,
+                "source_status": status,
+                "ruleset": "2014",
+            }
+        ]
     }
 
 
 def test_explicit_source_authority_order_and_exclusions():
-    assert source_authority(record("official_errata"))[0] > source_authority(record("official_supplement"))[0]
-    assert source_authority(record("official_supplement"))[0] > source_authority(record("licensed_translation"))[0]
-    assert source_authority(record("licensed_translation"))[0] > source_authority(record("extraction_aid", role="extraction_aid"))[0]
+    assert (
+        source_authority(record("official_errata"))[0]
+        > source_authority(record("official_supplement"))[0]
+    )
+    assert (
+        source_authority(record("official_supplement"))[0]
+        > source_authority(record("licensed_translation"))[0]
+    )
+    assert (
+        source_authority(record("licensed_translation"))[0]
+        > source_authority(record("extraction_aid", role="extraction_aid"))[0]
+    )
     assert source_record_is_excluded(record("official_errata", status="superseded"))
-    assert source_authority(record("official_errata", status="superseded"))[0] < source_authority(record("official_supplement"))[0]
+    assert (
+        source_authority(record("official_errata", status="superseded"))[0]
+        < source_authority(record("official_supplement"))[0]
+    )

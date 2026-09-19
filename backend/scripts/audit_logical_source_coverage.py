@@ -72,7 +72,9 @@ def _normalize_filename_key(value: str) -> str:
     return "".join(char for char in decomposed if char.isalnum())
 
 
-def _catalog_ids_by_filename(sources: list[dict], *, normalized: bool = False) -> dict[str, set[str]]:
+def _catalog_ids_by_filename(
+    sources: list[dict], *, normalized: bool = False
+) -> dict[str, set[str]]:
     """Map catalogue filenames to logical IDs without exposing either in output."""
     result: dict[str, set[str]] = {}
     for source in sources:
@@ -85,7 +87,9 @@ def _catalog_ids_by_filename(sources: list[dict], *, normalized: bool = False) -
             filename = source.get(key)
             if not isinstance(filename, str) or not filename.strip():
                 continue
-            lookup_key = _normalize_filename_key(filename) if normalized else filename.strip()
+            lookup_key = (
+                _normalize_filename_key(filename) if normalized else filename.strip()
+            )
             if lookup_key:
                 result.setdefault(lookup_key, set()).add(logical_id)
     return result
@@ -200,7 +204,9 @@ async def _run() -> int:
         fetch_all(db.private_reference_records),
         fetch_all(db.private_reference_sources),
     )
-    print(json.dumps(summarize_logical_source_coverage(records, sources), sort_keys=True))
+    print(
+        json.dumps(summarize_logical_source_coverage(records, sources), sort_keys=True)
+    )
     return 0
 
 

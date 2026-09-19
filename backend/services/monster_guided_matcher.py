@@ -54,7 +54,9 @@ def guided_core_merge(
     guided path to be used. Unknown residual shapes fail closed.
     """
     semantic = semantic_core_field_matches(left_attributes, right_attributes)
-    if not all(semantic.get(f"{field}_semantic_match", False) for field in _CORE_FIELDS):
+    if not all(
+        semantic.get(f"{field}_semantic_match", False) for field in _CORE_FIELDS
+    ):
         return None
 
     deterministic = deterministic_core_field_matches(left_attributes, right_attributes)
@@ -76,7 +78,8 @@ def guided_core_merge(
 
     field_gates = {
         "classe_armatura": bool(
-            deterministic.get("classe_armatura_deterministic_match", False) or ca_residual
+            deterministic.get("classe_armatura_deterministic_match", False)
+            or ca_residual
         ),
         "punti_ferita": bool(
             deterministic.get("punti_ferita_deterministic_match", False) or hp_residual

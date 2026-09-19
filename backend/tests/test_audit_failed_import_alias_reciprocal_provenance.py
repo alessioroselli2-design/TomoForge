@@ -1,4 +1,6 @@
-from scripts.audit_failed_import_alias_reciprocal_provenance import summarize_reciprocal_provenance
+from scripts.audit_failed_import_alias_reciprocal_provenance import (
+    summarize_reciprocal_provenance,
+)
 
 
 def _job(filename: str) -> dict:
@@ -25,14 +27,29 @@ def test_reciprocal_and_nonreciprocal_companions_are_distinguished():
     reciprocal = "Mago__1787233073462.pdf"
     one_way = "Stregone__1787233073462.pdf"
     records = [
-        {"source_key": failed, "source_refs": [{"filename": failed}, {"filename": reciprocal}, {"filename": one_way}]},
-        {"source_key": failed, "source_refs": [{"filename": failed}, {"filename": reciprocal}]},
-        {"source_key": reciprocal, "source_refs": [{"filename": reciprocal}, {"filename": failed}]},
+        {
+            "source_key": failed,
+            "source_refs": [
+                {"filename": failed},
+                {"filename": reciprocal},
+                {"filename": one_way},
+            ],
+        },
+        {
+            "source_key": failed,
+            "source_refs": [{"filename": failed}, {"filename": reciprocal}],
+        },
+        {
+            "source_key": reciprocal,
+            "source_refs": [{"filename": reciprocal}, {"filename": failed}],
+        },
         {"source_key": reciprocal, "source_refs": [{"filename": reciprocal}]},
         {"source_key": one_way, "source_refs": [{"filename": one_way}]},
     ]
 
-    result = summarize_reciprocal_provenance([_job(failed)], [_source("Bardo .pdf")], records)
+    result = summarize_reciprocal_provenance(
+        [_job(failed)], [_source("Bardo .pdf")], records
+    )
 
     assert result["review_only_alias_candidates"] == 1
     candidate = result["candidates"][0]

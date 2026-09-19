@@ -19,7 +19,11 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from scripts.audit_manual_import_readiness import _has_record_activity, _is_schema_cache_failure, fetch_all
+from scripts.audit_manual_import_readiness import (
+    _has_record_activity,
+    _is_schema_cache_failure,
+    fetch_all,
+)
 from scripts.audit_schema_cache_logical_provenance import _normalized_source_name
 from scripts.audit_schema_cache_page_provenance import _page_number
 
@@ -28,7 +32,8 @@ def summarize_schema_cache_parser_recoverability(
     jobs: list[dict], sources: list[dict], records: list[dict]
 ) -> dict[str, Any]:
     targets = [
-        job for job in jobs
+        job
+        for job in jobs
         if str(job.get("status") or "") == "failed"
         and _is_schema_cache_failure(job)
         and _has_record_activity(job)
@@ -77,7 +82,8 @@ def summarize_schema_cache_parser_recoverability(
         unresolved_pages_total += len(missing)
         mode = str(active[0].get("text_mode") or "unknown")
         declared_ocr = {
-            int(p) for p in (job.get("pages_needing_ocr") or [])
+            int(p)
+            for p in (job.get("pages_needing_ocr") or [])
             if isinstance(p, int) and 1 <= int(p) <= page_count
         }
 
@@ -110,12 +116,18 @@ def summarize_schema_cache_parser_recoverability(
 
 async def _run() -> int:
     from core.db import db
+
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
     jobs = await fetch_all(db.private_manual_import_jobs)
     sources = await fetch_all(db.private_reference_sources)
     records = await fetch_all(db.private_reference_records)
-    print(json.dumps(summarize_schema_cache_parser_recoverability(jobs, sources, records), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_schema_cache_parser_recoverability(jobs, sources, records),
+            sort_keys=True,
+        )
+    )
     return 0
 
 
@@ -123,7 +135,9 @@ def main() -> int:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        print(f"Schema-cache parser recoverability audit failed: {exc}", file=sys.stderr)
+        print(
+            f"Schema-cache parser recoverability audit failed: {exc}", file=sys.stderr
+        )
         return 1
 
 

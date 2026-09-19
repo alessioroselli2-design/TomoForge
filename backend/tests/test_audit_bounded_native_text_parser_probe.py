@@ -10,7 +10,9 @@ from scripts.audit_bounded_native_text_parser_probe import (
 )
 
 
-def _fake_extractor(pdf_path, ocr_page, start_page, end_page, force_ocr, source_language):
+def _fake_extractor(
+    pdf_path, ocr_page, start_page, end_page, force_ocr, source_language
+):
     assert ocr_page is None
     assert force_ocr is False
     assert source_language == "es"
@@ -25,12 +27,17 @@ def _fake_extractor(pdf_path, ocr_page, start_page, end_page, force_ocr, source_
     )
 
 
-def _mixed_quality_extractor(pdf_path, ocr_page, start_page, end_page, force_ocr, source_language):
+def _mixed_quality_extractor(
+    pdf_path, ocr_page, start_page, end_page, force_ocr, source_language
+):
     assert ocr_page is None
     assert force_ocr is False
     assert source_language == "es"
     records = (
-        [{"reference_type": "spell", "name": "Luz"}, {"reference_type": "spell", "name": ""}]
+        [
+            {"reference_type": "spell", "name": "Luz"},
+            {"reference_type": "spell", "name": ""},
+        ]
         if start_page == 1
         else []
     )
@@ -96,13 +103,19 @@ def test_window_probe_reports_each_window_and_aggregate_without_side_effects(tmp
     assert result["named_signal_windows"] == 2
     assert result["empty_windows"] == 0
     assert result["record_types_total"] == {"class": 2, "class_feature": 2}
-    assert [(item["window_index"], item["start_page"], item["end_page"]) for item in result["windows"]] == [
+    assert [
+        (item["window_index"], item["start_page"], item["end_page"])
+        for item in result["windows"]
+    ] == [
         (1, 1, 3),
         (2, 20, 22),
     ]
     assert all(item["records_detected"] == 2 for item in result["windows"])
     assert all(item["named_records_detected"] == 2 for item in result["windows"])
-    assert all(item["record_types"] == {"class": 1, "class_feature": 1} for item in result["windows"])
+    assert all(
+        item["record_types"] == {"class": 1, "class_feature": 1}
+        for item in result["windows"]
+    )
     assert result["ocr_used"] is False
     assert result["translation_used"] is False
     assert result["database_write_used"] is False

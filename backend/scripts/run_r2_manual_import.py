@@ -23,16 +23,18 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 
-SPELL_CARD_SOURCES = frozenset({
-    "Bardo .pdf",
-    "Chierico.pdf",
-    "Druido .pdf",
-    "Mago .pdf",
-    "Paladino .pdf",
-    "Ranger .pdf",
-    "Stregone .pdf",
-    "Warlock .pdf",
-})
+SPELL_CARD_SOURCES = frozenset(
+    {
+        "Bardo .pdf",
+        "Chierico.pdf",
+        "Druido .pdf",
+        "Mago .pdf",
+        "Paladino .pdf",
+        "Ranger .pdf",
+        "Stregone .pdf",
+        "Warlock .pdf",
+    }
+)
 SPELL_CARD_PARSER_REVISION = "r2-spell-card-ocr-v2"
 
 
@@ -86,7 +88,8 @@ def _worker_openai_ocr(page, page_number: int, source_language: str = "") -> str
     image_b64 = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
     language_hint = (
         f" La lingua dichiarata della fonte è {source_language}."
-        if source_language else ""
+        if source_language
+        else ""
     )
     prompt = (
         "Trascrivi fedelmente la pagina nella sua lingua originale; non tradurre."
@@ -114,16 +117,21 @@ def _worker_openai_ocr(page, page_number: int, source_language: str = "") -> str
             },
             json={
                 "model": library.OPENAI_OCR_MODEL,
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {
-                            "url": f"data:image/png;base64,{image_b64}",
-                            "detail": "high",
-                        }},
-                    ],
-                }],
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{image_b64}",
+                                    "detail": "high",
+                                },
+                            },
+                        ],
+                    }
+                ],
                 "temperature": 0,
                 "max_tokens": 4096,
             },
@@ -282,7 +290,9 @@ async def _cleanup_stale_ocr_artifacts(worker, requested_filename: str) -> int:
     return removed
 
 
-async def _reset_false_success_for_explicit_retry(worker, requested_filename: str) -> None:
+async def _reset_false_success_for_explicit_retry(
+    worker, requested_filename: str
+) -> None:
     """Restart a completed job when its source no longer has durable provenance."""
     from core.db import db
 
@@ -302,20 +312,22 @@ async def _reset_false_success_for_explicit_retry(worker, requested_filename: st
 
     await db.private_manual_import_jobs.update_one(
         {"id": job["id"], "user_id": user_id, "status": "completed"},
-        {"$set": {
-            "status": "queued",
-            "current_page": 1,
-            "attempt_count": 0,
-            "last_error": "",
-            "pages_needing_ocr": [],
-            "records_imported": 0,
-            "records_updated": 0,
-            "records_flagged": 0,
-            "records_skipped": 0,
-            "lease_id": "",
-            "lease_expires_at": 0,
-            "completed_at": None,
-        }},
+        {
+            "$set": {
+                "status": "queued",
+                "current_page": 1,
+                "attempt_count": 0,
+                "last_error": "",
+                "pages_needing_ocr": [],
+                "records_imported": 0,
+                "records_updated": 0,
+                "records_flagged": 0,
+                "records_skipped": 0,
+                "lease_id": "",
+                "lease_expires_at": 0,
+                "completed_at": None,
+            }
+        },
     )
     print(f"Resetting completed job without durable records for {filename}.")
 

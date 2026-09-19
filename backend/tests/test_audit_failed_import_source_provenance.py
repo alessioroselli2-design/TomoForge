@@ -81,7 +81,10 @@ def test_unresolved_and_duplicate_target_do_not_become_safe_match():
 
 
 def test_declared_ocr_gap_pages_are_normalized_without_authorizing_ocr():
-    assert _declared_ocr_gap_pages({"pages_needing_ocr": [3, "2", 3, -1, None]}) == [2, 3]
+    assert _declared_ocr_gap_pages({"pages_needing_ocr": [3, "2", 3, -1, None]}) == [
+        2,
+        3,
+    ]
     assert _declared_ocr_gap_pages({"pages_needing_ocr": "1,2"}) == []
 
     result = summarize_failed_import_source_provenance(
@@ -146,9 +149,7 @@ def test_upload_and_copy_suffixes_form_diagnostic_alias_keys():
     assert _normalized_filename_alias_key("Bardo .pdf") == "bardo"
     assert _normalized_filename_alias_key(
         "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
-    ) == _normalized_filename_alias_key(
-        "731764731-D-D-Manual-Del-Jugador-5e(1).pdf"
-    )
+    ) == _normalized_filename_alias_key("731764731-D-D-Manual-Del-Jugador-5e(1).pdf")
 
 
 def test_alias_candidates_with_hash_mismatch_are_review_only():

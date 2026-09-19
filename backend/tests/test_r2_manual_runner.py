@@ -25,7 +25,9 @@ def test_spanish_text_manual_keeps_no_ocr_policy(monkeypatch):
 
     runner.enable_worker_ocr_fallback()
 
-    assert library.manual_requires_ocr("731764731-D-D-Manual-Del-Jugador-5e.pdf") is False
+    assert (
+        library.manual_requires_ocr("731764731-D-D-Manual-Del-Jugador-5e.pdf") is False
+    )
 
 
 def test_registry_required_ocr_stays_enabled(monkeypatch):

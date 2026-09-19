@@ -187,8 +187,14 @@ def test_speed_multi_token_aggregate_counts_all_three_new_signals_privately():
 
     result = speed_extra_token_agreement_counts(primary, comparison)
 
-    assert result["monster_containment_velocita_residual_extra_alpha_tokens_exactly_2"] == 1
-    assert result["monster_containment_velocita_residual_extra_alpha_tokens_3_or_more"] == 1
+    assert (
+        result["monster_containment_velocita_residual_extra_alpha_tokens_exactly_2"]
+        == 1
+    )
+    assert (
+        result["monster_containment_velocita_residual_extra_alpha_tokens_3_or_more"]
+        == 1
+    )
     assert result["monster_containment_velocita_residual_duplicate_ambiguous"] == 1
     assert all(isinstance(value, int) for value in result.values())
     serialized = str(result)

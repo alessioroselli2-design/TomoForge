@@ -19,7 +19,11 @@ def test_schema_cache_source_linkage_is_aggregate_and_read_only():
             "source_fingerprint": "missing-fingerprint",
             "records_flagged": 2,
         },
-        {"status": "completed", "source_fingerprint": private_fingerprint, "records_imported": 9},
+        {
+            "status": "completed",
+            "source_fingerprint": private_fingerprint,
+            "records_imported": 9,
+        },
     ]
     sources = [
         {
@@ -60,7 +64,13 @@ def test_schema_cache_source_linkage_requires_record_activity():
                 "records_imported": 0,
             }
         ],
-        [{"physical_sha256": "sha-a", "logical_source_id": "logical-a", "source_status": "active"}],
+        [
+            {
+                "physical_sha256": "sha-a",
+                "logical_source_id": "logical-a",
+                "source_status": "active",
+            }
+        ],
     )
 
     assert result["failed_schema_cache_jobs"] == 1

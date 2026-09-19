@@ -31,17 +31,16 @@ def summarize_failed_import_record_footprint(
         if str(job.get("status") or "unknown") == "failed"
         and str(job.get("filename") or "").strip()
     ]
-    failed_filenames = {
-        str(job.get("filename") or "").strip()
-        for job in failed_jobs
-    }
+    failed_filenames = {str(job.get("filename") or "").strip() for job in failed_jobs}
 
     matched_records = [
         record
         for record in records
         if str(record.get("source_key") or "").strip() in failed_filenames
     ]
-    review = Counter(str(row.get("review_status") or "unknown") for row in matched_records)
+    review = Counter(
+        str(row.get("review_status") or "unknown") for row in matched_records
+    )
     linked_jobs = {
         str(record.get("source_key") or "").strip()
         for record in matched_records
@@ -90,7 +89,11 @@ async def _run() -> int:
         fetch_all(db.private_manual_import_jobs),
         fetch_all(db.private_reference_records),
     )
-    print(json.dumps(summarize_failed_import_record_footprint(jobs, records), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_failed_import_record_footprint(jobs, records), sort_keys=True
+        )
+    )
     return 0
 
 

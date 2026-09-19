@@ -8,10 +8,15 @@ from scripts.validate_logical_source_backfill_plan import (
 def _inputs():
     records = [
         {"id": "r-unique", "source_refs": [{"filename": "Bardo__1787233073462.pdf"}]},
-        {"id": "r-ambiguous", "source_refs": [{"filename": "shared__1787233073462.pdf"}]},
+        {
+            "id": "r-ambiguous",
+            "source_refs": [{"filename": "shared__1787233073462.pdf"}],
+        },
         {
             "id": "r-existing",
-            "source_refs": [{"logical_source_id": "already-set", "filename": "Bardo.pdf"}],
+            "source_refs": [
+                {"logical_source_id": "already-set", "filename": "Bardo.pdf"}
+            ],
         },
     ]
     sources = [
@@ -94,7 +99,10 @@ def test_preflight_rejects_stale_or_tampered_candidate_set():
     )
 
     assert result["valid"] is False
-    assert "saved candidate set is stale or differs from current live inputs" in result["errors"]
+    assert (
+        "saved candidate set is stale or differs from current live inputs"
+        in result["errors"]
+    )
     assert result["writes_performed"] == 0
 
 
@@ -138,7 +146,9 @@ def test_preflight_rejects_mismatched_pinned_fingerprint():
     )
 
     assert result["valid"] is False
-    assert "fresh candidate fingerprint does not match pinned SHA-256" in result["errors"]
+    assert (
+        "fresh candidate fingerprint does not match pinned SHA-256" in result["errors"]
+    )
 
 
 def test_preflight_rejects_invalid_pinned_fingerprint():
@@ -191,7 +201,10 @@ def test_preflight_rejects_manifest_ambiguous_count_drift():
     result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
 
     assert result["valid"] is False
-    assert "fresh ambiguous exclusion count does not match approval manifest" in result["errors"]
+    assert (
+        "fresh ambiguous exclusion count does not match approval manifest"
+        in result["errors"]
+    )
 
 
 def test_preflight_rejects_manifest_fingerprint_drift():
@@ -203,7 +216,10 @@ def test_preflight_rejects_manifest_fingerprint_drift():
     result = validate_backfill_plan(saved, records, sources, approval_manifest=approval)
 
     assert result["valid"] is False
-    assert "fresh candidate fingerprint does not match approval manifest" in result["errors"]
+    assert (
+        "fresh candidate fingerprint does not match approval manifest"
+        in result["errors"]
+    )
 
 
 def test_preflight_rejects_manifest_contract_changes():

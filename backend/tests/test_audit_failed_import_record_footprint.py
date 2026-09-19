@@ -52,7 +52,11 @@ def test_only_unresolved_failed_job_ids_are_exposed_without_filenames():
     result = summarize_failed_import_record_footprint(
         [
             {"id": "linked-job", "status": "failed", "filename": "linked-private.pdf"},
-            {"id": "missing-job", "status": "failed", "filename": "missing-private.pdf"},
+            {
+                "id": "missing-job",
+                "status": "failed",
+                "filename": "missing-private.pdf",
+            },
         ],
         [{"source_key": "linked-private.pdf", "review_status": "verified"}],
     )

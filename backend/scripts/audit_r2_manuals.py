@@ -25,7 +25,9 @@ def main() -> int:
         aws_access_key_id=required_env("R2_ACCESS_KEY_ID"),
         aws_secret_access_key=required_env("R2_SECRET_ACCESS_KEY"),
         region_name="auto",
-        config=Config(signature_version="s3v4", retries={"max_attempts": 8, "mode": "standard"}),
+        config=Config(
+            signature_version="s3v4", retries={"max_attempts": 8, "mode": "standard"}
+        ),
     )
 
     rows = []

@@ -48,7 +48,9 @@ def _failure_class(job: dict) -> str:
 
 
 def _is_known_provenance_failure(job: dict) -> bool:
-    return _is_manual_source_duplicate_failure(job) or _is_manual_source_missing_failure(job)
+    return _is_manual_source_duplicate_failure(
+        job
+    ) or _is_manual_source_missing_failure(job)
 
 
 def summarize_failed_import_failure_classes(jobs: list[dict]) -> dict[str, Any]:
@@ -60,7 +62,9 @@ def summarize_failed_import_failure_classes(jobs: list[dict]) -> dict[str, Any]:
     return {
         "failed_jobs_total": len(failed),
         "failure_class_breakdown": dict(sorted(classes.items())),
-        "failed_jobs_with_record_activity": sum(_has_record_activity(job) for job in failed),
+        "failed_jobs_with_record_activity": sum(
+            _has_record_activity(job) for job in failed
+        ),
         "failed_jobs_zero_activity": len(zero_activity),
         "zero_activity_known_provenance_failures": sum(
             _is_known_provenance_failure(job) for job in zero_activity
@@ -69,7 +73,9 @@ def summarize_failed_import_failure_classes(jobs: list[dict]) -> dict[str, Any]:
             _failure_class(job) == "other" for job in zero_activity
         ),
         "failed_jobs_with_ocr_backlog": sum(_has_ocr_backlog(job) for job in failed),
-        "schema_cache_retry_candidates": sum(_is_schema_cache_retry_candidate(job) for job in failed),
+        "schema_cache_retry_candidates": sum(
+            _is_schema_cache_retry_candidate(job) for job in failed
+        ),
         "manual_source_missing_jobs": len(missing),
         "manual_source_missing_investigation_candidates": sum(
             _is_non_schema_investigation_candidate(job) for job in missing

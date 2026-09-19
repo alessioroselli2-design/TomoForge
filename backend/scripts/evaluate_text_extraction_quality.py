@@ -4,6 +4,7 @@
 This helper identifies obviously corrupted extracted text before parser/import work.
 It does not run OCR, mutate Supabase, retry imports, or authorize canonicalization.
 """
+
 from __future__ import annotations
 
 import json

@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("tomeforge")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -25,7 +27,12 @@ OPENAI_OCR_MODEL = os.getenv("OPENAI_OCR_MODEL", "gpt-4o")
 OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
 # Artwork cleanup is an optional, per-generation feature. Deployments can disable
 # it entirely with ARTWORK_CLEANUP_ENABLED=false to avoid the extra edit pass.
-ARTWORK_CLEANUP_ENABLED = os.getenv("ARTWORK_CLEANUP_ENABLED", "true").lower() not in {"0", "false", "no", "off"}
+ARTWORK_CLEANUP_ENABLED = os.getenv("ARTWORK_CLEANUP_ENABLED", "true").lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
 ARTWORK_CLEANUP_MODEL = os.getenv("ARTWORK_CLEANUP_MODEL", OPENAI_IMAGE_MODEL)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
@@ -106,33 +113,79 @@ REFERENCE_MANUAL_DISTINCT_CONTENT = {
         "Manuale_del_giocatore__1787259882002.pdf",
     ),
 }
-OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset({
-    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
-})
+OCR_ONLY_REFERENCE_MANUAL_FILENAMES = frozenset(
+    {
+        "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
+    }
+)
 OCR_REQUIRED_REFERENCE_PREFIXES = (
     "Manuale_del_giocatore",
     "Calderone-Omnicomprensivo",
 )
 MANUAL_COVERAGE_CATEGORIES = {
     "Manuale_del_giocatore__1787259882002.pdf": (
-        "class", "subclass", "class_feature", "ability",
-        "race", "subrace", "feat", "spell",
-        "weapon", "armor", "shield", "equipment", "tool", "other",
+        "class",
+        "subclass",
+        "class_feature",
+        "ability",
+        "race",
+        "subrace",
+        "feat",
+        "spell",
+        "weapon",
+        "armor",
+        "shield",
+        "equipment",
+        "tool",
+        "other",
     ),
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": (
-        "class", "subclass", "class_feature", "ability",
-        "race", "subrace", "feat", "spell",
-        "weapon", "armor", "shield", "equipment", "tool", "other",
+        "class",
+        "subclass",
+        "class_feature",
+        "ability",
+        "race",
+        "subrace",
+        "feat",
+        "spell",
+        "weapon",
+        "armor",
+        "shield",
+        "equipment",
+        "tool",
+        "other",
     ),
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf": (
-        "subclass", "class_feature", "ability", "feat", "spell", "magic_item", "other",
+        "subclass",
+        "class_feature",
+        "ability",
+        "feat",
+        "spell",
+        "magic_item",
+        "other",
     ),
     "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf": (
-        "subclass", "class_feature", "ability", "feat", "spell", "magic_item", "other",
+        "subclass",
+        "class_feature",
+        "ability",
+        "feat",
+        "spell",
+        "magic_item",
+        "other",
     ),
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf": (
-        "weapon", "armor", "shield", "equipment", "tool", "magic_item",
-        "vehicle", "ammunition", "mount", "trade_good", "service", "other",
+        "weapon",
+        "armor",
+        "shield",
+        "equipment",
+        "tool",
+        "magic_item",
+        "vehicle",
+        "ammunition",
+        "mount",
+        "trade_good",
+        "service",
+        "other",
     ),
     "847921086-Manuale-Dei-Mostri-5e_ok_1787286581630.pdf": ("monster", "other"),
 }
@@ -150,12 +203,20 @@ for _class_manual in (
     # "ability", or "other" depending on how cleanly the parser can classify each
     # block. Include all relevant types so the coverage panel reflects actual records.
     MANUAL_COVERAGE_CATEGORIES[_class_manual] = (
-        "class", "subclass", "class_feature", "ability", "spell", "other",
+        "class",
+        "subclass",
+        "class_feature",
+        "ability",
+        "spell",
+        "other",
     )
 
 MIME_TYPES = {
-    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
-    "gif": "image/gif", "webp": "image/webp",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif",
+    "webp": "image/webp",
 }
 
 TRANSLATION_PROCESSING_STATUS = "processing"
@@ -187,5 +248,8 @@ def configuration_status() -> dict:
 
 def require_jwt_secret() -> None:
     from fastapi import HTTPException
+
     if not JWT_SECRET:
-        raise HTTPException(status_code=503, detail="JWT_SECRET o SESSION_SECRET non configurato")
+        raise HTTPException(
+            status_code=503, detail="JWT_SECRET o SESSION_SECRET non configurato"
+        )

@@ -157,7 +157,9 @@ def summarize_failed_import_source_provenance(
         if duplicate_target:
             normalized_target = duplicate_target.casefold()
             target_alias_key = _normalized_filename_alias_key(duplicate_target)
-            target_alias_matches = by_alias_key.get(target_alias_key, []) if target_alias_key else []
+            target_alias_matches = (
+                by_alias_key.get(target_alias_key, []) if target_alias_key else []
+            )
             if by_filename.get(normalized_target):
                 duplicate_targets_found += 1
             elif len(target_alias_matches) == 1:

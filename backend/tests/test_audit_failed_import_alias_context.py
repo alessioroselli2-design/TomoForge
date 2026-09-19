@@ -1,4 +1,6 @@
-from scripts.audit_failed_import_alias_context import summarize_failed_import_alias_context
+from scripts.audit_failed_import_alias_context import (
+    summarize_failed_import_alias_context,
+)
 
 
 def test_alias_context_is_review_only_even_when_language_pages_and_activity_match():

@@ -24,11 +24,17 @@ REPO_ROOT = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from scripts.audit_manual_import_readiness import _has_record_activity, _is_schema_cache_failure, fetch_all
+from scripts.audit_manual_import_readiness import (
+    _has_record_activity,
+    _is_schema_cache_failure,
+    fetch_all,
+)
 from scripts.audit_schema_cache_logical_provenance import _normalized_source_name
 from scripts.audit_schema_cache_page_provenance import _page_number
 
-_PAGE_ARTIFACT_RE = re.compile(r"(?:page[-_.]?)(\d{1,5})(?:\.ocr)?\.(png|jpe?g|txt|json)$", re.IGNORECASE)
+_PAGE_ARTIFACT_RE = re.compile(
+    r"(?:page[-_.]?)(\d{1,5})(?:\.ocr)?\.(png|jpe?g|txt|json)$", re.IGNORECASE
+)
 
 
 def _artifact_page(path: Path) -> int | None:
@@ -46,7 +52,9 @@ def _is_explicit_reusable_ocr(path: Path) -> bool:
 
 def _artifact_source_key(path: Path) -> str:
     name = path.name
-    marker = re.search(r"(?:\.page-|\.page_|-page-|_page-)(\d{1,5})", name, re.IGNORECASE)
+    marker = re.search(
+        r"(?:\.page-|\.page_|-page-|_page-)(\d{1,5})", name, re.IGNORECASE
+    )
     if marker:
         name = name[: marker.start()]
     return _normalized_source_name(name)
@@ -56,7 +64,8 @@ def summarize_existing_ocr_artifacts(
     jobs: list[dict], records: list[dict], artifact_paths: list[Path]
 ) -> dict[str, Any]:
     targets = [
-        job for job in jobs
+        job
+        for job in jobs
         if str(job.get("status") or "") == "failed"
         and _is_schema_cache_failure(job)
         and _has_record_activity(job)
@@ -97,19 +106,23 @@ def summarize_existing_ocr_artifacts(
     for job in targets:
         key = _normalized_source_name(job.get("filename"))
         page_count = int(job["page_count"])
-        observed = {p for p in observed_by_source.get(key, set()) if 1 <= p <= page_count}
+        observed = {
+            p for p in observed_by_source.get(key, set()) if 1 <= p <= page_count
+        }
         missing = set(range(1, page_count + 1)) - observed
         preview_pages = previews_by_source.get(key, set()) & missing
         reusable_pages = reusable_by_source.get(key, set()) & missing
         unresolved_total += len(missing)
         preview_only_gap_pages += len(preview_pages - reusable_pages)
         reusable_ocr_gap_pages += len(reusable_pages)
-        per_job.append({
-            "filename": job.get("filename"),
-            "unresolved_pages": len(missing),
-            "preview_only_gap_pages": len(preview_pages - reusable_pages),
-            "explicit_reusable_ocr_gap_pages": len(reusable_pages),
-        })
+        per_job.append(
+            {
+                "filename": job.get("filename"),
+                "unresolved_pages": len(missing),
+                "preview_only_gap_pages": len(preview_pages - reusable_pages),
+                "explicit_reusable_ocr_gap_pages": len(reusable_pages),
+            }
+        )
 
     return {
         "schema_cache_failures_with_record_activity": len(targets),
@@ -129,12 +142,17 @@ def summarize_existing_ocr_artifacts(
 
 async def _run() -> int:
     from core.db import db
+
     if not db.configured:
         raise RuntimeError("Supabase is not configured")
     jobs = await fetch_all(db.private_manual_import_jobs)
     records = await fetch_all(db.private_reference_records)
     artifact_root = REPO_ROOT / ".agents" / "outputs"
-    artifact_paths = [p for p in artifact_root.rglob("*") if p.is_file()] if artifact_root.exists() else []
+    artifact_paths = (
+        [p for p in artifact_root.rglob("*") if p.is_file()]
+        if artifact_root.exists()
+        else []
+    )
     result = summarize_existing_ocr_artifacts(jobs, records, artifact_paths)
     print(json.dumps(result, sort_keys=True))
     return 0

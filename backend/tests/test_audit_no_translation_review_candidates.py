@@ -68,15 +68,36 @@ def test_summarize_candidates_splits_status_and_type_without_content():
 
 def test_summarize_candidates_orders_types_deterministically():
     records = [
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "spell"},
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required", "reference_type": "weapon"},
-        {"review_status": "needs_review", "source_language": "it", "translation_status": "not_required"},
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "spell",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "weapon",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+            "reference_type": "weapon",
+        },
+        {
+            "review_status": "needs_review",
+            "source_language": "it",
+            "translation_status": "not_required",
+        },
     ]
 
     result = summarize_candidates(records)
 
-    assert list(result["candidate_by_review_status_and_reference_type"]["needs_review"].items()) == [
+    assert list(
+        result["candidate_by_review_status_and_reference_type"]["needs_review"].items()
+    ) == [
         ("weapon", 2),
         ("spell", 1),
         ("unknown", 1),

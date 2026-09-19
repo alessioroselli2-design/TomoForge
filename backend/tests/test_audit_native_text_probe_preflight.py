@@ -1,4 +1,6 @@
-from scripts.audit_native_text_probe_preflight import summarize_native_text_probe_preflight
+from scripts.audit_native_text_probe_preflight import (
+    summarize_native_text_probe_preflight,
+)
 
 
 def _source(

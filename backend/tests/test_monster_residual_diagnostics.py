@@ -151,7 +151,9 @@ def test_residual_shape_known_manual_label_requires_all_extra_tokens_to_be_known
     result = residual_shape_core_field_matches(left, right)
 
     assert result["punti_ferita_residual_extra_alpha_tokens"] is True
-    assert result["punti_ferita_residual_known_manual_label_extra_alpha_tokens"] is False
+    assert (
+        result["punti_ferita_residual_known_manual_label_extra_alpha_tokens"] is False
+    )
     assert result["velocita_residual_extra_alpha_tokens"] is True
     assert result["velocita_residual_known_manual_label_extra_alpha_tokens"] is False
 
@@ -236,13 +238,36 @@ def test_residual_shape_counts_only_same_page_containment_candidates():
 
     result = residual_shape_agreement_counts(primary, comparison)
 
-    assert result["monster_containment_classe_armatura_residual_non_alphanumeric_only_variation"] == 1
+    assert (
+        result[
+            "monster_containment_classe_armatura_residual_non_alphanumeric_only_variation"
+        ]
+        == 1
+    )
     assert result["monster_containment_punti_ferita_residual_extra_alpha_tokens"] == 1
-    assert result["monster_containment_punti_ferita_residual_known_manual_label_extra_alpha_tokens"] == 1
-    assert result["monster_containment_punti_ferita_residual_parenthetical_extra_alpha_tokens"] == 0
+    assert (
+        result[
+            "monster_containment_punti_ferita_residual_known_manual_label_extra_alpha_tokens"
+        ]
+        == 1
+    )
+    assert (
+        result[
+            "monster_containment_punti_ferita_residual_parenthetical_extra_alpha_tokens"
+        ]
+        == 0
+    )
     assert result["monster_containment_velocita_residual_extra_alpha_tokens"] == 1
-    assert result["monster_containment_velocita_residual_known_manual_label_extra_alpha_tokens"] == 1
-    assert result["monster_containment_velocita_residual_parenthetical_extra_alpha_tokens"] == 1
+    assert (
+        result[
+            "monster_containment_velocita_residual_known_manual_label_extra_alpha_tokens"
+        ]
+        == 1
+    )
+    assert (
+        result["monster_containment_velocita_residual_parenthetical_extra_alpha_tokens"]
+        == 1
+    )
     assert all(isinstance(value, int) for value in result.values())
     serialized = str(result)
     assert "mostro prova" not in serialized

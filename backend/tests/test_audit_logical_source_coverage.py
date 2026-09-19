@@ -18,7 +18,7 @@ class FakeCollection:
 
     async def to_list(self, limit, offset=0):
         self.offsets.append(offset)
-        return self.rows[offset:offset + limit]
+        return self.rows[offset : offset + limit]
 
 
 def test_fetch_all_reads_every_page_without_duplication():
@@ -32,9 +32,22 @@ def test_fetch_all_reads_every_page_without_duplication():
 
 def test_summarize_reports_aggregate_logical_source_coverage_only():
     records = [
-        {"source_refs": [{"logical_source_id": "source-alpha", "filename": "private-a.pdf"}]},
-        {"source_refs": [{"logical_source_id": "source-alpha"}, {"logical_source_id": "source-beta"}]},
-        {"source_refs": [{"logical_source_id": "source-missing", "text": "private source text"}]},
+        {
+            "source_refs": [
+                {"logical_source_id": "source-alpha", "filename": "private-a.pdf"}
+            ]
+        },
+        {
+            "source_refs": [
+                {"logical_source_id": "source-alpha"},
+                {"logical_source_id": "source-beta"},
+            ]
+        },
+        {
+            "source_refs": [
+                {"logical_source_id": "source-missing", "text": "private source text"}
+            ]
+        },
         {"source_refs": [{"filename": "legacy.pdf"}]},
         {"source_refs": None},
     ]
@@ -108,13 +121,15 @@ def test_summarize_classifies_legacy_filename_matches_without_exposing_names():
 
 
 def test_normalized_filename_matching_removes_only_deterministic_transport_noise():
-    assert _normalize_filename_key("Bardo__1787233073462.pdf") == _normalize_filename_key("Bardo .pdf")
+    assert _normalize_filename_key(
+        "Bardo__1787233073462.pdf"
+    ) == _normalize_filename_key("Bardo .pdf")
     assert _normalize_filename_key(
         "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf"
     ) == _normalize_filename_key("724962906-D-D-5e-Manuale-Del-Dungeon-Master.pdf")
-    assert _normalize_filename_key("Manuale_del_Giocatore__1787259882002.pdf") == _normalize_filename_key(
-        "Manuale del Giocatore (1).pdf"
-    )
+    assert _normalize_filename_key(
+        "Manuale_del_Giocatore__1787259882002.pdf"
+    ) == _normalize_filename_key("Manuale del Giocatore (1).pdf")
 
 
 def test_summarize_normalized_match_requires_one_logical_id_not_one_catalog_row():

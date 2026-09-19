@@ -52,7 +52,9 @@ def _review_queue_by_reference_type(records: list[dict]) -> dict[str, int]:
     return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
 
 
-def _review_queue_by_status_and_reference_type(records: list[dict]) -> dict[str, dict[str, int]]:
+def _review_queue_by_status_and_reference_type(
+    records: list[dict],
+) -> dict[str, dict[str, int]]:
     """Return unresolved counts split by review status and reference type."""
     queue: dict[str, Counter] = {}
     for row in records:
@@ -83,7 +85,9 @@ def _review_queue_by_language_translation_and_ai(records: list[dict]) -> dict[st
     return dict(sorted(queue.items(), key=lambda item: (-item[1], item[0])))
 
 
-def _no_translation_review_queue_by_reference_type(records: list[dict]) -> dict[str, int]:
+def _no_translation_review_queue_by_reference_type(
+    records: list[dict],
+) -> dict[str, int]:
     """Return unresolved Italian records that need no translation, grouped by type."""
     queue = Counter()
     for row in records:
@@ -105,16 +109,30 @@ def _aggregate_breakdown(rows: list[dict], field: str) -> dict[str, int]:
     return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
 
 
-def summarize_readiness(records: list[dict], sources: list[dict], canonical: list[dict]) -> dict:
+def summarize_readiness(
+    records: list[dict], sources: list[dict], canonical: list[dict]
+) -> dict:
     review = Counter(str(row.get("review_status") or "unknown") for row in records)
-    ai_review = Counter(str(row.get("ai_review_status") or "unknown") for row in records)
-    translation = Counter(str(row.get("translation_status") or "unknown") for row in records)
-    source_states = Counter(str(row.get("source_status") or "unknown") for row in sources)
+    ai_review = Counter(
+        str(row.get("ai_review_status") or "unknown") for row in records
+    )
+    translation = Counter(
+        str(row.get("translation_status") or "unknown") for row in records
+    )
+    source_states = Counter(
+        str(row.get("source_status") or "unknown") for row in sources
+    )
     text_modes = Counter(str(row.get("text_mode") or "unknown") for row in sources)
-    import_states = Counter(str(row.get("import_state") or "unknown") for row in sources)
-    canonical_states = Counter(str(row.get("verification_status") or "unknown") for row in canonical)
+    import_states = Counter(
+        str(row.get("import_state") or "unknown") for row in sources
+    )
+    canonical_states = Counter(
+        str(row.get("verification_status") or "unknown") for row in canonical
+    )
     unexpected_ai_review = {
-        status: count for status, count in ai_review.items() if status not in AI_REVIEW_STATUSES
+        status: count
+        for status, count in ai_review.items()
+        if status not in AI_REVIEW_STATUSES
     }
 
     total = len(records)
@@ -138,12 +156,20 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "records_ai_conflict": ai_review["conflict"],
         "records_ai_low_confidence": ai_review["low_confidence"],
         "review_queue_by_reference_type": _review_queue_by_reference_type(records),
-        "review_queue_by_status_and_reference_type": _review_queue_by_status_and_reference_type(records),
-        "review_queue_by_language_translation_and_ai": _review_queue_by_language_translation_and_ai(records),
-        "no_translation_review_queue_by_reference_type": _no_translation_review_queue_by_reference_type(records),
+        "review_queue_by_status_and_reference_type": _review_queue_by_status_and_reference_type(
+            records
+        ),
+        "review_queue_by_language_translation_and_ai": _review_queue_by_language_translation_and_ai(
+            records
+        ),
+        "no_translation_review_queue_by_reference_type": _no_translation_review_queue_by_reference_type(
+            records
+        ),
         "translation_failed": translation["failed"],
         "translation_translated": translation["translated"],
-        "records_linked_to_canonical": sum(1 for row in records if row.get("canonical_id")),
+        "records_linked_to_canonical": sum(
+            1 for row in records if row.get("canonical_id")
+        ),
         "verified_ratio": review_ratio,
         "sources_total": len(sources),
         "source_status_breakdown": _aggregate_breakdown(sources, "source_status"),
@@ -158,7 +184,9 @@ def summarize_readiness(records: list[dict], sources: list[dict], canonical: lis
         "sources_mixed": text_modes["mixed"],
         "sources_vision_required": text_modes["vision_required"],
         "canonical_total": len(canonical),
-        "canonical_status_breakdown": _aggregate_breakdown(canonical, "verification_status"),
+        "canonical_status_breakdown": _aggregate_breakdown(
+            canonical, "verification_status"
+        ),
         "canonical_verified": canonical_states["verified"],
         "canonical_ai_verified": canonical_states["ai_verified"],
         "canonical_manual_review": canonical_states["manual_review"],

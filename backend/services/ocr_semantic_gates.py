@@ -70,7 +70,7 @@ def _max_single_letter_token_run(name: Any) -> int:
     longest = 0
     current = 0
     for raw_token in text.split():
-        token = raw_token.strip(".,;!?()[]{}<>\"“”")
+        token = raw_token.strip('.,;!?()[]{}<>"“”')
         if len(token) == 1 and token.isalpha():
             current += 1
             longest = max(longest, current)

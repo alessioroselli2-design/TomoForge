@@ -5,15 +5,18 @@ from scripts.batch_import_native_text_from_r2 import (
 
 
 def test_accepts_active_italian_native_text_authority():
-    assert _eligibility_reason(
-        "Manuale del giocatore .pdf",
-        {
-            "language": "it",
-            "text_mode": "text",
-            "source_status": "active",
-            "source_role": "authority",
-        },
-    ) == ""
+    assert (
+        _eligibility_reason(
+            "Manuale del giocatore .pdf",
+            {
+                "language": "it",
+                "text_mode": "text",
+                "source_status": "active",
+                "source_role": "authority",
+            },
+        )
+        == ""
+    )
 
 
 def test_rejects_vision_sources():
@@ -71,24 +74,30 @@ def test_catalogue_gate_rejects_registry_drift_to_vision_required():
 
 
 def test_catalogue_gate_accepts_italian_text_segments():
-    assert _catalogue_gate_reason(
-        "Mostri.pdf",
-        [
-            {
-                "physical_filename": "Mostri.pdf",
-                "language": "it",
-                "source_status": "active",
-                "text_mode": "text",
-            },
-            {
-                "physical_filename": "Other.pdf",
-                "language": "en",
-                "source_status": "active",
-                "text_mode": "vision_required",
-            },
-        ],
-    ) == ""
+    assert (
+        _catalogue_gate_reason(
+            "Mostri.pdf",
+            [
+                {
+                    "physical_filename": "Mostri.pdf",
+                    "language": "it",
+                    "source_status": "active",
+                    "text_mode": "text",
+                },
+                {
+                    "physical_filename": "Other.pdf",
+                    "language": "en",
+                    "source_status": "active",
+                    "text_mode": "vision_required",
+                },
+            ],
+        )
+        == ""
+    )
 
 
 def test_catalogue_gate_fails_closed_when_source_is_missing():
-    assert _catalogue_gate_reason("Missing.pdf", []) == "source missing from durable catalogue"
+    assert (
+        _catalogue_gate_reason("Missing.pdf", [])
+        == "source missing from durable catalogue"
+    )

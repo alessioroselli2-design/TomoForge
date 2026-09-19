@@ -1,4 +1,6 @@
-from scripts.audit_schema_cache_partial_activity import summarize_schema_cache_partial_activity
+from scripts.audit_schema_cache_partial_activity import (
+    summarize_schema_cache_partial_activity,
+)
 
 
 def test_retried_schema_cache_failures_with_partial_activity_remain_review_only():

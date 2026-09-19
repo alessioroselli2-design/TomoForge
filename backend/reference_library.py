@@ -77,8 +77,10 @@ def _promote_ocr_english_monsters(
                         **record,
                         "id": candidate.get("id") or record.get("id"),
                         "reference_type": "monster",
-                        "description": candidate.get("description") or record.get("description", ""),
-                        "full_text": candidate.get("full_text") or record.get("full_text", ""),
+                        "description": candidate.get("description")
+                        or record.get("description", ""),
+                        "full_text": candidate.get("full_text")
+                        or record.get("full_text", ""),
                         "attributes": attributes,
                         "tags": sorted(set(record.get("tags") or []) | {"monster"}),
                         "review_flags": sorted(
@@ -103,7 +105,9 @@ def extract_reference_records(
     try:
         import pymupdf as fitz
     except ImportError as exc:  # pragma: no cover - deployment setup
-        raise RuntimeError("PyMuPDF non è installato: aggiungi PyMuPDF alle dipendenze backend.") from exc
+        raise RuntimeError(
+            "PyMuPDF non è installato: aggiungi PyMuPDF alle dipendenze backend."
+        ) from exc
 
     document = fitz.open(pdf_path)
     report = ReferenceImportReport(source_filename=pdf_path.name)
@@ -211,7 +215,9 @@ def extract_reference_records(
                 records = [apply_ocr_review_gates(record) for record in records]
 
             report.records.extend(records)
-            if source_language == "es" and not _is_sparse_index_page(lines, source_language):
+            if source_language == "es" and not _is_sparse_index_page(
+                lines, source_language
+            ):
                 parsed_names = {record["normalized_name"] for record in records}
                 for line in reversed(lines):
                     title = _title_from_line(line)

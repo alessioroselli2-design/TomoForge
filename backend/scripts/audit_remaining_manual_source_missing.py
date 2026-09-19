@@ -76,7 +76,9 @@ def summarize_remaining_manual_source_missing(
         filename = str(job.get("filename") or "").strip()
         fingerprint = _normalized_sha(job.get("source_fingerprint"))
         exact_sha_matches = sources_by_sha.get(fingerprint, []) if fingerprint else []
-        exact_filename_matches = sources_by_filename.get(filename.casefold(), []) if filename else []
+        exact_filename_matches = (
+            sources_by_filename.get(filename.casefold(), []) if filename else []
+        )
         alias = _normalized_filename_alias_key(filename)
         alias_matches = sources_by_alias.get(alias, []) if alias else []
         sufficient = bool(fingerprint) and len(exact_sha_matches) == 1
@@ -117,7 +119,9 @@ def summarize_remaining_manual_source_missing(
     return {
         "manual_source_missing_cases": len(cases),
         "classification_counts": {
-            classification: sum(case["classification"] == classification for case in cases)
+            classification: sum(
+                case["classification"] == classification for case in cases
+            )
             for classification in (AMBIGUOUS_REVIEW, PROVENANCE_MATCH_REVIEW)
             if any(case["classification"] == classification for case in cases)
         },
@@ -140,7 +144,11 @@ async def _run() -> int:
         fetch_all(db.private_manual_import_jobs),
         fetch_all(db.private_reference_sources),
     )
-    print(json.dumps(summarize_remaining_manual_source_missing(jobs, sources), sort_keys=True))
+    print(
+        json.dumps(
+            summarize_remaining_manual_source_missing(jobs, sources), sort_keys=True
+        )
+    )
     return 0
 
 

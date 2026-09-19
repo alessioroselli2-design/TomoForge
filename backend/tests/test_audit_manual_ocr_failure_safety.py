@@ -39,9 +39,11 @@ def test_ocr_failure_safety_reports_partial_activity_and_retries_without_leaking
 
 
 def test_pristine_ocr_failure_only_allows_read_only_investigation():
-    result = summarize_ocr_failure_safety([
-        {"status": "failed", "pages_needing_ocr": [4], "attempt_count": 1},
-    ])
+    result = summarize_ocr_failure_safety(
+        [
+            {"status": "failed", "pages_needing_ocr": [4], "attempt_count": 1},
+        ]
+    )
 
     assert result["failed_ocr_jobs_pristine_for_read_only_investigation"] == 1
     assert result["automatic_retry_authorized"] is False
@@ -49,11 +51,13 @@ def test_pristine_ocr_failure_only_allows_read_only_investigation():
 
 
 def test_non_failed_or_non_ocr_jobs_are_excluded():
-    result = summarize_ocr_failure_safety([
-        {"status": "completed", "pages_needing_ocr": [1]},
-        {"status": "failed", "pages_needing_ocr": []},
-        {"status": "failed", "pages_needing_ocr": None},
-    ])
+    result = summarize_ocr_failure_safety(
+        [
+            {"status": "completed", "pages_needing_ocr": [1]},
+            {"status": "failed", "pages_needing_ocr": []},
+            {"status": "failed", "pages_needing_ocr": None},
+        ]
+    )
 
     assert result["failed_jobs_with_ocr_backlog"] == 0
     assert result["failed_ocr_jobs_with_record_activity"] == 0

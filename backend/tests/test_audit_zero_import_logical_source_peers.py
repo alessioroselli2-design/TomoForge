@@ -115,7 +115,9 @@ def test_exact_sha_job_evidence_is_reported_but_does_not_authorize_import():
     )
 
     assert result["residual_sources_with_concordant_text_peer_exact_import_job"] == 1
-    assert result["residual_sources_with_concordant_text_peer_completed_import_job"] == 1
+    assert (
+        result["residual_sources_with_concordant_text_peer_completed_import_job"] == 1
+    )
     assert result["source_ids_with_concordant_text_peer_exact_import_job"] == ["vision"]
     assert result["concordant_text_peer_ids_with_exact_import_job_by_source"] == {
         "vision": ["text"]

@@ -48,7 +48,10 @@ from scripts.pilot_local_ocr_from_r2 import (
     _sha256_file,
 )
 from services.monster_name_diagnostics import compact_name_containment_match
-from services.monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
+from services.monster_statblock_ocr import (
+    agreed_monster_records,
+    parse_monster_statblocks,
+)
 from services.ocr_semantic_gates import (
     CA_FORMAT_ERROR_FLAG,
     CA_OUT_OF_BOUNDS_FLAG,
@@ -76,68 +79,244 @@ CRITICAL_GATE_FLAGS = {
 
 EXPECTED_HEALTHY22_COUNT = 22
 EXPECTED_HEALTHY22_IDS_MD5 = "3c1f0be4ba3b7429694fe1a797c50870"
-HEALTHY22_CONFIRMATION_TOKEN = (
-    "REPAIR-HEALTHY22-22-3c1f0be4ba3b7429694fe1a797c50870"
-)
+HEALTHY22_CONFIRMATION_TOKEN = "REPAIR-HEALTHY22-22-3c1f0be4ba3b7429694fe1a797c50870"
 HEALTHY22_TARGETS: tuple[dict[str, str], ...] = (
-    {"id": "ref_09eb88310e015ab6aa41d9dc35874f48", "name": "Grung Guerriero D'Élite", "source_text_checksum": "3b83895b29020edb44eee6a37161661d6fb2833041b5e4b46efea0e66f565790"},
-    {"id": "ref_13c451b5c15a5014a05870c538c1027f", "name": "Abishai Nero", "source_text_checksum": "8b0f24b28b6b5c134abd1f043d4949d926ceb7dce9ce41f895f7da1ad47e33e0"},
-    {"id": "ref_1f9f9e07e45c598aabfbf96b74f6da5c", "name": "Supremo", "source_text_checksum": "d4c1ff1ebf2e2517e5ffb03059cb0d0582a52a5e0a1e54d7ba82fbf302b0daf7"},
-    {"id": "ref_4f37ea01e1385ebaa14bd94e9927c3fb", "name": "Di Tenebre", "source_text_checksum": "a5fe712f86535281be78a8fdc54a7cf3cd5b4581b7a2fd56ea36bcb44b9fc9b4"},
-    {"id": "ref_4fc3bf9cf15f5e109f9a305789da3396", "name": "Di Bronzo", "source_text_checksum": "ff8f58d6047f2fd38b18326e414e9120cdafdc7dd48458813c2fb4b0331abd73"},
-    {"id": "ref_774152a7b21953f99d394f65a852c8ca", "name": "Abishai Bianco", "source_text_checksum": "53d7c69d77be68865f9c6db8fe6ad6d95094c2d9209a93841c299c9eceda30e1"},
-    {"id": "ref_7b77784c85825bfdbf0ee87caa77685c", "name": "Abishai Verde", "source_text_checksum": "47127852a9f847f7b40eed01b98d3501f0d12ff16162716e6e02d70507ac5f31"},
-    {"id": "ref_86e7c81f54295e38bf97d70b8dd37f74", "name": "Idroloth", "source_text_checksum": "761338350331d83b7710b3fbc10812827dfb2480e2227b97b24edf9af586cb42"},
-    {"id": "ref_872a575e21a65e0e9ef677227c7aee61", "name": "Petron", "source_text_checksum": "53a51b79e011cab1bf2a33bcfeb417f63da9f000a848546efaf3593b86e6cd23"},
-    {"id": "ref_8be52d9c63b0507fb8a1ee943dfef4a7", "name": "Predatore D'Acciaio", "source_text_checksum": "dbb31095d0be61ee7176b349b0049c58fa2c2886a4e6f92bd7944ba8d2301d73"},
-    {"id": "ref_92e3b080e4fe5ba58c7bf439251876a2", "name": "Mente", "source_text_checksum": "4ea538392992e57c9dc0224f46f40b51aaf78ebe1a029f67bfbe48b28f893b5b"},
-    {"id": "ref_95407fdd26ae57e88fc3943545bd5cc4", "name": "Mago Trasmutatore", "source_text_checksum": "38c12e6bac483312455092a88e43c99107ac8eef1bb57c566e2957b7380cb862"},
-    {"id": "ref_9675b27dfcf2508895f60fa16f372c25", "name": "Graz'Zt", "source_text_checksum": "09ab11db46773be1ea31bfd4e74bd90a2a9f79fcd0443e1f6cd6ef9afe66ffbe"},
-    {"id": "ref_a2996e4f64235368b2f419b83e1a1aa3", "name": "Coboldo Stregone A Scaglie", "source_text_checksum": "f91892a56c6554a856e1dc621f8e1960c744220fd2430a0c9b73190981380bfb"},
-    {"id": "ref_ab32494230d3599c84042660933cecf1", "name": "Dell'Ombra", "source_text_checksum": "b264b48ea1969c59a59bf4147a8a92d7dfc3dd64c534f04dd1095a30d865e1f6"},
-    {"id": "ref_abaf4a8fe2395260991a96729a200351", "name": "Cacciatore Di Baphomet", "source_text_checksum": "94e2b86aa7bbd78a46dc484cf7e9b36b4290e38afea7d7ab7a8ac7dd152e93d1"},
-    {"id": "ref_bb4edf45dab45e2a849aead637d922f7", "name": "Duergar Kavalracni", "source_text_checksum": "4c46e8046628ec6513bd94ce6e39db47b8785b3aebf8fc9af84dcb8378e9752a"},
-    {"id": "ref_e0ed42b772a1564d8208dbee3557dae2", "name": "Mirmidone Elementale D'Aria", "source_text_checksum": "6a066bac120437f27ae5e6552ea6226a796e9dd8f9741f11f45b181a889581c3"},
-    {"id": "ref_e35ab09f132e526292e86469507b55b0", "name": "Di Quercia", "source_text_checksum": "6b4bebe3fbc20186debbbc7cda213ef1754a05175af27d6e704f1f32304fe5f1"},
-    {"id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a", "name": "Githyanki Kith'Rak", "source_text_checksum": "15154d968982915f1aa1342e7f53ed67bd707e9c8c110b38dadfd64874217fbb"},
-    {"id": "ref_f42275a1fc7956a88a2449eb3fc6d22d", "name": "Dell'Oscurità", "source_text_checksum": "933e922d521771cf049231668f6d4264875f3fba6e7de7110159087e17bc19f5"},
-    {"id": "ref_fc9b6c580dc85c0a9ca6ec918192c216", "name": "Statua Sacra", "source_text_checksum": "194a9e65755a7efab06c3192afa0a1b606032a676a6fda9e495ab072d5304be2"},
+    {
+        "id": "ref_09eb88310e015ab6aa41d9dc35874f48",
+        "name": "Grung Guerriero D'Élite",
+        "source_text_checksum": "3b83895b29020edb44eee6a37161661d6fb2833041b5e4b46efea0e66f565790",
+    },
+    {
+        "id": "ref_13c451b5c15a5014a05870c538c1027f",
+        "name": "Abishai Nero",
+        "source_text_checksum": "8b0f24b28b6b5c134abd1f043d4949d926ceb7dce9ce41f895f7da1ad47e33e0",
+    },
+    {
+        "id": "ref_1f9f9e07e45c598aabfbf96b74f6da5c",
+        "name": "Supremo",
+        "source_text_checksum": "d4c1ff1ebf2e2517e5ffb03059cb0d0582a52a5e0a1e54d7ba82fbf302b0daf7",
+    },
+    {
+        "id": "ref_4f37ea01e1385ebaa14bd94e9927c3fb",
+        "name": "Di Tenebre",
+        "source_text_checksum": "a5fe712f86535281be78a8fdc54a7cf3cd5b4581b7a2fd56ea36bcb44b9fc9b4",
+    },
+    {
+        "id": "ref_4fc3bf9cf15f5e109f9a305789da3396",
+        "name": "Di Bronzo",
+        "source_text_checksum": "ff8f58d6047f2fd38b18326e414e9120cdafdc7dd48458813c2fb4b0331abd73",
+    },
+    {
+        "id": "ref_774152a7b21953f99d394f65a852c8ca",
+        "name": "Abishai Bianco",
+        "source_text_checksum": "53d7c69d77be68865f9c6db8fe6ad6d95094c2d9209a93841c299c9eceda30e1",
+    },
+    {
+        "id": "ref_7b77784c85825bfdbf0ee87caa77685c",
+        "name": "Abishai Verde",
+        "source_text_checksum": "47127852a9f847f7b40eed01b98d3501f0d12ff16162716e6e02d70507ac5f31",
+    },
+    {
+        "id": "ref_86e7c81f54295e38bf97d70b8dd37f74",
+        "name": "Idroloth",
+        "source_text_checksum": "761338350331d83b7710b3fbc10812827dfb2480e2227b97b24edf9af586cb42",
+    },
+    {
+        "id": "ref_872a575e21a65e0e9ef677227c7aee61",
+        "name": "Petron",
+        "source_text_checksum": "53a51b79e011cab1bf2a33bcfeb417f63da9f000a848546efaf3593b86e6cd23",
+    },
+    {
+        "id": "ref_8be52d9c63b0507fb8a1ee943dfef4a7",
+        "name": "Predatore D'Acciaio",
+        "source_text_checksum": "dbb31095d0be61ee7176b349b0049c58fa2c2886a4e6f92bd7944ba8d2301d73",
+    },
+    {
+        "id": "ref_92e3b080e4fe5ba58c7bf439251876a2",
+        "name": "Mente",
+        "source_text_checksum": "4ea538392992e57c9dc0224f46f40b51aaf78ebe1a029f67bfbe48b28f893b5b",
+    },
+    {
+        "id": "ref_95407fdd26ae57e88fc3943545bd5cc4",
+        "name": "Mago Trasmutatore",
+        "source_text_checksum": "38c12e6bac483312455092a88e43c99107ac8eef1bb57c566e2957b7380cb862",
+    },
+    {
+        "id": "ref_9675b27dfcf2508895f60fa16f372c25",
+        "name": "Graz'Zt",
+        "source_text_checksum": "09ab11db46773be1ea31bfd4e74bd90a2a9f79fcd0443e1f6cd6ef9afe66ffbe",
+    },
+    {
+        "id": "ref_a2996e4f64235368b2f419b83e1a1aa3",
+        "name": "Coboldo Stregone A Scaglie",
+        "source_text_checksum": "f91892a56c6554a856e1dc621f8e1960c744220fd2430a0c9b73190981380bfb",
+    },
+    {
+        "id": "ref_ab32494230d3599c84042660933cecf1",
+        "name": "Dell'Ombra",
+        "source_text_checksum": "b264b48ea1969c59a59bf4147a8a92d7dfc3dd64c534f04dd1095a30d865e1f6",
+    },
+    {
+        "id": "ref_abaf4a8fe2395260991a96729a200351",
+        "name": "Cacciatore Di Baphomet",
+        "source_text_checksum": "94e2b86aa7bbd78a46dc484cf7e9b36b4290e38afea7d7ab7a8ac7dd152e93d1",
+    },
+    {
+        "id": "ref_bb4edf45dab45e2a849aead637d922f7",
+        "name": "Duergar Kavalracni",
+        "source_text_checksum": "4c46e8046628ec6513bd94ce6e39db47b8785b3aebf8fc9af84dcb8378e9752a",
+    },
+    {
+        "id": "ref_e0ed42b772a1564d8208dbee3557dae2",
+        "name": "Mirmidone Elementale D'Aria",
+        "source_text_checksum": "6a066bac120437f27ae5e6552ea6226a796e9dd8f9741f11f45b181a889581c3",
+    },
+    {
+        "id": "ref_e35ab09f132e526292e86469507b55b0",
+        "name": "Di Quercia",
+        "source_text_checksum": "6b4bebe3fbc20186debbbc7cda213ef1754a05175af27d6e704f1f32304fe5f1",
+    },
+    {
+        "id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a",
+        "name": "Githyanki Kith'Rak",
+        "source_text_checksum": "15154d968982915f1aa1342e7f53ed67bd707e9c8c110b38dadfd64874217fbb",
+    },
+    {
+        "id": "ref_f42275a1fc7956a88a2449eb3fc6d22d",
+        "name": "Dell'Oscurità",
+        "source_text_checksum": "933e922d521771cf049231668f6d4264875f3fba6e7de7110159087e17bc19f5",
+    },
+    {
+        "id": "ref_fc9b6c580dc85c0a9ca6ec918192c216",
+        "name": "Statua Sacra",
+        "source_text_checksum": "194a9e65755a7efab06c3192afa0a1b606032a676a6fda9e495ab072d5304be2",
+    },
 )
 
 EXPECTED_BIGBY19_COUNT = 19
 EXPECTED_BIGBY19_IDS_MD5 = "16bfa1dc27d5d580b5c2703b5d7f1bf9"
 BIGBY19_TARGETS: tuple[dict[str, str], ...] = (
-    {"id": "ref_c106f9a6c3115dbf8578f832b04e3a3a", "name": "Altisauro", "source_text_checksum": "9680a14028c359d550587f69d890881a64731f0b51e30941476ff5e995debf2e"},
-    {"id": "ref_28900cffd313554b81303ff3ce407cc1", "name": "Ammantato", "source_text_checksum": "b50cc4278a7fdd606f50a20f5b6f37d2fe4ce354094c8e2d60ffb73bd4e1e0e0"},
-    {"id": "ref_5200eb51f6f555d5a52800dc3cfef0c4", "name": "Araldo Delle Tempeste", "source_text_checksum": "e64fd24af1656e2725f0ed425236226685a88d5dcc4df0a20ede61c7cb28279f"},
-    {"id": "ref_e42d82c62c7b5bdba13c3c73663966ff", "name": "Cerato Po", "source_text_checksum": "a9365115d6e07317f75a602c6fcaea2d92e497e5c7c0a15cc8f273f452e0f2c3"},
-    {"id": "ref_c2a7d3e06e52569e851f737c33260f9d", "name": "Colline", "source_text_checksum": "e66ab0e6fec743bc407b15e32a7d554927182e986521d5b4b09f274dade5c61f"},
-    {"id": "ref_42d5121498575f11a310f549f441f4d7", "name": "Colosso Di Carne", "source_text_checksum": "827fb11acf989da9b32881d1ed85b4fcfd2570e8da0d72f70d6fede7e46d98a9"},
-    {"id": "ref_83a6b991bfec5efdb2dda4da60d408bb", "name": "Colosso Runico", "source_text_checksum": "f1a8cbfb271853c0ec69468baa007afcabd94fe2bc0f5f68575028134c4494b5"},
-    {"id": "ref_9ac0de67090652bdbe5e7fd1e01d00cb", "name": "Granchio Delle Tempeste", "source_text_checksum": "864505c5fc606dd81383ea6eae6395146e6ac5c9f94ca9ca41130acb2eaea9d0"},
-    {"id": "ref_6d3eaf35463d556f961bbb7baa8d2b70", "name": "Ììtanoronte", "source_text_checksum": "a89571d106cf80b7d951673196b67f4929c609da73318cdae7c47ea64c193d5c"},
-    {"id": "ref_c5f631a36b5f51dc9123a728f65c2ec9", "name": "Linguarupestre", "source_text_checksum": "9aee292abcf550f1a6e1abd97f366c0eaa793ee8b91b576132def21910e5c05f"},
-    {"id": "ref_e965d3715ce456e1967dfdae85d0cdc3", "name": "Malvagia", "source_text_checksum": "aadc43f3446180bc087dbb0372b931d0ce9c7ea104edfa014ded112d89e263cc"},
-    {"id": "ref_24fdfda426f35dc2b05cfdd7e17248d9", "name": "Malvagio", "source_text_checksum": "9e1b4b12e262e78a4fa258bd49be6a910ec257a8e6674499dbda98f0370d4b3b"},
-    {"id": "ref_9b3fc6257b9f52819f603a4458318743", "name": "Mietitore", "source_text_checksum": "0417021c265927527cd35f5f88fd3e85a8fc03e3855a20e938aed407eb0ceaa1"},
-    {"id": "ref_a4ca7d65762650dc8e24dcbde06a6342", "name": "Modellaghiaccio", "source_text_checksum": "0980bdaf9d426461e5666e89042b035985c551f66219878446fd7ca6621f0d4b"},
-    {"id": "ref_1535557d71cd52849aba54a8418fbb2e", "name": "Pietre", "source_text_checksum": "351921045f55fdbc063e9e3cc7eeb315b908e7aba9e0bdafb93706abc56587ef"},
-    {"id": "ref_77ef6b47608e5575b9723e8d11de2011", "name": "Regi Sauro", "source_text_checksum": "d30260741443c7f8d55c21df7cb772b46f4753f2a16da0b54816630bd1b676be"},
-    {"id": "ref_8b550003f8045cc29a5edcfe9a6bce3b", "name": "Spirito Delle Tempeste", "source_text_checksum": "e28beb1d2d7a863ee680be953c36205b92fca6af2a24f77decc90c5988158399"},
-    {"id": "ref_6b5c8da8abbf545e9f2ea14f88155b78", "name": "T'Erra Malvagia", "source_text_checksum": "6c01eae905b17ddbe67d9854820a8b6cbe88afb25525e7c7f63eb41763481ff4"},
-    {"id": "ref_b0418fbbc1d85eaabb98d5891a4a45ab", "name": "Tempeste", "source_text_checksum": "e18c357eaea02487161d323745a1e06a55f440288eb633c4681da262cb570397"},
+    {
+        "id": "ref_c106f9a6c3115dbf8578f832b04e3a3a",
+        "name": "Altisauro",
+        "source_text_checksum": "9680a14028c359d550587f69d890881a64731f0b51e30941476ff5e995debf2e",
+    },
+    {
+        "id": "ref_28900cffd313554b81303ff3ce407cc1",
+        "name": "Ammantato",
+        "source_text_checksum": "b50cc4278a7fdd606f50a20f5b6f37d2fe4ce354094c8e2d60ffb73bd4e1e0e0",
+    },
+    {
+        "id": "ref_5200eb51f6f555d5a52800dc3cfef0c4",
+        "name": "Araldo Delle Tempeste",
+        "source_text_checksum": "e64fd24af1656e2725f0ed425236226685a88d5dcc4df0a20ede61c7cb28279f",
+    },
+    {
+        "id": "ref_e42d82c62c7b5bdba13c3c73663966ff",
+        "name": "Cerato Po",
+        "source_text_checksum": "a9365115d6e07317f75a602c6fcaea2d92e497e5c7c0a15cc8f273f452e0f2c3",
+    },
+    {
+        "id": "ref_c2a7d3e06e52569e851f737c33260f9d",
+        "name": "Colline",
+        "source_text_checksum": "e66ab0e6fec743bc407b15e32a7d554927182e986521d5b4b09f274dade5c61f",
+    },
+    {
+        "id": "ref_42d5121498575f11a310f549f441f4d7",
+        "name": "Colosso Di Carne",
+        "source_text_checksum": "827fb11acf989da9b32881d1ed85b4fcfd2570e8da0d72f70d6fede7e46d98a9",
+    },
+    {
+        "id": "ref_83a6b991bfec5efdb2dda4da60d408bb",
+        "name": "Colosso Runico",
+        "source_text_checksum": "f1a8cbfb271853c0ec69468baa007afcabd94fe2bc0f5f68575028134c4494b5",
+    },
+    {
+        "id": "ref_9ac0de67090652bdbe5e7fd1e01d00cb",
+        "name": "Granchio Delle Tempeste",
+        "source_text_checksum": "864505c5fc606dd81383ea6eae6395146e6ac5c9f94ca9ca41130acb2eaea9d0",
+    },
+    {
+        "id": "ref_6d3eaf35463d556f961bbb7baa8d2b70",
+        "name": "Ììtanoronte",
+        "source_text_checksum": "a89571d106cf80b7d951673196b67f4929c609da73318cdae7c47ea64c193d5c",
+    },
+    {
+        "id": "ref_c5f631a36b5f51dc9123a728f65c2ec9",
+        "name": "Linguarupestre",
+        "source_text_checksum": "9aee292abcf550f1a6e1abd97f366c0eaa793ee8b91b576132def21910e5c05f",
+    },
+    {
+        "id": "ref_e965d3715ce456e1967dfdae85d0cdc3",
+        "name": "Malvagia",
+        "source_text_checksum": "aadc43f3446180bc087dbb0372b931d0ce9c7ea104edfa014ded112d89e263cc",
+    },
+    {
+        "id": "ref_24fdfda426f35dc2b05cfdd7e17248d9",
+        "name": "Malvagio",
+        "source_text_checksum": "9e1b4b12e262e78a4fa258bd49be6a910ec257a8e6674499dbda98f0370d4b3b",
+    },
+    {
+        "id": "ref_9b3fc6257b9f52819f603a4458318743",
+        "name": "Mietitore",
+        "source_text_checksum": "0417021c265927527cd35f5f88fd3e85a8fc03e3855a20e938aed407eb0ceaa1",
+    },
+    {
+        "id": "ref_a4ca7d65762650dc8e24dcbde06a6342",
+        "name": "Modellaghiaccio",
+        "source_text_checksum": "0980bdaf9d426461e5666e89042b035985c551f66219878446fd7ca6621f0d4b",
+    },
+    {
+        "id": "ref_1535557d71cd52849aba54a8418fbb2e",
+        "name": "Pietre",
+        "source_text_checksum": "351921045f55fdbc063e9e3cc7eeb315b908e7aba9e0bdafb93706abc56587ef",
+    },
+    {
+        "id": "ref_77ef6b47608e5575b9723e8d11de2011",
+        "name": "Regi Sauro",
+        "source_text_checksum": "d30260741443c7f8d55c21df7cb772b46f4753f2a16da0b54816630bd1b676be",
+    },
+    {
+        "id": "ref_8b550003f8045cc29a5edcfe9a6bce3b",
+        "name": "Spirito Delle Tempeste",
+        "source_text_checksum": "e28beb1d2d7a863ee680be953c36205b92fca6af2a24f77decc90c5988158399",
+    },
+    {
+        "id": "ref_6b5c8da8abbf545e9f2ea14f88155b78",
+        "name": "T'Erra Malvagia",
+        "source_text_checksum": "6c01eae905b17ddbe67d9854820a8b6cbe88afb25525e7c7f63eb41763481ff4",
+    },
+    {
+        "id": "ref_b0418fbbc1d85eaabb98d5891a4a45ab",
+        "name": "Tempeste",
+        "source_text_checksum": "e18c357eaea02487161d323745a1e06a55f440288eb633c4681da262cb570397",
+    },
 )
 
 EXPECTED_BIGBY4_COUNT = 4
 EXPECTED_BIGBY4_IDS_MD5 = "82a891bb16d48d70e063b3c535fa0839"
-BIGBY4_CONFIRMATION_TOKEN = (
-    "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
-)
+BIGBY4_CONFIRMATION_TOKEN = "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
 BIGBY4_TARGETS: tuple[dict[str, str], ...] = (
-    {"id": "ref_28900cffd313554b81303ff3ce407cc1", "name": "Ammantato", "source_text_checksum": "b50cc4278a7fdd606f50a20f5b6f37d2fe4ce354094c8e2d60ffb73bd4e1e0e0"},
-    {"id": "ref_5200eb51f6f555d5a52800dc3cfef0c4", "name": "Araldo Delle Tempeste", "source_text_checksum": "e64fd24af1656e2725f0ed425236226685a88d5dcc4df0a20ede61c7cb28279f"},
-    {"id": "ref_c5f631a36b5f51dc9123a728f65c2ec9", "name": "Linguarupestre", "source_text_checksum": "9aee292abcf550f1a6e1abd97f366c0eaa793ee8b91b576132def21910e5c05f"},
-    {"id": "ref_8b550003f8045cc29a5edcfe9a6bce3b", "name": "Spirito Delle Tempeste", "source_text_checksum": "e28beb1d2d7a863ee680be953c36205b92fca6af2a24f77decc90c5988158399"},
+    {
+        "id": "ref_28900cffd313554b81303ff3ce407cc1",
+        "name": "Ammantato",
+        "source_text_checksum": "b50cc4278a7fdd606f50a20f5b6f37d2fe4ce354094c8e2d60ffb73bd4e1e0e0",
+    },
+    {
+        "id": "ref_5200eb51f6f555d5a52800dc3cfef0c4",
+        "name": "Araldo Delle Tempeste",
+        "source_text_checksum": "e64fd24af1656e2725f0ed425236226685a88d5dcc4df0a20ede61c7cb28279f",
+    },
+    {
+        "id": "ref_c5f631a36b5f51dc9123a728f65c2ec9",
+        "name": "Linguarupestre",
+        "source_text_checksum": "9aee292abcf550f1a6e1abd97f366c0eaa793ee8b91b576132def21910e5c05f",
+    },
+    {
+        "id": "ref_8b550003f8045cc29a5edcfe9a6bce3b",
+        "name": "Spirito Delle Tempeste",
+        "source_text_checksum": "e28beb1d2d7a863ee680be953c36205b92fca6af2a24f77decc90c5988158399",
+    },
 )
 
 
@@ -145,7 +324,7 @@ BIGBY4_TARGETS: tuple[dict[str, str], ...] = (
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "mpmm_2022_it",  # Mordenkainen Presenta: Mostri del Multiverso
-    "bgg_2023_it",   # Bigby Presenta: La Gloria dei Giganti
+    "bgg_2023_it",  # Bigby Presenta: La Gloria dei Giganti
 }
 TWO_COLUMN_MIN_DPI = 300
 TWO_COLUMN_PRIMARY_PSM = 3
@@ -156,16 +335,12 @@ HIT_POINTS_CONTRAST = 2.0
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
 LEGACY_FILENAME_ALIASES = {
-    "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf":
-        "Calderone-Omnicomprensivo-di-TASHA.pdf",
-    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf":
-        "724962906-D-D-5e-Manuale-Del-Dungeon-Master.pdf",
-    "Manuale_del_giocatore__1787259882002.pdf":
-        "Manuale del giocatore .pdf",
+    "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf": "Calderone-Omnicomprensivo-di-TASHA.pdf",
+    "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf": "724962906-D-D-5e-Manuale-Del-Dungeon-Master.pdf",
+    "Manuale_del_giocatore__1787259882002.pdf": "Manuale del giocatore .pdf",
     # Diagnostics only: the registry currently classifies this extraction_aid,
     # therefore repair is blocked by the source-role gate.
-    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf":
-        "731764731-D-D-Manual-Del-Jugador-5e(1).pdf",
+    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": "731764731-D-D-Manual-Del-Jugador-5e(1).pdf",
 }
 
 
@@ -261,14 +436,19 @@ def select_healthy22_targets(
             )
         if str(record.get("name") or "") != expected["name"]:
             raise RuntimeError(f"Healthy22 name drift: {expected['id']}")
-        if str(record.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+        if (
+            str(record.get("source_text_checksum") or "")
+            != expected["source_text_checksum"]
+        ):
             raise RuntimeError(f"Healthy22 checksum drift: {expected['id']}")
         if str(record.get("review_status") or "") != "verified":
             raise RuntimeError(f"Healthy22 status drift: {expected['id']}")
         if record.get("canonical_id"):
             raise RuntimeError(f"Healthy22 canonical link detected: {expected['id']}")
         if list(record.get("review_flags") or []):
-            raise RuntimeError(f"Healthy22 unexpected pre-existing review flags: {expected['id']}")
+            raise RuntimeError(
+                f"Healthy22 unexpected pre-existing review flags: {expected['id']}"
+            )
         if monster_identity_sanity_flags(record.get("name")):
             raise RuntimeError(f"Healthy22 identity gate failure: {expected['id']}")
         targets.append(record)
@@ -295,14 +475,19 @@ def select_bigby19_targets(
             )
         if str(record.get("name") or "") != expected["name"]:
             raise RuntimeError(f"Bigby19 name drift: {expected['id']}")
-        if str(record.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+        if (
+            str(record.get("source_text_checksum") or "")
+            != expected["source_text_checksum"]
+        ):
             raise RuntimeError(f"Bigby19 checksum drift: {expected['id']}")
         if str(record.get("review_status") or "") != "verified":
             raise RuntimeError(f"Bigby19 status drift: {expected['id']}")
         if record.get("canonical_id"):
             raise RuntimeError(f"Bigby19 canonical link detected: {expected['id']}")
         if list(record.get("review_flags") or []):
-            raise RuntimeError(f"Bigby19 unexpected pre-existing review flags: {expected['id']}")
+            raise RuntimeError(
+                f"Bigby19 unexpected pre-existing review flags: {expected['id']}"
+            )
         targets.append(record)
 
     if (
@@ -327,14 +512,19 @@ def select_bigby4_targets(
             )
         if str(record.get("name") or "") != expected["name"]:
             raise RuntimeError(f"Bigby4 name drift: {expected['id']}")
-        if str(record.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+        if (
+            str(record.get("source_text_checksum") or "")
+            != expected["source_text_checksum"]
+        ):
             raise RuntimeError(f"Bigby4 checksum drift: {expected['id']}")
         if str(record.get("review_status") or "") != "verified":
             raise RuntimeError(f"Bigby4 status drift: {expected['id']}")
         if record.get("canonical_id"):
             raise RuntimeError(f"Bigby4 canonical link detected: {expected['id']}")
         if list(record.get("review_flags") or []):
-            raise RuntimeError(f"Bigby4 unexpected pre-existing review flags: {expected['id']}")
+            raise RuntimeError(
+                f"Bigby4 unexpected pre-existing review flags: {expected['id']}"
+            )
         if monster_identity_sanity_flags(record.get("name")):
             raise RuntimeError(f"Bigby4 identity gate failure: {expected['id']}")
         targets.append(record)
@@ -481,18 +671,14 @@ class SourcePdfCache:
     def __init__(self, pdf_root: str, allow_r2_download: bool) -> None:
         self.pdf_root = Path(pdf_root).expanduser() if pdf_root else None
         self.allow_r2_download = allow_r2_download
-        self._tmp = tempfile.TemporaryDirectory(
-            prefix="tomoforge-source-repair-"
-        )
+        self._tmp = tempfile.TemporaryDirectory(prefix="tomoforge-source-repair-")
         self._cache: dict[str, Path] = {}
 
     def close(self) -> None:
         self._tmp.cleanup()
 
     def _verify(self, path: Path, source: dict[str, Any]) -> Path:
-        expected = str(
-            source.get("physical_sha256") or ""
-        ).strip().casefold()
+        expected = str(source.get("physical_sha256") or "").strip().casefold()
         if not re.fullmatch(r"[0-9a-f]{64}", expected):
             raise RepairBlocked("missing_registry_sha256")
         actual = _sha256_file(path)
@@ -519,16 +705,14 @@ class SourcePdfCache:
         if not self.allow_r2_download:
             raise RepairBlocked(
                 "source_pdf_not_local",
-                f"{filename!r} not found under --pdf-root "
-                "and R2 fallback is disabled",
+                f"{filename!r} not found under --pdf-root and R2 fallback is disabled",
             )
 
         from scripts import import_manuals_from_r2 as r2_worker
 
         client = r2_worker._r2_client()
         bucket = (
-            os.getenv("R2_BUCKET", "tomoforge-manuals").strip()
-            or "tomoforge-manuals"
+            os.getenv("R2_BUCKET", "tomoforge-manuals").strip() or "tomoforge-manuals"
         )
         objects = r2_worker._list_pdf_objects(client, bucket)
         safe_name = r2_worker._safe_pdf_name(filename)
@@ -580,8 +764,15 @@ def _micro_ocr_hit_points_line(
         return page_text
 
     command = [
-        "tesseract", str(image_path), "stdout", "-l", languages,
-        "--psm", str(psm), "tsv", "quiet",
+        "tesseract",
+        str(image_path),
+        "stdout",
+        "-l",
+        languages,
+        "--psm",
+        str(psm),
+        "tsv",
+        "quiet",
     ]
     completed = subprocess.run(
         command,
@@ -611,7 +802,8 @@ def _micro_ocr_hit_points_line(
 
     ferita_index = next(
         (
-            index for index, word in enumerate(label_words)
+            index
+            for index, word in enumerate(label_words)
             if "ferita" in str(word["text"]).casefold()
         ),
         None,
@@ -623,10 +815,7 @@ def _micro_ocr_hit_points_line(
         label_words[ferita_index]["width"]
     )
     line_top = min(int(word["top"]) for word in label_words)
-    line_bottom = max(
-        int(word["top"]) + int(word["height"])
-        for word in label_words
-    )
+    line_bottom = max(int(word["top"]) + int(word["height"]) for word in label_words)
     source_pixmap = fitz.Pixmap(str(image_path))
     grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
     padding = max(2, (line_bottom - line_top) // 3)
@@ -641,8 +830,8 @@ def _micro_ocr_hit_points_line(
     source_samples = grayscale.samples
     crop_samples = b"".join(
         source_samples[
-            row * grayscale.stride + crop_rect.x0:
-            row * grayscale.stride + crop_rect.x1
+            row * grayscale.stride + crop_rect.x0 : row * grayscale.stride
+            + crop_rect.x1
         ]
         for row in range(crop_rect.y0, crop_rect.y1)
     )
@@ -662,8 +851,14 @@ def _micro_ocr_hit_points_line(
         contrasted.save(crop_path)
         micro = subprocess.run(
             [
-                "tesseract", str(crop_path), "stdout", "-l", languages,
-                "--psm", "7", "-c",
+                "tesseract",
+                str(crop_path),
+                "stdout",
+                "-l",
+                languages,
+                "--psm",
+                "7",
+                "-c",
                 f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
                 "quiet",
             ],
@@ -738,8 +933,7 @@ def _ocr_source_window(
                 for segment_name, fractions in segments:
                     clip = _clip_rect(page.rect, fractions)
                     image_path = (
-                        image_root
-                        / f"page-{page_number:04d}-{segment_name}.png"
+                        image_root / f"page-{page_number:04d}-{segment_name}.png"
                     )
                     page.get_pixmap(
                         matrix=matrix,
@@ -794,9 +988,7 @@ def _ocr_source_window(
                 if page_quality_pass:
                     # Column outputs are concatenated only after independent
                     # OCR/quality checks; no pixels or same-line text can bleed.
-                    primary_pages.append(
-                        (page_number, "\n\n".join(primary_parts))
-                    )
+                    primary_pages.append((page_number, "\n\n".join(primary_parts)))
                     comparison_pages.append(
                         (page_number, "\n\n".join(comparison_parts))
                     )
@@ -814,9 +1006,7 @@ def _candidate_matches_target(
     target_page: int,
 ) -> bool:
     candidate_name = str(
-        candidate.get("normalized_name")
-        or candidate.get("name")
-        or ""
+        candidate.get("normalized_name") or candidate.get("name") or ""
     )
     target_normalized = normalize_reference_name(target_name)
     pages = {
@@ -824,12 +1014,9 @@ def _candidate_matches_target(
         for ref in (candidate.get("source_refs") or [])
         if isinstance(ref, dict) and ref.get("page") is not None
     }
-    name_match = (
-        candidate_name == target_normalized
-        or compact_name_containment_match(
-            candidate_name,
-            target_normalized,
-        )
+    name_match = candidate_name == target_normalized or compact_name_containment_match(
+        candidate_name,
+        target_normalized,
     )
     return target_page in pages and name_match
 
@@ -900,16 +1087,16 @@ def build_repair_proposal(
     }
     existing_flags.add(REPAIR_FLAG)
 
-    gated = apply_ocr_review_gates({
-        **legacy,
-        "attributes": merged_attributes,
-        "review_flags": sorted(existing_flags),
-        "review_status": "pending",
-    })
-
-    post_flags = monster_semantic_numeric_flags(
-        gated.get("attributes") or {}
+    gated = apply_ocr_review_gates(
+        {
+            **legacy,
+            "attributes": merged_attributes,
+            "review_flags": sorted(existing_flags),
+            "review_status": "pending",
+        }
     )
+
+    post_flags = monster_semantic_numeric_flags(gated.get("attributes") or {})
     if post_flags:
         raise RepairBlocked(
             "post_merge_gate_failure",
@@ -920,13 +1107,8 @@ def build_repair_proposal(
         raise RepairBlocked("post_merge_invalid_title")
     if CORRUPTED_ENTITY_NAME_FLAG in gated_flags:
         raise RepairBlocked("post_merge_corrupted_name")
-    if (
-        gated.get("review_status") != "pending"
-        or OCR_REVIEW_FLAG not in gated_flags
-    ):
-        raise AssertionError(
-            "OCR repair proposal lost mandatory review state"
-        )
+    if gated.get("review_status") != "pending" or OCR_REVIEW_FLAG not in gated_flags:
+        raise AssertionError("OCR repair proposal lost mandatory review state")
 
     return {
         "attributes": gated["attributes"],
@@ -973,33 +1155,17 @@ async def _apply_update(
             f"matched_count={result.matched_count}",
         )
 
-    verify = await collection.find_one(
-        {"id": str(legacy["id"])}
-    )
+    verify = await collection.find_one({"id": str(legacy["id"])})
     if not verify or verify.get("review_status") != "pending":
         raise RuntimeError("post-update verification failed")
-    verify_flags = {
-        str(flag)
-        for flag in (verify.get("review_flags") or [])
-    }
-    if (
-        OCR_REVIEW_FLAG not in verify_flags
-        or REPAIR_FLAG not in verify_flags
-    ):
-        raise RuntimeError(
-            "post-update review flags verification failed"
-        )
+    verify_flags = {str(flag) for flag in (verify.get("review_flags") or [])}
+    if OCR_REVIEW_FLAG not in verify_flags or REPAIR_FLAG not in verify_flags:
+        raise RuntimeError("post-update review flags verification failed")
     if CORRUPTED_ENTITY_NAME_FLAG in verify_flags:
         raise RuntimeError("post-update corrupted name verification failed")
-    if monster_semantic_numeric_flags(
-        verify.get("attributes") or {}
-    ):
-        raise RuntimeError(
-            "post-update semantic/numeric verification failed"
-        )
-    if str(verify.get("updated_at") or "") == str(
-        legacy.get("updated_at") or ""
-    ):
+    if monster_semantic_numeric_flags(verify.get("attributes") or {}):
+        raise RuntimeError("post-update semantic/numeric verification failed")
+    if str(verify.get("updated_at") or "") == str(legacy.get("updated_at") or ""):
         raise RuntimeError("post-update updated_at verification failed")
 
 
@@ -1066,12 +1232,8 @@ async def _repair_one(
         "name": record.get("name"),
         "record_id": record.get("id"),
         "source": {
-            "physical_filename": source.get(
-                "physical_filename"
-            ),
-            "logical_source_id": source.get(
-                "logical_source_id"
-            ),
+            "physical_filename": source.get("physical_filename"),
+            "logical_source_id": source.get("logical_source_id"),
             "source_role": source.get("source_role"),
             "source_status": source.get("source_status"),
             "physical_page": physical_page,
@@ -1081,12 +1243,8 @@ async def _repair_one(
             "profile": target_metrics["layout_profile"],
             "effective_dpi": target_metrics["effective_dpi"],
             "primary_psm": target_metrics["primary_psm"],
-            "comparison_psm": target_metrics[
-                "comparison_psm"
-            ],
-            "segments": sorted(
-                target_metrics["segments"].keys()
-            ),
+            "comparison_psm": target_metrics["comparison_psm"],
+            "segments": sorted(target_metrics["segments"].keys()),
         },
         "ocr_pages": sorted(quality),
         "quality_fail_pages": sorted(
@@ -1100,9 +1258,7 @@ async def _repair_one(
             **proposal,
         },
         "gate_failures_before": sorted(
-            monster_semantic_numeric_flags(
-                record.get("attributes") or {}
-            )
+            monster_semantic_numeric_flags(record.get("attributes") or {})
         ),
         "gate_failures_after": [],
         "would_update": True,
@@ -1120,9 +1276,7 @@ async def _repair_one(
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Source-guided legacy monster repair"
-    )
+    parser = argparse.ArgumentParser(description="Source-guided legacy monster repair")
     parser.add_argument(
         "--name",
         default="Zuggtmoy",
@@ -1269,13 +1423,11 @@ async def _run(args: argparse.Namespace) -> int:
         targets = [
             record
             for record in failures
-            if str(record.get("name") or "").casefold()
-            == wanted
+            if str(record.get("name") or "").casefold() == wanted
         ]
         if len(targets) != 1:
             raise RuntimeError(
-                f"Expected one failed monster named "
-                f"{args.name!r}; found {len(targets)}"
+                f"Expected one failed monster named {args.name!r}; found {len(targets)}"
             )
 
     pdf_cache = SourcePdfCache(
@@ -1302,13 +1454,15 @@ async def _run(args: argparse.Namespace) -> int:
                     )
                 )
             except RepairBlocked as exc:
-                blocked.append({
-                    "record_id": record.get("id"),
-                    "name": record.get("name"),
-                    "reason": exc.reason,
-                    "detail": exc.detail,
-                    "executed": False,
-                })
+                blocked.append(
+                    {
+                        "record_id": record.get("id"),
+                        "name": record.get("name"),
+                        "reason": exc.reason,
+                        "detail": exc.detail,
+                        "executed": False,
+                    }
+                )
     finally:
         pdf_cache.close()
 
@@ -1343,10 +1497,7 @@ async def _run(args: argparse.Namespace) -> int:
     name_corruption_bucket = {
         "label": "Record con Nome Corrotto (Scorie OCR)",
         "count": len(corrupted_names),
-        "records": [
-            _corrupted_name_report(record)
-            for record in corrupted_names
-        ],
+        "records": [_corrupted_name_report(record) for record in corrupted_names],
     }
     final = {
         "dry_run": not args.execute,
@@ -1356,11 +1507,7 @@ async def _run(args: argparse.Namespace) -> int:
         "blocked": len(blocked),
         "corrupted_entity_names": len(corrupted_names),
         "name_corruption_bucket": name_corruption_bucket,
-        "updates_performed": sum(
-            1
-            for report in reports
-            if report["executed"]
-        ),
+        "updates_performed": sum(1 for report in reports if report["executed"]),
         "reports": reports,
         "blocked_records": blocked,
     }
@@ -1377,9 +1524,7 @@ async def _run(args: argparse.Namespace) -> int:
 
 def main() -> int:
     try:
-        return asyncio.run(
-            _run(_parser().parse_args())
-        )
+        return asyncio.run(_run(_parser().parse_args()))
     except Exception as exc:
         print(
             f"Source-guided monster repair aborted: {exc}",

@@ -65,7 +65,9 @@ def summarize_schema_cache_record_completeness(
 
     for job in failed_with_activity:
         filename = str(job.get("filename") or "").strip()
-        has_exact_records = bool(filename) and record_counts_by_source_key.get(filename, 0) > 0
+        has_exact_records = (
+            bool(filename) and record_counts_by_source_key.get(filename, 0) > 0
+        )
         page_complete = _page_progress_complete(job)
         no_ocr_backlog = not _has_ocr_backlog(job)
 

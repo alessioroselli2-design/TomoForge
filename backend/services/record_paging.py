@@ -1,4 +1,5 @@
 """Bounded pagination helpers for Supabase-compatible collections."""
+
 from __future__ import annotations
 
 from typing import Any

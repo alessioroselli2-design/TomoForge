@@ -70,15 +70,25 @@ def test_two_residual_alias_cases_are_ambiguous_and_keep_provenance_and_gate():
         "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf",
     ]
     assert all(case["classification"] == AMBIGUOUS_REVIEW for case in result["cases"])
-    assert all(not case["evidence_sufficient_for_provenance_match"] for case in result["cases"])
+    assert all(
+        not case["evidence_sufficient_for_provenance_match"] for case in result["cases"]
+    )
     assert all(case["requires_manual_review"] for case in result["cases"])
-    assert all(len(case["filename_alias_registry_matches"]) == 1 for case in result["cases"])
+    assert all(
+        len(case["filename_alias_registry_matches"]) == 1 for case in result["cases"]
+    )
     assert result["cases"][0]["job_record_activity"]["records_imported"] == 7
     assert result["cases"][0]["job_record_activity"]["records_updated"] == 100
-    assert result["cases"][0]["filename_alias_registry_matches"][0]["logical_source_id"] == "derived_class_bardo"
+    assert (
+        result["cases"][0]["filename_alias_registry_matches"][0]["logical_source_id"]
+        == "derived_class_bardo"
+    )
     assert result["cases"][1]["job_record_activity"]["records_updated"] == 22
     assert result["cases"][1]["job_record_activity"]["records_flagged"] == 2
-    assert result["cases"][1]["filename_alias_registry_matches"][0]["logical_source_id"] == "phb_2014_es"
+    assert (
+        result["cases"][1]["filename_alias_registry_matches"][0]["logical_source_id"]
+        == "phb_2014_es"
+    )
     assert all(
         case["filename_alias_registry_matches"][0]["source_role"] == "extraction_aid"
         for case in result["cases"]

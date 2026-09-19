@@ -25,10 +25,14 @@ from scripts.audit_manual_import_readiness import (
 )
 
 
-def summarize_schema_cache_source_links(jobs: list[dict], sources: list[dict]) -> dict[str, Any]:
+def summarize_schema_cache_source_links(
+    jobs: list[dict], sources: list[dict]
+) -> dict[str, Any]:
     failed_schema = [
-        job for job in jobs
-        if str(job.get("status") or "unknown") == "failed" and _is_schema_cache_failure(job)
+        job
+        for job in jobs
+        if str(job.get("status") or "unknown") == "failed"
+        and _is_schema_cache_failure(job)
     ]
     source_by_fingerprint: dict[str, list[dict]] = {}
     for source in sources:
@@ -50,9 +54,12 @@ def summarize_schema_cache_source_links(jobs: list[dict], sources: list[dict]) -
         exact_matches.append(job)
         logical_ids = {
             str(source.get("logical_source_id") or "")
-            for source in matches if source.get("logical_source_id")
+            for source in matches
+            if source.get("logical_source_id")
         }
-        has_active = any(str(source.get("source_status") or "") == "active" for source in matches)
+        has_active = any(
+            str(source.get("source_status") or "") == "active" for source in matches
+        )
         if len(logical_ids) == 1 and has_active:
             exact_active_single_logical.append(job)
 
@@ -76,7 +83,9 @@ async def _run() -> int:
 
     jobs = await fetch_all(db.private_manual_import_jobs)
     sources = await fetch_all(db.private_reference_sources)
-    print(json.dumps(summarize_schema_cache_source_links(jobs, sources), sort_keys=True))
+    print(
+        json.dumps(summarize_schema_cache_source_links(jobs, sources), sort_keys=True)
+    )
     return 0
 
 

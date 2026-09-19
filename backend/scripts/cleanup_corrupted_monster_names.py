@@ -41,9 +41,7 @@ PURGE_READY_FLAG = "corrupted_entity_name_purge_ready"
 ISOLATE_CONFIRMATION_TOKEN = (
     "ISOLATE-CORRUPTED-NAMES-4-c2d920337b602197a7c3f2b2add66a57"
 )
-PURGE_CONFIRMATION_TOKEN = (
-    "PURGE-CORRUPTED-NAMES-4-c2d920337b602197a7c3f2b2add66a57"
-)
+PURGE_CONFIRMATION_TOKEN = "PURGE-CORRUPTED-NAMES-4-c2d920337b602197a7c3f2b2add66a57"
 
 TARGETS: tuple[dict[str, str], ...] = (
     {
@@ -77,8 +75,13 @@ def _ids_md5(rows: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> str:
     ).hexdigest()
 
 
-if len(TARGETS) != EXPECTED_TARGET_COUNT or _ids_md5(TARGETS) != EXPECTED_TARGET_IDS_MD5:
-    raise RuntimeError("Sealed corrupted-name target constants are internally inconsistent")
+if (
+    len(TARGETS) != EXPECTED_TARGET_COUNT
+    or _ids_md5(TARGETS) != EXPECTED_TARGET_IDS_MD5
+):
+    raise RuntimeError(
+        "Sealed corrupted-name target constants are internally inconsistent"
+    )
 
 
 def _state(row: dict[str, Any]) -> str:
@@ -108,12 +111,19 @@ async def _load_exact_targets(collection: Any) -> list[dict[str, Any]]:
             )
         if str(row.get("reference_type") or "") != "monster":
             raise RuntimeError(f"Target is no longer a monster: {expected['id']}")
-        if str(row.get("source_text_checksum") or "") != expected["source_text_checksum"]:
+        if (
+            str(row.get("source_text_checksum") or "")
+            != expected["source_text_checksum"]
+        ):
             raise RuntimeError(f"Target checksum drift: {expected['id']}")
         if row.get("canonical_id"):
             raise RuntimeError(f"Target linked to canonical data: {expected['id']}")
-        if CORRUPTED_ENTITY_NAME_FLAG not in monster_identity_sanity_flags(row.get("name")):
-            raise RuntimeError(f"Target no longer fails identity sanity gate: {expected['id']}")
+        if CORRUPTED_ENTITY_NAME_FLAG not in monster_identity_sanity_flags(
+            row.get("name")
+        ):
+            raise RuntimeError(
+                f"Target no longer fails identity sanity gate: {expected['id']}"
+            )
         if _state(row) == "unexpected":
             raise RuntimeError(
                 f"Unexpected review state for {expected['id']}: "
@@ -139,11 +149,13 @@ async def _isolate(collection: Any, rows: list[dict[str, Any]]) -> int:
                 "review_status": "verified",
                 "source_text_checksum": str(snapshot["source_text_checksum"]),
             },
-            {"$set": {
-                "review_status": "needs_review",
-                "review_flags": sorted(flags),
-                "updated_at": datetime.now(timezone.utc),
-            }},
+            {
+                "$set": {
+                    "review_status": "needs_review",
+                    "review_flags": sorted(flags),
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
         )
         if result.matched_count != 1:
             raise RuntimeError(
@@ -184,7 +196,9 @@ async def _purge(collection: Any, rows: list[dict[str, Any]]) -> int:
 
     for record_id in ids:
         if await collection.find_one({"id": record_id}) is not None:
-            raise RuntimeError(f"Post-delete verification found surviving target: {record_id}")
+            raise RuntimeError(
+                f"Post-delete verification found surviving target: {record_id}"
+            )
     return len(deleted_ids)
 
 
@@ -209,7 +223,9 @@ def _preview(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Guarded corrupted monster-name cleanup")
+    parser = argparse.ArgumentParser(
+        description="Guarded corrupted monster-name cleanup"
+    )
     parser.add_argument(
         "--action",
         choices=("preview", "isolate", "purge"),

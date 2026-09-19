@@ -28,7 +28,9 @@ Arco Corto. Attacco con Arma a Distanza: +4 al tiro per colpire.
 
 
 def test_parses_one_complete_monster_and_keeps_review_gate():
-    records = parse_monster_statblocks([(166, _goblin_text())], "manuale_dei_mostri.pdf")
+    records = parse_monster_statblocks(
+        [(166, _goblin_text())], "manuale_dei_mostri.pdf"
+    )
 
     assert len(records) == 1
     record = records[0]

@@ -3,6 +3,7 @@
 Decide only whether differently named records describe the same rule.
 It never merges texts or chooses the canonical wording.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -93,19 +94,11 @@ def _same_progression_slot(record: dict, candidate: dict) -> bool:
 
     for field in fields:
         if field == "level":
-            left = normalize_reference_name(
-                reference_effective_level(record)
-            )
-            right = normalize_reference_name(
-                reference_effective_level(candidate)
-            )
+            left = normalize_reference_name(reference_effective_level(record))
+            right = normalize_reference_name(reference_effective_level(candidate))
         else:
-            left = normalize_reference_name(
-                str(record.get(field) or "")
-            )
-            right = normalize_reference_name(
-                str(candidate.get(field) or "")
-            )
+            left = normalize_reference_name(str(record.get(field) or ""))
+            right = normalize_reference_name(str(candidate.get(field) or ""))
 
         if left and right and left != right:
             return False
@@ -120,9 +113,8 @@ def identity_candidate_score(record: dict, candidate: dict) -> float:
     if record.get("user_id") != candidate.get("user_id"):
         return -1.0
 
-    if (
-        record.get("source_key")
-        and record.get("source_key") == candidate.get("source_key")
+    if record.get("source_key") and record.get("source_key") == candidate.get(
+        "source_key"
     ):
         return -1.0
 
@@ -187,14 +179,9 @@ def identity_candidates(
 
         scored.append((score, candidate))
 
-    scored.sort(
-        key=lambda item: (-item[0], str(item[1].get("id", "")))
-    )
+    scored.sort(key=lambda item: (-item[0], str(item[1].get("id", ""))))
 
-    return [
-        candidate
-        for _, candidate in scored[: max(1, limit)]
-    ]
+    return [candidate for _, candidate in scored[: max(1, limit)]]
 
 
 def identity_catalog_fingerprint(
@@ -252,10 +239,7 @@ def openai_identity_comparator(
 
     payload = {
         "record": _prompt_record(record),
-        "candidates": [
-            _prompt_record(candidate)
-            for candidate in candidates
-        ],
+        "candidates": [_prompt_record(candidate) for candidate in candidates],
     }
 
     prompt = (
@@ -303,9 +287,7 @@ def openai_identity_comparator(
 
     response.raise_for_status()
 
-    return json.loads(
-        response.json()["choices"][0]["message"]["content"]
-    )
+    return json.loads(response.json()["choices"][0]["message"]["content"])
 
 
 async def _compare(
@@ -363,28 +345,18 @@ async def resolve_identity(
             raise ValueError("identity comparator did not return an object")
 
         status = str(answer.get("status") or "uncertain")
-        selected_id = str(
-            answer.get("candidate_source_record_id") or ""
-        )
+        selected_id = str(answer.get("candidate_source_record_id") or "")
         confidence = float(answer.get("confidence", 0))
         notes = str(answer.get("notes") or "")[:1200]
 
-        if (
-            not math.isfinite(confidence)
-            or not 0 <= confidence <= 1
-        ):
+        if not math.isfinite(confidence) or not 0 <= confidence <= 1:
             raise ValueError("invalid identity confidence")
 
-        valid_ids = {
-            str(candidate.get("id"))
-            for candidate in candidates
-        }
+        valid_ids = {str(candidate.get("id")) for candidate in candidates}
 
         if status == "matched":
             if selected_id not in valid_ids:
-                raise ValueError(
-                    "identity comparator selected unknown candidate"
-                )
+                raise ValueError("identity comparator selected unknown candidate")
 
             ranked_candidates = sorted(
                 (
@@ -424,22 +396,14 @@ async def resolve_identity(
             gate_reasons = []
 
             if selected_score < MATCH_MIN_LOCAL_SCORE:
-                gate_reasons.append(
-                    f"local_score={selected_score:.3f}"
-                )
+                gate_reasons.append(f"local_score={selected_score:.3f}")
 
             if selected_rank > MATCH_MAX_CANDIDATE_RANK:
-                gate_reasons.append(
-                    f"candidate_rank={selected_rank}"
-                )
+                gate_reasons.append(f"candidate_rank={selected_rank}")
 
-            if (
-                best_score - selected_score
-                > MATCH_MAX_BEST_SCORE_GAP
-            ):
+            if best_score - selected_score > MATCH_MAX_BEST_SCORE_GAP:
                 gate_reasons.append(
-                    "too_far_from_best="
-                    f"{best_score - selected_score:.3f}"
+                    f"too_far_from_best={best_score - selected_score:.3f}"
                 )
 
             if confidence < MATCH_MIN_CONFIDENCE:
@@ -455,14 +419,9 @@ async def resolve_identity(
                 )
                 gate_note = (
                     "Match AI non accettato dal controllo "
-                    "deterministico: "
-                    + ", ".join(gate_reasons)
+                    "deterministico: " + ", ".join(gate_reasons)
                 )
-                notes = (
-                    f"{notes} | {gate_note}"
-                    if notes
-                    else gate_note
-                )[:1200]
+                notes = (f"{notes} | {gate_note}" if notes else gate_note)[:1200]
 
         elif status == "no_match":
             selected_id = ""
@@ -483,8 +442,7 @@ async def resolve_identity(
             "matched_source_record_id": "",
             "confidence": 0.0,
             "notes": (
-                "Identity comparator unavailable or invalid: "
-                f"{type(exc).__name__}"
+                f"Identity comparator unavailable or invalid: {type(exc).__name__}"
             ),
             "model": OPENAI_TEXT_MODEL,
             "catalog_fingerprint": catalog_fingerprint,
@@ -504,9 +462,7 @@ async def resolve_identity(
     return {
         "status": status,
         "identity_normalized_name": alias,
-        "matched_source_record_id": (
-            selected_id if status == "matched" else ""
-        ),
+        "matched_source_record_id": (selected_id if status == "matched" else ""),
         "confidence": confidence,
         "notes": notes,
         "model": OPENAI_TEXT_MODEL,

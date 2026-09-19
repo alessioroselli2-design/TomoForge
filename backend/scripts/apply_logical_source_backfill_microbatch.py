@@ -57,7 +57,9 @@ def validate_batch_authorization(
         errors.append("batch authorization candidates are malformed")
 
     if not 1 <= len(candidates) <= MAX_MICROBATCH_WRITES:
-        errors.append(f"batch must contain between 1 and {MAX_MICROBATCH_WRITES} candidates")
+        errors.append(
+            f"batch must contain between 1 and {MAX_MICROBATCH_WRITES} candidates"
+        )
 
     normalized: list[dict[str, str]] = []
     for row in candidates:
@@ -73,7 +75,10 @@ def validate_batch_authorization(
             errors.append("batch candidate logical_source_id is invalid")
             continue
         normalized.append(
-            {"record_id": record_id.strip(), "logical_source_id": logical_source_id.strip()}
+            {
+                "record_id": record_id.strip(),
+                "logical_source_id": logical_source_id.strip(),
+            }
         )
 
     ids = [row["record_id"] for row in normalized]
@@ -88,7 +93,9 @@ def validate_batch_authorization(
     for row in normalized:
         pair = (row["record_id"], row["logical_source_id"])
         if pair not in fresh_candidates:
-            errors.append(f"batch candidate is not present in fresh deterministic plan: {row['record_id']}")
+            errors.append(
+                f"batch candidate is not present in fresh deterministic plan: {row['record_id']}"
+            )
 
     return errors, normalized
 
@@ -144,7 +151,12 @@ async def apply_microbatch(
     )
     errors.extend(batch_errors)
     if errors:
-        return {"mode": "microbatch_apply", "writes_performed": 0, "valid": False, "errors": errors}
+        return {
+            "mode": "microbatch_apply",
+            "writes_performed": 0,
+            "valid": False,
+            "errors": errors,
+        }
 
     records_by_id = {row.get("id"): row for row in records if isinstance(row, dict)}
     sources_by_id = {
@@ -163,17 +175,26 @@ async def apply_microbatch(
             errors.append(f"live record disappeared before write: {record_id}")
             continue
         if source is None:
-            errors.append(f"catalog source disappeared before write: {logical_source_id}")
+            errors.append(
+                f"catalog source disappeared before write: {logical_source_id}"
+            )
             continue
         try:
-            new_refs = enrich_source_refs(record.get("source_refs"), logical_source_id, source)
+            new_refs = enrich_source_refs(
+                record.get("source_refs"), logical_source_id, source
+            )
         except ValueError as exc:
             errors.append(f"{record_id}: {exc}")
             continue
         prepared.append((record_id, new_refs))
 
     if errors or len(prepared) != len(candidates):
-        return {"mode": "microbatch_apply", "writes_performed": 0, "valid": False, "errors": errors}
+        return {
+            "mode": "microbatch_apply",
+            "writes_performed": 0,
+            "valid": False,
+            "errors": errors,
+        }
 
     writes = 0
     for record_id, new_refs in prepared:
@@ -186,17 +207,23 @@ async def apply_microbatch(
 
     verification_errors: list[str] = []
     for candidate in candidates:
-        row = await db.private_reference_records.find_one({"id": candidate["record_id"]})
+        row = await db.private_reference_records.find_one(
+            {"id": candidate["record_id"]}
+        )
         refs = row.get("source_refs") if isinstance(row, dict) else None
         if not isinstance(refs, list) or not refs:
-            verification_errors.append(f"post-write source_refs missing: {candidate['record_id']}")
+            verification_errors.append(
+                f"post-write source_refs missing: {candidate['record_id']}"
+            )
             continue
         if any(
             not isinstance(ref, dict)
             or ref.get("logical_source_id") != candidate["logical_source_id"]
             for ref in refs
         ):
-            verification_errors.append(f"post-write provenance mismatch: {candidate['record_id']}")
+            verification_errors.append(
+                f"post-write provenance mismatch: {candidate['record_id']}"
+            )
 
     return {
         "mode": "microbatch_apply",
@@ -224,10 +251,20 @@ async def _run(batch_path: Path, approval_path: Path) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Apply an explicitly authorized provenance microbatch")
-    parser.add_argument("--batch", type=Path, required=True, help="Batch-specific write authorization JSON")
+    parser = argparse.ArgumentParser(
+        description="Apply an explicitly authorized provenance microbatch"
+    )
     parser.add_argument(
-        "--approval", type=Path, default=DEFAULT_APPROVAL_PATH, help="Global preflight approval manifest"
+        "--batch",
+        type=Path,
+        required=True,
+        help="Batch-specific write authorization JSON",
+    )
+    parser.add_argument(
+        "--approval",
+        type=Path,
+        default=DEFAULT_APPROVAL_PATH,
+        help="Global preflight approval manifest",
     )
     args = parser.parse_args()
     try:

@@ -70,7 +70,9 @@ def _same_logical_full_range(source: dict, peer: dict) -> bool:
 def summarize_zero_import_registry_sha_peers(sources: list[dict]) -> dict[str, Any]:
     blocked = [source for source in sources if _blocked_zero_import_source(source)]
     slice_summary = summarize_shared_physical_source_slices(sources)
-    slice_ids = set(slice_summary["source_ids_in_shared_physical_artifact_disjoint_slices"])
+    slice_ids = set(
+        slice_summary["source_ids_in_shared_physical_artifact_disjoint_slices"]
+    )
     residual = [source for source in blocked if str(source.get("id")) not in slice_ids]
 
     by_sha: dict[str, list[dict]] = defaultdict(list)
@@ -87,14 +89,21 @@ def summarize_zero_import_registry_sha_peers(sources: list[dict]) -> dict[str, A
     for source in residual:
         source_id = str(source.get("id") or "").strip()
         sha = _norm(source.get("physical_sha256"))
-        peers = [peer for peer in by_sha.get(sha, []) if str(peer.get("id") or "") != source_id]
+        peers = [
+            peer
+            for peer in by_sha.get(sha, [])
+            if str(peer.get("id") or "") != source_id
+        ]
 
         if peers:
             with_any_peer_ids.append(source_id)
         else:
             without_peer_ids.append(source_id)
 
-        if any(_int_or_none(peer.get("imported_record_count")) not in (None, 0) for peer in peers):
+        if any(
+            _int_or_none(peer.get("imported_record_count")) not in (None, 0)
+            for peer in peers
+        ):
             with_imported_peer_ids.append(source_id)
 
         exact_excluded_duplicate = any(

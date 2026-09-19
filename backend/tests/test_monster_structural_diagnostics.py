@@ -1,4 +1,6 @@
-from services.monster_structural_diagnostics import english_monster_structural_diagnostics
+from services.monster_structural_diagnostics import (
+    english_monster_structural_diagnostics,
+)
 
 
 def test_english_statblock_signals_are_aggregate_only():

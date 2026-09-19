@@ -106,7 +106,13 @@ def semantic_core_field_matches(
     right_speed = _numeric_signature(right_attributes.get("velocita"))
 
     return {
-        "classe_armatura_semantic_match": bool(left_ac and right_ac and left_ac[0] == right_ac[0]),
-        "punti_ferita_semantic_match": bool(left_hp and right_hp and left_hp[0] == right_hp[0]),
-        "velocita_semantic_match": bool(left_speed and right_speed and left_speed == right_speed),
+        "classe_armatura_semantic_match": bool(
+            left_ac and right_ac and left_ac[0] == right_ac[0]
+        ),
+        "punti_ferita_semantic_match": bool(
+            left_hp and right_hp and left_hp[0] == right_hp[0]
+        ),
+        "velocita_semantic_match": bool(
+            left_speed and right_speed and left_speed == right_speed
+        ),
     }

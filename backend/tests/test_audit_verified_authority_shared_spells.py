@@ -10,13 +10,15 @@ from scripts.audit_verified_authority_shared_spells import (
 def _fixture(authority_review_status="verified"):
     owner = "Bardo__1787233073462.pdf"
     companion = "Stregone__1787233073462.pdf"
-    jobs = [{
-        "id": "job-bardo",
-        "filename": owner,
-        "status": "failed",
-        "last_error": "manual_source_missing",
-        "source_fingerprint": "job-sha",
-    }]
+    jobs = [
+        {
+            "id": "job-bardo",
+            "filename": owner,
+            "status": "failed",
+            "last_error": "manual_source_missing",
+            "source_fingerprint": "job-sha",
+        }
+    ]
     sources = [
         {
             "physical_filename": "Bardo .pdf",
@@ -64,8 +66,18 @@ def test_verified_active_authority_identity_is_stronger_support_only():
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
 
     assert result["shared_class_card_candidate_pairs"] == 1
-    assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 1
-    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 0
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"
+        ]
+        == 1
+    )
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"
+        ]
+        == 0
+    )
     assert result["residual_shared_class_card_candidate_pairs"] == []
     assert result["residual_shared_class_card_candidate_pairs_by_reason"] == {}
     assert result["active_authority_structured_identities"] == 1
@@ -82,7 +94,10 @@ def test_verified_active_authority_identity_is_stronger_support_only():
     pair = result["unidirectional_pairs"][0]
     assert pair["mixed_records_with_active_authority_same_identity"] == 1
     assert pair["mixed_records_with_verified_active_authority_same_identity"] == 1
-    assert pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"] is True
+    assert (
+        pair["verified_active_authority_same_identity_is_stronger_supporting_evidence"]
+        is True
+    )
     assert pair["shared_spell_evidence_classification"] == AUTHORITATIVE_VERIFIED
     assert pair["classification_requires_review"] is False
     assert pair["residual_review_reason"] is None
@@ -96,8 +111,18 @@ def test_needs_review_authority_record_does_not_count_as_verified_evidence():
 
     assert result["active_authority_structured_identities"] == 1
     assert result["verified_active_authority_structured_identities"] == 0
-    assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
-    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"
+        ]
+        == 0
+    )
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"
+        ]
+        == 1
+    )
     assert result["shared_class_card_candidate_pairs_by_evidence_classification"] == {
         AUTHORITATIVE_UNVERIFIED: 1
     }
@@ -117,8 +142,18 @@ def test_pending_authority_record_does_not_count_as_verified_evidence():
 
     assert result["active_authority_structured_identities"] == 1
     assert result["verified_active_authority_structured_identities"] == 0
-    assert result["shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"] == 0
-    assert result["shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"] == 1
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_with_verified_active_authority_identity_evidence"
+        ]
+        == 0
+    )
+    assert (
+        result[
+            "shared_class_card_candidate_pairs_without_verified_active_authority_identity_evidence"
+        ]
+        == 1
+    )
     assert result["shared_class_card_candidate_pairs_by_evidence_classification"] == {
         AUTHORITATIVE_UNVERIFIED: 1
     }
@@ -144,17 +179,22 @@ def test_class_plus_extraction_aid_is_ambiguous():
     pair = result["unidirectional_pairs"][0]
     assert pair["shared_spell_evidence_classification"] == AMBIGUOUS_REVIEW
     assert pair["classification_requires_review"] is True
-    assert len(result["shared_class_card_candidate_pairs_requiring_classification_review"]) == 1
+    assert (
+        len(result["shared_class_card_candidate_pairs_requiring_classification_review"])
+        == 1
+    )
 
 
 def test_class_plus_superseded_authority_is_ambiguous():
     jobs, sources, records = _fixture("needs_review")
     records[-1]["normalized_name"] = "dardo di fuoco"
-    sources.append({
-        "physical_filename": "Vecchio_Manuale.pdf",
-        "source_role": "authority",
-        "source_status": "superseded",
-    })
+    sources.append(
+        {
+            "physical_filename": "Vecchio_Manuale.pdf",
+            "source_role": "authority",
+            "source_status": "superseded",
+        }
+    )
     records[0]["source_refs"].append({"filename": "Vecchio_Manuale.pdf"})
     result = summarize_verified_authority_shared_spell_evidence(jobs, sources, records)
 
@@ -174,21 +214,27 @@ def test_missing_identity_is_ambiguous_even_with_class_aliases():
     assert pair["classification_requires_review"] is True
 
 
-def _add_same_identity_non_class_record(sources, records, *, filename, role, status="active"):
-    sources.append({
-        "physical_filename": filename,
-        "physical_sha256": f"sha-{filename}",
-        "logical_source_id": f"source-{filename}",
-        "source_role": role,
-        "source_status": status,
-    })
-    records.append({
-        "source_key": filename,
-        "reference_type": "spell",
-        "normalized_name": "cura ferite",
-        "source_refs": [{"filename": filename}],
-        "review_status": "needs_review",
-    })
+def _add_same_identity_non_class_record(
+    sources, records, *, filename, role, status="active"
+):
+    sources.append(
+        {
+            "physical_filename": filename,
+            "physical_sha256": f"sha-{filename}",
+            "logical_source_id": f"source-{filename}",
+            "source_role": role,
+            "source_status": status,
+        }
+    )
+    records.append(
+        {
+            "source_key": filename,
+            "reference_type": "spell",
+            "normalized_name": "cura ferite",
+            "source_refs": [{"filename": filename}],
+            "review_status": "needs_review",
+        }
+    )
 
 
 def test_separate_same_identity_extraction_aid_keeps_pair_ambiguous():

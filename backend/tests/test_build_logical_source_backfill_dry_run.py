@@ -4,9 +4,17 @@ from scripts.build_logical_source_backfill_dry_run import build_backfill_plan
 def test_dry_run_proposes_only_unique_normalized_matches():
     records = [
         {"id": "r-unique", "source_refs": [{"filename": "Bardo__1787233073462.pdf"}]},
-        {"id": "r-ambiguous", "source_refs": [{"filename": "shared__1787233073462.pdf"}]},
+        {
+            "id": "r-ambiguous",
+            "source_refs": [{"filename": "shared__1787233073462.pdf"}],
+        },
         {"id": "r-unmatched", "source_refs": [{"filename": "missing.pdf"}]},
-        {"id": "r-existing", "source_refs": [{"logical_source_id": "already-set", "filename": "Bardo.pdf"}]},
+        {
+            "id": "r-existing",
+            "source_refs": [
+                {"logical_source_id": "already-set", "filename": "Bardo.pdf"}
+            ],
+        },
         {"id": "r-no-file", "source_refs": []},
     ]
     sources = [
@@ -53,7 +61,10 @@ def test_dry_run_is_deterministic_and_does_not_mutate_inputs():
         {"logical_source_id": "source-second", "physical_filename": "Second.pdf"},
         {"logical_source_id": "source-first", "physical_filename": "First.pdf"},
     ]
-    original_records = [dict(row, source_refs=[dict(ref) for ref in row["source_refs"]]) for row in records]
+    original_records = [
+        dict(row, source_refs=[dict(ref) for ref in row["source_refs"]])
+        for row in records
+    ]
     original_sources = [dict(row) for row in sources]
 
     first = build_backfill_plan(records, sources)

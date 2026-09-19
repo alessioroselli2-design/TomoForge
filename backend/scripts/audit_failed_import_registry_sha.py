@@ -105,7 +105,9 @@ async def _run() -> int:
         raise RuntimeError("Supabase is not configured")
     jobs = await fetch_all(db.private_manual_import_jobs)
     sources = await fetch_all(db.private_reference_sources)
-    print(json.dumps(summarize_failed_import_registry_sha(jobs, sources), sort_keys=True))
+    print(
+        json.dumps(summarize_failed_import_registry_sha(jobs, sources), sort_keys=True)
+    )
     return 0
 
 

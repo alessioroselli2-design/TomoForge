@@ -12,7 +12,9 @@ def _compact(value: object) -> str:
     return "".join(str(value or "").split())
 
 
-def compact_name_boundary_match(left_normalized: object, right_normalized: object) -> bool:
+def compact_name_boundary_match(
+    left_normalized: object, right_normalized: object
+) -> bool:
     """Detect whether normalized names differ only by OCR word boundaries.
 
     ``normalized_name`` values are already accent/punctuation insensitive. This
@@ -25,7 +27,9 @@ def compact_name_boundary_match(left_normalized: object, right_normalized: objec
     return bool(left and right and left == right)
 
 
-def compact_name_single_edit_match(left_normalized: object, right_normalized: object) -> bool:
+def compact_name_single_edit_match(
+    left_normalized: object, right_normalized: object
+) -> bool:
     """Return True only when compact normalized names are one edit apart.
 
     This is diagnostic-only and intentionally does not perform fuzzy matching.
@@ -60,7 +64,9 @@ def compact_name_single_edit_match(left_normalized: object, right_normalized: ob
     return edits == 1
 
 
-def compact_name_containment_match(left_normalized: object, right_normalized: object) -> bool:
+def compact_name_containment_match(
+    left_normalized: object, right_normalized: object
+) -> bool:
     """Detect a strict compact-name containment relationship.
 
     This diagnostic identifies likely missing or extra OCR fragments without

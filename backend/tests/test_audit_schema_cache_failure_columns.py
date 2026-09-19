@@ -1,4 +1,6 @@
-from scripts.audit_schema_cache_failure_columns import summarize_schema_cache_failure_columns
+from scripts.audit_schema_cache_failure_columns import (
+    summarize_schema_cache_failure_columns,
+)
 
 
 def test_named_schema_cache_columns_are_aggregated_without_authorizing_recovery():
@@ -31,7 +33,10 @@ def test_named_schema_cache_columns_are_aggregated_without_authorizing_recovery(
 
 def test_no_schema_cache_failures_produces_empty_breakdown():
     result = summarize_schema_cache_failure_columns(
-        [{"status": "completed"}, {"status": "failed", "last_error": "manual_source_missing"}]
+        [
+            {"status": "completed"},
+            {"status": "failed", "last_error": "manual_source_missing"},
+        ]
     )
 
     assert result["schema_cache_failures_total"] == 0

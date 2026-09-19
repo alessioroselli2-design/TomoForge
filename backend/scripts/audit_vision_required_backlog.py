@@ -23,9 +23,15 @@ from scripts.audit_manual_import_readiness import fetch_all
 from scripts.audit_schema_cache_logical_provenance import _normalized_source_name
 
 
-def summarize_vision_required_backlog(sources: list[dict], jobs: list[dict]) -> dict[str, Any]:
-    vision_sources = [s for s in sources if str(s.get("text_mode") or "") == "vision_required"]
-    import_states = Counter(str(s.get("import_state") or "unknown") for s in vision_sources)
+def summarize_vision_required_backlog(
+    sources: list[dict], jobs: list[dict]
+) -> dict[str, Any]:
+    vision_sources = [
+        s for s in sources if str(s.get("text_mode") or "") == "vision_required"
+    ]
+    import_states = Counter(
+        str(s.get("import_state") or "unknown") for s in vision_sources
+    )
     total_pages = sum(int(s.get("physical_pages") or 0) for s in vision_sources)
 
     by_normalized_name: dict[str, list[dict]] = {}

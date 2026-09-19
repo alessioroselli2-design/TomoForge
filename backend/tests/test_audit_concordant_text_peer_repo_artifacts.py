@@ -53,7 +53,9 @@ def test_exact_sha_artifact_is_reported_but_never_authorizes_import(tmp_path: Pa
     )
 
     strings = load_structured_artifact_strings(tmp_path)
-    result = summarize_concordant_text_peer_repo_artifacts([blocked, text_peer], [], strings)
+    result = summarize_concordant_text_peer_repo_artifacts(
+        [blocked, text_peer], [], strings
+    )
 
     assert result["concordant_text_peer_pairs"] == 1
     assert result["pairs_with_exact_sha_structured_artifact"] == 1
@@ -70,7 +72,10 @@ def test_exact_sha_artifact_is_reported_but_never_authorizes_import(tmp_path: Pa
         "vision->text": [str(artifact)]
     }
     assert result["exact_sha_artifact_evidence_is_review_candidate_only"] is True
-    assert result["exact_sha_without_identity_binding_requires_manual_provenance_review"] is True
+    assert (
+        result["exact_sha_without_identity_binding_requires_manual_provenance_review"]
+        is True
+    )
     assert result["automatic_import_authorized"] is False
     assert result["database_write_authorized"] is False
     assert result["canonicalization_authorized"] is False
@@ -129,7 +134,9 @@ def test_filename_and_title_hints_do_not_count_as_exact_sha_evidence(tmp_path: P
     )
 
     strings = load_structured_artifact_strings(tmp_path)
-    result = summarize_concordant_text_peer_repo_artifacts([blocked, text_peer], [], strings)
+    result = summarize_concordant_text_peer_repo_artifacts(
+        [blocked, text_peer], [], strings
+    )
 
     assert result["pairs_with_exact_sha_structured_artifact"] == 0
     assert result["pairs_with_identity_bound_exact_sha_artifact"] == 0
@@ -182,12 +189,17 @@ def test_shared_nominal_artifact_hint_is_marked_ambiguous(tmp_path: Path):
     assert result["pairs_with_unique_nominal_hint"] == 0
     assert result["pairs_with_ambiguous_nominal_hint"] == 2
     assert result["pairs_with_no_repository_artifact_evidence"] == 0
-    assert result["ambiguous_nominal_hint_pair_ids"] == ["vision-a->text-a", "vision-b->text-b"]
+    assert result["ambiguous_nominal_hint_pair_ids"] == [
+        "vision-a->text-a",
+        "vision-b->text-b",
+    ]
     assert result["evidence_buckets_are_exhaustive"] is True
     assert result["ambiguous_nominal_artifact_paths"] == {
         str(artifact): ["vision-a->text-a", "vision-b->text-b"]
     }
-    assert result["ambiguous_nominal_evidence_requires_manual_provenance_review"] is True
+    assert (
+        result["ambiguous_nominal_evidence_requires_manual_provenance_review"] is True
+    )
     assert result["automatic_import_authorized"] is False
 
 
@@ -236,7 +248,9 @@ def test_exact_sha_pair_is_excluded_from_nominal_ambiguity(tmp_path: Path):
     assert result["ambiguous_nominal_artifact_paths"] == {}
 
 
-def test_concordant_pair_without_artifact_evidence_is_explicitly_bucketed(tmp_path: Path):
+def test_concordant_pair_without_artifact_evidence_is_explicitly_bucketed(
+    tmp_path: Path,
+):
     blocked = _source("vision", "sha-vision")
     text_peer = _source(
         "text",

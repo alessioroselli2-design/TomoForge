@@ -32,23 +32,37 @@ def _prepare(monkeypatch, tmp_path, language):
     source.write_bytes(b"unused")
     collection = MemoryCollection()
     db = SimpleNamespace(private_reference_records=collection)
-    monkeypatch.setattr(library, "available_reference_manuals", lambda: {source.name: source})
-    monkeypatch.setattr(library, "manual_source_duplicate_of", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        library, "available_reference_manuals", lambda: {source.name: source}
+    )
+    monkeypatch.setattr(
+        library, "manual_source_duplicate_of", lambda *_args, **_kwargs: None
+    )
     monkeypatch.setattr(library, "manual_forces_ocr", lambda _filename: False)
     monkeypatch.setattr(library, "manual_source_language", lambda _filename: language)
-    monkeypatch.setattr(library, "manual_source_metadata", lambda _filename: {
-        "title": "Source Manual",
-        "language": language,
-        "native_text": True,
-    })
-    monkeypatch.setattr(library, "extract_reference_records", lambda *_args, **_kwargs: SimpleNamespace(
-        records=[_record()], pages_read=1, pages_needing_ocr=[]
-    ))
+    monkeypatch.setattr(
+        library,
+        "manual_source_metadata",
+        lambda _filename: {
+            "title": "Source Manual",
+            "language": language,
+            "native_text": True,
+        },
+    )
+    monkeypatch.setattr(
+        library,
+        "extract_reference_records",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            records=[_record()], pages_read=1, pages_needing_ocr=[]
+        ),
+    )
     return source, collection, db
 
 
 @pytest.mark.parametrize("language", ["en", "ru"])
-def test_import_translates_supported_non_italian_manuals_and_preserves_source(monkeypatch, tmp_path, language):
+def test_import_translates_supported_non_italian_manuals_and_preserves_source(
+    monkeypatch, tmp_path, language
+):
     source, collection, db = _prepare(monkeypatch, tmp_path, language)
     calls = []
 
@@ -65,14 +79,19 @@ def test_import_translates_supported_non_italian_manuals_and_preserves_source(mo
 
     monkeypatch.setattr(library, "translate_reference_batch", fake_translate)
 
-    result = asyncio.run(library.import_private_reference_manuals(
-        "owner",
-        ReferenceImportInput(
-            filenames=[source.name], start_page=1, end_page=1,
-            translation_processing_confirmed=True, auto_accept=True,
-        ),
-        db=db,
-    ))
+    result = asyncio.run(
+        library.import_private_reference_manuals(
+            "owner",
+            ReferenceImportInput(
+                filenames=[source.name],
+                start_page=1,
+                end_page=1,
+                translation_processing_confirmed=True,
+                auto_accept=True,
+            ),
+            db=db,
+        )
+    )
 
     assert calls == [language]
     assert result.imported == 1
@@ -87,15 +106,19 @@ def test_import_translates_supported_non_italian_manuals_and_preserves_source(mo
 
 
 @pytest.mark.parametrize("language", ["en", "ru", "es"])
-def test_import_requires_translation_processing_confirmation_for_supported_languages(monkeypatch, tmp_path, language):
+def test_import_requires_translation_processing_confirmation_for_supported_languages(
+    monkeypatch, tmp_path, language
+):
     source, _collection, db = _prepare(monkeypatch, tmp_path, language)
 
     with pytest.raises(HTTPException) as exc:
-        asyncio.run(library.import_private_reference_manuals(
-            "owner",
-            ReferenceImportInput(filenames=[source.name], start_page=1, end_page=1),
-            db=db,
-        ))
+        asyncio.run(
+            library.import_private_reference_manuals(
+                "owner",
+                ReferenceImportInput(filenames=[source.name], start_page=1, end_page=1),
+                db=db,
+            )
+        )
     assert exc.value.status_code == 400
     assert "traduzione" in exc.value.detail.casefold()
 
@@ -107,11 +130,15 @@ def test_italian_import_never_calls_translation_provider(monkeypatch, tmp_path):
         raise AssertionError("Italian source must not be translated")
 
     monkeypatch.setattr(library, "translate_reference_batch", fail_if_called)
-    result = asyncio.run(library.import_private_reference_manuals(
-        "owner",
-        ReferenceImportInput(filenames=[source.name], start_page=1, end_page=1, auto_accept=True),
-        db=db,
-    ))
+    result = asyncio.run(
+        library.import_private_reference_manuals(
+            "owner",
+            ReferenceImportInput(
+                filenames=[source.name], start_page=1, end_page=1, auto_accept=True
+            ),
+            db=db,
+        )
+    )
 
     assert result.imported == 1
     stored = collection.rows[0]

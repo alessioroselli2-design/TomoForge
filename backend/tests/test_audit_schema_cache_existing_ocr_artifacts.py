@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from scripts.audit_schema_cache_existing_ocr_artifacts import summarize_existing_ocr_artifacts
+from scripts.audit_schema_cache_existing_ocr_artifacts import (
+    summarize_existing_ocr_artifacts,
+)
 
 
 def _job(filename="Book_123.pdf", page_count=4):

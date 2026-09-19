@@ -15,7 +15,9 @@ def test_normalized_identity_strips_known_local_suffixes_only():
 
 def test_duplicate_error_target_extracts_only_declared_duplicate_filename():
     assert duplicate_error_target("manual_source_duplicate:Book.pdf") == "Book.pdf"
-    assert duplicate_error_target("MANUAL_SOURCE_DUPLICATE: Book_ok.pdf") == "Book_ok.pdf"
+    assert (
+        duplicate_error_target("MANUAL_SOURCE_DUPLICATE: Book_ok.pdf") == "Book_ok.pdf"
+    )
     assert duplicate_error_target("manual_source_missing") is None
     assert duplicate_error_target("manual_source_duplicate:") is None
 
@@ -173,10 +175,19 @@ def test_audit_confirms_distinct_registry_logical_sources_for_cross_identity_dup
     result = summarize_failed_import_registry_identity_mismatch(jobs, sources)
 
     assert result["failed_jobs_with_cross_identity_duplicate_claim"] == 1
-    assert result["failed_jobs_with_registry_distinct_logical_source_duplicate_claim"] == 1
-    assert result["registry_distinct_logical_source_duplicate_failed_job_ids"] == ["monster-job"]
+    assert (
+        result["failed_jobs_with_registry_distinct_logical_source_duplicate_claim"] == 1
+    )
+    assert result["registry_distinct_logical_source_duplicate_failed_job_ids"] == [
+        "monster-job"
+    ]
     assert result["registry_logical_source_evidence_is_diagnostic_only"] is True
-    assert result["registry_distinct_logical_source_duplicate_requires_manual_reconciliation"] is True
+    assert (
+        result[
+            "registry_distinct_logical_source_duplicate_requires_manual_reconciliation"
+        ]
+        is True
+    )
     assert result["automatic_retry_authorized"] is False
     assert result["database_write_authorized"] is False
 
@@ -206,7 +217,14 @@ def test_audit_does_not_escalate_when_registry_logical_source_is_the_same():
     result = summarize_failed_import_registry_identity_mismatch(jobs, sources)
 
     assert result["failed_jobs_with_cross_identity_duplicate_claim"] == 1
-    assert result["failed_jobs_with_registry_distinct_logical_source_duplicate_claim"] == 0
+    assert (
+        result["failed_jobs_with_registry_distinct_logical_source_duplicate_claim"] == 0
+    )
     assert result["registry_distinct_logical_source_duplicate_failed_job_ids"] == []
-    assert result["registry_distinct_logical_source_duplicate_requires_manual_reconciliation"] is False
+    assert (
+        result[
+            "registry_distinct_logical_source_duplicate_requires_manual_reconciliation"
+        ]
+        is False
+    )
     assert result["automatic_retry_authorized"] is False

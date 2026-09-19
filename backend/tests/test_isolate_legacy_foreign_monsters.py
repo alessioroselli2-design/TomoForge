@@ -52,7 +52,9 @@ def test_foreign_source_resolution_requires_spanish_extraction_aid():
     except RuntimeError as exc:
         assert "source_role" in str(exc)
     else:
-        raise AssertionError("authority source must not pass foreign isolation preflight")
+        raise AssertionError(
+            "authority source must not pass foreign isolation preflight"
+        )
 
 
 def test_foreign_preview_is_read_only_and_sets_only_review_isolation():
