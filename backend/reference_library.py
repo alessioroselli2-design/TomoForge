@@ -10,6 +10,11 @@ name on the same page with all core stat-block fields present.
 Promotion never clears OCR/manual-review flags and never marks a record trusted.
 """
 
+# The compatibility layer below intentionally populates parser symbols at runtime
+# by executing the stable base module in this namespace. Static analysis cannot
+# see those dynamically provided names.
+# ruff: noqa: F821
+
 from pathlib import Path as _BootstrapPath
 
 _base_path = _BootstrapPath(__file__).with_name("_reference_library_base.py")
