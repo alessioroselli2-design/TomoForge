@@ -4,16 +4,17 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - ops/final-global-monster-dry-run
+      - develop
     paths:
       - .github/workflows/source-guided-global-dry-run.yml
+      - .github/source-guided-global-dry-run-request.txt
 
 permissions:
   contents: read
 
 concurrency:
   group: tomoforge-source-guided-global-dry-run
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   global-dry-run:
