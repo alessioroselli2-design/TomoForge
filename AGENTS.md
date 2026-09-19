@@ -5,10 +5,13 @@ These rules are fail-closed: when evidence, parsing, tests, provenance, or repos
 
 ## 1. Repository and change-management rules
 
-- Never commit or push directly to the canonical branch (`main`).
-- Every change must be made on a dedicated branch and delivered through a Pull Request.
-- Do not merge a Pull Request unless all required CI checks and repository tests for the affected area are green.
-- If required CI is absent, unavailable, cancelled, inconclusive, or cannot be executed, treat the merge gate as failed.
+- `main` is the sealed canonical production branch. It must receive changes only through a release Pull Request whose source branch is `develop`.
+- `develop` is the permanent integration branch. All normal feature, fix, pilot, OCR/parser, CI, documentation, and maintenance Pull Requests from temporary working branches must target `develop`.
+- Never commit or push directly to either `main` or `develop`.
+- Every normal change must be made on a dedicated temporary branch and delivered through a Pull Request into `develop`.
+- Promotion from `develop` to `main` must happen only through an explicit release Pull Request; no ordinary task branch may target `main`.
+- A Pull Request into either `develop` or `main` must not be merged unless all required CI checks and repository tests for the affected area are green.
+- If required CI is absent, unavailable, cancelled, inconclusive, or cannot be executed, treat the merge gate as failed for both `develop` and `main`.
 - Do not bypass branch protection, required reviews, required checks, or repository rules.
 - Keep changes scoped to the requested task. Do not mix unrelated refactors, formatting sweeps, dependency upgrades, or data migrations into the same PR.
 - Before opening or updating a PR, inspect the diff and confirm that no secrets, credentials, private manual contents, generated OCR dumps, or unrelated artifacts have been added.
@@ -209,10 +212,10 @@ A coding task is complete only when:
 - the requested implementation is present;
 - the diff contains no unrelated changes;
 - applicable local tests/checks pass;
-- the Pull Request is opened against `main`;
+- the Pull Request targets `develop` for normal work, or `main` only for an explicit release promotion from `develop`;
 - required CI checks pass before merge;
 - unresolved gate failures, parser disagreements, or data-quality concerns are disclosed in the PR rather than hidden;
-- no direct push to `main` has occurred.
+- no direct push to `main` or `develop` has occurred.
 
 Codex/agents may create or update branches and Pull Requests, investigate CI failures, and push fixes to the PR branch.
 They must not use successful local execution as a substitute for required CI before the canonical branch is changed.
