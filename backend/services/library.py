@@ -22,12 +22,9 @@ from reference_sources import (
 from reference_library import (
     CARD_TYPE_BY_REFERENCE_TYPE,
     REFERENCE_TYPES,
-    clean_text,
-    compact_text,
     extract_reference_records,
     merge_reference_records,
     normalize_reference_name,
-    reference_content_fingerprint,
     reference_effective_level,
     reference_effective_type,
     reference_is_trusted,
