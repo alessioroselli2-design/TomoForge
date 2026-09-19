@@ -1,0 +1,49 @@
+name: Import native-text Italian manuals from R2
+
+on:
+  push:
+    branches:
+      - ai-canonical-library
+    paths:
+      - .github/r2-native-text-import-request.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-private-manual-import
+  cancel-in-progress: false
+
+jobs:
+  import-native-text:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      PYTHONUNBUFFERED: "1"
+      REFERENCE_MANUAL_DIRECTORY: /tmp/tomoforge-native-text
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install worker dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Import safe native-text Italian sources
+        run: |
+          python backend/scripts/batch_import_native_text_from_r2.py --max-chunks 100

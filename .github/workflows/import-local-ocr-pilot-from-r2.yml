@@ -1,0 +1,64 @@
+name: Import local OCR pilot from R2
+
+on:
+  push:
+    branches:
+      - ai-canonical-library
+    paths:
+      - .github/local-ocr-live-import-request.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-local-ocr-live-import
+  cancel-in-progress: false
+
+jobs:
+  import-local-ocr-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUNBUFFERED: "1"
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Deliberately no OpenAI/Gemini secrets in this job.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install local OCR dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita tesseract-ocr-eng
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Import three Monster Manual pages with local OCR
+        run: |
+          python backend/scripts/import_local_ocr_from_r2.py \
+            --filename "847921086-Manuale-Dei-Mostri-5e.pdf" \
+            --start-page 12 \
+            --page-count 3 \
+            --report /tmp/mm-local-ocr-live-import-report.json
+
+      - name: Upload aggregate live-import report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mm-local-ocr-live-import-report
+          path: /tmp/mm-local-ocr-live-import-report.json
+          if-no-files-found: warn
+          retention-days: 3

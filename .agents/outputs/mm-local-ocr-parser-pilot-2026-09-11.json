@@ -1,0 +1,48 @@
+{
+  "audit_type": "local_ocr_parser_pilot",
+  "source": {
+    "filename": "847921086-Manuale-Dei-Mostri-5e.pdf",
+    "page_start": 12,
+    "page_end": 23,
+    "pages_requested": 12,
+    "pages_read": 12
+  },
+  "ocr": {
+    "quality_pages_passed": 12,
+    "quality_pages_evaluated": 12,
+    "pages_needing_ocr": [],
+    "dpi": 220,
+    "languages": "ita+eng",
+    "primary_psm": 6,
+    "comparison_psm": 4
+  },
+  "parser": {
+    "records_detected": 35,
+    "record_types": {
+      "monster": 1,
+      "other": 9,
+      "weapon": 25
+    },
+    "records_flagged_for_review": 35,
+    "records_with_ocr_review_flag": 35,
+    "source_pages_represented": 11,
+    "monster_candidates_primary": 2,
+    "monster_candidates_comparison": 3,
+    "monster_candidates_independently_agreed": 0
+  },
+  "decision": {
+    "parser_ready_for_structured_import": false,
+    "allow_live_import": false,
+    "allow_canonicalization": false,
+    "review_gate_required": true,
+    "reason": "OCR quality passed on all pilot pages, but every parser detection was flagged for review and no monster candidate was independently agreed across the two OCR passes. Parser precision must be improved before any structured import expansion."
+  },
+  "provenance": {
+    "workflow_run_id": 34619234529,
+    "artifact_id": 10271576844,
+    "artifact_filename": "mm-local-ocr-parser-pilot.zip",
+    "source_branch": "ai-canonical-library",
+    "source_commit": "383935d361376aa1d8e3e71aefd45533dde8647c",
+    "contains_copyrighted_ocr_text": false
+  }
+}

@@ -1,0 +1,112 @@
+name: Pilot local OCR parser from R2
+
+on:
+  push:
+    branches:
+      - ai-canonical-library
+    paths:
+      - .github/local-ocr-parser-pilot-request.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-local-ocr-parser-pilot
+  cancel-in-progress: false
+
+jobs:
+  local-ocr-parser-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PYTHONUNBUFFERED: "1"
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install local OCR dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita tesseract-ocr-eng
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Dry-run Theros pages 199-209
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 199 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-199-209
+
+      - name: Dry-run Theros pages 210-220
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 210 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-210-220
+
+      - name: Dry-run Theros pages 221-231
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 221 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-221-231
+
+      - name: Dry-run Theros pages 232-242
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 232 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-232-242
+
+      - name: Dry-run Theros pages 243-253
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 243 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-243-253
+
+      - name: Dry-run Theros pages 254-264
+        run: |
+          python backend/scripts/pilot_local_ocr_parse_from_r2.py \
+            --filename "953338587-Mythic-Odysseys-of-Theros.pdf" \
+            --start-page 254 \
+            --page-count 11 \
+            --languages eng \
+            --source-language en \
+            --output-dir /tmp/theros-pilot/window-254-264
+
+      - name: Upload bounded parser reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: theros-pilot
+          path: /tmp/theros-pilot/**/report.json
+          if-no-files-found: error
+          retention-days: 3

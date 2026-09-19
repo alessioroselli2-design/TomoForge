@@ -17,6 +17,12 @@ Private D&D 5e library app. Extracts structured content (spells, classes, featur
 
 The `Start application` workflow runs `bash scripts/start-preview.sh`, which boots both the FastAPI backend and the React dev server.
 
+The private PDF collection does not belong in Git. By default the importers
+read `attached_assets/`; for a recovered or externally mounted collection,
+set `REFERENCE_MANUAL_DIRECTORY` to its absolute directory before starting the
+backend or an import worker. The local `library_manuals/` recovery directory is
+ignored deliberately.
+
 ---
 
 ## Database migrations (Supabase production)

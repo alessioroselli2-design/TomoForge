@@ -1,0 +1,78 @@
+name: Corrupted monster-name cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "preview, isolate, or purge"
+        required: true
+        type: choice
+        options:
+          - preview
+          - isolate
+          - purge
+        default: preview
+      confirm:
+        description: "Exact confirmation token required for isolate/purge"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-corrupted-monster-name-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+
+      - name: Run guarded cleanup
+        env:
+          ACTION: ${{ inputs.action }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [ "$ACTION" = "preview" ]; then
+            python backend/scripts/cleanup_corrupted_monster_names.py \
+              --action preview \
+              | tee /tmp/corrupted-monster-name-cleanup.log
+          else
+            python backend/scripts/cleanup_corrupted_monster_names.py \
+              --action "$ACTION" \
+              --execute \
+              --confirm "$CONFIRM" \
+              | tee /tmp/corrupted-monster-name-cleanup.log
+          fi
+
+      - name: Upload cleanup report
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrupted-monster-name-cleanup-${{ inputs.action }}
+          path: /tmp/corrupted-monster-name-cleanup.log
+          if-no-files-found: error
+          retention-days: 3

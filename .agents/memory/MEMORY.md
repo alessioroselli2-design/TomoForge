@@ -13,3 +13,4 @@
 - [Manual source integrity](manual-source-integrity.md) — Validate required-distinct manual assets before indexing so mislabeled copies cannot create false coverage.
 - [Supabase production migration access](supabase-production-migration-access.md) — External schema DDL needs a scoped PostgreSQL pooler role, not the application service key.
 - [Reference correction semantics](reference-correction-semantics.md) — Review notes are audit context, never executable edits; corrections must be explicit and remain blocked until confirmed.
+- [Canonical source integrity](canonical-source-integrity.md) — Canonical decisions select one whole source under hard authority rules and become stale whenever canonical inputs change.
