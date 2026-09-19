@@ -869,6 +869,21 @@ def _micro_ocr_hit_points_line(
         ).stdout
 
     value = " ".join(micro.split())
+    if os.getenv("TOMOFORGE_DEEP_OCR_DIAGNOSTIC") == "1":
+        print(
+            "MICRO_OCR_RAW_HP "
+            + json.dumps(
+                {
+                    "image": image_path.name,
+                    "input_psm": psm,
+                    "micro_psm": 7,
+                    "raw_text": micro,
+                    "normalized_text": value,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
     if not value or not re.search(r"\d", value):
         return page_text
     return hp_line_pattern.sub(
