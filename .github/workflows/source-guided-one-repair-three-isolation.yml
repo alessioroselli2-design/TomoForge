@@ -1,0 +1,93 @@
+name: Source-guided one repair and three isolation
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/source-guided-one-repair-three-isolation-request.txt
+      - .github/workflows/source-guided-one-repair-three-isolation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-one-repair-three-isolation
+  cancel-in-progress: false
+
+jobs:
+  guarded-live-operation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: production
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+      - name: Preflight sealed repair singleton
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --target-set approved1 \
+            --allow-r2-download \
+            | tee /tmp/repair-preview.log
+          grep -q '"targets": 1' /tmp/repair-preview.log
+          grep -q '"repairable": 1' /tmp/repair-preview.log
+          grep -q '"blocked": 0' /tmp/repair-preview.log
+          grep -q '"updates_performed": 0' /tmp/repair-preview.log
+      - name: Preflight sealed isolation trio
+        run: |
+          set -o pipefail
+          python backend/scripts/isolate_legacy_structural_false_positives.py \
+            | tee /tmp/isolation-preview.log
+          grep -q '"targets": 3' /tmp/isolation-preview.log
+          grep -q '"updates_performed": 0' /tmp/isolation-preview.log
+      - name: Execute sealed repair singleton
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --target-set approved1 \
+            --allow-r2-download \
+            --execute \
+            --confirm REPAIR-APPROVED1-1-2bc07f76e1383e3d03b8cbdd644b3823 \
+            | tee /tmp/repair-execute.log
+          grep -q '"targets": 1' /tmp/repair-execute.log
+          grep -q '"repairable": 1' /tmp/repair-execute.log
+          grep -q '"blocked": 0' /tmp/repair-execute.log
+          grep -q '"updates_performed": 1' /tmp/repair-execute.log
+      - name: Execute sealed isolation trio
+        run: |
+          set -o pipefail
+          python backend/scripts/isolate_legacy_structural_false_positives.py \
+            --execute \
+            --confirm ISOLATE-STRUCTURAL-FALSE-POSITIVES-3-0476fbdd7bfdb86e76630ea493ad7731 \
+            | tee /tmp/isolation-execute.log
+          grep -q '"targets": 3' /tmp/isolation-execute.log
+          grep -q '"isolated": 3' /tmp/isolation-execute.log
+          grep -q '"updates_performed": 3' /tmp/isolation-execute.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: one-repair-three-isolation-reports
+          path: |
+            /tmp/repair-preview.log
+            /tmp/isolation-preview.log
+            /tmp/repair-execute.log
+            /tmp/isolation-execute.log
+          if-no-files-found: error
+          retention-days: 7

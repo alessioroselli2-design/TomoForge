@@ -21,6 +21,10 @@ CORRUPTED_ENTITY_NAME_FLAG = "corrupted_entity_name"
 
 _AC_VALUE_RE = re.compile(r"^\s*(\d{1,2})\b")
 _DICE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])\d+d\d+(?![A-Za-z0-9])", re.IGNORECASE)
+_HP_DICE_EXPRESSION_RE = re.compile(
+    r"^\s*(\d+)\s*\(\s*(\d+)d(\d+)\s*([+-]\s*\d+)?\s*\)\s*$",
+    re.IGNORECASE,
+)
 # Examples intentionally rejected: ``1 3d8``, ``3 d8``, ``3d 8``, ``1 28``.
 _SPLIT_NUMBER_RE = re.compile(r"\b\d+\s+\d+\b")
 _SPLIT_HIT_DICE_COUNT_RE = re.compile(r"\b\d+\s+\d+d\d+\b", re.IGNORECASE)
@@ -137,6 +141,15 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
     has_split_dice = bool(_SPLIT_DICE_RE.search(hp_text))
     has_split_dice_faces = bool(_SPLIT_DICE_FACES_RE.search(hp_text))
     has_ocr_dice_letters = bool(_OCR_DICE_LETTER_RE.search(hp_text))
+    hp_expression = _HP_DICE_EXPRESSION_RE.fullmatch(hp_text)
+    mathematically_coherent = False
+    if hp_expression:
+        average = int(hp_expression.group(1))
+        dice_count = int(hp_expression.group(2))
+        die_size = int(hp_expression.group(3))
+        modifier = int((hp_expression.group(4) or "0").replace(" ", ""))
+        expected_average = (dice_count * (die_size + 1)) // 2 + modifier
+        mathematically_coherent = average == expected_average
     if (
         not dice_token_ok
         or has_split_number
@@ -144,6 +157,7 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
         or has_split_dice
         or has_split_dice_faces
         or has_ocr_dice_letters
+        or not mathematically_coherent
     ):
         flags.add(HP_FORMAT_ERROR_FLAG)
 

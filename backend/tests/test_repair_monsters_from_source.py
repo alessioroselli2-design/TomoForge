@@ -11,7 +11,9 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_BIGBY19_COUNT,
     EXPECTED_BIGBY4_COUNT,
     EXPECTED_HEALTHY22_COUNT,
+    EXPECTED_APPROVED1_COUNT,
     HEALTHY22_TARGETS,
+    APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
     RepairBlocked,
@@ -28,6 +30,7 @@ from scripts.repair_monsters_from_source import (
     select_corrupted_name_monsters,
     select_failed_monsters,
     select_healthy22_targets,
+    select_approved1_targets,
 )
 
 
@@ -533,6 +536,27 @@ def test_healthy22_sealed_target_set_rejects_preexisting_review_flags():
         assert "review flags" in str(exc)
     else:
         raise AssertionError("sealed healthy22 batch must reject pre-existing flags")
+
+
+def test_approved1_sealed_target_set_contains_only_numerically_valid_identity():
+    records = []
+    for expected in APPROVED1_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = f"checksum-{expected['id']}"
+        records.append(row)
+
+    selected = select_approved1_targets(records)
+
+    assert len(selected) == EXPECTED_APPROVED1_COUNT == 1
+    assert {row["name"] for row in selected} == {"Abishai Rosso"}
+    assert {row["name"] for row in selected}.isdisjoint(
+        {"Colline", "Di Fuoco", "Mietitore", "Modellaghiaccio"}
+    )
 
 
 class _UpdateResult:
