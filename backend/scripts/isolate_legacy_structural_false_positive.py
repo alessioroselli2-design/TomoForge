@@ -47,7 +47,12 @@ async def _load_target(collection: Any) -> dict[str, Any]:
         if str(row.get(field) or "") != value:
             raise RuntimeError(f"Target {field} drift: {row.get(field)!r}")
     existing_flags = {str(flag) for flag in (row.get("review_flags") or [])}
-    allowed_failure_flags = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
+    allowed_failure_flags = {
+        "CA_format_error",
+        "CA_out_of_bounds",
+        "HP_format_error",
+        "ocr_da_verificare",
+    }
     if not existing_flags or not existing_flags.issubset(allowed_failure_flags):
         raise RuntimeError(
             f"Target has unexpected pre-isolation review flags: {sorted(existing_flags)!r}"
