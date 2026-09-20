@@ -23,6 +23,7 @@ from scripts.repair_monsters_from_source import (
     _layout_profile,
     _layout_segments,
     _micro_ocr_hit_points_line,
+    _otsu_inverted_samples,
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
@@ -316,7 +317,15 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path):
     assert result == "Modellaghiaccio\nPunti Ferita 310 (27d12 + 135)\n"
     assert len(run.call_args_list) == 3
     assert run.call_args_list[1].args[0][1].endswith("hit-points-2.0.png")
-    assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2.png")
+    assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
+
+
+def test_otsu_inversion_makes_dark_text_white_and_light_background_black():
+    samples = bytes([10, 12, 14, 240, 245, 250])
+
+    result = _otsu_inverted_samples(samples)
+
+    assert result == bytes([255, 255, 255, 0, 0, 0])
 
 
 def _monster(name, ac, hp, *, record_id="m1", flags=None):
