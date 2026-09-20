@@ -46,6 +46,26 @@ def make_reference(name, reference_type="feat", **changes):
     return record
 
 
+@pytest.mark.parametrize(
+    ("ocr_title", "canonical_title"),
+    [
+        ("0Blex", "Oblex"),
+        ("8Hadar-Kai", "Shadar-Kai"),
+    ],
+)
+def test_normalize_reference_name_repairs_allowlisted_ocr_title_prefixes(
+    ocr_title, canonical_title
+):
+    assert normalize_reference_name(ocr_title) == normalize_reference_name(
+        canonical_title
+    )
+
+
+@pytest.mark.parametrize("title", ["8 Goblin", "0 Cultists", "Hadar-Kai"])
+def test_normalize_reference_name_does_not_guess_other_numeric_titles(title):
+    assert normalize_reference_name(title).startswith(title[0].lower())
+
+
 def test_reference_parser_keeps_heading_provenance_and_marks_open_section():
     page = """MAESTRO DELLA BATTAGLIA
 Quando scegli questo archetipo al 3° livello, apprendi manovre che alimentano
