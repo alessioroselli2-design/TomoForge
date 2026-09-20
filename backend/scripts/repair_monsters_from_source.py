@@ -349,6 +349,43 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
     re.IGNORECASE,
 )
 
+
+def _otsu_inverted_samples(samples: bytes) -> bytes:
+    """Binarize grayscale samples with Otsu and invert to white-on-black."""
+    if not samples:
+        return b""
+    histogram = [0] * 256
+    for sample in samples:
+        histogram[sample] += 1
+
+    total = len(samples)
+    weighted_total = sum(value * count for value, count in enumerate(histogram))
+    background_weight = 0
+    background_sum = 0
+    best_variance = -1.0
+    threshold = 0
+    for value, count in enumerate(histogram):
+        background_weight += count
+        if background_weight == 0:
+            continue
+        foreground_weight = total - background_weight
+        if foreground_weight == 0:
+            break
+        background_sum += value * count
+        background_mean = background_sum / background_weight
+        foreground_mean = (weighted_total - background_sum) / foreground_weight
+        between_variance = (
+            background_weight
+            * foreground_weight
+            * (background_mean - foreground_mean) ** 2
+        )
+        if between_variance > best_variance:
+            best_variance = between_variance
+            threshold = value
+
+    return bytes(255 if sample <= threshold else 0 for sample in samples)
+
+
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
 LEGACY_FILENAME_ALIASES = {
@@ -915,19 +952,27 @@ def _micro_ocr_hit_points_line(
         for row in range(crop_rect.y0, crop_rect.y1)
     )
 
-    def run_micro_ocr(contrast: float, directory: Path) -> str:
+    def run_micro_ocr(
+        contrast: float, directory: Path, *, otsu_inverted: bool = False
+    ) -> str:
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
             for sample in crop_samples
+        )
+        processed_samples = (
+            _otsu_inverted_samples(contrasted_samples)
+            if otsu_inverted
+            else contrasted_samples
         )
         contrasted = fitz.Pixmap(
             fitz.csGRAY,
             crop_width,
             crop_height,
-            contrasted_samples,
+            processed_samples,
             False,
         )
-        crop_path = directory / f"hit-points-{contrast:.1f}.png"
+        suffix = "-otsu-inverted" if otsu_inverted else ""
+        crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         contrasted.save(crop_path)
         return subprocess.run(
             [
@@ -951,9 +996,13 @@ def _micro_ocr_hit_points_line(
     with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
         directory = Path(tmp)
         micro = run_micro_ocr(HIT_POINTS_CONTRAST, directory)
-        if re.search(
-            r"\([^)]*\b\d{4,}\b", micro
-        ) or NONSTANDARD_MULTI_DIGIT_DIE_RE.search(micro):
+        if NONSTANDARD_MULTI_DIGIT_DIE_RE.search(micro):
+            micro = run_micro_ocr(
+                HIT_POINTS_FALLBACK_CONTRAST,
+                directory,
+                otsu_inverted=True,
+            )
+        elif re.search(r"\([^)]*\b\d{4,}\b", micro):
             micro = run_micro_ocr(HIT_POINTS_FALLBACK_CONTRAST, directory)
 
     value = " ".join(micro.split())

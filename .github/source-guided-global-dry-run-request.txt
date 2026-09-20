@@ -1,1 +1,1 @@
-Post-Modellaghiaccio Hit Dice fallback read-only global dry-run requested.
+Post-adaptive-binary HP repair read-only global dry-run requested.
