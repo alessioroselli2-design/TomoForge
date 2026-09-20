@@ -301,11 +301,20 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
     responses = [
         CompletedProcess([], 0, stdout=tsv, stderr=""),
         CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
+        CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
         CompletedProcess([], 0, stdout="149 (27d10)\n", stderr=""),
     ]
+    crop_sizes = []
+
+    def run_tesseract(command, **_kwargs):
+        response = responses.pop(0)
+        if "hit-points-" in command[1]:
+            crop = fitz.Pixmap(command[1])
+            crop_sizes.append((crop.width, crop.height))
+        return response
 
     with patch(
-        "scripts.repair_monsters_from_source.subprocess.run", side_effect=responses
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=run_tesseract
     ) as run:
         result = _micro_ocr_hit_points_line(
             image_path,
@@ -316,9 +325,15 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
         )
 
     assert result == "Fraz-Urb'Luu\nPunti Ferita 149 (27d10)\n"
-    assert len(run.call_args_list) == 3
+    assert len(run.call_args_list) == 4
     assert run.call_args_list[1].args[0][1].endswith("hit-points-2.0.png")
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
+    assert (
+        run.call_args_list[3]
+        .args[0][1]
+        .endswith("hit-points-1.2-upscaled-otsu-inverted.png")
+    )
+    assert crop_sizes[2] == (crop_sizes[1][0] * 2, crop_sizes[1][1] * 2)
 
 
 def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, capsys):
@@ -337,17 +352,8 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, ca
         CompletedProcess([], 0, stdout="310 (27d412 + 135)\n", stderr=""),
         CompletedProcess([], 0, stdout="310 (27d12 + 135)\n", stderr=""),
     ]
-    crop_sizes = []
-
-    def run_tesseract(command, **_kwargs):
-        response = responses.pop(0)
-        if "hit-points-" in command[1]:
-            crop = fitz.Pixmap(command[1])
-            crop_sizes.append((crop.width, crop.height))
-        return response
-
     with patch(
-        "scripts.repair_monsters_from_source.subprocess.run", side_effect=run_tesseract
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=responses
     ) as run:
         result = _micro_ocr_hit_points_line(
             image_path,
@@ -361,12 +367,12 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, ca
     assert len(run.call_args_list) == 3
     assert run.call_args_list[1].args[0][1].endswith("hit-points-2.0.png")
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
-    assert crop_sizes[1] == (crop_sizes[0][0] * 2, crop_sizes[0][1] * 2)
     diagnostic = capsys.readouterr().out
     assert "HP_MICRO_OCR_DIAGNOSTIC" in diagnostic
     assert '"initial_raw": "310 (27d412 + 135)\\n"' in diagnostic
     assert '"otsu_inverted_raw": "310 (27d12 + 135)\\n"' in diagnostic
     assert '"otsu_hp_format_error": false' in diagnostic
+    assert '"upscaled_otsu_inverted_raw": null' in diagnostic
 
 
 def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, capsys):
@@ -384,6 +390,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
         CompletedProcess([], 0, stdout=tsv, stderr=""),
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
     ]
 
     with patch(
@@ -398,8 +405,14 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
         )
 
     assert result == "Mostro Prova\nPunti Ferita 30 (4d12 + 3)\n"
-    assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
-    assert '"otsu_hp_format_error": true' in capsys.readouterr().out
+    assert (
+        run.call_args_list[3]
+        .args[0][1]
+        .endswith("hit-points-1.2-upscaled-otsu-inverted.png")
+    )
+    diagnostic = capsys.readouterr().out
+    assert '"otsu_hp_format_error": true' in diagnostic
+    assert '"upscaled_otsu_hp_format_error": true' in diagnostic
 
 
 def test_otsu_inversion_makes_dark_text_white_and_light_background_black():

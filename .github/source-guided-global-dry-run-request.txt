@@ -1,1 +1,1 @@
-Upscaled Otsu and bounded HP-anchor read-only global dry-run requested.
+Preserve valid Otsu results before upscaled fallback global dry-run requested.

@@ -955,7 +955,11 @@ def _micro_ocr_hit_points_line(
     )
 
     def run_micro_ocr(
-        contrast: float, directory: Path, *, otsu_inverted: bool = False
+        contrast: float,
+        directory: Path,
+        *,
+        otsu_inverted: bool = False,
+        upscale: bool = False,
     ) -> str:
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
@@ -968,20 +972,25 @@ def _micro_ocr_hit_points_line(
             contrasted_samples,
             False,
         )
-        if otsu_inverted:
+        if upscale:
             # Let MuPDF interpolate the crop before thresholding so fused
             # legacy-font strokes have twice the geometric resolution.
-            upscaled = fitz.Pixmap(contrasted, crop_width * 2, crop_height * 2)
+            raster = fitz.Pixmap(contrasted, crop_width * 2, crop_height * 2)
+        else:
+            raster = contrasted
+        if otsu_inverted:
             processed = fitz.Pixmap(
                 fitz.csGRAY,
-                upscaled.width,
-                upscaled.height,
-                _otsu_inverted_samples(upscaled.samples),
+                raster.width,
+                raster.height,
+                _otsu_inverted_samples(raster.samples),
                 False,
             )
         else:
-            processed = contrasted
+            processed = raster
         suffix = "-otsu-inverted" if otsu_inverted else ""
+        if upscale:
+            suffix = "-upscaled" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         processed.save(crop_path)
         return subprocess.run(
@@ -1022,6 +1031,17 @@ def _micro_ocr_hit_points_line(
                 directory,
                 otsu_inverted=True,
             )
+            upscaled_otsu_micro = None
+            if hp_micro_ocr_failed(otsu_micro):
+                upscaled_otsu_micro = run_micro_ocr(
+                    HIT_POINTS_FALLBACK_CONTRAST,
+                    directory,
+                    otsu_inverted=True,
+                    upscale=True,
+                )
+                micro = upscaled_otsu_micro
+            else:
+                micro = otsu_micro
             print(
                 "HP_MICRO_OCR_DIAGNOSTIC "
                 + json.dumps(
@@ -1030,12 +1050,17 @@ def _micro_ocr_hit_points_line(
                         "initial_raw": initial_micro,
                         "otsu_inverted_raw": otsu_micro,
                         "otsu_hp_format_error": hp_micro_ocr_failed(otsu_micro),
+                        "upscaled_otsu_inverted_raw": upscaled_otsu_micro,
+                        "upscaled_otsu_hp_format_error": (
+                            hp_micro_ocr_failed(upscaled_otsu_micro)
+                            if upscaled_otsu_micro is not None
+                            else None
+                        ),
                     },
                     ensure_ascii=False,
                     sort_keys=True,
                 )
             )
-            micro = otsu_micro
         elif re.search(r"\([^)]*\b\d{4,}\b", micro):
             micro = run_micro_ocr(HIT_POINTS_FALLBACK_CONTRAST, directory)
 
