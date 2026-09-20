@@ -78,6 +78,22 @@ def test_hp_gate_accepts_canonical_dice_notation():
     assert HP_FORMAT_ERROR_FLAG not in flags
 
 
+def test_hp_gate_rejects_parseable_but_mathematically_incoherent_hit_dice():
+    flags = monster_semantic_numeric_flags(
+        _monster("16", "310 (27d412 + 135)")["attributes"]
+    )
+
+    assert HP_FORMAT_ERROR_FLAG in flags
+
+
+def test_hp_gate_accepts_defined_floor_rounding_for_half_average():
+    flags = monster_semantic_numeric_flags(
+        _monster("16", "310 (27d12 + 135)")["attributes"]
+    )
+
+    assert HP_FORMAT_ERROR_FLAG not in flags
+
+
 def test_entity_name_gate_catches_manual_headings_and_ocr_letter_spacing():
     invalid_names = [
         "Capitolo 2 I Bestiario",

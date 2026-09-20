@@ -298,6 +298,13 @@ BIGBY19_TARGETS: tuple[dict[str, str], ...] = (
     },
 )
 
+EXPECTED_APPROVED1_COUNT = 1
+EXPECTED_APPROVED1_IDS_MD5 = "2bc07f76e1383e3d03b8cbdd644b3823"
+APPROVED1_CONFIRMATION_TOKEN = "REPAIR-APPROVED1-1-2bc07f76e1383e3d03b8cbdd644b3823"
+APPROVED1_TARGETS: tuple[dict[str, str], ...] = (
+    {"id": "ref_36a7ca03ed43517b8b036334ea6d61ec", "name": "Abishai Rosso"},
+)
+
 EXPECTED_BIGBY4_COUNT = 4
 EXPECTED_BIGBY4_IDS_MD5 = "82a891bb16d48d70e063b3c535fa0839"
 BIGBY4_CONFIRMATION_TOKEN = "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
@@ -507,6 +514,35 @@ def select_bigby19_targets(
         or _ids_md5(targets) != EXPECTED_BIGBY19_IDS_MD5
     ):
         raise RuntimeError("Bigby19 target count/fingerprint drift")
+    return targets
+
+
+def select_approved1_targets(failures: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Resolve the sole identity with coherent core numerics by sealed identity."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in APPROVED1_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(f"Sealed approved1 target missing: {expected['id']}")
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Approved1 name drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Approved1 status drift: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Approved1 review flag drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Approved1 canonical link detected: {expected['id']}")
+        if not str(record.get("source_text_checksum") or ""):
+            raise RuntimeError(f"Approved1 checksum missing: {expected['id']}")
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(f"Approved1 identity gate failure: {expected['id']}")
+        targets.append(record)
+    if (
+        len(targets) != EXPECTED_APPROVED1_COUNT
+        or _ids_md5(targets) != EXPECTED_APPROVED1_IDS_MD5
+    ):
+        raise RuntimeError("Approved1 target count/fingerprint drift")
     return targets
 
 
@@ -1290,6 +1326,8 @@ async def _apply_update(
     collection: Any,
     legacy: dict[str, Any],
     proposal: dict[str, Any],
+    *,
+    updated_at: str | None = None,
 ) -> None:
     if legacy.get("canonical_id"):
         raise RepairBlocked(
@@ -1312,7 +1350,8 @@ async def _apply_update(
 
     write_payload = {
         **proposal,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": updated_at
+        or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     result = await collection.update_one(
         query,
@@ -1336,6 +1375,8 @@ async def _apply_update(
         raise RuntimeError("post-update semantic/numeric verification failed")
     if str(verify.get("updated_at") or "") == str(legacy.get("updated_at") or ""):
         raise RuntimeError("post-update updated_at verification failed")
+    if updated_at is not None and str(verify.get("updated_at") or "") != updated_at:
+        raise RuntimeError("post-update batch timestamp verification failed")
 
 
 def _json_view(record: dict[str, Any]) -> dict[str, Any]:
@@ -1459,7 +1500,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target-set",
-        choices=("healthy22", "bigby19", "bigby4"),
+        choices=("healthy22", "approved1", "bigby19", "bigby4"),
         default=None,
         help="Process only an exact reviewed sealed target set",
     )
@@ -1514,6 +1555,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != BIGBY4_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Bigby4 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "approved1"
+        and args.confirm != APPROVED1_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Approved1 confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -1560,7 +1607,7 @@ async def _run(args: argparse.Namespace) -> int:
     if not failures and not corrupted_names:
         return 0
 
-    sealed_batch = args.target_set in {"healthy22", "bigby4"}
+    sealed_batch = args.target_set in {"healthy22", "approved1", "bigby4"}
     if args.target_set == "healthy22":
         targets = select_healthy22_targets(failures)
         sealed_expected_count = EXPECTED_HEALTHY22_COUNT
@@ -1569,6 +1616,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_bigby4_targets(failures)
         sealed_expected_count = EXPECTED_BIGBY4_COUNT
         sealed_label = "Bigby4"
+    elif args.target_set == "approved1":
+        targets = select_approved1_targets(failures)
+        sealed_expected_count = EXPECTED_APPROVED1_COUNT
+        sealed_label = "Approved1"
     elif args.target_set == "bigby19":
         targets = select_bigby19_targets(failures)
         sealed_expected_count = None
@@ -1649,6 +1700,7 @@ async def _run(args: argparse.Namespace) -> int:
             )
         await _revalidate_target_snapshots(records_collection, targets)
         originals = {str(record["id"]): record for record in targets}
+        batch_updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         for report in reports:
             expected_flags = sorted([OCR_REVIEW_FLAG, REPAIR_FLAG])
             actual_flags = sorted(str(flag) for flag in report["after"]["review_flags"])
@@ -1662,10 +1714,24 @@ async def _run(args: argparse.Namespace) -> int:
                 "review_flags": report["after"]["review_flags"],
                 "review_status": "pending",
             }
+            before_attributes = (
+                originals[str(report["record_id"])].get("attributes") or {}
+            )
+            after_attributes = proposal["attributes"]
+            for field in set(before_attributes) | set(after_attributes):
+                if field not in {
+                    "classe_armatura",
+                    "punti_ferita",
+                    "velocita",
+                } and before_attributes.get(field) != after_attributes.get(field):
+                    raise RuntimeError(
+                        f"{sealed_label} non-core attribute drift for {report['record_id']}: {field}"
+                    )
             await _apply_update(
                 records_collection,
                 originals[str(report["record_id"])],
                 proposal,
+                updated_at=batch_updated_at,
             )
             report["executed"] = True
 
@@ -1683,6 +1749,7 @@ async def _run(args: argparse.Namespace) -> int:
         "corrupted_entity_names": len(corrupted_names),
         "name_corruption_bucket": name_corruption_bucket,
         "updates_performed": sum(1 for report in reports if report["executed"]),
+        "batch_updated_at": batch_updated_at if sealed_batch and args.execute else None,
         "reports": reports,
         "blocked_records": blocked,
     }
