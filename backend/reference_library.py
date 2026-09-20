@@ -23,6 +23,33 @@ exec(compile(_base_source, str(_base_path), "exec"), globals(), globals())
 del _base_source
 
 
+def title_sanity_normalization(value: str) -> str:
+    """Repair narrowly allowlisted leading OCR glyphs in reference titles.
+
+    The raw title remains untouched on the record; this helper only makes its
+    comparison key converge with the independently sourced canonical title.
+    Keeping the substitutions explicit avoids turning name normalization into
+    fuzzy matching or silently guessing at other digit/letter ambiguities.
+    """
+    value = value or ""
+    value = re.sub(r"^(\s*)0(?=blex\b)", r"\1O", value, flags=re.IGNORECASE)
+    return re.sub(
+        r"^(\s*)8(?=hadar(?:-|\s+)kai\b)",
+        r"\1S",
+        value,
+        flags=re.IGNORECASE,
+    )
+
+
+def normalize_reference_name(value: str) -> str:
+    """Return a stable title key after narrow, auditable OCR title repair."""
+    value = title_sanity_normalization(value)
+    value = unicodedata.normalize("NFKD", value)
+    value = "".join(char for char in value if not unicodedata.combining(char))
+    value = value.replace("’", "'").lower()
+    return re.sub(r"[^a-z0-9]+", " ", value).strip()
+
+
 def _promote_ocr_english_monsters(
     records: list[dict],
     raw_page_text: str,
