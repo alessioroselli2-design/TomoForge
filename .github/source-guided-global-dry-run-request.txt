@@ -1,1 +1,1 @@
-Post-diagnostics read-only global dry-run requested after isolation run 35495901841.
+Post-pair-diagnostics read-only global dry-run requested after PR #295.
