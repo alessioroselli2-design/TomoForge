@@ -252,6 +252,41 @@ def test_hp_micro_ocr_uses_target_name_as_upper_anchor(tmp_path):
     assert result == "Quetzalcoatlus\nPunti Ferita 30 (4d10 + 8)\n"
 
 
+def test_hp_micro_ocr_finds_hp_label_within_five_tsv_lines_of_name(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t20\t20\t120\t20\t95\tQuetzalcoatlus",
+        "5\t1\t1\t1\t2\t1\t20\t45\t80\t20\t95\tEnorme",
+        "5\t1\t1\t1\t3\t1\t20\t70\t80\t20\t95\tBestia",
+        "5\t1\t1\t1\t4\t1\t20\t95\t80\t20\t95\tSenza",
+        "5\t1\t1\t1\t5\t1\t20\t120\t80\t20\t95\tAllineamento",
+        "5\t1\t1\t1\t6\t1\t20\t145\t45\t20\t95\tPunti",
+        "5\t1\t1\t1\t6\t2\t72\t145\t50\t20\t95\tFerita",
+    ]
+    responses = [
+        CompletedProcess([], 0, stdout=header + "\n".join(rows) + "\n", stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d12 + 4)\n", stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d12 + 4)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=responses
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Quetzalcoatlus\nPunti Ferita 30 (4d1 2 + 4)\n",
+            "Quetzalcoatlus",
+        )
+
+    assert result == "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
+
+
 def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
@@ -302,9 +337,17 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, ca
         CompletedProcess([], 0, stdout="310 (27d412 + 135)\n", stderr=""),
         CompletedProcess([], 0, stdout="310 (27d12 + 135)\n", stderr=""),
     ]
+    crop_sizes = []
+
+    def run_tesseract(command, **_kwargs):
+        response = responses.pop(0)
+        if "hit-points-" in command[1]:
+            crop = fitz.Pixmap(command[1])
+            crop_sizes.append((crop.width, crop.height))
+        return response
 
     with patch(
-        "scripts.repair_monsters_from_source.subprocess.run", side_effect=responses
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=run_tesseract
     ) as run:
         result = _micro_ocr_hit_points_line(
             image_path,
@@ -318,6 +361,7 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, ca
     assert len(run.call_args_list) == 3
     assert run.call_args_list[1].args[0][1].endswith("hit-points-2.0.png")
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
+    assert crop_sizes[1] == (crop_sizes[0][0] * 2, crop_sizes[0][1] * 2)
     diagnostic = capsys.readouterr().out
     assert "HP_MICRO_OCR_DIAGNOSTIC" in diagnostic
     assert '"initial_raw": "310 (27d412 + 135)\\n"' in diagnostic

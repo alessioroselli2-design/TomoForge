@@ -908,7 +908,9 @@ def _micro_ocr_hit_points_line(
         return page_text
 
     label_words: list[dict[str, str]] | None = None
-    for words in ordered_lines[name_line_index + 1 :]:
+    # Tolerate up to four intervening TSV lines, but do not borrow an HP label
+    # from a later stat block on the same image segment.
+    for words in ordered_lines[name_line_index + 1 : name_line_index + 6]:
         normalized = " ".join(str(word["text"]) for word in words).casefold()
         if "punti" in normalized and "ferita" in normalized:
             label_words = words
@@ -959,21 +961,29 @@ def _micro_ocr_hit_points_line(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
             for sample in crop_samples
         )
-        processed_samples = (
-            _otsu_inverted_samples(contrasted_samples)
-            if otsu_inverted
-            else contrasted_samples
-        )
         contrasted = fitz.Pixmap(
             fitz.csGRAY,
             crop_width,
             crop_height,
-            processed_samples,
+            contrasted_samples,
             False,
         )
+        if otsu_inverted:
+            # Let MuPDF interpolate the crop before thresholding so fused
+            # legacy-font strokes have twice the geometric resolution.
+            upscaled = fitz.Pixmap(contrasted, crop_width * 2, crop_height * 2)
+            processed = fitz.Pixmap(
+                fitz.csGRAY,
+                upscaled.width,
+                upscaled.height,
+                _otsu_inverted_samples(upscaled.samples),
+                False,
+            )
+        else:
+            processed = contrasted
         suffix = "-otsu-inverted" if otsu_inverted else ""
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
-        contrasted.save(crop_path)
+        processed.save(crop_path)
         return subprocess.run(
             [
                 "tesseract",
