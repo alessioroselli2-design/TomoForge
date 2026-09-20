@@ -485,22 +485,13 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
         if guided_name_containment:
             left_name_tokens = normalized_name.split()
             right_name_tokens = str(other.get("normalized_name") or "").split()
-            shorter, longer = (
-                (left_name_tokens, right_name_tokens)
-                if len(left_name_tokens) <= len(right_name_tokens)
-                else (right_name_tokens, left_name_tokens)
-            )
-            token_boundary_containment = bool(
-                len(shorter) >= 2
-                and any(
-                    longer[index : index + len(shorter)] == shorter
-                    for index in range(len(longer) - len(shorter) + 1)
-                )
+            multi_token_containment = bool(
+                len(left_name_tokens) >= 2 and len(right_name_tokens) >= 2
             )
             guided_values = guided_core_merge(
                 left,
                 right,
-                allow_clean_deterministic_match=token_boundary_containment,
+                allow_clean_deterministic_match=multi_token_containment,
             )
             if guided_values is None:
                 continue
