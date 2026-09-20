@@ -134,6 +134,40 @@ def test_agreed_records_accept_one_unique_same_page_name_containment_via_guided_
     assert "ocr_guided_core_merge" in merged["review_flags"]
 
 
+def test_abishai_rosso_clean_same_page_containment_is_independently_agreed():
+    clean_core = _attributes(
+        ac="18 (armatura naturale)",
+        hp="289 (34d8 + 136)",
+        speed="9 m, volare 12 m",
+    )
+    primary = _record(
+        clean_core,
+        name="ABISHAI ROSSO",
+        normalized_name="abishai rosso",
+        start_page=43,
+    )
+    comparison = _record(
+        clean_core,
+        name="ABISHAI ROSSO GRANDE",
+        normalized_name="abishai rosso grande",
+        start_page=43,
+    )
+
+    # An all-clean merge remains unavailable to generic callers; only the
+    # independently paired, unique same-page containment path may enable it.
+    assert guided_core_merge(clean_core, clean_core) is None
+
+    result = agreed_monster_records([primary], [comparison])
+
+    assert len(result) == 1
+    merged = result[0]
+    assert merged["name"] == "ABISHAI ROSSO"
+    assert merged["attributes"]["ocr_independent_agreement"] is True
+    assert merged["attributes"]["ocr_guided_core_merge"] is True
+    assert "ocr_independent_agreement" in merged["review_flags"]
+    assert "ocr_guided_core_merge" in merged["review_flags"]
+
+
 def test_agreed_records_reject_ambiguous_same_page_name_containment_candidates():
     primary = _record(_attributes())
     comparison_alpha = _record(

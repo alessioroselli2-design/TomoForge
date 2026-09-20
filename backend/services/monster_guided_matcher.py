@@ -41,6 +41,8 @@ def _richer_value(left: object, right: object) -> object:
 def guided_core_merge(
     left_attributes: Mapping[str, object],
     right_attributes: Mapping[str, object],
+    *,
+    allow_clean_deterministic_match: bool = False,
 ) -> dict[str, object] | None:
     """Return merged core values only when every conservative gate passes.
 
@@ -49,9 +51,10 @@ def guided_core_merge(
     - hit points: one extra alphabetic suffix token shorter than three letters;
     - speed: three or more extra alphabetic tokens, excluding duplicate ambiguity.
 
-    A field that already matches after deterministic normalization is also safe,
-    but at least one of the three proven residual shapes must be present for this
-    guided path to be used. Unknown residual shapes fail closed.
+    A field that already matches after deterministic normalization is also safe.
+    The caller may explicitly permit an all-clean deterministic match only for a
+    unique same-page strict name-containment pair. All other guided paths still
+    require at least one proven residual shape. Unknown shapes fail closed.
     """
     semantic = semantic_core_field_matches(left_attributes, right_attributes)
     if not all(
@@ -90,7 +93,16 @@ def guided_core_merge(
     }
     if not all(field_gates.values()):
         return None
-    if not (ca_residual or hp_residual or speed_residual):
+    all_deterministic = all(
+        deterministic.get(f"{field}_deterministic_match", False)
+        for field in _CORE_FIELDS
+    )
+    if not (
+        ca_residual
+        or hp_residual
+        or speed_residual
+        or (allow_clean_deterministic_match and all_deterministic)
+    ):
         return None
 
     return {
