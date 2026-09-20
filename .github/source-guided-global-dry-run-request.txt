@@ -1,1 +1,1 @@
-Post-multitoken-clean-pass read-only global dry-run requested after PR #299.
+Post-Modellaghiaccio Hit Dice fallback read-only global dry-run requested.
