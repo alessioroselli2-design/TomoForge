@@ -344,6 +344,10 @@ TWO_COLUMN_COMPARISON_PSM = 4
 HIT_POINTS_WHITELIST = "0123456789d+() "
 HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
+NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
+    r"\([^)]*\b\d+d\d{3,4}\b[^)]*\)",
+    re.IGNORECASE,
+)
 
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
@@ -947,7 +951,9 @@ def _micro_ocr_hit_points_line(
     with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
         directory = Path(tmp)
         micro = run_micro_ocr(HIT_POINTS_CONTRAST, directory)
-        if re.search(r"\([^)]*\b\d{4,}\b", micro):
+        if re.search(
+            r"\([^)]*\b\d{4,}\b", micro
+        ) or NONSTANDARD_MULTI_DIGIT_DIE_RE.search(micro):
             micro = run_micro_ocr(HIT_POINTS_FALLBACK_CONTRAST, directory)
 
     value = " ".join(micro.split())
