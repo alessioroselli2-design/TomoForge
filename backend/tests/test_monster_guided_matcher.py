@@ -148,8 +148,8 @@ def test_abishai_rosso_clean_same_page_containment_is_independently_agreed():
     )
     comparison = _record(
         clean_core,
-        name="ABISHAI ROSSO GRANDE",
-        normalized_name="abishai rosso grande",
+        name="ABISHAI ROSSON",
+        normalized_name="abishai rosson",
         start_page=43,
     )
 
