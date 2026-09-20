@@ -46,8 +46,12 @@ async def _load_target(collection: Any) -> dict[str, Any]:
     for field, value in expected.items():
         if str(row.get(field) or "") != value:
             raise RuntimeError(f"Target {field} drift: {row.get(field)!r}")
-    if list(row.get("review_flags") or []):
-        raise RuntimeError("Target already has review flags")
+    existing_flags = {str(flag) for flag in (row.get("review_flags") or [])}
+    allowed_failure_flags = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
+    if not existing_flags or not existing_flags.issubset(allowed_failure_flags):
+        raise RuntimeError(
+            f"Target has unexpected pre-isolation review flags: {sorted(existing_flags)!r}"
+        )
     if row.get("canonical_id"):
         raise RuntimeError("Target is linked to canonical data")
     if not str(row.get("source_text_checksum") or ""):
