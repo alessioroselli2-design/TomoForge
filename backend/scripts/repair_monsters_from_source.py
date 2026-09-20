@@ -331,6 +331,7 @@ TWO_COLUMN_PRIMARY_PSM = 3
 TWO_COLUMN_COMPARISON_PSM = 4
 HIT_POINTS_WHITELIST = "0123456789d+() "
 HIT_POINTS_CONTRAST = 2.0
+HIT_POINTS_FALLBACK_CONTRAST = 1.2
 
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
@@ -747,12 +748,15 @@ def _micro_ocr_hit_points_line(
     languages: str,
     psm: int,
     page_text: str,
+    name: str,
 ) -> str:
     """Re-OCR only the numeric part of the PF line with a strict whitelist.
 
     The ordinary segment OCR is retained for every other field. Tesseract TSV
-    coordinates let us crop immediately after the ``Punti Ferita`` label, so
-    the whitelist cannot remove or alter surrounding stat-block content.
+    coordinates let us find the target monster first and then crop immediately
+    after the first ``Punti Ferita`` label below it. This prevents a different
+    stat block on the same segment from supplying the core HP evidence. The
+    whitelist cannot remove or alter surrounding stat-block content.
     """
     import fitz
 
@@ -791,8 +795,32 @@ def _micro_ocr_hit_points_line(
             )
             grouped.setdefault(key, []).append(row)
 
+    ordered_lines = sorted(
+        grouped.values(),
+        key=lambda words: (
+            min(int(word["top"]) for word in words),
+            min(int(word["left"]) for word in words),
+        ),
+    )
+    normalized_name = normalize_reference_name(name).replace(" ", "")
+    if not normalized_name:
+        return page_text
+    name_line_index = next(
+        (
+            index
+            for index, words in enumerate(ordered_lines)
+            if normalized_name
+            in normalize_reference_name(
+                " ".join(str(word["text"]) for word in words)
+            ).replace(" ", "")
+        ),
+        None,
+    )
+    if name_line_index is None:
+        return page_text
+
     label_words: list[dict[str, str]] | None = None
-    for words in grouped.values():
+    for words in ordered_lines[name_line_index + 1 :]:
         normalized = " ".join(str(word["text"]) for word in words).casefold()
         if "punti" in normalized and "ferita" in normalized:
             label_words = words
@@ -835,21 +863,22 @@ def _micro_ocr_hit_points_line(
         ]
         for row in range(crop_rect.y0, crop_rect.y1)
     )
-    contrasted_samples = bytes(
-        max(0, min(255, round(128 + (sample - 128) * HIT_POINTS_CONTRAST)))
-        for sample in crop_samples
-    )
-    contrasted = fitz.Pixmap(
-        fitz.csGRAY,
-        crop_width,
-        crop_height,
-        contrasted_samples,
-        False,
-    )
-    with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
-        crop_path = Path(tmp) / "hit-points.png"
+
+    def run_micro_ocr(contrast: float, directory: Path) -> str:
+        contrasted_samples = bytes(
+            max(0, min(255, round(128 + (sample - 128) * contrast)))
+            for sample in crop_samples
+        )
+        contrasted = fitz.Pixmap(
+            fitz.csGRAY,
+            crop_width,
+            crop_height,
+            contrasted_samples,
+            False,
+        )
+        crop_path = directory / f"hit-points-{contrast:.1f}.png"
         contrasted.save(crop_path)
-        micro = subprocess.run(
+        return subprocess.run(
             [
                 "tesseract",
                 str(crop_path),
@@ -868,11 +897,17 @@ def _micro_ocr_hit_points_line(
             text=True,
         ).stdout
 
+    with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
+        directory = Path(tmp)
+        micro = run_micro_ocr(HIT_POINTS_CONTRAST, directory)
+        if re.search(r"\([^)]*\b\d{4,}\b", micro):
+            micro = run_micro_ocr(HIT_POINTS_FALLBACK_CONTRAST, directory)
+
     value = " ".join(micro.split())
     if not value or not re.search(r"\d", value):
         return page_text
     return hp_line_pattern.sub(
-        lambda match: f"{match.group('label')}{value}",
+        lambda match: f"{match.group('label').rstrip()} {value}",
         page_text,
         count=1,
     )
@@ -883,6 +918,7 @@ def _ocr_source_window(
     target_page: int,
     page_total: int,
     source: dict[str, Any],
+    name: str,
     *,
     dpi: int,
     languages: str,
@@ -952,6 +988,7 @@ def _ocr_source_window(
                         languages,
                         primary_psm,
                         primary,
+                        name,
                     )
                     comparison = _run_tesseract(
                         image_path,
@@ -963,6 +1000,7 @@ def _ocr_source_window(
                         languages,
                         secondary_psm,
                         comparison,
+                        name,
                     )
                     agreement = _agreement_metrics(
                         primary,
@@ -1209,6 +1247,7 @@ async def _repair_one(
         physical_page,
         int(source["physical_pages"]),
         source,
+        str(record.get("name") or ""),
         dpi=args.dpi,
         languages=args.languages,
         psm=args.psm,
