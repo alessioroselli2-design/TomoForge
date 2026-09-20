@@ -15,6 +15,7 @@ from scripts.repair_monsters_from_source import (
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
     RepairBlocked,
+    _agreed_target_candidate,
     _apply_update,
     _layout_ocr_settings,
     _layout_profile,
@@ -28,6 +29,61 @@ from scripts.repair_monsters_from_source import (
     select_failed_monsters,
     select_healthy22_targets,
 )
+
+
+def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():
+    primary = [
+        {
+            "name": "Mostro Prova",
+            "normalized_name": "mostro prova",
+            "start_page": 12,
+            "source_refs": [{"page": 12}],
+            "attributes": {
+                "classe_armatura": "15",
+                "punti_ferita": "20 (3d8 + 6)",
+                "velocita": "9 m",
+            },
+        }
+    ]
+    comparison = [
+        {
+            "name": "Mostro Prova",
+            "normalized_name": "mostro prova",
+            "start_page": 12,
+            "source_refs": [{"page": 12}],
+            "attributes": {
+                "classe_armatura": "16",
+                "punti_ferita": "20 (3d8 + 6)",
+                "velocita": "12 m",
+            },
+        }
+    ]
+
+    with (
+        patch(
+            "scripts.repair_monsters_from_source.parse_monster_statblocks",
+            side_effect=[primary, comparison],
+        ),
+        patch(
+            "scripts.repair_monsters_from_source.agreed_monster_records",
+            return_value=[],
+        ),
+    ):
+        try:
+            _agreed_target_candidate([], [], "manual.pdf", "it", "Mostro Prova", 12)
+        except RepairBlocked as exc:
+            assert exc.reason == "no_unique_independent_agreement"
+            assert exc.diagnostics == {
+                "comparison_candidates_found": 1,
+                "comparison_target_candidates": 1,
+                "divergent_core_fields": ["classe_armatura", "velocita"],
+                "primary_candidates_found": 1,
+                "primary_target_candidates": 1,
+                "target_normalized_name": "mostro prova",
+                "target_page": 12,
+            }
+        else:
+            raise AssertionError("zero agreement must remain blocked")
 
 
 def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):

@@ -1,0 +1,32 @@
+name: Isolate reviewed structural false positive
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: Execute the guarded single-record isolation
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -r backend/requirements.txt
+      - name: Preview exact target
+        run: python backend/scripts/isolate_legacy_structural_false_positive.py
+      - name: Execute guarded isolation
+        if: inputs.execute
+        run: |
+          python backend/scripts/isolate_legacy_structural_false_positive.py \
+            --execute \
+            --confirm ISOLATE-STRUCTURAL-FALSE-POSITIVE-CONOSCI-IL-TUO-NEMICO
