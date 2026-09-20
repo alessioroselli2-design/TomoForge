@@ -348,10 +348,16 @@ LEGACY_FILENAME_ALIASES = {
 class RepairBlocked(RuntimeError):
     """Expected fail-closed outcome for a record that is unsafe to repair."""
 
-    def __init__(self, reason: str, detail: str = "") -> None:
+    def __init__(
+        self,
+        reason: str,
+        detail: str = "",
+        diagnostics: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(detail or reason)
         self.reason = reason
         self.detail = detail or reason
+        self.diagnostics = diagnostics
 
 
 async def _fetch_all(collection: Any, query: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1088,9 +1094,55 @@ def _agreed_target_candidate(
         )
     ]
     if len(matches) != 1:
+        core_fields = ("classe_armatura", "punti_ferita", "velocita")
+        target_normalized = normalize_reference_name(target_name)
+
+        def target_candidates(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                candidate
+                for candidate in records
+                if _candidate_matches_target(candidate, target_name, target_page)
+            ]
+
+        primary_targets = target_candidates(primary)
+        comparison_targets = target_candidates(comparison)
+        divergent_fields: set[str] = set()
+        for left in primary_targets:
+            left_name = str(left.get("normalized_name") or left.get("name") or "")
+            left_attributes = left.get("attributes") or {}
+            for right in comparison_targets:
+                right_name = str(
+                    right.get("normalized_name") or right.get("name") or ""
+                )
+                if not (
+                    left_name == right_name
+                    or compact_name_containment_match(left_name, right_name)
+                ):
+                    continue
+                right_attributes = right.get("attributes") or {}
+                for field in core_fields:
+                    if (
+                        " ".join(
+                            str(left_attributes.get(field) or "").split()
+                        ).casefold()
+                        != " ".join(
+                            str(right_attributes.get(field) or "").split()
+                        ).casefold()
+                    ):
+                        divergent_fields.add(field)
+
         raise RepairBlocked(
             "no_unique_independent_agreement",
             f"matching independently-agreed candidates={len(matches)}",
+            {
+                "primary_candidates_found": len(primary),
+                "comparison_candidates_found": len(comparison),
+                "primary_target_candidates": len(primary_targets),
+                "comparison_target_candidates": len(comparison_targets),
+                "divergent_core_fields": sorted(divergent_fields),
+                "target_normalized_name": target_normalized,
+                "target_page": target_page,
+            },
         )
     return matches[0]
 
@@ -1500,6 +1552,11 @@ async def _run(args: argparse.Namespace) -> int:
                         "reason": exc.reason,
                         "detail": exc.detail,
                         "executed": False,
+                        **(
+                            {"diagnostics": exc.diagnostics}
+                            if exc.diagnostics is not None
+                            else {}
+                        ),
                     }
                 )
     finally:
