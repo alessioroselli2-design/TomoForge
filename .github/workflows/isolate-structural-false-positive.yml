@@ -1,6 +1,11 @@
 name: Isolate reviewed structural false positive
 
 on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/structural-false-positive-isolation-request.txt
+      - .github/workflows/isolate-structural-false-positive.yml
   workflow_dispatch:
     inputs:
       execute:
@@ -25,7 +30,7 @@ jobs:
       - name: Preview exact target
         run: python backend/scripts/isolate_legacy_structural_false_positive.py
       - name: Execute guarded isolation
-        if: inputs.execute
+        if: github.event_name == 'push' || inputs.execute
         run: |
           python backend/scripts/isolate_legacy_structural_false_positive.py \
             --execute \
