@@ -40,17 +40,13 @@ jobs:
           sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
-      - name: Preflight sealed repair singleton
+      - name: Verify already-applied sealed repair singleton
         run: |
           set -o pipefail
-          python backend/scripts/repair_monsters_from_source.py \
-            --target-set approved1 \
-            --allow-r2-download \
-            | tee /tmp/repair-preview.log
-          grep -q '"targets": 1' /tmp/repair-preview.log
-          grep -q '"repairable": 1' /tmp/repair-preview.log
-          grep -q '"blocked": 0' /tmp/repair-preview.log
-          grep -q '"updates_performed": 0' /tmp/repair-preview.log
+          python backend/scripts/verify_approved1_live_state.py \
+            | tee /tmp/repair-verification.log
+          grep -q '"database_write_completed": false' /tmp/repair-verification.log
+          grep -q '"verified_live_update": true' /tmp/repair-verification.log
       - name: Preflight sealed isolation trio
         run: |
           set -o pipefail
@@ -58,19 +54,6 @@ jobs:
             | tee /tmp/isolation-preview.log
           grep -q '"targets": 3' /tmp/isolation-preview.log
           grep -q '"updates_performed": 0' /tmp/isolation-preview.log
-      - name: Execute sealed repair singleton
-        run: |
-          set -o pipefail
-          python backend/scripts/repair_monsters_from_source.py \
-            --target-set approved1 \
-            --allow-r2-download \
-            --execute \
-            --confirm REPAIR-APPROVED1-1-2bc07f76e1383e3d03b8cbdd644b3823 \
-            | tee /tmp/repair-execute.log
-          grep -q '"targets": 1' /tmp/repair-execute.log
-          grep -q '"repairable": 1' /tmp/repair-execute.log
-          grep -q '"blocked": 0' /tmp/repair-execute.log
-          grep -q '"updates_performed": 1' /tmp/repair-execute.log
       - name: Execute sealed isolation trio
         run: |
           set -o pipefail
@@ -85,9 +68,8 @@ jobs:
         with:
           name: one-repair-three-isolation-reports
           path: |
-            /tmp/repair-preview.log
+            /tmp/repair-verification.log
             /tmp/isolation-preview.log
-            /tmp/repair-execute.log
             /tmp/isolation-execute.log
           if-no-files-found: error
           retention-days: 7

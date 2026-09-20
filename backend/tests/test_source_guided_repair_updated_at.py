@@ -28,6 +28,13 @@ class _Collection:
         return self.row
 
 
+class _CanonicalizingTimestampCollection(_Collection):
+    async def update_one(self, query, update):
+        result = await super().update_one(query, update)
+        self.row["updated_at"] = self.row["updated_at"].replace("Z", "+00:00")
+        return result
+
+
 def test_apply_update_sets_fresh_utc_updated_at_and_preserves_guards():
     collection = _Collection()
     legacy = {
@@ -64,3 +71,34 @@ def test_apply_update_sets_fresh_utc_updated_at_and_preserves_guards():
     parsed_updated_at = datetime.fromisoformat(payload["updated_at"])
     assert parsed_updated_at.tzinfo == timezone.utc
     assert before <= parsed_updated_at <= after
+
+
+def test_apply_update_accepts_database_utc_offset_canonicalization():
+    collection = _CanonicalizingTimestampCollection()
+    legacy = {
+        "id": "monster-1",
+        "canonical_id": None,
+        "review_status": "verified",
+        "source_text_checksum": "abc123",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+    }
+    proposal = {
+        "attributes": {
+            "classe_armatura": "18 (armatura naturale)",
+            "punti_ferita": "304 (32d10 + 128)",
+            "velocita": "9 m",
+        },
+        "review_flags": [OCR_REVIEW_FLAG, REPAIR_FLAG],
+        "review_status": "pending",
+    }
+
+    asyncio.run(
+        _apply_update(
+            collection,
+            legacy,
+            proposal,
+            updated_at="2026-09-20T12:56:49Z",
+        )
+    )
+
+    assert collection.row["updated_at"] == "2026-09-20T12:56:49+00:00"
