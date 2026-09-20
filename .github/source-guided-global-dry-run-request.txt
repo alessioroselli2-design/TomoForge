@@ -1,1 +1,1 @@
-Post-pair-diagnostics read-only global dry-run requested after PR #295.
+Post-containment-clean-pass read-only global dry-run requested after PR #297.
