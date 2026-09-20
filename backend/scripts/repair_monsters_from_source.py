@@ -993,15 +993,39 @@ def _micro_ocr_hit_points_line(
             text=True,
         ).stdout
 
+    def hp_micro_ocr_failed(raw_text: str) -> bool:
+        normalized = " ".join(raw_text.split())
+        return HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+            {
+                "classe_armatura": "10",
+                "punti_ferita": normalized,
+            }
+        )
+
     with tempfile.TemporaryDirectory(prefix="tomoforge-hp-micro-ocr-") as tmp:
         directory = Path(tmp)
         micro = run_micro_ocr(HIT_POINTS_CONTRAST, directory)
-        if NONSTANDARD_MULTI_DIGIT_DIE_RE.search(micro):
-            micro = run_micro_ocr(
+        initial_micro = micro
+        if NONSTANDARD_MULTI_DIGIT_DIE_RE.search(micro) or hp_micro_ocr_failed(micro):
+            otsu_micro = run_micro_ocr(
                 HIT_POINTS_FALLBACK_CONTRAST,
                 directory,
                 otsu_inverted=True,
             )
+            print(
+                "HP_MICRO_OCR_DIAGNOSTIC "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "initial_raw": initial_micro,
+                        "otsu_inverted_raw": otsu_micro,
+                        "otsu_hp_format_error": hp_micro_ocr_failed(otsu_micro),
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            micro = otsu_micro
         elif re.search(r"\([^)]*\b\d{4,}\b", micro):
             micro = run_micro_ocr(HIT_POINTS_FALLBACK_CONTRAST, directory)
 
