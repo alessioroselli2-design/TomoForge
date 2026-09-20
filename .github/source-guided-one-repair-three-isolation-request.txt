@@ -1,1 +1,1 @@
-One numerically valid live repair and three structural false-positive isolations authorized after fail-closed review.
+Reconcile the verified singleton repair and execute three structural false-positive isolations after fail-closed review.

@@ -1375,8 +1375,13 @@ async def _apply_update(
         raise RuntimeError("post-update semantic/numeric verification failed")
     if str(verify.get("updated_at") or "") == str(legacy.get("updated_at") or ""):
         raise RuntimeError("post-update updated_at verification failed")
-    if updated_at is not None and str(verify.get("updated_at") or "") != updated_at:
-        raise RuntimeError("post-update batch timestamp verification failed")
+    if updated_at is not None:
+        expected_timestamp = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        actual_timestamp = datetime.fromisoformat(
+            str(verify.get("updated_at") or "").replace("Z", "+00:00")
+        )
+        if actual_timestamp != expected_timestamp:
+            raise RuntimeError("post-update batch timestamp verification failed")
 
 
 def _json_view(record: dict[str, Any]) -> dict[str, Any]:
