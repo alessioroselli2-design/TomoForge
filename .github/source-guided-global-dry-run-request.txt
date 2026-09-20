@@ -1,1 +1,1 @@
-Raw Otsu HP diagnostics read-only global dry-run requested.
+Upscaled Otsu and bounded HP-anchor read-only global dry-run requested.
