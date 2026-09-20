@@ -1,1 +1,1 @@
-Preserve valid Otsu results before upscaled fallback global dry-run requested.
+Restored provenance-bound HP anchor range global dry-run requested.

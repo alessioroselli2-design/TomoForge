@@ -908,9 +908,10 @@ def _micro_ocr_hit_points_line(
         return page_text
 
     label_words: list[dict[str, str]] | None = None
-    # Tolerate up to four intervening TSV lines, but do not borrow an HP label
-    # from a later stat block on the same image segment.
-    for words in ordered_lines[name_line_index + 1 : name_line_index + 6]:
+    # The target name remains the required upper anchor. Descriptor and wrapped
+    # lines vary across legacy layouts, so scan subsequent TSV lines; the crop
+    # is still bound to the first HP label below that exact target identity.
+    for words in ordered_lines[name_line_index + 1 :]:
         normalized = " ".join(str(word["text"]) for word in words).casefold()
         if "punti" in normalized and "ferita" in normalized:
             label_words = words
