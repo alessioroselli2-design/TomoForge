@@ -36,12 +36,12 @@ def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():
         {
             "name": "Mostro Prova",
             "normalized_name": "mostro prova",
-            "start_page": 12,
+            "start_page": 13,
             "source_refs": [{"page": 12}],
             "attributes": {
                 "classe_armatura": "15",
                 "punti_ferita": "20 (3d8 + 6)",
-                "velocita": "9 m",
+                "velocita": "9 m rapido",
             },
         }
     ]
@@ -54,7 +54,7 @@ def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():
             "attributes": {
                 "classe_armatura": "16",
                 "punti_ferita": "20 (3d8 + 6)",
-                "velocita": "12 m",
+                "velocita": "9 m rapido rapido",
             },
         }
     ]
@@ -75,13 +75,83 @@ def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():
             assert exc.reason == "no_unique_independent_agreement"
             assert exc.diagnostics == {
                 "comparison_candidates_found": 1,
+                "comparison_name_candidates": 1,
                 "comparison_target_candidates": 1,
+                "containment_match_count": 0,
+                "discarded_pairs": [
+                    {
+                        "comparison_start_page": 12,
+                        "containment_match": False,
+                        "deterministic_matches": {
+                            "classe_armatura_deterministic_match": False,
+                            "punti_ferita_deterministic_match": True,
+                            "velocita_deterministic_match": False,
+                        },
+                        "exact_name_match": True,
+                        "primary_start_page": 13,
+                        "semantic_matches": {
+                            "classe_armatura_semantic_match": False,
+                            "punti_ferita_semantic_match": True,
+                            "velocita_semantic_match": True,
+                        },
+                        "start_page_mismatch": True,
+                        "velocita_duplicate_ambiguous": True,
+                    }
+                ],
                 "divergent_core_fields": ["classe_armatura", "velocita"],
+                "exact_name_match_count": 1,
                 "primary_candidates_found": 1,
+                "primary_name_candidates": 1,
                 "primary_target_candidates": 1,
                 "target_normalized_name": "mostro prova",
                 "target_page": 12,
             }
+        else:
+            raise AssertionError("zero agreement must remain blocked")
+
+
+def test_zero_agreement_counts_strict_name_containment_pairs():
+    attributes = {
+        "classe_armatura": "15",
+        "punti_ferita": "20 (3d8 + 6)",
+        "velocita": "9 m",
+    }
+    primary = [
+        {
+            "name": "Mostro",
+            "normalized_name": "mostro",
+            "start_page": 12,
+            "source_refs": [{"page": 12}],
+            "attributes": attributes,
+        }
+    ]
+    comparison = [
+        {
+            "name": "Mostro Prova",
+            "normalized_name": "mostro prova",
+            "start_page": 12,
+            "source_refs": [{"page": 12}],
+            "attributes": attributes,
+        }
+    ]
+
+    with (
+        patch(
+            "scripts.repair_monsters_from_source.parse_monster_statblocks",
+            side_effect=[primary, comparison],
+        ),
+        patch(
+            "scripts.repair_monsters_from_source.agreed_monster_records",
+            return_value=[],
+        ),
+    ):
+        try:
+            _agreed_target_candidate([], [], "manual.pdf", "it", "Mostro", 12)
+        except RepairBlocked as exc:
+            assert exc.diagnostics is not None
+            assert exc.diagnostics["exact_name_match_count"] == 0
+            assert exc.diagnostics["containment_match_count"] == 1
+            assert exc.diagnostics["discarded_pairs"][0]["containment_match"] is True
         else:
             raise AssertionError("zero agreement must remain blocked")
 

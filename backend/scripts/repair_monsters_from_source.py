@@ -48,6 +48,11 @@ from scripts.pilot_local_ocr_from_r2 import (
     _sha256_file,
 )
 from services.monster_name_diagnostics import compact_name_containment_match
+from services.monster_semantic_diagnostics import (
+    deterministic_core_field_matches,
+    semantic_core_field_matches,
+)
+from services.monster_speed_token_diagnostics import speed_multi_extra_token_profile
 from services.monster_statblock_ocr import (
     agreed_monster_records,
     parse_monster_statblocks,
@@ -1106,18 +1111,48 @@ def _agreed_target_candidate(
 
         primary_targets = target_candidates(primary)
         comparison_targets = target_candidates(comparison)
+
+        def name_candidates(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                candidate
+                for candidate in records
+                if (
+                    str(candidate.get("normalized_name") or candidate.get("name") or "")
+                    == target_normalized
+                    or compact_name_containment_match(
+                        str(
+                            candidate.get("normalized_name")
+                            or candidate.get("name")
+                            or ""
+                        ),
+                        target_normalized,
+                    )
+                )
+            ]
+
+        primary_name_candidates = name_candidates(primary)
+        comparison_name_candidates = name_candidates(comparison)
         divergent_fields: set[str] = set()
-        for left in primary_targets:
+        discarded_pairs: list[dict[str, Any]] = []
+        exact_name_match_count = 0
+        containment_match_count = 0
+        for left in primary_name_candidates:
             left_name = str(left.get("normalized_name") or left.get("name") or "")
             left_attributes = left.get("attributes") or {}
-            for right in comparison_targets:
+            for right in comparison_name_candidates:
                 right_name = str(
                     right.get("normalized_name") or right.get("name") or ""
                 )
-                if not (
-                    left_name == right_name
-                    or compact_name_containment_match(left_name, right_name)
-                ):
+                exact_name_match = left_name == right_name
+                containment_match = compact_name_containment_match(
+                    left_name,
+                    right_name,
+                )
+                if exact_name_match:
+                    exact_name_match_count += 1
+                elif containment_match:
+                    containment_match_count += 1
+                if not (exact_name_match or containment_match):
                     continue
                 right_attributes = right.get("attributes") or {}
                 for field in core_fields:
@@ -1130,6 +1165,45 @@ def _agreed_target_candidate(
                         ).casefold()
                     ):
                         divergent_fields.add(field)
+                semantic = semantic_core_field_matches(
+                    left_attributes,
+                    right_attributes,
+                )
+                deterministic = deterministic_core_field_matches(
+                    left_attributes,
+                    right_attributes,
+                )
+                speed_profile = speed_multi_extra_token_profile(
+                    left_attributes,
+                    right_attributes,
+                )
+                left_start_page = int(left.get("start_page") or 0)
+                right_start_page = int(right.get("start_page") or 0)
+                discarded_pairs.append(
+                    {
+                        "start_page_mismatch": left_start_page != right_start_page,
+                        "primary_start_page": left_start_page,
+                        "comparison_start_page": right_start_page,
+                        "exact_name_match": exact_name_match,
+                        "containment_match": containment_match,
+                        "semantic_matches": {
+                            key: bool(value)
+                            for key, value in sorted(semantic.items())
+                            if key.endswith("_semantic_match")
+                        },
+                        "deterministic_matches": {
+                            key: bool(value)
+                            for key, value in sorted(deterministic.items())
+                            if key.endswith("_deterministic_match")
+                        },
+                        "velocita_duplicate_ambiguous": bool(
+                            speed_profile.get(
+                                "velocita_residual_duplicate_ambiguous",
+                                False,
+                            )
+                        ),
+                    }
+                )
 
         raise RepairBlocked(
             "no_unique_independent_agreement",
@@ -1139,7 +1213,12 @@ def _agreed_target_candidate(
                 "comparison_candidates_found": len(comparison),
                 "primary_target_candidates": len(primary_targets),
                 "comparison_target_candidates": len(comparison_targets),
+                "primary_name_candidates": len(primary_name_candidates),
+                "comparison_name_candidates": len(comparison_name_candidates),
+                "exact_name_match_count": exact_name_match_count,
+                "containment_match_count": containment_match_count,
                 "divergent_core_fields": sorted(divergent_fields),
+                "discarded_pairs": discarded_pairs,
                 "target_normalized_name": target_normalized,
                 "target_page": target_page,
             },
