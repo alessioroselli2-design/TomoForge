@@ -1,1 +1,1 @@
-Post-adaptive-binary HP repair read-only global dry-run requested.
+Raw Otsu HP diagnostics read-only global dry-run requested.
