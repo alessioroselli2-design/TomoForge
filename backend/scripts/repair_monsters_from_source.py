@@ -305,6 +305,32 @@ APPROVED1_TARGETS: tuple[dict[str, str], ...] = (
     {"id": "ref_36a7ca03ed43517b8b036334ea6d61ec", "name": "Abishai Rosso"},
 )
 
+EXPECTED_APPROVED5_COUNT = 5
+EXPECTED_APPROVED5_IDS_MD5 = "413b398ac7e0c55dcd3b61eed14b66ef"
+APPROVED5_CONFIRMATION_TOKEN = "REPAIR-APPROVED5-5-413b398ac7e0c55dcd3b61eed14b66ef"
+APPROVED5_TARGETS: tuple[dict[str, str], ...] = (
+    {
+        "id": "ref_42d5121498575f11a310f549f441f4d7",
+        "name": "Colosso Di Carne",
+    },
+    {
+        "id": "ref_d3a9aeba19775d698d1dae2577086c2e",
+        "name": "Di Terra",
+    },
+    {
+        "id": "ref_b5a471157553590992c4b3af5c57deda",
+        "name": "Fraz-Urb'Luu",
+    },
+    {
+        "id": "ref_650f39bad9ac50c3a9d2ffcfde535f45",
+        "name": "Lavamandra Warlock Di Imix",
+    },
+    {
+        "id": "ref_a4ca7d65762650dc8e24dcbde06a6342",
+        "name": "Modellaghiaccio",
+    },
+)
+
 EXPECTED_BIGBY4_COUNT = 4
 EXPECTED_BIGBY4_IDS_MD5 = "82a891bb16d48d70e063b3c535fa0839"
 BIGBY4_CONFIRMATION_TOKEN = "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
@@ -587,6 +613,35 @@ def select_approved1_targets(failures: list[dict[str, Any]]) -> list[dict[str, A
     return targets
 
 
+def select_approved5_targets(failures: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Resolve the five gate-clean repairs by exact sealed live identity."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in APPROVED5_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(f"Sealed approved5 target missing: {expected['id']}")
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Approved5 name drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Approved5 status drift: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Approved5 review flag drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Approved5 canonical link detected: {expected['id']}")
+        if not str(record.get("source_text_checksum") or ""):
+            raise RuntimeError(f"Approved5 checksum missing: {expected['id']}")
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(f"Approved5 identity gate failure: {expected['id']}")
+        targets.append(record)
+    if (
+        len(targets) != EXPECTED_APPROVED5_COUNT
+        or _ids_md5(targets) != EXPECTED_APPROVED5_IDS_MD5
+    ):
+        raise RuntimeError("Approved5 target count/fingerprint drift")
+    return targets
+
+
 def select_bigby4_targets(
     failures: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -726,11 +781,13 @@ def _layout_segments(
 ) -> tuple[tuple[str, tuple[float, float, float, float]], ...]:
     """Return normalized page clips; values are fractions of width/height."""
     if _layout_profile(source) == "two_column_vertical":
-        # Exact half-page split: no cross-column pixels can enter the other OCR.
-        # This intentionally favors omission over bleed across the center gutter.
+        # A 2% center overlap is about 40-50 raster pixels on the supported
+        # legacy pages at 300 DPI. It retains glyphs touching the gutter while
+        # keeping both clips page-bounded; duplicate candidates still fail the
+        # unique independent-agreement gate.
         return (
-            ("left", (0.0, 0.0, 0.5, 1.0)),
-            ("right", (0.5, 0.0, 1.0, 1.0)),
+            ("left", (0.0, 0.0, 0.52, 1.0)),
+            ("right", (0.48, 0.0, 1.0, 1.0)),
         )
     return (("full", (0.0, 0.0, 1.0, 1.0)),)
 
@@ -1745,7 +1802,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target-set",
-        choices=("healthy22", "approved1", "bigby19", "bigby4"),
+        choices=("healthy22", "approved1", "approved5", "bigby19", "bigby4"),
         default=None,
         help="Process only an exact reviewed sealed target set",
     )
@@ -1806,6 +1863,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != APPROVED1_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Approved1 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "approved5"
+        and args.confirm != APPROVED5_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Approved5 confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -1852,7 +1915,12 @@ async def _run(args: argparse.Namespace) -> int:
     if not failures and not corrupted_names:
         return 0
 
-    sealed_batch = args.target_set in {"healthy22", "approved1", "bigby4"}
+    sealed_batch = args.target_set in {
+        "healthy22",
+        "approved1",
+        "approved5",
+        "bigby4",
+    }
     if args.target_set == "healthy22":
         targets = select_healthy22_targets(failures)
         sealed_expected_count = EXPECTED_HEALTHY22_COUNT
@@ -1865,6 +1933,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_approved1_targets(failures)
         sealed_expected_count = EXPECTED_APPROVED1_COUNT
         sealed_label = "Approved1"
+    elif args.target_set == "approved5":
+        targets = select_approved5_targets(failures)
+        sealed_expected_count = EXPECTED_APPROVED5_COUNT
+        sealed_label = "Approved5"
     elif args.target_set == "bigby19":
         targets = select_bigby19_targets(failures)
         sealed_expected_count = None
