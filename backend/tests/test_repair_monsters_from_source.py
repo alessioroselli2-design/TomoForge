@@ -646,8 +646,8 @@ def test_mpmm_layout_profile_splits_columns_and_uses_independent_ocr_modes():
 
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
-        ("left", (0.0, 0.0, 0.5, 1.0)),
-        ("right", (0.5, 0.0, 1.0, 1.0)),
+        ("left", (0.0, 0.0, 0.52, 1.0)),
+        ("right", (0.48, 0.0, 1.0, 1.0)),
     )
     assert _layout_ocr_settings(
         source,
@@ -662,8 +662,8 @@ def test_bigby_layout_profile_splits_columns_and_uses_independent_ocr_modes():
 
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
-        ("left", (0.0, 0.0, 0.5, 1.0)),
-        ("right", (0.5, 0.0, 1.0, 1.0)),
+        ("left", (0.0, 0.0, 0.52, 1.0)),
+        ("right", (0.48, 0.0, 1.0, 1.0)),
     )
     assert _layout_ocr_settings(
         source,
