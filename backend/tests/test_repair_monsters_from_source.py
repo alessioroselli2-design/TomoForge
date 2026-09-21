@@ -287,6 +287,69 @@ def test_hp_micro_ocr_finds_hp_label_within_five_tsv_lines_of_name(tmp_path):
     assert result == "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
 
 
+def test_hp_micro_ocr_page_wide_fallback_requires_unique_text_and_tsv_label(
+    tmp_path, capsys
+):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t2\t1\t1\t1\t20\t100\t45\t12\t95\tPunti\n"
+        "5\t1\t2\t1\t1\t2\t72\t100\t50\t12\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d12 + 4)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=responses
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Quetzalcoatlus\nEnorme bestia\nPunti Ferita 30 (4d1 2 + 4)\n",
+            "Quetzalcoatlus",
+        )
+
+    assert result.endswith("Punti Ferita 30 (4d12 + 4)\n")
+    assert "HP_PAGE_WIDE_FALLBACK" in capsys.readouterr().out
+
+
+def test_hp_micro_ocr_page_wide_fallback_rejects_ambiguous_hp_labels(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = [
+        "5\t1\t2\t1\t1\t1\t20\t80\t45\t12\t95\tPunti",
+        "5\t1\t2\t1\t1\t2\t72\t80\t50\t12\t95\tFerita",
+        "5\t1\t3\t1\t1\t1\t20\t160\t45\t12\t95\tPunti",
+        "5\t1\t3\t1\t1\t2\t72\t160\t50\t12\t95\tFerita",
+    ]
+    page_text = (
+        "Quetzalcoatlus\nPunti Ferita 30 (4d1 2 + 4)\n"
+        "Altro Mostro\nPunti Ferita 20 (3d8 + 6)\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess(
+            [], 0, stdout=header + "\n".join(rows) + "\n", stderr=""
+        ),
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path, "ita", 3, page_text, "Quetzalcoatlus"
+        )
+
+    assert result == page_text
+    assert run.call_count == 1
+
+
 def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
