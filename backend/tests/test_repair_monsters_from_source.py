@@ -27,6 +27,7 @@ from scripts.repair_monsters_from_source import (
     SourcePdfCache,
     _agreed_target_candidate,
     _apply_update,
+    _candidate_matches_target,
     _dilate_dark_pixels,
     _layout_ocr_settings,
     _layout_profile,
@@ -44,6 +45,34 @@ from scripts.repair_monsters_from_source import (
     select_approved5_targets,
     select_oblex1_targets,
 )
+
+
+def test_target_identity_accepts_bounded_edit_only_on_registered_page():
+    candidate = {
+        "name": "Bae1",
+        "normalized_name": "bae1",
+        "source_refs": [{"page": 61}],
+        "attributes": {"ocr_independent_agreement": True},
+    }
+
+    assert _candidate_matches_target(candidate, "Bael", 61) is True
+    assert _candidate_matches_target(candidate, "Bael", 62) is False
+
+
+def test_target_page_plus_one_requires_multi_token_clean_agreement():
+    candidate = {
+        "name": "Progenie Stellare Hulk",
+        "normalized_name": "progenie stellare hulk",
+        "source_refs": [{"page": 20}],
+        "attributes": {
+            "ocr_independent_agreement": True,
+            "ocr_clean_deterministic_core_agreement": True,
+        },
+    }
+
+    assert _candidate_matches_target(candidate, "Progenie Stellare Hulk", 19) is True
+    candidate["attributes"].pop("ocr_clean_deterministic_core_agreement")
+    assert _candidate_matches_target(candidate, "Progenie Stellare Hulk", 19) is False
 
 
 def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():

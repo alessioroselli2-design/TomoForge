@@ -47,7 +47,11 @@ from scripts.pilot_local_ocr_from_r2 import (
     _run_tesseract,
     _sha256_file,
 )
-from services.monster_name_diagnostics import compact_name_containment_match
+from services.monster_name_diagnostics import (
+    compact_name_boundary_match,
+    compact_name_bounded_edit_match,
+    compact_name_containment_match,
+)
 from services.monster_semantic_diagnostics import (
     deterministic_core_field_matches,
     semantic_core_field_matches,
@@ -1484,11 +1488,24 @@ def _candidate_matches_target(
         for ref in (candidate.get("source_refs") or [])
         if isinstance(ref, dict) and ref.get("page") is not None
     }
-    name_match = candidate_name == target_normalized or compact_name_containment_match(
-        candidate_name,
-        target_normalized,
+    name_match = (
+        candidate_name == target_normalized
+        or compact_name_boundary_match(candidate_name, target_normalized)
+        or compact_name_containment_match(candidate_name, target_normalized)
+        or compact_name_bounded_edit_match(candidate_name, target_normalized)
     )
-    return target_page in pages and name_match
+    same_page = target_page in pages
+    adjacent_page = bool(
+        len(candidate_name.split()) >= 2
+        and len(target_normalized.split()) >= 2
+        and any(abs(page - target_page) == 1 for page in pages)
+        and (candidate.get("attributes") or {}).get("ocr_independent_agreement") is True
+        and (candidate.get("attributes") or {}).get(
+            "ocr_clean_deterministic_core_agreement"
+        )
+        is True
+    )
+    return name_match and (same_page or adjacent_page)
 
 
 def _agreed_target_candidate(
