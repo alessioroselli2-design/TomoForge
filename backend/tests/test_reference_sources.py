@@ -20,10 +20,11 @@ def test_runtime_alias_maps_to_registered_phb():
 
 
 def test_space_normalized_phb_alias_maps_to_same_registered_source():
-    meta = source_metadata_for_page("Manuale del giocatore.pdf", 10)
+    for alias in ("Manuale del giocatore.pdf", "Manuale del Giocatore .pdf"):
+        meta = source_metadata_for_page(alias, 10)
 
-    assert meta["physical_filename"] == "Manuale del giocatore .pdf"
-    assert meta["logical_source_id"] == "phb_2014_it"
+        assert meta["physical_filename"] == "Manuale del giocatore .pdf"
+        assert meta["logical_source_id"] == "phb_2014_it"
 
 
 def test_planescape_physical_pdf_maps_three_logical_books():
