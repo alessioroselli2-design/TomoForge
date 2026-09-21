@@ -412,6 +412,25 @@ def _otsu_inverted_samples(samples: bytes) -> bytes:
     return bytes(255 if sample <= threshold else 0 for sample in samples)
 
 
+def _dilate_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
+    """Apply a bounded 3x3 minimum filter to strengthen dark text strokes."""
+    if width < 1 or height < 1 or len(samples) != width * height:
+        raise ValueError("invalid grayscale raster for dark-pixel dilation")
+    output = bytearray(len(samples))
+    for y in range(height):
+        y0 = max(0, y - 1)
+        y1 = min(height, y + 2)
+        for x in range(width):
+            x0 = max(0, x - 1)
+            x1 = min(width, x + 2)
+            output[y * width + x] = min(
+                samples[row * width + column]
+                for row in range(y0, y1)
+                for column in range(x0, x1)
+            )
+    return bytes(output)
+
+
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
 # if the destination registry row is active and authority/ingest_copy.
 LEGACY_FILENAME_ALIASES = {
@@ -864,6 +883,30 @@ class SourcePdfCache:
         safe_name = r2_worker._safe_pdf_name(filename)
         metadata = objects.get(safe_name)
         if metadata is None:
+            # Registry metadata stores the canonical source identity, while R2
+            # may retain one explicitly registered upload alias. Resolve only
+            # aliases that canonicalize to this exact filename; the downloaded
+            # bytes must still pass the registry SHA-256 gate below.
+            from reference_sources import (
+                SOURCE_FILENAME_ALIASES,
+                canonical_physical_filename,
+            )
+
+            alias_names = sorted(
+                alias
+                for alias, canonical in SOURCE_FILENAME_ALIASES.items()
+                if canonical == canonical_physical_filename(filename)
+                and alias in objects
+            )
+            if len(alias_names) > 1:
+                raise RepairBlocked(
+                    "source_pdf_ambiguous_r2_alias",
+                    f"matching registered aliases={len(alias_names)}",
+                )
+            if alias_names:
+                safe_name = alias_names[0]
+                metadata = objects[safe_name]
+        if metadata is None:
             raise RepairBlocked("source_pdf_missing_r2", safe_name)
 
         target = Path(self._tmp.name) / safe_name
@@ -1123,6 +1166,7 @@ def _micro_ocr_hit_points_line(
         *,
         otsu_inverted: bool = False,
         scale_factor: int = 1,
+        morphological_dark_dilation: bool = False,
     ) -> str:
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
@@ -1145,12 +1189,19 @@ def _micro_ocr_hit_points_line(
             )
         else:
             raster = contrasted
+        threshold_samples = raster.samples
+        if morphological_dark_dilation:
+            threshold_samples = _dilate_dark_pixels(
+                threshold_samples,
+                raster.width,
+                raster.height,
+            )
         if otsu_inverted:
             processed = fitz.Pixmap(
                 fitz.csGRAY,
                 raster.width,
                 raster.height,
-                _otsu_inverted_samples(raster.samples),
+                _otsu_inverted_samples(threshold_samples),
                 False,
             )
         else:
@@ -1158,6 +1209,8 @@ def _micro_ocr_hit_points_line(
         suffix = "-otsu-inverted" if otsu_inverted else ""
         if scale_factor > 1:
             suffix = f"-upscaled-x{scale_factor}" + suffix
+        if morphological_dark_dilation:
+            suffix = "-dark-dilated" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         processed.save(crop_path)
         return subprocess.run(
@@ -1214,6 +1267,7 @@ def _micro_ocr_hit_points_line(
                         directory,
                         otsu_inverted=True,
                         scale_factor=4,
+                        morphological_dark_dilation=True,
                     )
                     micro = superscaled_otsu_micro
             else:

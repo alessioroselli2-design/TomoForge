@@ -12,6 +12,7 @@ from pathlib import Path
 
 SOURCE_FILENAME_ALIASES = {
     "Manuale_del_giocatore__1787259882002.pdf": "Manuale del giocatore .pdf",
+    "Manuale del giocatore.pdf": "Manuale del giocatore .pdf",
     "Guida_onnicomprensiva_di_Xanathar__1787259928030.pdf": "Guida onnicomprensiva di Xanathar .pdf",
     "Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf": "Calderone-Omnicomprensivo-di-TASHA.pdf",
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf": "724962906-D-D-5e-Manuale-Del-Dungeon-Master.pdf",
