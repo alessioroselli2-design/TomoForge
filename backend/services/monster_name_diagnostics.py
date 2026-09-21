@@ -1,7 +1,8 @@
 """Privacy-safe diagnostics for OCR-derived monster names.
 
-These helpers are diagnostic-only. They must never alter parser acceptance,
-review state, provenance, or canonical data. Returned values are booleans only;
+Most helpers are diagnostic-only. ``compact_name_bounded_edit_match`` is also a
+strict identity predicate for callers that independently enforce page,
+uniqueness, and clean core-field agreement. Returned values are booleans only;
 raw OCR names are never persisted by this module.
 """
 
@@ -62,6 +63,42 @@ def compact_name_single_edit_match(
     if long_index < len(longer):
         edits += 1
     return edits == 1
+
+
+def compact_name_bounded_edit_match(
+    left_normalized: object,
+    right_normalized: object,
+    *,
+    max_distance: int = 2,
+) -> bool:
+    """Match one or two compact-name OCR edits without accepting short collisions.
+
+    Names of four to seven characters may differ by one edit; longer names may
+    differ by at most two. Exact, empty, or shorter inputs fail closed.
+    """
+    left = _compact(left_normalized)
+    right = _compact(right_normalized)
+    if not left or not right or left == right or min(len(left), len(right)) < 4:
+        return False
+    allowed = min(max_distance, 1 if min(len(left), len(right)) < 8 else 2)
+    if allowed < 1 or abs(len(left) - len(right)) > allowed:
+        return False
+
+    previous = list(range(len(right) + 1))
+    for row, left_char in enumerate(left, start=1):
+        current = [row]
+        for column, right_char in enumerate(right, start=1):
+            current.append(
+                min(
+                    current[-1] + 1,
+                    previous[column] + 1,
+                    previous[column - 1] + int(left_char != right_char),
+                )
+            )
+        if min(current) > allowed:
+            return False
+        previous = current
+    return 1 <= previous[-1] <= allowed
 
 
 def compact_name_containment_match(

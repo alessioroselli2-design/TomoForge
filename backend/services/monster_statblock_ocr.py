@@ -18,7 +18,12 @@ from typing import Iterable
 
 from reference_library import clean_text, compact_text, normalize_reference_name
 from services.monster_guided_matcher import guided_core_merge
-from services.monster_name_diagnostics import compact_name_containment_match
+from services.monster_name_diagnostics import (
+    compact_name_boundary_match,
+    compact_name_bounded_edit_match,
+    compact_name_containment_match,
+)
+from services.monster_semantic_diagnostics import deterministic_core_field_matches
 
 _SIZE_WORDS = (
     "minuscolo",
@@ -437,10 +442,11 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
     """Keep records independently supported by both OCR layout modes.
 
     Exact same-page/name matches keep the existing conservative path. If there is
-    no exact-name candidate, the guided path may consider exactly one same-page
-    strict name-containment candidate. That containment candidate is accepted only
-    when ``guided_core_merge`` passes all semantic and proven residual-shape gates.
-    Guided matches retain manual review and primary provenance.
+    no exact-name candidate, the guided path may consider one unique same-page
+    strict containment or bounded OCR-edit candidate. A unique multi-token
+    identity may also align across one adjacent page. Fuzzy and adjacent matches
+    require all three core fields to agree deterministically; containment keeps
+    the existing guided residual gates. All matches retain review and provenance.
     """
     comparison_by_key: dict[tuple[int, str], list[dict]] = defaultdict(list)
     comparison_by_page: dict[int, list[dict]] = defaultdict(list)
@@ -456,6 +462,7 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
         normalized_name = str(record.get("normalized_name") or "")
         exact_matches = comparison_by_key.get((start_page, normalized_name), [])
         guided_name_containment = False
+        clean_identity_only = False
 
         if len(exact_matches) == 1:
             other = exact_matches[0]
@@ -468,10 +475,56 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
                     str(other.get("normalized_name") or ""),
                 )
             ]
-            if len(containment_matches) != 1:
+            if len(containment_matches) == 1:
+                other = containment_matches[0]
+                guided_name_containment = True
+            elif len(containment_matches) > 1:
                 continue
-            other = containment_matches[0]
-            guided_name_containment = True
+            else:
+                fuzzy_matches = [
+                    other
+                    for other in comparison_by_page.get(start_page, [])
+                    if compact_name_bounded_edit_match(
+                        normalized_name,
+                        str(other.get("normalized_name") or ""),
+                    )
+                    or compact_name_boundary_match(
+                        normalized_name,
+                        str(other.get("normalized_name") or ""),
+                    )
+                ]
+                if len(fuzzy_matches) == 1:
+                    other = fuzzy_matches[0]
+                    clean_identity_only = True
+                elif len(fuzzy_matches) > 1:
+                    continue
+                else:
+                    adjacent_matches = [
+                        other
+                        for page in (start_page - 1, start_page + 1)
+                        for other in comparison_by_page.get(page, [])
+                        if len(normalized_name.split()) >= 2
+                        and len(str(other.get("normalized_name") or "").split()) >= 2
+                        and (
+                            normalized_name == str(other.get("normalized_name") or "")
+                            or compact_name_containment_match(
+                                normalized_name,
+                                str(other.get("normalized_name") or ""),
+                            )
+                            or compact_name_bounded_edit_match(
+                                normalized_name,
+                                str(other.get("normalized_name") or ""),
+                            )
+                            or compact_name_boundary_match(
+                                normalized_name,
+                                str(other.get("normalized_name") or ""),
+                            )
+                        )
+                    ]
+                    if len(adjacent_matches) != 1:
+                        continue
+                    other = adjacent_matches[0]
+                    clean_identity_only = True
         else:
             continue
 
@@ -482,7 +535,23 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
             for field in ("classe_armatura", "punti_ferita", "velocita")
         )
 
-        if guided_name_containment:
+        deterministic = deterministic_core_field_matches(left, right)
+        all_deterministic = all(
+            deterministic.get(f"{field}_deterministic_match", False)
+            for field in ("classe_armatura", "punti_ferita", "velocita")
+        )
+
+        if clean_identity_only:
+            if not all_deterministic:
+                continue
+            guided_values = guided_core_merge(
+                left,
+                right,
+                allow_clean_deterministic_match=True,
+            )
+            if guided_values is None:
+                continue
+        elif guided_name_containment:
             left_name_tokens = normalized_name.split()
             right_name_tokens = str(other.get("normalized_name") or "").split()
             multi_token_containment = bool(
@@ -528,5 +597,7 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
             "review_flags": sorted(review_flags),
         }
         copy["attributes"]["ocr_independent_agreement"] = True
+        if exact_core_match or all_deterministic:
+            copy["attributes"]["ocr_clean_deterministic_core_agreement"] = True
         agreed.append(copy)
     return agreed

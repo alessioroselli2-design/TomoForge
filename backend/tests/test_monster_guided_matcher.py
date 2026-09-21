@@ -212,6 +212,74 @@ def test_clean_exact_name_alignment_remains_same_page_and_unique():
     assert agreed_monster_records([primary], [same_page, dict(same_page)]) == []
 
 
+def test_unique_same_page_single_edit_name_requires_clean_core_agreement():
+    core = _attributes(ac="17", hp="30 (4d10 + 8)", speed="9 m")
+    primary = _record(core, name="BAE1", normalized_name="bae1")
+    comparison = _record(core, name="BAEL", normalized_name="bael")
+
+    result = agreed_monster_records([primary], [comparison])
+
+    assert len(result) == 1
+    assert result[0]["attributes"]["ocr_independent_agreement"] is True
+    mismatched = _record(
+        _attributes(ac="18", hp="30 (4d10 + 8)", speed="9 m"),
+        name="BAEL",
+        normalized_name="bael",
+    )
+    assert agreed_monster_records([primary], [mismatched]) == []
+
+
+def test_unique_same_page_ocr_boundary_name_requires_clean_core_agreement():
+    core = _attributes(ac="13", hp="30 (4d10 + 8)", speed="3 m, volare 24 m")
+    primary = _record(
+        core,
+        name="QUETZALCOATLUS",
+        normalized_name="quetzalcoatlus",
+    )
+    comparison = _record(
+        core,
+        name="QUETZALCOAT|LUS",
+        normalized_name="quetzalcoat lus",
+    )
+
+    assert len(agreed_monster_records([primary], [comparison])) == 1
+
+
+def test_same_page_fuzzy_name_pair_must_be_unique():
+    core = _attributes()
+    primary = _record(core, name="RANA", normalized_name="rana")
+    comparison_one = _record(core, name="RANAE", normalized_name="ranae")
+    comparison_two = _record(core, name="RAMA", normalized_name="rama")
+
+    assert agreed_monster_records([primary], [comparison_one, comparison_two]) == []
+
+
+def test_adjacent_page_alignment_requires_multi_token_name_and_clean_core():
+    core = _attributes(ac="16", hp="136 (16d10 + 48)", speed="9 m")
+    primary = _record(
+        core,
+        name="PROGENIE STELLARE HULK",
+        normalized_name="progenie stellare hulk",
+        start_page=19,
+    )
+    comparison = _record(
+        core,
+        name="PROGENIE STELLARE HULK",
+        normalized_name="progenie stellare hulk",
+        start_page=20,
+    )
+
+    result = agreed_monster_records([primary], [comparison])
+
+    assert len(result) == 1
+    assert result[0]["attributes"]["ocr_clean_deterministic_core_agreement"] is True
+    single_primary = _record(core, name="RANA", normalized_name="rana", start_page=19)
+    single_comparison = _record(
+        core, name="RANA", normalized_name="rana", start_page=20
+    )
+    assert agreed_monster_records([single_primary], [single_comparison]) == []
+
+
 def test_agreed_records_reject_ambiguous_same_page_name_containment_candidates():
     primary = _record(_attributes())
     comparison_alpha = _record(
