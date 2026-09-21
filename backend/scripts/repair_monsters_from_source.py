@@ -917,6 +917,29 @@ def _micro_ocr_hit_points_line(
             label_words = words
             break
     if label_words is None:
+        name_words = ordered_lines[name_line_index]
+        name_bottom = max(int(word["top"]) + int(word["height"]) for word in name_words)
+        geometric_window = [
+            words
+            for words in ordered_lines[name_line_index + 1 : name_line_index + 13]
+            if 0 <= min(int(word["top"]) for word in words) - name_bottom <= 60
+        ]
+        for index, words in enumerate(geometric_window):
+            normalized = " ".join(str(word["text"]) for word in words).casefold()
+            if "punti" not in normalized:
+                continue
+            for following in geometric_window[index : index + 3]:
+                following_text = " ".join(
+                    str(word["text"]) for word in following
+                ).casefold()
+                if "ferita" in following_text:
+                    label_words = words + [
+                        word for word in following if word not in words
+                    ]
+                    break
+            if label_words is not None:
+                break
+    if label_words is None:
         return page_text
 
     ferita_index = next(
@@ -960,7 +983,7 @@ def _micro_ocr_hit_points_line(
         directory: Path,
         *,
         otsu_inverted: bool = False,
-        upscale: bool = False,
+        scale_factor: int = 1,
     ) -> str:
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
@@ -973,10 +996,14 @@ def _micro_ocr_hit_points_line(
             contrasted_samples,
             False,
         )
-        if upscale:
+        if scale_factor > 1:
             # Let MuPDF interpolate the crop before thresholding so fused
-            # legacy-font strokes have twice the geometric resolution.
-            raster = fitz.Pixmap(contrasted, crop_width * 2, crop_height * 2)
+            # legacy-font strokes have additional geometric resolution.
+            raster = fitz.Pixmap(
+                contrasted,
+                crop_width * scale_factor,
+                crop_height * scale_factor,
+            )
         else:
             raster = contrasted
         if otsu_inverted:
@@ -990,8 +1017,8 @@ def _micro_ocr_hit_points_line(
         else:
             processed = raster
         suffix = "-otsu-inverted" if otsu_inverted else ""
-        if upscale:
-            suffix = "-upscaled" + suffix
+        if scale_factor > 1:
+            suffix = f"-upscaled-x{scale_factor}" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         processed.save(crop_path)
         return subprocess.run(
@@ -1038,11 +1065,21 @@ def _micro_ocr_hit_points_line(
                     HIT_POINTS_FALLBACK_CONTRAST,
                     directory,
                     otsu_inverted=True,
-                    upscale=True,
+                    scale_factor=2,
                 )
                 micro = upscaled_otsu_micro
+                superscaled_otsu_micro = None
+                if hp_micro_ocr_failed(upscaled_otsu_micro):
+                    superscaled_otsu_micro = run_micro_ocr(
+                        HIT_POINTS_FALLBACK_CONTRAST,
+                        directory,
+                        otsu_inverted=True,
+                        scale_factor=4,
+                    )
+                    micro = superscaled_otsu_micro
             else:
                 micro = otsu_micro
+                superscaled_otsu_micro = None
             print(
                 "HP_MICRO_OCR_DIAGNOSTIC "
                 + json.dumps(
@@ -1055,6 +1092,12 @@ def _micro_ocr_hit_points_line(
                         "upscaled_otsu_hp_format_error": (
                             hp_micro_ocr_failed(upscaled_otsu_micro)
                             if upscaled_otsu_micro is not None
+                            else None
+                        ),
+                        "superscaled_otsu_inverted_raw": superscaled_otsu_micro,
+                        "superscaled_otsu_hp_format_error": (
+                            hp_micro_ocr_failed(superscaled_otsu_micro)
+                            if superscaled_otsu_micro is not None
                             else None
                         ),
                     },

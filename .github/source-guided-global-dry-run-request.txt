@@ -1,1 +1,1 @@
-Restored provenance-bound HP anchor range global dry-run requested.
+X4 HP superscaling and split-label anchor global dry-run requested.
