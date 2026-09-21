@@ -259,13 +259,13 @@ def test_hp_micro_ocr_finds_hp_label_within_five_tsv_lines_of_name(tmp_path):
     image.save(image_path)
     header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
     rows = [
-        "5\t1\t1\t1\t1\t1\t20\t20\t120\t20\t95\tQuetzalcoatlus",
-        "5\t1\t1\t1\t2\t1\t20\t45\t80\t20\t95\tEnorme",
-        "5\t1\t1\t1\t3\t1\t20\t70\t80\t20\t95\tBestia",
-        "5\t1\t1\t1\t4\t1\t20\t95\t80\t20\t95\tSenza",
-        "5\t1\t1\t1\t5\t1\t20\t120\t80\t20\t95\tAllineamento",
-        "5\t1\t1\t1\t6\t1\t20\t145\t45\t20\t95\tPunti",
-        "5\t1\t1\t1\t6\t2\t72\t145\t50\t20\t95\tFerita",
+        "5\t1\t1\t1\t1\t1\t20\t20\t120\t10\t95\tQuetzalcoatlus",
+        "5\t1\t1\t1\t2\t1\t20\t30\t80\t10\t95\tEnorme",
+        "5\t1\t1\t1\t3\t1\t20\t40\t80\t10\t95\tBestia",
+        "5\t1\t1\t1\t4\t1\t20\t50\t80\t10\t95\tSenza",
+        "5\t1\t1\t1\t5\t1\t20\t60\t80\t10\t95\tAllineamento",
+        "5\t1\t1\t1\t6\t1\t20\t70\t45\t10\t95\tPunti",
+        "5\t1\t1\t1\t7\t1\t72\t75\t50\t10\t95\tFerita",
     ]
     responses = [
         CompletedProcess([], 0, stdout=header + "\n".join(rows) + "\n", stderr=""),
@@ -302,6 +302,7 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
         CompletedProcess([], 0, stdout=tsv, stderr=""),
         CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
         CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
+        CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
         CompletedProcess([], 0, stdout="149 (27d10)\n", stderr=""),
     ]
     crop_sizes = []
@@ -325,15 +326,21 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
         )
 
     assert result == "Fraz-Urb'Luu\nPunti Ferita 149 (27d10)\n"
-    assert len(run.call_args_list) == 4
+    assert len(run.call_args_list) == 5
     assert run.call_args_list[1].args[0][1].endswith("hit-points-2.0.png")
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
     assert (
         run.call_args_list[3]
         .args[0][1]
-        .endswith("hit-points-1.2-upscaled-otsu-inverted.png")
+        .endswith("hit-points-1.2-upscaled-x2-otsu-inverted.png")
     )
     assert crop_sizes[2] == (crop_sizes[1][0] * 2, crop_sizes[1][1] * 2)
+    assert (
+        run.call_args_list[4]
+        .args[0][1]
+        .endswith("hit-points-1.2-upscaled-x4-otsu-inverted.png")
+    )
+    assert crop_sizes[3] == (crop_sizes[1][0] * 4, crop_sizes[1][1] * 4)
 
 
 def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, capsys):
@@ -391,6 +398,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
     ]
 
     with patch(
@@ -408,11 +416,17 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
     assert (
         run.call_args_list[3]
         .args[0][1]
-        .endswith("hit-points-1.2-upscaled-otsu-inverted.png")
+        .endswith("hit-points-1.2-upscaled-x2-otsu-inverted.png")
+    )
+    assert (
+        run.call_args_list[4]
+        .args[0][1]
+        .endswith("hit-points-1.2-upscaled-x4-otsu-inverted.png")
     )
     diagnostic = capsys.readouterr().out
     assert '"otsu_hp_format_error": true' in diagnostic
     assert '"upscaled_otsu_hp_format_error": true' in diagnostic
+    assert '"superscaled_otsu_hp_format_error": true' in diagnostic
 
 
 def test_otsu_inversion_makes_dark_text_white_and_light_background_black():
