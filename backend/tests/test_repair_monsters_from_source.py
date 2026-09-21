@@ -1,6 +1,8 @@
 import asyncio
+import hashlib
 import json
 from datetime import datetime
+from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
@@ -20,8 +22,10 @@ from scripts.repair_monsters_from_source import (
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
     RepairBlocked,
+    SourcePdfCache,
     _agreed_target_candidate,
     _apply_update,
+    _dilate_dark_pixels,
     _layout_ocr_settings,
     _layout_profile,
     _layout_segments,
@@ -449,9 +453,65 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
     assert (
         run.call_args_list[4]
         .args[0][1]
-        .endswith("hit-points-1.2-upscaled-x4-otsu-inverted.png")
+        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
     )
     assert crop_sizes[3] == (crop_sizes[1][0] * 4, crop_sizes[1][1] * 4)
+
+
+def test_dark_pixel_dilation_expands_only_into_immediate_neighborhood():
+    source = bytes(
+        [
+            255,
+            255,
+            255,
+            255,
+            0,
+            255,
+            255,
+            255,
+            255,
+        ]
+    )
+
+    assert _dilate_dark_pixels(source, 3, 3) == bytes([0] * 9)
+
+
+def test_quetzalcoatlus_fourth_hp_retry_uses_dark_dilation(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t140\t20\t95\tQuetzalcoatlus\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="19 (341043) 8\n", stderr=""),
+        CompletedProcess([], 0, stdout="19 (341043) 8\n", stderr=""),
+        CompletedProcess([], 0, stdout="19 (341043) 0\n", stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d10 + 8)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=responses
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Quetzalcoatlus\nPunti Ferita 19 (341043) 8\n",
+            "Quetzalcoatlus",
+        )
+
+    assert result == "Quetzalcoatlus\nPunti Ferita 30 (4d10 + 8)\n"
+    assert (
+        run.call_args_list[4]
+        .args[0][1]
+        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
+    )
 
 
 def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, capsys):
@@ -532,7 +592,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
     assert (
         run.call_args_list[4]
         .args[0][1]
-        .endswith("hit-points-1.2-upscaled-x4-otsu-inverted.png")
+        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
     )
     diagnostic = capsys.readouterr().out
     assert '"otsu_hp_format_error": true' in diagnostic
@@ -684,6 +744,42 @@ def test_non_two_column_source_keeps_full_page_settings():
         psm=6,
         comparison_psm=4,
     ) == (220, 6, 4)
+
+
+def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path):
+    payload = b"registered PHB bytes"
+    source = {
+        "physical_filename": "Manuale del giocatore .pdf",
+        "physical_sha256": hashlib.sha256(payload).hexdigest(),
+    }
+
+    class FakeClient:
+        def download_file(self, bucket, key, target):
+            assert bucket == "tomoforge-manuals"
+            assert key == "uploads/Manuale del giocatore.pdf"
+            Path(target).write_bytes(payload)
+
+    with (
+        patch(
+            "scripts.import_manuals_from_r2._r2_client",
+            return_value=FakeClient(),
+        ),
+        patch(
+            "scripts.import_manuals_from_r2._list_pdf_objects",
+            return_value={
+                "Manuale del giocatore.pdf": {
+                    "key": "uploads/Manuale del giocatore.pdf"
+                }
+            },
+        ),
+    ):
+        cache = SourcePdfCache(str(tmp_path), allow_r2_download=True)
+        try:
+            resolved = cache.get(source)
+            assert resolved.read_bytes() == payload
+            assert resolved.name == "Manuale del giocatore.pdf"
+        finally:
+            cache.close()
 
 
 def test_build_repair_proposal_replaces_only_core_and_forces_pending_review():
