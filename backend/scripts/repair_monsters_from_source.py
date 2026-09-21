@@ -781,13 +781,12 @@ def _layout_segments(
 ) -> tuple[tuple[str, tuple[float, float, float, float]], ...]:
     """Return normalized page clips; values are fractions of width/height."""
     if _layout_profile(source) == "two_column_vertical":
-        # A 2% center overlap is about 40-50 raster pixels on the supported
-        # legacy pages at 300 DPI. It retains glyphs touching the gutter while
-        # keeping both clips page-bounded; duplicate candidates still fail the
-        # unique independent-agreement gate.
+        # Keep the proven exact split for the sealed approved5 execution.
+        # The overlap pilot is reintroduced only after this reviewed batch is
+        # committed, so changed OCR geometry cannot invalidate its evidence.
         return (
-            ("left", (0.0, 0.0, 0.52, 1.0)),
-            ("right", (0.48, 0.0, 1.0, 1.0)),
+            ("left", (0.0, 0.0, 0.5, 1.0)),
+            ("right", (0.5, 0.0, 1.0, 1.0)),
         )
     return (("full", (0.0, 0.0, 1.0, 1.0)),)
 
