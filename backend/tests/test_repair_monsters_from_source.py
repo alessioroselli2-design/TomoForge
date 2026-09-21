@@ -756,7 +756,7 @@ def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path
     class FakeClient:
         def download_file(self, bucket, key, target):
             assert bucket == "tomoforge-manuals"
-            assert key == "uploads/Manuale del giocatore.pdf"
+            assert key == "uploads/Manuale del Giocatore .pdf"
             Path(target).write_bytes(payload)
 
     with (
@@ -767,8 +767,8 @@ def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path
         patch(
             "scripts.import_manuals_from_r2._list_pdf_objects",
             return_value={
-                "Manuale del giocatore.pdf": {
-                    "key": "uploads/Manuale del giocatore.pdf"
+                "Manuale del Giocatore .pdf": {
+                    "key": "uploads/Manuale del Giocatore .pdf"
                 }
             },
         ),
@@ -777,7 +777,7 @@ def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path
         try:
             resolved = cache.get(source)
             assert resolved.read_bytes() == payload
-            assert resolved.name == "Manuale del giocatore.pdf"
+            assert resolved.name == "Manuale del Giocatore .pdf"
         finally:
             cache.close()
 
