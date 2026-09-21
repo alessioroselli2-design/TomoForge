@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime
 from subprocess import CompletedProcess
 from unittest.mock import patch
@@ -319,7 +320,7 @@ def test_hp_micro_ocr_page_wide_fallback_requires_unique_text_and_tsv_label(
     assert "HP_PAGE_WIDE_FALLBACK" in capsys.readouterr().out
 
 
-def test_hp_micro_ocr_page_wide_fallback_rejects_ambiguous_hp_labels(tmp_path):
+def test_hp_micro_ocr_page_wide_fallback_rejects_ambiguous_hp_labels(tmp_path, capsys):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
     image.clear_with(255)
@@ -348,6 +349,50 @@ def test_hp_micro_ocr_page_wide_fallback_rejects_ambiguous_hp_labels(tmp_path):
 
     assert result == page_text
     assert run.call_count == 1
+    output = capsys.readouterr().out
+    assert "HP_ANCHOR_DIAGNOSTIC" in output
+    payload = json.loads(output.split("HP_ANCHOR_DIAGNOSTIC ", 1)[1])
+    assert payload == {
+        "name": "Quetzalcoatlus",
+        "page_text_local_hp_count": 2,
+        "page_text_target_count": 1,
+        "reason": "no_unique_structural_hp_anchor",
+        "tsv_local_label_found": False,
+        "tsv_name_anchor_found": False,
+        "tsv_page_wide_hp_label_count": 2,
+    }
+
+
+def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t2\t1\t1\t1\t20\t100\t45\t12\t95\tPunti\n"
+        "5\t1\t2\t1\t1\t2\t72\t100\t50\t12\t95\tFerita\n"
+    )
+    page_text = (
+        "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
+        "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path, "ita", 3, page_text, "Quetzalcoatlus"
+        )
+
+    assert result == page_text
+    payload = json.loads(capsys.readouterr().out.split("HP_ANCHOR_DIAGNOSTIC ", 1)[1])
+    assert payload["page_text_target_count"] == 2
+    assert payload["page_text_local_hp_count"] == 0
+    assert payload["tsv_page_wide_hp_label_count"] == 1
+    assert payload["tsv_name_anchor_found"] is False
+    assert payload["tsv_local_label_found"] is False
 
 
 def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):

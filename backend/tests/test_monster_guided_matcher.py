@@ -168,6 +168,50 @@ def test_abishai_rosso_clean_same_page_containment_is_independently_agreed():
     assert "ocr_guided_core_merge" in merged["review_flags"]
 
 
+def test_exact_same_page_name_accepts_all_clean_deterministic_core_alignment():
+    primary = _record(
+        _attributes(
+            ac="18 (armatura naturale)",
+            hp="289 (34d8 + 136)",
+            speed="9 metri, volare 12 m",
+        ),
+        name="RAK TULKHESH",
+        normalized_name="rak tulkhesh",
+        start_page=77,
+    )
+    comparison = _record(
+        _attributes(
+            ac="18 [armatura naturale]",
+            hp="289 [34 d 8+136]",
+            speed="9 m; volare 12 m",
+        ),
+        name="Rak Tulkhesh",
+        normalized_name="rak tulkhesh",
+        start_page=77,
+    )
+
+    result = agreed_monster_records([primary], [comparison])
+
+    assert len(result) == 1
+    assert result[0]["attributes"]["ocr_independent_agreement"] is True
+    assert result[0]["attributes"]["ocr_guided_core_merge"] is True
+    assert "ocr_da_verificare" in result[0]["review_flags"]
+
+
+def test_clean_exact_name_alignment_remains_same_page_and_unique():
+    primary = _record(_attributes(), name="BAEL", normalized_name="bael")
+    comparison = _record(
+        _attributes(ac="14 (scudo)", hp="37 [5 d 10+10]", speed="9 metri"),
+        name="Bael",
+        normalized_name="bael",
+        start_page=13,
+    )
+
+    assert agreed_monster_records([primary], [comparison]) == []
+    same_page = {**comparison, "start_page": 12}
+    assert agreed_monster_records([primary], [same_page, dict(same_page)]) == []
+
+
 def test_agreed_records_reject_ambiguous_same_page_name_containment_candidates():
     primary = _record(_attributes())
     comparison_alpha = _record(

@@ -52,9 +52,10 @@ def guided_core_merge(
     - speed: three or more extra alphabetic tokens, excluding duplicate ambiguity.
 
     A field that already matches after deterministic normalization is also safe.
-    The caller may explicitly permit an all-clean deterministic match only for a
-    unique same-page strict name-containment pair. All other guided paths still
-    require at least one proven residual shape. Unknown shapes fail closed.
+    The caller may explicitly permit an all-clean deterministic match only after
+    independently establishing a unique same-page identity match (exact name or
+    strict name containment). All other guided paths still require at least one
+    proven residual shape. Unknown shapes fail closed.
     """
     semantic = semantic_core_field_matches(left_attributes, right_attributes)
     if not all(

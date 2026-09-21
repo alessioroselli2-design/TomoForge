@@ -496,7 +496,20 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
             if guided_values is None:
                 continue
         else:
-            guided_values = None if exact_core_match else guided_core_merge(left, right)
+            # A unique exact normalized-name match on the same source page is
+            # already independently identity-bound. Permit the guided matcher
+            # to accept presentation-only differences when every core field is
+            # both semantically and deterministically identical. This does not
+            # relax page, name, uniqueness, or numeric agreement.
+            guided_values = (
+                None
+                if exact_core_match
+                else guided_core_merge(
+                    left,
+                    right,
+                    allow_clean_deterministic_match=True,
+                )
+            )
             if not exact_core_match and guided_values is None:
                 continue
 

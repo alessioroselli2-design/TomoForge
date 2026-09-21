@@ -848,12 +848,32 @@ def _micro_ocr_hit_points_line(
     """
     import fitz
 
+    diagnostics: dict[str, object] = {
+        "page_text_target_count": None,
+        "page_text_local_hp_count": None,
+        "tsv_page_wide_hp_label_count": None,
+        "tsv_name_anchor_found": None,
+        "tsv_local_label_found": None,
+    }
+
+    def fail_closed(reason: str) -> str:
+        print(
+            "HP_ANCHOR_DIAGNOSTIC "
+            + json.dumps(
+                {"name": name, "reason": reason, **diagnostics},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return page_text
+
     hp_line_pattern = re.compile(
         r"^(?P<label>[ \t]*Punti[ \t]+Ferita[ \t]*)(?P<value>.*)$",
         re.IGNORECASE | re.MULTILINE,
     )
     if not hp_line_pattern.search(page_text):
-        return page_text
+        diagnostics["page_text_local_hp_count"] = 0
+        return fail_closed("page_text_hp_label_missing")
 
     command = [
         "tesseract",
@@ -892,9 +912,10 @@ def _micro_ocr_hit_points_line(
     )
     normalized_name = normalize_reference_name(name).replace(" ", "")
     if not normalized_name:
-        return page_text
+        diagnostics["page_text_target_count"] = 0
+        return fail_closed("normalized_target_name_empty")
 
-    def page_text_supports_unique_local_hp() -> bool:
+    def page_text_anchor_counts() -> tuple[int, int]:
         text_lines = page_text.splitlines()
         target_indexes = [
             index
@@ -902,7 +923,7 @@ def _micro_ocr_hit_points_line(
             if normalized_name in normalize_reference_name(line).replace(" ", "")
         ]
         if len(target_indexes) != 1:
-            return False
+            return len(target_indexes), 0
         target_index = target_indexes[0]
         hp_indexes = [
             index
@@ -912,7 +933,7 @@ def _micro_ocr_hit_points_line(
             )
             if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
         ]
-        return len(hp_indexes) == 1
+        return len(target_indexes), len(hp_indexes)
 
     def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
         labels: list[list[dict[str, str]]] = []
@@ -937,6 +958,12 @@ def _micro_ocr_hit_points_line(
                     break
         return labels
 
+    page_target_count, page_local_hp_count = page_text_anchor_counts()
+    diagnostics["page_text_target_count"] = page_target_count
+    diagnostics["page_text_local_hp_count"] = page_local_hp_count
+    global_labels = page_wide_tsv_labels()
+    diagnostics["tsv_page_wide_hp_label_count"] = len(global_labels)
+
     name_line_index = next(
         (
             index
@@ -948,6 +975,7 @@ def _micro_ocr_hit_points_line(
         ),
         None,
     )
+    diagnostics["tsv_name_anchor_found"] = name_line_index is not None
     label_words: list[dict[str, str]] | None = None
     # The target name remains the required upper anchor. Descriptor and wrapped
     # lines vary across legacy layouts, so scan subsequent TSV lines; the crop
@@ -981,8 +1009,8 @@ def _micro_ocr_hit_points_line(
                     break
             if label_words is not None:
                 break
-    if label_words is None and page_text_supports_unique_local_hp():
-        global_labels = page_wide_tsv_labels()
+    diagnostics["tsv_local_label_found"] = label_words is not None
+    if label_words is None and page_target_count == 1 and page_local_hp_count == 1:
         if len(global_labels) == 1:
             label_words = global_labels[0]
             print(
@@ -994,7 +1022,7 @@ def _micro_ocr_hit_points_line(
                 )
             )
     if label_words is None:
-        return page_text
+        return fail_closed("no_unique_structural_hp_anchor")
 
     ferita_index = next(
         (
@@ -1005,7 +1033,7 @@ def _micro_ocr_hit_points_line(
         None,
     )
     if ferita_index is None:
-        return page_text
+        return fail_closed("ferita_token_missing_from_label")
 
     label_end = int(label_words[ferita_index]["left"]) + int(
         label_words[ferita_index]["width"]
@@ -1164,7 +1192,7 @@ def _micro_ocr_hit_points_line(
 
     value = " ".join(micro.split())
     if not value or not re.search(r"\d", value):
-        return page_text
+        return fail_closed("micro_ocr_numeric_value_missing")
     return hp_line_pattern.sub(
         lambda match: f"{match.group('label').rstrip()} {value}",
         page_text,
