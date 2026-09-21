@@ -893,6 +893,50 @@ def _micro_ocr_hit_points_line(
     normalized_name = normalize_reference_name(name).replace(" ", "")
     if not normalized_name:
         return page_text
+
+    def page_text_supports_unique_local_hp() -> bool:
+        text_lines = page_text.splitlines()
+        target_indexes = [
+            index
+            for index, line in enumerate(text_lines)
+            if normalized_name in normalize_reference_name(line).replace(" ", "")
+        ]
+        if len(target_indexes) != 1:
+            return False
+        target_index = target_indexes[0]
+        hp_indexes = [
+            index
+            for index, line in enumerate(
+                text_lines[target_index + 1 : target_index + 13],
+                start=target_index + 1,
+            )
+            if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
+        ]
+        return len(hp_indexes) == 1
+
+    def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
+        labels: list[list[dict[str, str]]] = []
+        for index, words in enumerate(ordered_lines):
+            normalized = " ".join(str(word["text"]) for word in words).casefold()
+            if "punti" not in normalized:
+                continue
+            if "ferita" in normalized:
+                labels.append(words)
+                continue
+            for following in ordered_lines[index + 1 : index + 3]:
+                following_text = " ".join(
+                    str(word["text"]) for word in following
+                ).casefold()
+                vertical_gap = min(int(word["top"]) for word in following) - max(
+                    int(word["top"]) + int(word["height"]) for word in words
+                )
+                if "ferita" in following_text and 0 <= vertical_gap <= 20:
+                    labels.append(
+                        words + [word for word in following if word not in words]
+                    )
+                    break
+        return labels
+
     name_line_index = next(
         (
             index
@@ -904,19 +948,17 @@ def _micro_ocr_hit_points_line(
         ),
         None,
     )
-    if name_line_index is None:
-        return page_text
-
     label_words: list[dict[str, str]] | None = None
     # The target name remains the required upper anchor. Descriptor and wrapped
     # lines vary across legacy layouts, so scan subsequent TSV lines; the crop
     # is still bound to the first HP label below that exact target identity.
-    for words in ordered_lines[name_line_index + 1 :]:
-        normalized = " ".join(str(word["text"]) for word in words).casefold()
-        if "punti" in normalized and "ferita" in normalized:
-            label_words = words
-            break
-    if label_words is None:
+    if name_line_index is not None:
+        for words in ordered_lines[name_line_index + 1 :]:
+            normalized = " ".join(str(word["text"]) for word in words).casefold()
+            if "punti" in normalized and "ferita" in normalized:
+                label_words = words
+                break
+    if label_words is None and name_line_index is not None:
         name_words = ordered_lines[name_line_index]
         name_bottom = max(int(word["top"]) + int(word["height"]) for word in name_words)
         geometric_window = [
@@ -939,6 +981,18 @@ def _micro_ocr_hit_points_line(
                     break
             if label_words is not None:
                 break
+    if label_words is None and page_text_supports_unique_local_hp():
+        global_labels = page_wide_tsv_labels()
+        if len(global_labels) == 1:
+            label_words = global_labels[0]
+            print(
+                "HP_PAGE_WIDE_FALLBACK "
+                + json.dumps(
+                    {"name": name, "unique_tsv_hp_labels": 1},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
     if label_words is None:
         return page_text
 
