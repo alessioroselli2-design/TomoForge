@@ -331,6 +331,13 @@ APPROVED5_TARGETS: tuple[dict[str, str], ...] = (
     },
 )
 
+EXPECTED_OBLEX1_COUNT = 1
+EXPECTED_OBLEX1_IDS_MD5 = "68e75df624874ee3cc9e3772fc9f34c0"
+OBLEX1_CONFIRMATION_TOKEN = "REPAIR-OBLEX1-1-68e75df624874ee3cc9e3772fc9f34c0"
+OBLEX1_TARGETS: tuple[dict[str, str], ...] = (
+    {"id": "ref_2ea09533213a54178032bc4c5b0b952d", "name": "0Blex Antico"},
+)
+
 EXPECTED_BIGBY4_COUNT = 4
 EXPECTED_BIGBY4_IDS_MD5 = "82a891bb16d48d70e063b3c535fa0839"
 BIGBY4_CONFIRMATION_TOKEN = "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
@@ -658,6 +665,33 @@ def select_approved5_targets(failures: list[dict[str, Any]]) -> list[dict[str, A
         or _ids_md5(targets) != EXPECTED_APPROVED5_IDS_MD5
     ):
         raise RuntimeError("Approved5 target count/fingerprint drift")
+    return targets
+
+
+def select_oblex1_targets(failures: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Resolve the sole overlap-proven Oblex repair by sealed live identity."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in OBLEX1_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(f"Sealed oblex1 target missing: {expected['id']}")
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Oblex1 name drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Oblex1 status drift: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Oblex1 review flag drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Oblex1 canonical link detected: {expected['id']}")
+        if not str(record.get("source_text_checksum") or ""):
+            raise RuntimeError(f"Oblex1 checksum missing: {expected['id']}")
+        targets.append(record)
+    if (
+        len(targets) != EXPECTED_OBLEX1_COUNT
+        or _ids_md5(targets) != EXPECTED_OBLEX1_IDS_MD5
+    ):
+        raise RuntimeError("Oblex1 target count/fingerprint drift")
     return targets
 
 
@@ -1856,7 +1890,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target-set",
-        choices=("healthy22", "approved1", "approved5", "bigby19", "bigby4"),
+        choices=(
+            "healthy22",
+            "approved1",
+            "approved5",
+            "oblex1",
+            "bigby19",
+            "bigby4",
+        ),
         default=None,
         help="Process only an exact reviewed sealed target set",
     )
@@ -1923,6 +1964,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != APPROVED5_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Approved5 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "oblex1"
+        and args.confirm != OBLEX1_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Oblex1 confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -1973,6 +2020,7 @@ async def _run(args: argparse.Namespace) -> int:
         "healthy22",
         "approved1",
         "approved5",
+        "oblex1",
         "bigby4",
     }
     if args.target_set == "healthy22":
@@ -1991,6 +2039,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_approved5_targets(failures)
         sealed_expected_count = EXPECTED_APPROVED5_COUNT
         sealed_label = "Approved5"
+    elif args.target_set == "oblex1":
+        targets = select_oblex1_targets(failures)
+        sealed_expected_count = EXPECTED_OBLEX1_COUNT
+        sealed_label = "Oblex1"
     elif args.target_set == "bigby19":
         targets = select_bigby19_targets(failures)
         sealed_expected_count = None
