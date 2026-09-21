@@ -9,10 +9,12 @@ import fitz
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
     BIGBY4_TARGETS,
+    APPROVED5_TARGETS,
     EXPECTED_BIGBY19_COUNT,
     EXPECTED_BIGBY4_COUNT,
     EXPECTED_HEALTHY22_COUNT,
     EXPECTED_APPROVED1_COUNT,
+    EXPECTED_APPROVED5_COUNT,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -33,6 +35,7 @@ from scripts.repair_monsters_from_source import (
     select_failed_monsters,
     select_healthy22_targets,
     select_approved1_targets,
+    select_approved5_targets,
 )
 
 
@@ -643,8 +646,8 @@ def test_mpmm_layout_profile_splits_columns_and_uses_independent_ocr_modes():
 
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
-        ("left", (0.0, 0.0, 0.5, 1.0)),
-        ("right", (0.5, 0.0, 1.0, 1.0)),
+        ("left", (0.0, 0.0, 0.52, 1.0)),
+        ("right", (0.48, 0.0, 1.0, 1.0)),
     )
     assert _layout_ocr_settings(
         source,
@@ -659,8 +662,8 @@ def test_bigby_layout_profile_splits_columns_and_uses_independent_ocr_modes():
 
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
-        ("left", (0.0, 0.0, 0.5, 1.0)),
-        ("right", (0.5, 0.0, 1.0, 1.0)),
+        ("left", (0.0, 0.0, 0.52, 1.0)),
+        ("right", (0.48, 0.0, 1.0, 1.0)),
     )
     assert _layout_ocr_settings(
         source,
@@ -817,6 +820,51 @@ def test_approved1_sealed_target_set_contains_only_numerically_valid_identity():
     assert {row["name"] for row in selected}.isdisjoint(
         {"Colline", "Di Fuoco", "Mietitore", "Modellaghiaccio"}
     )
+
+
+def test_approved5_sealed_target_set_resolves_only_gate_clean_batch():
+    records = []
+    for expected in APPROVED5_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = f"checksum-{expected['id']}"
+        records.append(row)
+
+    selected = select_approved5_targets(records)
+
+    assert len(selected) == EXPECTED_APPROVED5_COUNT == 5
+    assert {row["name"] for row in selected} == {
+        "Colosso Di Carne",
+        "Di Terra",
+        "Fraz-Urb'Luu",
+        "Lavamandra Warlock Di Imix",
+        "Modellaghiaccio",
+    }
+
+
+def test_approved5_sealed_target_set_rejects_live_state_drift():
+    records = []
+    for expected in APPROVED5_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = f"checksum-{expected['id']}"
+        records.append(row)
+    records[0]["review_flags"] = ["unexpected"]
+
+    try:
+        select_approved5_targets(records)
+    except RuntimeError as exc:
+        assert "review flag drift" in str(exc)
+    else:
+        raise AssertionError("sealed approved5 batch must reject live-state drift")
 
 
 class _UpdateResult:
