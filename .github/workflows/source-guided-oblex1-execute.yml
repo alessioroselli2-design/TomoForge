@@ -1,0 +1,83 @@
+name: Source-guided Oblex1 execute
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/source-guided-oblex1-execute-request.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-source-guided-oblex1-execute
+  cancel-in-progress: false
+
+jobs:
+  oblex1-execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+      - name: Execute sealed Oblex1 repair
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --target-set oblex1 \
+            --allow-r2-download \
+            --execute \
+            --confirm "REPAIR-OBLEX1-1-68e75df624874ee3cc9e3772fc9f34c0" \
+            | tee /tmp/oblex1-execute.log
+      - name: Assert exact execution
+        run: |
+          grep -q '"targets": 1' /tmp/oblex1-execute.log
+          grep -q '"repairable": 1' /tmp/oblex1-execute.log
+          grep -q '"blocked": 0' /tmp/oblex1-execute.log
+          grep -q '"updates_performed": 1' /tmp/oblex1-execute.log
+          grep -Eq '"batch_updated_at": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[^\"]+Z"' \
+            /tmp/oblex1-execute.log
+      - name: Run post-execute global dry-run
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --all \
+            --allow-r2-download \
+            | tee /tmp/oblex1-post-execute-global-dry-run.log
+      - name: Assert post-execute dry-run safety
+        run: |
+          grep -q '"dry_run": true' /tmp/oblex1-post-execute-global-dry-run.log
+          grep -q '"updates_performed": 0' /tmp/oblex1-post-execute-global-dry-run.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oblex1-execute
+          path: /tmp/oblex1-execute.log
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oblex1-post-execute-global-dry-run
+          path: /tmp/oblex1-post-execute-global-dry-run.log
+          if-no-files-found: error
+          retention-days: 3

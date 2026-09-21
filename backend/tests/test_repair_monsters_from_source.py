@@ -12,11 +12,13 @@ from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
     BIGBY4_TARGETS,
     APPROVED5_TARGETS,
+    OBLEX1_TARGETS,
     EXPECTED_BIGBY19_COUNT,
     EXPECTED_BIGBY4_COUNT,
     EXPECTED_HEALTHY22_COUNT,
     EXPECTED_APPROVED1_COUNT,
     EXPECTED_APPROVED5_COUNT,
+    EXPECTED_OBLEX1_COUNT,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -40,6 +42,7 @@ from scripts.repair_monsters_from_source import (
     select_healthy22_targets,
     select_approved1_targets,
     select_approved5_targets,
+    select_oblex1_targets,
 )
 
 
@@ -961,6 +964,41 @@ def test_approved5_sealed_target_set_rejects_live_state_drift():
         assert "review flag drift" in str(exc)
     else:
         raise AssertionError("sealed approved5 batch must reject live-state drift")
+
+
+def test_oblex1_sealed_target_set_resolves_only_reviewed_identity():
+    expected = OBLEX1_TARGETS[0]
+    record = _monster(
+        expected["name"],
+        "1",
+        "20 (3d8 + 6)",
+        record_id=expected["id"],
+    )
+    record["source_text_checksum"] = "checksum-oblex"
+
+    selected = select_oblex1_targets([record])
+
+    assert len(selected) == EXPECTED_OBLEX1_COUNT == 1
+    assert selected[0]["name"] == "0Blex Antico"
+
+
+def test_oblex1_sealed_target_set_rejects_status_drift():
+    expected = OBLEX1_TARGETS[0]
+    record = _monster(
+        expected["name"],
+        "1",
+        "20 (3d8 + 6)",
+        record_id=expected["id"],
+    )
+    record["source_text_checksum"] = "checksum-oblex"
+    record["review_status"] = "pending"
+
+    try:
+        select_oblex1_targets([record])
+    except RuntimeError as exc:
+        assert "status drift" in str(exc)
+    else:
+        raise AssertionError("sealed oblex1 batch must reject status drift")
 
 
 class _UpdateResult:
