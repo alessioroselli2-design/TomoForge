@@ -381,6 +381,8 @@ TWO_COLUMN_COMPARISON_PSM = 4
 HIT_POINTS_WHITELIST = "0123456789d+() "
 HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
+HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
+HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.5, 2.5, 3.0)
 NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
     r"\([^)]*\b\d+d\d{3,4}\b[^)]*\)",
     re.IGNORECASE,
@@ -435,6 +437,25 @@ def _dilate_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
             x0 = max(0, x - 1)
             x1 = min(width, x + 2)
             output[y * width + x] = min(
+                samples[row * width + column]
+                for row in range(y0, y1)
+                for column in range(x0, x1)
+            )
+    return bytes(output)
+
+
+def _erode_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
+    """Apply a bounded 3x3 maximum filter to thin fused dark strokes."""
+    if width < 1 or height < 1 or len(samples) != width * height:
+        raise ValueError("invalid grayscale raster for dark-pixel erosion")
+    output = bytearray(len(samples))
+    for y in range(height):
+        y0 = max(0, y - 1)
+        y1 = min(height, y + 2)
+        for x in range(width):
+            x0 = max(0, x - 1)
+            x1 = min(width, x + 2)
+            output[y * width + x] = max(
                 samples[row * width + column]
                 for row in range(y0, y1)
                 for column in range(x0, x1)
@@ -835,16 +856,20 @@ def _layout_profile(source: dict[str, Any]) -> str:
 
 def _layout_segments(
     source: dict[str, Any],
+    *,
+    overlap_fraction: float = 0.02,
 ) -> tuple[tuple[str, tuple[float, float, float, float]], ...]:
     """Return normalized page clips; values are fractions of width/height."""
     if _layout_profile(source) == "two_column_vertical":
-        # A 2% center overlap is about 40-50 raster pixels on the supported
-        # legacy pages at 300 DPI. It retains glyphs touching the gutter while
-        # keeping both clips page-bounded; duplicate candidates still fail the
-        # unique independent-agreement gate.
+        if not 0.02 <= overlap_fraction <= 0.05:
+            raise ValueError("column overlap must be between 2% and 5%")
+        # The default 2% center overlap is about 40-50 raster pixels on the
+        # supported legacy pages at 300 DPI. Identity-miss retries may expand
+        # it up to 5%; clips remain page-bounded and duplicate candidates still
+        # fail the unique independent-agreement gate.
         return (
-            ("left", (0.0, 0.0, 0.52, 1.0)),
-            ("right", (0.48, 0.0, 1.0, 1.0)),
+            ("left", (0.0, 0.0, 0.5 + overlap_fraction, 1.0)),
+            ("right", (0.5 - overlap_fraction, 0.0, 1.0, 1.0)),
         )
     return (("full", (0.0, 0.0, 1.0, 1.0)),)
 
@@ -866,6 +891,19 @@ def _layout_ocr_settings(
             TWO_COLUMN_COMPARISON_PSM,
         )
     return dpi, psm, comparison_psm
+
+
+def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> bool:
+    """Retry wider column clips only when target identity was absent in OCR."""
+    if exc.reason != "no_unique_independent_agreement":
+        return False
+    if _layout_profile(source) != "two_column_vertical":
+        return False
+    diagnostics = exc.diagnostics or {}
+    return bool(
+        diagnostics.get("primary_name_candidates") == 0
+        or diagnostics.get("comparison_name_candidates") == 0
+    )
 
 
 class SourcePdfCache:
@@ -1205,6 +1243,8 @@ def _micro_ocr_hit_points_line(
         otsu_inverted: bool = False,
         scale_factor: int = 1,
         morphological_dark_dilation: bool = False,
+        morphological_dark_erosion: bool = False,
+        bitonal_threshold: int | None = None,
     ) -> str:
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
@@ -1234,6 +1274,17 @@ def _micro_ocr_hit_points_line(
                 raster.width,
                 raster.height,
             )
+        if morphological_dark_erosion:
+            threshold_samples = _erode_dark_pixels(
+                threshold_samples,
+                raster.width,
+                raster.height,
+            )
+        if bitonal_threshold is not None:
+            threshold_samples = bytes(
+                0 if sample <= bitonal_threshold else 255
+                for sample in threshold_samples
+            )
         if otsu_inverted:
             processed = fitz.Pixmap(
                 fitz.csGRAY,
@@ -1249,6 +1300,10 @@ def _micro_ocr_hit_points_line(
             suffix = f"-upscaled-x{scale_factor}" + suffix
         if morphological_dark_dilation:
             suffix = "-dark-dilated" + suffix
+        if morphological_dark_erosion:
+            suffix = "-dark-eroded" + suffix
+        if bitonal_threshold is not None:
+            suffix = f"-threshold-{bitonal_threshold}" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         processed.save(crop_path)
         return subprocess.run(
@@ -1311,6 +1366,36 @@ def _micro_ocr_hit_points_line(
             else:
                 micro = otsu_micro
                 superscaled_otsu_micro = None
+            full_spectrum_attempts: list[dict[str, object]] = []
+            full_spectrum_accepted: dict[str, object] | None = None
+            if hp_micro_ocr_failed(micro):
+                for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
+                    for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
+                        for morphology in ("erosion", "dilation"):
+                            candidate = run_micro_ocr(
+                                contrast,
+                                directory,
+                                scale_factor=4,
+                                morphological_dark_erosion=morphology == "erosion",
+                                morphological_dark_dilation=morphology == "dilation",
+                                bitonal_threshold=threshold,
+                            )
+                            failed = hp_micro_ocr_failed(candidate)
+                            attempt = {
+                                "contrast": contrast,
+                                "threshold": threshold,
+                                "morphology": morphology,
+                                "hp_format_error": failed,
+                            }
+                            full_spectrum_attempts.append(attempt)
+                            if not failed:
+                                micro = candidate
+                                full_spectrum_accepted = attempt
+                                break
+                        if full_spectrum_accepted is not None:
+                            break
+                    if full_spectrum_accepted is not None:
+                        break
             print(
                 "HP_MICRO_OCR_DIAGNOSTIC "
                 + json.dumps(
@@ -1331,6 +1416,8 @@ def _micro_ocr_hit_points_line(
                             if superscaled_otsu_micro is not None
                             else None
                         ),
+                        "full_spectrum_attempt_count": len(full_spectrum_attempts),
+                        "full_spectrum_accepted": full_spectrum_accepted,
                     },
                     ensure_ascii=False,
                     sort_keys=True,
@@ -1360,6 +1447,7 @@ def _ocr_source_window(
     languages: str,
     psm: int,
     comparison_psm: int,
+    column_overlap: float = 0.02,
 ) -> tuple[
     list[tuple[int, str]],
     list[tuple[int, str]],
@@ -1388,7 +1476,7 @@ def _ocr_source_window(
     comparison_pages: list[tuple[int, str]] = []
     metrics: dict[int, dict[str, Any]] = {}
     matrix = fitz.Matrix(effective_dpi / 72.0, effective_dpi / 72.0)
-    segments = _layout_segments(source)
+    segments = _layout_segments(source, overlap_fraction=column_overlap)
 
     document = fitz.open(pdf_path)
     try:
@@ -1458,6 +1546,7 @@ def _ocr_source_window(
                     "primary_psm": primary_psm,
                     "comparison_psm": secondary_psm,
                     "segments": segment_metrics,
+                    "column_overlap": column_overlap,
                 }
                 if page_quality_pass:
                     # Column outputs are concatenated only after independent
@@ -1821,25 +1910,54 @@ async def _repair_one(
     physical_page = int(source_ref["page"])
     pdf_path = pdf_cache.get(source)
 
-    primary_pages, comparison_pages, quality = _ocr_source_window(
-        pdf_path,
-        physical_page,
-        int(source["physical_pages"]),
-        source,
-        str(record.get("name") or ""),
-        dpi=args.dpi,
-        languages=args.languages,
-        psm=args.psm,
-        comparison_psm=args.comparison_psm,
-    )
-    candidate = _agreed_target_candidate(
-        primary_pages,
-        comparison_pages,
-        str(source["physical_filename"]),
-        str(source.get("language") or "it"),
-        str(record.get("name") or ""),
-        physical_page,
-    )
+    candidate = None
+    quality = None
+    selected_overlap = 0.02
+    overlaps = (0.02, 0.03, 0.04, 0.05)
+    for overlap_index, overlap in enumerate(overlaps):
+        primary_pages, comparison_pages, quality = _ocr_source_window(
+            pdf_path,
+            physical_page,
+            int(source["physical_pages"]),
+            source,
+            str(record.get("name") or ""),
+            dpi=args.dpi,
+            languages=args.languages,
+            psm=args.psm,
+            comparison_psm=args.comparison_psm,
+            column_overlap=overlap,
+        )
+        try:
+            candidate = _agreed_target_candidate(
+                primary_pages,
+                comparison_pages,
+                str(source["physical_filename"]),
+                str(source.get("language") or "it"),
+                str(record.get("name") or ""),
+                physical_page,
+            )
+            selected_overlap = overlap
+            break
+        except RepairBlocked as exc:
+            if overlap_index == len(overlaps) - 1 or not _should_retry_dynamic_layout(
+                exc, source
+            ):
+                raise
+            print(
+                "DYNAMIC_COLUMN_RETRY "
+                + json.dumps(
+                    {
+                        "name": record.get("name"),
+                        "failed_overlap": overlap,
+                        "next_overlap": overlaps[overlap_index + 1],
+                        "reason": exc.reason,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+    if candidate is None or quality is None:
+        raise RepairBlocked("dynamic_layout_exhausted")
     proposal = build_repair_proposal(
         record,
         candidate,
@@ -1863,6 +1981,7 @@ async def _repair_one(
             "primary_psm": target_metrics["primary_psm"],
             "comparison_psm": target_metrics["comparison_psm"],
             "segments": sorted(target_metrics["segments"].keys()),
+            "column_overlap": selected_overlap,
         },
         "ocr_pages": sorted(quality),
         "quality_fail_pages": sorted(
