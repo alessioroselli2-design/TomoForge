@@ -30,6 +30,7 @@ from scripts.repair_monsters_from_source import (
     SourcePdfCache,
     _agreed_target_candidate,
     _apply_update,
+    _background_luminance_stats,
     _candidate_matches_target,
     _dilate_dark_pixels,
     _erode_dark_pixels,
@@ -40,6 +41,7 @@ from scripts.repair_monsters_from_source import (
     _otsu_inverted_samples,
     _sample_variance,
     _should_retry_dynamic_layout,
+    _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
     build_repair_proposal,
     resolve_source,
@@ -1271,3 +1273,120 @@ def test_bigby4_sealed_target_set_rejects_review_flag_drift():
         assert "review flags" in str(exc)
     else:
         raise AssertionError("sealed bigby4 batch must reject pre-existing flags")
+
+
+
+def test_background_luminance_stats_detects_nonwhite_frame():
+    width = 10
+    height = 10
+    white = bytes([255] * (width * height))
+    tinted = bytes([220] * (width * height))
+
+    white_mean, white_variance = _background_luminance_stats(
+        white,
+        width,
+        height,
+    )
+    tinted_mean, tinted_variance = _background_luminance_stats(
+        tinted,
+        width,
+        height,
+    )
+
+    assert white_mean == 255
+    assert white_variance == 0
+    assert tinted_mean == 220
+    assert tinted_variance == 0
+
+
+def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
+    image_path = tmp_path / "page.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t650\t200\t60\t30\t95\tRAK\n"
+        "5\t1\t1\t1\t1\t2\t720\t200\t120\t30\t95\tTULKHESH\n"
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ) as run:
+        crop = _sparse_anchor_crop_fractions(
+            image_path,
+            "ita",
+            "Rak Tulkhesh",
+        )
+
+    assert crop is not None
+    assert crop[0] == 0.42
+    assert crop[2] == 1.0
+    assert 0.0 <= crop[1] < 0.2
+    assert crop[3] == 1.0
+    command = run.call_args.args[0]
+    assert "--psm" in command
+    assert "11" in command
+    assert "tsv" in command
+
+
+def test_sparse_anchor_crop_rejects_ambiguous_duplicate_title(tmp_path):
+    image_path = tmp_path / "page.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t100\t200\t80\t30\t95\tBAEL\n"
+        "5\t1\t2\t1\t1\t1\t650\t700\t80\t30\t95\tBAEL\n"
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        assert _sparse_anchor_crop_fractions(image_path, "ita", "Bael") is None
+
+
+def test_target_agreement_is_symmetric_when_only_comparison_keeps_target_name():
+    attributes = {
+        "classe_armatura": "17",
+        "punti_ferita": "120 (16d10 + 32)",
+        "velocita": "9 m",
+    }
+    primary = [
+        {
+            "name": "R4K TULKHE5H",
+            "normalized_name": "r4k tulkhe5h",
+            "start_page": 61,
+            "source_refs": [{"page": 61}],
+            "attributes": dict(attributes),
+            "review_flags": ["ocr_da_verificare"],
+        }
+    ]
+    comparison = [
+        {
+            "name": "Rak Tulkhesh",
+            "normalized_name": "rak tulkhesh",
+            "start_page": 61,
+            "source_refs": [{"page": 61}],
+            "attributes": dict(attributes),
+            "review_flags": ["ocr_da_verificare"],
+        }
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.parse_monster_statblocks",
+        side_effect=[primary, comparison],
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "manual.pdf",
+            "it",
+            "Rak Tulkhesh",
+            61,
+        )
+
+    assert candidate["name"] == "Rak Tulkhesh"
+    assert candidate["attributes"]["ocr_independent_agreement"] is True
+    assert candidate["attributes"]["ocr_core_only_same_page_agreement"] is True
