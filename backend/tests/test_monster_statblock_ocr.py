@@ -136,7 +136,6 @@ def test_multiple_same_page_candidates_require_one_unique_exact_name_match():
     assert agreed_monster_records(primary, [exact, dict(exact)]) == []
 
 
-
 def test_target_bound_core_only_same_page_pairing_accepts_one_unique_candidate():
     primary = parse_monster_statblocks(
         [(166, _goblin_text(title="GOBLIN"))],
