@@ -69,18 +69,22 @@ def compact_name_bounded_edit_match(
     left_normalized: object,
     right_normalized: object,
     *,
-    max_distance: int = 2,
+    max_distance: int = 3,
 ) -> bool:
-    """Match one or two compact-name OCR edits without accepting short collisions.
+    """Match a length-bounded number of compact-name OCR edits.
 
     Names of four to seven characters may differ by one edit; longer names may
-    differ by at most two. Exact, empty, or shorter inputs fail closed.
+    differ by at most two until ten characters, where at most three edits are
+    permitted. Exact, empty, or shorter inputs fail closed. Callers must still
+    independently enforce page, uniqueness, and clean core-field agreement.
     """
     left = _compact(left_normalized)
     right = _compact(right_normalized)
     if not left or not right or left == right or min(len(left), len(right)) < 4:
         return False
-    allowed = min(max_distance, 1 if min(len(left), len(right)) < 8 else 2)
+    shortest_length = min(len(left), len(right))
+    length_limit = 1 if shortest_length < 8 else 2 if shortest_length < 10 else 3
+    allowed = min(max_distance, length_limit)
     if allowed < 1 or abs(len(left) - len(right)) > allowed:
         return False
 

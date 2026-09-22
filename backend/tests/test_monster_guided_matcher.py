@@ -1,4 +1,5 @@
 from services.monster_guided_matcher import guided_core_merge
+from services.monster_name_diagnostics import compact_name_bounded_edit_match
 from services.monster_statblock_ocr import agreed_monster_records
 
 
@@ -252,6 +253,76 @@ def test_same_page_fuzzy_name_pair_must_be_unique():
     comparison_two = _record(core, name="RAMA", normalized_name="rama")
 
     assert agreed_monster_records([primary], [comparison_one, comparison_two]) == []
+
+
+def test_long_name_allows_three_ocr_edits_but_shorter_name_does_not():
+    assert compact_name_bounded_edit_match("quetzalcoatlus", "xuetxalcoatluz")
+    assert not compact_name_bounded_edit_match("abcdefghi", "abcxefgzy")
+
+
+def test_ambiguous_fuzzy_names_select_only_unique_clean_core_pair():
+    clean_core = _attributes(ac="17", hp="93 (11d10 + 33)", speed="9 m")
+    primary = _record(
+        clean_core,
+        name="MIRMIDONE ELEMENTALE",
+        normalized_name="mirmidone elementale",
+    )
+    clean_candidate = _record(
+        clean_core,
+        name="MIRMID0NE ELEMENTA1E",
+        normalized_name="mirmid0ne elementa1e",
+    )
+    debris_candidate = _record(
+        _attributes(ac="12", hp="22 (4d8 + 4)", speed="6 m"),
+        name="MIRMIDONE ELEMENYALE",
+        normalized_name="mirmidone elemenyale",
+    )
+
+    result = agreed_monster_records([primary], [clean_candidate, debris_candidate])
+
+    assert len(result) == 1
+    assert result[0]["attributes"]["ocr_independent_agreement"] is True
+
+
+def test_ambiguous_fuzzy_names_do_not_resolve_on_armor_class_alone():
+    primary = _record(
+        _attributes(ac="17", hp="93 (11d10 + 33)", speed="9 m"),
+        name="MIRMIDONE ELEMENTALE",
+        normalized_name="mirmidone elementale",
+    )
+    first = _record(
+        _attributes(ac="17", hp="94 (11d10 + 33)", speed="9 m"),
+        name="MIRMID0NE ELEMENTA1E",
+        normalized_name="mirmid0ne elementa1e",
+    )
+    second = _record(
+        _attributes(ac="17", hp="93 (11d10 + 33)", speed="12 m"),
+        name="MIRMIDONE ELEMENYALE",
+        normalized_name="mirmidone elemenyale",
+    )
+
+    assert agreed_monster_records([primary], [first, second]) == []
+
+
+def test_ambiguous_fuzzy_names_remain_blocked_with_two_clean_core_pairs():
+    core = _attributes(ac="17", hp="93 (11d10 + 33)", speed="9 m")
+    primary = _record(
+        core,
+        name="MIRMIDONE ELEMENTALE",
+        normalized_name="mirmidone elementale",
+    )
+    first = _record(
+        core,
+        name="MIRMID0NE ELEMENTA1E",
+        normalized_name="mirmid0ne elementa1e",
+    )
+    second = _record(
+        core,
+        name="MIRMIDONE ELEMENYALE",
+        normalized_name="mirmidone elemenyale",
+    )
+
+    assert agreed_monster_records([primary], [first, second]) == []
 
 
 def test_adjacent_page_alignment_requires_multi_token_name_and_clean_core():

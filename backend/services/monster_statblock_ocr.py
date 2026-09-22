@@ -445,8 +445,10 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
     no exact-name candidate, the guided path may consider one unique same-page
     strict containment or bounded OCR-edit candidate. A unique multi-token
     identity may also align across one adjacent page. Fuzzy and adjacent matches
-    require all three core fields to agree deterministically; containment keeps
-    the existing guided residual gates. All matches retain review and provenance.
+    require all three core fields to agree deterministically; an otherwise
+    ambiguous same-page fuzzy set is accepted only when exactly one pair has
+    that complete independent core agreement. Containment keeps the existing
+    guided residual gates. All matches retain review and provenance.
     """
     comparison_by_key: dict[tuple[int, str], list[dict]] = defaultdict(list)
     comparison_by_page: dict[int, list[dict]] = defaultdict(list)
@@ -497,7 +499,26 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
                     other = fuzzy_matches[0]
                     clean_identity_only = True
                 elif len(fuzzy_matches) > 1:
-                    continue
+                    left_attributes = record.get("attributes") or {}
+                    clean_fuzzy_matches = []
+                    for fuzzy_match in fuzzy_matches:
+                        deterministic = deterministic_core_field_matches(
+                            left_attributes,
+                            fuzzy_match.get("attributes") or {},
+                        )
+                        if all(
+                            deterministic.get(f"{field}_deterministic_match", False)
+                            for field in (
+                                "classe_armatura",
+                                "punti_ferita",
+                                "velocita",
+                            )
+                        ):
+                            clean_fuzzy_matches.append(fuzzy_match)
+                    if len(clean_fuzzy_matches) != 1:
+                        continue
+                    other = clean_fuzzy_matches[0]
+                    clean_identity_only = True
                 else:
                     adjacent_matches = [
                         other
