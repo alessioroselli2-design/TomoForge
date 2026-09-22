@@ -438,7 +438,12 @@ def parse_monster_statblocks(
     return records
 
 
-def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[dict]:
+def agreed_monster_records(
+    primary: list[dict],
+    comparison: list[dict],
+    *,
+    target_name: str | None = None,
+) -> list[dict]:
     """Keep records independently supported by both OCR layout modes.
 
     Exact same-page/name matches keep the existing conservative path. If there is
@@ -549,11 +554,29 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
                     elif len(adjacent_matches) > 1:
                         continue
                     else:
-                        # Last-resort cross-engine pairing for a title OCR miss:
-                        # same physical page, exactly one comparison candidate,
-                        # and all three core fields deterministically identical.
-                        # This never guesses values and remains fail-closed on
-                        # zero or multiple candidates.
+                        # Last-resort cross-engine pairing for a title OCR miss.
+                        # It is enabled only for an explicitly supplied target
+                        # identity that this primary record itself matches.
+                        if not target_name:
+                            continue
+                        target_normalized = normalize_reference_name(target_name)
+                        record_is_target = (
+                            normalized_name == target_normalized
+                            or compact_name_boundary_match(
+                                normalized_name,
+                                target_normalized,
+                            )
+                            or compact_name_containment_match(
+                                normalized_name,
+                                target_normalized,
+                            )
+                            or compact_name_bounded_edit_match(
+                                normalized_name,
+                                target_normalized,
+                            )
+                        )
+                        if not record_is_target:
+                            continue
                         left_attributes = record.get("attributes") or {}
                         core_matches = []
                         for candidate in comparison_by_page.get(start_page, []):
