@@ -1354,8 +1354,8 @@ def test_target_agreement_is_symmetric_when_only_comparison_keeps_target_name():
     }
     primary = [
         {
-            "name": "R4K TULKHE5H",
-            "normalized_name": "r4k tulkhe5h",
+            "name": "XQZ SIGNAL",
+            "normalized_name": "xqz signal",
             "start_page": 61,
             "source_refs": [{"page": 61}],
             "attributes": dict(attributes),
