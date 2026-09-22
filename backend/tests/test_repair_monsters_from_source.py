@@ -29,11 +29,13 @@ from scripts.repair_monsters_from_source import (
     _apply_update,
     _candidate_matches_target,
     _dilate_dark_pixels,
+    _erode_dark_pixels,
     _layout_ocr_settings,
     _layout_profile,
     _layout_segments,
     _micro_ocr_hit_points_line,
     _otsu_inverted_samples,
+    _should_retry_dynamic_layout,
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
@@ -447,10 +449,10 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
     )
     responses = [
         CompletedProcess([], 0, stdout=tsv, stderr=""),
-        CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
-        CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
-        CompletedProcess([], 0, stdout="149 (27410)\n", stderr=""),
-        CompletedProcess([], 0, stdout="149 (27d10)\n", stderr=""),
+        CompletedProcess([], 0, stdout="149 (22410 + 28)\n", stderr=""),
+        CompletedProcess([], 0, stdout="149 (22410 + 28)\n", stderr=""),
+        CompletedProcess([], 0, stdout="149 (22410 + 28)\n", stderr=""),
+        CompletedProcess([], 0, stdout="149 (22d10 + 28)\n", stderr=""),
     ]
     crop_sizes = []
 
@@ -468,11 +470,11 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
             image_path,
             "ita",
             3,
-            "Fraz-Urb'Luu\nPunti Ferita 149 (27410)\n",
+            "Fraz-Urb'Luu\nPunti Ferita 149 (22410 + 28)\n",
             "Fraz-Urb'Luu",
         )
 
-    assert result == "Fraz-Urb'Luu\nPunti Ferita 149 (27d10)\n"
+    assert result == "Fraz-Urb'Luu\nPunti Ferita 149 (22d10 + 28)\n"
     assert len(run.call_args_list) == 5
     assert run.call_args_list[1].args[0][1].endswith("hit-points-2.0.png")
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
@@ -506,6 +508,24 @@ def test_dark_pixel_dilation_expands_only_into_immediate_neighborhood():
     )
 
     assert _dilate_dark_pixels(source, 3, 3) == bytes([0] * 9)
+
+
+def test_dark_pixel_erosion_thins_only_into_immediate_neighborhood():
+    source = bytes(
+        [
+            0,
+            0,
+            0,
+            0,
+            255,
+            0,
+            0,
+            0,
+            0,
+        ]
+    )
+
+    assert _erode_dark_pixels(source, 3, 3) == bytes([255] * 9)
 
 
 def test_quetzalcoatlus_fourth_hp_retry_uses_dark_dilation(tmp_path):
@@ -602,6 +622,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
         CompletedProcess([], 0, stdout="30 (4d12 + 3)\n", stderr=""),
+        CompletedProcess([], 0, stdout="30 (4d10 + 8)\n", stderr=""),
     ]
 
     with patch(
@@ -615,7 +636,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
             "Mostro Prova",
         )
 
-    assert result == "Mostro Prova\nPunti Ferita 30 (4d12 + 3)\n"
+    assert result == "Mostro Prova\nPunti Ferita 30 (4d10 + 8)\n"
     assert (
         run.call_args_list[3]
         .args[0][1]
@@ -630,6 +651,9 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
     assert '"otsu_hp_format_error": true' in diagnostic
     assert '"upscaled_otsu_hp_format_error": true' in diagnostic
     assert '"superscaled_otsu_hp_format_error": true' in diagnostic
+    assert '"full_spectrum_attempt_count": 1' in diagnostic
+    assert '"morphology": "erosion"' in diagnostic
+    assert '"threshold": 80' in diagnostic
 
 
 def test_otsu_inversion_makes_dark_text_white_and_light_background_black():
@@ -741,6 +765,10 @@ def test_mpmm_layout_profile_splits_columns_and_uses_independent_ocr_modes():
         ("left", (0.0, 0.0, 0.52, 1.0)),
         ("right", (0.48, 0.0, 1.0, 1.0)),
     )
+    assert _layout_segments(source, overlap_fraction=0.05) == (
+        ("left", (0.0, 0.0, 0.55, 1.0)),
+        ("right", (0.45, 0.0, 1.0, 1.0)),
+    )
     assert _layout_ocr_settings(
         source,
         dpi=220,
@@ -776,6 +804,31 @@ def test_non_two_column_source_keeps_full_page_settings():
         psm=6,
         comparison_psm=4,
     ) == (220, 6, 4)
+
+
+def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
+    source = {"logical_source_id": "mpmm_2022_it"}
+    missing = RepairBlocked(
+        "no_unique_independent_agreement",
+        diagnostics={
+            "primary_name_candidates": 0,
+            "comparison_name_candidates": 1,
+        },
+    )
+    disagreement = RepairBlocked(
+        "no_unique_independent_agreement",
+        diagnostics={
+            "primary_name_candidates": 1,
+            "comparison_name_candidates": 1,
+        },
+    )
+
+    assert _should_retry_dynamic_layout(missing, source) is True
+    assert _should_retry_dynamic_layout(disagreement, source) is False
+    assert (
+        _should_retry_dynamic_layout(missing, {"logical_source_id": "tce_2020_it"})
+        is False
+    )
 
 
 def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path):
