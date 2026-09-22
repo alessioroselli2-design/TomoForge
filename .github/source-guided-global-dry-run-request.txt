@@ -1,1 +1,1 @@
-Bounded fuzzy identity and adjacent-page clean-pass global dry-run requested.
+Three-edit long-name and independently clean fuzzy-dedup global dry-run requested.
