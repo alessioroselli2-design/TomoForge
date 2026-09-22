@@ -510,12 +510,7 @@ def _background_luminance_stats(
     border = bytearray()
     for y in range(height):
         for x in range(width):
-            if (
-                x < edge_x
-                or x >= width - edge_x
-                or y < edge_y
-                or y >= height - edge_y
-            ):
+            if x < edge_x or x >= width - edge_x or y < edge_y or y >= height - edge_y:
                 border.append(samples[y * width + x])
     if not border:
         border.extend(samples)
