@@ -404,6 +404,7 @@ HIT_POINTS_FULL_SPECTRUM_CONTRASTS = tuple(
     round(0.8 + step * 0.3, 1) for step in range(10)
 )
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
+HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD = 245.0
 NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
     r"\([^)]*\b\d+d\d{3,4}\b[^)]*\)",
     re.IGNORECASE,
@@ -490,6 +491,37 @@ def _sample_variance(samples: bytes) -> float:
         return 0.0
     mean = sum(samples) / len(samples)
     return sum((sample - mean) ** 2 for sample in samples) / len(samples)
+
+
+def _background_luminance_stats(
+    samples: bytes,
+    width: int,
+    height: int,
+) -> tuple[float, float]:
+    """Estimate crop background from a bounded outer frame.
+
+    The frame is intentionally narrow so the decision is driven mostly by the
+    paper/background surrounding the dice text rather than by glyph pixels.
+    """
+    if width < 1 or height < 1 or len(samples) != width * height:
+        raise ValueError("invalid grayscale raster for background statistics")
+    edge_x = max(1, min(width // 8, 12))
+    edge_y = max(1, min(height // 6, 8))
+    border = bytearray()
+    for y in range(height):
+        for x in range(width):
+            if (
+                x < edge_x
+                or x >= width - edge_x
+                or y < edge_y
+                or y >= height - edge_y
+            ):
+                border.append(samples[y * width + x])
+    if not border:
+        border.extend(samples)
+    mean = sum(border) / len(border)
+    variance = _sample_variance(bytes(border))
+    return mean, variance
 
 
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
@@ -971,6 +1003,103 @@ def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
     return bool(target and target in page)
 
 
+def _sparse_anchor_crop_fractions(
+    image_path: Path,
+    languages: str,
+    target_name: str,
+) -> tuple[float, float, float, float] | None:
+    """Locate one unique PSM11 title anchor and return a target-column crop.
+
+    This is geometric evidence only. It never supplies values to the parser.
+    Multiple or absent anchors fail closed.
+    """
+    import fitz
+
+    command = [
+        "tesseract",
+        str(image_path),
+        "stdout",
+        "-l",
+        languages,
+        "--psm",
+        "11",
+        "tsv",
+        "quiet",
+    ]
+    completed = subprocess.run(
+        command,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                str(row.get(field) or "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+
+    matches: list[list[dict[str, str]]] = []
+    for words in grouped.values():
+        text = " ".join(str(word.get("text") or "") for word in words).strip()
+        if _sparse_anchor_matches(text, target_name):
+            matches.append(words)
+    if len(matches) != 1:
+        print(
+            "SPARSE_ANCHOR_GEOMETRY "
+            + json.dumps(
+                {
+                    "name": target_name,
+                    "matching_title_lines": len(matches),
+                    "accepted": False,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return None
+
+    words = matches[0]
+    left = min(int(word["left"]) for word in words)
+    right = max(int(word["left"]) + int(word["width"]) for word in words)
+    top = min(int(word["top"]) for word in words)
+    bottom = max(int(word["top"]) + int(word["height"]) for word in words)
+    pixmap = fitz.Pixmap(str(image_path))
+    width = max(1, pixmap.width)
+    height = max(1, pixmap.height)
+    center_x = (left + right) / 2.0
+
+    # The sparse retry is used after two-column layout retries are exhausted.
+    # Recenter around the half-page containing the unique title, while keeping
+    # a conservative 8% center overlap and all content below the title.
+    if center_x < width / 2.0:
+        x0, x1 = 0.0, 0.58
+    else:
+        x0, x1 = 0.42, 1.0
+    title_height = max(1, bottom - top)
+    y0_pixels = max(0, top - max(title_height * 2, int(height * 0.015)))
+    fractions = (x0, y0_pixels / height, x1, 1.0)
+    print(
+        "SPARSE_ANCHOR_GEOMETRY "
+        + json.dumps(
+            {
+                "name": target_name,
+                "matching_title_lines": 1,
+                "accepted": True,
+                "anchor_bbox_px": [left, top, right, bottom],
+                "crop_fractions": list(fractions),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return fractions
+
+
 class SourcePdfCache:
     """Resolve exact registry PDFs locally; optional R2 fallback is explicit."""
 
@@ -1346,10 +1475,17 @@ def _micro_ocr_hit_points_line(
                 raster.width,
                 raster.height,
             )
-        background_variance = _sample_variance(threshold_samples)
+        background_mean, background_variance = _background_luminance_stats(
+            threshold_samples,
+            raster.width,
+            raster.height,
+        )
         use_adaptive_inversion = bool(
             adaptive_background_inversion
-            and background_variance > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
+            and (
+                background_mean < HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD
+                or background_variance > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
+            )
         )
         if bitonal_threshold is not None and not use_adaptive_inversion:
             threshold_samples = bytes(
@@ -1442,15 +1578,29 @@ def _micro_ocr_hit_points_line(
             full_spectrum_attempts: list[dict[str, object]] = []
             full_spectrum_accepted: dict[str, object] | None = None
             if hp_micro_ocr_failed(micro):
+                crop_background_mean, crop_background_variance = (
+                    _background_luminance_stats(
+                        crop_samples,
+                        crop_width,
+                        crop_height,
+                    )
+                )
                 for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                     for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
-                        for morphology in ("erosion", "dilation"):
+                        for morphology in (
+                            "none",
+                            "erosion",
+                            "dilation",
+                            "dilation_erosion",
+                        ):
                             candidate = run_micro_ocr(
                                 contrast,
                                 directory,
                                 scale_factor=4,
-                                morphological_dark_erosion=morphology == "erosion",
-                                morphological_dark_dilation=morphology == "dilation",
+                                morphological_dark_erosion=morphology
+                                in {"erosion", "dilation_erosion"},
+                                morphological_dark_dilation=morphology
+                                in {"dilation", "dilation_erosion"},
                                 bitonal_threshold=threshold,
                                 adaptive_background_inversion=True,
                             )
@@ -1460,8 +1610,12 @@ def _micro_ocr_hit_points_line(
                                 "threshold": threshold,
                                 "morphology": morphology,
                                 "hp_format_error": failed,
+                                "background_mean": crop_background_mean,
+                                "background_variance": crop_background_variance,
                                 "adaptive_background_inversion": (
-                                    _sample_variance(crop_samples)
+                                    crop_background_mean
+                                    < HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD
+                                    or crop_background_variance
                                     > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
                                 ),
                             }
@@ -1586,15 +1740,33 @@ def _ocr_source_window(
                     ).save(image_path)
 
                     sparse_anchor_found = None
+                    sparse_anchor_crop = None
                     if sparse_full_page:
-                        sparse_text = _run_tesseract(image_path, languages, 11)
-                        sparse_anchor_found = _sparse_anchor_matches(sparse_text, name)
+                        sparse_anchor_crop = _sparse_anchor_crop_fractions(
+                            image_path,
+                            languages,
+                            name,
+                        )
+                        sparse_anchor_found = sparse_anchor_crop is not None
                         if not sparse_anchor_found:
                             segment_metrics[segment_name] = {
                                 "quality_pass": False,
                                 "sparse_anchor_found": False,
+                                "sparse_anchor_crop": None,
                             }
                             continue
+                        target_clip = _clip_rect(page.rect, sparse_anchor_crop)
+                        target_image_path = (
+                            image_root
+                            / f"page-{page_number:04d}-{segment_name}-target.png"
+                        )
+                        page.get_pixmap(
+                            matrix=matrix,
+                            clip=target_clip,
+                            alpha=False,
+                            colorspace=fitz.csGRAY,
+                        ).save(target_image_path)
+                        image_path = target_image_path
 
                     primary = _run_tesseract(
                         image_path,
@@ -1626,6 +1798,11 @@ def _ocr_source_window(
                     )
                     if sparse_full_page:
                         agreement["sparse_anchor_found"] = sparse_anchor_found
+                        agreement["sparse_anchor_crop"] = (
+                            list(sparse_anchor_crop)
+                            if sparse_anchor_crop is not None
+                            else None
+                        )
                     segment_metrics[segment_name] = agreement
 
                     # Fail closed per segment. A bad neighboring column is
