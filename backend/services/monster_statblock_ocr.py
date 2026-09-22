@@ -452,8 +452,10 @@ def agreed_monster_records(
     identity may also align across one adjacent page. Fuzzy and adjacent matches
     require all three core fields to agree deterministically; an otherwise
     ambiguous same-page fuzzy set is accepted only when exactly one pair has
-    that complete independent core agreement. Containment keeps the existing
-    guided residual gates. All matches retain review and provenance.
+    that complete independent core agreement. With an explicit target identity,
+    one unique same-page core-identical pair may also bridge a title OCR miss.
+    Containment keeps the existing guided residual gates. All matches retain
+    review and provenance.
     """
     comparison_by_key: dict[tuple[int, str], list[dict]] = defaultdict(list)
     comparison_by_page: dict[int, list[dict]] = defaultdict(list)
