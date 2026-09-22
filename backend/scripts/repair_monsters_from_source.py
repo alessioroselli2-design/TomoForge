@@ -1583,10 +1583,10 @@ def _micro_ocr_hit_points_line(
                 for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                     for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
                         for morphology in (
-                            "none",
                             "erosion",
                             "dilation",
                             "dilation_erosion",
+                            "none",
                         ):
                             candidate = run_micro_ocr(
                                 contrast,
@@ -1932,6 +1932,54 @@ def _agreed_target_candidate(
             target_page,
         )
     ]
+    if len(matches) > 1:
+        target_normalized_for_rank = normalize_reference_name(target_name)
+
+        def identity_rank(candidate: dict[str, Any]) -> int:
+            candidate_name = str(
+                candidate.get("normalized_name") or candidate.get("name") or ""
+            )
+            if candidate_name == target_normalized_for_rank:
+                return 4
+            if compact_name_boundary_match(
+                candidate_name,
+                target_normalized_for_rank,
+            ):
+                return 3
+            if compact_name_containment_match(
+                candidate_name,
+                target_normalized_for_rank,
+            ):
+                return 2
+            if compact_name_bounded_edit_match(
+                candidate_name,
+                target_normalized_for_rank,
+            ):
+                return 1
+            return 0
+
+        first_attributes = matches[0].get("attributes") or {}
+        core_equivalent = all(
+            all(
+                deterministic_core_field_matches(
+                    first_attributes,
+                    candidate.get("attributes") or {},
+                ).get(f"{field}_deterministic_match", False)
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            )
+            for candidate in matches[1:]
+        )
+        if core_equivalent:
+            ranked = [(identity_rank(candidate), candidate) for candidate in matches]
+            best_rank = max(rank for rank, _candidate in ranked)
+            best = [
+                candidate
+                for rank, candidate in ranked
+                if rank == best_rank and best_rank > 0
+            ]
+            if len(best) == 1:
+                matches = best
+
     if len(matches) != 1:
         core_fields = ("classe_armatura", "punti_ferita", "velocita")
         target_normalized = normalize_reference_name(target_name)
