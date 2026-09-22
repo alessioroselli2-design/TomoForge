@@ -400,7 +400,10 @@ HIT_POINTS_WHITELIST = "0123456789d+() "
 HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
-HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.5, 2.5, 3.0)
+HIT_POINTS_FULL_SPECTRUM_CONTRASTS = tuple(
+    round(0.8 + step * 0.3, 1) for step in range(10)
+)
+HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
 NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
     r"\([^)]*\b\d+d\d{3,4}\b[^)]*\)",
     re.IGNORECASE,
@@ -479,6 +482,14 @@ def _erode_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
                 for column in range(x0, x1)
             )
     return bytes(output)
+
+
+def _sample_variance(samples: bytes) -> float:
+    """Return grayscale variance without external image dependencies."""
+    if not samples:
+        return 0.0
+    mean = sum(samples) / len(samples)
+    return sum((sample - mean) ** 2 for sample in samples) / len(samples)
 
 
 # Explicitly reviewed legacy upload aliases. Resolution is still accepted only
@@ -953,6 +964,13 @@ def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> 
     )
 
 
+def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
+    """Confirm that a PSM 11 page pass contains the compact target identity."""
+    target = normalize_reference_name(target_name).replace(" ", "")
+    page = normalize_reference_name(page_text).replace(" ", "")
+    return bool(target and target in page)
+
+
 class SourcePdfCache:
     """Resolve exact registry PDFs locally; optional R2 fallback is explicit."""
 
@@ -1292,6 +1310,7 @@ def _micro_ocr_hit_points_line(
         morphological_dark_dilation: bool = False,
         morphological_dark_erosion: bool = False,
         bitonal_threshold: int | None = None,
+        adaptive_background_inversion: bool = False,
     ) -> str:
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
@@ -1327,12 +1346,17 @@ def _micro_ocr_hit_points_line(
                 raster.width,
                 raster.height,
             )
-        if bitonal_threshold is not None:
+        background_variance = _sample_variance(threshold_samples)
+        use_adaptive_inversion = bool(
+            adaptive_background_inversion
+            and background_variance > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
+        )
+        if bitonal_threshold is not None and not use_adaptive_inversion:
             threshold_samples = bytes(
                 0 if sample <= bitonal_threshold else 255
                 for sample in threshold_samples
             )
-        if otsu_inverted:
+        if otsu_inverted or use_adaptive_inversion:
             processed = fitz.Pixmap(
                 fitz.csGRAY,
                 raster.width,
@@ -1351,6 +1375,8 @@ def _micro_ocr_hit_points_line(
             suffix = "-dark-eroded" + suffix
         if bitonal_threshold is not None:
             suffix = f"-threshold-{bitonal_threshold}" + suffix
+        if use_adaptive_inversion:
+            suffix = "-adaptive-background-inverted" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         processed.save(crop_path)
         return subprocess.run(
@@ -1426,6 +1452,7 @@ def _micro_ocr_hit_points_line(
                                 morphological_dark_erosion=morphology == "erosion",
                                 morphological_dark_dilation=morphology == "dilation",
                                 bitonal_threshold=threshold,
+                                adaptive_background_inversion=True,
                             )
                             failed = hp_micro_ocr_failed(candidate)
                             attempt = {
@@ -1433,6 +1460,10 @@ def _micro_ocr_hit_points_line(
                                 "threshold": threshold,
                                 "morphology": morphology,
                                 "hp_format_error": failed,
+                                "adaptive_background_inversion": (
+                                    _sample_variance(crop_samples)
+                                    > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
+                                ),
                             }
                             full_spectrum_attempts.append(attempt)
                             if not failed:
@@ -1495,6 +1526,7 @@ def _ocr_source_window(
     psm: int,
     comparison_psm: int,
     column_overlap: float = 0.02,
+    sparse_full_page: bool = False,
 ) -> tuple[
     list[tuple[int, str]],
     list[tuple[int, str]],
@@ -1523,7 +1555,11 @@ def _ocr_source_window(
     comparison_pages: list[tuple[int, str]] = []
     metrics: dict[int, dict[str, Any]] = {}
     matrix = fitz.Matrix(effective_dpi / 72.0, effective_dpi / 72.0)
-    segments = _layout_segments(source, overlap_fraction=column_overlap)
+    segments = (
+        (("sparse-full", (0.0, 0.0, 1.0, 1.0)),)
+        if sparse_full_page
+        else _layout_segments(source, overlap_fraction=column_overlap)
+    )
 
     document = fitz.open(pdf_path)
     try:
@@ -1548,6 +1584,17 @@ def _ocr_source_window(
                         alpha=False,
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
+
+                    sparse_anchor_found = None
+                    if sparse_full_page:
+                        sparse_text = _run_tesseract(image_path, languages, 11)
+                        sparse_anchor_found = _sparse_anchor_matches(sparse_text, name)
+                        if not sparse_anchor_found:
+                            segment_metrics[segment_name] = {
+                                "quality_pass": False,
+                                "sparse_anchor_found": False,
+                            }
+                            continue
 
                     primary = _run_tesseract(
                         image_path,
@@ -1577,6 +1624,8 @@ def _ocr_source_window(
                         primary,
                         comparison,
                     )
+                    if sparse_full_page:
+                        agreement["sparse_anchor_found"] = sparse_anchor_found
                     segment_metrics[segment_name] = agreement
 
                     # Fail closed per segment. A bad neighboring column is
@@ -1594,6 +1643,7 @@ def _ocr_source_window(
                     "comparison_psm": secondary_psm,
                     "segments": segment_metrics,
                     "column_overlap": column_overlap,
+                    "sparse_full_page": sparse_full_page,
                 }
                 if page_quality_pass:
                     # Column outputs are concatenated only after independent
@@ -1960,6 +2010,7 @@ async def _repair_one(
     candidate = None
     quality = None
     selected_overlap = 0.02
+    sparse_retry_required = False
     overlaps = (0.02, 0.03, 0.04, 0.05)
     for overlap_index, overlap in enumerate(overlaps):
         primary_pages, comparison_pages, quality = _ocr_source_window(
@@ -1986,10 +2037,11 @@ async def _repair_one(
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
-            if overlap_index == len(overlaps) - 1 or not _should_retry_dynamic_layout(
-                exc, source
-            ):
+            if not _should_retry_dynamic_layout(exc, source):
                 raise
+            if overlap_index == len(overlaps) - 1:
+                sparse_retry_required = True
+                break
             print(
                 "DYNAMIC_COLUMN_RETRY "
                 + json.dumps(
@@ -2003,6 +2055,37 @@ async def _repair_one(
                     sort_keys=True,
                 )
             )
+    if candidate is None and sparse_retry_required:
+        print(
+            "SPARSE_PAGE_RETRY "
+            + json.dumps(
+                {"name": record.get("name"), "psm": 11},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        primary_pages, comparison_pages, quality = _ocr_source_window(
+            pdf_path,
+            physical_page,
+            int(source["physical_pages"]),
+            source,
+            str(record.get("name") or ""),
+            dpi=args.dpi,
+            languages=args.languages,
+            psm=args.psm,
+            comparison_psm=args.comparison_psm,
+            column_overlap=0.05,
+            sparse_full_page=True,
+        )
+        candidate = _agreed_target_candidate(
+            primary_pages,
+            comparison_pages,
+            str(source["physical_filename"]),
+            str(source.get("language") or "it"),
+            str(record.get("name") or ""),
+            physical_page,
+        )
+        selected_overlap = 0.05
     if candidate is None or quality is None:
         raise RepairBlocked("dynamic_layout_exhausted")
     proposal = build_repair_proposal(
@@ -2029,6 +2112,7 @@ async def _repair_one(
             "comparison_psm": target_metrics["comparison_psm"],
             "segments": sorted(target_metrics["segments"].keys()),
             "column_overlap": selected_overlap,
+            "sparse_full_page": bool(target_metrics.get("sparse_full_page")),
         },
         "ocr_pages": sorted(quality),
         "quality_fail_pages": sorted(

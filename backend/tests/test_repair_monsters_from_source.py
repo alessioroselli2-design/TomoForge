@@ -21,6 +21,7 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_APPROVED5_COUNT,
     EXPECTED_OBLEX1_COUNT,
     EXPECTED_READY6_COUNT,
+    HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -37,7 +38,9 @@ from scripts.repair_monsters_from_source import (
     _layout_segments,
     _micro_ocr_hit_points_line,
     _otsu_inverted_samples,
+    _sample_variance,
     _should_retry_dynamic_layout,
+    _sparse_anchor_matches,
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
@@ -531,6 +534,23 @@ def test_dark_pixel_erosion_thins_only_into_immediate_neighborhood():
     assert _erode_dark_pixels(source, 3, 3) == bytes([255] * 9)
 
 
+def test_full_spectrum_contrast_range_and_background_variance_are_bounded():
+    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (
+        0.8,
+        1.1,
+        1.4,
+        1.7,
+        2.0,
+        2.3,
+        2.6,
+        2.9,
+        3.2,
+        3.5,
+    )
+    assert _sample_variance(bytes([255, 255, 255])) == 0.0
+    assert _sample_variance(bytes([0, 255])) > 36.0
+
+
 def test_quetzalcoatlus_fourth_hp_retry_uses_dark_dilation(tmp_path):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
@@ -832,6 +852,15 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
         _should_retry_dynamic_layout(missing, {"logical_source_id": "tce_2020_it"})
         is False
     )
+
+
+def test_sparse_page_anchor_compacts_layout_whitespace_but_requires_identity():
+    assert _sparse_anchor_matches("RAK   TULKHESH\nClasse Armatura", "Rak Tulkhesh")
+    assert not _sparse_anchor_matches("Altro Mostro\nClasse Armatura", "Rak Tulkhesh")
+
+
+def test_sparse_page_anchor_rejects_empty_target():
+    assert not _sparse_anchor_matches("Rak Tulkhesh", "")
 
 
 def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path):
