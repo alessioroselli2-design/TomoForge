@@ -178,11 +178,11 @@ def test_target_bound_core_only_pairing_rejects_ambiguous_same_page_candidates()
         "manuale.pdf",
     )
     first = parse_monster_statblocks(
-        [(166, _goblin_text(title="G0BL1N"))],
+        [(166, _goblin_text(title="DRAGON ALPHA"))],
         "manuale.pdf",
     )[0]
     second = parse_monster_statblocks(
-        [(166, _goblin_text(title="G8BLIN"))],
+        [(166, _goblin_text(title="DRAGON BETA"))],
         "manuale.pdf",
     )[0]
 
