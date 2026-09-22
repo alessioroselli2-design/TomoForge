@@ -134,3 +134,83 @@ def test_multiple_same_page_candidates_require_one_unique_exact_name_match():
 
     assert len(agreed_monster_records(primary, [exact, other])) == 1
     assert agreed_monster_records(primary, [exact, dict(exact)]) == []
+
+
+def test_target_bound_core_only_same_page_pairing_accepts_one_unique_candidate():
+    primary = parse_monster_statblocks(
+        [(166, _goblin_text(title="GOBLIN"))],
+        "manuale.pdf",
+    )
+    comparison = parse_monster_statblocks(
+        [(166, _goblin_text(title="G0BL1N"))],
+        "manuale.pdf",
+    )
+
+    agreed = agreed_monster_records(
+        primary,
+        comparison,
+        target_name="GOBLIN",
+    )
+
+    assert len(agreed) == 1
+    assert agreed[0]["name"] == "GOBLIN"
+    assert "ocr_core_only_same_page_agreement" in agreed[0]["review_flags"]
+    assert agreed[0]["attributes"]["ocr_core_only_same_page_agreement"] is True
+    assert agreed[0]["attributes"]["ocr_clean_deterministic_core_agreement"] is True
+
+
+def test_core_only_pairing_remains_disabled_without_explicit_target():
+    primary = parse_monster_statblocks(
+        [(166, _goblin_text(title="GOBLIN"))],
+        "manuale.pdf",
+    )
+    comparison = parse_monster_statblocks(
+        [(166, _goblin_text(title="G0BL1N"))],
+        "manuale.pdf",
+    )
+
+    assert agreed_monster_records(primary, comparison) == []
+
+
+def test_target_bound_core_only_pairing_rejects_ambiguous_same_page_candidates():
+    primary = parse_monster_statblocks(
+        [(166, _goblin_text(title="GOBLIN"))],
+        "manuale.pdf",
+    )
+    first = parse_monster_statblocks(
+        [(166, _goblin_text(title="DRAGON ALPHA"))],
+        "manuale.pdf",
+    )[0]
+    second = parse_monster_statblocks(
+        [(166, _goblin_text(title="DRAGON BETA"))],
+        "manuale.pdf",
+    )[0]
+
+    assert (
+        agreed_monster_records(
+            primary,
+            [first, second],
+            target_name="GOBLIN",
+        )
+        == []
+    )
+
+
+def test_target_bound_core_only_pairing_rejects_core_disagreement():
+    primary = parse_monster_statblocks(
+        [(166, _goblin_text(title="GOBLIN"))],
+        "manuale.pdf",
+    )
+    comparison = parse_monster_statblocks(
+        [(166, _goblin_text(ac="14", title="G0BL1N"))],
+        "manuale.pdf",
+    )
+
+    assert (
+        agreed_monster_records(
+            primary,
+            comparison,
+            target_name="GOBLIN",
+        )
+        == []
+    )
