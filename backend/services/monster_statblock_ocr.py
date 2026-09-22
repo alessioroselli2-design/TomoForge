@@ -465,6 +465,7 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
         exact_matches = comparison_by_key.get((start_page, normalized_name), [])
         guided_name_containment = False
         clean_identity_only = False
+        core_only_same_page = False
 
         if len(exact_matches) == 1:
             other = exact_matches[0]
@@ -542,10 +543,41 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
                             )
                         )
                     ]
-                    if len(adjacent_matches) != 1:
+                    if len(adjacent_matches) == 1:
+                        other = adjacent_matches[0]
+                        clean_identity_only = True
+                    elif len(adjacent_matches) > 1:
                         continue
-                    other = adjacent_matches[0]
-                    clean_identity_only = True
+                    else:
+                        # Last-resort cross-engine pairing for a title OCR miss:
+                        # same physical page, exactly one comparison candidate,
+                        # and all three core fields deterministically identical.
+                        # This never guesses values and remains fail-closed on
+                        # zero or multiple candidates.
+                        left_attributes = record.get("attributes") or {}
+                        core_matches = []
+                        for candidate in comparison_by_page.get(start_page, []):
+                            deterministic = deterministic_core_field_matches(
+                                left_attributes,
+                                candidate.get("attributes") or {},
+                            )
+                            if all(
+                                deterministic.get(
+                                    f"{field}_deterministic_match",
+                                    False,
+                                )
+                                for field in (
+                                    "classe_armatura",
+                                    "punti_ferita",
+                                    "velocita",
+                                )
+                            ):
+                                core_matches.append(candidate)
+                        if len(core_matches) != 1:
+                            continue
+                        other = core_matches[0]
+                        clean_identity_only = True
+                        core_only_same_page = True
         else:
             continue
 
@@ -606,6 +638,8 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
         review_flags = set(record.get("review_flags") or []) | {
             "ocr_independent_agreement"
         }
+        if core_only_same_page:
+            review_flags.add("ocr_core_only_same_page_agreement")
         attributes = dict(record.get("attributes") or {})
         if guided_values is not None:
             attributes.update(guided_values)
@@ -618,6 +652,8 @@ def agreed_monster_records(primary: list[dict], comparison: list[dict]) -> list[
             "review_flags": sorted(review_flags),
         }
         copy["attributes"]["ocr_independent_agreement"] = True
+        if core_only_same_page:
+            copy["attributes"]["ocr_core_only_same_page_agreement"] = True
         if exact_core_match or all_deterministic:
             copy["attributes"]["ocr_clean_deterministic_core_agreement"] = True
         agreed.append(copy)
