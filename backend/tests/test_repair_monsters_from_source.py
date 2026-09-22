@@ -1275,7 +1275,6 @@ def test_bigby4_sealed_target_set_rejects_review_flag_drift():
         raise AssertionError("sealed bigby4 batch must reject pre-existing flags")
 
 
-
 def test_background_luminance_stats_detects_nonwhite_frame():
     width = 10
     height = 10
