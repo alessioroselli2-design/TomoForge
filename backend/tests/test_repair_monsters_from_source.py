@@ -13,12 +13,14 @@ from scripts.repair_monsters_from_source import (
     BIGBY4_TARGETS,
     APPROVED5_TARGETS,
     OBLEX1_TARGETS,
+    READY6_TARGETS,
     EXPECTED_BIGBY19_COUNT,
     EXPECTED_BIGBY4_COUNT,
     EXPECTED_HEALTHY22_COUNT,
     EXPECTED_APPROVED1_COUNT,
     EXPECTED_APPROVED5_COUNT,
     EXPECTED_OBLEX1_COUNT,
+    EXPECTED_READY6_COUNT,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -46,6 +48,7 @@ from scripts.repair_monsters_from_source import (
     select_approved1_targets,
     select_approved5_targets,
     select_oblex1_targets,
+    select_ready6_targets,
 )
 
 
@@ -1081,6 +1084,52 @@ def test_oblex1_sealed_target_set_rejects_status_drift():
         assert "status drift" in str(exc)
     else:
         raise AssertionError("sealed oblex1 batch must reject status drift")
+
+
+def test_ready6_sealed_target_set_resolves_exact_newly_clean_batch():
+    records = []
+    for expected in READY6_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = f"checksum-{expected['id']}"
+        records.append(row)
+
+    selected = select_ready6_targets(records)
+
+    assert len(selected) == EXPECTED_READY6_COUNT == 6
+    assert {row["name"] for row in selected} == {
+        "Mirmidone Elementale Dacqua",
+        "Progenie Stellare Hulk",
+        "Riportato Re",
+        "T'Erra Malvagia",
+        "T'Lincalli",
+        "Thstencefalo",
+    }
+
+
+def test_ready6_sealed_target_set_rejects_missing_or_drifted_row():
+    records = []
+    for expected in READY6_TARGETS:
+        row = _monster(
+            expected["name"],
+            "1",
+            "20 (3d8 + 6)",
+            record_id=expected["id"],
+        )
+        row["source_text_checksum"] = f"checksum-{expected['id']}"
+        records.append(row)
+    records[0]["review_flags"] = ["unexpected"]
+
+    try:
+        select_ready6_targets(records)
+    except RuntimeError as exc:
+        assert "review flag drift" in str(exc)
+    else:
+        raise AssertionError("sealed ready6 batch must reject live-state drift")
 
 
 class _UpdateResult:

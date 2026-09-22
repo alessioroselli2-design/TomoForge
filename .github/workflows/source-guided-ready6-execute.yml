@@ -1,0 +1,120 @@
+name: Source-guided ready6 execute
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/source-guided-ready6-execute-request.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-source-guided-ready6-execute
+  cancel-in-progress: false
+
+jobs:
+  ready6-execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Verify prior Oblex live update
+        run: |
+          python backend/scripts/verify_oblex1_live_state.py \
+            | tee /tmp/oblex1-live-verification.log
+
+      - name: Execute sealed ready6 repair
+        run: |
+          set -o pipefail
+          python backend/scripts/repair_monsters_from_source.py \
+            --target-set ready6 \
+            --allow-r2-download \
+            --execute \
+            --confirm "REPAIR-READY6-6-59e89d47077106ced525d5710408083d" \
+            | tee /tmp/ready6-source-guided-execute.log
+
+      - name: Assert exact batch completion
+        run: |
+          grep -q '"targets": 6' /tmp/ready6-source-guided-execute.log
+          grep -q '"repairable": 6' /tmp/ready6-source-guided-execute.log
+          grep -q '"blocked": 0' /tmp/ready6-source-guided-execute.log
+          grep -q '"updates_performed": 6' /tmp/ready6-source-guided-execute.log
+          grep -Eq '"batch_updated_at": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[^\"]+Z"' \
+            /tmp/ready6-source-guided-execute.log
+
+      - name: Verify Oblex remains unchanged
+        run: |
+          python backend/scripts/verify_oblex1_live_state.py \
+            | tee /tmp/oblex1-post-ready6-verification.log
+
+      - name: Build combined seven-record report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def report(path):
+              lines = Path(path).read_text().splitlines()
+              marker = len(lines) - 1 - lines[::-1].index("FINAL_REPORT")
+              return json.loads(lines[marker + 1])
+
+          oblex = report("/tmp/oblex1-post-ready6-verification.log")
+          ready6 = report("/tmp/ready6-source-guided-execute.log")
+          combined = {
+              "records_confirmed_safe": 1 + ready6["updates_performed"],
+              "already_applied_and_verified": 1,
+              "updates_performed_now": ready6["updates_performed"],
+              "blocked": ready6["blocked"],
+              "batch_updated_at": ready6["batch_updated_at"],
+              "oblex": oblex,
+              "updated_records": [
+                  item["name"] for item in ready6["reports"] if item["executed"]
+              ],
+          }
+          if combined["records_confirmed_safe"] != 7:
+              raise SystemExit("combined seven-record verification failed")
+          Path("/tmp/ready7-combined-report.json").write_text(
+              json.dumps(combined, ensure_ascii=False, indent=2, sort_keys=True)
+          )
+          print(json.dumps(combined, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Upload sealed execution evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ready7-live-confirmation
+          path: |
+            /tmp/oblex1-live-verification.log
+            /tmp/ready6-source-guided-execute.log
+            /tmp/oblex1-post-ready6-verification.log
+            /tmp/ready7-combined-report.json
+          if-no-files-found: error
+          retention-days: 3

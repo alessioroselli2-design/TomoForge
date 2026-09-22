@@ -342,6 +342,24 @@ OBLEX1_TARGETS: tuple[dict[str, str], ...] = (
     {"id": "ref_2ea09533213a54178032bc4c5b0b952d", "name": "0Blex Antico"},
 )
 
+EXPECTED_READY6_COUNT = 6
+EXPECTED_READY6_IDS_MD5 = "59e89d47077106ced525d5710408083d"
+READY6_CONFIRMATION_TOKEN = "REPAIR-READY6-6-59e89d47077106ced525d5710408083d"
+READY6_TARGETS: tuple[dict[str, str], ...] = (
+    {
+        "id": "ref_93a8b49f24dc5cfe957dfb9a24b24269",
+        "name": "Mirmidone Elementale Dacqua",
+    },
+    {
+        "id": "ref_4ae0befe0ab05648a78f846625ef39b5",
+        "name": "Progenie Stellare Hulk",
+    },
+    {"id": "ref_77355e2e77585df9b6aaa8b42ca487af", "name": "Riportato Re"},
+    {"id": "ref_6b5c8da8abbf545e9f2ea14f88155b78", "name": "T'Erra Malvagia"},
+    {"id": "ref_5b8baa6ccbbb5191a0846187cafc5a82", "name": "T'Lincalli"},
+    {"id": "ref_4ca8f4082f0c5721ace356f07fb8a756", "name": "Thstencefalo"},
+)
+
 EXPECTED_BIGBY4_COUNT = 4
 EXPECTED_BIGBY4_IDS_MD5 = "82a891bb16d48d70e063b3c535fa0839"
 BIGBY4_CONFIRMATION_TOKEN = "REPAIR-BIGBY4-4-82a891bb16d48d70e063b3c535fa0839"
@@ -717,6 +735,35 @@ def select_oblex1_targets(failures: list[dict[str, Any]]) -> list[dict[str, Any]
         or _ids_md5(targets) != EXPECTED_OBLEX1_IDS_MD5
     ):
         raise RuntimeError("Oblex1 target count/fingerprint drift")
+    return targets
+
+
+def select_ready6_targets(failures: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Resolve the six newly gate-clean rows by exact sealed live identity."""
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in READY6_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(f"Sealed ready6 target missing: {expected['id']}")
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Ready6 name drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"Ready6 status drift: {expected['id']}")
+        if list(record.get("review_flags") or []):
+            raise RuntimeError(f"Ready6 review flag drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"Ready6 canonical link detected: {expected['id']}")
+        if not str(record.get("source_text_checksum") or ""):
+            raise RuntimeError(f"Ready6 checksum missing: {expected['id']}")
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(f"Ready6 identity gate failure: {expected['id']}")
+        targets.append(record)
+    if (
+        len(targets) != EXPECTED_READY6_COUNT
+        or _ids_md5(targets) != EXPECTED_READY6_IDS_MD5
+    ):
+        raise RuntimeError("Ready6 target count/fingerprint drift")
     return targets
 
 
@@ -2031,6 +2078,7 @@ def _parser() -> argparse.ArgumentParser:
             "approved1",
             "approved5",
             "oblex1",
+            "ready6",
             "bigby19",
             "bigby4",
         ),
@@ -2106,6 +2154,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != OBLEX1_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Oblex1 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "ready6"
+        and args.confirm != READY6_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Ready6 confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -2157,6 +2211,7 @@ async def _run(args: argparse.Namespace) -> int:
         "approved1",
         "approved5",
         "oblex1",
+        "ready6",
         "bigby4",
     }
     if args.target_set == "healthy22":
@@ -2179,6 +2234,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_oblex1_targets(failures)
         sealed_expected_count = EXPECTED_OBLEX1_COUNT
         sealed_label = "Oblex1"
+    elif args.target_set == "ready6":
+        targets = select_ready6_targets(failures)
+        sealed_expected_count = EXPECTED_READY6_COUNT
+        sealed_label = "Ready6"
     elif args.target_set == "bigby19":
         targets = select_bigby19_targets(failures)
         sealed_expected_count = None
