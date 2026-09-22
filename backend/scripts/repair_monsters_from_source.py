@@ -1889,8 +1889,16 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
-    agreed_forward = agreed_monster_records(primary, comparison)
-    agreed_reverse = agreed_monster_records(comparison, primary)
+    agreed_forward = agreed_monster_records(
+        primary,
+        comparison,
+        target_name=target_name,
+    )
+    agreed_reverse = agreed_monster_records(
+        comparison,
+        primary,
+        target_name=target_name,
+    )
     agreed: list[dict[str, Any]] = []
     for candidate in [*agreed_forward, *agreed_reverse]:
         duplicate = False
