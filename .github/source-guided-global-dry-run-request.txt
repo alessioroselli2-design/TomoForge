@@ -1,1 +1,1 @@
-Full-spectrum HP preprocessing and dynamic column overlap dry-run requested.
+Sparse-page anchoring and adaptive full-spectrum OCR dry-run requested.
