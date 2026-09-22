@@ -1889,7 +1889,37 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
-    agreed = agreed_monster_records(primary, comparison)
+    agreed_forward = agreed_monster_records(primary, comparison)
+    agreed_reverse = agreed_monster_records(comparison, primary)
+    agreed: list[dict[str, Any]] = []
+    for candidate in [*agreed_forward, *agreed_reverse]:
+        duplicate = False
+        candidate_page = int(candidate.get("start_page") or 0)
+        candidate_name = str(
+            candidate.get("normalized_name") or candidate.get("name") or ""
+        )
+        candidate_attributes = candidate.get("attributes") or {}
+        for existing in agreed:
+            if int(existing.get("start_page") or 0) != candidate_page:
+                continue
+            existing_name = str(
+                existing.get("normalized_name") or existing.get("name") or ""
+            )
+            if existing_name != candidate_name:
+                continue
+            deterministic = deterministic_core_field_matches(
+                candidate_attributes,
+                existing.get("attributes") or {},
+            )
+            if all(
+                deterministic.get(f"{field}_deterministic_match", False)
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            ):
+                duplicate = True
+                break
+        if not duplicate:
+            agreed.append(candidate)
+
     matches = [
         candidate
         for candidate in agreed
