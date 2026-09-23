@@ -1,1 +1,4 @@
 Sparse-page anchoring and adaptive full-spectrum OCR dry-run requested.
+develop_head=9aa4465f1c89655b7b6fa8557d6836438e200e5a
+cascade_pr=324
+requested=2026-09-23
