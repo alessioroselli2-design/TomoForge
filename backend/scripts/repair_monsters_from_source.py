@@ -467,22 +467,111 @@ def _otsu_inverted_samples(samples: bytes) -> bytes:
     return bytes(255 if sample <= threshold else 0 for sample in samples)
 
 
+def _local_adaptive_inverted_samples(
+    samples: bytes,
+    width: int,
+    height: int,
+    *,
+    window_size: int = 15,
+    bias: int = 7,
+) -> bytes:
+    """Local mean threshold with a bounded 15x15 window, white text on black."""
+    if width < 1 or height < 1 or len(samples) != width * height:
+        raise ValueError("invalid grayscale raster for adaptive threshold")
+    if window_size < 3 or window_size % 2 == 0:
+        raise ValueError("adaptive threshold window must be odd and >= 3")
+
+    stride = width + 1
+    integral = [0] * ((height + 1) * stride)
+    for y in range(height):
+        row_sum = 0
+        source_offset = y * width
+        integral_offset = (y + 1) * stride
+        previous_offset = y * stride
+        for x in range(width):
+            row_sum += samples[source_offset + x]
+            integral[integral_offset + x + 1] = (
+                integral[previous_offset + x + 1] + row_sum
+            )
+
+    radius = window_size // 2
+    output = bytearray(len(samples))
+    for y in range(height):
+        y0 = max(0, y - radius)
+        y1 = min(height, y + radius + 1)
+        for x in range(width):
+            x0 = max(0, x - radius)
+            x1 = min(width, x + radius + 1)
+            area = (x1 - x0) * (y1 - y0)
+            total = (
+                integral[y1 * stride + x1]
+                - integral[y0 * stride + x1]
+                - integral[y1 * stride + x0]
+                + integral[y0 * stride + x0]
+            )
+            local_mean = total / area
+            output[y * width + x] = (
+                255 if samples[y * width + x] < local_mean - bias else 0
+            )
+    return bytes(output)
+
+
+def _remove_isolated_foreground_noise(
+    samples: bytes,
+    width: int,
+    height: int,
+) -> bytes:
+    """Remove one-pixel white foreground components without altering glyph clusters."""
+    if width < 1 or height < 1 or len(samples) != width * height:
+        raise ValueError("invalid bitonal raster for denoising")
+    output = bytearray(samples)
+    for y in range(height):
+        for x in range(width):
+            index = y * width + x
+            if samples[index] == 0:
+                continue
+            connected = False
+            for yy in range(max(0, y - 1), min(height, y + 2)):
+                for xx in range(max(0, x - 1), min(width, x + 2)):
+                    if (xx != x or yy != y) and samples[yy * width + xx] != 0:
+                        connected = True
+                        break
+                if connected:
+                    break
+            if not connected:
+                output[index] = 0
+    return bytes(output)
+
+
 def _pre_otsu_column_clean(image_path: Path) -> None:
-    """Upscale a full OCR segment x2, then apply inverted Otsu binarization."""
+    """Superscale x4, locally threshold, then remove isolated visual noise."""
     import fitz
 
     source = fitz.Pixmap(str(image_path))
     grayscale = fitz.Pixmap(fitz.csGRAY, source)
-    upscaled = fitz.Pixmap(
+    # MuPDF's Pixmap resampler provides the high-fidelity native interpolation
+    # already used by the bounded OCR fallbacks; superscale before thresholding.
+    superscaled = fitz.Pixmap(
         grayscale,
-        grayscale.width * 2,
-        grayscale.height * 2,
+        grayscale.width * 4,
+        grayscale.height * 4,
+    )
+    adaptive = _local_adaptive_inverted_samples(
+        superscaled.samples,
+        superscaled.width,
+        superscaled.height,
+        window_size=15,
+    )
+    denoised = _remove_isolated_foreground_noise(
+        adaptive,
+        superscaled.width,
+        superscaled.height,
     )
     cleaned = fitz.Pixmap(
         fitz.csGRAY,
-        upscaled.width,
-        upscaled.height,
-        _otsu_inverted_samples(upscaled.samples),
+        superscaled.width,
+        superscaled.height,
+        denoised,
         False,
     )
     cleaned.save(image_path)
