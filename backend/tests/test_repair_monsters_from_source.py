@@ -37,6 +37,8 @@ from scripts.repair_monsters_from_source import (
     _layout_ocr_settings,
     _layout_profile,
     _layout_segments,
+    _local_adaptive_inverted_samples,
+    _remove_isolated_foreground_noise,
     _micro_ocr_hit_points_line,
     _otsu_inverted_samples,
     _sample_variance,
@@ -208,6 +210,45 @@ def test_zero_agreement_counts_strict_name_containment_pairs():
             assert exc.diagnostics["discarded_pairs"][0]["containment_match"] is True
         else:
             raise AssertionError("zero agreement must remain blocked")
+
+
+
+def test_local_adaptive_threshold_is_inverted_and_local():
+    samples = bytes(
+        [
+            220, 220, 220, 220, 220,
+            220, 220, 220, 220, 220,
+            220, 220, 40, 220, 220,
+            220, 220, 220, 220, 220,
+            220, 220, 220, 220, 220,
+        ]
+    )
+
+    result = _local_adaptive_inverted_samples(
+        samples,
+        5,
+        5,
+        window_size=3,
+    )
+
+    assert result[12] == 255
+    assert result[0] == 0
+
+
+def test_isolated_foreground_noise_removes_only_single_pixel_components():
+    samples = bytes(
+        [
+            0, 0, 0, 0, 0,
+            0, 255, 0, 255, 255,
+            0, 0, 0, 0, 0,
+        ]
+    )
+
+    result = _remove_isolated_foreground_noise(samples, 5, 3)
+
+    assert result[6] == 0
+    assert result[8] == 255
+    assert result[9] == 255
 
 
 def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):
