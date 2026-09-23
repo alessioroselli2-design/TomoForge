@@ -411,12 +411,24 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
 )
 
 
-QUALITY_FAIL_PRE_OTSU_TARGETS = frozenset({
-    "Altisauro", "Bael", "Cerato Po", "Congreghe Di Megere", "Dimetrodonte",
-    "Ippoaracne Maschio", "Larvico", "Molo Oh", "Rampollo Delle Profondità",
-    "Ratto Cranico", "Regi Sauro", "Sciame Di Ratti Cranici", "Straziato Re",
-    "Velociraptor",
-})
+QUALITY_FAIL_PRE_OTSU_TARGETS = frozenset(
+    {
+        "Altisauro",
+        "Bael",
+        "Cerato Po",
+        "Congreghe Di Megere",
+        "Dimetrodonte",
+        "Ippoaracne Maschio",
+        "Larvico",
+        "Molo Oh",
+        "Rampollo Delle Profondità",
+        "Ratto Cranico",
+        "Regi Sauro",
+        "Sciame Di Ratti Cranici",
+        "Straziato Re",
+        "Velociraptor",
+    }
+)
 
 
 def _otsu_inverted_samples(samples: bytes) -> bytes:
@@ -461,7 +473,11 @@ def _pre_otsu_column_clean(image_path: Path) -> None:
 
     source = fitz.Pixmap(str(image_path))
     grayscale = fitz.Pixmap(fitz.csGRAY, source)
-    upscaled = fitz.Pixmap(grayscale, grayscale.width * 2, grayscale.height * 2)
+    upscaled = fitz.Pixmap(
+        grayscale,
+        grayscale.width * 2,
+        grayscale.height * 2,
+    )
     cleaned = fitz.Pixmap(
         fitz.csGRAY,
         upscaled.width,
