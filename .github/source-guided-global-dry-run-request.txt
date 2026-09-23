@@ -1,4 +1,5 @@
-Sparse-page anchoring and adaptive full-spectrum OCR dry-run requested.
-develop_head=9aa4465f1c89655b7b6fa8557d6836438e200e5a
-cascade_pr=324
+Pre-Otsu quality-fail-14 global read-only dry-run requested.
+develop_head=c26011b818397d35cd328b095305e07f50dd7132
+quality_fix_pr=326
+command=python backend/scripts/repair_monsters_from_source.py --all --allow-r2-download
 requested=2026-09-23
