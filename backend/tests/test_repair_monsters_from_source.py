@@ -212,7 +212,6 @@ def test_zero_agreement_counts_strict_name_containment_pairs():
             raise AssertionError("zero agreement must remain blocked")
 
 
-
 def test_local_adaptive_threshold_is_inverted_and_local():
     samples = bytes(
         [
