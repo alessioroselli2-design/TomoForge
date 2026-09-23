@@ -1,5 +1,5 @@
-Pre-Otsu quality-fail-14 global read-only dry-run requested.
-develop_head=c26011b818397d35cd328b095305e07f50dd7132
-quality_fix_pr=326
+Superscaling x4 adaptive quality-repair global read-only dry-run requested.
+develop_head=e9219c9972e7d790bb6437b047bf5396cec76b8c
+quality_fix_pr=328
 command=python backend/scripts/repair_monsters_from_source.py --all --allow-r2-download
 requested=2026-09-23
