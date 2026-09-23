@@ -216,11 +216,31 @@ def test_zero_agreement_counts_strict_name_containment_pairs():
 def test_local_adaptive_threshold_is_inverted_and_local():
     samples = bytes(
         [
-            220, 220, 220, 220, 220,
-            220, 220, 220, 220, 220,
-            220, 220, 40, 220, 220,
-            220, 220, 220, 220, 220,
-            220, 220, 220, 220, 220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            40,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
+            220,
         ]
     )
 
@@ -238,9 +258,21 @@ def test_local_adaptive_threshold_is_inverted_and_local():
 def test_isolated_foreground_noise_removes_only_single_pixel_components():
     samples = bytes(
         [
-            0, 0, 0, 0, 0,
-            0, 255, 0, 255, 255,
-            0, 0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            255,
+            0,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0,
         ]
     )
 
