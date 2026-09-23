@@ -411,6 +411,26 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
 )
 
 
+QUALITY_FAIL_PRE_OTSU_TARGETS = frozenset(
+    {
+        "Altisauro",
+        "Bael",
+        "Cerato Po",
+        "Congreghe Di Megere",
+        "Dimetrodonte",
+        "Ippoaracne Maschio",
+        "Larvico",
+        "Molo Oh",
+        "Rampollo Delle Profondità",
+        "Ratto Cranico",
+        "Regi Sauro",
+        "Sciame Di Ratti Cranici",
+        "Straziato Re",
+        "Velociraptor",
+    }
+)
+
+
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
     if not samples:
@@ -445,6 +465,27 @@ def _otsu_inverted_samples(samples: bytes) -> bytes:
             threshold = value
 
     return bytes(255 if sample <= threshold else 0 for sample in samples)
+
+
+def _pre_otsu_column_clean(image_path: Path) -> None:
+    """Upscale a full OCR segment x2, then apply inverted Otsu binarization."""
+    import fitz
+
+    source = fitz.Pixmap(str(image_path))
+    grayscale = fitz.Pixmap(fitz.csGRAY, source)
+    upscaled = fitz.Pixmap(
+        grayscale,
+        grayscale.width * 2,
+        grayscale.height * 2,
+    )
+    cleaned = fitz.Pixmap(
+        fitz.csGRAY,
+        upscaled.width,
+        upscaled.height,
+        _otsu_inverted_samples(upscaled.samples),
+        False,
+    )
+    cleaned.save(image_path)
 
 
 def _dilate_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
@@ -1733,6 +1774,9 @@ def _ocr_source_window(
                         alpha=False,
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
+
+                    if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
+                        _pre_otsu_column_clean(image_path)
 
                     sparse_anchor_found = None
                     sparse_anchor_crop = None
