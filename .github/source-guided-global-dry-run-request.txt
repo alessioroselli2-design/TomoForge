@@ -1,6 +1,6 @@
-Granular residual read-only dry-run requested after Tesseract crash containment.
+Global residual read-only dry-run requested after per-monster crash isolation.
 target_sets=batch_alpha,batch_beta,batch_gamma
 dry_run=true
 updates_performed_expected=0
-source_fix_pr=331
-requested=2026-09-24
+source_fix_pr=335
+requested=2026-09-25
