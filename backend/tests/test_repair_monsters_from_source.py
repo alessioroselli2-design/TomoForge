@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -562,6 +563,37 @@ def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     assert payload["tsv_page_wide_hp_label_count"] == 1
     assert payload["tsv_name_anchor_found"] is False
     assert payload["tsv_local_label_found"] is False
+
+
+def test_hp_micro_ocr_subprocess_crash_fails_closed_without_aborting(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
+        "5\\t1\\t1\\t1\\t1\\t1\\t20\\t20\\t120\\t20\\t95\\tLarvico\\n"
+        "5\\t1\\t1\\t1\\t2\\t1\\t20\\t50\\t45\\t20\\t95\\tPunti\\n"
+        "5\\t1\\t1\\t1\\t2\\t2\\t72\\t50\\t50\\t20\\t95\\tFerita\\n"
+    )
+    calls = 0
+
+    def run_tesseract(command, **_kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return CompletedProcess([], 0, stdout=tsv, stderr="")
+        raise subprocess.CalledProcessError(-8, command, stderr="SIGFPE")
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run", side_effect=run_tesseract
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path, "ita", 3, "Larvico\\nPunti Ferita ???\\n", "Larvico"
+        )
+
+    assert result == "Larvico\\nPunti Ferita ???\\n"
+    assert "HP_MICRO_OCR_SUBPROCESS_FAILURE" in capsys.readouterr().out
 
 
 def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
