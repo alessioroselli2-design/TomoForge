@@ -86,6 +86,52 @@ CRITICAL_GATE_FLAGS = {
     INVALID_ENTITY_TITLE_FLAG,
 }
 
+EXPECTED_RESIDUAL_BATCH_COUNTS = {"batch_alpha": 10, "batch_beta": 10, "batch_gamma": 11}
+EXPECTED_RESIDUAL_BATCH_IDS_MD5 = {
+    "batch_alpha": "e19f7085e1f3329aed8f42791a6d20b1",
+    "batch_beta": "e53fa1ee7936cb90f648c1bcbda823b7",
+    "batch_gamma": "6390fb4dd862b232f2d088d7ca1059b6",
+}
+RESIDUAL_BATCH_TARGETS: dict[str, tuple[dict[str, str], ...]] = {
+    "batch_alpha": (
+        {"id": "ref_1e187bb2bbc257439e399104067bf326", "name": "8Hadar-Kai Trafficante"},
+        {"id": "ref_c106f9a6c3115dbf8578f832b04e3a3a", "name": "Altisauro"},
+        {"id": "ref_14406fab44dc5f57a4bb06187ba33465", "name": "Bael"},
+        {"id": "ref_e42d82c62c7b5bdba13c3c73663966ff", "name": "Cerato Po"},
+        {"id": "ref_83a6b991bfec5efdb2dda4da60d408bb", "name": "Colosso Runico"},
+        {"id": "ref_7a8a7ac7d33c526486ec2e3ba1ed0b4b", "name": "Congreghe Di Megere"},
+        {"id": "ref_20727b47fb7e5dc0b5e97867d8cdb6bc", "name": "Consigliere Imperituro"},
+        {"id": "ref_5a08650dfd5d5eccb3664eeef39a100b", "name": "Difensore D'Acciaio"},
+        {"id": "ref_bccdf665b4e05ba1bd9d7f1710103779", "name": "Dimetrodonte"},
+        {"id": "ref_94dd0655e7fc518aaf9e3ad214e0dba7", "name": "Quetzalcoatlus"},
+    ),
+    "batch_beta": (
+        {"id": "ref_0ee44c23b128519f9443af353d92be96", "name": "Fulmine Vivente"},
+        {"id": "ref_9ac0de67090652bdbe5e7fd1e01d00cb", "name": "Granchio Delle Tempeste"},
+        {"id": "ref_028882e4b0ba5545a8f24dce604ed8e5", "name": "Ippoaracne Maschio"},
+        {"id": "ref_c02722ffc60b57609c97adb39c12c702", "name": "Larvico"},
+        {"id": "ref_808e61bb52e050a8a7576b0941cfb3b9", "name": "M Orfico"},
+        {"id": "ref_0efce052de2d5929ac2fd17ae92a0c75", "name": "Molo Oh"},
+        {"id": "ref_a2f721b697c85415a3bf86134a5b1f4b", "name": "Nube Mortale Vivente"},
+        {"id": "ref_65730c7abb315480a261c2f4b23b2913", "name": "Pelle Bestiale"},
+        {"id": "ref_70901222165b54fe8e2827d5a3968998", "name": "Quori Hashalaq,"},
+        {"id": "ref_2f64f571e368521f9ab39c4d6bd898d3", "name": "Rak Tulkhesh"},
+    ),
+    "batch_gamma": (
+        {"id": "ref_6ba9bc46793a53c7b7a20ac5041daf18", "name": "Rampollo Delle Profondità"},
+        {"id": "ref_66cc59680c4e58fa93a99656f8a07887", "name": "Rana"},
+        {"id": "ref_5549d8d3a7ca5198abad7d6595b52641", "name": "Ratto Cranico"},
+        {"id": "ref_77ef6b47608e5575b9723e8d11de2011", "name": "Regi Sauro"},
+        {"id": "ref_b414135fe8fd5447a6aedfba2a419baa", "name": "Sciame Di Ratti Cranici"},
+        {"id": "ref_ae3e94213cfa52be8a5ab76654b078ad", "name": "Spirito Della Fiamma"},
+        {"id": "ref_92c9bcafc2775a3ca81f8665ed9495cc", "name": "Straziato Re"},
+        {"id": "ref_a24cdc1e8d97597696d46edc193d03fd", "name": "Torre D'Assedio"},
+        {"id": "ref_f2c063d5c85a54f3849f899180d92c98", "name": "Velociraptor"},
+        {"id": "ref_f3bb42178ac251a6be889d3e3b48c603", "name": "Yuan-Ti Portavoce Degli Incubi"},
+        {"id": "ref_6b0e1564d7325987a342097cebb39316", "name": "Yuan-Ti Signore Della Fossa"},
+    ),
+}
+
 EXPECTED_HEALTHY22_COUNT = 22
 EXPECTED_HEALTHY22_IDS_MD5 = "3c1f0be4ba3b7429694fe1a797c50870"
 HEALTHY22_CONFIRMATION_TOKEN = "REPAIR-HEALTHY22-22-3c1f0be4ba3b7429694fe1a797c50870"
@@ -743,6 +789,36 @@ def _ids_md5(records: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> str:
         joined.encode("utf-8"),
         usedforsecurity=False,
     ).hexdigest()
+
+
+def select_residual_batch_targets(
+    failures: list[dict[str, Any]],
+    target_set: str,
+) -> list[dict[str, Any]]:
+    """Resolve one sealed residual dry-run batch by exact ID/name fingerprint."""
+    expected_targets = RESIDUAL_BATCH_TARGETS[target_set]
+    by_id = {str(record.get("id") or ""): record for record in failures}
+    targets: list[dict[str, Any]] = []
+    for expected in expected_targets:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(
+                f"Sealed {target_set} target missing from current failures: {expected['id']}"
+            )
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"{target_set} name drift: {expected['id']}")
+        if str(record.get("review_status") or "") != "verified":
+            raise RuntimeError(f"{target_set} status drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(f"{target_set} canonical link detected: {expected['id']}")
+        targets.append(record)
+
+    if (
+        len(targets) != EXPECTED_RESIDUAL_BATCH_COUNTS[target_set]
+        or _ids_md5(targets) != EXPECTED_RESIDUAL_BATCH_IDS_MD5[target_set]
+    ):
+        raise RuntimeError(f"{target_set} target count/fingerprint drift")
+    return targets
 
 
 def select_healthy22_targets(
@@ -2556,6 +2632,9 @@ def _parser() -> argparse.ArgumentParser:
             "ready6",
             "bigby19",
             "bigby4",
+            "batch_alpha",
+            "batch_beta",
+            "batch_gamma",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -2689,7 +2768,11 @@ async def _run(args: argparse.Namespace) -> int:
         "ready6",
         "bigby4",
     }
-    if args.target_set == "healthy22":
+    if args.target_set in RESIDUAL_BATCH_TARGETS:
+        targets = select_residual_batch_targets(failures, args.target_set)
+        sealed_expected_count = None
+        sealed_label = args.target_set
+    elif args.target_set == "healthy22":
         targets = select_healthy22_targets(failures)
         sealed_expected_count = EXPECTED_HEALTHY22_COUNT
         sealed_label = "Healthy22"
