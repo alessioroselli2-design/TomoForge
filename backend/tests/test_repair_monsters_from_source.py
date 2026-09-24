@@ -10,6 +10,9 @@ import fitz
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
+    RESIDUAL_BATCH_TARGETS,
+    EXPECTED_RESIDUAL_BATCH_COUNTS,
+    EXPECTED_RESIDUAL_BATCH_IDS_MD5,
     BIGBY4_TARGETS,
     APPROVED5_TARGETS,
     OBLEX1_TARGETS,
@@ -48,6 +51,7 @@ from scripts.repair_monsters_from_source import (
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
+    select_residual_batch_targets,
     select_bigby4_targets,
     select_corrupted_name_monsters,
     select_failed_monsters,
@@ -57,6 +61,50 @@ from scripts.repair_monsters_from_source import (
     select_oblex1_targets,
     select_ready6_targets,
 )
+
+
+def test_residual_batches_are_disjoint_complete_and_fingerprinted():
+    ids_by_batch = {
+        name: [target["id"] for target in targets]
+        for name, targets in RESIDUAL_BATCH_TARGETS.items()
+    }
+
+    assert {name: len(ids) for name, ids in ids_by_batch.items()} == (
+        EXPECTED_RESIDUAL_BATCH_COUNTS
+    )
+    assert sum(len(ids) for ids in ids_by_batch.values()) == 31
+    assert len({record_id for ids in ids_by_batch.values() for record_id in ids}) == 31
+    assert "ref_14406fab44dc5f57a4bb06187ba33465" in ids_by_batch["batch_alpha"]
+    assert "ref_94dd0655e7fc518aaf9e3ad214e0dba7" in ids_by_batch["batch_alpha"]
+    for name, ids in ids_by_batch.items():
+        fingerprint = hashlib.md5(
+            ",".join(sorted(ids)).encode("utf-8"),
+            usedforsecurity=False,
+        ).hexdigest()
+        assert fingerprint == EXPECTED_RESIDUAL_BATCH_IDS_MD5[name]
+
+
+def test_residual_batch_selector_fails_closed_on_identity_drift():
+    failures = [
+        {
+            "id": target["id"],
+            "name": target["name"],
+            "review_status": "verified",
+            "canonical_id": None,
+        }
+        for target in RESIDUAL_BATCH_TARGETS["batch_alpha"]
+    ]
+
+    selected = select_residual_batch_targets(failures, "batch_alpha")
+    assert len(selected) == 10
+
+    failures[0]["name"] = "drifted"
+    try:
+        select_residual_batch_targets(failures, "batch_alpha")
+    except RuntimeError as exc:
+        assert "name drift" in str(exc)
+    else:
+        raise AssertionError("sealed batch identity drift must fail closed")
 
 
 def test_target_identity_accepts_bounded_edit_only_on_registered_page():

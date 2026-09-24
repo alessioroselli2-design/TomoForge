@@ -17,9 +17,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  global-dry-run:
+  granular-dry-run:
+    name: granular-dry-run (${{ matrix.target_set }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target_set:
+          - batch_alpha
+          - batch_beta
+          - batch_gamma
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 120
     env:
       PYTHONUNBUFFERED: "1"
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -48,13 +56,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Run global read-only source-guided repair
+      - name: Run granular read-only source-guided repair
         run: |
           set -o pipefail
           python backend/scripts/repair_monsters_from_source.py \
-            --all \
+            --target-set "${{ matrix.target_set }}" \
             --allow-r2-download \
-            | tee /tmp/source-guided-global-dry-run.log
+            | tee "/tmp/source-guided-${{ matrix.target_set }}-dry-run.log"
 
       - name: Extract and validate final report
         run: |
@@ -62,7 +70,8 @@ jobs:
           import json
           from pathlib import Path
 
-          log_path = Path("/tmp/source-guided-global-dry-run.log")
+          target_set = "${{ matrix.target_set }}"
+          log_path = Path(f"/tmp/source-guided-{target_set}-dry-run.log")
           lines = log_path.read_text(encoding="utf-8").splitlines()
           try:
               marker = len(lines) - 1 - lines[::-1].index("FINAL_REPORT")
@@ -71,11 +80,12 @@ jobs:
               raise SystemExit(f"Missing or invalid FINAL_REPORT: {exc}") from exc
 
           if report.get("dry_run") is not True:
-              raise SystemExit("Global repair did not run in dry-run mode")
+              raise SystemExit(f"{target_set} repair did not run in dry-run mode")
           if report.get("updates_performed") != 0:
               raise SystemExit("Read-only invariant violated: updates were performed")
 
-          output = Path("/tmp/source-guided-global-final-report.json")
+          report["target_set"] = target_set
+          output = Path(f"/tmp/{target_set}-FINAL_REPORT.json")
           output.write_text(
               json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
@@ -83,13 +93,13 @@ jobs:
           print(output.read_text(encoding="utf-8"))
           PY
 
-      - name: Upload complete dry-run report
+      - name: Upload granular dry-run report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: source-guided-global-dry-run
+          name: source-guided-${{ matrix.target_set }}-dry-run
           path: |
-            /tmp/source-guided-global-dry-run.log
-            /tmp/source-guided-global-final-report.json
+            /tmp/source-guided-${{ matrix.target_set }}-dry-run.log
+            /tmp/${{ matrix.target_set }}-FINAL_REPORT.json
           if-no-files-found: warn
           retention-days: 7
