@@ -63,7 +63,6 @@ from scripts.repair_monsters_from_source import (
 )
 
 
-
 def test_residual_batches_are_disjoint_complete_and_fingerprinted():
     ids_by_batch = {
         name: [target["id"] for target in targets]
