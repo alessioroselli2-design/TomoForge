@@ -776,10 +776,11 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, ca
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
     diagnostic = capsys.readouterr().out
     assert "HP_MICRO_OCR_DIAGNOSTIC" in diagnostic
-    assert '"initial_raw": "310 (27d412 + 135)\n"' in diagnostic
-    assert '"otsu_inverted_raw": "310 (27d12 + 135)\n"' in diagnostic
-    assert '"otsu_hp_format_error": false' in diagnostic
-    assert '"upscaled_otsu_inverted_raw": null' in diagnostic
+    payload = json.loads(diagnostic.split("HP_MICRO_OCR_DIAGNOSTIC ", 1)[1])
+    assert payload["initial_raw"] == "310 (27d412 + 135)\n"
+    assert payload["otsu_inverted_raw"] == "310 (27d12 + 135)\n"
+    assert payload["otsu_hp_format_error"] is False
+    assert payload["upscaled_otsu_inverted_raw"] is None
 
 
 def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, capsys):
