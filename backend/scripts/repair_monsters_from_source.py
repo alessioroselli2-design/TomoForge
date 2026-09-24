@@ -2914,6 +2914,16 @@ async def _run(args: argparse.Namespace) -> int:
                         ),
                     }
                 )
+            except Exception as exc:
+                blocked.append(
+                    {
+                        "record_id": record.get("id"),
+                        "name": record.get("name"),
+                        "reason": "crash_eccezione_raw",
+                        "detail": str(exc),
+                        "executed": False,
+                    }
+                )
     finally:
         pdf_cache.close()
 
