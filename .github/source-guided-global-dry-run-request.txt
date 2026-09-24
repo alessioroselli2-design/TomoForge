@@ -1,5 +1,6 @@
-Superscaling x4 adaptive quality-repair global read-only dry-run requested.
-develop_head=e9219c9972e7d790bb6437b047bf5396cec76b8c
-quality_fix_pr=328
-command=python backend/scripts/repair_monsters_from_source.py --all --allow-r2-download
-requested=2026-09-23
+Granular residual read-only dry-run requested after Tesseract crash containment.
+target_sets=batch_alpha,batch_beta,batch_gamma
+dry_run=true
+updates_performed_expected=0
+source_fix_pr=331
+requested=2026-09-24
