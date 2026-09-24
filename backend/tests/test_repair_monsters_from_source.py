@@ -571,10 +571,10 @@ def test_hp_micro_ocr_subprocess_crash_fails_closed_without_aborting(tmp_path, c
     image.clear_with(255)
     image.save(image_path)
     tsv = (
-        "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
-        "5\\t1\\t1\\t1\\t1\\t1\\t20\\t20\\t120\\t20\\t95\\tLarvico\\n"
-        "5\\t1\\t1\\t1\\t2\\t1\\t20\\t50\\t45\\t20\\t95\\tPunti\\n"
-        "5\\t1\\t1\\t1\\t2\\t2\\t72\\t50\\t50\\t20\\t95\\tFerita\\n"
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t120\t20\t95\tLarvico\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita\n"
     )
     calls = 0
 
@@ -589,10 +589,10 @@ def test_hp_micro_ocr_subprocess_crash_fails_closed_without_aborting(tmp_path, c
         "scripts.repair_monsters_from_source.subprocess.run", side_effect=run_tesseract
     ):
         result = _micro_ocr_hit_points_line(
-            image_path, "ita", 3, "Larvico\\nPunti Ferita ???\\n", "Larvico"
+            image_path, "ita", 3, "Larvico\nPunti Ferita ???\n", "Larvico"
         )
 
-    assert result == "Larvico\\nPunti Ferita ???\\n"
+    assert result == "Larvico\nPunti Ferita ???\n"
     assert "HP_MICRO_OCR_SUBPROCESS_FAILURE" in capsys.readouterr().out
 
 
@@ -776,8 +776,8 @@ def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, ca
     assert run.call_args_list[2].args[0][1].endswith("hit-points-1.2-otsu-inverted.png")
     diagnostic = capsys.readouterr().out
     assert "HP_MICRO_OCR_DIAGNOSTIC" in diagnostic
-    assert '"initial_raw": "310 (27d412 + 135)\\n"' in diagnostic
-    assert '"otsu_inverted_raw": "310 (27d12 + 135)\\n"' in diagnostic
+    assert '"initial_raw": "310 (27d412 + 135)\n"' in diagnostic
+    assert '"otsu_inverted_raw": "310 (27d12 + 135)\n"' in diagnostic
     assert '"otsu_hp_format_error": false' in diagnostic
     assert '"upscaled_otsu_inverted_raw": null' in diagnostic
 
