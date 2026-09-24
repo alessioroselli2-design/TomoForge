@@ -1743,24 +1743,41 @@ def _micro_ocr_hit_points_line(
             suffix = "-adaptive-background-inverted" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
         processed.save(crop_path)
-        return subprocess.run(
-            [
-                "tesseract",
-                str(crop_path),
-                "stdout",
-                "-l",
-                languages,
-                "--psm",
-                "7",
-                "-c",
-                f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
-                "quiet",
-            ],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        ).stdout
+        command = [
+            "tesseract",
+            str(crop_path),
+            "stdout",
+            "-l",
+            languages,
+            "--psm",
+            "7",
+            "-c",
+            f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
+            "quiet",
+        ]
+        try:
+            return subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ).stdout
+        except subprocess.CalledProcessError as exc:
+            print(
+                "HP_MICRO_OCR_SUBPROCESS_FAILURE "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "returncode": exc.returncode,
+                        "signal": -exc.returncode if exc.returncode < 0 else None,
+                        "variant": crop_path.name,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            return ""
 
     def hp_micro_ocr_failed(raw_text: str) -> bool:
         normalized = " ".join(raw_text.split())
