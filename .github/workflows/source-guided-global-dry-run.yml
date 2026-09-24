@@ -24,8 +24,6 @@ jobs:
       matrix:
         target_set:
           - batch_alpha
-          - batch_beta
-          - batch_gamma
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
