@@ -474,6 +474,9 @@ HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
+SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
+    "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
+}
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
@@ -2594,6 +2597,10 @@ async def _repair_one(
     )
     physical_page = int(source_ref["page"])
     pdf_path = pdf_cache.get(source)
+    source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
+        str(record.get("id") or ""),
+        str(record.get("name") or ""),
+    )
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
     # attempt for this monster. A timeout blocks only this record.
@@ -2610,7 +2617,7 @@ async def _repair_one(
             physical_page,
             int(source["physical_pages"]),
             source,
-            str(record.get("name") or ""),
+            source_target_name,
             dpi=args.dpi,
             languages=args.languages,
             psm=args.psm,
@@ -2624,7 +2631,7 @@ async def _repair_one(
                 comparison_pages,
                 str(source["physical_filename"]),
                 str(source.get("language") or "it"),
-                str(record.get("name") or ""),
+                source_target_name,
                 physical_page,
             )
             selected_overlap = overlap
@@ -2662,7 +2669,7 @@ async def _repair_one(
             physical_page,
             int(source["physical_pages"]),
             source,
-            str(record.get("name") or ""),
+            source_target_name,
             dpi=args.dpi,
             languages=args.languages,
             psm=args.psm,
@@ -2676,7 +2683,7 @@ async def _repair_one(
             comparison_pages,
             str(source["physical_filename"]),
             str(source.get("language") or "it"),
-            str(record.get("name") or ""),
+            source_target_name,
             physical_page,
         )
         selected_overlap = 0.05
