@@ -1833,44 +1833,54 @@ def _micro_ocr_hit_points_line(
                         crop_height,
                     )
                 )
-                for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
-                    for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
-                        for morphology in (
-                            "erosion",
-                            "dilation",
-                            "dilation_erosion",
-                            "none",
-                        ):
-                            candidate = run_micro_ocr(
-                                contrast,
-                                directory,
-                                scale_factor=4,
-                                morphological_dark_erosion=morphology
-                                in {"erosion", "dilation_erosion"},
-                                morphological_dark_dilation=morphology
-                                in {"dilation", "dilation_erosion"},
-                                bitonal_threshold=threshold,
-                                adaptive_background_inversion=True,
-                            )
-                            failed = hp_micro_ocr_failed(candidate)
-                            attempt = {
-                                "contrast": contrast,
-                                "threshold": threshold,
-                                "morphology": morphology,
-                                "hp_format_error": failed,
-                                "background_mean": crop_background_mean,
-                                "background_variance": crop_background_variance,
-                                "adaptive_background_inversion": (
-                                    crop_background_mean
-                                    < HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD
-                                    or crop_background_variance
-                                    > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
-                                ),
-                            }
-                            full_spectrum_attempts.append(attempt)
-                            if not failed:
-                                micro = candidate
-                                full_spectrum_accepted = attempt
+                # Progressive full-spectrum search: exhaust x2 first and pay
+                # the x4 superscaling cost only when every lower-density
+                # candidate still fails the existing deterministic HP gate.
+                # hp_micro_ocr_failed() includes both strict expression parsing
+                # and PF-average/hit-dice mathematical coherence, so early exit
+                # cannot weaken the fail-closed acceptance criteria.
+                for scale_factor in (2, 4):
+                    for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
+                        for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
+                            for morphology in (
+                                "erosion",
+                                "dilation",
+                                "dilation_erosion",
+                                "none",
+                            ):
+                                candidate = run_micro_ocr(
+                                    contrast,
+                                    directory,
+                                    scale_factor=scale_factor,
+                                    morphological_dark_erosion=morphology
+                                    in {"erosion", "dilation_erosion"},
+                                    morphological_dark_dilation=morphology
+                                    in {"dilation", "dilation_erosion"},
+                                    bitonal_threshold=threshold,
+                                    adaptive_background_inversion=True,
+                                )
+                                failed = hp_micro_ocr_failed(candidate)
+                                attempt = {
+                                    "scale_factor": scale_factor,
+                                    "contrast": contrast,
+                                    "threshold": threshold,
+                                    "morphology": morphology,
+                                    "hp_format_error": failed,
+                                    "background_mean": crop_background_mean,
+                                    "background_variance": crop_background_variance,
+                                    "adaptive_background_inversion": (
+                                        crop_background_mean
+                                        < HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD
+                                        or crop_background_variance
+                                        > HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD
+                                    ),
+                                }
+                                full_spectrum_attempts.append(attempt)
+                                if not failed:
+                                    micro = candidate
+                                    full_spectrum_accepted = attempt
+                                    break
+                            if full_spectrum_accepted is not None:
                                 break
                         if full_spectrum_accepted is not None:
                             break
