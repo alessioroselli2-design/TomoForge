@@ -1595,6 +1595,7 @@ def _micro_ocr_hit_points_line(
     page_text_has_hp_label = bool(hp_line_pattern.search(page_text))
     if not page_text_has_hp_label:
         diagnostics["page_text_local_hp_count"] = 0
+        return page_text
 
     command = [
         "tesseract",
