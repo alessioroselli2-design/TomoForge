@@ -16,3 +16,4 @@ Focused rerun Altisauro core-line diagnostics aed03a7882bd2308bb2c06f2d2d791b3b8
 Focused rerun Altisauro after feminine size descriptor fix 7a182d55ade6e32d35f56c26703119a0c9ece47f
 Focused rerun Bael with bounded micro-only pre-Otsu 59fc5010bcceb5eaac38fd249a4e86a25317108d
 Focused rerun Bael after pre-Otsu init fix 86cfcb9adffbde07d101a24cf1110883ebae9716
+Focused rerun Bael with target-column micro OCR 6413b48b7edeb28153e24b15303bd966798057e9
