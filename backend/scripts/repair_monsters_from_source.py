@@ -479,6 +479,9 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
 }
+PRE_OTSU_SCALE_BY_TARGET = {
+    "Altisauro": 2,
+}
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
@@ -693,8 +696,14 @@ def _remove_isolated_foreground_noise(
     return bytes(output)
 
 
-def _pre_otsu_column_clean(image_path: Path) -> None:
-    """Superscale x4, locally threshold, then remove isolated visual noise."""
+def _pre_otsu_column_clean(
+    image_path: Path,
+    *,
+    scale_factor: int = 4,
+) -> None:
+    """Superscale, locally threshold, then remove isolated visual noise."""
+    if scale_factor < 1 or scale_factor > 4:
+        raise ValueError("pre-Otsu scale_factor must be in 1..4")
     import fitz
 
     source = fitz.Pixmap(str(image_path))
@@ -703,8 +712,8 @@ def _pre_otsu_column_clean(image_path: Path) -> None:
     # already used by the bounded OCR fallbacks; superscale before thresholding.
     superscaled = fitz.Pixmap(
         grayscale,
-        grayscale.width * 4,
-        grayscale.height * 4,
+        grayscale.width * scale_factor,
+        grayscale.height * scale_factor,
     )
     adaptive = _local_adaptive_inverted_samples(
         superscaled.samples,
@@ -2122,7 +2131,29 @@ def _ocr_source_window(
                     ).save(image_path)
 
                     if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
-                        _pre_otsu_column_clean(image_path)
+                        _remaining_global_ocr_budget(ocr_budget_started_at)
+                        pre_otsu_started_at = time.monotonic()
+                        pre_otsu_scale = PRE_OTSU_SCALE_BY_TARGET.get(name, 4)
+                        _pre_otsu_column_clean(
+                            image_path,
+                            scale_factor=pre_otsu_scale,
+                        )
+                        print(
+                            "PRE_OTSU_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "scale_factor": pre_otsu_scale,
+                                    "elapsed_seconds": round(
+                                        time.monotonic() - pre_otsu_started_at,
+                                        3,
+                                    ),
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+                        _remaining_global_ocr_budget(ocr_budget_started_at)
 
                     sparse_anchor_found = None
                     sparse_anchor_crop = None
