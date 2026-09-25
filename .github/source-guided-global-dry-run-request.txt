@@ -7,3 +7,4 @@ requested=2026-09-25
 Retrigger global source-guided dry-run for bebdbd994a42c09ab8eb76a6d4632cd83a071a27
 Focused rerun for Shadar-Kai Trafficante Di Anime alias 79996e86b3613abc95a6eef44de30c3050293ba4
 Focused rerun Altisauro after bounded all-phase OCR 7b0552b1b4f569418a6455c31c9ab136b4a69dab
+Focused rerun Altisauro target-page-first aaa33b3d47eabc65e2101478faf914f91b170427
