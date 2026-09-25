@@ -545,6 +545,17 @@ def _run_tesseract_bounded(
         if remaining is not None
         else HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
     )
+    if ocr_budget_started_at is None:
+        completed = subprocess.run(
+            command,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+        )
+        return completed.stdout
+
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
@@ -1903,58 +1914,20 @@ def _micro_ocr_hit_points_line(
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
         ]
-        remaining = remaining_global_ocr_budget()
-        variant_timeout = (
-            min(HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS, remaining)
-            if remaining is not None
-            else HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
-        )
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            start_new_session=True,
-        )
         try:
-            stdout, _ = process.communicate(timeout=variant_timeout)
-        except subprocess.TimeoutExpired:
-            # Kill the complete process group so a timed-out Tesseract cannot
-            # survive as an orphan and consume the workflow budget.
-            if os.name == "posix":
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-            else:
-                process.kill()
-            process.communicate()
-            # If the per-variant timeout was clipped by the monster-wide
-            # deadline, surface the global reason instead of retrying.
-            remaining_global_ocr_budget()
-            print(
-                "HP_MICRO_OCR_SUBPROCESS_TIMEOUT "
-                + json.dumps(
-                    {
-                        "name": name,
-                        "timeout_seconds": round(variant_timeout, 3),
-                        "variant": crop_path.name,
-                    },
-                    ensure_ascii=False,
-                    sort_keys=True,
-                )
+            return _run_tesseract_bounded(
+                command,
+                ocr_budget_started_at,
+                phase="hp_micro_variant",
             )
-            return ""
-        if process.returncode:
+        except subprocess.CalledProcessError as exc:
             print(
                 "HP_MICRO_OCR_SUBPROCESS_FAILURE "
                 + json.dumps(
                     {
                         "name": name,
-                        "returncode": process.returncode,
-                        "signal": (
-                            -process.returncode if process.returncode < 0 else None
-                        ),
+                        "returncode": exc.returncode,
+                        "signal": -exc.returncode if exc.returncode < 0 else None,
                         "variant": crop_path.name,
                     },
                     ensure_ascii=False,
@@ -1962,7 +1935,45 @@ def _micro_ocr_hit_points_line(
                 )
             )
             return ""
-        return stdout
+        except RepairBlocked as exc:
+            if exc.reason == "ocr_global_timeout":
+                raise
+            if exc.reason == "ocr_subprocess_timeout":
+                timeout_seconds = (
+                    (exc.diagnostics or {}).get("timeout_seconds")
+                    or HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
+                )
+                print(
+                    "HP_MICRO_OCR_SUBPROCESS_TIMEOUT "
+                    + json.dumps(
+                        {
+                            "name": name,
+                            "timeout_seconds": timeout_seconds,
+                            "variant": crop_path.name,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return ""
+            if exc.reason == "ocr_subprocess_failed":
+                diagnostics = exc.diagnostics or {}
+                returncode = int(diagnostics.get("exit_code") or 1)
+                print(
+                    "HP_MICRO_OCR_SUBPROCESS_FAILURE "
+                    + json.dumps(
+                        {
+                            "name": name,
+                            "returncode": returncode,
+                            "signal": -returncode if returncode < 0 else None,
+                            "variant": crop_path.name,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return ""
+            raise
 
     def hp_micro_ocr_failed(raw_text: str) -> bool:
         normalized = " ".join(raw_text.split())
@@ -2684,14 +2695,6 @@ def _agreed_target_candidate(
                             key: bool(value)
                             for key, value in sorted(deterministic.items())
                             if key.endswith("_deterministic_match")
-                        },
-                        "primary_core": {
-                            field: left_attributes.get(field)
-                            for field in core_fields
-                        },
-                        "comparison_core": {
-                            field: right_attributes.get(field)
-                            for field in core_fields
                         },
                         "velocita_duplicate_ambiguous": bool(
                             speed_profile.get(
