@@ -27,11 +27,15 @@ from services.monster_semantic_diagnostics import deterministic_core_field_match
 
 _SIZE_WORDS = (
     "minuscolo",
+    "minuscola",
     "piccolo",
+    "piccola",
     "medio",
+    "media",
     "grande",
     "enorme",
     "mastodontico",
+    "mastodontica",
     "tiny",
     "small",
     "medium",
