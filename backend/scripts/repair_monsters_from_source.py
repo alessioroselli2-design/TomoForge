@@ -2166,31 +2166,6 @@ def _ocr_source_window(
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
 
-                    if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
-                        _remaining_global_ocr_budget(ocr_budget_started_at)
-                        pre_otsu_started_at = time.monotonic()
-                        pre_otsu_scale = PRE_OTSU_SCALE_BY_TARGET.get(name, 4)
-                        _pre_otsu_column_clean(
-                            image_path,
-                            scale_factor=pre_otsu_scale,
-                        )
-                        print(
-                            "PRE_OTSU_DIAGNOSTIC "
-                            + json.dumps(
-                                {
-                                    "name": name,
-                                    "scale_factor": pre_otsu_scale,
-                                    "elapsed_seconds": round(
-                                        time.monotonic() - pre_otsu_started_at,
-                                        3,
-                                    ),
-                                },
-                                ensure_ascii=False,
-                                sort_keys=True,
-                            )
-                        )
-                        _remaining_global_ocr_budget(ocr_budget_started_at)
-
                     sparse_anchor_found = None
                     sparse_anchor_crop = None
                     if sparse_full_page:
@@ -2221,6 +2196,39 @@ def _ocr_source_window(
                         ).save(target_image_path)
                         image_path = target_image_path
 
+                    micro_image_path = image_path
+                    if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
+                        _remaining_global_ocr_budget(ocr_budget_started_at)
+                        pre_otsu_started_at = time.monotonic()
+                        pre_otsu_scale = PRE_OTSU_SCALE_BY_TARGET.get(name, 4)
+                        if name == "Altisauro":
+                            micro_image_path = (
+                                image_root
+                                / f"page-{page_number:04d}-{segment_name}-micro.png"
+                            )
+                            fitz.Pixmap(str(image_path)).save(micro_image_path)
+                        _pre_otsu_column_clean(
+                            micro_image_path,
+                            scale_factor=pre_otsu_scale,
+                        )
+                        print(
+                            "PRE_OTSU_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "scale_factor": pre_otsu_scale,
+                                    "micro_only": name == "Altisauro",
+                                    "elapsed_seconds": round(
+                                        time.monotonic() - pre_otsu_started_at,
+                                        3,
+                                    ),
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+                        _remaining_global_ocr_budget(ocr_budget_started_at)
+
                     primary = _run_tesseract_bounded(
                         [
                             "tesseract",
@@ -2236,7 +2244,7 @@ def _ocr_source_window(
                         phase="segment_primary",
                     )
                     primary = _micro_ocr_hit_points_line(
-                        image_path,
+                        micro_image_path,
                         languages,
                         primary_psm,
                         primary,
@@ -2258,7 +2266,7 @@ def _ocr_source_window(
                         phase="segment_comparison",
                     )
                     comparison = _micro_ocr_hit_points_line(
-                        image_path,
+                        micro_image_path,
                         languages,
                         secondary_psm,
                         comparison,
