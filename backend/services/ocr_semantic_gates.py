@@ -22,7 +22,7 @@ CORRUPTED_ENTITY_NAME_FLAG = "corrupted_entity_name"
 _AC_VALUE_RE = re.compile(r"^\s*(\d{1,2})\b")
 _DICE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])\d+d\d+(?![A-Za-z0-9])", re.IGNORECASE)
 _HP_DICE_EXPRESSION_RE = re.compile(
-    r"^\s*(\d+)\s*\(\s*(\d+)d(\d+)\s*([+-]\s*\d+)?\s*\)\s*$",
+    r"^\s*(\d+)\s*\(\s*(\d+)d(\d+)\s*([+\-−–]\s*\d+)?\s*\)\s*$",
     re.IGNORECASE,
 )
 _DYNAMIC_ARTIFICER_HP_RE = re.compile(
@@ -153,7 +153,8 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
         average = int(hp_expression.group(1))
         dice_count = int(hp_expression.group(2))
         die_size = int(hp_expression.group(3))
-        modifier = int((hp_expression.group(4) or "0").replace(" ", ""))
+        modifier_text = (hp_expression.group(4) or "0").replace(" ", "")
+        modifier = int(modifier_text.replace("−", "-").replace("–", "-"))
         expected_average = (dice_count * (die_size + 1)) // 2 + modifier
         mathematically_coherent = average == expected_average
     dynamic_artificer_hp = bool(_DYNAMIC_ARTIFICER_HP_RE.search(hp_text))
