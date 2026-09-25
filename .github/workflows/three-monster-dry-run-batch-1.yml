@@ -34,6 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+          python -m pip install boto3
       - name: Run one target read-only
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
