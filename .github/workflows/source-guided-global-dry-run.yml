@@ -26,66 +26,6 @@ jobs:
         include:
           - slot: "01"
             name: "8Hadar-Kai Trafficante"
-          - slot: "02"
-            name: "Altisauro"
-          - slot: "03"
-            name: "Bael"
-          - slot: "04"
-            name: "Cerato Po"
-          - slot: "05"
-            name: "Colosso Runico"
-          - slot: "06"
-            name: "Congreghe Di Megere"
-          - slot: "07"
-            name: "Consigliere Imperituro"
-          - slot: "08"
-            name: "Difensore D'Acciaio"
-          - slot: "09"
-            name: "Dimetrodonte"
-          - slot: "10"
-            name: "Quetzalcoatlus"
-          - slot: "11"
-            name: "Fulmine Vivente"
-          - slot: "12"
-            name: "Granchio Delle Tempeste"
-          - slot: "13"
-            name: "Ippoaracne Maschio"
-          - slot: "14"
-            name: "Larvico"
-          - slot: "15"
-            name: "M Orfico"
-          - slot: "16"
-            name: "Molo Oh"
-          - slot: "17"
-            name: "Nube Mortale Vivente"
-          - slot: "18"
-            name: "Pelle Bestiale"
-          - slot: "19"
-            name: "Quori Hashalaq,"
-          - slot: "20"
-            name: "Rak Tulkhesh"
-          - slot: "21"
-            name: "Rampollo Delle Profondità"
-          - slot: "22"
-            name: "Rana"
-          - slot: "23"
-            name: "Ratto Cranico"
-          - slot: "24"
-            name: "Regi Sauro"
-          - slot: "25"
-            name: "Sciame Di Ratti Cranici"
-          - slot: "26"
-            name: "Spirito Della Fiamma"
-          - slot: "27"
-            name: "Straziato Re"
-          - slot: "28"
-            name: "Torre D'Assedio"
-          - slot: "29"
-            name: "Velociraptor"
-          - slot: "30"
-            name: "Yuan-Ti Portavoce Degli Incubi"
-          - slot: "31"
-            name: "Yuan-Ti Signore Della Fossa"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -187,8 +127,8 @@ jobs:
           from pathlib import Path
 
           paths = sorted(Path("/tmp/granular").glob("**/*-FINAL_REPORT.json"))
-          if len(paths) != 31:
-              raise SystemExit(f"Expected 31 completed granular reports, found {len(paths)}")
+          if len(paths) != 1:
+              raise SystemExit(f"Expected 1 completed granular report, found {len(paths)}")
 
           reports = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
           if any(report.get("dry_run") is not True for report in reports):
@@ -206,7 +146,7 @@ jobs:
 
           final = {
               "dry_run": True,
-              "targets": 31,
+              "targets": 1,
               "repairable": len(repairable_records),
               "blocked": len(blocked_records),
               "updates_performed": 0,
@@ -217,9 +157,9 @@ jobs:
               "reports": repairable_records,
               "blocked_records": blocked_records,
           }
-          if final["repairable"] + final["blocked"] != 31:
+          if final["repairable"] + final["blocked"] != 1:
               raise SystemExit(
-                  "Aggregate invariant violated: repairable + blocked must equal 31"
+                  "Aggregate invariant violated: repairable + blocked must equal 1"
               )
 
           out = Path("/tmp/FINAL_REPORT.json")
