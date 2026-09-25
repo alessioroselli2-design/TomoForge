@@ -2273,6 +2273,34 @@ def _ocr_source_window(
                         name,
                         ocr_budget_started_at=ocr_budget_started_at,
                     )
+                    if name == "Altisauro":
+                        def _altisauro_key_lines(text: str) -> list[str]:
+                            keys = (
+                                "altisauro",
+                                "classe",
+                                "armatura",
+                                "punti",
+                                "ferita",
+                                "veloc",
+                            )
+                            selected = []
+                            for raw_line in text.splitlines():
+                                normalized = normalize_reference_name(raw_line)
+                                if any(key in normalized for key in keys):
+                                    selected.append(" ".join(raw_line.split()))
+                            return selected[:20]
+
+                        print(
+                            "ALTISAURO_KEY_LINES "
+                            + json.dumps(
+                                {
+                                    "primary": _altisauro_key_lines(primary),
+                                    "comparison": _altisauro_key_lines(comparison),
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
                     agreement = _agreement_metrics(
                         primary,
                         comparison,
