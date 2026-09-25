@@ -480,10 +480,12 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
     "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
     "ref_83a6b991bfec5efdb2dda4da60d408bb",  # Colosso Runico
+    "ref_7a8a7ac7d33c526486ec2e3ba1ed0b4b",  # Congreghe Di Megere
 }
 SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
     "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
+    "ref_7a8a7ac7d33c526486ec2e3ba1ed0b4b",  # Congreghe Di Megere
 }
 PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
@@ -492,6 +494,7 @@ TARGET_SEGMENT_BY_NAME = {
     "Altisauro": "left",
     "Bael": "left",
     "Colosso Runico": "left",
+    "Congreghe Di Megere": "left",
 }
 SOURCE_GUIDED_UNIQUE_HP_SEGMENT_FALLBACK_TARGETS = {
     "Colosso Runico",
