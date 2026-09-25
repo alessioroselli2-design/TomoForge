@@ -489,6 +489,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
 }
 TARGET_SEGMENT_BY_NAME = {
     "Altisauro": "left",
+    "Bael": "left",
 }
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
