@@ -1568,9 +1568,9 @@ def _micro_ocr_hit_points_line(
         r"^(?P<label>[ \t]*Punti[ \t]+Ferita[ \t]*)(?P<value>.*)$",
         re.IGNORECASE | re.MULTILINE,
     )
-    if not hp_line_pattern.search(page_text):
+    page_text_has_hp_label = bool(hp_line_pattern.search(page_text))
+    if not page_text_has_hp_label:
         diagnostics["page_text_local_hp_count"] = 0
-        return fail_closed("page_text_hp_label_missing")
 
     command = [
         "tesseract",
@@ -2070,8 +2070,30 @@ def _micro_ocr_hit_points_line(
     value = " ".join(micro.split())
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
-    return hp_line_pattern.sub(
-        lambda match: f"{match.group('label').rstrip()} {value}",
+    if page_text_has_hp_label:
+        return hp_line_pattern.sub(
+            lambda match: f"{match.group('label').rstrip()} {value}",
+            page_text,
+            count=1,
+        )
+    if name_line_index is None or label_words is None:
+        return fail_closed("micro_ocr_reconstruction_missing_anchor")
+    speed_line_pattern = re.compile(
+        r"^(?=[ \t]*Velocit[àa]\b)",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    if not speed_line_pattern.search(page_text):
+        return fail_closed("micro_ocr_reconstruction_speed_anchor_missing")
+    print(
+        "HP_SYNTHETIC_LINE_RECONSTRUCTION "
+        + json.dumps(
+            {"name": name, "value": value},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return speed_line_pattern.sub(
+        f"Punti Ferita {value}\n",
         page_text,
         count=1,
     )
@@ -2196,38 +2218,6 @@ def _ocr_source_window(
                         ).save(target_image_path)
                         image_path = target_image_path
 
-                    micro_image_path = image_path
-                    if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
-                        _remaining_global_ocr_budget(ocr_budget_started_at)
-                        pre_otsu_started_at = time.monotonic()
-                        pre_otsu_scale = PRE_OTSU_SCALE_BY_TARGET.get(name, 2)
-                        micro_image_path = (
-                            image_root
-                            / f"page-{page_number:04d}-{segment_name}-micro.png"
-                        )
-                        fitz.Pixmap(str(image_path)).save(micro_image_path)
-                        _pre_otsu_column_clean(
-                            micro_image_path,
-                            scale_factor=pre_otsu_scale,
-                        )
-                        print(
-                            "PRE_OTSU_DIAGNOSTIC "
-                            + json.dumps(
-                                {
-                                    "name": name,
-                                    "scale_factor": pre_otsu_scale,
-                                    "micro_only": True,
-                                    "elapsed_seconds": round(
-                                        time.monotonic() - pre_otsu_started_at,
-                                        3,
-                                    ),
-                                },
-                                ensure_ascii=False,
-                                sort_keys=True,
-                            )
-                        )
-                        _remaining_global_ocr_budget(ocr_budget_started_at)
-
                     primary = _run_tesseract_bounded(
                         [
                             "tesseract",
@@ -2242,14 +2232,6 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_primary",
                     )
-                    primary = _micro_ocr_hit_points_line(
-                        micro_image_path,
-                        languages,
-                        primary_psm,
-                        primary,
-                        name,
-                        ocr_budget_started_at=ocr_budget_started_at,
-                    )
                     comparison = _run_tesseract_bounded(
                         [
                             "tesseract",
@@ -2263,6 +2245,56 @@ def _ocr_source_window(
                         ],
                         ocr_budget_started_at,
                         phase="segment_comparison",
+                    )
+
+                    micro_image_path = image_path
+                    if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
+                        compact_target = normalize_reference_name(name).replace(" ", "")
+                        primary_has_target = compact_target in normalize_reference_name(
+                            primary
+                        ).replace(" ", "")
+                        comparison_has_target = compact_target in normalize_reference_name(
+                            comparison
+                        ).replace(" ", "")
+                        if primary_has_target or comparison_has_target:
+                            _remaining_global_ocr_budget(ocr_budget_started_at)
+                            pre_otsu_started_at = time.monotonic()
+                            pre_otsu_scale = PRE_OTSU_SCALE_BY_TARGET.get(name, 2)
+                            micro_image_path = (
+                                image_root
+                                / f"page-{page_number:04d}-{segment_name}-micro.png"
+                            )
+                            fitz.Pixmap(str(image_path)).save(micro_image_path)
+                            _pre_otsu_column_clean(
+                                micro_image_path,
+                                scale_factor=pre_otsu_scale,
+                            )
+                            print(
+                                "PRE_OTSU_DIAGNOSTIC "
+                                + json.dumps(
+                                    {
+                                        "name": name,
+                                        "segment": segment_name,
+                                        "scale_factor": pre_otsu_scale,
+                                        "micro_only": True,
+                                        "elapsed_seconds": round(
+                                            time.monotonic() - pre_otsu_started_at,
+                                            3,
+                                        ),
+                                    },
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                )
+                            )
+                            _remaining_global_ocr_budget(ocr_budget_started_at)
+
+                    primary = _micro_ocr_hit_points_line(
+                        micro_image_path,
+                        languages,
+                        primary_psm,
+                        primary,
+                        name,
+                        ocr_budget_started_at=ocr_budget_started_at,
                     )
                     comparison = _micro_ocr_hit_points_line(
                         micro_image_path,
