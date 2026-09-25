@@ -482,6 +482,9 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
 PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
+TARGET_SEGMENT_BY_NAME = {
+    "Altisauro": "left",
+}
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
@@ -1710,6 +1713,24 @@ def _micro_ocr_hit_points_line(
                     sort_keys=True,
                 )
             )
+    if (
+        label_words is None
+        and name_line_index is not None
+        and len(global_labels) == 1
+    ):
+        label_words = global_labels[0]
+        print(
+            "HP_UNIQUE_COLUMN_LABEL_FALLBACK "
+            + json.dumps(
+                {
+                    "name": name,
+                    "tsv_name_anchor_found": True,
+                    "unique_tsv_hp_labels": 1,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
     if label_words is None:
         return fail_closed("no_unique_structural_hp_anchor")
 
@@ -2105,6 +2126,18 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
+    if not sparse_full_page and name in TARGET_SEGMENT_BY_NAME:
+        target_segment = TARGET_SEGMENT_BY_NAME[name]
+        segments = tuple(
+            segment
+            for segment in segments
+            if segment[0] == target_segment
+        )
+        if not segments:
+            raise RepairBlocked(
+                "target_segment_unavailable",
+                detail=f"name={name} segment={target_segment}",
+            )
 
     document = fitz.open(pdf_path)
     try:
