@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - slot: "01"
-            name: "Difensore D'Acciaio"
+            name: "Larvico"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
