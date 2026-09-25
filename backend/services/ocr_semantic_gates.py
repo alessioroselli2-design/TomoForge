@@ -161,10 +161,10 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
         not dynamic_artificer_hp
         and (
             not dice_token_ok
-        or has_split_number
-        or has_split_hit_dice_count
-        or has_split_dice
-        or has_split_dice_faces
+            or has_split_number
+            or has_split_hit_dice_count
+            or has_split_dice
+            or has_split_dice_faces
             or has_ocr_dice_letters
             or not mathematically_coherent
         )
