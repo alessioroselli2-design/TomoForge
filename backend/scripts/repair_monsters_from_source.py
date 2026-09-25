@@ -31,9 +31,11 @@ from datetime import datetime, timezone
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -470,10 +472,10 @@ TWO_COLUMN_COMPARISON_PSM = 4
 HIT_POINTS_WHITELIST = "0123456789d+() "
 HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
+HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
+OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
-HIT_POINTS_FULL_SPECTRUM_CONTRASTS = tuple(
-    round(0.8 + step * 0.3, 1) for step in range(10)
-)
+HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
 HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD = 245.0
 NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
@@ -1436,6 +1438,8 @@ def _micro_ocr_hit_points_line(
     psm: int,
     page_text: str,
     name: str,
+    *,
+    ocr_budget_started_at: float | None = None,
 ) -> str:
     """Re-OCR only the numeric part of the PF line with a strict whitelist.
 
@@ -1454,6 +1458,25 @@ def _micro_ocr_hit_points_line(
         "tsv_name_anchor_found": None,
         "tsv_local_label_found": None,
     }
+
+    def remaining_global_ocr_budget() -> float | None:
+        if ocr_budget_started_at is None:
+            return None
+        elapsed = time.monotonic() - ocr_budget_started_at
+        remaining = OCR_GLOBAL_TIMEOUT_SECONDS - elapsed
+        if remaining <= 0:
+            raise RepairBlocked(
+                "ocr_global_timeout",
+                detail=(
+                    f"global OCR budget exceeded after {elapsed:.2f}s "
+                    f"(limit {OCR_GLOBAL_TIMEOUT_SECONDS:.0f}s)"
+                ),
+                diagnostics={
+                    "elapsed_seconds": round(elapsed, 3),
+                    "budget_seconds": OCR_GLOBAL_TIMEOUT_SECONDS,
+                },
+            )
+        return remaining
 
     def fail_closed(reason: str) -> str:
         print(
@@ -1671,6 +1694,8 @@ def _micro_ocr_hit_points_line(
         bitonal_threshold: int | None = None,
         adaptive_background_inversion: bool = False,
     ) -> str:
+        # Fail closed before paying for a new graphical variant.
+        remaining_global_ocr_budget()
         contrasted_samples = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
             for sample in crop_samples
@@ -1757,25 +1782,41 @@ def _micro_ocr_hit_points_line(
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
         ]
+        remaining = remaining_global_ocr_budget()
+        variant_timeout = (
+            min(HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS, remaining)
+            if remaining is not None
+            else HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
+        )
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
         try:
-            return subprocess.run(
-                command,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=15,
-            ).stdout
+            stdout, _ = process.communicate(timeout=variant_timeout)
         except subprocess.TimeoutExpired:
-            # subprocess.run() kills and waits for the direct Tesseract child
-            # before re-raising TimeoutExpired. Treat this variant as a
-            # fail-closed miss so the full-spectrum loop can continue.
+            # Kill the complete process group so a timed-out Tesseract cannot
+            # survive as an orphan and consume the workflow budget.
+            if os.name == "posix":
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            else:
+                process.kill()
+            process.communicate()
+            # If the per-variant timeout was clipped by the monster-wide
+            # deadline, surface the global reason instead of retrying.
+            remaining_global_ocr_budget()
             print(
                 "HP_MICRO_OCR_SUBPROCESS_TIMEOUT "
                 + json.dumps(
                     {
                         "name": name,
-                        "timeout_seconds": 15,
+                        "timeout_seconds": round(variant_timeout, 3),
                         "variant": crop_path.name,
                     },
                     ensure_ascii=False,
@@ -1783,14 +1824,16 @@ def _micro_ocr_hit_points_line(
                 )
             )
             return ""
-        except subprocess.CalledProcessError as exc:
+        if process.returncode:
             print(
                 "HP_MICRO_OCR_SUBPROCESS_FAILURE "
                 + json.dumps(
                     {
                         "name": name,
-                        "returncode": exc.returncode,
-                        "signal": -exc.returncode if exc.returncode < 0 else None,
+                        "returncode": process.returncode,
+                        "signal": (
+                            -process.returncode if process.returncode < 0 else None
+                        ),
                         "variant": crop_path.name,
                     },
                     ensure_ascii=False,
@@ -1798,6 +1841,7 @@ def _micro_ocr_hit_points_line(
                 )
             )
             return ""
+        return stdout
 
     def hp_micro_ocr_failed(raw_text: str) -> bool:
         normalized = " ".join(raw_text.split())
@@ -1956,6 +2000,7 @@ def _ocr_source_window(
     comparison_psm: int,
     column_overlap: float = 0.02,
     sparse_full_page: bool = False,
+    ocr_budget_started_at: float | None = None,
 ) -> tuple[
     list[tuple[int, str]],
     list[tuple[int, str]],
@@ -2057,6 +2102,7 @@ def _ocr_source_window(
                         primary_psm,
                         primary,
                         name,
+                        ocr_budget_started_at=ocr_budget_started_at,
                     )
                     comparison = _run_tesseract(
                         image_path,
@@ -2069,6 +2115,7 @@ def _ocr_source_window(
                         secondary_psm,
                         comparison,
                         name,
+                        ocr_budget_started_at=ocr_budget_started_at,
                     )
                     agreement = _agreement_metrics(
                         primary,
@@ -2548,6 +2595,10 @@ async def _repair_one(
     physical_page = int(source_ref["page"])
     pdf_path = pdf_cache.get(source)
 
+    # One monotonic budget covers every OCR layout/overlap/full-spectrum
+    # attempt for this monster. A timeout blocks only this record.
+    ocr_budget_started_at = time.monotonic()
+
     candidate = None
     quality = None
     selected_overlap = 0.02
@@ -2565,6 +2616,7 @@ async def _repair_one(
             psm=args.psm,
             comparison_psm=args.comparison_psm,
             column_overlap=overlap,
+            ocr_budget_started_at=ocr_budget_started_at,
         )
         try:
             candidate = _agreed_target_candidate(
@@ -2617,6 +2669,7 @@ async def _repair_one(
             comparison_psm=args.comparison_psm,
             column_overlap=0.05,
             sparse_full_page=True,
+            ocr_budget_started_at=ocr_budget_started_at,
         )
         candidate = _agreed_target_candidate(
             primary_pages,
