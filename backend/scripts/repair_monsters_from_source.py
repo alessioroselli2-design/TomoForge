@@ -1741,11 +1741,7 @@ def _micro_ocr_hit_points_line(
                     sort_keys=True,
                 )
             )
-    if (
-        label_words is None
-        and name_line_index is not None
-        and len(global_labels) == 1
-    ):
+    if label_words is None and name_line_index is not None and len(global_labels) == 1:
         label_words = global_labels[0]
         print(
             "HP_UNIQUE_COLUMN_LABEL_FALLBACK "
@@ -1940,10 +1936,9 @@ def _micro_ocr_hit_points_line(
             if exc.reason == "ocr_global_timeout":
                 raise
             if exc.reason == "ocr_subprocess_timeout":
-                timeout_seconds = (
-                    (exc.diagnostics or {}).get("timeout_seconds")
-                    or HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
-                )
+                timeout_seconds = (exc.diagnostics or {}).get(
+                    "timeout_seconds"
+                ) or HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
                 print(
                     "HP_MICRO_OCR_SUBPROCESS_TIMEOUT "
                     + json.dumps(
@@ -2197,9 +2192,7 @@ def _ocr_source_window(
     if not sparse_full_page and name in TARGET_SEGMENT_BY_NAME:
         target_segment = TARGET_SEGMENT_BY_NAME[name]
         segments = tuple(
-            segment
-            for segment in segments
-            if segment[0] == target_segment
+            segment for segment in segments if segment[0] == target_segment
         )
         if not segments:
             raise RepairBlocked(
@@ -2360,6 +2353,7 @@ def _ocr_source_window(
                         ocr_budget_started_at=ocr_budget_started_at,
                     )
                     if name in {"Altisauro", "Bael"}:
+
                         def _focused_ocr_context(text: str) -> list[str]:
                             raw_lines = [
                                 " ".join(raw_line.split())
