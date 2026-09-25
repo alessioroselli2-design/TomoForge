@@ -476,6 +476,9 @@ OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
+SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
+}
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
@@ -2054,6 +2057,7 @@ def _ocr_source_window(
     comparison_psm: int,
     column_overlap: float = 0.02,
     sparse_full_page: bool = False,
+    target_page_only: bool = False,
     ocr_budget_started_at: float | None = None,
 ) -> tuple[
     list[tuple[int, str]],
@@ -2063,8 +2067,12 @@ def _ocr_source_window(
     """OCR <=3 pages, isolating columns and any quality-fail segment."""
     import fitz
 
-    start_page = max(1, target_page - 1)
-    end_page = min(page_total, target_page + 1)
+    if target_page_only:
+        start_page = target_page
+        end_page = target_page
+    else:
+        start_page = max(1, target_page - 1)
+        end_page = min(page_total, target_page + 1)
     if end_page - start_page + 1 > 3:
         raise AssertionError(
             "source-guided repair window unexpectedly exceeded 3 pages"
@@ -2667,10 +2675,12 @@ async def _repair_one(
     )
     physical_page = int(source_ref["page"])
     pdf_path = pdf_cache.get(source)
+    record_id = str(record.get("id") or "")
     source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
-        str(record.get("id") or ""),
+        record_id,
         str(record.get("name") or ""),
     )
+    target_page_only = record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
     # attempt for this monster. A timeout blocks only this record.
@@ -2693,6 +2703,7 @@ async def _repair_one(
             psm=args.psm,
             comparison_psm=args.comparison_psm,
             column_overlap=overlap,
+            target_page_only=target_page_only,
             ocr_budget_started_at=ocr_budget_started_at,
         )
         try:
@@ -2746,6 +2757,7 @@ async def _repair_one(
             comparison_psm=args.comparison_psm,
             column_overlap=0.05,
             sparse_full_page=True,
+            target_page_only=target_page_only,
             ocr_budget_started_at=ocr_budget_started_at,
         )
         candidate = _agreed_target_candidate(
