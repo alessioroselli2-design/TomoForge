@@ -276,8 +276,8 @@ def _attributes(text: str, descriptor: str) -> dict:
             r"Armor\s+Class\s*[:]?\s*([^\n]{1,80})",
         ),
         "punti_ferita": (
-            r"Punti\s+Ferita\s*[:]?\s*([^\n]{1,100})",
-            r"Hit\s+Points\s*[:]?\s*([^\n]{1,100})",
+            r"Punti\s+Ferita\s*[:]?\s*([^\n]{1,260})",
+            r"Hit\s+Points\s*[:]?\s*([^\n]{1,260})",
         ),
         "velocita": (
             r"Velocit[àa]\s*[:]?\s*([^\n]{1,160})",
