@@ -4,3 +4,4 @@ dry_run=true
 updates_performed_expected=0
 source_fix_pr=337
 requested=2026-09-25
+Retrigger global source-guided dry-run for bebdbd994a42c09ab8eb76a6d4632cd83a071a27
