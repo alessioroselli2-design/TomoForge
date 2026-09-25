@@ -491,6 +491,10 @@ PRE_OTSU_SCALE_BY_TARGET = {
 TARGET_SEGMENT_BY_NAME = {
     "Altisauro": "left",
     "Bael": "left",
+    "Colosso Runico": "left",
+}
+SOURCE_GUIDED_UNIQUE_HP_SEGMENT_FALLBACK_TARGETS = {
+    "Colosso Runico",
 }
 HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
@@ -1733,6 +1737,24 @@ def _micro_ocr_hit_points_line(
                     "name": name,
                     "tsv_name_anchor_found": True,
                     "unique_tsv_hp_labels": 1,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+    if (
+        label_words is None
+        and name in SOURCE_GUIDED_UNIQUE_HP_SEGMENT_FALLBACK_TARGETS
+        and len(global_labels) == 1
+    ):
+        label_words = global_labels[0]
+        print(
+            "HP_SOURCE_GUIDED_SEGMENT_FALLBACK "
+            + json.dumps(
+                {
+                    "name": name,
+                    "unique_tsv_hp_labels": 1,
+                    "target_segment": TARGET_SEGMENT_BY_NAME.get(name),
                 },
                 ensure_ascii=False,
                 sort_keys=True,
