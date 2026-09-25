@@ -478,9 +478,11 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
+    "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
 }
 SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS = {
-    "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro: first-pass diagnostics only
+    "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
+    "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
 }
 PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
@@ -2249,13 +2251,25 @@ def _ocr_source_window(
 
                     micro_image_path = image_path
                     if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
-                        compact_target = normalize_reference_name(name).replace(" ", "")
-                        primary_has_target = compact_target in normalize_reference_name(
-                            primary
-                        ).replace(" ", "")
-                        comparison_has_target = compact_target in normalize_reference_name(
-                            comparison
-                        ).replace(" ", "")
+                        target_normalized = normalize_reference_name(name)
+                        target_words = target_normalized.split()
+
+                        def _has_title_like_target(text: str) -> bool:
+                            for raw_line in text.splitlines():
+                                normalized_line = normalize_reference_name(raw_line)
+                                if normalized_line == target_normalized:
+                                    return True
+                                words = normalized_line.split()
+                                if (
+                                    len(words) == len(target_words) + 1
+                                    and words[: len(target_words)] == target_words
+                                    and len(words[-1]) <= 2
+                                ):
+                                    return True
+                            return False
+
+                        primary_has_target = _has_title_like_target(primary)
+                        comparison_has_target = _has_title_like_target(comparison)
                         if primary_has_target or comparison_has_target:
                             _remaining_global_ocr_budget(ocr_budget_started_at)
                             pre_otsu_started_at = time.monotonic()
@@ -2304,29 +2318,48 @@ def _ocr_source_window(
                         name,
                         ocr_budget_started_at=ocr_budget_started_at,
                     )
-                    if name == "Altisauro":
-                        def _altisauro_key_lines(text: str) -> list[str]:
-                            keys = (
-                                "altisauro",
-                                "classe",
-                                "armatura",
-                                "punti",
-                                "ferita",
-                                "veloc",
+                    if name in {"Altisauro", "Bael"}:
+                        def _focused_ocr_context(text: str) -> list[str]:
+                            raw_lines = [
+                                " ".join(raw_line.split())
+                                for raw_line in text.splitlines()
+                                if raw_line.strip()
+                            ]
+                            normalized_lines = [
+                                normalize_reference_name(raw_line)
+                                for raw_line in raw_lines
+                            ]
+                            anchors = [
+                                index
+                                for index, normalized in enumerate(normalized_lines)
+                                if (
+                                    normalized.startswith("classe armatura")
+                                    or normalized.startswith("classe d armatura")
+                                    or normalized.startswith("veloc")
+                                    or normalize_reference_name(name) in normalized
+                                )
+                            ]
+                            selected_indexes = sorted(
+                                {
+                                    candidate
+                                    for index in anchors
+                                    for candidate in range(
+                                        max(0, index - 3),
+                                        min(len(raw_lines), index + 4),
+                                    )
+                                }
                             )
-                            selected = []
-                            for raw_line in text.splitlines():
-                                normalized = normalize_reference_name(raw_line)
-                                if any(key in normalized for key in keys):
-                                    selected.append(" ".join(raw_line.split()))
-                            return selected[:20]
+                            return [raw_lines[index] for index in selected_indexes][:30]
 
                         print(
-                            "ALTISAURO_KEY_LINES "
+                            "FOCUSED_OCR_CONTEXT "
                             + json.dumps(
                                 {
-                                    "primary": _altisauro_key_lines(primary),
-                                    "comparison": _altisauro_key_lines(comparison),
+                                    "name": name,
+                                    "page": page_number,
+                                    "segment": segment_name,
+                                    "primary": _focused_ocr_context(primary),
+                                    "comparison": _focused_ocr_context(comparison),
                                 },
                                 ensure_ascii=False,
                                 sort_keys=True,
