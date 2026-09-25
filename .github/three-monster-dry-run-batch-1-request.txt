@@ -2,5 +2,5 @@ Three-monster diagnostic dry-run batch 1 requested.
 targets=Bael,Cerato Po,Congreghe Di Megere
 dry_run=true
 updates_performed_expected=0
-retry_after_pr=341
-requested=2026-09-25T10:15:00+02:00
+retry_after_pr=343
+requested=2026-09-25T10:30:00+02:00
