@@ -479,6 +479,9 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
 }
+SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS = {
+    "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro: first-pass diagnostics only
+}
 PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
@@ -2782,6 +2785,8 @@ async def _repair_one(
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
+            if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
+                raise
             if not _should_retry_dynamic_layout(exc, source):
                 raise
             if overlap_index == len(overlaps) - 1:
