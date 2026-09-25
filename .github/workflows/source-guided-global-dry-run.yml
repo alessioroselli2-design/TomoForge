@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - slot: "01"
-            name: "Congreghe Di Megere"
+            name: "Consigliere Imperituro"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
