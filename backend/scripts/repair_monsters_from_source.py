@@ -1764,8 +1764,25 @@ def _micro_ocr_hit_points_line(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                timeout=120,
+                timeout=15,
             ).stdout
+        except subprocess.TimeoutExpired:
+            # subprocess.run() kills and waits for the direct Tesseract child
+            # before re-raising TimeoutExpired. Treat this variant as a
+            # fail-closed miss so the full-spectrum loop can continue.
+            print(
+                "HP_MICRO_OCR_SUBPROCESS_TIMEOUT "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "timeout_seconds": 15,
+                        "variant": crop_path.name,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            return ""
         except subprocess.CalledProcessError as exc:
             print(
                 "HP_MICRO_OCR_SUBPROCESS_FAILURE "
