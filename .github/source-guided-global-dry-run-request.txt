@@ -12,3 +12,4 @@ Focused rerun Altisauro with pre-Otsu x2 59e0e55fcf81185f61e63c3e863d2d473eca7e9
 Focused rerun Altisauro left-column evidence 85f4d508de2b6e9ad56c15a00cde8f3b3760607e
 Focused diagnostic Altisauro first-pass only fdd3b9040f7afefc85f50b67beaa0cb591350943
 Focused rerun Altisauro dual-raster OCR aa00dcac36abfa2ca3c8e3dff7fe96a3a27eaca3
+Focused rerun Altisauro core-line diagnostics aed03a7882bd2308bb2c06f2d2d791b3b8fbb179
