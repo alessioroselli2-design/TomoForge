@@ -483,7 +483,7 @@ SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro: first-pass diagnostics only
 }
 PRE_OTSU_SCALE_BY_TARGET = {
-    "Altisauro": 2,
+    name: 2 for name in QUALITY_FAIL_PRE_OTSU_TARGETS
 }
 TARGET_SEGMENT_BY_NAME = {
     "Altisauro": "left",
@@ -2201,12 +2201,11 @@ def _ocr_source_window(
                         _remaining_global_ocr_budget(ocr_budget_started_at)
                         pre_otsu_started_at = time.monotonic()
                         pre_otsu_scale = PRE_OTSU_SCALE_BY_TARGET.get(name, 4)
-                        if name == "Altisauro":
-                            micro_image_path = (
-                                image_root
-                                / f"page-{page_number:04d}-{segment_name}-micro.png"
-                            )
-                            fitz.Pixmap(str(image_path)).save(micro_image_path)
+                        micro_image_path = (
+                            image_root
+                            / f"page-{page_number:04d}-{segment_name}-micro.png"
+                        )
+                        fitz.Pixmap(str(image_path)).save(micro_image_path)
                         _pre_otsu_column_clean(
                             micro_image_path,
                             scale_factor=pre_otsu_scale,
@@ -2217,7 +2216,7 @@ def _ocr_source_window(
                                 {
                                     "name": name,
                                     "scale_factor": pre_otsu_scale,
-                                    "micro_only": name == "Altisauro",
+                                    "micro_only": True,
                                     "elapsed_seconds": round(
                                         time.monotonic() - pre_otsu_started_at,
                                         3,
