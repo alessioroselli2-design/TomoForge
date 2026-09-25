@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - slot: "01"
-            name: "Bael"
+            name: "Colosso Runico"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
