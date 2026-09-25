@@ -479,6 +479,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
     "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
+    "ref_83a6b991bfec5efdb2dda4da60d408bb",  # Colosso Runico
 }
 SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
@@ -2656,6 +2657,14 @@ def _agreed_target_candidate(
                             key: bool(value)
                             for key, value in sorted(deterministic.items())
                             if key.endswith("_deterministic_match")
+                        },
+                        "primary_core": {
+                            field: left_attributes.get(field)
+                            for field in core_fields
+                        },
+                        "comparison_core": {
+                            field: right_attributes.get(field)
+                            for field in core_fields
                         },
                         "velocita_duplicate_ambiguous": bool(
                             speed_profile.get(
