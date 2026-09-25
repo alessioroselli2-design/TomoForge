@@ -1260,6 +1260,7 @@ def _sparse_anchor_crop_fractions(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        timeout=120,
     )
     rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
@@ -1490,6 +1491,7 @@ def _micro_ocr_hit_points_line(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        timeout=120,
     )
     rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
@@ -1762,6 +1764,7 @@ def _micro_ocr_hit_points_line(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                timeout=120,
             ).stdout
         except subprocess.CalledProcessError as exc:
             print(
