@@ -46,7 +46,6 @@ if str(BACKEND_DIR) not in sys.path:
 from reference_library import normalize_reference_name
 from scripts.pilot_local_ocr_from_r2 import (
     _agreement_metrics,
-    _run_tesseract,
     _sha256_file,
 )
 from services.monster_name_diagnostics import (
@@ -485,6 +484,78 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
     r"\([^)]*\b\d+d\d{3,4}\b[^)]*\)",
     re.IGNORECASE,
 )
+
+
+def _remaining_global_ocr_budget(
+    ocr_budget_started_at: float | None,
+) -> float | None:
+    if ocr_budget_started_at is None:
+        return None
+    elapsed = time.monotonic() - ocr_budget_started_at
+    remaining = OCR_GLOBAL_TIMEOUT_SECONDS - elapsed
+    if remaining <= 0:
+        raise RepairBlocked(
+            "ocr_global_timeout",
+            detail=(
+                f"global OCR budget exceeded after {elapsed:.2f}s "
+                f"(limit {OCR_GLOBAL_TIMEOUT_SECONDS:.0f}s)"
+            ),
+            diagnostics={
+                "elapsed_seconds": round(elapsed, 3),
+                "budget_seconds": OCR_GLOBAL_TIMEOUT_SECONDS,
+            },
+        )
+    return remaining
+
+
+def _run_tesseract_bounded(
+    command: list[str],
+    ocr_budget_started_at: float | None,
+    *,
+    phase: str,
+) -> str:
+    remaining = _remaining_global_ocr_budget(ocr_budget_started_at)
+    timeout = (
+        min(HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS, remaining)
+        if remaining is not None
+        else HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS
+    )
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if os.name == "posix":
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        else:
+            process.kill()
+        process.communicate()
+        _remaining_global_ocr_budget(ocr_budget_started_at)
+        raise RepairBlocked(
+            "ocr_subprocess_timeout",
+            detail=f"{phase} exceeded {timeout:.2f}s",
+            diagnostics={"phase": phase, "timeout_seconds": round(timeout, 3)},
+        )
+    if process.returncode != 0:
+        raise RepairBlocked(
+            "ocr_subprocess_failed",
+            detail=f"{phase} exit_code={process.returncode}",
+            diagnostics={
+                "phase": phase,
+                "exit_code": process.returncode,
+                "stderr": " ".join((stderr or "").split())[:500],
+            },
+        )
+    _remaining_global_ocr_budget(ocr_budget_started_at)
+    return stdout
 
 
 QUALITY_FAIL_PRE_OTSU_TARGETS = frozenset(
@@ -1240,6 +1311,8 @@ def _sparse_anchor_crop_fractions(
     image_path: Path,
     languages: str,
     target_name: str,
+    *,
+    ocr_budget_started_at: float | None = None,
 ) -> tuple[float, float, float, float] | None:
     """Locate one unique PSM11 title anchor and return a target-column crop.
 
@@ -1259,15 +1332,12 @@ def _sparse_anchor_crop_fractions(
         "tsv",
         "quiet",
     ]
-    completed = subprocess.run(
+    tsv_stdout = _run_tesseract_bounded(
         command,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        timeout=120,
+        ocr_budget_started_at,
+        phase="hp_anchor_tsv",
     )
-    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
+    rows = list(csv.DictReader(io.StringIO(tsv_stdout), delimiter="\t"))
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
     for row in rows:
         if str(row.get("text") or "").strip():
@@ -1463,23 +1533,7 @@ def _micro_ocr_hit_points_line(
     }
 
     def remaining_global_ocr_budget() -> float | None:
-        if ocr_budget_started_at is None:
-            return None
-        elapsed = time.monotonic() - ocr_budget_started_at
-        remaining = OCR_GLOBAL_TIMEOUT_SECONDS - elapsed
-        if remaining <= 0:
-            raise RepairBlocked(
-                "ocr_global_timeout",
-                detail=(
-                    f"global OCR budget exceeded after {elapsed:.2f}s "
-                    f"(limit {OCR_GLOBAL_TIMEOUT_SECONDS:.0f}s)"
-                ),
-                diagnostics={
-                    "elapsed_seconds": round(elapsed, 3),
-                    "budget_seconds": OCR_GLOBAL_TIMEOUT_SECONDS,
-                },
-            )
-        return remaining
+        return _remaining_global_ocr_budget(ocr_budget_started_at)
 
     def fail_closed(reason: str) -> str:
         print(
@@ -1511,15 +1565,12 @@ def _micro_ocr_hit_points_line(
         "tsv",
         "quiet",
     ]
-    completed = subprocess.run(
+    tsv_stdout = _run_tesseract_bounded(
         command,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        timeout=120,
+        ocr_budget_started_at,
+        phase="sparse_anchor_tsv",
     )
-    rows = list(csv.DictReader(io.StringIO(completed.stdout), delimiter="\t"))
+    rows = list(csv.DictReader(io.StringIO(tsv_stdout), delimiter="\t"))
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
     for row in rows:
         if str(row.get("text") or "").strip():
@@ -2072,6 +2123,7 @@ def _ocr_source_window(
                             image_path,
                             languages,
                             name,
+                            ocr_budget_started_at=ocr_budget_started_at,
                         )
                         sparse_anchor_found = sparse_anchor_crop is not None
                         if not sparse_anchor_found:
@@ -2094,10 +2146,19 @@ def _ocr_source_window(
                         ).save(target_image_path)
                         image_path = target_image_path
 
-                    primary = _run_tesseract(
-                        image_path,
-                        languages,
-                        primary_psm,
+                    primary = _run_tesseract_bounded(
+                        [
+                            "tesseract",
+                            str(image_path),
+                            "stdout",
+                            "-l",
+                            languages,
+                            "--psm",
+                            str(primary_psm),
+                            "quiet",
+                        ],
+                        ocr_budget_started_at,
+                        phase="segment_primary",
                     )
                     primary = _micro_ocr_hit_points_line(
                         image_path,
@@ -2107,10 +2168,19 @@ def _ocr_source_window(
                         name,
                         ocr_budget_started_at=ocr_budget_started_at,
                     )
-                    comparison = _run_tesseract(
-                        image_path,
-                        languages,
-                        secondary_psm,
+                    comparison = _run_tesseract_bounded(
+                        [
+                            "tesseract",
+                            str(image_path),
+                            "stdout",
+                            "-l",
+                            languages,
+                            "--psm",
+                            str(secondary_psm),
+                            "quiet",
+                        ],
+                        ocr_budget_started_at,
+                        phase="segment_comparison",
                     )
                     comparison = _micro_ocr_hit_points_line(
                         image_path,
