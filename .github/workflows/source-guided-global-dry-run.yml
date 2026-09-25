@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - slot: "01"
-            name: "8Hadar-Kai Trafficante"
+            name: "Altisauro"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
