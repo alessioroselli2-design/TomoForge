@@ -18,3 +18,4 @@ Focused rerun Bael with bounded micro-only pre-Otsu 59fc5010bcceb5eaac38fd249a4e
 Focused rerun Bael after pre-Otsu init fix 86cfcb9adffbde07d101a24cf1110883ebae9716
 Focused rerun Bael with target-column micro OCR 6413b48b7edeb28153e24b15303bd966798057e9
 Focused rerun Bael title-like source-page diagnostics b59aefc3108708413ca8030e9701e93f47449e67
+Focused rerun Bael verified left-column 0eb27c227ebddc9be80c369270a2c1665bc77ea9
