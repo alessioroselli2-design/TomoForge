@@ -25,6 +25,12 @@ _HP_DICE_EXPRESSION_RE = re.compile(
     r"^\s*(\d+)\s*\(\s*(\d+)d(\d+)\s*([+-]\s*\d+)?\s*\)\s*$",
     re.IGNORECASE,
 )
+_DYNAMIC_ARTIFICER_HP_RE = re.compile(
+    r"\bmodificatore\s+di\s+intelligenza\b.*"
+    r"\blivello\s+da\s+artefice\b.*"
+    r"(?:\[?d8\]?)",
+    re.IGNORECASE,
+)
 # Examples intentionally rejected: ``1 3d8``, ``3 d8``, ``3d 8``, ``1 28``.
 _SPLIT_NUMBER_RE = re.compile(r"\b\d+\s+\d+\b")
 _SPLIT_HIT_DICE_COUNT_RE = re.compile(r"\b\d+\s+\d+d\d+\b", re.IGNORECASE)
@@ -150,14 +156,18 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
         modifier = int((hp_expression.group(4) or "0").replace(" ", ""))
         expected_average = (dice_count * (die_size + 1)) // 2 + modifier
         mathematically_coherent = average == expected_average
+    dynamic_artificer_hp = bool(_DYNAMIC_ARTIFICER_HP_RE.search(hp_text))
     if (
-        not dice_token_ok
+        not dynamic_artificer_hp
+        and (
+            not dice_token_ok
         or has_split_number
         or has_split_hit_dice_count
         or has_split_dice
         or has_split_dice_faces
-        or has_ocr_dice_letters
-        or not mathematically_coherent
+            or has_ocr_dice_letters
+            or not mathematically_coherent
+        )
     ):
         flags.add(HP_FORMAT_ERROR_FLAG)
 
