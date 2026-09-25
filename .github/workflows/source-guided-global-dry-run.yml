@@ -14,13 +14,14 @@ permissions:
 
 concurrency:
   group: tomoforge-source-guided-global-dry-run
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   granular-dry-run:
     name: granular-dry-run (${{ matrix.slot }})
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - slot: "01"
