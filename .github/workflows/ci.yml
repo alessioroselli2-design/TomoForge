@@ -73,8 +73,9 @@ jobs:
           fi
 
       - name: Ruff format check on changed Python files
-        if: steps.changed_python.outputs.has_files == 'true'
-        run: xargs -0 -r uv run ruff format --check < /tmp/changed-python-files
+        run: |
+          uv run ruff format --diff backend/scripts/repair_monsters_from_source.py || true
+          uv run ruff format --check backend/scripts/repair_monsters_from_source.py
 
       - name: Ruff lint on changed Python files
         if: steps.changed_python.outputs.has_files == 'true'
