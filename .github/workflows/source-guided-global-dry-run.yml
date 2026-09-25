@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - slot: "01"
-            name: "Colosso Runico"
+            name: "Congreghe Di Megere"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
