@@ -31,6 +31,10 @@ _DYNAMIC_ARTIFICER_HP_RE = re.compile(
     r"(?:\[?d8\]?)",
     re.IGNORECASE,
 )
+_DYNAMIC_DRUID_HP_RE = re.compile(
+    r"^\s*\d+\s*\+\s*cinque\s+volte\s+il\s+livello\s+da\s+druido\b",
+    re.IGNORECASE,
+)
 # Examples intentionally rejected: ``1 3d8``, ``3 d8``, ``3d 8``, ``1 28``.
 _SPLIT_NUMBER_RE = re.compile(r"\b\d+\s+\d+\b")
 _SPLIT_HIT_DICE_COUNT_RE = re.compile(r"\b\d+\s+\d+d\d+\b", re.IGNORECASE)
@@ -157,9 +161,12 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
         modifier = int(modifier_text.replace("−", "-").replace("–", "-"))
         expected_average = (dice_count * (die_size + 1)) // 2 + modifier
         mathematically_coherent = average == expected_average
-    dynamic_artificer_hp = bool(_DYNAMIC_ARTIFICER_HP_RE.search(hp_text))
+    dynamic_companion_hp = bool(
+        _DYNAMIC_ARTIFICER_HP_RE.search(hp_text)
+        or _DYNAMIC_DRUID_HP_RE.search(hp_text)
+    )
     if (
-        not dynamic_artificer_hp
+        not dynamic_companion_hp
         and (
             not dice_token_ok
             or has_split_number
