@@ -13,3 +13,4 @@ Focused rerun Altisauro left-column evidence 85f4d508de2b6e9ad56c15a00cde8f3b376
 Focused diagnostic Altisauro first-pass only fdd3b9040f7afefc85f50b67beaa0cb591350943
 Focused rerun Altisauro dual-raster OCR aa00dcac36abfa2ca3c8e3dff7fe96a3a27eaca3
 Focused rerun Altisauro core-line diagnostics aed03a7882bd2308bb2c06f2d2d791b3b8fbb179
+Focused rerun Altisauro after feminine size descriptor fix 7a182d55ade6e32d35f56c26703119a0c9ece47f
