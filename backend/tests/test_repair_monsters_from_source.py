@@ -689,18 +689,7 @@ def test_dark_pixel_erosion_thins_only_into_immediate_neighborhood():
 
 
 def test_full_spectrum_contrast_range_and_background_variance_are_bounded():
-    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (
-        0.8,
-        1.1,
-        1.4,
-        1.7,
-        2.0,
-        2.3,
-        2.6,
-        2.9,
-        3.2,
-        3.5,
-    )
+    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (1.0, 1.8, 2.5)
     assert _sample_variance(bytes([255, 255, 255])) == 0.0
     assert _sample_variance(bytes([0, 255])) > 36.0
 
