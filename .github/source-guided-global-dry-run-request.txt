@@ -9,3 +9,4 @@ Focused rerun for Shadar-Kai Trafficante Di Anime alias 79996e86b3613abc95a6eef4
 Focused rerun Altisauro after bounded all-phase OCR 7b0552b1b4f569418a6455c31c9ab136b4a69dab
 Focused rerun Altisauro target-page-first aaa33b3d47eabc65e2101478faf914f91b170427
 Focused rerun Altisauro with pre-Otsu x2 59e0e55fcf81185f61e63c3e863d2d473eca7e96
+Focused rerun Altisauro left-column evidence 85f4d508de2b6e9ad56c15a00cde8f3b3760607e
