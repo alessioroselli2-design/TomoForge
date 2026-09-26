@@ -4079,6 +4079,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_players_handbook_blocked11",
         "batch_players_handbook_blocked9",
         "batch_players_handbook_blocked8",
+        "batch_players_handbook_blocked7",
     }:
         raise RuntimeError(f"{args.target_set} is a dry-run-only audit target set")
     if (
@@ -4157,6 +4158,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_players_handbook_blocked11",
         "batch_players_handbook_blocked9",
         "batch_players_handbook_blocked8",
+        "batch_players_handbook_blocked7",
     }:
         players_handbook_records = await _fetch_all(
             records_collection,
@@ -4196,6 +4198,7 @@ async def _run(args: argparse.Namespace) -> int:
             "batch_players_handbook_blocked11",
             "batch_players_handbook_blocked9",
             "batch_players_handbook_blocked8",
+            "batch_players_handbook_blocked7",
         }
     ):
         return 0
@@ -4214,6 +4217,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_players_handbook_blocked11",
         "batch_players_handbook_blocked9",
         "batch_players_handbook_blocked8",
+        "batch_players_handbook_blocked7",
     }
     if args.target_set == "batch_players_handbook":
         targets = select_players_handbook_targets(players_handbook_records)
