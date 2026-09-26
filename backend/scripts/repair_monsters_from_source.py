@@ -1830,9 +1830,8 @@ def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
         return True
     target_words = target.split()
     page_words = page.split()
-    if (
-        len(page_words) <= len(target_words) + 1
-        and compact_name_boundary_match(page, target)
+    if len(page_words) <= len(target_words) + 1 and compact_name_boundary_match(
+        page, target
     ):
         return True
     if (
