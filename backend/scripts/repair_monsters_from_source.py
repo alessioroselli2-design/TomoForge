@@ -464,41 +464,147 @@ EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT = 14
 EXPECTED_PLAYERS_HANDBOOK_IDS_MD5 = "a2f4c03bff9e13e4834344e890cdf099"
 PLAYERS_HANDBOOK_LEGACY_FILENAME = "Manuale_del_giocatore__1787259882002.pdf"
 PLAYERS_HANDBOOK_LOGICAL_SOURCE_ID = "phb_2014_it"
-PLAYERS_HANDBOOK_CONFIRMATION_TOKEN = (
-    "CLEAN-PHB31-31-a2f4c03bff9e13e4834344e890cdf099"
-)
+PLAYERS_HANDBOOK_CONFIRMATION_TOKEN = "CLEAN-PHB31-31-a2f4c03bff9e13e4834344e890cdf099"
 PLAYERS_HANDBOOK_TARGETS: tuple[dict[str, str], ...] = (
-    {"id": "ref_554da30e4dcd50dc89e327bcf76a6bda", "name": "Aquila Gigante", "status": "verified"},
-    {"id": "ref_b82e375ea1b55332a2f58c3719559b49", "name": "Cavallo Da Galoppo", "status": "verified"},
-    {"id": "ref_85a4eadb862758fbb682e93ab19f1065", "name": "Cavallo Da Guerra", "status": "verified"},
-    {"id": "ref_66df831bf85c519ea29a652124767350", "name": "Cinghiale", "status": "verified"},
-    {"id": "ref_9c0a7cc17c185980a4bbff7f4a6fed98", "name": "Coccodrillo", "status": "verified"},
-    {"id": "ref_45c912daf13f527492fefbd392b25e3a", "name": "Corvo", "status": "verified"},
-    {"id": "ref_f28940a5239a54f696cb524805e29cc2", "name": "Falco", "status": "verified"},
-    {"id": "ref_2704a598d7185e209f21f044e39f4341", "name": "Gatto", "status": "verified"},
-    {"id": "ref_38273488414b57489e9d7e57a6c0a360", "name": "Gufo", "status": "verified"},
+    {
+        "id": "ref_554da30e4dcd50dc89e327bcf76a6bda",
+        "name": "Aquila Gigante",
+        "status": "verified",
+    },
+    {
+        "id": "ref_b82e375ea1b55332a2f58c3719559b49",
+        "name": "Cavallo Da Galoppo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_85a4eadb862758fbb682e93ab19f1065",
+        "name": "Cavallo Da Guerra",
+        "status": "verified",
+    },
+    {
+        "id": "ref_66df831bf85c519ea29a652124767350",
+        "name": "Cinghiale",
+        "status": "verified",
+    },
+    {
+        "id": "ref_9c0a7cc17c185980a4bbff7f4a6fed98",
+        "name": "Coccodrillo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_45c912daf13f527492fefbd392b25e3a",
+        "name": "Corvo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_f28940a5239a54f696cb524805e29cc2",
+        "name": "Falco",
+        "status": "verified",
+    },
+    {
+        "id": "ref_2704a598d7185e209f21f044e39f4341",
+        "name": "Gatto",
+        "status": "verified",
+    },
+    {
+        "id": "ref_38273488414b57489e9d7e57a6c0a360",
+        "name": "Gufo",
+        "status": "verified",
+    },
     {"id": "ref_6e1a9996179d5a93a027a31bc30b5d2f", "name": "Imp", "status": "verified"},
-    {"id": "ref_64b388f7cd6053c4a275e173aa482cfd", "name": "Leone", "status": "verified"},
-    {"id": "ref_87ee4ffeff7c5b7bb65e12def234a3be", "name": "Lupo", "status": "verified"},
-    {"id": "ref_3f86dfa076ca220708e09deff0d7d831", "name": "Lupo Feroce", "status": "pending"},
-    {"id": "ref_c467615fbd9ce6c93677ac1d9a323eed", "name": "Mastino", "status": "pending"},
+    {
+        "id": "ref_64b388f7cd6053c4a275e173aa482cfd",
+        "name": "Leone",
+        "status": "verified",
+    },
+    {
+        "id": "ref_87ee4ffeff7c5b7bb65e12def234a3be",
+        "name": "Lupo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_3f86dfa076ca220708e09deff0d7d831",
+        "name": "Lupo Feroce",
+        "status": "pending",
+    },
+    {
+        "id": "ref_c467615fbd9ce6c93677ac1d9a323eed",
+        "name": "Mastino",
+        "status": "pending",
+    },
     {"id": "ref_f453abfdd8264ef7bb0d71805fe586e7", "name": "Mulo", "status": "pending"},
-    {"id": "ref_019562bded0b320ac918f4b2514c65e4", "name": "Orso Bruno", "status": "pending"},
-    {"id": "ref_00d159a7d0ee3d2e977d361999dd4966", "name": "Orso Nero", "status": "pending"},
-    {"id": "ref_c401166fb5d39eb00b150a171e41ad26", "name": "Pantera", "status": "pending"},
-    {"id": "ref_0626a11ef12ec092e8c13f94d1b03cd8", "name": "Pipistrello", "status": "pending"},
-    {"id": "ref_ebab36d8c07021483328e99bebabf365", "name": "Pseudodrago", "status": "pending"},
-    {"id": "ref_867c68436df55ff48716ebe704da4044", "name": "Quasit", "status": "verified"},
-    {"id": "ref_4f1b7244dd735e579ae1e5ec931ccf17", "name": "Ragno Gigante", "status": "verified"},
+    {
+        "id": "ref_019562bded0b320ac918f4b2514c65e4",
+        "name": "Orso Bruno",
+        "status": "pending",
+    },
+    {
+        "id": "ref_00d159a7d0ee3d2e977d361999dd4966",
+        "name": "Orso Nero",
+        "status": "pending",
+    },
+    {
+        "id": "ref_c401166fb5d39eb00b150a171e41ad26",
+        "name": "Pantera",
+        "status": "pending",
+    },
+    {
+        "id": "ref_0626a11ef12ec092e8c13f94d1b03cd8",
+        "name": "Pipistrello",
+        "status": "pending",
+    },
+    {
+        "id": "ref_ebab36d8c07021483328e99bebabf365",
+        "name": "Pseudodrago",
+        "status": "pending",
+    },
+    {
+        "id": "ref_867c68436df55ff48716ebe704da4044",
+        "name": "Quasit",
+        "status": "verified",
+    },
+    {
+        "id": "ref_4f1b7244dd735e579ae1e5ec931ccf17",
+        "name": "Ragno Gigante",
+        "status": "verified",
+    },
     {"id": "ref_66cc59680c4e58fa93a99656f8a07887", "name": "Rana", "status": "pending"},
-    {"id": "ref_6196e826b9aa5833ac6ffae026d26850", "name": "Scheletro", "status": "pending"},
-    {"id": "ref_bc1c095a87b05bda98a5cc369e9daa24", "name": "Serpente Stritolatore", "status": "pending"},
-    {"id": "ref_d60133b03dc9555e866728cbc2a75f9a", "name": "Serpente Velenoso", "status": "pending"},
-    {"id": "ref_bff81a4eec5c54349735293d3691ca7d", "name": "Spiritello", "status": "pending"},
-    {"id": "ref_34a7a3005aa296c6c4ed9cd6a962df3c", "name": "Squalo Tropicale", "status": "pending"},
-    {"id": "ref_32307945d56a74e63b112480050955e9", "name": "Tigre", "status": "pending"},
+    {
+        "id": "ref_6196e826b9aa5833ac6ffae026d26850",
+        "name": "Scheletro",
+        "status": "pending",
+    },
+    {
+        "id": "ref_bc1c095a87b05bda98a5cc369e9daa24",
+        "name": "Serpente Stritolatore",
+        "status": "pending",
+    },
+    {
+        "id": "ref_d60133b03dc9555e866728cbc2a75f9a",
+        "name": "Serpente Velenoso",
+        "status": "pending",
+    },
+    {
+        "id": "ref_bff81a4eec5c54349735293d3691ca7d",
+        "name": "Spiritello",
+        "status": "pending",
+    },
+    {
+        "id": "ref_34a7a3005aa296c6c4ed9cd6a962df3c",
+        "name": "Squalo Tropicale",
+        "status": "pending",
+    },
+    {
+        "id": "ref_32307945d56a74e63b112480050955e9",
+        "name": "Tigre",
+        "status": "pending",
+    },
     {"id": "ref_06dd892fa0e121a2237f34d5be31fab4", "name": "Topo", "status": "pending"},
-    {"id": "ref_6f23f3488a9b5f276925987ddd975577", "name": "Zombi", "status": "pending"},
+    {
+        "id": "ref_6f23f3488a9b5f276925987ddd975577",
+        "name": "Zombi",
+        "status": "pending",
+    },
 )
 
 
@@ -1238,7 +1344,6 @@ def select_bigby4_targets(
     return targets
 
 
-
 def select_players_handbook_targets(
     records: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -1254,9 +1359,7 @@ def select_players_handbook_targets(
                 f"{expected['id']} ({expected['name']})"
             )
         if str(record.get("name") or "") != expected["name"]:
-            raise RuntimeError(
-                f"Player's Handbook name drift: {expected['id']}"
-            )
+            raise RuntimeError(f"Player's Handbook name drift: {expected['id']}")
         status = str(record.get("review_status") or "")
         if status != expected["status"]:
             raise RuntimeError(
@@ -1264,18 +1367,14 @@ def select_players_handbook_targets(
                 f"expected={expected['status']!r} actual={status!r}"
             )
         if str(record.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
-            raise RuntimeError(
-                f"Player's Handbook source_key drift: {expected['id']}"
-            )
+            raise RuntimeError(f"Player's Handbook source_key drift: {expected['id']}")
         refs = record.get("source_refs") or []
         if not any(
             isinstance(ref, dict)
             and str(ref.get("filename") or "") == PLAYERS_HANDBOOK_LEGACY_FILENAME
             for ref in refs
         ):
-            raise RuntimeError(
-                f"Player's Handbook source_ref drift: {expected['id']}"
-            )
+            raise RuntimeError(f"Player's Handbook source_ref drift: {expected['id']}")
         if record.get("canonical_id"):
             raise RuntimeError(
                 f"Player's Handbook canonical link detected: {expected['id']}"
@@ -2965,7 +3064,6 @@ async def _apply_update(
             raise RuntimeError("post-update batch timestamp verification failed")
 
 
-
 async def _apply_verified_ocr_flag_cleanup(
     collection: Any,
     legacy: dict[str, Any],
@@ -2977,9 +3075,7 @@ async def _apply_verified_ocr_flag_cleanup(
         raise RepairBlocked("verified_cleanup_status_drift")
     if str(legacy.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
         raise RepairBlocked("verified_cleanup_source_drift")
-    if {str(flag) for flag in (legacy.get("review_flags") or [])} != {
-        OCR_REVIEW_FLAG
-    }:
+    if {str(flag) for flag in (legacy.get("review_flags") or [])} != {OCR_REVIEW_FLAG}:
         raise RepairBlocked("verified_cleanup_flag_drift")
     if monster_semantic_numeric_flags(legacy.get("attributes") or {}):
         raise RepairBlocked("verified_cleanup_core_gate_failure")
@@ -3589,9 +3685,7 @@ async def _run(args: argparse.Namespace) -> int:
                 "must pass exact CA/PF/velocita source agreement before any flag write"
             )
         await _revalidate_target_snapshots(records_collection, targets)
-        batch_updated_at = datetime.now(timezone.utc).isoformat().replace(
-            "+00:00", "Z"
-        )
+        batch_updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         for report in verified_reports:
             await _apply_verified_ocr_flag_cleanup(
                 records_collection,
