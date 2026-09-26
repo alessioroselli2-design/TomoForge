@@ -775,7 +775,10 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
-    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 75.0,  # Lupo
+    "ref_f28940a5239a54f696cb524805e29cc2": 75.0,  # Falco
+    "ref_38273488414b57489e9d7e57a6c0a360": 75.0,  # Gufo
+    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 90.0,  # Lupo
+    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 75.0,  # Pipistrello
 }
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
@@ -1827,10 +1830,19 @@ def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
         return True
     target_words = target.split()
     page_words = page.split()
-    return bool(
+    if (
         len(page_words) == len(target_words) + 1
         and page_words[: len(target_words)] == target_words
         and len(page_words[-1]) <= 2
+    ):
+        return True
+    # Permit one bounded OCR edit only when the entire TSV line is title-like.
+    # A narrative mention cannot match because the full normalized line must
+    # remain within the conservative identity matcher; multiple candidates
+    # still fail closed in _sparse_anchor_crop_fractions.
+    return bool(
+        len(page_words) <= len(target_words) + 1
+        and compact_name_bounded_edit_match(page, target)
     )
 
 
@@ -2787,6 +2799,11 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
+    if sparse_full_page and name in {"Cavallo Da Guerra", "Orso Bruno"}:
+        # PSM 4 lost the independently-readable comparison candidate for these
+        # PHB blocks in run #112. Keep the primary PSM 3 unchanged and use a
+        # distinct conservative block mode for the comparison pass.
+        secondary_psm = 6
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
@@ -3587,9 +3604,9 @@ async def _repair_one(
     )
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
-    # attempt for this monster. A timeout blocks only this record. The PHB Lupo
-    # gets a narrowly-scoped 75s budget after run #107 reached 60.29s; each
-    # individual Tesseract subprocess remains hard-limited to 15s.
+    # attempt for this monster. A timeout blocks only this record. PHB records
+    # that reached the boundary in run #112 receive a narrowly-scoped budget;
+    # each individual Tesseract subprocess remains hard-limited to 15s.
     ocr_budget_started_at = (
         time.monotonic(),
         OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
