@@ -53,6 +53,44 @@ def test_parses_one_complete_monster_and_keeps_review_gate():
     ]
 
 
+def test_speed_wrap_with_open_parenthesis_is_joined_conservatively():
+    text = """IMP
+Minuscolo immondo, legale malvagio
+Classe Armatura 13
+Punti Ferita 10 (3d4 + 3)
+Velocità 6 m, volare 12 m (6 m in forma di topo; 6 m, volare 18
+m in forma di corvo; 6 m, scalare 6 m in forma di ragno)
+FOR DES COS INT SAG CAR
+6 17 13 11 12 14
+"""
+
+    records = parse_monster_statblocks([(306, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["velocita"] == (
+        "6 m, volare 12 m (6 m in forma di topo; 6 m, volare 18 "
+        "m in forma di corvo; 6 m, scalare 6 m in forma di ragno)"
+    )
+
+
+def test_speed_wrap_does_not_cross_into_structural_field():
+    text = """IMP
+Minuscolo immondo, legale malvagio
+Classe Armatura 13
+Punti Ferita 10 (3d4 + 3)
+Velocità 6 m, volare 12 m (6 m in forma di topo
+FOR DES COS INT SAG CAR
+6 17 13 11 12 14
+"""
+
+    records = parse_monster_statblocks([(306, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["velocita"] == (
+        "6 m, volare 12 m (6 m in forma di topo"
+    )
+
+
 def test_rejects_attack_like_text_without_statblock_header():
     text = """SPADA LUNGA
 Arma da mischia, marziale
