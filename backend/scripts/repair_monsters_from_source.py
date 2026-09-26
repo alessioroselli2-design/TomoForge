@@ -3832,7 +3832,6 @@ async def _repair_one(
             "batch_players_handbook_blocked12",
             "batch_players_handbook_blocked11",
             "batch_players_handbook_blocked9",
-        "batch_players_handbook_blocked8",
             "batch_players_handbook_blocked8",
         }
         and str(record.get("review_status") or "") == "verified"
@@ -3968,7 +3967,6 @@ def _parser() -> argparse.ArgumentParser:
             "batch_players_handbook_blocked12",
             "batch_players_handbook_blocked11",
             "batch_players_handbook_blocked9",
-        "batch_players_handbook_blocked8",
             "batch_players_handbook_blocked8",
         ),
         default=None,
@@ -4138,7 +4136,6 @@ async def _run(args: argparse.Namespace) -> int:
             "batch_players_handbook_blocked12",
             "batch_players_handbook_blocked11",
             "batch_players_handbook_blocked9",
-        "batch_players_handbook_blocked8",
             "batch_players_handbook_blocked8",
         }
     ):
