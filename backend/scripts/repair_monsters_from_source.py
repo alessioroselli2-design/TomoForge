@@ -1760,9 +1760,7 @@ def _phb_target_core_crop_fractions(
         raw_text = " ".join(str(word.get("text") or "") for word in words)
         normalized = normalize_reference_name(raw_text)
         if normalized.startswith("velocita") or normalized.startswith("veloc "):
-            speed_bottom = max(
-                int(word["top"]) + int(word["height"]) for word in words
-            )
+            speed_bottom = max(int(word["top"]) + int(word["height"]) for word in words)
             break
 
     if speed_bottom is not None:
