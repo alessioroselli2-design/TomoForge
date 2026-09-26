@@ -265,6 +265,37 @@ def _first_match(patterns: Iterable[str], text: str) -> str:
     return ""
 
 
+def _multiline_speed_value(text: str) -> str:
+    """Join only a clearly wrapped speed value with unbalanced parentheses."""
+    lines = [clean_text(line or "") for line in (text or "").splitlines()]
+    for index, line in enumerate(lines):
+        match = re.match(
+            r"^\s*(?:Velocit[àa]|Speed)\s*:?\s*(.*)$",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if match is None:
+            continue
+        value = match.group(1).strip(" .;,")
+        if not value:
+            return ""
+        balance = value.count("(") - value.count(")")
+        if balance <= 0:
+            return value
+        for following in lines[index + 1 : index + 4]:
+            normalized = _norm(following)
+            if not following.strip():
+                continue
+            if any(normalized.startswith(prefix) for prefix in _STRUCTURAL_PREFIXES):
+                break
+            value = f"{value} {following.strip()}".strip()
+            balance += following.count("(") - following.count(")")
+            if balance <= 0:
+                break
+        return value.strip(" .;,")
+    return ""
+
+
 def _attributes(text: str, descriptor: str) -> dict:
     """Map Italian and English source labels into one canonical Italian schema."""
     attributes: dict[str, object] = {
@@ -321,7 +352,11 @@ def _attributes(text: str, descriptor: str) -> dict:
         ),
     }
     for field, field_patterns in patterns.items():
-        value = _first_match(field_patterns, text)
+        value = (
+            _multiline_speed_value(text)
+            if field == "velocita"
+            else _first_match(field_patterns, text)
+        )
         if value:
             attributes[field] = value
 
