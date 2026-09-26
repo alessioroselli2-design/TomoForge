@@ -31,6 +31,8 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
@@ -72,6 +74,7 @@ from scripts.repair_monsters_from_source import (
     select_players_handbook_blocked20_targets,
     select_players_handbook_blocked16_targets,
     select_players_handbook_blocked12_targets,
+    select_players_handbook_blocked11_targets,
 )
 
 
@@ -231,6 +234,49 @@ def test_players_handbook_blocked12_is_sealed_from_full_phb_batch():
     assert "Topo" not in selected_names
     assert "Cavallo Da Guerra" in selected_names
     assert "Rana" in selected_names
+
+
+def test_players_handbook_blocked11_is_sealed_after_quasit_passes():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked11_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT == 11
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Quasit" not in selected_names
+    assert "Rana" in selected_names
+    assert "Cinghiale" in selected_names
+    assert "Orso Bruno" in selected_names
 
 
 def test_residual_batches_are_disjoint_complete_and_fingerprinted():
