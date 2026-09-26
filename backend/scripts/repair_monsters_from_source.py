@@ -695,6 +695,14 @@ PLAYERS_HANDBOOK_TIMEOUT8_NAMES = frozenset(
         "Tigre",
     }
 )
+PLAYERS_HANDBOOK_TIMEOUT4_NAMES = frozenset(
+    {
+        "Falco",
+        "Gufo",
+        "Lupo",
+        "Pipistrello",
+    }
+)
 PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS = frozenset(
     {
         *PLAYERS_HANDBOOK_TIMEOUT8_IDS,
@@ -838,6 +846,15 @@ TARGET_SEGMENT_BY_NAME = {
     "Bael": "left",
     "Colosso Runico": "left",
     "Congreghe Di Megere": "left",
+    # PHB blocked7: run #130 PSM11/12 title anchors are all in the right column.
+    # This is source-guided geometry only; OCR values and agreement gates stay unchanged.
+    "Cavallo Da Guerra": "right",
+    "Cinghiale": "right",
+    "Falco": "right",
+    "Gufo": "right",
+    "Lupo": "right",
+    "Orso Bruno": "right",
+    "Pipistrello": "right",
 }
 SOURCE_GUIDED_UNIQUE_HP_SEGMENT_FALLBACK_TARGETS = {
     "Colosso Runico",
@@ -2707,11 +2724,15 @@ def _micro_ocr_hit_points_line(
                 scale_factors = (
                     (4, 2) if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES else (2, 4)
                 )
-                morphologies = (
-                    ("dilation_erosion", "dilation", "erosion", "none")
-                    if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES
-                    else ("erosion", "dilation", "dilation_erosion", "none")
-                )
+                if name in PLAYERS_HANDBOOK_TIMEOUT4_NAMES:
+                    # Run #130 showed these four records exhausting the global
+                    # budget before reaching the cheaper useful morphology.
+                    # Reorder the same variants only; acceptance gates are unchanged.
+                    morphologies = ("erosion", "none", "dilation", "dilation_erosion")
+                elif name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES:
+                    morphologies = ("dilation_erosion", "dilation", "erosion", "none")
+                else:
+                    morphologies = ("erosion", "dilation", "dilation_erosion", "none")
                 for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                         for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
