@@ -695,6 +695,12 @@ PLAYERS_HANDBOOK_TIMEOUT8_NAMES = frozenset(
         "Tigre",
     }
 )
+PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS = frozenset(
+    {
+        *PLAYERS_HANDBOOK_TIMEOUT8_IDS,
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+    }
+)
 
 EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT = 12
 EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5 = "30b288a628863e6a4bb5ba64020deca5"
@@ -790,10 +796,10 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
-    "ref_f28940a5239a54f696cb524805e29cc2": 90.0,  # Falco
-    "ref_38273488414b57489e9d7e57a6c0a360": 90.0,  # Gufo
-    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 105.0,  # Lupo
-    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 90.0,  # Pipistrello
+    "ref_f28940a5239a54f696cb524805e29cc2": 105.0,  # Falco
+    "ref_38273488414b57489e9d7e57a6c0a360": 105.0,  # Gufo
+    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 120.0,  # Lupo
+    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 105.0,  # Pipistrello
 }
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
@@ -1888,6 +1894,7 @@ def _sparse_anchor_crop_fractions(
     languages: str,
     target_name: str,
     *,
+    psm: int = 11,
     ocr_budget_started_at: float | tuple[float, float] | None = None,
 ) -> tuple[float, float, float, float] | None:
     """Locate one unique PSM11 title anchor and return a target-column crop.
@@ -1904,7 +1911,7 @@ def _sparse_anchor_crop_fractions(
         "-l",
         languages,
         "--psm",
-        "11",
+        str(psm),
         "tsv",
         "quiet",
     ]
@@ -1934,6 +1941,7 @@ def _sparse_anchor_crop_fractions(
             + json.dumps(
                 {
                     "name": target_name,
+                    "psm": psm,
                     "matching_title_lines": len(matches),
                     "accepted": False,
                 },
@@ -1968,6 +1976,7 @@ def _sparse_anchor_crop_fractions(
         + json.dumps(
             {
                 "name": target_name,
+                "psm": psm,
                 "matching_title_lines": 1,
                 "accepted": True,
                 "anchor_bbox_px": [left, top, right, bottom],
@@ -2874,11 +2883,10 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
-    if sparse_full_page and name in {"Cavallo Da Guerra", "Mulo", "Orso Bruno"}:
-        # PSM 4/6 lost the independently-readable comparison candidate for
-        # these PHB blocks. Keep primary PSM 3 unchanged and use sparse PSM 11
-        # as a distinct core OCR pass on the already geometry-bound crop.
-        secondary_psm = 11
+    if sparse_full_page and name in {"Cavallo Da Guerra", "Orso Bruno"}:
+        # Keep primary PSM 3 unchanged and use a distinct sparse mode for the
+        # comparison pass. PSM 11 still lost target identity on focused #123.
+        secondary_psm = 12
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
@@ -2935,6 +2943,14 @@ def _ocr_source_window(
                             name,
                             ocr_budget_started_at=ocr_budget_started_at,
                         )
+                        if sparse_anchor_crop is None and name == "Cinghiale":
+                            sparse_anchor_crop = _sparse_anchor_crop_fractions(
+                                image_path,
+                                languages,
+                                name,
+                                psm=12,
+                                ocr_budget_started_at=ocr_budget_started_at,
+                            )
                         sparse_anchor_found = sparse_anchor_crop is not None
                         if not sparse_anchor_found:
                             segment_metrics[segment_name] = {
@@ -3730,7 +3746,7 @@ async def _repair_one(
                 physical_page,
             )
             if (
-                record_id in PLAYERS_HANDBOOK_TIMEOUT8_IDS
+                record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
                 and HP_FORMAT_ERROR_FLAG
                 in monster_semantic_numeric_flags(candidate.get("attributes") or {})
             ):
