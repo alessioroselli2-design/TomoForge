@@ -390,6 +390,33 @@ def test_hp_micro_ocr_does_not_touch_non_hp_text(tmp_path):
     run.assert_not_called()
 
 
+def test_hp_micro_ocr_skips_when_unique_local_hp_is_already_valid(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "Quasit\n"
+        "Minuscolo immondo, legale malvagio\n"
+        "Classe Armatura 13\n"
+        "Punti Ferita 7 (3d4)\n"
+        "Velocità 6 m, volare 12 m\n"
+    )
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Quasit",
+        )
+
+    assert result == page_text
+    run.assert_not_called()
+    assert "HP_MICRO_OCR_SKIPPED_VALID_LOCAL" in capsys.readouterr().out
+
+
 def test_hp_micro_ocr_uses_target_name_as_upper_anchor(tmp_path):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
@@ -946,6 +973,22 @@ def test_mpmm_layout_profile_splits_columns_and_uses_independent_ocr_modes():
 
 def test_bigby_layout_profile_splits_columns_and_uses_independent_ocr_modes():
     source = {"logical_source_id": "bgg_2023_it"}
+
+    assert _layout_profile(source) == "two_column_vertical"
+    assert _layout_segments(source) == (
+        ("left", (0.0, 0.0, 0.52, 1.0)),
+        ("right", (0.48, 0.0, 1.0, 1.0)),
+    )
+    assert _layout_ocr_settings(
+        source,
+        dpi=220,
+        psm=6,
+        comparison_psm=4,
+    ) == (300, 3, 4)
+
+
+def test_players_handbook_layout_profile_splits_columns():
+    source = {"logical_source_id": "phb_2014_it"}
 
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
