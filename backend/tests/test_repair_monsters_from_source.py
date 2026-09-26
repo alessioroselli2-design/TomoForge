@@ -41,6 +41,8 @@ from scripts.repair_monsters_from_source import (
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
     PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
+    PLAYERS_HANDBOOK_TIMEOUT4_NAMES,
+    TARGET_SEGMENT_BY_NAME,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -1021,6 +1023,74 @@ def test_hp_micro_ocr_unique_geometry_can_repair_duplicate_target_copies(tmp_pat
 
     assert result.count("Punti Ferita 1 (1d4 - 1)") == 2
     assert "HP_UNIQUE_GEOMETRY_DUPLICATE_REPLACEMENT" in capsys.readouterr().out
+
+
+def test_phb_blocked7_source_guided_segments_are_right_column():
+    assert PLAYERS_HANDBOOK_TIMEOUT4_NAMES == {
+        "Falco",
+        "Gufo",
+        "Lupo",
+        "Pipistrello",
+    }
+    assert {
+        name: TARGET_SEGMENT_BY_NAME[name]
+        for name in (
+            "Cavallo Da Guerra",
+            "Cinghiale",
+            "Falco",
+            "Gufo",
+            "Lupo",
+            "Orso Bruno",
+            "Pipistrello",
+        )
+    } == {
+        "Cavallo Da Guerra": "right",
+        "Cinghiale": "right",
+        "Falco": "right",
+        "Gufo": "right",
+        "Lupo": "right",
+        "Orso Bruno": "right",
+        "Pipistrello": "right",
+    }
+
+
+def test_phb_timeout4_full_spectrum_prioritizes_x4_erosion(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t100\t20\t95\tFalco\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1d4 - 1)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Falco\nPunti Ferita 1 (1dA - 1)\nVelocità 3 m, volare 18 m\n",
+            "Falco",
+        )
+
+    assert "Punti Ferita 1 (1d4 - 1)" in result
+    first_spectrum_path = run.call_args_list[5].args[0][1]
+    assert "upscaled-x4" in first_spectrum_path
+    assert "dark-eroded" in first_spectrum_path
+    assert "dark-dilated" not in first_spectrum_path
 
 
 def test_phb_full_spectrum_prioritizes_x4_dilation_erosion(tmp_path):
