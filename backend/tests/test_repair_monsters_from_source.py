@@ -937,6 +937,83 @@ def test_hp_micro_ocr_collapses_identical_duplicate_hp_lines(tmp_path):
     run.assert_not_called()
 
 
+def test_hp_micro_ocr_unique_geometry_can_repair_duplicate_target_copies(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t80\t15\t95\tRana\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t15\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t15\t95\tFerita\n"
+    )
+    page_text = (
+        "Rana\nPunti Ferita 1 (1dA - 1)\nVelocità 6 m\n"
+        "Rana\nPunti Ferita 1 (1d 4 - 1)\nVelocità 6 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="1 (1d4 - 1)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Rana",
+            single_target_geometry=True,
+        )
+
+    assert result.count("Punti Ferita 1 (1d4 - 1)") == 2
+    assert "HP_UNIQUE_GEOMETRY_DUPLICATE_REPLACEMENT" in capsys.readouterr().out
+
+
+def test_phb_full_spectrum_prioritizes_x4_dilation_erosion(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t100\t20\t95\tMulo\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (2d8 + 2)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Mulo\nPunti Ferita 11 (248+ 2)\nVelocità 12 m\n",
+            "Mulo",
+        )
+
+    assert "Punti Ferita 11 (2d8 + 2)" in result
+    first_spectrum_path = run.call_args_list[5].args[0][1]
+    assert "upscaled-x4" in first_spectrum_path
+    assert "dark-dilated" in first_spectrum_path
+    assert "dark-eroded" in first_spectrum_path
+    assert "threshold-80" in first_spectrum_path
+
+
 def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
@@ -1422,6 +1499,7 @@ def test_sparse_page_anchor_requires_title_like_identity():
     assert _sparse_anchor_matches("RAK   TULKHESH", "Rak Tulkhesh")
     assert _sparse_anchor_matches("RAK   TULKHESH X", "Rak Tulkhesh")
     assert _sparse_anchor_matches("CINGHIAIE", "Cinghiale")
+    assert _sparse_anchor_matches("CING HIALE", "Cinghiale")
     assert _sparse_anchor_matches("MUIO", "Mulo")
     assert not _sparse_anchor_matches(
         "RAK TULKHESH Classe Armatura",
