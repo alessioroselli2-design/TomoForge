@@ -62,6 +62,7 @@ from scripts.repair_monsters_from_source import (
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
+    _phb_sparse_comparison_psm,
     _sample_variance,
     _should_retry_dynamic_layout,
     _sparse_anchor_crop_fractions,
@@ -2071,11 +2072,19 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
         PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
     )
     assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
-        "ref_f28940a5239a54f696cb524805e29cc2": 105.0,
-        "ref_38273488414b57489e9d7e57a6c0a360": 105.0,
-        "ref_87ee4ffeff7c5b7bb65e12def234a3be": 120.0,
-        "ref_0626a11ef12ec092e8c13f94d1b03cd8": 105.0,
+        "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
+        "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,
     }
+
+
+def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
+    assert _phb_sparse_comparison_psm("Cinghiale", 4) == 12
+    assert _phb_sparse_comparison_psm("Rana", 4) == 12
+    assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 5
+    assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 5
+    assert _phb_sparse_comparison_psm("Falco", 4) == 4
 
 
 def test_sparse_anchor_crop_rejects_ambiguous_duplicate_title(tmp_path):
