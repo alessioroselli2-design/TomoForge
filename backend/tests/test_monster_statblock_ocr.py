@@ -53,6 +53,39 @@ def test_parses_one_complete_monster_and_keeps_review_gate():
     ]
 
 
+def test_hit_points_wrap_with_open_parenthesis_is_joined_conservatively():
+    text = """RANA
+Minuscola bestia, senza allineamento
+Classe Armatura 11
+Punti Ferita 1 (1d4
+- 1)
+Velocità 6 m, nuotare 6 m
+FOR DES COS INT SAG CAR
+1 13 8 1 8 3
+"""
+
+    records = parse_monster_statblocks([(310, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["punti_ferita"] == "1 (1d4 - 1)"
+
+
+def test_hit_points_wrap_does_not_cross_structural_field():
+    text = """RANA
+Minuscola bestia, senza allineamento
+Classe Armatura 11
+Punti Ferita 1 (1d4
+Velocità 6 m, nuotare 6 m
+FOR DES COS INT SAG CAR
+1 13 8 1 8 3
+"""
+
+    records = parse_monster_statblocks([(310, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["punti_ferita"] == "1 (1d4"
+
+
 def test_speed_wrap_with_open_parenthesis_is_joined_conservatively():
     text = """IMP
 Minuscolo immondo, legale malvagio
