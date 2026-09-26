@@ -618,6 +618,9 @@ TWO_COLUMN_LOGICAL_SOURCE_IDS = {
 TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
     "phb_2014_it",
 }
+TARGET_ANCHORED_LOGICAL_SOURCE_IDS = {
+    "phb_2014_it",
+}
 TWO_COLUMN_MIN_DPI = 300
 TWO_COLUMN_PRIMARY_PSM = 3
 TWO_COLUMN_COMPARISON_PSM = 4
@@ -3206,11 +3209,12 @@ async def _repair_one(
         record_id,
         str(record.get("name") or ""),
     )
+    logical_source_id = str(source.get("logical_source_id") or "").strip()
     target_page_only = (
         record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
-        or str(source.get("logical_source_id") or "").strip()
-        in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
+        or logical_source_id in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
     )
+    target_anchored_layout = logical_source_id in TARGET_ANCHORED_LOGICAL_SOURCE_IDS
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
     # attempt for this monster. A timeout blocks only this record.
@@ -3220,7 +3224,7 @@ async def _repair_one(
     quality = None
     selected_overlap = 0.02
     sparse_retry_required = False
-    overlaps = (0.02, 0.03, 0.04, 0.05)
+    overlaps = (0.02,) if target_anchored_layout else (0.02, 0.03, 0.04, 0.05)
     for overlap_index, overlap in enumerate(overlaps):
         primary_pages, comparison_pages, quality = _ocr_source_window(
             pdf_path,
@@ -3233,6 +3237,7 @@ async def _repair_one(
             psm=args.psm,
             comparison_psm=args.comparison_psm,
             column_overlap=overlap,
+            sparse_full_page=target_anchored_layout,
             target_page_only=target_page_only,
             ocr_budget_started_at=ocr_budget_started_at,
         )
@@ -3248,6 +3253,8 @@ async def _repair_one(
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
+            if target_anchored_layout:
+                raise
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
                 raise
             if not _should_retry_dynamic_layout(exc, source):
