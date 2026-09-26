@@ -1817,6 +1817,21 @@ def _clip_rect(
     )
 
 
+
+def _micro_target_line_matches(line: str, target_name: str) -> bool:
+    """Match one OCR title line to the known target identity conservatively."""
+    candidate = normalize_reference_name(line)
+    target = normalize_reference_name(target_name)
+    if not candidate or not target:
+        return False
+    return bool(
+        candidate == target
+        or compact_name_boundary_match(candidate, target)
+        or compact_name_containment_match(candidate, target)
+        or compact_name_bounded_edit_match(candidate, target)
+    )
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -1878,7 +1893,7 @@ def _micro_ocr_hit_points_line(
         target_indexes = [
             index
             for index, line in enumerate(text_lines)
-            if normalized_name in normalize_reference_name(line).replace(" ", "")
+            if _micro_target_line_matches(line, name)
         ]
         if len(target_indexes) == 1:
             target_index = target_indexes[0]
@@ -1952,15 +1967,15 @@ def _micro_ocr_hit_points_line(
         diagnostics["page_text_target_count"] = 0
         return fail_closed("normalized_target_name_empty")
 
-    def page_text_anchor_counts() -> tuple[int, int]:
+    def page_text_anchor_details() -> tuple[int, list[int]]:
         text_lines = page_text.splitlines()
         target_indexes = [
             index
             for index, line in enumerate(text_lines)
-            if normalized_name in normalize_reference_name(line).replace(" ", "")
+            if _micro_target_line_matches(line, name)
         ]
         if len(target_indexes) != 1:
-            return len(target_indexes), 0
+            return len(target_indexes), []
         target_index = target_indexes[0]
         hp_indexes = [
             index
@@ -1970,7 +1985,7 @@ def _micro_ocr_hit_points_line(
             )
             if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
         ]
-        return len(target_indexes), len(hp_indexes)
+        return len(target_indexes), hp_indexes
 
     def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
         labels: list[list[dict[str, str]]] = []
@@ -1995,7 +2010,8 @@ def _micro_ocr_hit_points_line(
                     break
         return labels
 
-    page_target_count, page_local_hp_count = page_text_anchor_counts()
+    page_target_count, page_local_hp_indexes = page_text_anchor_details()
+    page_local_hp_count = len(page_local_hp_indexes)
     diagnostics["page_text_target_count"] = page_target_count
     diagnostics["page_text_local_hp_count"] = page_local_hp_count
     global_labels = page_wide_tsv_labels()
@@ -2005,10 +2021,10 @@ def _micro_ocr_hit_points_line(
         (
             index
             for index, words in enumerate(ordered_lines)
-            if normalized_name
-            in normalize_reference_name(
-                " ".join(str(word["text"]) for word in words)
-            ).replace(" ", "")
+            if _micro_target_line_matches(
+                " ".join(str(word["text"]) for word in words),
+                name,
+            )
         ),
         None,
     )
@@ -2426,11 +2442,18 @@ def _micro_ocr_hit_points_line(
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
     if page_text_has_hp_label:
-        return hp_line_pattern.sub(
-            lambda match: f"{match.group('label').rstrip()} {value}",
-            page_text,
-            count=1,
-        )
+        if page_target_count != 1 or page_local_hp_count != 1:
+            return fail_closed("micro_ocr_replacement_target_ambiguous")
+        text_lines = page_text.splitlines()
+        hp_index = page_local_hp_indexes[0]
+        hp_match = hp_line_pattern.match(text_lines[hp_index])
+        if hp_match is None:
+            return fail_closed("micro_ocr_target_hp_line_unparseable")
+        text_lines[hp_index] = f"{hp_match.group('label').rstrip()} {value}"
+        rebuilt = "\n".join(text_lines)
+        if page_text.endswith("\n"):
+            rebuilt += "\n"
+        return rebuilt
     if name_line_index is None or label_words is None:
         return fail_closed("micro_ocr_reconstruction_missing_anchor")
     speed_line_pattern = re.compile(
@@ -3160,6 +3183,35 @@ async def _apply_update(
             raise RuntimeError("post-update batch timestamp verification failed")
 
 
+
+def _verified_core_agreement(
+    current_attributes: dict[str, Any],
+    source_attributes: dict[str, Any],
+) -> tuple[dict[str, bool], dict[str, bool]]:
+    """Return raw and deterministic agreement for the three PHB core fields.
+
+    Deterministic equality is limited to the existing presentation-only
+    normalizer (spacing/punctuation/labels). Unknown text remains significant.
+    """
+    core_fields = ("classe_armatura", "punti_ferita", "velocita")
+    raw = {
+        field: str(current_attributes.get(field) or "").strip()
+        == str(source_attributes.get(field) or "").strip()
+        for field in core_fields
+    }
+    deterministic_all = deterministic_core_field_matches(
+        current_attributes,
+        source_attributes,
+    )
+    deterministic = {
+        field: bool(
+            deterministic_all.get(f"{field}_deterministic_match", False)
+        )
+        for field in core_fields
+    }
+    return raw, deterministic
+
+
 async def _apply_verified_ocr_flag_cleanup(
     collection: Any,
     legacy: dict[str, Any],
@@ -3362,17 +3414,20 @@ async def _repair_one(
         current_attributes = record.get("attributes") or {}
         proposed_attributes = proposal.get("attributes") or {}
         core_fields = ("classe_armatura", "punti_ferita", "velocita")
-        agreement = {
-            field: str(current_attributes.get(field) or "").strip()
-            == str(proposed_attributes.get(field) or "").strip()
-            for field in core_fields
-        }
-        if not all(agreement.values()):
+        raw_agreement, deterministic_agreement = _verified_core_agreement(
+            current_attributes,
+            proposed_attributes,
+        )
+        if not all(deterministic_agreement.values()):
             raise RepairBlocked(
                 "players_handbook_verified_core_mismatch",
-                detail="CA/PF/velocita do not match source extraction exactly",
+                detail=(
+                    "CA/PF/velocita do not match after conservative "
+                    "presentation-only normalization"
+                ),
                 diagnostics={
-                    "agreement": agreement,
+                    "agreement": raw_agreement,
+                    "deterministic_agreement": deterministic_agreement,
                     "current_core": {
                         field: current_attributes.get(field) for field in core_fields
                     },
@@ -3387,7 +3442,8 @@ async def _repair_one(
             raise RepairBlocked("players_handbook_verified_flag_drift")
         verified_flag_cleanup = {
             "authorized": True,
-            "agreement": agreement,
+            "agreement": raw_agreement,
+            "deterministic_agreement": deterministic_agreement,
             "remove_flag": OCR_REVIEW_FLAG,
         }
         proposal = {
