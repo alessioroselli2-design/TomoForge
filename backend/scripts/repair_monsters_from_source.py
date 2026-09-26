@@ -607,6 +607,33 @@ PLAYERS_HANDBOOK_TARGETS: tuple[dict[str, str], ...] = (
     },
 )
 
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT = 20
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5 = "5e1cebb055ef0540f9bbec264d06a924"
+PLAYERS_HANDBOOK_BLOCKED20_IDS = frozenset(
+    {
+        "ref_b82e375ea1b55332a2f58c3719559b49",  # Cavallo Da Galoppo
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_45c912daf13f527492fefbd392b25e3a",  # Corvo
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_2704a598d7185e209f21f044e39f4341",  # Gatto
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_6e1a9996179d5a93a027a31bc30b5d2f",  # Imp
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_c467615fbd9ce6c93677ac1d9a323eed",  # Mastino
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_4f1b7244dd735e579ae1e5ec931ccf17",  # Ragno Gigante
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+        "ref_bc1c095a87b05bda98a5cc369e9daa24",  # Serpente Stritolatore
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+        "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
+    }
+)
+
 
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
@@ -1417,6 +1444,24 @@ def select_players_handbook_targets(
             f"expected {EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT}, "
             f"found {verified_count}"
         )
+    return targets
+
+
+def select_players_handbook_blocked20_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 20 PHB rows blocked by the last known-good 31-row run."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED20_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked20 count/fingerprint drift")
     return targets
 
 
@@ -3310,7 +3355,7 @@ async def _repair_one(
 
     verified_flag_cleanup = None
     if (
-        args.target_set == "batch_players_handbook"
+        args.target_set in {"batch_players_handbook", "batch_players_handbook_blocked20"}
         and str(record.get("review_status") or "") == "verified"
     ):
         current_attributes = record.get("attributes") or {}
@@ -3435,6 +3480,7 @@ def _parser() -> argparse.ArgumentParser:
             "batch_beta",
             "batch_gamma",
             "batch_players_handbook",
+            "batch_players_handbook_blocked20",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -3481,6 +3527,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_alpha",
         "batch_beta",
         "batch_gamma",
+        "batch_players_handbook_blocked20",
     }:
         raise RuntimeError(f"{args.target_set} is a dry-run-only audit target set")
     if (
@@ -3551,7 +3598,10 @@ async def _run(args: argparse.Namespace) -> int:
         {"source_status": "active"},
     )
     players_handbook_records = []
-    if args.target_set == "batch_players_handbook":
+    if args.target_set in {
+        "batch_players_handbook",
+        "batch_players_handbook_blocked20",
+    }:
         players_handbook_records = await _fetch_all(
             records_collection,
             {
@@ -3593,11 +3643,16 @@ async def _run(args: argparse.Namespace) -> int:
         "ready6",
         "bigby4",
         "batch_players_handbook",
+        "batch_players_handbook_blocked20",
     }
     if args.target_set == "batch_players_handbook":
         targets = select_players_handbook_targets(players_handbook_records)
         sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_COUNT
         sealed_label = "Player's Handbook"
+    elif args.target_set == "batch_players_handbook_blocked20":
+        targets = select_players_handbook_blocked20_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT
+        sealed_label = "Player's Handbook blocked20"
     elif args.target_set in RESIDUAL_BATCH_TARGETS:
         targets = select_residual_batch_targets(failures, args.target_set)
         sealed_expected_count = None
