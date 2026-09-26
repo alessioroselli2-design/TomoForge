@@ -796,10 +796,10 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
-    "ref_f28940a5239a54f696cb524805e29cc2": 105.0,  # Falco
-    "ref_38273488414b57489e9d7e57a6c0a360": 105.0,  # Gufo
-    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 120.0,  # Lupo
-    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 105.0,  # Pipistrello
+    "ref_f28940a5239a54f696cb524805e29cc2": 150.0,  # Falco
+    "ref_38273488414b57489e9d7e57a6c0a360": 150.0,  # Gufo
+    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,  # Lupo
+    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,  # Pipistrello
 }
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
@@ -1840,6 +1840,15 @@ def _layout_ocr_settings(
             TWO_COLUMN_COMPARISON_PSM,
         )
     return dpi, psm, comparison_psm
+
+
+def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
+    """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
+    if name in {"Cinghiale", "Rana"}:
+        return 12
+    if name in {"Cavallo Da Guerra", "Orso Bruno"}:
+        return 5
+    return default_psm
 
 
 def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> bool:
@@ -2883,10 +2892,11 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
-    if sparse_full_page and name in {"Cavallo Da Guerra", "Orso Bruno"}:
-        # Keep primary PSM 3 unchanged and use a distinct sparse mode for the
-        # comparison pass. PSM 11 still lost target identity on focused #123.
-        secondary_psm = 12
+    if sparse_full_page:
+        # Geometry is already locked by a unique title anchor. Keep the
+        # primary layout unchanged and vary only the independent comparison
+        # segmentation mode for the remaining PHB identity failures.
+        secondary_psm = _phb_sparse_comparison_psm(name, secondary_psm)
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
