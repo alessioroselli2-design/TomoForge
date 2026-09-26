@@ -46,11 +46,13 @@ from scripts.repair_monsters_from_source import (
     _local_adaptive_inverted_samples,
     _remove_isolated_foreground_noise,
     _micro_ocr_hit_points_line,
+    _micro_target_line_matches,
     _otsu_inverted_samples,
     _sample_variance,
     _should_retry_dynamic_layout,
     _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
+    _verified_core_agreement,
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
@@ -460,6 +462,96 @@ def test_hp_micro_ocr_skips_when_unique_local_hp_is_already_valid(tmp_path, caps
     assert result == page_text
     run.assert_not_called()
     assert "HP_MICRO_OCR_SKIPPED_VALID_LOCAL" in capsys.readouterr().out
+
+
+def test_micro_target_line_matches_bounded_title_ocr_error():
+    assert _micro_target_line_matches(
+        "Cavallo Da Galopo",
+        "Cavallo Da Galoppo",
+    )
+    assert not _micro_target_line_matches(
+        "Cavallo Da Guerra",
+        "Cavallo Da Galoppo",
+    )
+
+
+def test_verified_core_agreement_accepts_only_presentation_differences():
+    raw, deterministic = _verified_core_agreement(
+        {
+            "classe_armatura": "14 (armatura naturale)",
+            "punti_ferita": "26 (4d10 + 4)",
+            "velocita": "12 m, scalare 9 m",
+        },
+        {
+            "classe_armatura": "14 (armatura naturale}",
+            "punti_ferita": "26 (4d10+4)",
+            "velocita": "12 m, scalare 9m",
+        },
+    )
+
+    assert raw == {
+        "classe_armatura": False,
+        "punti_ferita": False,
+        "velocita": False,
+    }
+    assert deterministic == {
+        "classe_armatura": True,
+        "punti_ferita": True,
+        "velocita": True,
+    }
+
+    _raw, deterministic = _verified_core_agreement(
+        {
+            "classe_armatura": "13",
+            "punti_ferita": "10 (3d4 + 3)",
+            "velocita": "6 m, volare 12 m; 6 m, scalare 6 m",
+        },
+        {
+            "classe_armatura": "13",
+            "punti_ferita": "10 (3d4 + 3)",
+            "velocita": "6 m, volare 12 m",
+        },
+    )
+    assert deterministic["velocita"] is False
+
+
+def test_hp_micro_ocr_replaces_target_local_hp_after_bounded_name_match(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t20\t20\t170\t20\t95\tCavallo Da Galopo",
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti",
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita",
+    ]
+    page_text = (
+        "Altro Mostro\n"
+        "Punti Ferita 99 (9d10 + 45)\n"
+        "Cavallo Da Galopo\n"
+        "Punti Ferita 13 (2d1O + 2)\n"
+        "Velocità 18 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=header + "\n".join(rows) + "\n", stderr=""),
+        CompletedProcess([], 0, stdout="13 (2d10 + 2)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Cavallo Da Galoppo",
+        )
+
+    assert "Altro Mostro\nPunti Ferita 99 (9d10 + 45)" in result
+    assert "Cavallo Da Galopo\nPunti Ferita 13 (2d10 + 2)" in result
 
 
 def test_hp_micro_ocr_uses_target_name_as_upper_anchor(tmp_path):
