@@ -613,6 +613,10 @@ PLAYERS_HANDBOOK_TARGETS: tuple[dict[str, str], ...] = (
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "mpmm_2022_it",  # Mordenkainen Presenta: Mostri del Multiverso
     "bgg_2023_it",  # Bigby Presenta: La Gloria dei Giganti
+    "phb_2014_it",  # Manuale del Giocatore, appendice mostri a due colonne
+}
+TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
+    "phb_2014_it",
 }
 TWO_COLUMN_MIN_DPI = 300
 TWO_COLUMN_PRIMARY_PSM = 3
@@ -1817,6 +1821,53 @@ def _micro_ocr_hit_points_line(
     if not page_text_has_hp_label:
         diagnostics["page_text_local_hp_count"] = 0
         return page_text
+
+    # The expensive graphical micro-OCR is a repair fallback, not a mandatory
+    # third reading. If this independent page pass already contains exactly one
+    # target identity and exactly one nearby, structurally valid PF value, keep
+    # the original OCR text. The later primary-vs-comparison agreement gate
+    # still has to match CA/PF/velocita exactly, so this does not weaken trust.
+    normalized_name = normalize_reference_name(name).replace(" ", "")
+    if normalized_name:
+        text_lines = page_text.splitlines()
+        target_indexes = [
+            index
+            for index, line in enumerate(text_lines)
+            if normalized_name in normalize_reference_name(line).replace(" ", "")
+        ]
+        if len(target_indexes) == 1:
+            target_index = target_indexes[0]
+            local_hp_lines = [
+                line
+                for line in text_lines[target_index + 1 : target_index + 13]
+                if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
+            ]
+            if len(local_hp_lines) == 1:
+                local_match = hp_line_pattern.match(local_hp_lines[0])
+                if local_match is not None:
+                    local_value = " ".join(local_match.group("value").split())
+                    local_flags = monster_semantic_numeric_flags(
+                        {
+                            "classe_armatura": "10",
+                            "punti_ferita": local_value,
+                        }
+                    )
+                    if (
+                        HP_FORMAT_ERROR_FLAG not in local_flags
+                        and not NONSTANDARD_MULTI_DIGIT_DIE_RE.search(local_value)
+                    ):
+                        print(
+                            "HP_MICRO_OCR_SKIPPED_VALID_LOCAL "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "punti_ferita": local_value,
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+                        return page_text
 
     command = [
         "tesseract",
@@ -3155,7 +3206,11 @@ async def _repair_one(
         record_id,
         str(record.get("name") or ""),
     )
-    target_page_only = record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
+    target_page_only = (
+        record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
+        or str(source.get("logical_source_id") or "").strip()
+        in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
+    )
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
     # attempt for this monster. A timeout blocks only this record.
