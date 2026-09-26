@@ -633,6 +633,44 @@ PLAYERS_HANDBOOK_BLOCKED20_IDS = frozenset(
         "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
     }
 )
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT = 16
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5 = "33fef0b81e8d24a1196bcabb724ae04f"
+PLAYERS_HANDBOOK_BLOCKED16_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_45c912daf13f527492fefbd392b25e3a",  # Corvo
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_6e1a9996179d5a93a027a31bc30b5d2f",  # Imp
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_c467615fbd9ce6c93677ac1d9a323eed",  # Mastino
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+        "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
+    }
+)
+PLAYERS_HANDBOOK_TIMEOUT11_IDS = frozenset(
+    {
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_45c912daf13f527492fefbd392b25e3a",  # Corvo
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+        "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
+    }
+)
+
 
 
 # Known source families whose stat blocks are laid out in two vertical columns.
@@ -1465,6 +1503,24 @@ def select_players_handbook_blocked20_targets(
     return targets
 
 
+def select_players_handbook_blocked16_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 16 PHB rows still blocked after run #88."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED16_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked16 count/fingerprint drift")
+    return targets
+
+
 async def _revalidate_target_snapshots(
     collection: Any,
     originals: list[dict[str, Any]],
@@ -1894,39 +1950,47 @@ def _micro_ocr_hit_points_line(
             for index, line in enumerate(text_lines)
             if _micro_target_line_matches(line, name)
         ]
-        if len(target_indexes) == 1:
-            target_index = target_indexes[0]
-            local_hp_lines = [
-                line
-                for line in text_lines[target_index + 1 : target_index + 13]
-                if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
-            ]
-            if len(local_hp_lines) == 1:
-                local_match = hp_line_pattern.match(local_hp_lines[0])
-                if local_match is not None:
-                    local_value = " ".join(local_match.group("value").split())
-                    local_flags = monster_semantic_numeric_flags(
-                        {
-                            "classe_armatura": "10",
-                            "punti_ferita": local_value,
-                        }
-                    )
-                    if (
-                        HP_FORMAT_ERROR_FLAG not in local_flags
-                        and not NONSTANDARD_MULTI_DIGIT_DIE_RE.search(local_value)
-                    ):
-                        print(
-                            "HP_MICRO_OCR_SKIPPED_VALID_LOCAL "
-                            + json.dumps(
-                                {
-                                    "name": name,
-                                    "punti_ferita": local_value,
-                                },
-                                ensure_ascii=False,
-                                sort_keys=True,
-                            )
+        local_hp_indexes = sorted(
+            {
+                index
+                for target_index in target_indexes
+                for index in range(
+                    target_index + 1,
+                    min(len(text_lines), target_index + 13),
+                )
+                if re.search(
+                    r"\bPunti\s+Ferita\b",
+                    text_lines[index],
+                    re.IGNORECASE,
+                )
+            }
+        )
+        if len(local_hp_indexes) == 1:
+            local_match = hp_line_pattern.match(text_lines[local_hp_indexes[0]])
+            if local_match is not None:
+                local_value = " ".join(local_match.group("value").split())
+                local_flags = monster_semantic_numeric_flags(
+                    {
+                        "classe_armatura": "10",
+                        "punti_ferita": local_value,
+                    }
+                )
+                if (
+                    HP_FORMAT_ERROR_FLAG not in local_flags
+                    and not NONSTANDARD_MULTI_DIGIT_DIE_RE.search(local_value)
+                ):
+                    print(
+                        "HP_MICRO_OCR_SKIPPED_VALID_LOCAL "
+                        + json.dumps(
+                            {
+                                "name": name,
+                                "punti_ferita": local_value,
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
                         )
-                        return page_text
+                    )
+                    return page_text
 
     command = [
         "tesseract",
@@ -1973,17 +2037,21 @@ def _micro_ocr_hit_points_line(
             for index, line in enumerate(text_lines)
             if _micro_target_line_matches(line, name)
         ]
-        if len(target_indexes) != 1:
-            return len(target_indexes), []
-        target_index = target_indexes[0]
-        hp_indexes = [
-            index
-            for index, line in enumerate(
-                text_lines[target_index + 1 : target_index + 13],
-                start=target_index + 1,
-            )
-            if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
-        ]
+        hp_indexes = sorted(
+            {
+                index
+                for target_index in target_indexes
+                for index in range(
+                    target_index + 1,
+                    min(len(text_lines), target_index + 13),
+                )
+                if re.search(
+                    r"\bPunti\s+Ferita\b",
+                    text_lines[index],
+                    re.IGNORECASE,
+                )
+            }
+        )
         return len(target_indexes), hp_indexes
 
     def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
@@ -2442,7 +2510,7 @@ def _micro_ocr_hit_points_line(
         return fail_closed("micro_ocr_numeric_value_missing")
     if page_text_has_hp_label:
         text_lines = page_text.splitlines()
-        if page_target_count == 1 and page_local_hp_count == 1:
+        if page_target_count >= 1 and page_local_hp_count == 1:
             hp_index = page_local_hp_indexes[0]
         else:
             page_hp_indexes = [
@@ -3339,7 +3407,11 @@ async def _repair_one(
     quality = None
     selected_overlap = 0.02
     sparse_retry_required = False
-    overlaps = (0.02, 0.03, 0.04, 0.05)
+    overlaps = (
+        (0.02,)
+        if record_id in PLAYERS_HANDBOOK_TIMEOUT11_IDS
+        else (0.02, 0.03, 0.04, 0.05)
+    )
     for overlap_index, overlap in enumerate(overlaps):
         primary_pages, comparison_pages, quality = _ocr_source_window(
             pdf_path,
@@ -3430,7 +3502,11 @@ async def _repair_one(
     verified_flag_cleanup = None
     if (
         args.target_set
-        in {"batch_players_handbook", "batch_players_handbook_blocked20"}
+        in {
+            "batch_players_handbook",
+            "batch_players_handbook_blocked20",
+            "batch_players_handbook_blocked16",
+        }
         and str(record.get("review_status") or "") == "verified"
     ):
         current_attributes = record.get("attributes") or {}
@@ -3560,6 +3636,7 @@ def _parser() -> argparse.ArgumentParser:
             "batch_gamma",
             "batch_players_handbook",
             "batch_players_handbook_blocked20",
+            "batch_players_handbook_blocked16",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -3607,6 +3684,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_beta",
         "batch_gamma",
         "batch_players_handbook_blocked20",
+        "batch_players_handbook_blocked16",
     }:
         raise RuntimeError(f"{args.target_set} is a dry-run-only audit target set")
     if (
@@ -3680,6 +3758,7 @@ async def _run(args: argparse.Namespace) -> int:
     if args.target_set in {
         "batch_players_handbook",
         "batch_players_handbook_blocked20",
+        "batch_players_handbook_blocked16",
     }:
         players_handbook_records = await _fetch_all(
             records_collection,
@@ -3711,7 +3790,11 @@ async def _run(args: argparse.Namespace) -> int:
         not failures
         and not corrupted_names
         and args.target_set
-        not in {"batch_players_handbook", "batch_players_handbook_blocked20"}
+        not in {
+            "batch_players_handbook",
+            "batch_players_handbook_blocked20",
+            "batch_players_handbook_blocked16",
+        }
     ):
         return 0
 
@@ -3724,6 +3807,7 @@ async def _run(args: argparse.Namespace) -> int:
         "bigby4",
         "batch_players_handbook",
         "batch_players_handbook_blocked20",
+        "batch_players_handbook_blocked16",
     }
     if args.target_set == "batch_players_handbook":
         targets = select_players_handbook_targets(players_handbook_records)
@@ -3733,6 +3817,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_players_handbook_blocked20_targets(players_handbook_records)
         sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT
         sealed_label = "Player's Handbook blocked20"
+    elif args.target_set == "batch_players_handbook_blocked16":
+        targets = select_players_handbook_blocked16_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT
+        sealed_label = "Player's Handbook blocked16"
     elif args.target_set in RESIDUAL_BATCH_TARGETS:
         targets = select_residual_batch_targets(failures, args.target_set)
         sealed_expected_count = None
