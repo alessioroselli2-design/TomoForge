@@ -691,7 +691,6 @@ PLAYERS_HANDBOOK_BLOCKED12_IDS = frozenset(
 )
 
 
-
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
@@ -1931,10 +1930,7 @@ def _collapse_identical_hp_indexes(
     """Collapse repeated OCR copies only when the PF line text is identical."""
     if len(indexes) <= 1:
         return indexes
-    normalized = {
-        " ".join(text_lines[index].split()).casefold()
-        for index in indexes
-    }
+    normalized = {" ".join(text_lines[index].split()).casefold() for index in indexes}
     if len(normalized) == 1:
         return [indexes[0]]
     return indexes
