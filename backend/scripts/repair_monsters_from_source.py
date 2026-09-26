@@ -1817,7 +1817,6 @@ def _clip_rect(
     )
 
 
-
 def _micro_target_line_matches(line: str, target_name: str) -> bool:
     """Match one OCR title line to the known target identity conservatively."""
     candidate = normalize_reference_name(line)
@@ -3183,7 +3182,6 @@ async def _apply_update(
             raise RuntimeError("post-update batch timestamp verification failed")
 
 
-
 def _verified_core_agreement(
     current_attributes: dict[str, Any],
     source_attributes: dict[str, Any],
@@ -3204,9 +3202,7 @@ def _verified_core_agreement(
         source_attributes,
     )
     deterministic = {
-        field: bool(
-            deterministic_all.get(f"{field}_deterministic_match", False)
-        )
+        field: bool(deterministic_all.get(f"{field}_deterministic_match", False))
         for field in core_fields
     }
     return raw, deterministic
