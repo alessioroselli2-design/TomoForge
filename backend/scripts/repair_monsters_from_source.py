@@ -1674,6 +1674,131 @@ def _sparse_anchor_crop_fractions(
     return fractions
 
 
+def _phb_target_core_crop_fractions(
+    image_path: Path,
+    languages: str,
+    target_name: str,
+    *,
+    ocr_budget_started_at: float | None = None,
+) -> tuple[float, float, float, float] | None:
+    """Locate one PHB monster title and crop to its compact core-stat region.
+
+    The PHB appendix packs several stat blocks into each column. Reading the
+    whole column makes an unrelated monster eligible to contaminate CA/PF/speed
+    and wastes the bounded OCR budget. This helper uses only title geometry as
+    evidence; field values still come from two independent OCR passes over the
+    resulting crop and must pass the normal agreement gates.
+    """
+    import fitz
+
+    command = [
+        "tesseract",
+        str(image_path),
+        "stdout",
+        "-l",
+        languages,
+        "--psm",
+        "11",
+        "tsv",
+        "quiet",
+    ]
+    tsv_stdout = _run_tesseract_bounded(
+        command,
+        ocr_budget_started_at,
+        phase="phb_target_anchor_tsv",
+    )
+    rows = list(csv.DictReader(io.StringIO(tsv_stdout), delimiter="\t"))
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                str(row.get(field) or "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+
+    ordered_lines = sorted(
+        grouped.values(),
+        key=lambda words: (
+            min(int(word["top"]) for word in words),
+            min(int(word["left"]) for word in words),
+        ),
+    )
+    matches = [
+        (index, words)
+        for index, words in enumerate(ordered_lines)
+        if _sparse_anchor_matches(
+            " ".join(str(word.get("text") or "") for word in words),
+            target_name,
+        )
+    ]
+    if len(matches) != 1:
+        print(
+            "PHB_TARGET_CORE_GEOMETRY "
+            + json.dumps(
+                {
+                    "name": target_name,
+                    "matching_title_lines": len(matches),
+                    "accepted": False,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return None
+
+    title_index, title_words = matches[0]
+    top = min(int(word["top"]) for word in title_words)
+    bottom = max(int(word["top"]) + int(word["height"]) for word in title_words)
+    pixmap = fitz.Pixmap(str(image_path))
+    height = max(1, pixmap.height)
+    title_height = max(1, bottom - top)
+    y0_pixels = max(0, top - max(title_height * 2, int(height * 0.012)))
+
+    speed_bottom: int | None = None
+    for words in ordered_lines[title_index + 1 : title_index + 18]:
+        raw_text = " ".join(str(word.get("text") or "") for word in words)
+        normalized = normalize_reference_name(raw_text)
+        if normalized.startswith("velocita") or normalized.startswith("veloc "):
+            speed_bottom = max(
+                int(word["top"]) + int(word["height"]) for word in words
+            )
+            break
+
+    if speed_bottom is not None:
+        y1_pixels = min(
+            height,
+            speed_bottom + max(title_height * 8, int(height * 0.06)),
+        )
+    else:
+        # The crop remains conservative when the speed label itself is noisy:
+        # enough vertical room for title/type/CA/PF/speed, but not the rest of
+        # the densely packed column.
+        y1_pixels = min(
+            height,
+            max(bottom + title_height * 10, y0_pixels + int(height * 0.22)),
+        )
+    if y1_pixels <= y0_pixels:
+        return None
+
+    fractions = (0.0, y0_pixels / height, 1.0, y1_pixels / height)
+    print(
+        "PHB_TARGET_CORE_GEOMETRY "
+        + json.dumps(
+            {
+                "name": target_name,
+                "matching_title_lines": 1,
+                "accepted": True,
+                "crop_fractions": list(fractions),
+                "speed_anchor_found": speed_bottom is not None,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return fractions
+
+
 class SourcePdfCache:
     """Resolve exact registry PDFs locally; optional R2 fallback is explicit."""
 
@@ -2530,6 +2655,46 @@ def _ocr_source_window(
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
 
+                    phb_target_crop = None
+                    if (
+                        not sparse_full_page
+                        and str(source.get("logical_source_id") or "").strip()
+                        == PLAYERS_HANDBOOK_LOGICAL_SOURCE_ID
+                    ):
+                        phb_target_crop = _phb_target_core_crop_fractions(
+                            image_path,
+                            languages,
+                            name,
+                            ocr_budget_started_at=ocr_budget_started_at,
+                        )
+                        if phb_target_crop is None:
+                            segment_metrics[segment_name] = {
+                                "quality_pass": False,
+                                "phb_target_anchor_found": False,
+                                "phb_target_crop": None,
+                            }
+                            continue
+                        outer_x0, outer_y0, outer_x1, outer_y1 = fractions
+                        inner_x0, inner_y0, inner_x1, inner_y1 = phb_target_crop
+                        composed_crop = (
+                            outer_x0 + inner_x0 * (outer_x1 - outer_x0),
+                            outer_y0 + inner_y0 * (outer_y1 - outer_y0),
+                            outer_x0 + inner_x1 * (outer_x1 - outer_x0),
+                            outer_y0 + inner_y1 * (outer_y1 - outer_y0),
+                        )
+                        target_clip = _clip_rect(page.rect, composed_crop)
+                        target_image_path = (
+                            image_root
+                            / f"page-{page_number:04d}-{segment_name}-phb-target.png"
+                        )
+                        page.get_pixmap(
+                            matrix=matrix,
+                            clip=target_clip,
+                            alpha=False,
+                            colorspace=fitz.csGRAY,
+                        ).save(target_image_path)
+                        image_path = target_image_path
+
                     sparse_anchor_found = None
                     sparse_anchor_crop = None
                     if sparse_full_page:
@@ -2717,6 +2882,9 @@ def _ocr_source_window(
                             if sparse_anchor_crop is not None
                             else None
                         )
+                    if phb_target_crop is not None:
+                        agreement["phb_target_anchor_found"] = True
+                        agreement["phb_target_crop"] = list(phb_target_crop)
                     segment_metrics[segment_name] = agreement
 
                     # Fail closed per segment. A bad neighboring column is
@@ -3254,7 +3422,12 @@ async def _repair_one(
     quality = None
     selected_overlap = 0.02
     sparse_retry_required = False
-    overlaps = (0.02, 0.03, 0.04, 0.05)
+    overlaps = (
+        (0.02,)
+        if str(source.get("logical_source_id") or "").strip()
+        == PLAYERS_HANDBOOK_LOGICAL_SOURCE_ID
+        else (0.02, 0.03, 0.04, 0.05)
+    )
     for overlap_index, overlap in enumerate(overlaps):
         primary_pages, comparison_pages, quality = _ocr_source_window(
             pdf_path,
