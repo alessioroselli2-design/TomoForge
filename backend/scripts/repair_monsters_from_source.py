@@ -671,6 +671,31 @@ PLAYERS_HANDBOOK_TIMEOUT11_IDS = frozenset(
     }
 )
 
+PLAYERS_HANDBOOK_TIMEOUT8_IDS = frozenset(
+    {
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+    }
+)
+PLAYERS_HANDBOOK_TIMEOUT8_NAMES = frozenset(
+    {
+        "Cinghiale",
+        "Falco",
+        "Gufo",
+        "Leone",
+        "Lupo",
+        "Mulo",
+        "Pipistrello",
+        "Tigre",
+    }
+)
+
 EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT = 12
 EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5 = "30b288a628863e6a4bb5ba64020deca5"
 PLAYERS_HANDBOOK_BLOCKED12_IDS = frozenset(
@@ -2859,22 +2884,35 @@ def _ocr_source_window(
                             )
                             _remaining_global_ocr_budget(ocr_budget_started_at)
 
-                    primary = _micro_ocr_hit_points_line(
-                        micro_image_path,
-                        languages,
-                        primary_psm,
-                        primary,
-                        name,
-                        ocr_budget_started_at=ocr_budget_started_at,
-                    )
-                    comparison = _micro_ocr_hit_points_line(
-                        micro_image_path,
-                        languages,
-                        secondary_psm,
-                        comparison,
-                        name,
-                        ocr_budget_started_at=ocr_budget_started_at,
-                    )
+                    if (
+                        name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES
+                        and not sparse_full_page
+                    ):
+                        print(
+                            "HP_MICRO_OCR_DEFERRED_TO_SPARSE "
+                            + json.dumps(
+                                {"name": name, "segment": segment_name},
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+                    else:
+                        primary = _micro_ocr_hit_points_line(
+                            micro_image_path,
+                            languages,
+                            primary_psm,
+                            primary,
+                            name,
+                            ocr_budget_started_at=ocr_budget_started_at,
+                        )
+                        comparison = _micro_ocr_hit_points_line(
+                            micro_image_path,
+                            languages,
+                            secondary_psm,
+                            comparison,
+                            name,
+                            ocr_budget_started_at=ocr_budget_started_at,
+                        )
                     if name in {"Altisauro", "Bael"}:
 
                         def _focused_ocr_context(text: str) -> list[str]:
@@ -3526,6 +3564,22 @@ async def _repair_one(
                 source_target_name,
                 physical_page,
             )
+            if (
+                record_id in PLAYERS_HANDBOOK_TIMEOUT8_IDS
+                and HP_FORMAT_ERROR_FLAG
+                in monster_semantic_numeric_flags(candidate.get("attributes") or {})
+            ):
+                print(
+                    "PHB_HP_SPARSE_RETRY "
+                    + json.dumps(
+                        {"name": record.get("name"), "reason": HP_FORMAT_ERROR_FLAG},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                candidate = None
+                sparse_retry_required = True
+                break
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
