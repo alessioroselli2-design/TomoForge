@@ -27,6 +27,8 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_READY6_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
@@ -66,6 +68,7 @@ from scripts.repair_monsters_from_source import (
     select_oblex1_targets,
     select_ready6_targets,
     select_players_handbook_blocked20_targets,
+    select_players_handbook_blocked16_targets,
 )
 
 
@@ -109,6 +112,77 @@ def test_players_handbook_blocked20_is_sealed_from_full_phb_batch():
     assert "Coccodrillo" not in {row["name"] for row in selected}
     assert "Cavallo Da Galoppo" in {row["name"] for row in selected}
     assert "Topo" in {row["name"] for row in selected}
+
+
+def test_players_handbook_blocked16_is_sealed_from_full_phb_batch():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked16_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT == 16
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5
+    assert "Cavallo Da Galoppo" not in {row["name"] for row in selected}
+    assert "Gatto" not in {row["name"] for row in selected}
+    assert "Ragno Gigante" not in {row["name"] for row in selected}
+    assert "Serpente Stritolatore" not in {row["name"] for row in selected}
+    assert "Cinghiale" in {row["name"] for row in selected}
+    assert "Imp" in {row["name"] for row in selected}
+
+
+def test_hp_micro_ocr_repeated_title_matches_can_converge_on_one_hp_line(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "Mastino\n"
+        "Mastino\n"
+        "Bestia media\n"
+        "Classe Armatura 12\n"
+        "Punti Ferita 5 (1d8 + 1)\n"
+        "Velocità 12 m\n"
+    )
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Mastino",
+        )
+
+    assert result == page_text
+    run.assert_not_called()
 
 
 def test_residual_batches_are_disjoint_complete_and_fingerprinted():
