@@ -1924,6 +1924,22 @@ def _micro_target_line_matches(line: str, target_name: str) -> bool:
     )
 
 
+def _collapse_identical_hp_indexes(
+    text_lines: list[str],
+    indexes: list[int],
+) -> list[int]:
+    """Collapse repeated OCR copies only when the PF line text is identical."""
+    if len(indexes) <= 1:
+        return indexes
+    normalized = {
+        " ".join(text_lines[index].split()).casefold()
+        for index in indexes
+    }
+    if len(normalized) == 1:
+        return [indexes[0]]
+    return indexes
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -2001,6 +2017,10 @@ def _micro_ocr_hit_points_line(
                     re.IGNORECASE,
                 )
             }
+        )
+        local_hp_indexes = _collapse_identical_hp_indexes(
+            text_lines,
+            local_hp_indexes,
         )
         if len(local_hp_indexes) == 1:
             local_match = hp_line_pattern.match(text_lines[local_hp_indexes[0]])
@@ -2089,6 +2109,7 @@ def _micro_ocr_hit_points_line(
                 )
             }
         )
+        hp_indexes = _collapse_identical_hp_indexes(text_lines, hp_indexes)
         return len(target_indexes), hp_indexes
 
     def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
