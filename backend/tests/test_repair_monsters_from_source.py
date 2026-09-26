@@ -1421,6 +1421,8 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
 def test_sparse_page_anchor_requires_title_like_identity():
     assert _sparse_anchor_matches("RAK   TULKHESH", "Rak Tulkhesh")
     assert _sparse_anchor_matches("RAK   TULKHESH X", "Rak Tulkhesh")
+    assert _sparse_anchor_matches("CINGHIAIE", "Cinghiale")
+    assert _sparse_anchor_matches("MUIO", "Mulo")
     assert not _sparse_anchor_matches(
         "RAK TULKHESH Classe Armatura",
         "Rak Tulkhesh",
