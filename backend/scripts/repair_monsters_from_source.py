@@ -2884,10 +2884,7 @@ def _ocr_source_window(
                             )
                             _remaining_global_ocr_budget(ocr_budget_started_at)
 
-                    if (
-                        name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES
-                        and not sparse_full_page
-                    ):
+                    if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES and not sparse_full_page:
                         print(
                             "HP_MICRO_OCR_DEFERRED_TO_SPARSE "
                             + json.dumps(
