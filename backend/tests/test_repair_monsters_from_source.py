@@ -47,6 +47,7 @@ from scripts.repair_monsters_from_source import (
     _remove_isolated_foreground_noise,
     _micro_ocr_hit_points_line,
     _otsu_inverted_samples,
+    _phb_target_core_crop_fractions,
     _sample_variance,
     _should_retry_dynamic_layout,
     _sparse_anchor_crop_fractions,
@@ -1005,6 +1006,65 @@ def test_players_handbook_layout_profile_splits_columns():
         psm=6,
         comparison_psm=4,
     ) == (300, 3, 4)
+
+
+
+def test_phb_target_core_crop_uses_unique_title_and_speed_geometry(tmp_path, capsys):
+    image_path = tmp_path / "phb-column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t200\t90\t24\t95\tOrso\n"
+        "5\t1\t1\t1\t1\t2\t115\t200\t95\t24\t95\tBruno\n"
+        "5\t1\t1\t1\t2\t1\t20\t260\t90\t20\t95\tClasse\n"
+        "5\t1\t1\t1\t2\t2\t115\t260\t100\t20\t95\tArmatura\n"
+        "5\t1\t1\t1\t3\t1\t20\t310\t80\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t3\t2\t105\t310\t80\t20\t95\tFerita\n"
+        "5\t1\t1\t1\t4\t1\t20\t360\t100\t20\t95\tVelocità\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ) as run:
+        crop = _phb_target_core_crop_fractions(
+            image_path,
+            "ita",
+            "Orso Bruno",
+        )
+
+    assert crop is not None
+    assert crop[0] == 0.0
+    assert crop[2] == 1.0
+    assert 0.0 < crop[1] < crop[3] < 1.0
+    assert run.call_count == 1
+    assert "PHB_TARGET_CORE_GEOMETRY" in capsys.readouterr().out
+
+
+def test_phb_target_core_crop_fails_closed_without_unique_title(tmp_path):
+    image_path = tmp_path / "phb-column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t200\t90\t24\t95\tAltro\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        assert (
+            _phb_target_core_crop_fractions(
+                image_path,
+                "ita",
+                "Orso Bruno",
+            )
+            is None
+        )
 
 
 def test_non_two_column_source_keeps_full_page_settings():
