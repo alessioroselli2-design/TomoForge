@@ -2721,17 +2721,18 @@ def _micro_ocr_hit_points_line(
                 # hp_micro_ocr_failed() includes both strict expression parsing
                 # and PF-average/hit-dice mathematical coherence, so early exit
                 # cannot weaken the fail-closed acceptance criteria.
-                scale_factors = (
-                    (4, 2) if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES else (2, 4)
-                )
                 if name in PLAYERS_HANDBOOK_TIMEOUT4_NAMES:
-                    # Run #130 showed these four records exhausting the global
-                    # budget before reaching the cheaper useful morphology.
-                    # Reorder the same variants only; acceptance gates are unchanged.
-                    morphologies = ("erosion", "none", "dilation", "dilation_erosion")
+                    # Run #132 proved the x4 morphology preprocessing itself can
+                    # consume the full 150s budget before Tesseract runs. Keep the
+                    # same fail-closed variant space but pay for cheap candidates
+                    # first, then escalate density/morphology only as needed.
+                    scale_factors = (2, 4)
+                    morphologies = ("none", "erosion", "dilation", "dilation_erosion")
                 elif name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES:
+                    scale_factors = (4, 2)
                     morphologies = ("dilation_erosion", "dilation", "erosion", "none")
                 else:
+                    scale_factors = (2, 4)
                     morphologies = ("erosion", "dilation", "dilation_erosion", "none")
                 for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
