@@ -618,7 +618,7 @@ TWO_COLUMN_LOGICAL_SOURCE_IDS = {
 TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
     "phb_2014_it",
 }
-TARGET_ANCHORED_LOGICAL_SOURCE_IDS = {
+TARGET_COLUMN_ANCHORED_LOGICAL_SOURCE_IDS = {
     "phb_2014_it",
 }
 TWO_COLUMN_MIN_DPI = 300
@@ -2486,8 +2486,41 @@ def _ocr_source_window(
                 primary_parts: list[str] = []
                 comparison_parts: list[str] = []
                 segment_metrics: dict[str, dict[str, Any]] = {}
+                page_segments = segments
 
-                for segment_name, fractions in segments:
+                # PHB Appendix D uses a stable two-column layout with several
+                # stat blocks stacked vertically. Use the unique target title
+                # only to choose the correct full-height column; never crop
+                # vertically, so later fields cannot be clipped.
+                if (
+                    not sparse_full_page
+                    and str(source.get("logical_source_id") or "").strip()
+                    in TARGET_COLUMN_ANCHORED_LOGICAL_SOURCE_IDS
+                ):
+                    anchor_image_path = (
+                        image_root / f"page-{page_number:04d}-title-anchor.png"
+                    )
+                    page.get_pixmap(
+                        matrix=matrix,
+                        clip=page.rect,
+                        alpha=False,
+                        colorspace=fitz.csGRAY,
+                    ).save(anchor_image_path)
+                    anchor_crop = _sparse_anchor_crop_fractions(
+                        anchor_image_path,
+                        languages,
+                        name,
+                        ocr_budget_started_at=ocr_budget_started_at,
+                    )
+                    if anchor_crop is not None:
+                        x0, _y0, x1, _y1 = anchor_crop
+                        page_segments = (
+                            ("target-column", (x0, 0.0, x1, 1.0)),
+                        )
+                    else:
+                        page_segments = ()
+
+                for segment_name, fractions in page_segments:
                     clip = _clip_rect(page.rect, fractions)
                     image_path = (
                         image_root / f"page-{page_number:04d}-{segment_name}.png"
@@ -3214,7 +3247,6 @@ async def _repair_one(
         record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
         or logical_source_id in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
     )
-    target_anchored_layout = logical_source_id in TARGET_ANCHORED_LOGICAL_SOURCE_IDS
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
     # attempt for this monster. A timeout blocks only this record.
@@ -3224,7 +3256,7 @@ async def _repair_one(
     quality = None
     selected_overlap = 0.02
     sparse_retry_required = False
-    overlaps = (0.02,) if target_anchored_layout else (0.02, 0.03, 0.04, 0.05)
+    overlaps = (0.02, 0.03, 0.04, 0.05)
     for overlap_index, overlap in enumerate(overlaps):
         primary_pages, comparison_pages, quality = _ocr_source_window(
             pdf_path,
@@ -3237,7 +3269,6 @@ async def _repair_one(
             psm=args.psm,
             comparison_psm=args.comparison_psm,
             column_overlap=overlap,
-            sparse_full_page=target_anchored_layout,
             target_page_only=target_page_only,
             ocr_budget_started_at=ocr_budget_started_at,
         )
@@ -3253,8 +3284,6 @@ async def _repair_one(
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
-            if target_anchored_layout:
-                raise
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
                 raise
             if not _should_retry_dynamic_layout(exc, source):
