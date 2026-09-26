@@ -2514,9 +2514,7 @@ def _ocr_source_window(
                     )
                     if anchor_crop is not None:
                         x0, _y0, x1, _y1 = anchor_crop
-                        page_segments = (
-                            ("target-column", (x0, 0.0, x1, 1.0)),
-                        )
+                        page_segments = (("target-column", (x0, 0.0, x1, 1.0)),)
                     else:
                         page_segments = ()
 
