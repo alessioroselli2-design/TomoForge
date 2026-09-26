@@ -733,6 +733,28 @@ PLAYERS_HANDBOOK_BLOCKED11_IDS = frozenset(
     }
 )
 
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT = 9
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5 = "da6be096bdd049fd10d960bc6f994fa6"
+PLAYERS_HANDBOOK_BLOCKED9_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+    }
+)
+PLAYERS_HANDBOOK_AMBIGUOUS2_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+    }
+)
+
 
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
@@ -1618,6 +1640,24 @@ def select_players_handbook_blocked11_targets(
     return targets
 
 
+def select_players_handbook_blocked9_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 9 PHB rows still blocked after focused run #107."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED9_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked9 count/fingerprint drift")
+    return targets
+
+
 async def _revalidate_target_snapshots(
     collection: Any,
     originals: list[dict[str, Any]],
@@ -1766,10 +1806,24 @@ def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> 
 
 
 def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
-    """Confirm that a PSM 11 page pass contains the compact target identity."""
-    target = normalize_reference_name(target_name).replace(" ", "")
-    page = normalize_reference_name(page_text).replace(" ", "")
-    return bool(target and target in page)
+    """Accept only a title-like PSM 11 line for geometric recropping.
+
+    Narrative mentions of the monster name are deliberately rejected so a
+    sparse retry cannot select a different stat block on the same PHB page.
+    """
+    target = normalize_reference_name(target_name)
+    page = normalize_reference_name(page_text)
+    if not target or not page:
+        return False
+    if page == target:
+        return True
+    target_words = target.split()
+    page_words = page.split()
+    return bool(
+        len(page_words) == len(target_words) + 1
+        and page_words[: len(target_words)] == target_words
+        and len(page_words[-1]) <= 2
+    )
 
 
 def _sparse_anchor_crop_fractions(
@@ -3582,6 +3636,20 @@ async def _repair_one(
         except RepairBlocked as exc:
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
                 raise
+            if (
+                record_id in PLAYERS_HANDBOOK_AMBIGUOUS2_IDS
+                and exc.reason == "no_unique_independent_agreement"
+            ):
+                print(
+                    "PHB_AMBIGUOUS_SPARSE_RETRY "
+                    + json.dumps(
+                        {"name": record.get("name"), "reason": exc.reason},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                sparse_retry_required = True
+                break
             if not _should_retry_dynamic_layout(exc, source):
                 raise
             if overlap_index == len(overlaps) - 1:
@@ -3649,6 +3717,7 @@ async def _repair_one(
             "batch_players_handbook_blocked16",
             "batch_players_handbook_blocked12",
             "batch_players_handbook_blocked11",
+            "batch_players_handbook_blocked9",
         }
         and str(record.get("review_status") or "") == "verified"
     ):
@@ -3782,6 +3851,7 @@ def _parser() -> argparse.ArgumentParser:
             "batch_players_handbook_blocked16",
             "batch_players_handbook_blocked12",
             "batch_players_handbook_blocked11",
+            "batch_players_handbook_blocked9",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -3832,6 +3902,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_players_handbook_blocked16",
         "batch_players_handbook_blocked12",
         "batch_players_handbook_blocked11",
+        "batch_players_handbook_blocked9",
     }:
         raise RuntimeError(f"{args.target_set} is a dry-run-only audit target set")
     if (
@@ -3908,6 +3979,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_players_handbook_blocked16",
         "batch_players_handbook_blocked12",
         "batch_players_handbook_blocked11",
+        "batch_players_handbook_blocked9",
     }:
         players_handbook_records = await _fetch_all(
             records_collection,
@@ -3945,6 +4017,7 @@ async def _run(args: argparse.Namespace) -> int:
             "batch_players_handbook_blocked16",
             "batch_players_handbook_blocked12",
             "batch_players_handbook_blocked11",
+            "batch_players_handbook_blocked9",
         }
     ):
         return 0
@@ -3961,6 +4034,7 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_players_handbook_blocked16",
         "batch_players_handbook_blocked12",
         "batch_players_handbook_blocked11",
+        "batch_players_handbook_blocked9",
     }
     if args.target_set == "batch_players_handbook":
         targets = select_players_handbook_targets(players_handbook_records)
@@ -3982,6 +4056,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_players_handbook_blocked11_targets(players_handbook_records)
         sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT
         sealed_label = "Player's Handbook blocked11"
+    elif args.target_set == "batch_players_handbook_blocked9":
+        targets = select_players_handbook_blocked9_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT
+        sealed_label = "Player's Handbook blocked9"
     elif args.target_set in RESIDUAL_BATCH_TARGETS:
         targets = select_residual_batch_targets(failures, args.target_set)
         sealed_expected_count = None
