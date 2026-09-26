@@ -1,4 +1,4 @@
-name: Focused Player's Handbook source-guided dry-run
+name: Focused Player's Handbook blocked20 dry-run
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   focused-dry-run:
-    name: players-handbook-31-read-only
+    name: players-handbook-blocked20-read-only
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -61,7 +61,7 @@ jobs:
         run: |
           set -o pipefail
           python backend/scripts/repair_monsters_from_source.py \
-            --target-set batch_players_handbook \
+            --target-set batch_players_handbook_blocked20 \
             --allow-r2-download \
             | tee /tmp/players-handbook-dry-run.log
 
@@ -83,10 +83,10 @@ jobs:
               raise SystemExit('Focused PHB job did not run in dry-run mode')
           if report.get('updates_performed') != 0:
               raise SystemExit('Read-only invariant violated: updates were performed')
-          if report.get('targets') != 31:
-              raise SystemExit(f"Expected 31 targets, got {report.get('targets')}")
-          if report.get('repairable', 0) + report.get('blocked', 0) != 31:
-              raise SystemExit('Aggregate invariant violated: repairable + blocked must equal 31')
+          if report.get('targets') != 20:
+              raise SystemExit(f"Expected 20 targets, got {report.get('targets')}")
+          if report.get('repairable', 0) + report.get('blocked', 0) != 20:
+              raise SystemExit('Aggregate invariant violated: repairable + blocked must equal 20')
 
           out = Path('/tmp/FINAL_REPORT.json')
           out.write_text(
@@ -101,7 +101,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: players-handbook-31-FINAL_REPORT
+          name: players-handbook-blocked20-FINAL_REPORT
           path: |
             /tmp/players-handbook-dry-run.log
             /tmp/FINAL_REPORT.json
