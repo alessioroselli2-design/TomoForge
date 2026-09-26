@@ -8,6 +8,7 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 import fitz
+import pytest
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
@@ -53,6 +54,7 @@ from scripts.repair_monsters_from_source import (
     _layout_segments,
     _local_adaptive_inverted_samples,
     _remove_isolated_foreground_noise,
+    _remaining_global_ocr_budget,
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
@@ -1431,6 +1433,19 @@ def test_sparse_page_anchor_requires_title_like_identity():
 
 def test_sparse_page_anchor_rejects_empty_target():
     assert not _sparse_anchor_matches("Rak Tulkhesh", "")
+
+
+def test_targeted_ocr_budget_token_extends_only_the_total_budget():
+    with patch(
+        "scripts.repair_monsters_from_source.time.monotonic",
+        return_value=70.0,
+    ):
+        assert _remaining_global_ocr_budget((0.0, 75.0)) == 5.0
+        with pytest.raises(RepairBlocked) as exc:
+            _remaining_global_ocr_budget((0.0, 60.0))
+
+    assert exc.value.reason == "ocr_global_timeout"
+    assert exc.value.diagnostics["budget_seconds"] == 60.0
 
 
 def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path):
