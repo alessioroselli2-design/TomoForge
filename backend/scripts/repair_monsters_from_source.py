@@ -775,10 +775,10 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
-    "ref_f28940a5239a54f696cb524805e29cc2": 75.0,  # Falco
-    "ref_38273488414b57489e9d7e57a6c0a360": 75.0,  # Gufo
-    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 90.0,  # Lupo
-    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 75.0,  # Pipistrello
+    "ref_f28940a5239a54f696cb524805e29cc2": 90.0,  # Falco
+    "ref_38273488414b57489e9d7e57a6c0a360": 90.0,  # Gufo
+    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 105.0,  # Lupo
+    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 90.0,  # Pipistrello
 }
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
@@ -1831,6 +1831,11 @@ def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
     target_words = target.split()
     page_words = page.split()
     if (
+        len(page_words) <= len(target_words) + 1
+        and compact_name_boundary_match(page, target)
+    ):
+        return True
+    if (
         len(page_words) == len(target_words) + 1
         and page_words[: len(target_words)] == target_words
         and len(page_words[-1]) <= 2
@@ -2079,6 +2084,7 @@ def _micro_ocr_hit_points_line(
     name: str,
     *,
     ocr_budget_started_at: float | tuple[float, float] | None = None,
+    single_target_geometry: bool = False,
 ) -> str:
     """Re-OCR only the numeric part of the PF line with a strict whitelist.
 
@@ -2617,15 +2623,18 @@ def _micro_ocr_hit_points_line(
                 # hp_micro_ocr_failed() includes both strict expression parsing
                 # and PF-average/hit-dice mathematical coherence, so early exit
                 # cannot weaken the fail-closed acceptance criteria.
-                for scale_factor in (2, 4):
+                scale_factors = (
+                    (4, 2) if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES else (2, 4)
+                )
+                morphologies = (
+                    ("dilation_erosion", "dilation", "erosion", "none")
+                    if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES
+                    else ("erosion", "dilation", "dilation_erosion", "none")
+                )
+                for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                         for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
-                            for morphology in (
-                                "erosion",
-                                "dilation",
-                                "dilation_erosion",
-                                "none",
-                            ):
+                            for morphology in morphologies:
                                 candidate = run_micro_ocr(
                                     contrast,
                                     directory,
@@ -2699,6 +2708,40 @@ def _micro_ocr_hit_points_line(
         return fail_closed("micro_ocr_numeric_value_missing")
     if page_text_has_hp_label:
         text_lines = page_text.splitlines()
+        duplicate_geometry_indexes: list[int] = []
+        if (
+            single_target_geometry
+            and page_target_count >= 1
+            and page_local_hp_count >= 1
+            and all(
+                _sparse_anchor_matches(text_lines[index], name)
+                for index, line in enumerate(text_lines)
+                if _micro_target_line_matches(line, name)
+            )
+        ):
+            duplicate_geometry_indexes = list(page_local_hp_indexes)
+        if duplicate_geometry_indexes:
+            for hp_index in duplicate_geometry_indexes:
+                hp_match = hp_line_pattern.match(text_lines[hp_index])
+                if hp_match is None:
+                    return fail_closed("micro_ocr_target_hp_line_unparseable")
+                text_lines[hp_index] = f"{hp_match.group('label').rstrip()} {value}"
+            print(
+                "HP_UNIQUE_GEOMETRY_DUPLICATE_REPLACEMENT "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "page_target_count": page_target_count,
+                        "page_hp_lines": len(duplicate_geometry_indexes),
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            rebuilt = "\n".join(text_lines)
+            if page_text.endswith("\n"):
+                rebuilt += "\n"
+            return rebuilt
         if page_target_count >= 1 and page_local_hp_count == 1:
             hp_index = page_local_hp_indexes[0]
         else:
@@ -2799,11 +2842,11 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
-    if sparse_full_page and name in {"Cavallo Da Guerra", "Orso Bruno"}:
-        # PSM 4 lost the independently-readable comparison candidate for these
-        # PHB blocks in run #112. Keep the primary PSM 3 unchanged and use a
-        # distinct conservative block mode for the comparison pass.
-        secondary_psm = 6
+    if sparse_full_page and name in {"Cavallo Da Guerra", "Mulo", "Orso Bruno"}:
+        # PSM 4/6 lost the independently-readable comparison candidate for
+        # these PHB blocks. Keep primary PSM 3 unchanged and use sparse PSM 11
+        # as a distinct core OCR pass on the already geometry-bound crop.
+        secondary_psm = 11
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
@@ -2980,6 +3023,9 @@ def _ocr_source_window(
                             primary,
                             name,
                             ocr_budget_started_at=ocr_budget_started_at,
+                            single_target_geometry=bool(
+                                sparse_full_page and sparse_anchor_found
+                            ),
                         )
                         comparison = _micro_ocr_hit_points_line(
                             micro_image_path,
@@ -2988,6 +3034,9 @@ def _ocr_source_window(
                             comparison,
                             name,
                             ocr_budget_started_at=ocr_budget_started_at,
+                            single_target_geometry=bool(
+                                sparse_full_page and sparse_anchor_found
+                            ),
                         )
                     if name in {"Altisauro", "Bael"}:
 
