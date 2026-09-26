@@ -39,6 +39,8 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
+    OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
+    PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -2036,6 +2038,44 @@ def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
     assert "--psm" in command
     assert "11" in command
     assert "tsv" in command
+
+
+def test_sparse_anchor_crop_can_use_distinct_psm12(tmp_path):
+    image_path = tmp_path / "page.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t650\t200\t120\t30\t95\tCINGHIALE\n"
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ) as run:
+        crop = _sparse_anchor_crop_fractions(
+            image_path,
+            "ita",
+            "Cinghiale",
+            psm=12,
+        )
+
+    assert crop is not None
+    command = run.call_args.args[0]
+    psm_index = command.index("--psm")
+    assert command[psm_index + 1] == "12"
+
+
+def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
+    assert "ref_66cc59680c4e58fa93a99656f8a07887" in (
+        PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
+    )
+    assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
+        "ref_f28940a5239a54f696cb524805e29cc2": 105.0,
+        "ref_38273488414b57489e9d7e57a6c0a360": 105.0,
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be": 120.0,
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8": 105.0,
+    }
 
 
 def test_sparse_anchor_crop_rejects_ambiguous_duplicate_title(tmp_path):
