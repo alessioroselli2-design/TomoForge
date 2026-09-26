@@ -25,6 +25,8 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_APPROVED5_COUNT,
     EXPECTED_OBLEX1_COUNT,
     EXPECTED_READY6_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
@@ -61,7 +63,50 @@ from scripts.repair_monsters_from_source import (
     select_approved5_targets,
     select_oblex1_targets,
     select_ready6_targets,
+    select_players_handbook_blocked20_targets,
 )
+
+
+def test_players_handbook_blocked20_is_sealed_from_full_phb_batch():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked20_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT == 20
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5
+    assert "Aquila Gigante" not in {row["name"] for row in selected}
+    assert "Coccodrillo" not in {row["name"] for row in selected}
+    assert "Cavallo Da Galoppo" in {row["name"] for row in selected}
+    assert "Topo" in {row["name"] for row in selected}
 
 
 def test_residual_batches_are_disjoint_complete_and_fingerprinted():
