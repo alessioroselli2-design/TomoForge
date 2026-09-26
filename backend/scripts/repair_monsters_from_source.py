@@ -459,6 +459,49 @@ BIGBY4_TARGETS: tuple[dict[str, str], ...] = (
 )
 
 
+EXPECTED_PLAYERS_HANDBOOK_COUNT = 31
+EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT = 14
+EXPECTED_PLAYERS_HANDBOOK_IDS_MD5 = "a2f4c03bff9e13e4834344e890cdf099"
+PLAYERS_HANDBOOK_LEGACY_FILENAME = "Manuale_del_giocatore__1787259882002.pdf"
+PLAYERS_HANDBOOK_LOGICAL_SOURCE_ID = "phb_2014_it"
+PLAYERS_HANDBOOK_CONFIRMATION_TOKEN = (
+    "CLEAN-PHB31-31-a2f4c03bff9e13e4834344e890cdf099"
+)
+PLAYERS_HANDBOOK_TARGETS: tuple[dict[str, str], ...] = (
+    {"id": "ref_554da30e4dcd50dc89e327bcf76a6bda", "name": "Aquila Gigante", "status": "verified"},
+    {"id": "ref_b82e375ea1b55332a2f58c3719559b49", "name": "Cavallo Da Galoppo", "status": "verified"},
+    {"id": "ref_85a4eadb862758fbb682e93ab19f1065", "name": "Cavallo Da Guerra", "status": "verified"},
+    {"id": "ref_66df831bf85c519ea29a652124767350", "name": "Cinghiale", "status": "verified"},
+    {"id": "ref_9c0a7cc17c185980a4bbff7f4a6fed98", "name": "Coccodrillo", "status": "verified"},
+    {"id": "ref_45c912daf13f527492fefbd392b25e3a", "name": "Corvo", "status": "verified"},
+    {"id": "ref_f28940a5239a54f696cb524805e29cc2", "name": "Falco", "status": "verified"},
+    {"id": "ref_2704a598d7185e209f21f044e39f4341", "name": "Gatto", "status": "verified"},
+    {"id": "ref_38273488414b57489e9d7e57a6c0a360", "name": "Gufo", "status": "verified"},
+    {"id": "ref_6e1a9996179d5a93a027a31bc30b5d2f", "name": "Imp", "status": "verified"},
+    {"id": "ref_64b388f7cd6053c4a275e173aa482cfd", "name": "Leone", "status": "verified"},
+    {"id": "ref_87ee4ffeff7c5b7bb65e12def234a3be", "name": "Lupo", "status": "verified"},
+    {"id": "ref_3f86dfa076ca220708e09deff0d7d831", "name": "Lupo Feroce", "status": "pending"},
+    {"id": "ref_c467615fbd9ce6c93677ac1d9a323eed", "name": "Mastino", "status": "pending"},
+    {"id": "ref_f453abfdd8264ef7bb0d71805fe586e7", "name": "Mulo", "status": "pending"},
+    {"id": "ref_019562bded0b320ac918f4b2514c65e4", "name": "Orso Bruno", "status": "pending"},
+    {"id": "ref_00d159a7d0ee3d2e977d361999dd4966", "name": "Orso Nero", "status": "pending"},
+    {"id": "ref_c401166fb5d39eb00b150a171e41ad26", "name": "Pantera", "status": "pending"},
+    {"id": "ref_0626a11ef12ec092e8c13f94d1b03cd8", "name": "Pipistrello", "status": "pending"},
+    {"id": "ref_ebab36d8c07021483328e99bebabf365", "name": "Pseudodrago", "status": "pending"},
+    {"id": "ref_867c68436df55ff48716ebe704da4044", "name": "Quasit", "status": "verified"},
+    {"id": "ref_4f1b7244dd735e579ae1e5ec931ccf17", "name": "Ragno Gigante", "status": "verified"},
+    {"id": "ref_66cc59680c4e58fa93a99656f8a07887", "name": "Rana", "status": "pending"},
+    {"id": "ref_6196e826b9aa5833ac6ffae026d26850", "name": "Scheletro", "status": "pending"},
+    {"id": "ref_bc1c095a87b05bda98a5cc369e9daa24", "name": "Serpente Stritolatore", "status": "pending"},
+    {"id": "ref_d60133b03dc9555e866728cbc2a75f9a", "name": "Serpente Velenoso", "status": "pending"},
+    {"id": "ref_bff81a4eec5c54349735293d3691ca7d", "name": "Spiritello", "status": "pending"},
+    {"id": "ref_34a7a3005aa296c6c4ed9cd6a962df3c", "name": "Squalo Tropicale", "status": "pending"},
+    {"id": "ref_32307945d56a74e63b112480050955e9", "name": "Tigre", "status": "pending"},
+    {"id": "ref_06dd892fa0e121a2237f34d5be31fab4", "name": "Topo", "status": "pending"},
+    {"id": "ref_6f23f3488a9b5f276925987ddd975577", "name": "Zombi", "status": "pending"},
+)
+
+
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
@@ -1192,6 +1235,85 @@ def select_bigby4_targets(
         or _ids_md5(targets) != EXPECTED_BIGBY4_IDS_MD5
     ):
         raise RuntimeError("Bigby4 target count/fingerprint drift")
+    return targets
+
+
+
+def select_players_handbook_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve the exact 31 Player's Handbook records by sealed live identity."""
+    by_id = {str(record.get("id") or ""): record for record in records}
+    targets: list[dict[str, Any]] = []
+    verified_count = 0
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(
+                "Player's Handbook target missing: "
+                f"{expected['id']} ({expected['name']})"
+            )
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(
+                f"Player's Handbook name drift: {expected['id']}"
+            )
+        status = str(record.get("review_status") or "")
+        if status != expected["status"]:
+            raise RuntimeError(
+                f"Player's Handbook status drift: {expected['id']} "
+                f"expected={expected['status']!r} actual={status!r}"
+            )
+        if str(record.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
+            raise RuntimeError(
+                f"Player's Handbook source_key drift: {expected['id']}"
+            )
+        refs = record.get("source_refs") or []
+        if not any(
+            isinstance(ref, dict)
+            and str(ref.get("filename") or "") == PLAYERS_HANDBOOK_LEGACY_FILENAME
+            for ref in refs
+        ):
+            raise RuntimeError(
+                f"Player's Handbook source_ref drift: {expected['id']}"
+            )
+        if record.get("canonical_id"):
+            raise RuntimeError(
+                f"Player's Handbook canonical link detected: {expected['id']}"
+            )
+        actual_flags = {str(flag) for flag in (record.get("review_flags") or [])}
+        expected_flags = (
+            {OCR_REVIEW_FLAG}
+            if status == "verified"
+            else {OCR_REVIEW_FLAG, REPAIR_FLAG}
+        )
+        if actual_flags != expected_flags:
+            raise RuntimeError(
+                f"Player's Handbook review flag drift: {expected['id']} "
+                f"expected={sorted(expected_flags)!r} actual={sorted(actual_flags)!r}"
+            )
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(
+                f"Player's Handbook identity gate failure: {expected['id']}"
+            )
+        verified_count += int(status == "verified")
+        targets.append(record)
+
+    if len(records) != EXPECTED_PLAYERS_HANDBOOK_COUNT:
+        raise RuntimeError(
+            "Player's Handbook source selection drift: "
+            f"expected {EXPECTED_PLAYERS_HANDBOOK_COUNT}, found {len(records)}"
+        )
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook target count/fingerprint drift")
+    if verified_count != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT:
+        raise RuntimeError(
+            "Player's Handbook verified-count drift: "
+            f"expected {EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT}, "
+            f"found {verified_count}"
+        )
     return targets
 
 
@@ -2843,6 +2965,61 @@ async def _apply_update(
             raise RuntimeError("post-update batch timestamp verification failed")
 
 
+
+async def _apply_verified_ocr_flag_cleanup(
+    collection: Any,
+    legacy: dict[str, Any],
+    *,
+    updated_at: str,
+) -> None:
+    """Remove only the orphan OCR flag from an already-verified PHB record."""
+    if str(legacy.get("review_status") or "") != "verified":
+        raise RepairBlocked("verified_cleanup_status_drift")
+    if str(legacy.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
+        raise RepairBlocked("verified_cleanup_source_drift")
+    if {str(flag) for flag in (legacy.get("review_flags") or [])} != {
+        OCR_REVIEW_FLAG
+    }:
+        raise RepairBlocked("verified_cleanup_flag_drift")
+    if monster_semantic_numeric_flags(legacy.get("attributes") or {}):
+        raise RepairBlocked("verified_cleanup_core_gate_failure")
+
+    result = await collection.update_one(
+        {
+            "id": str(legacy["id"]),
+            "review_status": "verified",
+            "source_key": PLAYERS_HANDBOOK_LEGACY_FILENAME,
+        },
+        {
+            "$set": {
+                "review_flags": [],
+                "updated_at": updated_at,
+            }
+        },
+    )
+    if result.matched_count != 1:
+        raise RepairBlocked(
+            "verified_cleanup_concurrent_drift",
+            f"matched_count={result.matched_count}",
+        )
+
+    verify = await collection.find_one({"id": str(legacy["id"])})
+    if verify is None:
+        raise RuntimeError("verified cleanup post-update record missing")
+    if str(verify.get("review_status") or "") != "verified":
+        raise RuntimeError("verified cleanup changed review_status")
+    if list(verify.get("review_flags") or []):
+        raise RuntimeError("verified cleanup did not clear review_flags")
+    if (verify.get("attributes") or {}) != (legacy.get("attributes") or {}):
+        raise RuntimeError("verified cleanup changed attributes")
+    expected_timestamp = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+    actual_timestamp = datetime.fromisoformat(
+        str(verify.get("updated_at") or "").replace("Z", "+00:00")
+    )
+    if actual_timestamp != expected_timestamp:
+        raise RuntimeError("verified cleanup batch timestamp verification failed")
+
+
 def _json_view(record: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": record.get("id"),
@@ -2980,6 +3157,48 @@ async def _repair_one(
         candidate,
     )
 
+    verified_flag_cleanup = None
+    if (
+        args.target_set == "batch_players_handbook"
+        and str(record.get("review_status") or "") == "verified"
+    ):
+        current_attributes = record.get("attributes") or {}
+        proposed_attributes = proposal.get("attributes") or {}
+        core_fields = ("classe_armatura", "punti_ferita", "velocita")
+        agreement = {
+            field: str(current_attributes.get(field) or "").strip()
+            == str(proposed_attributes.get(field) or "").strip()
+            for field in core_fields
+        }
+        if not all(agreement.values()):
+            raise RepairBlocked(
+                "players_handbook_verified_core_mismatch",
+                detail="CA/PF/velocita do not match source extraction exactly",
+                diagnostics={
+                    "agreement": agreement,
+                    "current_core": {
+                        field: current_attributes.get(field) for field in core_fields
+                    },
+                    "source_core": {
+                        field: proposed_attributes.get(field) for field in core_fields
+                    },
+                },
+            )
+        if {str(flag) for flag in (record.get("review_flags") or [])} != {
+            OCR_REVIEW_FLAG
+        }:
+            raise RepairBlocked("players_handbook_verified_flag_drift")
+        verified_flag_cleanup = {
+            "authorized": True,
+            "agreement": agreement,
+            "remove_flag": OCR_REVIEW_FLAG,
+        }
+        proposal = {
+            "attributes": dict(current_attributes),
+            "review_flags": [],
+            "review_status": "verified",
+        }
+
     target_metrics = quality[physical_page]
     report = {
         "name": record.get("name"),
@@ -3018,9 +3237,18 @@ async def _repair_one(
         "gate_failures_after": [],
         "would_update": True,
         "executed": False,
+        **(
+            {"verified_flag_cleanup": verified_flag_cleanup}
+            if verified_flag_cleanup is not None
+            else {}
+        ),
     }
 
     if args.execute:
+        if args.target_set == "batch_players_handbook":
+            raise AssertionError(
+                "Player's Handbook writes must be staged and applied at batch level"
+            )
         await _apply_update(
             collection,
             record,
@@ -3055,6 +3283,7 @@ def _parser() -> argparse.ArgumentParser:
             "batch_alpha",
             "batch_beta",
             "batch_gamma",
+            "batch_players_handbook",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -3139,6 +3368,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != READY6_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Ready6 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "batch_players_handbook"
+        and args.confirm != PLAYERS_HANDBOOK_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Player's Handbook confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -3164,6 +3399,15 @@ async def _run(args: argparse.Namespace) -> int:
         source_collection,
         {"source_status": "active"},
     )
+    players_handbook_records = []
+    if args.target_set == "batch_players_handbook":
+        players_handbook_records = await _fetch_all(
+            records_collection,
+            {
+                "reference_type": "monster",
+                "source_key": PLAYERS_HANDBOOK_LEGACY_FILENAME,
+            },
+        )
 
     summary = {
         "verified_monsters": len(verified),
@@ -3172,6 +3416,7 @@ async def _run(args: argparse.Namespace) -> int:
         "corrupted_entity_names": len(corrupted_names),
         "expected_initial_failures": EXPECTED_INITIAL_FAILURES,
         "dry_run": not args.execute,
+        "players_handbook_source_records": len(players_handbook_records),
     }
     print("SOURCE_GUIDED_REPAIR_SUMMARY")
     print(
@@ -3182,7 +3427,11 @@ async def _run(args: argparse.Namespace) -> int:
         )
     )
 
-    if not failures and not corrupted_names:
+    if (
+        not failures
+        and not corrupted_names
+        and args.target_set != "batch_players_handbook"
+    ):
         return 0
 
     sealed_batch = args.target_set in {
@@ -3192,8 +3441,13 @@ async def _run(args: argparse.Namespace) -> int:
         "oblex1",
         "ready6",
         "bigby4",
+        "batch_players_handbook",
     }
-    if args.target_set in RESIDUAL_BATCH_TARGETS:
+    if args.target_set == "batch_players_handbook":
+        targets = select_players_handbook_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_COUNT
+        sealed_label = "Player's Handbook"
+    elif args.target_set in RESIDUAL_BATCH_TARGETS:
         targets = select_residual_batch_targets(failures, args.target_set)
         sealed_expected_count = None
         sealed_label = args.target_set
@@ -3303,7 +3557,50 @@ async def _run(args: argparse.Namespace) -> int:
     finally:
         pdf_cache.close()
 
-    if sealed_batch and args.execute:
+    batch_updated_at = None
+    if args.target_set == "batch_players_handbook" and args.execute:
+        originals = {str(record["id"]): record for record in targets}
+        verified_target_ids = {
+            str(record["id"])
+            for record in targets
+            if str(record.get("review_status") or "") == "verified"
+        }
+        blocked_verified_ids = {
+            str(item.get("record_id") or "")
+            for item in blocked
+            if str(item.get("record_id") or "") in verified_target_ids
+        }
+        verified_reports = [
+            report
+            for report in reports
+            if str(report.get("record_id") or "") in verified_target_ids
+        ]
+        if (
+            len(verified_target_ids) != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
+            or blocked_verified_ids
+            or len(verified_reports) != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
+            or any(
+                not (report.get("verified_flag_cleanup") or {}).get("authorized")
+                for report in verified_reports
+            )
+        ):
+            raise RuntimeError(
+                "Player's Handbook cleanup refused: all 14 verified records "
+                "must pass exact CA/PF/velocita source agreement before any flag write"
+            )
+        await _revalidate_target_snapshots(records_collection, targets)
+        batch_updated_at = datetime.now(timezone.utc).isoformat().replace(
+            "+00:00", "Z"
+        )
+        for report in verified_reports:
+            await _apply_verified_ocr_flag_cleanup(
+                records_collection,
+                originals[str(report["record_id"])],
+                updated_at=batch_updated_at,
+            )
+            report["executed"] = True
+
+    elif sealed_batch and args.execute:
         if blocked or len(reports) != sealed_expected_count:
             raise RuntimeError(
                 f"{sealed_label} batch refused: all {sealed_expected_count} proposals "
@@ -3361,6 +3658,11 @@ async def _run(args: argparse.Namespace) -> int:
         "name_corruption_bucket": name_corruption_bucket,
         "updates_performed": sum(1 for report in reports if report["executed"]),
         "batch_updated_at": batch_updated_at if sealed_batch and args.execute else None,
+        "players_handbook_verified_cleanup_authorized": sum(
+            1
+            for report in reports
+            if (report.get("verified_flag_cleanup") or {}).get("authorized")
+        ),
         "reports": reports,
         "blocked_records": blocked,
     }

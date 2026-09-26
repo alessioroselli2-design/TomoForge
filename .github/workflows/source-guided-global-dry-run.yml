@@ -1,11 +1,19 @@
-name: Global source-guided monster dry-run
+name: Focused Player's Handbook source-guided dry-run
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - backend/scripts/repair_monsters_from_source.py
+      - .github/workflows/source-guided-global-dry-run.yml
+      - .github/source-guided-global-dry-run-request.txt
   push:
     branches:
       - develop
     paths:
+      - backend/scripts/repair_monsters_from_source.py
       - .github/workflows/source-guided-global-dry-run.yml
       - .github/source-guided-global-dry-run-request.txt
 
@@ -13,19 +21,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: tomoforge-source-guided-global-dry-run
+  group: tomoforge-source-guided-players-handbook-dry-run
   cancel-in-progress: true
 
 jobs:
-  granular-dry-run:
-    name: granular-dry-run (${{ matrix.slot }})
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - slot: "01"
-            name: "Larvico"
+  focused-dry-run:
+    name: players-handbook-31-read-only
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -56,13 +57,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt boto3
 
-      - name: Run single-monster read-only source-guided repair
+      - name: Run focused Player's Handbook read-only source-guided repair
         run: |
           set -o pipefail
           python backend/scripts/repair_monsters_from_source.py \
-            --name "${{ matrix.name }}" \
+            --target-set batch_players_handbook \
             --allow-r2-download \
-            | tee "/tmp/source-guided-${{ matrix.slot }}-dry-run.log"
+            | tee /tmp/players-handbook-dry-run.log
 
       - name: Extract and validate final report
         run: |
@@ -70,111 +71,39 @@ jobs:
           import json
           from pathlib import Path
 
-          slot = "${{ matrix.slot }}"
-          expected_name = """${{ matrix.name }}"""
-          log_path = Path(f"/tmp/source-guided-{slot}-dry-run.log")
-          lines = log_path.read_text(encoding="utf-8").splitlines()
+          log_path = Path('/tmp/players-handbook-dry-run.log')
+          lines = log_path.read_text(encoding='utf-8').splitlines()
           try:
-              marker = len(lines) - 1 - lines[::-1].index("FINAL_REPORT")
+              marker = len(lines) - 1 - lines[::-1].index('FINAL_REPORT')
               report = json.loads(lines[marker + 1])
           except (ValueError, IndexError, json.JSONDecodeError) as exc:
-              raise SystemExit(f"Missing or invalid FINAL_REPORT: {exc}") from exc
+              raise SystemExit(f'Missing or invalid FINAL_REPORT: {exc}') from exc
 
-          if report.get("dry_run") is not True:
-              raise SystemExit(f"{slot} repair did not run in dry-run mode")
-          if report.get("updates_performed") != 0:
-              raise SystemExit("Read-only invariant violated: updates were performed")
-          if report.get("targets") != 1:
-              raise SystemExit(f"{slot} expected exactly one target, got {report.get('targets')}")
+          if report.get('dry_run') is not True:
+              raise SystemExit('Focused PHB job did not run in dry-run mode')
+          if report.get('updates_performed') != 0:
+              raise SystemExit('Read-only invariant violated: updates were performed')
+          if report.get('targets') != 31:
+              raise SystemExit(f"Expected 31 targets, got {report.get('targets')}")
+          if report.get('repairable', 0) + report.get('blocked', 0) != 31:
+              raise SystemExit('Aggregate invariant violated: repairable + blocked must equal 31')
 
-          report["slot"] = slot
-          report["expected_name"] = expected_name
-          output = Path(f"/tmp/{slot}-FINAL_REPORT.json")
-          output.write_text(
-              json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
+          out = Path('/tmp/FINAL_REPORT.json')
+          out.write_text(
+              json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
           )
+          print('FINAL_REPORT')
+          print(json.dumps(report, ensure_ascii=False, sort_keys=True))
           PY
 
-      - name: Upload single-monster dry-run report
+      - name: Upload focused dry-run report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: source-guided-${{ matrix.slot }}-dry-run
+          name: players-handbook-31-FINAL_REPORT
           path: |
-            /tmp/source-guided-${{ matrix.slot }}-dry-run.log
-            /tmp/${{ matrix.slot }}-FINAL_REPORT.json
+            /tmp/players-handbook-dry-run.log
+            /tmp/FINAL_REPORT.json
           if-no-files-found: warn
-          retention-days: 7
-
-  aggregate-final-report:
-    name: aggregate-final-report
-    if: always()
-    needs: granular-dry-run
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all granular reports
-        uses: actions/download-artifact@v4
-        with:
-          pattern: source-guided-*-dry-run
-          path: /tmp/granular
-          merge-multiple: false
-
-      - name: Build and validate FINAL_REPORT
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          paths = sorted(Path("/tmp/granular").glob("**/*-FINAL_REPORT.json"))
-          if len(paths) != 1:
-              raise SystemExit(f"Expected 1 completed granular report, found {len(paths)}")
-
-          reports = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
-          if any(report.get("dry_run") is not True for report in reports):
-              raise SystemExit("At least one granular report is not a dry run")
-          if any(report.get("updates_performed") != 0 for report in reports):
-              raise SystemExit("Read-only invariant violated in at least one granular report")
-          if any(report.get("targets") != 1 for report in reports):
-              raise SystemExit("At least one granular report does not contain exactly one target")
-
-          repairable_records = []
-          blocked_records = []
-          for report in reports:
-              repairable_records.extend(report.get("reports", []))
-              blocked_records.extend(report.get("blocked_records", []))
-
-          final = {
-              "dry_run": True,
-              "targets": 1,
-              "repairable": len(repairable_records),
-              "blocked": len(blocked_records),
-              "updates_performed": 0,
-              "repairable_names": [
-                  item.get("name") or item.get("record_name")
-                  for item in repairable_records
-              ],
-              "reports": repairable_records,
-              "blocked_records": blocked_records,
-          }
-          if final["repairable"] + final["blocked"] != 1:
-              raise SystemExit(
-                  "Aggregate invariant violated: repairable + blocked must equal 1"
-              )
-
-          out = Path("/tmp/FINAL_REPORT.json")
-          out.write_text(
-              json.dumps(final, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
-          )
-          print("FINAL_REPORT")
-          print(json.dumps(final, ensure_ascii=False, sort_keys=True))
-          PY
-
-      - name: Upload final aggregate report
-        uses: actions/upload-artifact@v4
-        with:
-          name: source-guided-global-FINAL_REPORT
-          path: /tmp/FINAL_REPORT.json
-          if-no-files-found: error
           retention-days: 7
