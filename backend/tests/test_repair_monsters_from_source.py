@@ -36,6 +36,8 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
@@ -80,6 +82,7 @@ from scripts.repair_monsters_from_source import (
     select_players_handbook_blocked12_targets,
     select_players_handbook_blocked11_targets,
     select_players_handbook_blocked9_targets,
+    select_players_handbook_blocked8_targets,
 )
 
 
@@ -325,6 +328,49 @@ def test_players_handbook_blocked9_is_sealed_after_run107_passes():
     assert "Tigre" not in selected_names
     assert "Cavallo Da Guerra" in selected_names
     assert "Cinghiale" in selected_names
+    assert "Rana" in selected_names
+
+
+def test_players_handbook_blocked8_is_sealed_after_mulo_passes():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked8_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT == 8
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Mulo" not in selected_names
+    assert "Cavallo Da Guerra" in selected_names
+    assert "Falco" in selected_names
     assert "Rana" in selected_names
 
 
