@@ -774,6 +774,9 @@ HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
+OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 75.0,  # Lupo
+}
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
@@ -813,22 +816,27 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
 
 
 def _remaining_global_ocr_budget(
-    ocr_budget_started_at: float | None,
+    ocr_budget_started_at: float | tuple[float, float] | None,
 ) -> float | None:
     if ocr_budget_started_at is None:
         return None
-    elapsed = time.monotonic() - ocr_budget_started_at
-    remaining = OCR_GLOBAL_TIMEOUT_SECONDS - elapsed
+    if isinstance(ocr_budget_started_at, tuple):
+        started_at, budget_seconds = ocr_budget_started_at
+    else:
+        started_at = ocr_budget_started_at
+        budget_seconds = OCR_GLOBAL_TIMEOUT_SECONDS
+    elapsed = time.monotonic() - started_at
+    remaining = budget_seconds - elapsed
     if remaining <= 0:
         raise RepairBlocked(
             "ocr_global_timeout",
             detail=(
                 f"global OCR budget exceeded after {elapsed:.2f}s "
-                f"(limit {OCR_GLOBAL_TIMEOUT_SECONDS:.0f}s)"
+                f"(limit {budget_seconds:.0f}s)"
             ),
             diagnostics={
                 "elapsed_seconds": round(elapsed, 3),
-                "budget_seconds": OCR_GLOBAL_TIMEOUT_SECONDS,
+                "budget_seconds": budget_seconds,
             },
         )
     return remaining
@@ -836,7 +844,7 @@ def _remaining_global_ocr_budget(
 
 def _run_tesseract_bounded(
     command: list[str],
-    ocr_budget_started_at: float | None,
+    ocr_budget_started_at: float | tuple[float, float] | None,
     *,
     phase: str,
 ) -> str:
@@ -1831,7 +1839,7 @@ def _sparse_anchor_crop_fractions(
     languages: str,
     target_name: str,
     *,
-    ocr_budget_started_at: float | None = None,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
 ) -> tuple[float, float, float, float] | None:
     """Locate one unique PSM11 title anchor and return a target-column crop.
 
@@ -2058,7 +2066,7 @@ def _micro_ocr_hit_points_line(
     page_text: str,
     name: str,
     *,
-    ocr_budget_started_at: float | None = None,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
 ) -> str:
     """Re-OCR only the numeric part of the PF line with a strict whitelist.
 
@@ -2753,7 +2761,7 @@ def _ocr_source_window(
     column_overlap: float = 0.02,
     sparse_full_page: bool = False,
     target_page_only: bool = False,
-    ocr_budget_started_at: float | None = None,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
 ) -> tuple[
     list[tuple[int, str]],
     list[tuple[int, str]],
@@ -3579,8 +3587,16 @@ async def _repair_one(
     )
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
-    # attempt for this monster. A timeout blocks only this record.
-    ocr_budget_started_at = time.monotonic()
+    # attempt for this monster. A timeout blocks only this record. The PHB Lupo
+    # gets a narrowly-scoped 75s budget after run #107 reached 60.29s; each
+    # individual Tesseract subprocess remains hard-limited to 15s.
+    ocr_budget_started_at = (
+        time.monotonic(),
+        OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
+            record_id,
+            OCR_GLOBAL_TIMEOUT_SECONDS,
+        ),
+    )
 
     candidate = None
     quality = None
