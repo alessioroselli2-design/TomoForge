@@ -769,6 +769,19 @@ PLAYERS_HANDBOOK_BLOCKED8_IDS = frozenset(
         "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
     }
 )
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_COUNT = 7
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_IDS_MD5 = "bfae7f605855d624c8cfca9d364c436c"
+PLAYERS_HANDBOOK_BLOCKED7_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+    }
+)
 PLAYERS_HANDBOOK_AMBIGUOUS2_IDS = frozenset(
     {
         "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
@@ -1705,6 +1718,24 @@ def select_players_handbook_blocked8_targets(
         or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5
     ):
         raise RuntimeError("Player's Handbook blocked8 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked7_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 7 PHB rows still blocked after focused run #127."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED7_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked7 count/fingerprint drift")
     return targets
 
 
@@ -3859,6 +3890,7 @@ async def _repair_one(
             "batch_players_handbook_blocked11",
             "batch_players_handbook_blocked9",
             "batch_players_handbook_blocked8",
+            "batch_players_handbook_blocked7",
         }
         and str(record.get("review_status") or "") == "verified"
     ):
@@ -3994,6 +4026,7 @@ def _parser() -> argparse.ArgumentParser:
             "batch_players_handbook_blocked11",
             "batch_players_handbook_blocked9",
             "batch_players_handbook_blocked8",
+            "batch_players_handbook_blocked7",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -4210,6 +4243,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = select_players_handbook_blocked8_targets(players_handbook_records)
         sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT
         sealed_label = "Player's Handbook blocked8"
+    elif args.target_set == "batch_players_handbook_blocked7":
+        targets = select_players_handbook_blocked7_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_COUNT
+        sealed_label = "Player's Handbook blocked7"
     elif args.target_set in RESIDUAL_BATCH_TARGETS:
         targets = select_residual_batch_targets(failures, args.target_set)
         sealed_expected_count = None
