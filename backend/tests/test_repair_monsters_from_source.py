@@ -30,6 +30,8 @@ from scripts.repair_monsters_from_source import (
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
     REPAIR_FLAG,
+    TARGET_ANCHORED_LOGICAL_SOURCE_IDS,
+    TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS,
     RepairBlocked,
     SourcePdfCache,
     _agreed_target_candidate,
@@ -990,6 +992,8 @@ def test_bigby_layout_profile_splits_columns_and_uses_independent_ocr_modes():
 def test_players_handbook_layout_profile_splits_columns():
     source = {"logical_source_id": "phb_2014_it"}
 
+    assert "phb_2014_it" in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
+    assert "phb_2014_it" in TARGET_ANCHORED_LOGICAL_SOURCE_IDS
     assert _layout_profile(source) == "two_column_vertical"
     assert _layout_segments(source) == (
         ("left", (0.0, 0.0, 0.52, 1.0)),
