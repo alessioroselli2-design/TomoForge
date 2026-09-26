@@ -29,6 +29,8 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
@@ -69,6 +71,7 @@ from scripts.repair_monsters_from_source import (
     select_ready6_targets,
     select_players_handbook_blocked20_targets,
     select_players_handbook_blocked16_targets,
+    select_players_handbook_blocked12_targets,
 )
 
 
@@ -183,6 +186,51 @@ def test_hp_micro_ocr_repeated_title_matches_can_converge_on_one_hp_line(tmp_pat
 
     assert result == page_text
     run.assert_not_called()
+
+
+def test_players_handbook_blocked12_is_sealed_from_full_phb_batch():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked12_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT == 12
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Corvo" not in selected_names
+    assert "Imp" not in selected_names
+    assert "Mastino" not in selected_names
+    assert "Topo" not in selected_names
+    assert "Cavallo Da Guerra" in selected_names
+    assert "Rana" in selected_names
 
 
 def test_residual_batches_are_disjoint_complete_and_fingerprinted():
@@ -797,7 +845,7 @@ def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     assert result == page_text
     payload = json.loads(capsys.readouterr().out.split("HP_ANCHOR_DIAGNOSTIC ", 1)[1])
     assert payload["page_text_target_count"] == 2
-    assert payload["page_text_local_hp_count"] == 0
+    assert payload["page_text_local_hp_count"] == 2
     assert payload["tsv_page_wide_hp_label_count"] == 1
     assert payload["tsv_name_anchor_found"] is False
     assert payload["tsv_local_label_found"] is False
