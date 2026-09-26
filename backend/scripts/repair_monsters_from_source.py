@@ -2441,10 +2441,36 @@ def _micro_ocr_hit_points_line(
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
     if page_text_has_hp_label:
-        if page_target_count != 1 or page_local_hp_count != 1:
-            return fail_closed("micro_ocr_replacement_target_ambiguous")
         text_lines = page_text.splitlines()
-        hp_index = page_local_hp_indexes[0]
+        if page_target_count == 1 and page_local_hp_count == 1:
+            hp_index = page_local_hp_indexes[0]
+        else:
+            page_hp_indexes = [
+                index
+                for index, line in enumerate(text_lines)
+                if hp_line_pattern.match(line)
+            ]
+            if not (
+                page_target_count == 0
+                and name_line_index is not None
+                and len(global_labels) == 1
+                and len(page_hp_indexes) == 1
+            ):
+                return fail_closed("micro_ocr_replacement_target_ambiguous")
+            hp_index = page_hp_indexes[0]
+            print(
+                "HP_TSV_IDENTITY_SINGLE_LINE_FALLBACK "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "page_hp_lines": 1,
+                        "tsv_name_anchor_found": True,
+                        "unique_tsv_hp_labels": 1,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
         hp_match = hp_line_pattern.match(text_lines[hp_index])
         if hp_match is None:
             return fail_closed("micro_ocr_target_hp_line_unparseable")
