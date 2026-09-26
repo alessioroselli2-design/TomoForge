@@ -819,6 +819,29 @@ def test_hp_micro_ocr_page_wide_fallback_rejects_ambiguous_hp_labels(tmp_path, c
     }
 
 
+def test_hp_micro_ocr_collapses_identical_duplicate_hp_lines(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "Rana\nPunti Ferita 1 (1d4 - 1)\n"
+        "Rana\nPunti Ferita 1 (1d4 - 1)\n"
+    )
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Rana",
+        )
+
+    assert result == page_text
+    run.assert_not_called()
+
+
 def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
@@ -831,7 +854,7 @@ def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     )
     page_text = (
         "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
-        "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
+        "Quetzalcoatlus\nPunti Ferita 31 (4d12 + 5)\n"
     )
 
     with patch(
