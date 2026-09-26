@@ -459,11 +459,346 @@ BIGBY4_TARGETS: tuple[dict[str, str], ...] = (
 )
 
 
+EXPECTED_PLAYERS_HANDBOOK_COUNT = 31
+EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT = 14
+EXPECTED_PLAYERS_HANDBOOK_IDS_MD5 = "a2f4c03bff9e13e4834344e890cdf099"
+PLAYERS_HANDBOOK_LEGACY_FILENAME = "Manuale_del_giocatore__1787259882002.pdf"
+PLAYERS_HANDBOOK_LOGICAL_SOURCE_ID = "phb_2014_it"
+PLAYERS_HANDBOOK_CONFIRMATION_TOKEN = "CLEAN-PHB31-31-a2f4c03bff9e13e4834344e890cdf099"
+PLAYERS_HANDBOOK_TARGETS: tuple[dict[str, str], ...] = (
+    {
+        "id": "ref_554da30e4dcd50dc89e327bcf76a6bda",
+        "name": "Aquila Gigante",
+        "status": "verified",
+    },
+    {
+        "id": "ref_b82e375ea1b55332a2f58c3719559b49",
+        "name": "Cavallo Da Galoppo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_85a4eadb862758fbb682e93ab19f1065",
+        "name": "Cavallo Da Guerra",
+        "status": "verified",
+    },
+    {
+        "id": "ref_66df831bf85c519ea29a652124767350",
+        "name": "Cinghiale",
+        "status": "verified",
+    },
+    {
+        "id": "ref_9c0a7cc17c185980a4bbff7f4a6fed98",
+        "name": "Coccodrillo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_45c912daf13f527492fefbd392b25e3a",
+        "name": "Corvo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_f28940a5239a54f696cb524805e29cc2",
+        "name": "Falco",
+        "status": "verified",
+    },
+    {
+        "id": "ref_2704a598d7185e209f21f044e39f4341",
+        "name": "Gatto",
+        "status": "verified",
+    },
+    {
+        "id": "ref_38273488414b57489e9d7e57a6c0a360",
+        "name": "Gufo",
+        "status": "verified",
+    },
+    {"id": "ref_6e1a9996179d5a93a027a31bc30b5d2f", "name": "Imp", "status": "verified"},
+    {
+        "id": "ref_64b388f7cd6053c4a275e173aa482cfd",
+        "name": "Leone",
+        "status": "verified",
+    },
+    {
+        "id": "ref_87ee4ffeff7c5b7bb65e12def234a3be",
+        "name": "Lupo",
+        "status": "verified",
+    },
+    {
+        "id": "ref_3f86dfa076ca220708e09deff0d7d831",
+        "name": "Lupo Feroce",
+        "status": "pending",
+    },
+    {
+        "id": "ref_c467615fbd9ce6c93677ac1d9a323eed",
+        "name": "Mastino",
+        "status": "pending",
+    },
+    {"id": "ref_f453abfdd8264ef7bb0d71805fe586e7", "name": "Mulo", "status": "pending"},
+    {
+        "id": "ref_019562bded0b320ac918f4b2514c65e4",
+        "name": "Orso Bruno",
+        "status": "pending",
+    },
+    {
+        "id": "ref_00d159a7d0ee3d2e977d361999dd4966",
+        "name": "Orso Nero",
+        "status": "pending",
+    },
+    {
+        "id": "ref_c401166fb5d39eb00b150a171e41ad26",
+        "name": "Pantera",
+        "status": "pending",
+    },
+    {
+        "id": "ref_0626a11ef12ec092e8c13f94d1b03cd8",
+        "name": "Pipistrello",
+        "status": "pending",
+    },
+    {
+        "id": "ref_ebab36d8c07021483328e99bebabf365",
+        "name": "Pseudodrago",
+        "status": "pending",
+    },
+    {
+        "id": "ref_867c68436df55ff48716ebe704da4044",
+        "name": "Quasit",
+        "status": "verified",
+    },
+    {
+        "id": "ref_4f1b7244dd735e579ae1e5ec931ccf17",
+        "name": "Ragno Gigante",
+        "status": "verified",
+    },
+    {"id": "ref_66cc59680c4e58fa93a99656f8a07887", "name": "Rana", "status": "pending"},
+    {
+        "id": "ref_6196e826b9aa5833ac6ffae026d26850",
+        "name": "Scheletro",
+        "status": "pending",
+    },
+    {
+        "id": "ref_bc1c095a87b05bda98a5cc369e9daa24",
+        "name": "Serpente Stritolatore",
+        "status": "pending",
+    },
+    {
+        "id": "ref_d60133b03dc9555e866728cbc2a75f9a",
+        "name": "Serpente Velenoso",
+        "status": "pending",
+    },
+    {
+        "id": "ref_bff81a4eec5c54349735293d3691ca7d",
+        "name": "Spiritello",
+        "status": "pending",
+    },
+    {
+        "id": "ref_34a7a3005aa296c6c4ed9cd6a962df3c",
+        "name": "Squalo Tropicale",
+        "status": "pending",
+    },
+    {
+        "id": "ref_32307945d56a74e63b112480050955e9",
+        "name": "Tigre",
+        "status": "pending",
+    },
+    {"id": "ref_06dd892fa0e121a2237f34d5be31fab4", "name": "Topo", "status": "pending"},
+    {
+        "id": "ref_6f23f3488a9b5f276925987ddd975577",
+        "name": "Zombi",
+        "status": "pending",
+    },
+)
+
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT = 20
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5 = "5e1cebb055ef0540f9bbec264d06a924"
+PLAYERS_HANDBOOK_BLOCKED20_IDS = frozenset(
+    {
+        "ref_b82e375ea1b55332a2f58c3719559b49",  # Cavallo Da Galoppo
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_45c912daf13f527492fefbd392b25e3a",  # Corvo
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_2704a598d7185e209f21f044e39f4341",  # Gatto
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_6e1a9996179d5a93a027a31bc30b5d2f",  # Imp
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_c467615fbd9ce6c93677ac1d9a323eed",  # Mastino
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_4f1b7244dd735e579ae1e5ec931ccf17",  # Ragno Gigante
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+        "ref_bc1c095a87b05bda98a5cc369e9daa24",  # Serpente Stritolatore
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+        "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
+    }
+)
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT = 16
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5 = "33fef0b81e8d24a1196bcabb724ae04f"
+PLAYERS_HANDBOOK_BLOCKED16_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_45c912daf13f527492fefbd392b25e3a",  # Corvo
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_6e1a9996179d5a93a027a31bc30b5d2f",  # Imp
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_c467615fbd9ce6c93677ac1d9a323eed",  # Mastino
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+        "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
+    }
+)
+PLAYERS_HANDBOOK_TIMEOUT11_IDS = frozenset(
+    {
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_45c912daf13f527492fefbd392b25e3a",  # Corvo
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+        "ref_06dd892fa0e121a2237f34d5be31fab4",  # Topo
+    }
+)
+
+PLAYERS_HANDBOOK_TIMEOUT8_IDS = frozenset(
+    {
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+    }
+)
+PLAYERS_HANDBOOK_TIMEOUT8_NAMES = frozenset(
+    {
+        "Cinghiale",
+        "Falco",
+        "Gufo",
+        "Leone",
+        "Lupo",
+        "Mulo",
+        "Pipistrello",
+        "Tigre",
+    }
+)
+PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS = frozenset(
+    {
+        *PLAYERS_HANDBOOK_TIMEOUT8_IDS,
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+    }
+)
+
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT = 12
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5 = "30b288a628863e6a4bb5ba64020deca5"
+PLAYERS_HANDBOOK_BLOCKED12_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_867c68436df55ff48716ebe704da4044",  # Quasit
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+    }
+)
+
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT = 11
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5 = "877167cc8f3a469c99867a0ebf3cc150"
+PLAYERS_HANDBOOK_BLOCKED11_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_64b388f7cd6053c4a275e173aa482cfd",  # Leone
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+        "ref_32307945d56a74e63b112480050955e9",  # Tigre
+    }
+)
+
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT = 9
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5 = "da6be096bdd049fd10d960bc6f994fa6"
+PLAYERS_HANDBOOK_BLOCKED9_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_f453abfdd8264ef7bb0d71805fe586e7",  # Mulo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+    }
+)
+
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT = 8
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5 = "16d6f256a797b647ee6591d34200cd00"
+PLAYERS_HANDBOOK_BLOCKED8_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+        "ref_66cc59680c4e58fa93a99656f8a07887",  # Rana
+    }
+)
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_COUNT = 7
+EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_IDS_MD5 = "bfae7f605855d624c8cfca9d364c436c"
+PLAYERS_HANDBOOK_BLOCKED7_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+        "ref_f28940a5239a54f696cb524805e29cc2",  # Falco
+        "ref_38273488414b57489e9d7e57a6c0a360",  # Gufo
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",  # Lupo
+        "ref_019562bded0b320ac918f4b2514c65e4",  # Orso Bruno
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",  # Pipistrello
+    }
+)
+PLAYERS_HANDBOOK_AMBIGUOUS2_IDS = frozenset(
+    {
+        "ref_85a4eadb862758fbb682e93ab19f1065",  # Cavallo Da Guerra
+        "ref_66df831bf85c519ea29a652124767350",  # Cinghiale
+    }
+)
+
+
 # Known source families whose stat blocks are laid out in two vertical columns.
 # Keep this explicit and source-guided: do not guess a layout from OCR output.
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "mpmm_2022_it",  # Mordenkainen Presenta: Mostri del Multiverso
     "bgg_2023_it",  # Bigby Presenta: La Gloria dei Giganti
+    "phb_2014_it",  # Manuale del Giocatore, appendice mostri a due colonne
+}
+TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
+    "phb_2014_it",
 }
 TWO_COLUMN_MIN_DPI = 300
 TWO_COLUMN_PRIMARY_PSM = 3
@@ -473,6 +808,12 @@ HIT_POINTS_CONTRAST = 2.0
 HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
+OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_f28940a5239a54f696cb524805e29cc2": 150.0,  # Falco
+    "ref_38273488414b57489e9d7e57a6c0a360": 150.0,  # Gufo
+    "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,  # Lupo
+    "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,  # Pipistrello
+}
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
@@ -512,22 +853,27 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
 
 
 def _remaining_global_ocr_budget(
-    ocr_budget_started_at: float | None,
+    ocr_budget_started_at: float | tuple[float, float] | None,
 ) -> float | None:
     if ocr_budget_started_at is None:
         return None
-    elapsed = time.monotonic() - ocr_budget_started_at
-    remaining = OCR_GLOBAL_TIMEOUT_SECONDS - elapsed
+    if isinstance(ocr_budget_started_at, tuple):
+        started_at, budget_seconds = ocr_budget_started_at
+    else:
+        started_at = ocr_budget_started_at
+        budget_seconds = OCR_GLOBAL_TIMEOUT_SECONDS
+    elapsed = time.monotonic() - started_at
+    remaining = budget_seconds - elapsed
     if remaining <= 0:
         raise RepairBlocked(
             "ocr_global_timeout",
             detail=(
                 f"global OCR budget exceeded after {elapsed:.2f}s "
-                f"(limit {OCR_GLOBAL_TIMEOUT_SECONDS:.0f}s)"
+                f"(limit {budget_seconds:.0f}s)"
             ),
             diagnostics={
                 "elapsed_seconds": round(elapsed, 3),
-                "budget_seconds": OCR_GLOBAL_TIMEOUT_SECONDS,
+                "budget_seconds": budget_seconds,
             },
         )
     return remaining
@@ -535,7 +881,7 @@ def _remaining_global_ocr_budget(
 
 def _run_tesseract_bounded(
     command: list[str],
-    ocr_budget_started_at: float | None,
+    ocr_budget_started_at: float | tuple[float, float] | None,
     *,
     phase: str,
 ) -> str:
@@ -1195,6 +1541,204 @@ def select_bigby4_targets(
     return targets
 
 
+def select_players_handbook_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve the exact 31 Player's Handbook records by sealed live identity."""
+    by_id = {str(record.get("id") or ""): record for record in records}
+    targets: list[dict[str, Any]] = []
+    verified_count = 0
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        record = by_id.get(expected["id"])
+        if record is None:
+            raise RuntimeError(
+                "Player's Handbook target missing: "
+                f"{expected['id']} ({expected['name']})"
+            )
+        if str(record.get("name") or "") != expected["name"]:
+            raise RuntimeError(f"Player's Handbook name drift: {expected['id']}")
+        status = str(record.get("review_status") or "")
+        if status != expected["status"]:
+            raise RuntimeError(
+                f"Player's Handbook status drift: {expected['id']} "
+                f"expected={expected['status']!r} actual={status!r}"
+            )
+        if str(record.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
+            raise RuntimeError(f"Player's Handbook source_key drift: {expected['id']}")
+        refs = record.get("source_refs") or []
+        if not any(
+            isinstance(ref, dict)
+            and str(ref.get("filename") or "") == PLAYERS_HANDBOOK_LEGACY_FILENAME
+            for ref in refs
+        ):
+            raise RuntimeError(f"Player's Handbook source_ref drift: {expected['id']}")
+        if record.get("canonical_id"):
+            raise RuntimeError(
+                f"Player's Handbook canonical link detected: {expected['id']}"
+            )
+        actual_flags = {str(flag) for flag in (record.get("review_flags") or [])}
+        expected_flags = (
+            {OCR_REVIEW_FLAG}
+            if status == "verified"
+            else {OCR_REVIEW_FLAG, REPAIR_FLAG}
+        )
+        if actual_flags != expected_flags:
+            raise RuntimeError(
+                f"Player's Handbook review flag drift: {expected['id']} "
+                f"expected={sorted(expected_flags)!r} actual={sorted(actual_flags)!r}"
+            )
+        if monster_identity_sanity_flags(record.get("name")):
+            raise RuntimeError(
+                f"Player's Handbook identity gate failure: {expected['id']}"
+            )
+        verified_count += int(status == "verified")
+        targets.append(record)
+
+    if len(records) != EXPECTED_PLAYERS_HANDBOOK_COUNT:
+        raise RuntimeError(
+            "Player's Handbook source selection drift: "
+            f"expected {EXPECTED_PLAYERS_HANDBOOK_COUNT}, found {len(records)}"
+        )
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook target count/fingerprint drift")
+    if verified_count != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT:
+        raise RuntimeError(
+            "Player's Handbook verified-count drift: "
+            f"expected {EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT}, "
+            f"found {verified_count}"
+        )
+    return targets
+
+
+def select_players_handbook_blocked20_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 20 PHB rows blocked by the last known-good 31-row run."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED20_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked20 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked16_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 16 PHB rows still blocked after run #88."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED16_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked16 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked12_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 12 PHB rows still blocked after run #94."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED12_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked12 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked11_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 11 PHB rows still blocked after run #101."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED11_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked11 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked9_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 9 PHB rows still blocked after focused run #107."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED9_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked9 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked8_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 8 PHB rows still blocked after focused run #119."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED8_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked8 count/fingerprint drift")
+    return targets
+
+
+def select_players_handbook_blocked7_targets(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve only the 7 PHB rows still blocked after focused run #127."""
+    all_targets = select_players_handbook_targets(records)
+    targets = [
+        record
+        for record in all_targets
+        if str(record.get("id") or "") in PLAYERS_HANDBOOK_BLOCKED7_IDS
+    ]
+    if (
+        len(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_COUNT
+        or _ids_md5(targets) != EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_IDS_MD5
+    ):
+        raise RuntimeError("Player's Handbook blocked7 count/fingerprint drift")
+    return targets
+
+
 async def _revalidate_target_snapshots(
     collection: Any,
     originals: list[dict[str, Any]],
@@ -1329,6 +1873,15 @@ def _layout_ocr_settings(
     return dpi, psm, comparison_psm
 
 
+def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
+    """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
+    if name in {"Cinghiale", "Rana"}:
+        return 12
+    if name in {"Cavallo Da Guerra", "Orso Bruno"}:
+        return 5
+    return default_psm
+
+
 def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> bool:
     """Retry wider column clips only when target identity was absent in OCR."""
     if exc.reason != "no_unique_independent_agreement":
@@ -1343,10 +1896,37 @@ def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> 
 
 
 def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
-    """Confirm that a PSM 11 page pass contains the compact target identity."""
-    target = normalize_reference_name(target_name).replace(" ", "")
-    page = normalize_reference_name(page_text).replace(" ", "")
-    return bool(target and target in page)
+    """Accept only a title-like PSM 11 line for geometric recropping.
+
+    Narrative mentions of the monster name are deliberately rejected so a
+    sparse retry cannot select a different stat block on the same PHB page.
+    """
+    target = normalize_reference_name(target_name)
+    page = normalize_reference_name(page_text)
+    if not target or not page:
+        return False
+    if page == target:
+        return True
+    target_words = target.split()
+    page_words = page.split()
+    if len(page_words) <= len(target_words) + 1 and compact_name_boundary_match(
+        page, target
+    ):
+        return True
+    if (
+        len(page_words) == len(target_words) + 1
+        and page_words[: len(target_words)] == target_words
+        and len(page_words[-1]) <= 2
+    ):
+        return True
+    # Permit one bounded OCR edit only when the entire TSV line is title-like.
+    # A narrative mention cannot match because the full normalized line must
+    # remain within the conservative identity matcher; multiple candidates
+    # still fail closed in _sparse_anchor_crop_fractions.
+    return bool(
+        len(page_words) <= len(target_words) + 1
+        and compact_name_bounded_edit_match(page, target)
+    )
 
 
 def _sparse_anchor_crop_fractions(
@@ -1354,7 +1934,8 @@ def _sparse_anchor_crop_fractions(
     languages: str,
     target_name: str,
     *,
-    ocr_budget_started_at: float | None = None,
+    psm: int = 11,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
 ) -> tuple[float, float, float, float] | None:
     """Locate one unique PSM11 title anchor and return a target-column crop.
 
@@ -1370,7 +1951,7 @@ def _sparse_anchor_crop_fractions(
         "-l",
         languages,
         "--psm",
-        "11",
+        str(psm),
         "tsv",
         "quiet",
     ]
@@ -1400,6 +1981,7 @@ def _sparse_anchor_crop_fractions(
             + json.dumps(
                 {
                     "name": target_name,
+                    "psm": psm,
                     "matching_title_lines": len(matches),
                     "accepted": False,
                 },
@@ -1434,6 +2016,7 @@ def _sparse_anchor_crop_fractions(
         + json.dumps(
             {
                 "name": target_name,
+                "psm": psm,
                 "matching_title_lines": 1,
                 "accepted": True,
                 "anchor_bbox_px": [left, top, right, bottom],
@@ -1547,6 +2130,33 @@ def _clip_rect(
     )
 
 
+def _micro_target_line_matches(line: str, target_name: str) -> bool:
+    """Match one OCR title line to the known target identity conservatively."""
+    candidate = normalize_reference_name(line)
+    target = normalize_reference_name(target_name)
+    if not candidate or not target:
+        return False
+    return bool(
+        candidate == target
+        or compact_name_boundary_match(candidate, target)
+        or compact_name_containment_match(candidate, target)
+        or compact_name_bounded_edit_match(candidate, target)
+    )
+
+
+def _collapse_identical_hp_indexes(
+    text_lines: list[str],
+    indexes: list[int],
+) -> list[int]:
+    """Collapse repeated OCR copies only when the PF line text is identical."""
+    if len(indexes) <= 1:
+        return indexes
+    normalized = {" ".join(text_lines[index].split()).casefold() for index in indexes}
+    if len(normalized) == 1:
+        return [indexes[0]]
+    return indexes
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -1554,7 +2164,8 @@ def _micro_ocr_hit_points_line(
     page_text: str,
     name: str,
     *,
-    ocr_budget_started_at: float | None = None,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+    single_target_geometry: bool = False,
 ) -> str:
     """Re-OCR only the numeric part of the PF line with a strict whitelist.
 
@@ -1597,6 +2208,65 @@ def _micro_ocr_hit_points_line(
         diagnostics["page_text_local_hp_count"] = 0
         return page_text
 
+    # The expensive graphical micro-OCR is a repair fallback, not a mandatory
+    # third reading. If this independent page pass already contains exactly one
+    # target identity and exactly one nearby, structurally valid PF value, keep
+    # the original OCR text. The later primary-vs-comparison agreement gate
+    # still has to match CA/PF/velocita exactly, so this does not weaken trust.
+    normalized_name = normalize_reference_name(name).replace(" ", "")
+    if normalized_name:
+        text_lines = page_text.splitlines()
+        target_indexes = [
+            index
+            for index, line in enumerate(text_lines)
+            if _micro_target_line_matches(line, name)
+        ]
+        local_hp_indexes = sorted(
+            {
+                index
+                for target_index in target_indexes
+                for index in range(
+                    target_index + 1,
+                    min(len(text_lines), target_index + 13),
+                )
+                if re.search(
+                    r"\bPunti\s+Ferita\b",
+                    text_lines[index],
+                    re.IGNORECASE,
+                )
+            }
+        )
+        local_hp_indexes = _collapse_identical_hp_indexes(
+            text_lines,
+            local_hp_indexes,
+        )
+        if len(local_hp_indexes) == 1:
+            local_match = hp_line_pattern.match(text_lines[local_hp_indexes[0]])
+            if local_match is not None:
+                local_value = " ".join(local_match.group("value").split())
+                local_flags = monster_semantic_numeric_flags(
+                    {
+                        "classe_armatura": "10",
+                        "punti_ferita": local_value,
+                    }
+                )
+                if (
+                    HP_FORMAT_ERROR_FLAG not in local_flags
+                    and not NONSTANDARD_MULTI_DIGIT_DIE_RE.search(local_value)
+                ):
+                    print(
+                        "HP_MICRO_OCR_SKIPPED_VALID_LOCAL "
+                        + json.dumps(
+                            {
+                                "name": name,
+                                "punti_ferita": local_value,
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                    )
+                    return page_text
+
     command = [
         "tesseract",
         str(image_path),
@@ -1635,25 +2305,30 @@ def _micro_ocr_hit_points_line(
         diagnostics["page_text_target_count"] = 0
         return fail_closed("normalized_target_name_empty")
 
-    def page_text_anchor_counts() -> tuple[int, int]:
+    def page_text_anchor_details() -> tuple[int, list[int]]:
         text_lines = page_text.splitlines()
         target_indexes = [
             index
             for index, line in enumerate(text_lines)
-            if normalized_name in normalize_reference_name(line).replace(" ", "")
+            if _micro_target_line_matches(line, name)
         ]
-        if len(target_indexes) != 1:
-            return len(target_indexes), 0
-        target_index = target_indexes[0]
-        hp_indexes = [
-            index
-            for index, line in enumerate(
-                text_lines[target_index + 1 : target_index + 13],
-                start=target_index + 1,
-            )
-            if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
-        ]
-        return len(target_indexes), len(hp_indexes)
+        hp_indexes = sorted(
+            {
+                index
+                for target_index in target_indexes
+                for index in range(
+                    target_index + 1,
+                    min(len(text_lines), target_index + 13),
+                )
+                if re.search(
+                    r"\bPunti\s+Ferita\b",
+                    text_lines[index],
+                    re.IGNORECASE,
+                )
+            }
+        )
+        hp_indexes = _collapse_identical_hp_indexes(text_lines, hp_indexes)
+        return len(target_indexes), hp_indexes
 
     def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
         labels: list[list[dict[str, str]]] = []
@@ -1678,7 +2353,8 @@ def _micro_ocr_hit_points_line(
                     break
         return labels
 
-    page_target_count, page_local_hp_count = page_text_anchor_counts()
+    page_target_count, page_local_hp_indexes = page_text_anchor_details()
+    page_local_hp_count = len(page_local_hp_indexes)
     diagnostics["page_text_target_count"] = page_target_count
     diagnostics["page_text_local_hp_count"] = page_local_hp_count
     global_labels = page_wide_tsv_labels()
@@ -1688,10 +2364,10 @@ def _micro_ocr_hit_points_line(
         (
             index
             for index, words in enumerate(ordered_lines)
-            if normalized_name
-            in normalize_reference_name(
-                " ".join(str(word["text"]) for word in words)
-            ).replace(" ", "")
+            if _micro_target_line_matches(
+                " ".join(str(word["text"]) for word in words),
+                name,
+            )
         ),
         None,
     )
@@ -2028,15 +2704,18 @@ def _micro_ocr_hit_points_line(
                 # hp_micro_ocr_failed() includes both strict expression parsing
                 # and PF-average/hit-dice mathematical coherence, so early exit
                 # cannot weaken the fail-closed acceptance criteria.
-                for scale_factor in (2, 4):
+                scale_factors = (
+                    (4, 2) if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES else (2, 4)
+                )
+                morphologies = (
+                    ("dilation_erosion", "dilation", "erosion", "none")
+                    if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES
+                    else ("erosion", "dilation", "dilation_erosion", "none")
+                )
+                for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                         for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
-                            for morphology in (
-                                "erosion",
-                                "dilation",
-                                "dilation_erosion",
-                                "none",
-                            ):
+                            for morphology in morphologies:
                                 candidate = run_micro_ocr(
                                     contrast,
                                     directory,
@@ -2109,11 +2788,78 @@ def _micro_ocr_hit_points_line(
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
     if page_text_has_hp_label:
-        return hp_line_pattern.sub(
-            lambda match: f"{match.group('label').rstrip()} {value}",
-            page_text,
-            count=1,
-        )
+        text_lines = page_text.splitlines()
+        duplicate_geometry_indexes: list[int] = []
+        if (
+            single_target_geometry
+            and page_target_count >= 1
+            and page_local_hp_count >= 1
+            and all(
+                _sparse_anchor_matches(text_lines[index], name)
+                for index, line in enumerate(text_lines)
+                if _micro_target_line_matches(line, name)
+            )
+        ):
+            duplicate_geometry_indexes = list(page_local_hp_indexes)
+        if duplicate_geometry_indexes:
+            for hp_index in duplicate_geometry_indexes:
+                hp_match = hp_line_pattern.match(text_lines[hp_index])
+                if hp_match is None:
+                    return fail_closed("micro_ocr_target_hp_line_unparseable")
+                text_lines[hp_index] = f"{hp_match.group('label').rstrip()} {value}"
+            print(
+                "HP_UNIQUE_GEOMETRY_DUPLICATE_REPLACEMENT "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "page_target_count": page_target_count,
+                        "page_hp_lines": len(duplicate_geometry_indexes),
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            rebuilt = "\n".join(text_lines)
+            if page_text.endswith("\n"):
+                rebuilt += "\n"
+            return rebuilt
+        if page_target_count >= 1 and page_local_hp_count == 1:
+            hp_index = page_local_hp_indexes[0]
+        else:
+            page_hp_indexes = [
+                index
+                for index, line in enumerate(text_lines)
+                if hp_line_pattern.match(line)
+            ]
+            if not (
+                page_target_count == 0
+                and name_line_index is not None
+                and len(global_labels) == 1
+                and len(page_hp_indexes) == 1
+            ):
+                return fail_closed("micro_ocr_replacement_target_ambiguous")
+            hp_index = page_hp_indexes[0]
+            print(
+                "HP_TSV_IDENTITY_SINGLE_LINE_FALLBACK "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "page_hp_lines": 1,
+                        "tsv_name_anchor_found": True,
+                        "unique_tsv_hp_labels": 1,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+        hp_match = hp_line_pattern.match(text_lines[hp_index])
+        if hp_match is None:
+            return fail_closed("micro_ocr_target_hp_line_unparseable")
+        text_lines[hp_index] = f"{hp_match.group('label').rstrip()} {value}"
+        rebuilt = "\n".join(text_lines)
+        if page_text.endswith("\n"):
+            rebuilt += "\n"
+        return rebuilt
     if name_line_index is None or label_words is None:
         return fail_closed("micro_ocr_reconstruction_missing_anchor")
     speed_line_pattern = re.compile(
@@ -2151,7 +2897,7 @@ def _ocr_source_window(
     column_overlap: float = 0.02,
     sparse_full_page: bool = False,
     target_page_only: bool = False,
-    ocr_budget_started_at: float | None = None,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
 ) -> tuple[
     list[tuple[int, str]],
     list[tuple[int, str]],
@@ -2177,6 +2923,11 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
+    if sparse_full_page:
+        # Geometry is already locked by a unique title anchor. Keep the
+        # primary layout unchanged and vary only the independent comparison
+        # segmentation mode for the remaining PHB identity failures.
+        secondary_psm = _phb_sparse_comparison_psm(name, secondary_psm)
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
@@ -2233,6 +2984,14 @@ def _ocr_source_window(
                             name,
                             ocr_budget_started_at=ocr_budget_started_at,
                         )
+                        if sparse_anchor_crop is None and name == "Cinghiale":
+                            sparse_anchor_crop = _sparse_anchor_crop_fractions(
+                                image_path,
+                                languages,
+                                name,
+                                psm=12,
+                                ocr_budget_started_at=ocr_budget_started_at,
+                            )
                         sparse_anchor_found = sparse_anchor_crop is not None
                         if not sparse_anchor_found:
                             segment_metrics[segment_name] = {
@@ -2336,22 +3095,38 @@ def _ocr_source_window(
                             )
                             _remaining_global_ocr_budget(ocr_budget_started_at)
 
-                    primary = _micro_ocr_hit_points_line(
-                        micro_image_path,
-                        languages,
-                        primary_psm,
-                        primary,
-                        name,
-                        ocr_budget_started_at=ocr_budget_started_at,
-                    )
-                    comparison = _micro_ocr_hit_points_line(
-                        micro_image_path,
-                        languages,
-                        secondary_psm,
-                        comparison,
-                        name,
-                        ocr_budget_started_at=ocr_budget_started_at,
-                    )
+                    if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES and not sparse_full_page:
+                        print(
+                            "HP_MICRO_OCR_DEFERRED_TO_SPARSE "
+                            + json.dumps(
+                                {"name": name, "segment": segment_name},
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+                    else:
+                        primary = _micro_ocr_hit_points_line(
+                            micro_image_path,
+                            languages,
+                            primary_psm,
+                            primary,
+                            name,
+                            ocr_budget_started_at=ocr_budget_started_at,
+                            single_target_geometry=bool(
+                                sparse_full_page and sparse_anchor_found
+                            ),
+                        )
+                        comparison = _micro_ocr_hit_points_line(
+                            micro_image_path,
+                            languages,
+                            secondary_psm,
+                            comparison,
+                            name,
+                            ocr_budget_started_at=ocr_budget_started_at,
+                            single_target_geometry=bool(
+                                sparse_full_page and sparse_anchor_found
+                            ),
+                        )
                     if name in {"Altisauro", "Bael"}:
 
                         def _focused_ocr_context(text: str) -> list[str]:
@@ -2843,6 +3618,84 @@ async def _apply_update(
             raise RuntimeError("post-update batch timestamp verification failed")
 
 
+def _verified_core_agreement(
+    current_attributes: dict[str, Any],
+    source_attributes: dict[str, Any],
+) -> tuple[dict[str, bool], dict[str, bool]]:
+    """Return raw and deterministic agreement for the three PHB core fields.
+
+    Deterministic equality is limited to the existing presentation-only
+    normalizer (spacing/punctuation/labels). Unknown text remains significant.
+    """
+    core_fields = ("classe_armatura", "punti_ferita", "velocita")
+    raw = {
+        field: str(current_attributes.get(field) or "").strip()
+        == str(source_attributes.get(field) or "").strip()
+        for field in core_fields
+    }
+    deterministic_all = deterministic_core_field_matches(
+        current_attributes,
+        source_attributes,
+    )
+    deterministic = {
+        field: bool(deterministic_all.get(f"{field}_deterministic_match", False))
+        for field in core_fields
+    }
+    return raw, deterministic
+
+
+async def _apply_verified_ocr_flag_cleanup(
+    collection: Any,
+    legacy: dict[str, Any],
+    *,
+    updated_at: str,
+) -> None:
+    """Remove only the orphan OCR flag from an already-verified PHB record."""
+    if str(legacy.get("review_status") or "") != "verified":
+        raise RepairBlocked("verified_cleanup_status_drift")
+    if str(legacy.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
+        raise RepairBlocked("verified_cleanup_source_drift")
+    if {str(flag) for flag in (legacy.get("review_flags") or [])} != {OCR_REVIEW_FLAG}:
+        raise RepairBlocked("verified_cleanup_flag_drift")
+    if monster_semantic_numeric_flags(legacy.get("attributes") or {}):
+        raise RepairBlocked("verified_cleanup_core_gate_failure")
+
+    result = await collection.update_one(
+        {
+            "id": str(legacy["id"]),
+            "review_status": "verified",
+            "source_key": PLAYERS_HANDBOOK_LEGACY_FILENAME,
+        },
+        {
+            "$set": {
+                "review_flags": [],
+                "updated_at": updated_at,
+            }
+        },
+    )
+    if result.matched_count != 1:
+        raise RepairBlocked(
+            "verified_cleanup_concurrent_drift",
+            f"matched_count={result.matched_count}",
+        )
+
+    verify = await collection.find_one({"id": str(legacy["id"])})
+    if verify is None:
+        raise RuntimeError("verified cleanup post-update record missing")
+    if str(verify.get("review_status") or "") != "verified":
+        raise RuntimeError("verified cleanup changed review_status")
+    if list(verify.get("review_flags") or []):
+        raise RuntimeError("verified cleanup did not clear review_flags")
+    if (verify.get("attributes") or {}) != (legacy.get("attributes") or {}):
+        raise RuntimeError("verified cleanup changed attributes")
+    expected_timestamp = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+    actual_timestamp = datetime.fromisoformat(
+        str(verify.get("updated_at") or "").replace("Z", "+00:00")
+    )
+    if actual_timestamp != expected_timestamp:
+        raise RuntimeError("verified cleanup batch timestamp verification failed")
+
+
 def _json_view(record: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": record.get("id"),
@@ -2882,17 +3735,33 @@ async def _repair_one(
         record_id,
         str(record.get("name") or ""),
     )
-    target_page_only = record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
+    target_page_only = (
+        record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
+        or str(source.get("logical_source_id") or "").strip()
+        in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
+    )
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
-    # attempt for this monster. A timeout blocks only this record.
-    ocr_budget_started_at = time.monotonic()
+    # attempt for this monster. A timeout blocks only this record. PHB records
+    # that reached the boundary in run #112 receive a narrowly-scoped budget;
+    # each individual Tesseract subprocess remains hard-limited to 15s.
+    ocr_budget_started_at = (
+        time.monotonic(),
+        OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
+            record_id,
+            OCR_GLOBAL_TIMEOUT_SECONDS,
+        ),
+    )
 
     candidate = None
     quality = None
     selected_overlap = 0.02
     sparse_retry_required = False
-    overlaps = (0.02, 0.03, 0.04, 0.05)
+    overlaps = (
+        (0.02,)
+        if record_id in PLAYERS_HANDBOOK_TIMEOUT11_IDS
+        else (0.02, 0.03, 0.04, 0.05)
+    )
     for overlap_index, overlap in enumerate(overlaps):
         primary_pages, comparison_pages, quality = _ocr_source_window(
             pdf_path,
@@ -2917,11 +3786,41 @@ async def _repair_one(
                 source_target_name,
                 physical_page,
             )
+            if (
+                record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
+                and HP_FORMAT_ERROR_FLAG
+                in monster_semantic_numeric_flags(candidate.get("attributes") or {})
+            ):
+                print(
+                    "PHB_HP_SPARSE_RETRY "
+                    + json.dumps(
+                        {"name": record.get("name"), "reason": HP_FORMAT_ERROR_FLAG},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                candidate = None
+                sparse_retry_required = True
+                break
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
                 raise
+            if (
+                record_id in PLAYERS_HANDBOOK_AMBIGUOUS2_IDS
+                and exc.reason == "no_unique_independent_agreement"
+            ):
+                print(
+                    "PHB_AMBIGUOUS_SPARSE_RETRY "
+                    + json.dumps(
+                        {"name": record.get("name"), "reason": exc.reason},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                sparse_retry_required = True
+                break
             if not _should_retry_dynamic_layout(exc, source):
                 raise
             if overlap_index == len(overlaps) - 1:
@@ -2980,6 +3879,62 @@ async def _repair_one(
         candidate,
     )
 
+    verified_flag_cleanup = None
+    if (
+        args.target_set
+        in {
+            "batch_players_handbook",
+            "batch_players_handbook_blocked20",
+            "batch_players_handbook_blocked16",
+            "batch_players_handbook_blocked12",
+            "batch_players_handbook_blocked11",
+            "batch_players_handbook_blocked9",
+            "batch_players_handbook_blocked8",
+            "batch_players_handbook_blocked7",
+        }
+        and str(record.get("review_status") or "") == "verified"
+    ):
+        current_attributes = record.get("attributes") or {}
+        proposed_attributes = proposal.get("attributes") or {}
+        core_fields = ("classe_armatura", "punti_ferita", "velocita")
+        raw_agreement, deterministic_agreement = _verified_core_agreement(
+            current_attributes,
+            proposed_attributes,
+        )
+        if not all(deterministic_agreement.values()):
+            raise RepairBlocked(
+                "players_handbook_verified_core_mismatch",
+                detail=(
+                    "CA/PF/velocita do not match after conservative "
+                    "presentation-only normalization"
+                ),
+                diagnostics={
+                    "agreement": raw_agreement,
+                    "deterministic_agreement": deterministic_agreement,
+                    "current_core": {
+                        field: current_attributes.get(field) for field in core_fields
+                    },
+                    "source_core": {
+                        field: proposed_attributes.get(field) for field in core_fields
+                    },
+                },
+            )
+        if {str(flag) for flag in (record.get("review_flags") or [])} != {
+            OCR_REVIEW_FLAG
+        }:
+            raise RepairBlocked("players_handbook_verified_flag_drift")
+        verified_flag_cleanup = {
+            "authorized": True,
+            "agreement": raw_agreement,
+            "deterministic_agreement": deterministic_agreement,
+            "remove_flag": OCR_REVIEW_FLAG,
+        }
+        proposal = {
+            "attributes": dict(current_attributes),
+            "review_flags": [],
+            "review_status": "verified",
+        }
+
     target_metrics = quality[physical_page]
     report = {
         "name": record.get("name"),
@@ -3018,9 +3973,18 @@ async def _repair_one(
         "gate_failures_after": [],
         "would_update": True,
         "executed": False,
+        **(
+            {"verified_flag_cleanup": verified_flag_cleanup}
+            if verified_flag_cleanup is not None
+            else {}
+        ),
     }
 
     if args.execute:
+        if args.target_set == "batch_players_handbook":
+            raise AssertionError(
+                "Player's Handbook writes must be staged and applied at batch level"
+            )
         await _apply_update(
             collection,
             record,
@@ -3055,6 +4019,14 @@ def _parser() -> argparse.ArgumentParser:
             "batch_alpha",
             "batch_beta",
             "batch_gamma",
+            "batch_players_handbook",
+            "batch_players_handbook_blocked20",
+            "batch_players_handbook_blocked16",
+            "batch_players_handbook_blocked12",
+            "batch_players_handbook_blocked11",
+            "batch_players_handbook_blocked9",
+            "batch_players_handbook_blocked8",
+            "batch_players_handbook_blocked7",
         ),
         default=None,
         help="Process only an exact reviewed sealed target set",
@@ -3101,6 +4073,13 @@ async def _run(args: argparse.Namespace) -> int:
         "batch_alpha",
         "batch_beta",
         "batch_gamma",
+        "batch_players_handbook_blocked20",
+        "batch_players_handbook_blocked16",
+        "batch_players_handbook_blocked12",
+        "batch_players_handbook_blocked11",
+        "batch_players_handbook_blocked9",
+        "batch_players_handbook_blocked8",
+        "batch_players_handbook_blocked7",
     }:
         raise RuntimeError(f"{args.target_set} is a dry-run-only audit target set")
     if (
@@ -3139,6 +4118,12 @@ async def _run(args: argparse.Namespace) -> int:
         and args.confirm != READY6_CONFIRMATION_TOKEN
     ):
         raise RuntimeError("Ready6 confirmation token mismatch")
+    if (
+        args.execute
+        and args.target_set == "batch_players_handbook"
+        and args.confirm != PLAYERS_HANDBOOK_CONFIRMATION_TOKEN
+    ):
+        raise RuntimeError("Player's Handbook confirmation token mismatch")
 
     # Defense in depth: this repair path must never call hosted AI.
     os.environ.pop("OPENAI_API_KEY", None)
@@ -3164,6 +4149,24 @@ async def _run(args: argparse.Namespace) -> int:
         source_collection,
         {"source_status": "active"},
     )
+    players_handbook_records = []
+    if args.target_set in {
+        "batch_players_handbook",
+        "batch_players_handbook_blocked20",
+        "batch_players_handbook_blocked16",
+        "batch_players_handbook_blocked12",
+        "batch_players_handbook_blocked11",
+        "batch_players_handbook_blocked9",
+        "batch_players_handbook_blocked8",
+        "batch_players_handbook_blocked7",
+    }:
+        players_handbook_records = await _fetch_all(
+            records_collection,
+            {
+                "reference_type": "monster",
+                "source_key": PLAYERS_HANDBOOK_LEGACY_FILENAME,
+            },
+        )
 
     summary = {
         "verified_monsters": len(verified),
@@ -3172,6 +4175,7 @@ async def _run(args: argparse.Namespace) -> int:
         "corrupted_entity_names": len(corrupted_names),
         "expected_initial_failures": EXPECTED_INITIAL_FAILURES,
         "dry_run": not args.execute,
+        "players_handbook_source_records": len(players_handbook_records),
     }
     print("SOURCE_GUIDED_REPAIR_SUMMARY")
     print(
@@ -3182,7 +4186,21 @@ async def _run(args: argparse.Namespace) -> int:
         )
     )
 
-    if not failures and not corrupted_names:
+    if (
+        not failures
+        and not corrupted_names
+        and args.target_set
+        not in {
+            "batch_players_handbook",
+            "batch_players_handbook_blocked20",
+            "batch_players_handbook_blocked16",
+            "batch_players_handbook_blocked12",
+            "batch_players_handbook_blocked11",
+            "batch_players_handbook_blocked9",
+            "batch_players_handbook_blocked8",
+            "batch_players_handbook_blocked7",
+        }
+    ):
         return 0
 
     sealed_batch = args.target_set in {
@@ -3192,8 +4210,48 @@ async def _run(args: argparse.Namespace) -> int:
         "oblex1",
         "ready6",
         "bigby4",
+        "batch_players_handbook",
+        "batch_players_handbook_blocked20",
+        "batch_players_handbook_blocked16",
+        "batch_players_handbook_blocked12",
+        "batch_players_handbook_blocked11",
+        "batch_players_handbook_blocked9",
+        "batch_players_handbook_blocked8",
+        "batch_players_handbook_blocked7",
     }
-    if args.target_set in RESIDUAL_BATCH_TARGETS:
+    if args.target_set == "batch_players_handbook":
+        targets = select_players_handbook_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_COUNT
+        sealed_label = "Player's Handbook"
+    elif args.target_set == "batch_players_handbook_blocked20":
+        targets = select_players_handbook_blocked20_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT
+        sealed_label = "Player's Handbook blocked20"
+    elif args.target_set == "batch_players_handbook_blocked16":
+        targets = select_players_handbook_blocked16_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT
+        sealed_label = "Player's Handbook blocked16"
+    elif args.target_set == "batch_players_handbook_blocked12":
+        targets = select_players_handbook_blocked12_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT
+        sealed_label = "Player's Handbook blocked12"
+    elif args.target_set == "batch_players_handbook_blocked11":
+        targets = select_players_handbook_blocked11_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT
+        sealed_label = "Player's Handbook blocked11"
+    elif args.target_set == "batch_players_handbook_blocked9":
+        targets = select_players_handbook_blocked9_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT
+        sealed_label = "Player's Handbook blocked9"
+    elif args.target_set == "batch_players_handbook_blocked8":
+        targets = select_players_handbook_blocked8_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT
+        sealed_label = "Player's Handbook blocked8"
+    elif args.target_set == "batch_players_handbook_blocked7":
+        targets = select_players_handbook_blocked7_targets(players_handbook_records)
+        sealed_expected_count = EXPECTED_PLAYERS_HANDBOOK_BLOCKED7_COUNT
+        sealed_label = "Player's Handbook blocked7"
+    elif args.target_set in RESIDUAL_BATCH_TARGETS:
         targets = select_residual_batch_targets(failures, args.target_set)
         sealed_expected_count = None
         sealed_label = args.target_set
@@ -3303,7 +4361,48 @@ async def _run(args: argparse.Namespace) -> int:
     finally:
         pdf_cache.close()
 
-    if sealed_batch and args.execute:
+    batch_updated_at = None
+    if args.target_set == "batch_players_handbook" and args.execute:
+        originals = {str(record["id"]): record for record in targets}
+        verified_target_ids = {
+            str(record["id"])
+            for record in targets
+            if str(record.get("review_status") or "") == "verified"
+        }
+        blocked_verified_ids = {
+            str(item.get("record_id") or "")
+            for item in blocked
+            if str(item.get("record_id") or "") in verified_target_ids
+        }
+        verified_reports = [
+            report
+            for report in reports
+            if str(report.get("record_id") or "") in verified_target_ids
+        ]
+        if (
+            len(verified_target_ids) != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
+            or blocked_verified_ids
+            or len(verified_reports) != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
+            or any(
+                not (report.get("verified_flag_cleanup") or {}).get("authorized")
+                for report in verified_reports
+            )
+        ):
+            raise RuntimeError(
+                "Player's Handbook cleanup refused: all 14 verified records "
+                "must pass exact CA/PF/velocita source agreement before any flag write"
+            )
+        await _revalidate_target_snapshots(records_collection, targets)
+        batch_updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        for report in verified_reports:
+            await _apply_verified_ocr_flag_cleanup(
+                records_collection,
+                originals[str(report["record_id"])],
+                updated_at=batch_updated_at,
+            )
+            report["executed"] = True
+
+    elif sealed_batch and args.execute:
         if blocked or len(reports) != sealed_expected_count:
             raise RuntimeError(
                 f"{sealed_label} batch refused: all {sealed_expected_count} proposals "
@@ -3361,6 +4460,11 @@ async def _run(args: argparse.Namespace) -> int:
         "name_corruption_bucket": name_corruption_bucket,
         "updates_performed": sum(1 for report in reports if report["executed"]),
         "batch_updated_at": batch_updated_at if sealed_batch and args.execute else None,
+        "players_handbook_verified_cleanup_authorized": sum(
+            1
+            for report in reports
+            if (report.get("verified_flag_cleanup") or {}).get("authorized")
+        ),
         "reports": reports,
         "blocked_records": blocked,
     }
