@@ -3355,7 +3355,8 @@ async def _repair_one(
 
     verified_flag_cleanup = None
     if (
-        args.target_set in {"batch_players_handbook", "batch_players_handbook_blocked20"}
+        args.target_set
+        in {"batch_players_handbook", "batch_players_handbook_blocked20"}
         and str(record.get("review_status") or "") == "verified"
     ):
         current_attributes = record.get("attributes") or {}
@@ -3631,7 +3632,8 @@ async def _run(args: argparse.Namespace) -> int:
     if (
         not failures
         and not corrupted_names
-        and args.target_set != "batch_players_handbook"
+        and args.target_set
+        not in {"batch_players_handbook", "batch_players_handbook_blocked20"}
     ):
         return 0
 
