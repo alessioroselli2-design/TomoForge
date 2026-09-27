@@ -684,7 +684,7 @@ def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):
     micro_command = run.call_args_list[1].args[0]
     assert "--psm" in micro_command
     assert "7" in micro_command
-    assert "tessedit_char_whitelist=0123456789d+()- " in micro_command
+    assert "tessedit_char_whitelist=0123456789d+-() " in micro_command
 
 
 def test_hp_micro_ocr_does_not_touch_non_hp_text(tmp_path):
