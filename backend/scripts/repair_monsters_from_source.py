@@ -976,6 +976,14 @@ QUALITY_FAIL_PRE_OTSU_TARGETS = frozenset(
     }
 )
 
+PHB_QUALITY_GATE_PRE_OTSU_TARGETS = frozenset(
+    {
+        "Cavallo Da Guerra",
+        "Gufo",
+        "Orso Bruno",
+    }
+)
+
 
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
@@ -1011,6 +1019,68 @@ def _otsu_inverted_samples(samples: bytes) -> bytes:
             threshold = value
 
     return bytes(255 if sample <= threshold else 0 for sample in samples)
+
+
+def _local_otsu_inverted_samples(
+    samples: bytes,
+    width: int,
+    height: int,
+    *,
+    tile_size: int = 384,
+) -> bytes:
+    """Apply bounded tile-local Otsu and invert to white text on black."""
+    if width < 1 or height < 1 or len(samples) != width * height:
+        raise ValueError("invalid grayscale raster for local Otsu threshold")
+    if tile_size < 32 or tile_size > 1024:
+        raise ValueError("local Otsu tile_size must be in 32..1024")
+
+    output = bytearray(len(samples))
+    for y0 in range(0, height, tile_size):
+        y1 = min(height, y0 + tile_size)
+        for x0 in range(0, width, tile_size):
+            x1 = min(width, x0 + tile_size)
+            histogram = [0] * 256
+            total = (x1 - x0) * (y1 - y0)
+            for y in range(y0, y1):
+                row_start = y * width + x0
+                row_end = y * width + x1
+                for sample in samples[row_start:row_end]:
+                    histogram[sample] += 1
+
+            weighted_total = sum(
+                value * count for value, count in enumerate(histogram)
+            )
+            background_weight = 0
+            background_sum = 0
+            best_variance = -1.0
+            threshold = 0
+            for value, count in enumerate(histogram):
+                background_weight += count
+                if background_weight == 0:
+                    continue
+                foreground_weight = total - background_weight
+                if foreground_weight == 0:
+                    break
+                background_sum += value * count
+                background_mean = background_sum / background_weight
+                foreground_mean = (
+                    weighted_total - background_sum
+                ) / foreground_weight
+                between_variance = (
+                    background_weight
+                    * foreground_weight
+                    * (background_mean - foreground_mean) ** 2
+                )
+                if between_variance > best_variance:
+                    best_variance = between_variance
+                    threshold = value
+
+            for y in range(y0, y1):
+                row_start = y * width + x0
+                for x in range(x0, x1):
+                    index = row_start + (x - x0)
+                    output[index] = 255 if samples[index] <= threshold else 0
+    return bytes(output)
 
 
 def _local_adaptive_inverted_samples(
@@ -3034,6 +3104,64 @@ def _ocr_source_window(
                             colorspace=fitz.csGRAY,
                         ).save(target_image_path)
                         image_path = target_image_path
+
+                        if name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS:
+                            _remaining_global_ocr_budget(ocr_budget_started_at)
+                            quality_started_at = time.monotonic()
+                            quality_image_path = (
+                                image_root
+                                / (
+                                    f"page-{page_number:04d}-{segment_name}"
+                                    "-target-quality-x4.png"
+                                )
+                            )
+                            # Re-render the source crop at 4x resolution instead
+                            # of enlarging already-rasterized pixels. This keeps
+                            # the preprocessing dependency-free and preserves
+                            # source detail before local thresholding.
+                            quality_matrix = fitz.Matrix(
+                                effective_dpi * 4 / 72.0,
+                                effective_dpi * 4 / 72.0,
+                            )
+                            quality_pixmap = page.get_pixmap(
+                                matrix=quality_matrix,
+                                clip=target_clip,
+                                alpha=False,
+                                colorspace=fitz.csGRAY,
+                            )
+                            local_otsu = _local_otsu_inverted_samples(
+                                quality_pixmap.samples,
+                                quality_pixmap.width,
+                                quality_pixmap.height,
+                            )
+                            cleaned_quality = fitz.Pixmap(
+                                fitz.csGRAY,
+                                quality_pixmap.width,
+                                quality_pixmap.height,
+                                local_otsu,
+                                False,
+                            )
+                            cleaned_quality.save(quality_image_path)
+                            image_path = quality_image_path
+                            print(
+                                "PHB_QUALITY_PRE_OTSU_DIAGNOSTIC "
+                                + json.dumps(
+                                    {
+                                        "name": name,
+                                        "segment": segment_name,
+                                        "render_scale_factor": 4,
+                                        "threshold": "tile_local_otsu_inverted",
+                                        "before_independent_ocr": True,
+                                        "elapsed_seconds": round(
+                                            time.monotonic() - quality_started_at,
+                                            3,
+                                        ),
+                                    },
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                )
+                            )
+                            _remaining_global_ocr_budget(ocr_budget_started_at)
 
                     primary = _run_tesseract_bounded(
                         [
