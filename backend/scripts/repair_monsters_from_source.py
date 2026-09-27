@@ -1047,9 +1047,7 @@ def _local_otsu_inverted_samples(
                 for sample in samples[row_start:row_end]:
                     histogram[sample] += 1
 
-            weighted_total = sum(
-                value * count for value, count in enumerate(histogram)
-            )
+            weighted_total = sum(value * count for value, count in enumerate(histogram))
             background_weight = 0
             background_sum = 0
             best_variance = -1.0
@@ -1063,9 +1061,7 @@ def _local_otsu_inverted_samples(
                     break
                 background_sum += value * count
                 background_mean = background_sum / background_weight
-                foreground_mean = (
-                    weighted_total - background_sum
-                ) / foreground_weight
+                foreground_mean = (weighted_total - background_sum) / foreground_weight
                 between_variance = (
                     background_weight
                     * foreground_weight
@@ -3108,12 +3104,9 @@ def _ocr_source_window(
                         if name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS:
                             _remaining_global_ocr_budget(ocr_budget_started_at)
                             quality_started_at = time.monotonic()
-                            quality_image_path = (
-                                image_root
-                                / (
-                                    f"page-{page_number:04d}-{segment_name}"
-                                    "-target-quality-x4.png"
-                                )
+                            quality_image_path = image_root / (
+                                f"page-{page_number:04d}-{segment_name}"
+                                "-target-quality-x4.png"
                             )
                             # Re-render the source crop at 4x resolution instead
                             # of enlarging already-rasterized pixels. This keeps
