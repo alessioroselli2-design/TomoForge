@@ -1279,10 +1279,17 @@ def _background_luminance_stats(
     edge_x = max(1, min(width // 8, 12))
     edge_y = max(1, min(height // 6, 8))
     border = bytearray()
-    for y in range(height):
-        for x in range(width):
-            if x < edge_x or x >= width - edge_x or y < edge_y or y >= height - edge_y:
-                border.append(samples[y * width + x])
+    top_end = edge_y * width
+    bottom_start = max(top_end, (height - edge_y) * width)
+    border.extend(samples[:top_end])
+    if bottom_start < len(samples):
+        border.extend(samples[bottom_start:])
+    middle_start = edge_y
+    middle_end = max(middle_start, height - edge_y)
+    for y in range(middle_start, middle_end):
+        row_start = y * width
+        border.extend(samples[row_start : row_start + edge_x])
+        border.extend(samples[row_start + width - edge_x : row_start + width])
     if not border:
         border.extend(samples)
     mean = sum(border) / len(border)
@@ -2607,10 +2614,11 @@ def _micro_ocr_hit_points_line(
     ) -> str:
         # Fail closed before paying for a new graphical variant.
         remaining_global_ocr_budget()
-        contrasted_samples = bytes(
+        contrast_lut = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
-            for sample in crop_samples
+            for sample in range(256)
         )
+        contrasted_samples = crop_samples.translate(contrast_lut)
         contrasted = fitz.Pixmap(
             fitz.csGRAY,
             crop_width,
@@ -2654,10 +2662,10 @@ def _micro_ocr_hit_points_line(
             )
         )
         if bitonal_threshold is not None and not use_adaptive_inversion:
-            threshold_samples = bytes(
-                0 if sample <= bitonal_threshold else 255
-                for sample in threshold_samples
+            threshold_lut = bytes(
+                0 if sample <= bitonal_threshold else 255 for sample in range(256)
             )
+            threshold_samples = threshold_samples.translate(threshold_lut)
         if otsu_inverted or use_adaptive_inversion:
             processed = fitz.Pixmap(
                 fitz.csGRAY,
@@ -3973,7 +3981,9 @@ async def _repair_one(
                     {
                         "name": record.get("name"),
                         "mode": "dynamic",
-                        "elapsed_seconds": round(time.monotonic() - agreement_started_at, 3),
+                        "elapsed_seconds": round(
+                            time.monotonic() - agreement_started_at, 3
+                        ),
                     },
                     ensure_ascii=False,
                     sort_keys=True,
