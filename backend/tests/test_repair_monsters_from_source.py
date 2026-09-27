@@ -1062,7 +1062,7 @@ def test_phb_blocked7_source_guided_segments_are_right_column():
     }
 
 
-def test_phb_timeout4_full_spectrum_starts_with_x2_no_morphology(tmp_path):
+def test_phb_timeout4_full_spectrum_starts_with_x4_no_morphology(tmp_path):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
     image.clear_with(255)
@@ -1096,7 +1096,7 @@ def test_phb_timeout4_full_spectrum_starts_with_x2_no_morphology(tmp_path):
 
     assert "Punti Ferita 1 (1d4 - 1)" in result
     first_spectrum_path = run.call_args_list[5].args[0][1]
-    assert "upscaled-x2" in first_spectrum_path
+    assert "upscaled-x4" in first_spectrum_path
     assert "dark-eroded" not in first_spectrum_path
     assert "dark-dilated" not in first_spectrum_path
 
@@ -1427,7 +1427,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
     assert '"upscaled_otsu_hp_format_error": true' in diagnostic
     assert '"superscaled_otsu_hp_format_error": true' in diagnostic
     assert '"full_spectrum_attempt_count": 1' in diagnostic
-    assert '"morphology": "erosion"' in diagnostic
+    assert '"morphology": "none"' in diagnostic
     assert '"threshold": 80' in diagnostic
 
 
