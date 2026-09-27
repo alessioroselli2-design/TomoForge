@@ -67,6 +67,7 @@ from scripts.repair_monsters_from_source import (
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
+    _phb_quality_pre_otsu_clip,
     _phb_sparse_comparison_psm,
     _sample_variance,
     _should_retry_dynamic_layout,
@@ -1100,7 +1101,9 @@ def test_phb_timeout4_full_spectrum_starts_with_x2_no_morphology(tmp_path):
     assert "dark-dilated" not in first_spectrum_path
 
 
-def test_phb_full_spectrum_prioritizes_x4_dilation_erosion(tmp_path):
+def test_phb_full_spectrum_prioritizes_x4_dilation_without_combined_morphology(
+    tmp_path,
+):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
     image.clear_with(255)
@@ -1136,7 +1139,7 @@ def test_phb_full_spectrum_prioritizes_x4_dilation_erosion(tmp_path):
     first_spectrum_path = run.call_args_list[5].args[0][1]
     assert "upscaled-x4" in first_spectrum_path
     assert "dark-dilated" in first_spectrum_path
-    assert "dark-eroded" in first_spectrum_path
+    assert "dark-eroded" not in first_spectrum_path
     assert "threshold-80" in first_spectrum_path
 
 
@@ -2085,6 +2088,19 @@ def test_background_luminance_stats_detects_nonwhite_frame():
     assert white_variance == 0
     assert tinted_mean == 220
     assert tinted_variance == 0
+
+
+def test_orso_bruno_quality_pre_otsu_clip_trims_only_inner_two_percent():
+    source = fitz.Rect(100, 50, 500, 450)
+
+    orso = _phb_quality_pre_otsu_clip(source, "Orso Bruno")
+    cavallo = _phb_quality_pre_otsu_clip(source, "Cavallo Da Guerra")
+
+    assert orso.x0 == pytest.approx(108.0)
+    assert orso.y0 == source.y0
+    assert orso.x1 == source.x1
+    assert orso.y1 == source.y1
+    assert cavallo == source
 
 
 def test_phb_quality_gate_pre_otsu_targets_are_exactly_the_three_residuals():
