@@ -859,7 +859,7 @@ TARGET_SEGMENT_BY_NAME = {
 SOURCE_GUIDED_UNIQUE_HP_SEGMENT_FALLBACK_TARGETS = {
     "Colosso Runico",
 }
-HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = (100, 140, 180)
+HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = (100, 140)
 HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 2.0)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
 HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD = 245.0
@@ -2798,14 +2798,11 @@ def _micro_ocr_hit_points_line(
                 # hp_micro_ocr_failed() includes both strict expression parsing
                 # and PF-average/hit-dice mathematical coherence, so early exit
                 # cannot weaken the fail-closed acceptance criteria.
-                if name in PLAYERS_HANDBOOK_TIMEOUT4_NAMES:
-                    # Keep the bounded search fail-closed while collapsing the
-                    # expensive visual variant space to native morphology only.
-                    scale_factors = (2, 4)
-                elif name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES:
-                    scale_factors = (4, 2)
-                else:
-                    scale_factors = (2, 4)
+                # Ultra-short fail-closed grid: one x4 render, two contrasts,
+                # two lightweight bitonal thresholds, native morphology only.
+                # All semantic hit-dice and mathematical acceptance gates below
+                # remain unchanged.
+                scale_factors = (4,)
                 morphologies = ("none",)
                 for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
