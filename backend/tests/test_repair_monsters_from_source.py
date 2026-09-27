@@ -41,6 +41,7 @@ from scripts.repair_monsters_from_source import (
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
     HIT_POINTS_WHITELIST,
     OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
+    PHB_QUALITY_GATE_PRE_OTSU_TARGETS,
     PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
     PLAYERS_HANDBOOK_TIMEOUT4_NAMES,
     TARGET_SEGMENT_BY_NAME,
@@ -60,6 +61,7 @@ from scripts.repair_monsters_from_source import (
     _layout_profile,
     _layout_segments,
     _local_adaptive_inverted_samples,
+    _local_otsu_inverted_samples,
     _remove_isolated_foreground_noise,
     _remaining_global_ocr_budget,
     _micro_ocr_hit_points_line,
@@ -2083,6 +2085,41 @@ def test_background_luminance_stats_detects_nonwhite_frame():
     assert white_variance == 0
     assert tinted_mean == 220
     assert tinted_variance == 0
+
+
+def test_phb_quality_gate_pre_otsu_targets_are_exactly_the_three_residuals():
+    assert PHB_QUALITY_GATE_PRE_OTSU_TARGETS == {
+        "Cavallo Da Guerra",
+        "Gufo",
+        "Orso Bruno",
+    }
+
+
+def test_local_otsu_inversion_handles_distinct_local_backgrounds():
+    width = 64
+    height = 32
+    samples = bytearray(width * height)
+    for y in range(height):
+        for x in range(width):
+            samples[y * width + x] = 220 if x < 32 else 250
+
+    for y in range(6, 26):
+        for x in range(10, 13):
+            samples[y * width + x] = 30
+        for x in range(43, 46):
+            samples[y * width + x] = 80
+
+    result = _local_otsu_inverted_samples(
+        bytes(samples),
+        width,
+        height,
+        tile_size=32,
+    )
+
+    assert result[10 * width + 11] == 255
+    assert result[10 * width + 44] == 255
+    assert result[2 * width + 2] == 0
+    assert result[2 * width + 50] == 0
 
 
 def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
