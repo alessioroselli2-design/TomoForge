@@ -859,8 +859,8 @@ TARGET_SEGMENT_BY_NAME = {
 SOURCE_GUIDED_UNIQUE_HP_SEGMENT_FALLBACK_TARGETS = {
     "Colosso Runico",
 }
-HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = tuple(range(80, 201, 30))
-HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 1.8, 2.5)
+HIT_POINTS_FULL_SPECTRUM_THRESHOLDS = (100, 140, 180)
+HIT_POINTS_FULL_SPECTRUM_CONTRASTS = (1.0, 2.0)
 HIT_POINTS_BACKGROUND_VARIANCE_THRESHOLD = 36.0
 HIT_POINTS_BACKGROUND_MEAN_WHITE_THRESHOLD = 245.0
 NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
@@ -992,7 +992,7 @@ def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     import fitz
 
     quality_clip = fitz.Rect(target_clip)
-    quality_clip.x0 += quality_clip.width * 0.02
+    quality_clip.x0 += quality_clip.width * 0.06
     return quality_clip
 
 
@@ -2799,18 +2799,14 @@ def _micro_ocr_hit_points_line(
                 # and PF-average/hit-dice mathematical coherence, so early exit
                 # cannot weaken the fail-closed acceptance criteria.
                 if name in PLAYERS_HANDBOOK_TIMEOUT4_NAMES:
-                    # Run #132 proved the x4 morphology preprocessing itself can
-                    # consume the full 150s budget before Tesseract runs. Keep a
-                    # bounded fail-closed search, but omit the expensive combined
-                    # dilation+erosion pass and pay for cheap candidates first.
+                    # Keep the bounded search fail-closed while collapsing the
+                    # expensive visual variant space to native morphology only.
                     scale_factors = (2, 4)
-                    morphologies = ("none", "erosion", "dilation")
                 elif name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES:
                     scale_factors = (4, 2)
-                    morphologies = ("dilation", "erosion", "none")
                 else:
                     scale_factors = (2, 4)
-                    morphologies = ("erosion", "dilation", "none")
+                morphologies = ("none",)
                 for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                         for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
@@ -3159,7 +3155,7 @@ def _ocr_source_window(
                                         "segment": segment_name,
                                         "render_scale_factor": 4,
                                         "inner_binding_trim_fraction": (
-                                            0.02 if name == "Orso Bruno" else 0.0
+                                            0.06 if name == "Orso Bruno" else 0.0
                                         ),
                                         "threshold": "tile_local_otsu_inverted",
                                         "before_independent_ocr": True,
