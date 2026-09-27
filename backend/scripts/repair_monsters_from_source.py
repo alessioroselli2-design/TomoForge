@@ -2789,17 +2789,17 @@ def _micro_ocr_hit_points_line(
                 # cannot weaken the fail-closed acceptance criteria.
                 if name in PLAYERS_HANDBOOK_TIMEOUT4_NAMES:
                     # Run #132 proved the x4 morphology preprocessing itself can
-                    # consume the full 150s budget before Tesseract runs. Keep the
-                    # same fail-closed variant space but pay for cheap candidates
-                    # first, then escalate density/morphology only as needed.
+                    # consume the full 150s budget before Tesseract runs. Keep a
+                    # bounded fail-closed search, but omit the expensive combined
+                    # dilation+erosion pass and pay for cheap candidates first.
                     scale_factors = (2, 4)
-                    morphologies = ("none", "erosion", "dilation", "dilation_erosion")
+                    morphologies = ("none", "erosion", "dilation")
                 elif name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES:
                     scale_factors = (4, 2)
-                    morphologies = ("dilation_erosion", "dilation", "erosion", "none")
+                    morphologies = ("dilation", "erosion", "none")
                 else:
                     scale_factors = (2, 4)
-                    morphologies = ("erosion", "dilation", "dilation_erosion", "none")
+                    morphologies = ("erosion", "dilation", "none")
                 for scale_factor in scale_factors:
                     for contrast in HIT_POINTS_FULL_SPECTRUM_CONTRASTS:
                         for threshold in HIT_POINTS_FULL_SPECTRUM_THRESHOLDS:
@@ -3116,9 +3116,13 @@ def _ocr_source_window(
                                 effective_dpi * 4 / 72.0,
                                 effective_dpi * 4 / 72.0,
                             )
+                            quality_clip = target_clip
+                            if name == "Orso Bruno":
+                                quality_clip = fitz.Rect(target_clip)
+                                quality_clip.x0 += quality_clip.width * 0.02
                             quality_pixmap = page.get_pixmap(
                                 matrix=quality_matrix,
-                                clip=target_clip,
+                                clip=quality_clip,
                                 alpha=False,
                                 colorspace=fitz.csGRAY,
                             )
@@ -3143,6 +3147,9 @@ def _ocr_source_window(
                                         "name": name,
                                         "segment": segment_name,
                                         "render_scale_factor": 4,
+                                        "inner_binding_trim_fraction": (
+                                            0.02 if name == "Orso Bruno" else 0.0
+                                        ),
                                         "threshold": "tile_local_otsu_inverted",
                                         "before_independent_ocr": True,
                                         "elapsed_seconds": round(
