@@ -1101,9 +1101,7 @@ def test_phb_timeout4_full_spectrum_starts_with_x2_no_morphology(tmp_path):
     assert "dark-dilated" not in first_spectrum_path
 
 
-def test_phb_full_spectrum_prioritizes_x4_dilation_without_combined_morphology(
-    tmp_path,
-):
+def test_phb_full_spectrum_uses_native_morphology_only(tmp_path):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
     image.clear_with(255)
@@ -1138,9 +1136,9 @@ def test_phb_full_spectrum_prioritizes_x4_dilation_without_combined_morphology(
     assert "Punti Ferita 11 (2d8 + 2)" in result
     first_spectrum_path = run.call_args_list[5].args[0][1]
     assert "upscaled-x4" in first_spectrum_path
-    assert "dark-dilated" in first_spectrum_path
+    assert "dark-dilated" not in first_spectrum_path
     assert "dark-eroded" not in first_spectrum_path
-    assert "threshold-80" in first_spectrum_path
+    assert "threshold-100" in first_spectrum_path
 
 
 def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
@@ -1299,7 +1297,7 @@ def test_dark_pixel_erosion_thins_only_into_immediate_neighborhood():
 
 
 def test_full_spectrum_contrast_range_and_background_variance_are_bounded():
-    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (1.0, 1.8, 2.5)
+    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (1.0, 2.0)
     assert _sample_variance(bytes([255, 255, 255])) == 0.0
     assert _sample_variance(bytes([0, 255])) > 36.0
 
@@ -2090,13 +2088,13 @@ def test_background_luminance_stats_detects_nonwhite_frame():
     assert tinted_variance == 0
 
 
-def test_orso_bruno_quality_pre_otsu_clip_trims_only_inner_two_percent():
+def test_orso_bruno_quality_pre_otsu_clip_trims_only_inner_six_percent():
     source = fitz.Rect(100, 50, 500, 450)
 
     orso = _phb_quality_pre_otsu_clip(source, "Orso Bruno")
     cavallo = _phb_quality_pre_otsu_clip(source, "Cavallo Da Guerra")
 
-    assert orso.x0 == pytest.approx(108.0)
+    assert orso.x0 == pytest.approx(124.0)
     assert orso.y0 == source.y0
     assert orso.x1 == source.x1
     assert orso.y1 == source.y1
