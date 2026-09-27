@@ -39,6 +39,7 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT,
     EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
+    HIT_POINTS_WHITELIST,
     OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
     PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
     PLAYERS_HANDBOOK_TIMEOUT4_NAMES,
@@ -1023,6 +1024,10 @@ def test_hp_micro_ocr_unique_geometry_can_repair_duplicate_target_copies(tmp_pat
 
     assert result.count("Punti Ferita 1 (1d4 - 1)") == 2
     assert "HP_UNIQUE_GEOMETRY_DUPLICATE_REPLACEMENT" in capsys.readouterr().out
+
+
+def test_hit_points_whitelist_preserves_negative_modifier_sign():
+    assert "-" in HIT_POINTS_WHITELIST
 
 
 def test_phb_blocked7_source_guided_segments_are_right_column():
