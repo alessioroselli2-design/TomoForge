@@ -1428,7 +1428,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
     assert '"superscaled_otsu_hp_format_error": true' in diagnostic
     assert '"full_spectrum_attempt_count": 1' in diagnostic
     assert '"morphology": "none"' in diagnostic
-    assert '"threshold": 80' in diagnostic
+    assert '"threshold": 100' in diagnostic
 
 
 def test_otsu_inversion_makes_dark_text_white_and_light_background_black():
