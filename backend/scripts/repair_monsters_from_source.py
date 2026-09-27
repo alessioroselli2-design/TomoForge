@@ -903,6 +903,7 @@ def _run_tesseract_bounded(
     phase: str,
 ) -> str:
     remaining = _remaining_global_ocr_budget(ocr_budget_started_at)
+    phase_started_at = time.monotonic()
     timeout = (
         min(HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS, remaining)
         if remaining is not None
@@ -953,6 +954,17 @@ def _run_tesseract_bounded(
                 "stderr": " ".join((stderr or "").split())[:500],
             },
         )
+    print(
+        "OCR_PHASE_TIMING "
+        + json.dumps(
+            {
+                "phase": phase,
+                "elapsed_seconds": round(time.monotonic() - phase_started_at, 3),
+                "timeout_seconds": round(timeout, 3),
+            },
+            sort_keys=True,
+        )
+    )
     _remaining_global_ocr_budget(ocr_budget_started_at)
     return stdout
 
@@ -3917,6 +3929,7 @@ async def _repair_one(
         else (0.02, 0.03, 0.04, 0.05)
     )
     for overlap_index, overlap in enumerate(overlaps):
+        window_started_at = time.monotonic()
         primary_pages, comparison_pages, quality = _ocr_source_window(
             pdf_path,
             physical_page,
@@ -3931,7 +3944,21 @@ async def _repair_one(
             target_page_only=target_page_only,
             ocr_budget_started_at=ocr_budget_started_at,
         )
+        print(
+            "PHB_OCR_WINDOW_TIMING "
+            + json.dumps(
+                {
+                    "name": record.get("name"),
+                    "mode": "dynamic",
+                    "overlap": overlap,
+                    "elapsed_seconds": round(time.monotonic() - window_started_at, 3),
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
         try:
+            agreement_started_at = time.monotonic()
             candidate = _agreed_target_candidate(
                 primary_pages,
                 comparison_pages,
@@ -3939,6 +3966,18 @@ async def _repair_one(
                 str(source.get("language") or "it"),
                 source_target_name,
                 physical_page,
+            )
+            print(
+                "PHB_AGREEMENT_TIMING "
+                + json.dumps(
+                    {
+                        "name": record.get("name"),
+                        "mode": "dynamic",
+                        "elapsed_seconds": round(time.monotonic() - agreement_started_at, 3),
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
             )
             if (
                 record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
