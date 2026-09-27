@@ -985,6 +985,17 @@ PHB_QUALITY_GATE_PRE_OTSU_TARGETS = frozenset(
 )
 
 
+def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
+    """Trim only the reviewed PHB binding shadow before quality preprocessing."""
+    if name != "Orso Bruno":
+        return target_clip
+    import fitz
+
+    quality_clip = fitz.Rect(target_clip)
+    quality_clip.x0 += quality_clip.width * 0.02
+    return quality_clip
+
+
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
     if not samples:
@@ -3116,10 +3127,10 @@ def _ocr_source_window(
                                 effective_dpi * 4 / 72.0,
                                 effective_dpi * 4 / 72.0,
                             )
-                            quality_clip = target_clip
-                            if name == "Orso Bruno":
-                                quality_clip = fitz.Rect(target_clip)
-                                quality_clip.x0 += quality_clip.width * 0.02
+                            quality_clip = _phb_quality_pre_otsu_clip(
+                                target_clip,
+                                name,
+                            )
                             quality_pixmap = page.get_pixmap(
                                 matrix=quality_matrix,
                                 clip=quality_clip,
