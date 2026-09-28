@@ -1004,6 +1004,15 @@ PHB_SPARSE_CONTINUATION_CLIPS = {
     "Lupo": (1, (0.06, 0.0, 0.49, 0.22)),
 }
 
+# Source-reviewed lower boundaries for sparse PHB crops. Each boundary stops
+# before the next stat-block title (or before non-target artwork/blank space).
+PHB_SPARSE_BOTTOM_FRACTION_BY_NAME = {
+    "Cavallo Da Guerra": 0.455,
+    "Falco": 0.35,
+    "Orso Bruno": 0.84,
+    "Pipistrello": 0.38,
+}
+
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     """Trim only the reviewed PHB binding shadow before quality preprocessing."""
@@ -2019,7 +2028,7 @@ def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
     if name in {"Cinghiale", "Rana"}:
         return 12
-    if name in {"Cavallo Da Guerra", "Orso Bruno"}:
+    if name in {"Cavallo Da Guerra", "Gufo", "Orso Bruno"}:
         return 6
     return default_psm
 
@@ -2152,7 +2161,13 @@ def _sparse_anchor_crop_fractions(
         x0, x1 = 0.42, 1.0
     title_height = max(1, bottom - top)
     y0_pixels = max(0, top - max(title_height * 2, int(height * 0.015)))
-    fractions = (x0, y0_pixels / height, x1, 1.0)
+    y1 = PHB_SPARSE_BOTTOM_FRACTION_BY_NAME.get(target_name, 1.0)
+    if y1 <= y0_pixels / height:
+        raise RepairBlocked(
+            "phb_sparse_source_crop_invalid",
+            detail=f"name={target_name} y0={y0_pixels / height:.4f} y1={y1:.4f}",
+        )
+    fractions = (x0, y0_pixels / height, x1, y1)
     print(
         "SPARSE_ANCHOR_GEOMETRY "
         + json.dumps(
