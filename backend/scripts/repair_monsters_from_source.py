@@ -1013,6 +1013,11 @@ PHB_SPARSE_BOTTOM_FRACTION_BY_NAME = {
     "Pipistrello": 0.38,
 }
 
+# For naturally short isolated blocks, validate OCR quality on the same
+# source column from the target title to page bottom, but keep parsing confined
+# to the source-reviewed target crop above. Context text never enters candidates.
+PHB_SPARSE_QUALITY_CONTEXT_TARGETS = frozenset({"Falco", "Pipistrello"})
+
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     """Trim only the reviewed PHB binding shadow before quality preprocessing."""
@@ -2028,8 +2033,6 @@ def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
     if name in {"Cinghiale", "Rana"}:
         return 12
-    if name in {"Cavallo Da Guerra", "Gufo", "Orso Bruno"}:
-        return 6
     return default_psm
 
 
@@ -3423,6 +3426,80 @@ def _ocr_source_window(
                         )
                     agreement_primary = primary
                     agreement_comparison = comparison
+                    if (
+                        sparse_full_page
+                        and page_number == target_page
+                        and name in PHB_SPARSE_QUALITY_CONTEXT_TARGETS
+                        and sparse_anchor_crop is not None
+                        and sparse_anchor_crop[3] < 1.0
+                    ):
+                        quality_context_fractions = (
+                            sparse_anchor_crop[0],
+                            sparse_anchor_crop[1],
+                            sparse_anchor_crop[2],
+                            1.0,
+                        )
+                        quality_context_clip = _clip_rect(
+                            page.rect,
+                            quality_context_fractions,
+                        )
+                        quality_context_path = image_root / (
+                            f"page-{page_number:04d}-{segment_name}-"
+                            "quality-context.png"
+                        )
+                        page.get_pixmap(
+                            matrix=matrix,
+                            clip=quality_context_clip,
+                            alpha=False,
+                            colorspace=fitz.csGRAY,
+                        ).save(quality_context_path)
+                        agreement_primary = _run_tesseract_bounded(
+                            [
+                                "tesseract",
+                                str(quality_context_path),
+                                "stdout",
+                                "-l",
+                                languages,
+                                "--psm",
+                                str(primary_psm),
+                                "quiet",
+                            ],
+                            ocr_budget_started_at,
+                            phase="segment_primary_quality_context",
+                        )
+                        agreement_comparison = _run_tesseract_bounded(
+                            [
+                                "tesseract",
+                                str(quality_context_path),
+                                "stdout",
+                                "-l",
+                                languages,
+                                "--psm",
+                                str(secondary_psm),
+                                "quiet",
+                            ],
+                            ocr_budget_started_at,
+                            phase="segment_comparison_quality_context",
+                        )
+                        print(
+                            "PHB_SPARSE_QUALITY_CONTEXT_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "page": page_number,
+                                    "crop_fractions": list(
+                                        quality_context_fractions
+                                    ),
+                                    "parse_crop_fractions": list(
+                                        sparse_anchor_crop
+                                    ),
+                                    "context_only": True,
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+
                     if (
                         sparse_full_page
                         and page_number == target_page
