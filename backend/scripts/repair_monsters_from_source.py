@@ -2846,7 +2846,7 @@ def _micro_ocr_hit_points_line(
                         HIT_POINTS_FALLBACK_CONTRAST,
                         directory,
                         otsu_inverted=True,
-                        scale_factor=4,
+                        scale_factor=2,
                         morphological_dark_dilation=True,
                     )
                     micro = superscaled_otsu_micro
