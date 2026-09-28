@@ -1275,6 +1275,7 @@ def _erode_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
     """Apply the exact bounded 3x3 maximum filter to thin fused dark strokes."""
     return _dark_extreme_filter(samples, width, height, use_minimum=False)
 
+
 def _sample_variance(samples: bytes) -> float:
     """Return grayscale variance without external image dependencies."""
     if not samples:
@@ -2682,9 +2683,7 @@ def _micro_ocr_hit_points_line(
             raster.width,
             raster.height,
         )
-        prep_timings["background_stats"] = round(
-            time.monotonic() - phase_started_at, 3
-        )
+        prep_timings["background_stats"] = round(time.monotonic() - phase_started_at, 3)
         phase_started_at = time.monotonic()
         use_adaptive_inversion = bool(
             adaptive_background_inversion
