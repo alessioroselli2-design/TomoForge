@@ -42,6 +42,7 @@ from scripts.repair_monsters_from_source import (
     HIT_POINTS_WHITELIST,
     OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
     PHB_QUALITY_GATE_PRE_OTSU_TARGETS,
+    PHB_SPARSE_CONTINUATION_CLIPS,
     PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
     PLAYERS_HANDBOOK_TIMEOUT4_NAMES,
     TARGET_SEGMENT_BY_NAME,
@@ -2102,6 +2103,19 @@ def test_phb_quality_gate_pre_otsu_targets_are_exactly_the_three_residuals():
         "Gufo",
         "Orso Bruno",
     }
+
+
+def test_phb_sparse_continuation_clips_are_source_reviewed_and_bounded():
+    assert PHB_SPARSE_CONTINUATION_CLIPS == {
+        "Gufo": (1, (0.06, 0.0, 0.49, 0.12)),
+        "Lupo": (1, (0.06, 0.0, 0.49, 0.22)),
+    }
+    for page_offset, fractions in PHB_SPARSE_CONTINUATION_CLIPS.values():
+        assert page_offset == 1
+        x0, y0, x1, y1 = fractions
+        assert 0.0 <= x0 < x1 <= 0.5
+        assert y0 == 0.0
+        assert 0.0 < y1 < 0.25
 
 
 def test_local_otsu_inversion_handles_distinct_local_backgrounds():
