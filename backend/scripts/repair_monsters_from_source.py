@@ -2614,6 +2614,9 @@ def _micro_ocr_hit_points_line(
     ) -> str:
         # Fail closed before paying for a new graphical variant.
         remaining_global_ocr_budget()
+        prep_started_at = time.monotonic()
+        phase_started_at = prep_started_at
+        prep_timings: dict[str, float] = {}
         contrast_lut = bytes(
             max(0, min(255, round(128 + (sample - 128) * contrast)))
             for sample in range(256)
@@ -2626,6 +2629,8 @@ def _micro_ocr_hit_points_line(
             contrasted_samples,
             False,
         )
+        prep_timings["contrast"] = round(time.monotonic() - phase_started_at, 3)
+        phase_started_at = time.monotonic()
         if scale_factor > 1:
             # Let MuPDF interpolate the crop before thresholding so fused
             # legacy-font strokes have additional geometric resolution.
@@ -2636,6 +2641,8 @@ def _micro_ocr_hit_points_line(
             )
         else:
             raster = contrasted
+        prep_timings["upscale"] = round(time.monotonic() - phase_started_at, 3)
+        phase_started_at = time.monotonic()
         threshold_samples = raster.samples
         if morphological_dark_dilation:
             threshold_samples = _dilate_dark_pixels(
@@ -2649,11 +2656,17 @@ def _micro_ocr_hit_points_line(
                 raster.width,
                 raster.height,
             )
+        prep_timings["morphology"] = round(time.monotonic() - phase_started_at, 3)
+        phase_started_at = time.monotonic()
         background_mean, background_variance = _background_luminance_stats(
             threshold_samples,
             raster.width,
             raster.height,
         )
+        prep_timings["background_stats"] = round(
+            time.monotonic() - phase_started_at, 3
+        )
+        phase_started_at = time.monotonic()
         use_adaptive_inversion = bool(
             adaptive_background_inversion
             and (
@@ -2676,6 +2689,7 @@ def _micro_ocr_hit_points_line(
             )
         else:
             processed = raster
+        prep_timings["threshold_otsu"] = round(time.monotonic() - phase_started_at, 3)
         suffix = "-otsu-inverted" if otsu_inverted else ""
         if scale_factor > 1:
             suffix = f"-upscaled-x{scale_factor}" + suffix
@@ -2688,7 +2702,25 @@ def _micro_ocr_hit_points_line(
         if use_adaptive_inversion:
             suffix = "-adaptive-background-inverted" + suffix
         crop_path = directory / f"hit-points-{contrast:.1f}{suffix}.png"
+        phase_started_at = time.monotonic()
         processed.save(crop_path)
+        prep_timings["save_png"] = round(time.monotonic() - phase_started_at, 3)
+        prep_timings["total"] = round(time.monotonic() - prep_started_at, 3)
+        print(
+            "HP_MICRO_PREP_TIMING "
+            + json.dumps(
+                {
+                    "name": name,
+                    "contrast": contrast,
+                    "scale_factor": scale_factor,
+                    "threshold": bitonal_threshold,
+                    "otsu_inverted": otsu_inverted,
+                    **prep_timings,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
         command = [
             "tesseract",
             str(crop_path),
