@@ -996,6 +996,14 @@ PHB_QUALITY_GATE_PRE_OTSU_TARGETS = frozenset(
     }
 )
 
+# Source-reviewed PHB stat blocks that continue at the top-left of the next
+# physical page. These clips stop before the next monster title; they provide
+# only the missing continuation text and never replace core-field OCR.
+PHB_SPARSE_CONTINUATION_CLIPS = {
+    "Gufo": (1, (0.06, 0.0, 0.49, 0.12)),
+    "Lupo": (1, (0.06, 0.0, 0.49, 0.22)),
+}
+
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     """Trim only the reviewed PHB binding shadow before quality preprocessing."""
@@ -3121,6 +3129,8 @@ def _ocr_source_window(
                 primary_parts: list[str] = []
                 comparison_parts: list[str] = []
                 segment_metrics: dict[str, dict[str, Any]] = {}
+                continuation_primary_page: tuple[int, str] | None = None
+                continuation_comparison_page: tuple[int, str] | None = None
 
                 for segment_name, fractions in segments:
                     clip = _clip_rect(page.rect, fractions)
@@ -3396,9 +3406,109 @@ def _ocr_source_window(
                                 sort_keys=True,
                             )
                         )
+                    agreement_primary = primary
+                    agreement_comparison = comparison
+                    if (
+                        sparse_full_page
+                        and page_number == target_page
+                        and name in PHB_SPARSE_CONTINUATION_CLIPS
+                    ):
+                        page_offset, continuation_fractions = (
+                            PHB_SPARSE_CONTINUATION_CLIPS[name]
+                        )
+                        continuation_page_number = page_number + page_offset
+                        if continuation_page_number > page_total:
+                            raise RepairBlocked(
+                                "phb_sparse_continuation_page_unavailable",
+                                detail=(
+                                    f"name={name} page={continuation_page_number} "
+                                    f"page_total={page_total}"
+                                ),
+                            )
+                        continuation_page = document.load_page(
+                            continuation_page_number - 1
+                        )
+                        continuation_clip = _clip_rect(
+                            continuation_page.rect,
+                            continuation_fractions,
+                        )
+                        continuation_image_path = image_root / (
+                            f"page-{continuation_page_number:04d}-"
+                            f"{segment_name}-continuation.png"
+                        )
+                        continuation_page.get_pixmap(
+                            matrix=matrix,
+                            clip=continuation_clip,
+                            alpha=False,
+                            colorspace=fitz.csGRAY,
+                        ).save(continuation_image_path)
+                        continuation_primary_text = _run_tesseract_bounded(
+                            [
+                                "tesseract",
+                                str(continuation_image_path),
+                                "stdout",
+                                "-l",
+                                languages,
+                                "--psm",
+                                str(primary_psm),
+                                "quiet",
+                            ],
+                            ocr_budget_started_at,
+                            phase="segment_primary_continuation",
+                        )
+                        continuation_comparison_text = _run_tesseract_bounded(
+                            [
+                                "tesseract",
+                                str(continuation_image_path),
+                                "stdout",
+                                "-l",
+                                languages,
+                                "--psm",
+                                str(secondary_psm),
+                                "quiet",
+                            ],
+                            ocr_budget_started_at,
+                            phase="segment_comparison_continuation",
+                        )
+                        agreement_primary = (
+                            primary + "\n" + continuation_primary_text
+                        )
+                        agreement_comparison = (
+                            comparison + "\n" + continuation_comparison_text
+                        )
+                        continuation_primary_page = (
+                            continuation_page_number,
+                            continuation_primary_text,
+                        )
+                        continuation_comparison_page = (
+                            continuation_page_number,
+                            continuation_comparison_text,
+                        )
+                        print(
+                            "PHB_SPARSE_CONTINUATION_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "start_page": page_number,
+                                    "continuation_page": continuation_page_number,
+                                    "crop_fractions": list(
+                                        continuation_fractions
+                                    ),
+                                    "primary_chars": len(
+                                        continuation_primary_text
+                                    ),
+                                    "comparison_chars": len(
+                                        continuation_comparison_text
+                                    ),
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+
                     agreement = _agreement_metrics(
-                        primary,
-                        comparison,
+                        agreement_primary,
+                        agreement_comparison,
                     )
                     if sparse_full_page:
                         agreement["sparse_anchor_found"] = sparse_anchor_found
@@ -3452,6 +3562,12 @@ def _ocr_source_window(
                     comparison_pages.append(
                         (page_number, "\n\n".join(comparison_parts))
                     )
+                    if (
+                        continuation_primary_page is not None
+                        and continuation_comparison_page is not None
+                    ):
+                        primary_pages.append(continuation_primary_page)
+                        comparison_pages.append(continuation_comparison_page)
     finally:
         document.close()
 
