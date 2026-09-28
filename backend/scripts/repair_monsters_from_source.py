@@ -2012,7 +2012,7 @@ def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     if name in {"Cinghiale", "Rana"}:
         return 12
     if name in {"Cavallo Da Guerra", "Orso Bruno"}:
-        return 5
+        return 6
     return default_psm
 
 
