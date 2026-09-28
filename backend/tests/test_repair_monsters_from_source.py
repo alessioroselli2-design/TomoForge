@@ -1255,9 +1255,9 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
     assert (
         run.call_args_list[4]
         .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
+        .endswith("hit-points-1.2-dark-dilated-upscaled-x2-otsu-inverted.png")
     )
-    assert crop_sizes[3] == (crop_sizes[1][0] * 4, crop_sizes[1][1] * 4)
+    assert crop_sizes[3] == (crop_sizes[1][0] * 2, crop_sizes[1][1] * 2)
 
 
 def test_dark_pixel_dilation_expands_only_into_immediate_neighborhood():
@@ -1336,7 +1336,7 @@ def test_quetzalcoatlus_fourth_hp_retry_uses_dark_dilation(tmp_path):
     assert (
         run.call_args_list[4]
         .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
+        .endswith("hit-points-1.2-dark-dilated-upscaled-x2-otsu-inverted.png")
     )
 
 
@@ -1420,7 +1420,7 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
     assert (
         run.call_args_list[4]
         .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
+        .endswith("hit-points-1.2-dark-dilated-upscaled-x2-otsu-inverted.png")
     )
     diagnostic = capsys.readouterr().out
     assert '"otsu_hp_format_error": true' in diagnostic
