@@ -3408,6 +3408,25 @@ def _ocr_source_window(
                             else None
                         )
                     segment_metrics[segment_name] = agreement
+                    if sparse_full_page and name in {
+                        "Cavallo Da Guerra",
+                        "Gufo",
+                        "Lupo",
+                        "Orso Bruno",
+                    }:
+                        print(
+                            "PHB_QUALITY_GATE_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "page": page_number,
+                                    "segment": segment_name,
+                                    "agreement": agreement,
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
 
                     # Fail closed per segment. A bad neighboring column is
                     # isolated and cannot poison a clean target column.
