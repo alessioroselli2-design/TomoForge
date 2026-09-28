@@ -867,6 +867,48 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
     r"\([^)]*\b\d+d\d{3,4}\b[^)]*\)",
     re.IGNORECASE,
 )
+STANDARD_HIT_DIE_SIZES = frozenset({4, 6, 8, 10, 12, 20})
+
+
+def _repair_numeric_dice_separator_confusion(value: str) -> str | None:
+    """Recover one OCR'd dice separator only when math leaves one valid expression."""
+    normalized = " ".join((value or "").split())
+    match = re.fullmatch(
+        r"(\d+)\s*\(\s*([0-9]+)\s*([+\-−–])?\s*(\d+)?\s*\)",
+        normalized,
+    )
+    if match is None:
+        return None
+
+    average = int(match.group(1))
+    compact_dice = match.group(2)
+    modifier_sign = match.group(3)
+    modifier_digits = match.group(4)
+    candidates: set[str] = set()
+    for index, character in enumerate(compact_dice):
+        if character != "4":
+            continue
+        dice_token = compact_dice[:index] + "d" + compact_dice[index + 1 :]
+        dice_match = re.fullmatch(r"(\d+)d(\d+)", dice_token)
+        if dice_match is None:
+            continue
+        die_size = int(dice_match.group(2))
+        if die_size not in STANDARD_HIT_DIE_SIZES:
+            continue
+        modifier = ""
+        if modifier_sign and modifier_digits:
+            normalized_sign = "-" if modifier_sign in {"-", "−", "–"} else "+"
+            modifier = f" {normalized_sign} {int(modifier_digits)}"
+        candidate = f"{average} ({dice_token}{modifier})"
+        flags = monster_semantic_numeric_flags(
+            {"classe_armatura": "10", "punti_ferita": candidate}
+        )
+        if HP_FORMAT_ERROR_FLAG not in flags:
+            candidates.add(candidate)
+
+    if len(candidates) != 1:
+        return None
+    return next(iter(candidates))
 
 
 def _remaining_global_ocr_budget(
@@ -2877,6 +2919,16 @@ def _micro_ocr_hit_points_line(
                 superscaled_otsu_micro = None
             full_spectrum_attempts: list[dict[str, object]] = []
             full_spectrum_accepted: dict[str, object] | None = None
+            raw_micro_candidates = [
+                candidate
+                for candidate in (
+                    initial_micro,
+                    otsu_micro,
+                    upscaled_otsu_micro,
+                    superscaled_otsu_micro,
+                )
+                if candidate
+            ]
             if hp_micro_ocr_failed(micro):
                 crop_background_mean, crop_background_variance = (
                     _background_luminance_stats(
@@ -2929,6 +2981,8 @@ def _micro_ocr_hit_points_line(
                                     ),
                                 }
                                 full_spectrum_attempts.append(attempt)
+                                if candidate:
+                                    raw_micro_candidates.append(candidate)
                                 if not failed:
                                     micro = candidate
                                     full_spectrum_accepted = attempt
@@ -2939,6 +2993,39 @@ def _micro_ocr_hit_points_line(
                             break
                     if full_spectrum_accepted is not None:
                         break
+            if hp_micro_ocr_failed(micro):
+                reconstructed = {
+                    repaired
+                    for raw_candidate in raw_micro_candidates
+                    if (
+                        repaired := _repair_numeric_dice_separator_confusion(
+                            raw_candidate
+                        )
+                    )
+                    is not None
+                }
+                if len(reconstructed) == 1:
+                    micro = next(iter(reconstructed))
+                    print(
+                        "HP_DICE_SEPARATOR_RECONSTRUCTION "
+                        + json.dumps(
+                            {
+                                "name": name,
+                                "value": micro,
+                                "supporting_variants": sum(
+                                    1
+                                    for raw_candidate in raw_micro_candidates
+                                    if _repair_numeric_dice_separator_confusion(
+                                        raw_candidate
+                                    )
+                                    == micro
+                                ),
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                    )
+
             print(
                 "HP_MICRO_OCR_DIAGNOSTIC "
                 + json.dumps(
