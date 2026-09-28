@@ -1041,7 +1041,8 @@ def _otsu_inverted_samples(samples: bytes) -> bytes:
             best_variance = between_variance
             threshold = value
 
-    inversion_lut = bytes(255 if sample <= threshold else 0 for sample in range(256))\n    return samples.translate(inversion_lut)
+    inversion_lut = bytes(255 if sample <= threshold else 0 for sample in range(256))
+    return samples.translate(inversion_lut)
 
 
 def _local_otsu_inverted_samples(
