@@ -1138,7 +1138,7 @@ def test_phb_full_spectrum_uses_native_morphology_only(tmp_path):
     assert "upscaled-x4" in first_spectrum_path
     assert "dark-dilated" not in first_spectrum_path
     assert "dark-eroded" not in first_spectrum_path
-    assert "threshold-100" in first_spectrum_path
+    assert "threshold-140" in first_spectrum_path
 
 
 def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
@@ -1252,12 +1252,10 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
         .endswith("hit-points-1.2-upscaled-x2-otsu-inverted.png")
     )
     assert crop_sizes[2] == (crop_sizes[1][0] * 2, crop_sizes[1][1] * 2)
-    assert (
-        run.call_args_list[4]
-        .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x2-otsu-inverted.png")
-    )
-    assert crop_sizes[3] == (crop_sizes[1][0] * 2, crop_sizes[1][1] * 2)
+    assert "upscaled-x4" in run.call_args_list[4].args[0][1]
+    assert "threshold-100" in run.call_args_list[4].args[0][1]
+    assert "dark-dilated" not in run.call_args_list[4].args[0][1]
+    assert crop_sizes[3] == (crop_sizes[1][0] * 4, crop_sizes[1][1] * 4)
 
 
 def test_dark_pixel_dilation_expands_only_into_immediate_neighborhood():
@@ -1333,11 +1331,9 @@ def test_quetzalcoatlus_fourth_hp_retry_uses_dark_dilation(tmp_path):
         )
 
     assert result == "Quetzalcoatlus\nPunti Ferita 30 (4d10 + 8)\n"
-    assert (
-        run.call_args_list[4]
-        .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x2-otsu-inverted.png")
-    )
+    assert "upscaled-x4" in run.call_args_list[4].args[0][1]
+    assert "threshold-100" in run.call_args_list[4].args[0][1]
+    assert "dark-dilated" not in run.call_args_list[4].args[0][1]
 
 
 def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, capsys):
@@ -1417,18 +1413,17 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
         .args[0][1]
         .endswith("hit-points-1.2-upscaled-x2-otsu-inverted.png")
     )
-    assert (
-        run.call_args_list[4]
-        .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x2-otsu-inverted.png")
-    )
+    assert "upscaled-x4" in run.call_args_list[4].args[0][1]
+    assert "threshold-100" in run.call_args_list[4].args[0][1]
+    assert "upscaled-x4" in run.call_args_list[5].args[0][1]
+    assert "threshold-140" in run.call_args_list[5].args[0][1]
     diagnostic = capsys.readouterr().out
     assert '"otsu_hp_format_error": true' in diagnostic
     assert '"upscaled_otsu_hp_format_error": true' in diagnostic
-    assert '"superscaled_otsu_hp_format_error": true' in diagnostic
-    assert '"full_spectrum_attempt_count": 1' in diagnostic
+    assert '"superscaled_otsu_hp_format_error": null' in diagnostic
+    assert '"full_spectrum_attempt_count": 2' in diagnostic
     assert '"morphology": "none"' in diagnostic
-    assert '"threshold": 100' in diagnostic
+    assert '"threshold": 140' in diagnostic
 
 
 def test_otsu_inversion_makes_dark_text_white_and_light_background_black():
