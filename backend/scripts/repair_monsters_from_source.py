@@ -2839,16 +2839,12 @@ def _micro_ocr_hit_points_line(
                     scale_factor=2,
                 )
                 micro = upscaled_otsu_micro
+                # The legacy x2 dilation retry is intentionally skipped here.
+                # It is computationally expensive on large PHB crops and does not
+                # relax or add an acceptance gate: failures proceed directly to
+                # the bounded x4 full-spectrum grid below, which is still accepted
+                # only through hp_micro_ocr_failed()'s semantic/math coherence.
                 superscaled_otsu_micro = None
-                if hp_micro_ocr_failed(upscaled_otsu_micro):
-                    superscaled_otsu_micro = run_micro_ocr(
-                        HIT_POINTS_FALLBACK_CONTRAST,
-                        directory,
-                        otsu_inverted=True,
-                        scale_factor=2,
-                        morphological_dark_dilation=True,
-                    )
-                    micro = superscaled_otsu_micro
             else:
                 micro = otsu_micro
                 superscaled_otsu_micro = None
