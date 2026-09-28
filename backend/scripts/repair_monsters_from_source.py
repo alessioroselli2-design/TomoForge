@@ -1218,43 +1218,62 @@ def _pre_otsu_column_clean(
     cleaned.save(image_path)
 
 
-def _dilate_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
-    """Apply a bounded 3x3 minimum filter to strengthen dark text strokes."""
+def _dark_extreme_filter(
+    samples: bytes,
+    width: int,
+    height: int,
+    *,
+    use_minimum: bool,
+) -> bytes:
+    """Apply the exact bounded 3x3 grayscale extreme filter in linear time."""
     if width < 1 or height < 1 or len(samples) != width * height:
-        raise ValueError("invalid grayscale raster for dark-pixel dilation")
+        raise ValueError("invalid grayscale raster for dark-pixel morphology")
+    choose = min if use_minimum else max
+    horizontal = bytearray(len(samples))
+    for y in range(height):
+        row_start = y * width
+        row = samples[row_start : row_start + width]
+        if width == 1:
+            horizontal[row_start] = row[0]
+            continue
+        horizontal[row_start] = choose(row[0], row[1])
+        for x in range(1, width - 1):
+            horizontal[row_start + x] = choose(row[x - 1], row[x], row[x + 1])
+        horizontal[row_start + width - 1] = choose(row[-2], row[-1])
+
     output = bytearray(len(samples))
     for y in range(height):
-        y0 = max(0, y - 1)
-        y1 = min(height, y + 2)
-        for x in range(width):
-            x0 = max(0, x - 1)
-            x1 = min(width, x + 2)
-            output[y * width + x] = min(
-                samples[row * width + column]
-                for row in range(y0, y1)
-                for column in range(x0, x1)
-            )
+        current = y * width
+        above = max(0, y - 1) * width
+        below = min(height - 1, y + 1) * width
+        if above == current:
+            for x in range(width):
+                output[current + x] = choose(
+                    horizontal[current + x], horizontal[below + x]
+                )
+        elif below == current:
+            for x in range(width):
+                output[current + x] = choose(
+                    horizontal[above + x], horizontal[current + x]
+                )
+        else:
+            for x in range(width):
+                output[current + x] = choose(
+                    horizontal[above + x],
+                    horizontal[current + x],
+                    horizontal[below + x],
+                )
     return bytes(output)
+
+
+def _dilate_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
+    """Apply the exact bounded 3x3 minimum filter to strengthen dark strokes."""
+    return _dark_extreme_filter(samples, width, height, use_minimum=True)
 
 
 def _erode_dark_pixels(samples: bytes, width: int, height: int) -> bytes:
-    """Apply a bounded 3x3 maximum filter to thin fused dark strokes."""
-    if width < 1 or height < 1 or len(samples) != width * height:
-        raise ValueError("invalid grayscale raster for dark-pixel erosion")
-    output = bytearray(len(samples))
-    for y in range(height):
-        y0 = max(0, y - 1)
-        y1 = min(height, y + 2)
-        for x in range(width):
-            x0 = max(0, x - 1)
-            x1 = min(width, x + 2)
-            output[y * width + x] = max(
-                samples[row * width + column]
-                for row in range(y0, y1)
-                for column in range(x0, x1)
-            )
-    return bytes(output)
-
+    """Apply the exact bounded 3x3 maximum filter to thin fused dark strokes."""
+    return _dark_extreme_filter(samples, width, height, use_minimum=False)
 
 def _sample_variance(samples: bytes) -> float:
     """Return grayscale variance without external image dependencies."""
