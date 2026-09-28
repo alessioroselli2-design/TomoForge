@@ -42,6 +42,7 @@ from scripts.repair_monsters_from_source import (
     HIT_POINTS_WHITELIST,
     OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
     PHB_QUALITY_GATE_PRE_OTSU_TARGETS,
+    PHB_SPARSE_BOTTOM_FRACTION_BY_NAME,
     PHB_SPARSE_CONTINUATION_CLIPS,
     PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
     PLAYERS_HANDBOOK_TIMEOUT4_NAMES,
@@ -2118,6 +2119,19 @@ def test_phb_sparse_continuation_clips_are_source_reviewed_and_bounded():
         assert 0.0 < y1 < 0.25
 
 
+def test_phb_sparse_bottom_fractions_stop_before_neighboring_blocks():
+    assert PHB_SPARSE_BOTTOM_FRACTION_BY_NAME == {
+        "Cavallo Da Guerra": 0.455,
+        "Falco": 0.35,
+        "Orso Bruno": 0.84,
+        "Pipistrello": 0.38,
+    }
+    assert all(
+        0.3 < fraction < 0.9
+        for fraction in PHB_SPARSE_BOTTOM_FRACTION_BY_NAME.values()
+    )
+
+
 def test_local_otsu_inversion_handles_distinct_local_backgrounds():
     width = 64
     height = 32
@@ -2218,6 +2232,7 @@ def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
     assert _phb_sparse_comparison_psm("Cinghiale", 4) == 12
     assert _phb_sparse_comparison_psm("Rana", 4) == 12
     assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 6
+    assert _phb_sparse_comparison_psm("Gufo", 4) == 6
     assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 6
     assert _phb_sparse_comparison_psm("Falco", 4) == 4
 
