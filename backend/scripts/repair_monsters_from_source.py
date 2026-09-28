@@ -3444,8 +3444,7 @@ def _ocr_source_window(
                             quality_context_fractions,
                         )
                         quality_context_path = image_root / (
-                            f"page-{page_number:04d}-{segment_name}-"
-                            "quality-context.png"
+                            f"page-{page_number:04d}-{segment_name}-quality-context.png"
                         )
                         page.get_pixmap(
                             matrix=matrix,
@@ -3487,12 +3486,8 @@ def _ocr_source_window(
                                 {
                                     "name": name,
                                     "page": page_number,
-                                    "crop_fractions": list(
-                                        quality_context_fractions
-                                    ),
-                                    "parse_crop_fractions": list(
-                                        sparse_anchor_crop
-                                    ),
+                                    "crop_fractions": list(quality_context_fractions),
+                                    "parse_crop_fractions": list(sparse_anchor_crop),
                                     "context_only": True,
                                 },
                                 ensure_ascii=False,
