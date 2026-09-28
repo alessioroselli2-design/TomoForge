@@ -3470,9 +3470,7 @@ def _ocr_source_window(
                             ocr_budget_started_at,
                             phase="segment_comparison_continuation",
                         )
-                        agreement_primary = (
-                            primary + "\n" + continuation_primary_text
-                        )
+                        agreement_primary = primary + "\n" + continuation_primary_text
                         agreement_comparison = (
                             comparison + "\n" + continuation_comparison_text
                         )
@@ -3491,12 +3489,8 @@ def _ocr_source_window(
                                     "name": name,
                                     "start_page": page_number,
                                     "continuation_page": continuation_page_number,
-                                    "crop_fractions": list(
-                                        continuation_fractions
-                                    ),
-                                    "primary_chars": len(
-                                        continuation_primary_text
-                                    ),
+                                    "crop_fractions": list(continuation_fractions),
+                                    "primary_chars": len(continuation_primary_text),
                                     "comparison_chars": len(
                                         continuation_comparison_text
                                     ),
