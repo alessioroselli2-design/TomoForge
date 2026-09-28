@@ -67,6 +67,7 @@ from scripts.repair_monsters_from_source import (
     _local_otsu_inverted_samples,
     _remove_isolated_foreground_noise,
     _remaining_global_ocr_budget,
+    _repair_numeric_dice_separator_confusion,
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
@@ -1034,6 +1035,23 @@ def test_hp_micro_ocr_unique_geometry_can_repair_duplicate_target_copies(tmp_pat
 
 def test_hit_points_whitelist_preserves_negative_modifier_sign():
     assert "-" in HIT_POINTS_WHITELIST
+
+
+def test_numeric_dice_separator_confusion_repairs_only_unique_math_valid_candidate():
+    assert (
+        _repair_numeric_dice_separator_confusion("11 (248 + 2)")
+        == "11 (2d8 + 2)"
+    )
+    assert (
+        _repair_numeric_dice_separator_confusion("1 (144 - 1)")
+        == "1 (1d4 - 1)"
+    )
+
+
+def test_numeric_dice_separator_confusion_fails_closed_on_bad_math_or_valid_input():
+    assert _repair_numeric_dice_separator_confusion("12 (248 + 2)") is None
+    assert _repair_numeric_dice_separator_confusion("11 (2d8 + 2)") is None
+    assert _repair_numeric_dice_separator_confusion("11 (245 + 2)") is None
 
 
 def test_phb_blocked7_source_guided_segments_are_right_column():
