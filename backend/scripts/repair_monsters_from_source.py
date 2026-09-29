@@ -1070,7 +1070,7 @@ def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
 
 def _phb_sparse_uses_quality_pre_otsu(name: str) -> bool:
     """Use destructive local thresholding only where source OCR benefits from it."""
-    return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name != "Orso Bruno"
+    return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name not in {"Cavallo Da Guerra", "Orso Bruno"}
 
 
 def _phb_sparse_comparison_uses_adaptive_source(name: str) -> bool:
