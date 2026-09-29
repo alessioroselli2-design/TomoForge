@@ -2382,47 +2382,50 @@ def _restore_cavallo_sparse_title_from_anchor(
     *,
     unique_anchor_found: bool,
 ) -> str:
-    """Restore only Cavallo identity after an independently verified title anchor.
+    """Repair only Cavallo structural prefixes after one verified title anchor.
 
-    The known title is reintroduced only when PSM 11 found exactly one title-like
-    anchor and the comparison OCR independently contains one ordered CA/PF/speed
-    core. Values are never synthesized or altered.
+    PSM 11 has already established one unique title geometry. On that isolated
+    crop, permit removal of OCR junk *before* the three known structural labels
+    only when each label occurs exactly once and in CA/PF/speed order. Numeric
+    and descriptive values after the labels are never changed.
     """
     if target_name != "Cavallo Da Guerra" or not unique_anchor_found:
         return page_text
-    lines = [line for line in page_text.splitlines() if line.strip()]
-    if any(_micro_target_line_matches(line, target_name) for line in lines):
+
+    raw_lines = page_text.splitlines()
+    patterns = {
+        "ca": re.compile(r"\bClasse(?:\s+d['’])?\s+Armatura\b", re.IGNORECASE),
+        "hp": re.compile(r"\bPunti\s+Ferita\b", re.IGNORECASE),
+        "speed": re.compile(r"\bVelocit[àa]\b", re.IGNORECASE),
+    }
+    matches: dict[str, list[tuple[int, re.Match[str]]]] = {}
+    for key, pattern in patterns.items():
+        matches[key] = [
+            (index, match)
+            for index, line in enumerate(raw_lines)
+            for match in [pattern.search(line)]
+            if match is not None
+        ]
+    if any(len(items) != 1 for items in matches.values()):
         return page_text
 
-    normalized = [normalize_reference_name(line) for line in lines]
-    marker_indexes = {
-        "ca": [
-            index
-            for index, line in enumerate(normalized)
-            if line.startswith("classe armatura")
-            or line.startswith("classe d armatura")
-        ],
-        "hp": [
-            index
-            for index, line in enumerate(normalized)
-            if line.startswith("punti ferita")
-        ],
-        "speed": [
-            index
-            for index, line in enumerate(normalized)
-            if line.startswith("velocita")
-        ],
-    }
-    if any(len(indexes) != 1 for indexes in marker_indexes.values()):
-        return page_text
-    ca_index = marker_indexes["ca"][0]
-    hp_index = marker_indexes["hp"][0]
-    speed_index = marker_indexes["speed"][0]
+    ca_index = matches["ca"][0][0]
+    hp_index = matches["hp"][0][0]
+    speed_index = matches["speed"][0][0]
     if not (ca_index < hp_index < speed_index and speed_index - ca_index <= 6):
         return page_text
 
-    restored = f"{target_name.upper()}\n{page_text.lstrip()}"
-    return restored
+    repaired_lines = list(raw_lines)
+    for key in ("ca", "hp", "speed"):
+        index, match = matches[key][0]
+        repaired_lines[index] = repaired_lines[index][match.start() :]
+
+    repaired = "\n".join(repaired_lines)
+    if page_text.endswith("\n"):
+        repaired += "\n"
+    if not any(_micro_target_line_matches(line, target_name) for line in repaired_lines):
+        repaired = f"{target_name.upper()}\n{repaired.lstrip()}"
+    return repaired
 
 
 def _collapse_identical_hp_indexes(
