@@ -5,7 +5,7 @@ SERVICES = Path(__file__).resolve().parents[1] / "services"
 if str(SERVICES) not in sys.path:
     sys.path.insert(0, str(SERVICES))
 
-from monster_statblock_ocr import agreed_monster_records, parse_monster_statblocks
+from monster_statblock_ocr import (\n    _line_is_descriptor,\n    agreed_monster_records,\n    parse_monster_statblocks,\n)
 
 
 def _goblin_text(ac="15 (armatura di cuoio, scudo)", title="GOBLIN"):
@@ -25,6 +25,15 @@ Azioni
 Scimitarra. Attacco con Arma da Mischia: +4 al tiro per colpire.
 Arco Corto. Attacco con Arma a Distanza: +4 al tiro per colpire.
 """
+
+
+def test_descriptor_tolerates_only_one_size_glyph_substitution_with_exact_type():
+    assert _line_is_descriptor("Bestia Gronde, senza allineamento") is True
+    assert _line_is_descriptor("Bestia Grande, senza allineamento") is True
+    assert _line_is_descriptor("Bestia Grxnde, senza allineamento") is True
+    assert _line_is_descriptor("Bestia Grnd, senza allineamento") is False
+    assert _line_is_descriptor("Bestia Grxxde, senza allineamento") is False
+    assert _line_is_descriptor("Creatura Gronde, senza allineamento") is False
 
 
 def test_parses_one_complete_monster_and_keeps_review_gate():
