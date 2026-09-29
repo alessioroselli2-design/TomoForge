@@ -3309,7 +3309,7 @@ def _ocr_source_window(
                         ).save(target_image_path)
                         image_path = target_image_path
 
-                        if name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS:
+                        if name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name != "Orso Bruno":
                             _remaining_global_ocr_budget(ocr_budget_started_at)
                             quality_started_at = time.monotonic()
                             quality_image_path = image_root / (
