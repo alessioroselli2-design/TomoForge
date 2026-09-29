@@ -2423,7 +2423,9 @@ def _restore_cavallo_sparse_title_from_anchor(
     repaired = "\n".join(repaired_lines)
     if page_text.endswith("\n"):
         repaired += "\n"
-    if not any(_micro_target_line_matches(line, target_name) for line in repaired_lines):
+    if not any(
+        _micro_target_line_matches(line, target_name) for line in repaired_lines
+    ):
         repaired = f"{target_name.upper()}\n{repaired.lstrip()}"
     return repaired
 
@@ -2554,8 +2556,8 @@ def _micro_ocr_cavallo_armor_class_line(
         crop_height = crop_rect.y1 - crop_rect.y0
         crop_samples = b"".join(
             grayscale.samples[
-                row * grayscale.stride + crop_rect.x0 :
-                row * grayscale.stride + crop_rect.x1
+                row * grayscale.stride + crop_rect.x0 : row * grayscale.stride
+                + crop_rect.x1
             ]
             for row in range(crop_rect.y0, crop_rect.y1)
         )
