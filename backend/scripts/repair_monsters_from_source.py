@@ -2551,16 +2551,35 @@ def _micro_ocr_cavallo_armor_class_line(
         return fail("tsv_armatura_token_missing")
 
     label_end = int(armatura_word["left"]) + int(armatura_word["width"])
-    line_top = min(int(word["top"]) for word in label_words)
-    line_bottom = max(int(word["top"]) + int(word["height"]) for word in label_words)
+    value_words = sorted(
+        (
+            word
+            for word in label_words
+            if int(word["left"]) >= label_end
+            and str(word.get("text") or "").strip()
+        ),
+        key=lambda word: int(word["left"]),
+    )
+    if not value_words:
+        return fail("tsv_ca_value_geometry_missing")
+
+    # Use only the first glyph cluster immediately after the CA label.
+    # PSM4 supplies geometry only; the numeric value is independently reread
+    # by the digits-only PSM7 micro pass below.
+    value_word = value_words[0]
+    value_left = int(value_word["left"])
+    value_right = value_left + int(value_word["width"])
+    value_top = int(value_word["top"])
+    value_bottom = value_top + int(value_word["height"])
     source = fitz.Pixmap(str(image_path))
     grayscale = fitz.Pixmap(fitz.csGRAY, source)
-    padding = max(2, (line_bottom - line_top) // 3)
+    x_padding = max(3, int(value_word["width"]) // 3)
+    y_padding = max(2, int(value_word["height"]) // 3)
     crop_rect = fitz.IRect(
-        max(0, label_end),
-        max(0, line_top - padding),
-        grayscale.width,
-        min(grayscale.height, line_bottom + padding),
+        max(0, value_left - x_padding),
+        max(0, value_top - y_padding),
+        min(grayscale.width, value_right + x_padding),
+        min(grayscale.height, value_bottom + y_padding),
     )
     if crop_rect.x1 <= crop_rect.x0 or crop_rect.y1 <= crop_rect.y0:
         return fail("ca_crop_invalid")
