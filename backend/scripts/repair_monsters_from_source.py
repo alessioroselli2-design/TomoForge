@@ -2496,7 +2496,7 @@ def _micro_ocr_cavallo_armor_class_line(
             "-l",
             languages,
             "--psm",
-            "11",
+            "4",
             "tsv",
             "quiet",
         ],
@@ -2551,7 +2551,8 @@ def _micro_ocr_cavallo_armor_class_line(
         return page_text
 
     with tempfile.TemporaryDirectory(prefix="tomoforge-cavallo-ca-") as tmp:
-        crop_path = Path(tmp) / "cavallo-ca.png"
+        directory = Path(tmp)
+        crop_path = directory / "cavallo-ca.png"
         crop_width = crop_rect.x1 - crop_rect.x0
         crop_height = crop_rect.y1 - crop_rect.y0
         crop_samples = b"".join(
@@ -2561,32 +2562,57 @@ def _micro_ocr_cavallo_armor_class_line(
             ]
             for row in range(crop_rect.y0, crop_rect.y1)
         )
-        fitz.Pixmap(
+        crop_pixmap = fitz.Pixmap(
             fitz.csGRAY,
             crop_width,
             crop_height,
             crop_samples,
             False,
-        ).save(crop_path)
-        micro = _run_tesseract_bounded(
-            [
-                "tesseract",
-                str(crop_path),
-                "stdout",
-                "-l",
-                languages,
-                "--psm",
-                "7",
-                "-c",
-                "tessedit_char_whitelist=0123456789",
-                "quiet",
-            ],
-            ocr_budget_started_at,
-            phase="cavallo_ca_micro",
         )
+        crop_pixmap.save(crop_path)
 
-    digits = re.sub(r"\D", "", micro)
+        def read_digits(path: Path, phase: str) -> str:
+            raw = _run_tesseract_bounded(
+                [
+                    "tesseract",
+                    str(path),
+                    "stdout",
+                    "-l",
+                    languages,
+                    "--psm",
+                    "7",
+                    "-c",
+                    "tessedit_char_whitelist=0123456789",
+                    "quiet",
+                ],
+                ocr_budget_started_at,
+                phase=phase,
+            )
+            return re.sub(r"\D", "", raw)
+
+        digits = read_digits(crop_path, "cavallo_ca_micro")
+        if not re.fullmatch(r"\d{1,2}", digits):
+            x2_path = directory / "cavallo-ca-x2.png"
+            fitz.Pixmap(
+                crop_pixmap,
+                crop_width * 2,
+                crop_height * 2,
+            ).save(x2_path)
+            digits = read_digits(x2_path, "cavallo_ca_micro_x2")
+
     if not re.fullmatch(r"\d{1,2}", digits):
+        print(
+            "PHB_CAVALLO_CA_MICRO_DIAGNOSTIC "
+            + json.dumps(
+                {
+                    "name": name,
+                    "accepted": False,
+                    "reason": "digits_not_unique",
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
         return page_text
     candidate_flags = monster_semantic_numeric_flags(
         {
