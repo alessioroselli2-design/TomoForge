@@ -1072,8 +1072,8 @@ def _phb_sparse_uses_quality_pre_otsu(name: str) -> bool:
     return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name != "Orso Bruno"
 
 
-def _phb_sparse_comparison_uses_source_raster(name: str) -> bool:
-    """Keep Cavallo comparison independent from destructive local thresholding."""
+def _phb_sparse_comparison_uses_adaptive_source(name: str) -> bool:
+    """Use a distinct adaptive threshold only for Cavallo comparison OCR."""
     return name == "Cavallo Da Guerra"
 
 
@@ -3348,13 +3348,30 @@ def _ocr_source_window(
                                 alpha=False,
                                 colorspace=fitz.csGRAY,
                             )
-                            if _phb_sparse_comparison_uses_source_raster(name):
+                            if _phb_sparse_comparison_uses_adaptive_source(name):
                                 comparison_source_path = image_root / (
                                     f"page-{page_number:04d}-{segment_name}"
-                                    "-target-comparison-source-x4.png"
+                                    "-target-comparison-adaptive-x4.png"
                                 )
                                 quality_pixmap.save(comparison_source_path)
+                                _pre_otsu_column_clean(
+                                    comparison_source_path,
+                                    scale_factor=1,
+                                )
                                 comparison_image_path = comparison_source_path
+                                print(
+                                    "PHB_COMPARISON_ADAPTIVE_DIAGNOSTIC "
+                                    + json.dumps(
+                                        {
+                                            "name": name,
+                                            "segment": segment_name,
+                                            "render_scale_factor": 4,
+                                            "adaptive_scale_factor": 1,
+                                        },
+                                        ensure_ascii=False,
+                                        sort_keys=True,
+                                    )
+                                )
                             local_otsu = _local_otsu_inverted_samples(
                                 quality_pixmap.samples,
                                 quality_pixmap.width,
@@ -3369,7 +3386,7 @@ def _ocr_source_window(
                             )
                             cleaned_quality.save(quality_image_path)
                             image_path = quality_image_path
-                            if not _phb_sparse_comparison_uses_source_raster(name):
+                            if not _phb_sparse_comparison_uses_adaptive_source(name):
                                 comparison_image_path = image_path
                             print(
                                 "PHB_QUALITY_PRE_OTSU_DIAGNOSTIC "
