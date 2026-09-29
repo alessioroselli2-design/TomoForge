@@ -1070,7 +1070,10 @@ def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
 
 def _phb_sparse_uses_quality_pre_otsu(name: str) -> bool:
     """Use destructive local thresholding only where source OCR benefits from it."""
-    return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name not in {"Cavallo Da Guerra", "Orso Bruno"}
+    return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name not in {
+        "Cavallo Da Guerra",
+        "Orso Bruno",
+    }
 
 
 def _phb_sparse_comparison_uses_adaptive_source(name: str) -> bool:
@@ -3343,19 +3346,18 @@ def _ocr_source_window(
                                 alpha=False,
                                 colorspace=fitz.csGRAY,
                             ).save(comparison_source_path)
-                            _pre_otsu_column_clean(
-                                comparison_source_path,
-                                scale_factor=1,
-                            )
+                            # Keep the independent comparison grayscale:
+                            # the previous adaptive threshold erased the Cavallo
+                            # title even though the core stat lines survived.
                             comparison_image_path = comparison_source_path
                             print(
-                                "PHB_COMPARISON_ADAPTIVE_DIAGNOSTIC "
+                                "PHB_COMPARISON_HIRES_DIAGNOSTIC "
                                 + json.dumps(
                                     {
                                         "name": name,
                                         "segment": segment_name,
                                         "render_scale_factor": 4,
-                                        "adaptive_scale_factor": 1,
+                                        "preprocessing": "grayscale_only",
                                     },
                                     ensure_ascii=False,
                                     sort_keys=True,
