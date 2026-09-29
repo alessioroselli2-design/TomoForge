@@ -2441,6 +2441,179 @@ def _collapse_identical_hp_indexes(
     return indexes
 
 
+def _micro_ocr_cavallo_armor_class_line(
+    image_path: Path,
+    languages: str,
+    page_text: str,
+    name: str,
+    *,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+    single_target_geometry: bool = False,
+) -> str:
+    """Repair only an invalid Cavallo CA value from a digits-only micro OCR."""
+    if name != "Cavallo Da Guerra" or not single_target_geometry:
+        return page_text
+
+    import fitz
+
+    text_lines = page_text.splitlines()
+    target_indexes = [
+        index
+        for index, line in enumerate(text_lines)
+        if _micro_target_line_matches(line, name)
+    ]
+    ca_pattern = re.compile(
+        r"^(?P<label>[ \t]*Classe(?:[ \t]+d['’])?[ \t]+Armatura[ \t]*)(?P<value>.*)$",
+        re.IGNORECASE,
+    )
+    ca_indexes = [
+        index for index, line in enumerate(text_lines) if ca_pattern.match(line)
+    ]
+    if len(target_indexes) != 1 or len(ca_indexes) != 1:
+        return page_text
+
+    ca_index = ca_indexes[0]
+    current_match = ca_pattern.match(text_lines[ca_index])
+    if current_match is None:
+        return page_text
+    current_value = " ".join(current_match.group("value").split())
+    current_flags = monster_semantic_numeric_flags(
+        {
+            "classe_armatura": current_value,
+            "punti_ferita": "1 (1d4)",
+        }
+    )
+    if not ({CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(current_flags)):
+        return page_text
+
+    tsv_stdout = _run_tesseract_bounded(
+        [
+            "tesseract",
+            str(image_path),
+            "stdout",
+            "-l",
+            languages,
+            "--psm",
+            "11",
+            "tsv",
+            "quiet",
+        ],
+        ocr_budget_started_at,
+        phase="cavallo_ca_anchor_tsv",
+    )
+    rows = list(csv.DictReader(io.StringIO(tsv_stdout), delimiter="\t"))
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                str(row.get(field) or "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+
+    label_lines: list[list[dict[str, str]]] = []
+    for words in grouped.values():
+        normalized = normalize_reference_name(
+            " ".join(str(word.get("text") or "") for word in words)
+        )
+        if "classe" in normalized and "armatura" in normalized:
+            label_lines.append(words)
+    if len(label_lines) != 1:
+        return page_text
+
+    label_words = label_lines[0]
+    armatura_word = next(
+        (
+            word
+            for word in label_words
+            if "armatura" in normalize_reference_name(str(word.get("text") or ""))
+        ),
+        None,
+    )
+    if armatura_word is None:
+        return page_text
+
+    label_end = int(armatura_word["left"]) + int(armatura_word["width"])
+    line_top = min(int(word["top"]) for word in label_words)
+    line_bottom = max(int(word["top"]) + int(word["height"]) for word in label_words)
+    source = fitz.Pixmap(str(image_path))
+    grayscale = fitz.Pixmap(fitz.csGRAY, source)
+    padding = max(2, (line_bottom - line_top) // 3)
+    crop_rect = fitz.IRect(
+        max(0, label_end),
+        max(0, line_top - padding),
+        grayscale.width,
+        min(grayscale.height, line_bottom + padding),
+    )
+    if crop_rect.x1 <= crop_rect.x0 or crop_rect.y1 <= crop_rect.y0:
+        return page_text
+
+    with tempfile.TemporaryDirectory(prefix="tomoforge-cavallo-ca-") as tmp:
+        crop_path = Path(tmp) / "cavallo-ca.png"
+        crop_width = crop_rect.x1 - crop_rect.x0
+        crop_height = crop_rect.y1 - crop_rect.y0
+        crop_samples = b"".join(
+            grayscale.samples[
+                row * grayscale.stride + crop_rect.x0 :
+                row * grayscale.stride + crop_rect.x1
+            ]
+            for row in range(crop_rect.y0, crop_rect.y1)
+        )
+        fitz.Pixmap(
+            fitz.csGRAY,
+            crop_width,
+            crop_height,
+            crop_samples,
+            False,
+        ).save(crop_path)
+        micro = _run_tesseract_bounded(
+            [
+                "tesseract",
+                str(crop_path),
+                "stdout",
+                "-l",
+                languages,
+                "--psm",
+                "7",
+                "-c",
+                "tessedit_char_whitelist=0123456789",
+                "quiet",
+            ],
+            ocr_budget_started_at,
+            phase="cavallo_ca_micro",
+        )
+
+    digits = re.sub(r"\D", "", micro)
+    if not re.fullmatch(r"\d{1,2}", digits):
+        return page_text
+    candidate_flags = monster_semantic_numeric_flags(
+        {
+            "classe_armatura": digits,
+            "punti_ferita": "1 (1d4)",
+        }
+    )
+    if {CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(candidate_flags):
+        return page_text
+
+    text_lines[ca_index] = f"{current_match.group('label')}{digits}"
+    rebuilt = "\n".join(text_lines)
+    if page_text.endswith("\n"):
+        rebuilt += "\n"
+    print(
+        "PHB_CAVALLO_CA_MICRO_REPAIR "
+        + json.dumps(
+            {
+                "name": name,
+                "value": digits,
+                "source": "digits_only_psm7",
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return rebuilt
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -3570,6 +3743,17 @@ def _ocr_source_window(
                                 )
                             )
                             _remaining_global_ocr_budget(ocr_budget_started_at)
+
+                    primary = _micro_ocr_cavallo_armor_class_line(
+                        image_path,
+                        languages,
+                        primary,
+                        name,
+                        ocr_budget_started_at=ocr_budget_started_at,
+                        single_target_geometry=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
 
                     if name in PLAYERS_HANDBOOK_TIMEOUT8_NAMES and not sparse_full_page:
                         print(
