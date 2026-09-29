@@ -3797,6 +3797,7 @@ def _agreed_target_candidate(
         source_language,
     )
     if target_name in {"Cavallo Da Guerra", "Cinghiale", "Gufo", "Orso Bruno"}:
+
         def _core_context(pages: list[tuple[int, str]]) -> list[str]:
             lines = [
                 str(line).strip()
@@ -3826,6 +3827,38 @@ def _agreed_target_candidate(
                     "comparison_context": _core_context(comparison_pages),
                     "primary_candidates": len(primary),
                     "comparison_candidates": len(comparison),
+                    "primary_parsed_core": [
+                        {
+                            "name": candidate.get("name"),
+                            "start_page": candidate.get("start_page"),
+                            "classe_armatura": (candidate.get("attributes") or {}).get(
+                                "classe_armatura"
+                            ),
+                            "punti_ferita": (candidate.get("attributes") or {}).get(
+                                "punti_ferita"
+                            ),
+                            "velocita": (candidate.get("attributes") or {}).get(
+                                "velocita"
+                            ),
+                        }
+                        for candidate in primary
+                    ],
+                    "comparison_parsed_core": [
+                        {
+                            "name": candidate.get("name"),
+                            "start_page": candidate.get("start_page"),
+                            "classe_armatura": (candidate.get("attributes") or {}).get(
+                                "classe_armatura"
+                            ),
+                            "punti_ferita": (candidate.get("attributes") or {}).get(
+                                "punti_ferita"
+                            ),
+                            "velocita": (candidate.get("attributes") or {}).get(
+                                "velocita"
+                            ),
+                        }
+                        for candidate in comparison
+                    ],
                 },
                 ensure_ascii=False,
                 sort_keys=True,
