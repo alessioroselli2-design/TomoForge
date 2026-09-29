@@ -73,7 +73,7 @@ from scripts.repair_monsters_from_source import (
     _otsu_inverted_samples,
     _phb_quality_pre_otsu_clip,
     _phb_sparse_uses_quality_pre_otsu,
-    _phb_sparse_comparison_uses_source_raster,
+    _phb_sparse_comparison_uses_adaptive_source,
     _phb_sparse_comparison_psm,
     _sample_variance,
     _should_retry_dynamic_layout,
@@ -2122,11 +2122,11 @@ def test_orso_bruno_sparse_retry_preserves_source_raster():
     assert _phb_sparse_uses_quality_pre_otsu("Gufo") is True
 
 
-def test_cavallo_sparse_comparison_preserves_unthresholded_source_raster():
-    assert _phb_sparse_comparison_uses_source_raster("Cavallo Da Guerra") is True
-    assert _phb_sparse_comparison_uses_source_raster("Cinghiale") is False
-    assert _phb_sparse_comparison_uses_source_raster("Gufo") is False
-    assert _phb_sparse_comparison_uses_source_raster("Orso Bruno") is False
+def test_cavallo_sparse_comparison_uses_scoped_adaptive_source():
+    assert _phb_sparse_comparison_uses_adaptive_source("Cavallo Da Guerra") is True
+    assert _phb_sparse_comparison_uses_adaptive_source("Cinghiale") is False
+    assert _phb_sparse_comparison_uses_adaptive_source("Gufo") is False
+    assert _phb_sparse_comparison_uses_adaptive_source("Orso Bruno") is False
 
 
 def test_phb_quality_gate_pre_otsu_targets_are_exactly_the_three_residuals():
