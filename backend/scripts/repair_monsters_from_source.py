@@ -2125,6 +2125,27 @@ def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
     )
 
 
+def _compose_relative_crop(
+    outer: tuple[float, float, float, float],
+    inner: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    """Map crop fractions relative to outer back into page fractions."""
+    ox0, oy0, ox1, oy1 = outer
+    ix0, iy0, ix1, iy1 = inner
+    width = ox1 - ox0
+    height = oy1 - oy0
+    if width <= 0 or height <= 0:
+        raise ValueError("outer crop must have positive area")
+    if not (0 <= ix0 < ix1 <= 1 and 0 <= iy0 < iy1 <= 1):
+        raise ValueError("inner crop fractions must be ordered within 0..1")
+    return (
+        ox0 + ix0 * width,
+        oy0 + iy0 * height,
+        ox0 + ix1 * width,
+        oy0 + iy1 * height,
+    )
+
+
 def _sparse_anchor_crop_fractions(
     image_path: Path,
     languages: str,
@@ -3274,6 +3295,12 @@ def _ocr_source_window(
                                 "sparse_anchor_crop": None,
                             }
                             continue
+                        # The title anchor is measured inside the current
+                        # source segment. Compose those relative fractions back
+                        # into page coordinates before rendering the target.
+                        sparse_anchor_crop = _compose_relative_crop(
+                            fractions, sparse_anchor_crop
+                        )
                         target_clip = _clip_rect(page.rect, sparse_anchor_crop)
                         target_image_path = (
                             image_root
