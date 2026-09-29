@@ -2079,7 +2079,7 @@ def _layout_ocr_settings(
 def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
     if name == "Cavallo Da Guerra":
-        return 6
+        return 11
     if name in {"Cinghiale", "Falco", "Rana"}:
         return 12
     return default_psm
