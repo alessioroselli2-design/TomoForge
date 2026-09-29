@@ -2376,6 +2376,55 @@ def _micro_target_line_matches(line: str, target_name: str) -> bool:
     )
 
 
+def _restore_cavallo_sparse_title_from_anchor(
+    page_text: str,
+    target_name: str,
+    *,
+    unique_anchor_found: bool,
+) -> str:
+    """Restore only Cavallo identity after an independently verified title anchor.
+
+    The known title is reintroduced only when PSM 11 found exactly one title-like
+    anchor and the comparison OCR independently contains one ordered CA/PF/speed
+    core. Values are never synthesized or altered.
+    """
+    if target_name != "Cavallo Da Guerra" or not unique_anchor_found:
+        return page_text
+    lines = [line for line in page_text.splitlines() if line.strip()]
+    if any(_micro_target_line_matches(line, target_name) for line in lines):
+        return page_text
+
+    normalized = [normalize_reference_name(line) for line in lines]
+    marker_indexes = {
+        "ca": [
+            index
+            for index, line in enumerate(normalized)
+            if line.startswith("classe armatura")
+            or line.startswith("classe d armatura")
+        ],
+        "hp": [
+            index
+            for index, line in enumerate(normalized)
+            if line.startswith("punti ferita")
+        ],
+        "speed": [
+            index
+            for index, line in enumerate(normalized)
+            if line.startswith("velocita")
+        ],
+    }
+    if any(len(indexes) != 1 for indexes in marker_indexes.values()):
+        return page_text
+    ca_index = marker_indexes["ca"][0]
+    hp_index = marker_indexes["hp"][0]
+    speed_index = marker_indexes["speed"][0]
+    if not (ca_index < hp_index < speed_index and speed_index - ca_index <= 6):
+        return page_text
+
+    restored = f"{target_name.upper()}\n{page_text.lstrip()}"
+    return restored
+
+
 def _collapse_identical_hp_indexes(
     text_lines: list[str],
     indexes: list[int],
@@ -3443,6 +3492,28 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    restored_comparison = _restore_cavallo_sparse_title_from_anchor(
+                        comparison,
+                        name,
+                        unique_anchor_found=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
+                    if restored_comparison != comparison:
+                        comparison = restored_comparison
+                        print(
+                            "PHB_CAVALLO_TITLE_ANCHOR_RESTORE "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "segment": segment_name,
+                                    "source": "unique_psm11_anchor",
+                                    "values_modified": False,
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
 
                     micro_image_path = image_path
                     if name in QUALITY_FAIL_PRE_OTSU_TARGETS and not sparse_full_page:
