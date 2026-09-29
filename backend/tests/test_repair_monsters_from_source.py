@@ -2277,9 +2277,9 @@ def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
 
 def test_cavallo_sparse_title_restore_requires_unique_anchor_and_ordered_core():
     comparison = """Bestia Grande, senza allineamento
-Classe Armatura 11
-Punti Ferita 19 (3d10 + 3)
-Velocità 18 m
+pie Classe Armatura 11
+Le Punti Ferita 19 (3d10 + 3)
+Ja delle Velocità 18 m
 FOR DES COS INT SAG CAR
 """
 
@@ -2289,7 +2289,9 @@ FOR DES COS INT SAG CAR
         unique_anchor_found=True,
     )
     assert restored.startswith("CAVALLO DA GUERRA\n")
-    assert "Punti Ferita 19 (3d10 + 3)" in restored
+    assert "\nClasse Armatura 11\n" in restored
+    assert "\nPunti Ferita 19 (3d10 + 3)\n" in restored
+    assert "\nVelocità 18 m\n" in restored
 
     assert (
         _restore_cavallo_sparse_title_from_anchor(
