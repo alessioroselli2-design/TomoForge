@@ -2118,7 +2118,7 @@ def test_phb_quality_pre_otsu_clip_preserves_source_anchor_geometry():
 
 def test_orso_bruno_sparse_retry_preserves_source_raster():
     assert _phb_sparse_uses_quality_pre_otsu("Orso Bruno") is False
-    assert _phb_sparse_uses_quality_pre_otsu("Cavallo Da Guerra") is True
+    assert _phb_sparse_uses_quality_pre_otsu("Cavallo Da Guerra") is False
     assert _phb_sparse_uses_quality_pre_otsu("Gufo") is True
 
 
