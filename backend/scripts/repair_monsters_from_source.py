@@ -820,6 +820,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_f28940a5239a54f696cb524805e29cc2": 150.0,  # Falco
     "ref_38273488414b57489e9d7e57a6c0a360": 150.0,  # Gufo
     "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,  # Lupo
+    "ref_019562bded0b320ac918f4b2514c65e4": 150.0,  # Orso Bruno
     "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,  # Pipistrello
 }
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
