@@ -1063,14 +1063,8 @@ PHB_SPARSE_QUALITY_CONTEXT_TARGETS = frozenset({"Falco", "Pipistrello"})
 
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
-    """Trim only the reviewed PHB binding shadow before quality preprocessing."""
-    if name != "Orso Bruno":
-        return target_clip
-    import fitz
-
-    quality_clip = fitz.Rect(target_clip)
-    quality_clip.x0 += quality_clip.width * 0.06
-    return quality_clip
+    """Preserve the source-anchored PHB crop for quality preprocessing."""
+    return target_clip
 
 
 def _otsu_inverted_samples(samples: bytes) -> bytes:
@@ -3361,9 +3355,7 @@ def _ocr_source_window(
                                         "name": name,
                                         "segment": segment_name,
                                         "render_scale_factor": 4,
-                                        "inner_binding_trim_fraction": (
-                                            0.06 if name == "Orso Bruno" else 0.0
-                                        ),
+                                        "inner_binding_trim_fraction": 0.0,
                                         "threshold": "tile_local_otsu_inverted",
                                         "before_independent_ocr": True,
                                         "elapsed_seconds": round(
