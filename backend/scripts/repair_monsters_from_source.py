@@ -2555,8 +2555,7 @@ def _micro_ocr_cavallo_armor_class_line(
         (
             word
             for word in label_words
-            if int(word["left"]) >= label_end
-            and str(word.get("text") or "").strip()
+            if int(word["left"]) >= label_end and str(word.get("text") or "").strip()
         ),
         key=lambda word: int(word["left"]),
     )
