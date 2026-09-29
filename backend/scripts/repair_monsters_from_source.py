@@ -3796,6 +3796,42 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
+    if target_name in {"Cavallo Da Guerra", "Cinghiale", "Gufo", "Orso Bruno"}:
+        def _core_context(pages: list[tuple[int, str]]) -> list[str]:
+            lines = [
+                str(line).strip()
+                for _page, text in pages
+                for line in str(text or "").splitlines()
+                if str(line).strip()
+            ]
+            marker_indexes = [
+                index
+                for index, line in enumerate(lines)
+                if any(
+                    marker in normalize_reference_name(line)
+                    for marker in ("classe", "armatura", "punti", "ferita", "veloc")
+                )
+            ]
+            keep: set[int] = set()
+            for index in marker_indexes:
+                keep.update(range(max(0, index - 2), min(len(lines), index + 4)))
+            return [lines[index] for index in sorted(keep)]
+
+        print(
+            "PHB_PARSER_CONTEXT_DIAGNOSTIC "
+            + json.dumps(
+                {
+                    "name": target_name,
+                    "primary_context": _core_context(primary_pages),
+                    "comparison_context": _core_context(comparison_pages),
+                    "primary_candidates": len(primary),
+                    "comparison_candidates": len(comparison),
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            flush=True,
+        )
     agreed_forward = agreed_monster_records(
         primary,
         comparison,
