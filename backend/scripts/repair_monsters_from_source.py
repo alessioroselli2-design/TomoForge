@@ -2082,8 +2082,6 @@ def _layout_ocr_settings(
 
 def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
-    if name == "Cavallo Da Guerra":
-        return 11
     if name in {"Cinghiale", "Falco", "Rana"}:
         return 12
     return default_psm
@@ -3327,43 +3325,10 @@ def _ocr_source_window(
                         image_path = target_image_path
                         comparison_image_path = image_path
 
-                        # Cavallo Da Guerra already has a clean primary parse on
-                        # the source-anchored crop. Give only the independent
-                        # comparison OCR a separately rendered adaptive source;
-                        # do not alter the primary pixels or relax any gate.
-                        if _phb_sparse_comparison_uses_adaptive_source(name):
-                            comparison_source_path = image_root / (
-                                f"page-{page_number:04d}-{segment_name}"
-                                "-target-comparison-adaptive-x4.png"
-                            )
-                            comparison_matrix = fitz.Matrix(
-                                effective_dpi * 4 / 72.0,
-                                effective_dpi * 4 / 72.0,
-                            )
-                            page.get_pixmap(
-                                matrix=comparison_matrix,
-                                clip=target_clip,
-                                alpha=False,
-                                colorspace=fitz.csGRAY,
-                            ).save(comparison_source_path)
-                            # Keep the independent comparison grayscale:
-                            # the previous adaptive threshold erased the Cavallo
-                            # title even though the core stat lines survived.
-                            comparison_image_path = comparison_source_path
-                            print(
-                                "PHB_COMPARISON_HIRES_DIAGNOSTIC "
-                                + json.dumps(
-                                    {
-                                        "name": name,
-                                        "segment": segment_name,
-                                        "render_scale_factor": 4,
-                                        "preprocessing": "grayscale_only",
-                                    },
-                                    ensure_ascii=False,
-                                    sort_keys=True,
-                                )
-                            )
-
+                        # The source-anchored crop already isolates Cavallo.
+                        # Keep identical source pixels for both OCR passes and
+                        # preserve independence through distinct layout modes
+                        # (primary PSM 3, comparison PSM 4).
                         if _phb_sparse_uses_quality_pre_otsu(name):
                             _remaining_global_ocr_budget(ocr_budget_started_at)
                             quality_started_at = time.monotonic()
