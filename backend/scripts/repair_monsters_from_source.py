@@ -3324,6 +3324,44 @@ def _ocr_source_window(
                         image_path = target_image_path
                         comparison_image_path = image_path
 
+                        # Cavallo Da Guerra already has a clean primary parse on
+                        # the source-anchored crop. Give only the independent
+                        # comparison OCR a separately rendered adaptive source;
+                        # do not alter the primary pixels or relax any gate.
+                        if _phb_sparse_comparison_uses_adaptive_source(name):
+                            comparison_source_path = image_root / (
+                                f"page-{page_number:04d}-{segment_name}"
+                                "-target-comparison-adaptive-x4.png"
+                            )
+                            comparison_matrix = fitz.Matrix(
+                                effective_dpi * 4 / 72.0,
+                                effective_dpi * 4 / 72.0,
+                            )
+                            page.get_pixmap(
+                                matrix=comparison_matrix,
+                                clip=target_clip,
+                                alpha=False,
+                                colorspace=fitz.csGRAY,
+                            ).save(comparison_source_path)
+                            _pre_otsu_column_clean(
+                                comparison_source_path,
+                                scale_factor=1,
+                            )
+                            comparison_image_path = comparison_source_path
+                            print(
+                                "PHB_COMPARISON_ADAPTIVE_DIAGNOSTIC "
+                                + json.dumps(
+                                    {
+                                        "name": name,
+                                        "segment": segment_name,
+                                        "render_scale_factor": 4,
+                                        "adaptive_scale_factor": 1,
+                                    },
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                )
+                            )
+
                         if _phb_sparse_uses_quality_pre_otsu(name):
                             _remaining_global_ocr_budget(ocr_budget_started_at)
                             quality_started_at = time.monotonic()
