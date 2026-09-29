@@ -2721,9 +2721,7 @@ def _micro_ocr_cinghiale_armor_class_line(
         r"(?P<value>.*)$",
         re.IGNORECASE,
     )
-    ca_indexes = [
-        index for index, line in enumerate(lines) if ca_pattern.match(line)
-    ]
+    ca_indexes = [index for index, line in enumerate(lines) if ca_pattern.match(line)]
     if len(target_indexes) != 1 or len(ca_indexes) != 1:
         return fail(
             "page_text_anchor_ambiguous",
@@ -2846,7 +2844,9 @@ def _micro_ocr_cinghiale_armor_class_line(
             crop_height * scale_factor,
         )
 
-    with tempfile.TemporaryDirectory(prefix=f"tomoforge-cinghiale-ca-{pass_label}-") as tmp:
+    with tempfile.TemporaryDirectory(
+        prefix=f"tomoforge-cinghiale-ca-{pass_label}-"
+    ) as tmp:
         crop_path = Path(tmp) / "cinghiale-ca.png"
         crop_pixmap.save(crop_path)
         raw = _run_tesseract_bounded(
