@@ -2247,6 +2247,7 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
         "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
         "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
         "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,
+        "ref_019562bded0b320ac918f4b2514c65e4": 150.0,
         "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,
     }
 
