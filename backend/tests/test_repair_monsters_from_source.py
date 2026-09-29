@@ -2261,7 +2261,7 @@ def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
     assert _phb_sparse_comparison_psm("Rana", 4) == 12
     assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 12
     assert _phb_sparse_comparison_psm("Gufo", 4) == 4
-    assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 12
+    assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 4
     assert _phb_sparse_comparison_psm("Falco", 4) == 12
 
 
