@@ -1072,6 +1072,11 @@ def _phb_sparse_uses_quality_pre_otsu(name: str) -> bool:
     return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name != "Orso Bruno"
 
 
+def _phb_sparse_comparison_uses_source_raster(name: str) -> bool:
+    """Keep Cavallo comparison independent from destructive local thresholding."""
+    return name == "Cavallo Da Guerra"
+
+
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
     if not samples:
@@ -3313,6 +3318,7 @@ def _ocr_source_window(
                             colorspace=fitz.csGRAY,
                         ).save(target_image_path)
                         image_path = target_image_path
+                        comparison_image_path = image_path
 
                         if _phb_sparse_uses_quality_pre_otsu(name):
                             _remaining_global_ocr_budget(ocr_budget_started_at)
@@ -3339,6 +3345,13 @@ def _ocr_source_window(
                                 alpha=False,
                                 colorspace=fitz.csGRAY,
                             )
+                            if _phb_sparse_comparison_uses_source_raster(name):
+                                comparison_source_path = image_root / (
+                                    f"page-{page_number:04d}-{segment_name}"
+                                    "-target-comparison-source-x4.png"
+                                )
+                                quality_pixmap.save(comparison_source_path)
+                                comparison_image_path = comparison_source_path
                             local_otsu = _local_otsu_inverted_samples(
                                 quality_pixmap.samples,
                                 quality_pixmap.width,
@@ -3353,6 +3366,8 @@ def _ocr_source_window(
                             )
                             cleaned_quality.save(quality_image_path)
                             image_path = quality_image_path
+                            if not _phb_sparse_comparison_uses_source_raster(name):
+                                comparison_image_path = image_path
                             print(
                                 "PHB_QUALITY_PRE_OTSU_DIAGNOSTIC "
                                 + json.dumps(
@@ -3391,7 +3406,7 @@ def _ocr_source_window(
                     comparison = _run_tesseract_bounded(
                         [
                             "tesseract",
-                            str(image_path),
+                            str(comparison_image_path),
                             "stdout",
                             "-l",
                             languages,
