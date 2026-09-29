@@ -2456,6 +2456,17 @@ def _micro_ocr_cavallo_armor_class_line(
     if name != "Cavallo Da Guerra" or not single_target_geometry:
         return page_text
 
+    def fail(reason: str, **extra: object) -> str:
+        print(
+            "PHB_CAVALLO_CA_MICRO_DIAGNOSTIC "
+            + json.dumps(
+                {"name": name, "accepted": False, "reason": reason, **extra},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return page_text
+
     import fitz
 
     text_lines = page_text.splitlines()
@@ -2472,12 +2483,16 @@ def _micro_ocr_cavallo_armor_class_line(
         index for index, line in enumerate(text_lines) if ca_pattern.match(line)
     ]
     if len(target_indexes) != 1 or len(ca_indexes) != 1:
-        return page_text
+        return fail(
+            "page_text_anchor_ambiguous",
+            target_count=len(target_indexes),
+            ca_count=len(ca_indexes),
+        )
 
     ca_index = ca_indexes[0]
     current_match = ca_pattern.match(text_lines[ca_index])
     if current_match is None:
-        return page_text
+        return fail("page_text_ca_unparseable")
     current_value = " ".join(current_match.group("value").split())
     current_flags = monster_semantic_numeric_flags(
         {
@@ -2486,7 +2501,7 @@ def _micro_ocr_cavallo_armor_class_line(
         }
     )
     if not ({CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(current_flags)):
-        return page_text
+        return fail("page_text_ca_not_flagged", current_value=current_value)
 
     tsv_stdout = _run_tesseract_bounded(
         [
@@ -2521,7 +2536,7 @@ def _micro_ocr_cavallo_armor_class_line(
         if "classe" in normalized and "armatura" in normalized:
             label_lines.append(words)
     if len(label_lines) != 1:
-        return page_text
+        return fail("tsv_ca_label_ambiguous", label_count=len(label_lines))
 
     label_words = label_lines[0]
     armatura_word = next(
@@ -2533,7 +2548,7 @@ def _micro_ocr_cavallo_armor_class_line(
         None,
     )
     if armatura_word is None:
-        return page_text
+        return fail("tsv_armatura_token_missing")
 
     label_end = int(armatura_word["left"]) + int(armatura_word["width"])
     line_top = min(int(word["top"]) for word in label_words)
@@ -2548,7 +2563,7 @@ def _micro_ocr_cavallo_armor_class_line(
         min(grayscale.height, line_bottom + padding),
     )
     if crop_rect.x1 <= crop_rect.x0 or crop_rect.y1 <= crop_rect.y0:
-        return page_text
+        return fail("ca_crop_invalid")
 
     with tempfile.TemporaryDirectory(prefix="tomoforge-cavallo-ca-") as tmp:
         directory = Path(tmp)
@@ -2621,7 +2636,7 @@ def _micro_ocr_cavallo_armor_class_line(
         }
     )
     if {CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(candidate_flags):
-        return page_text
+        return fail("micro_value_failed_ca_gate", candidate=digits)
 
     text_lines[ca_index] = f"{current_match.group('label')}{digits}"
     rebuilt = "\n".join(text_lines)
