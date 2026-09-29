@@ -75,6 +75,7 @@ from scripts.repair_monsters_from_source import (
     _phb_sparse_uses_quality_pre_otsu,
     _phb_sparse_comparison_uses_adaptive_source,
     _phb_sparse_comparison_psm,
+    _restore_cavallo_sparse_title_from_anchor,
     _sample_variance,
     _should_retry_dynamic_layout,
     _sparse_anchor_crop_fractions,
@@ -2268,10 +2269,45 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
 def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
     assert _phb_sparse_comparison_psm("Cinghiale", 4) == 12
     assert _phb_sparse_comparison_psm("Rana", 4) == 12
-    assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 11
+    assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 4
     assert _phb_sparse_comparison_psm("Gufo", 4) == 4
     assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 4
     assert _phb_sparse_comparison_psm("Falco", 4) == 12
+
+
+def test_cavallo_sparse_title_restore_requires_unique_anchor_and_ordered_core():
+    comparison = """Bestia Grande, senza allineamento
+Classe Armatura 11
+Punti Ferita 19 (3d10 + 3)
+Velocità 18 m
+FOR DES COS INT SAG CAR
+"""
+
+    restored = _restore_cavallo_sparse_title_from_anchor(
+        comparison,
+        "Cavallo Da Guerra",
+        unique_anchor_found=True,
+    )
+    assert restored.startswith("CAVALLO DA GUERRA\n")
+    assert "Punti Ferita 19 (3d10 + 3)" in restored
+
+    assert (
+        _restore_cavallo_sparse_title_from_anchor(
+            comparison,
+            "Cavallo Da Guerra",
+            unique_anchor_found=False,
+        )
+        == comparison
+    )
+    assert (
+        _restore_cavallo_sparse_title_from_anchor(
+            "Bestia Grande\nPunti Ferita 19 (3d10 + 3)\nVelocità 18 m\n",
+            "Cavallo Da Guerra",
+            unique_anchor_found=True,
+        )
+        .startswith("CAVALLO DA GUERRA")
+        is False
+    )
 
 
 def test_sparse_anchor_crop_rejects_ambiguous_duplicate_title(tmp_path):
