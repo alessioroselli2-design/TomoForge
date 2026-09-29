@@ -2254,10 +2254,10 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
 def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
     assert _phb_sparse_comparison_psm("Cinghiale", 4) == 12
     assert _phb_sparse_comparison_psm("Rana", 4) == 12
-    assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 4
+    assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 12
     assert _phb_sparse_comparison_psm("Gufo", 4) == 4
-    assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 4
-    assert _phb_sparse_comparison_psm("Falco", 4) == 4
+    assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 12
+    assert _phb_sparse_comparison_psm("Falco", 4) == 12
 
 
 def test_sparse_anchor_crop_rejects_ambiguous_duplicate_title(tmp_path):
