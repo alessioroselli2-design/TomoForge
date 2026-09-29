@@ -2482,10 +2482,13 @@ def _micro_ocr_cavallo_armor_class_line(
     ca_indexes = [
         index for index, line in enumerate(text_lines) if ca_pattern.match(line)
     ]
-    if len(target_indexes) != 1 or len(ca_indexes) != 1:
+    # The sparse retry already proved one unique Cinghiale title anchor
+    # geometrically (PSM12). The monster name can legitimately recur in its
+    # ability text, so only the structural CA line must remain unique here.
+    if len(ca_indexes) != 1:
         return fail(
-            "page_text_anchor_ambiguous",
-            target_count=len(target_indexes),
+            "page_text_ca_ambiguous",
+            target_mentions=len(target_indexes),
             ca_count=len(ca_indexes),
         )
 
