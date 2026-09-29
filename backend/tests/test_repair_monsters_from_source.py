@@ -2104,16 +2104,13 @@ def test_background_luminance_stats_detects_nonwhite_frame():
     assert tinted_variance == 0
 
 
-def test_orso_bruno_quality_pre_otsu_clip_trims_only_inner_six_percent():
+def test_phb_quality_pre_otsu_clip_preserves_source_anchor_geometry():
     source = fitz.Rect(100, 50, 500, 450)
 
     orso = _phb_quality_pre_otsu_clip(source, "Orso Bruno")
     cavallo = _phb_quality_pre_otsu_clip(source, "Cavallo Da Guerra")
 
-    assert orso.x0 == pytest.approx(124.0)
-    assert orso.y0 == source.y0
-    assert orso.x1 == source.x1
-    assert orso.y1 == source.y1
+    assert orso == source
     assert cavallo == source
 
 
