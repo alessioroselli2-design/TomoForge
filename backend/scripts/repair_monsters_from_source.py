@@ -2675,6 +2675,229 @@ def _micro_ocr_cavallo_armor_class_line(
     return rebuilt
 
 
+def _micro_ocr_cinghiale_armor_class_line(
+    image_path: Path,
+    languages: str,
+    page_text: str,
+    name: str,
+    *,
+    micro_psm: int,
+    scale_factor: int,
+    pass_label: str,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+    single_target_geometry: bool = False,
+) -> str:
+    """Repair only Cinghiale CA with one digits-only independent micro pass."""
+    if name != "Cinghiale" or not single_target_geometry:
+        return page_text
+
+    import fitz
+
+    def fail(reason: str, **extra: object) -> str:
+        print(
+            "PHB_CINGHIALE_CA_MICRO_DIAGNOSTIC "
+            + json.dumps(
+                {
+                    "name": name,
+                    "pass": pass_label,
+                    "accepted": False,
+                    "reason": reason,
+                    **extra,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return page_text
+
+    lines = page_text.splitlines()
+    target_indexes = [
+        index
+        for index, line in enumerate(lines)
+        if _micro_target_line_matches(line, name)
+    ]
+    ca_pattern = re.compile(
+        r"^(?P<label>[ \t]*Classe(?:[ \t]+d['’])?[ \t]+Armatura[ \t]*)"
+        r"(?P<value>.*)$",
+        re.IGNORECASE,
+    )
+    ca_indexes = [
+        index for index, line in enumerate(lines) if ca_pattern.match(line)
+    ]
+    if len(target_indexes) != 1 or len(ca_indexes) != 1:
+        return fail(
+            "page_text_anchor_ambiguous",
+            target_count=len(target_indexes),
+            ca_count=len(ca_indexes),
+        )
+
+    ca_index = ca_indexes[0]
+    current_match = ca_pattern.match(lines[ca_index])
+    if current_match is None:
+        return fail("page_text_ca_unparseable")
+    current_value = " ".join(current_match.group("value").split())
+    current_flags = monster_semantic_numeric_flags(
+        {"classe_armatura": current_value, "punti_ferita": "1 (1d4)"}
+    )
+    if not ({CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(current_flags)):
+        return fail("page_text_ca_not_flagged", current_value=current_value)
+
+    suffix_match = re.search(r"(\s*\(armatura naturale\)\s*)$", current_value, re.I)
+    suffix = suffix_match.group(1).strip() if suffix_match else ""
+
+    tsv_stdout = _run_tesseract_bounded(
+        [
+            "tesseract",
+            str(image_path),
+            "stdout",
+            "-l",
+            languages,
+            "--psm",
+            "12",
+            "tsv",
+            "quiet",
+        ],
+        ocr_budget_started_at,
+        phase=f"cinghiale_ca_anchor_tsv_{pass_label}",
+    )
+    rows = list(csv.DictReader(io.StringIO(tsv_stdout), delimiter="\t"))
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                str(row.get(field) or "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+
+    label_lines: list[list[dict[str, str]]] = []
+    for words in grouped.values():
+        normalized = normalize_reference_name(
+            " ".join(str(word.get("text") or "") for word in words)
+        )
+        if "classe" in normalized and "armatura" in normalized:
+            label_lines.append(words)
+    if len(label_lines) != 1:
+        return fail("tsv_ca_label_ambiguous", label_count=len(label_lines))
+
+    label_words = label_lines[0]
+    armatura_word = next(
+        (
+            word
+            for word in label_words
+            if "armatura" in normalize_reference_name(str(word.get("text") or ""))
+        ),
+        None,
+    )
+    if armatura_word is None:
+        return fail("tsv_armatura_token_missing")
+
+    label_end = int(armatura_word["left"]) + int(armatura_word["width"])
+    value_words = sorted(
+        (
+            word
+            for word in label_words
+            if int(word["left"]) >= label_end and str(word.get("text") or "").strip()
+        ),
+        key=lambda word: int(word["left"]),
+    )
+    if not value_words:
+        return fail("tsv_ca_value_geometry_missing")
+
+    value_word = value_words[0]
+    value_left = int(value_word["left"])
+    value_right = value_left + int(value_word["width"])
+    value_top = int(value_word["top"])
+    value_bottom = value_top + int(value_word["height"])
+
+    source = fitz.Pixmap(str(image_path))
+    grayscale = fitz.Pixmap(fitz.csGRAY, source)
+    x_padding = max(3, int(value_word["width"]) // 3)
+    y_padding = max(2, int(value_word["height"]) // 3)
+    crop_rect = fitz.IRect(
+        max(0, value_left - x_padding),
+        max(0, value_top - y_padding),
+        min(grayscale.width, value_right + x_padding),
+        min(grayscale.height, value_bottom + y_padding),
+    )
+    if crop_rect.x1 <= crop_rect.x0 or crop_rect.y1 <= crop_rect.y0:
+        return fail("ca_crop_invalid")
+
+    crop_width = crop_rect.x1 - crop_rect.x0
+    crop_height = crop_rect.y1 - crop_rect.y0
+    crop_samples = b"".join(
+        grayscale.samples[
+            row * grayscale.stride + crop_rect.x0 : row * grayscale.stride
+            + crop_rect.x1
+        ]
+        for row in range(crop_rect.y0, crop_rect.y1)
+    )
+    crop_pixmap = fitz.Pixmap(
+        fitz.csGRAY,
+        crop_width,
+        crop_height,
+        crop_samples,
+        False,
+    )
+    if scale_factor > 1:
+        crop_pixmap = fitz.Pixmap(
+            crop_pixmap,
+            crop_width * scale_factor,
+            crop_height * scale_factor,
+        )
+
+    with tempfile.TemporaryDirectory(prefix=f"tomoforge-cinghiale-ca-{pass_label}-") as tmp:
+        crop_path = Path(tmp) / "cinghiale-ca.png"
+        crop_pixmap.save(crop_path)
+        raw = _run_tesseract_bounded(
+            [
+                "tesseract",
+                str(crop_path),
+                "stdout",
+                "-l",
+                languages,
+                "--psm",
+                str(micro_psm),
+                "-c",
+                "tessedit_char_whitelist=0123456789",
+                "quiet",
+            ],
+            ocr_budget_started_at,
+            phase=f"cinghiale_ca_micro_{pass_label}",
+        )
+
+    digits = re.sub(r"\D", "", raw)
+    if not re.fullmatch(r"\d{1,2}", digits):
+        return fail("digits_not_unique", raw=" ".join(raw.split())[:40])
+
+    candidate_value = f"{digits} ({suffix.strip('() ')})" if suffix else digits
+    candidate_flags = monster_semantic_numeric_flags(
+        {"classe_armatura": candidate_value, "punti_ferita": "1 (1d4)"}
+    )
+    if {CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(candidate_flags):
+        return fail("micro_value_failed_ca_gate", candidate=candidate_value)
+
+    lines[ca_index] = f"{current_match.group('label')}{candidate_value}"
+    rebuilt = "\n".join(lines)
+    if page_text.endswith("\n"):
+        rebuilt += "\n"
+    print(
+        "PHB_CINGHIALE_CA_MICRO_REPAIR "
+        + json.dumps(
+            {
+                "name": name,
+                "pass": pass_label,
+                "value": candidate_value,
+                "psm": micro_psm,
+                "scale_factor": scale_factor,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return rebuilt
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -3810,6 +4033,32 @@ def _ocr_source_window(
                         languages,
                         primary,
                         name,
+                        ocr_budget_started_at=ocr_budget_started_at,
+                        single_target_geometry=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
+                    primary = _micro_ocr_cinghiale_armor_class_line(
+                        image_path,
+                        languages,
+                        primary,
+                        name,
+                        micro_psm=7,
+                        scale_factor=1,
+                        pass_label="primary",
+                        ocr_budget_started_at=ocr_budget_started_at,
+                        single_target_geometry=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
+                    comparison = _micro_ocr_cinghiale_armor_class_line(
+                        image_path,
+                        languages,
+                        comparison,
+                        name,
+                        micro_psm=8,
+                        scale_factor=2,
+                        pass_label="comparison",
                         ocr_budget_started_at=ocr_budget_started_at,
                         single_target_geometry=bool(
                             sparse_full_page and sparse_anchor_found
