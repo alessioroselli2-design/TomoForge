@@ -2256,6 +2256,7 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
         PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
     )
     assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
+        "ref_85a4eadb862758fbb682e93ab19f1065": 150.0,
         "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
         "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
         "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,
