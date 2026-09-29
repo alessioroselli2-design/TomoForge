@@ -5,7 +5,11 @@ SERVICES = Path(__file__).resolve().parents[1] / "services"
 if str(SERVICES) not in sys.path:
     sys.path.insert(0, str(SERVICES))
 
-from monster_statblock_ocr import (\n    _line_is_descriptor,\n    agreed_monster_records,\n    parse_monster_statblocks,\n)
+from monster_statblock_ocr import (
+    _line_is_descriptor,
+    agreed_monster_records,
+    parse_monster_statblocks,
+)
 
 
 def _goblin_text(ac="15 (armatura di cuoio, scudo)", title="GOBLIN"):
