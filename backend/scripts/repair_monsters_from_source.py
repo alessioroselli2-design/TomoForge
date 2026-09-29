@@ -1067,6 +1067,11 @@ def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     return target_clip
 
 
+def _phb_sparse_uses_quality_pre_otsu(name: str) -> bool:
+    """Use destructive local thresholding only where source OCR benefits from it."""
+    return name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name != "Orso Bruno"
+
+
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
     if not samples:
@@ -3309,7 +3314,7 @@ def _ocr_source_window(
                         ).save(target_image_path)
                         image_path = target_image_path
 
-                        if name in PHB_QUALITY_GATE_PRE_OTSU_TARGETS and name != "Orso Bruno":
+                        if _phb_sparse_uses_quality_pre_otsu(name):
                             _remaining_global_ocr_budget(ocr_budget_started_at)
                             quality_started_at = time.monotonic()
                             quality_image_path = image_root / (
