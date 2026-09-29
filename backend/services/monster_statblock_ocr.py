@@ -147,31 +147,16 @@ def _normalize_monster_name(value: str) -> str:
     return normalize_reference_name(value)
 
 
-def _one_substitution_from_known_word(word: str, known: str) -> bool:
-    """Accept one OCR substitution only; never insert/delete characters."""
-    return len(word) == len(known) and sum(a != b for a, b in zip(word, known)) == 1
-
-
 def _line_is_descriptor(line: str) -> bool:
     value = _norm(line)
-    has_exact_type = any(
-        re.search(rf"\\b{re.escape(creature_type)}\\b", value)
-        for creature_type in _CREATURE_TYPE_WORDS
-    )
-    has_exact_size = any(
-        re.search(rf"\\b{re.escape(size)}\\b", value) for size in _SIZE_WORDS
-    )
-    has_single_substitution_size = has_exact_type and any(
-        _one_substitution_from_known_word(word, size)
-        for word in value.split()
-        for size in _SIZE_WORDS
-    )
     return (
-        (has_exact_size or has_single_substitution_size)
-        and has_exact_type
+        any(re.search(rf"\b{re.escape(size)}\b", value) for size in _SIZE_WORDS)
+        and any(
+            re.search(rf"\b{re.escape(creature_type)}\b", value)
+            for creature_type in _CREATURE_TYPE_WORDS
+        )
         and len(value) <= 180
     )
-
 
 def _line_is_title_candidate(line: str) -> bool:
     raw = clean_text(line or "").strip(" .:;,—–-")
