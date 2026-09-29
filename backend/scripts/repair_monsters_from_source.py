@@ -3274,6 +3274,7 @@ def _ocr_source_window(
                         alpha=False,
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
+                    comparison_image_path = image_path
 
                     sparse_anchor_found = None
                     sparse_anchor_crop = None
