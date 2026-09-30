@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_bb40323f98c45bf89fdcddcefc53a31f",  # Bove Fetente: sole source reference, page 70
     "ref_63b48acb74315053a90845cd07b022bb",  # Bodak: sole source reference, page 73
     "ref_50f157429a555107a918e7ba85c2fa39",  # Berretto Rosso: sole source reference, page 69
     "ref_c3551ceba31958819b2379553c32fccb",  # Berbalang: sole source reference, page 68
@@ -4982,6 +4983,7 @@ def _ocr_source_window(
                         "Arciere",
                         "Berretto Rosso",
                         "Bodak",
+                        "Bove Fetente",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
@@ -5328,7 +5330,7 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
-    if target_name in {"Addolorato Deforme", "Berbalang"}:
+    if target_name in {"Addolorato Deforme", "Berbalang", "Bove Fetente"}:
         print(
             "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
             + json.dumps(
