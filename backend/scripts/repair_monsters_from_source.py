@@ -5007,16 +5007,11 @@ def _agreed_target_candidate(
             )
             first_block_ordered = (
                 len(first_block_indexes) == 4
-                and first_block_indexes
-                == sorted(first_block_indexes)
+                and first_block_indexes == sorted(first_block_indexes)
                 and first_block_indexes[-1] - first_block_indexes[0] <= 6
             )
-            first_ca_line = (
-                comparison_lines[ca_indexes[0]] if ca_indexes else ""
-            )
-            first_hp_line = (
-                comparison_lines[hp_indexes[0]] if hp_indexes else ""
-            )
+            first_ca_line = comparison_lines[ca_indexes[0]] if ca_indexes else ""
+            first_hp_line = comparison_lines[hp_indexes[0]] if hp_indexes else ""
             first_speed_line = (
                 comparison_lines[speed_indexes[0]] if speed_indexes else ""
             )
@@ -5045,14 +5040,10 @@ def _agreed_target_candidate(
                     )
                 )
             )
-            primary_ca_is_same_bad_ocr = (
-                " ".join(
-                    str(primary_attributes.get("classe_armatura") or "").split()
-                )
-                == "30"
-                and not primary_vs_source.get(
-                    "classe_armatura_deterministic_match", False
-                )
+            primary_ca_is_same_bad_ocr = " ".join(
+                str(primary_attributes.get("classe_armatura") or "").split()
+            ) == "30" and not primary_vs_source.get(
+                "classe_armatura_deterministic_match", False
             )
             source_supported = (
                 int(primary_target.get("start_page") or 0) == target_page
