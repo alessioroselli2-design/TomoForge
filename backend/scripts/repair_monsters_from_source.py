@@ -4469,7 +4469,7 @@ def _ocr_source_window(
         # detached fragments from the adjacent right-column prose.
         segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
         column_overlap = 0.0
-    if not sparse_full_page and name in {"Berretto Rosso", "Bodak"}:
+    if not sparse_full_page and name in {"Berretto Rosso", "Bodak", "Brontosauro"}:
         # Pages 69/73: exclude left-column narrative from the right stat block.
         segments = (("right", (0.5, 0.0, 1.0, 1.0)),)
         column_overlap = 0.0
@@ -5333,7 +5333,10 @@ def _agreed_target_candidate(
         source_language,
     )
     if target_name in {
-        "Addolorato Deforme", "Berbalang", "Bove Fetente", "Brontosauro"
+        "Addolorato Deforme",
+        "Berbalang",
+        "Bove Fetente",
+        "Brontosauro",
     }:
         print(
             "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
