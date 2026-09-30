@@ -5477,6 +5477,65 @@ async def _apply_verified_ocr_flag_cleanup(
         raise RuntimeError("verified cleanup batch timestamp verification failed")
 
 
+async def _apply_players_handbook_pending_update(
+    collection: Any,
+    legacy: dict[str, Any],
+    proposal: dict[str, Any],
+    *,
+    updated_at: str,
+) -> None:
+    """Apply one validated PHB pending repair without assuming verified status."""
+    if str(legacy.get("review_status") or "") != "pending":
+        raise RepairBlocked("players_handbook_pending_status_drift")
+    if str(legacy.get("source_key") or "") != PLAYERS_HANDBOOK_LEGACY_FILENAME:
+        raise RepairBlocked("players_handbook_pending_source_drift")
+    if legacy.get("canonical_id"):
+        raise RepairBlocked("canonical_record_linked")
+    if monster_identity_sanity_flags(legacy.get("name")):
+        raise RepairBlocked("corrupted_entity_name")
+
+    checksum = str(legacy.get("source_text_checksum") or "")
+    query: dict[str, Any] = {
+        "id": str(legacy["id"]),
+        "review_status": "pending",
+        "source_key": PLAYERS_HANDBOOK_LEGACY_FILENAME,
+    }
+    if checksum:
+        query["source_text_checksum"] = checksum
+
+    result = await collection.update_one(
+        query,
+        {
+            "$set": {
+                **proposal,
+                "updated_at": updated_at,
+            }
+        },
+    )
+    if result.matched_count != 1:
+        raise RepairBlocked(
+            "players_handbook_pending_concurrent_drift",
+            f"matched_count={result.matched_count}",
+        )
+
+    verify = await collection.find_one({"id": str(legacy["id"])})
+    if verify is None:
+        raise RuntimeError("PHB pending post-update record missing")
+    if str(verify.get("review_status") or "") != "pending":
+        raise RuntimeError("PHB pending review_status changed unexpectedly")
+    verify_flags = {str(flag) for flag in (verify.get("review_flags") or [])}
+    if verify_flags != {OCR_REVIEW_FLAG, REPAIR_FLAG}:
+        raise RuntimeError("PHB pending review flags verification failed")
+    if monster_semantic_numeric_flags(verify.get("attributes") or {}):
+        raise RuntimeError("PHB pending semantic/numeric verification failed")
+    expected_timestamp = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+    actual_timestamp = datetime.fromisoformat(
+        str(verify.get("updated_at") or "").replace("Z", "+00:00")
+    )
+    if actual_timestamp != expected_timestamp:
+        raise RuntimeError("PHB pending batch timestamp verification failed")
+
+
 def _json_view(record: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": record.get("id"),
@@ -5737,15 +5796,17 @@ async def _repair_one(
                     },
                 },
             )
-        if {str(flag) for flag in (record.get("review_flags") or [])} != {
-            OCR_REVIEW_FLAG
-        }:
+        current_flags = {
+            str(flag) for flag in (record.get("review_flags") or [])
+        }
+        if current_flags not in ({OCR_REVIEW_FLAG}, set()):
             raise RepairBlocked("players_handbook_verified_flag_drift")
         verified_flag_cleanup = {
             "authorized": True,
             "agreement": raw_agreement,
             "deterministic_agreement": deterministic_agreement,
             "remove_flag": OCR_REVIEW_FLAG,
+            "already_clean": not current_flags,
         }
         proposal = {
             "attributes": dict(current_attributes),
@@ -6260,6 +6321,9 @@ async def _run(args: argparse.Namespace) -> int:
         batch_updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         for report in verified_reports:
+            cleanup = report.get("verified_flag_cleanup") or {}
+            if cleanup.get("already_clean"):
+                continue
             await _apply_verified_ocr_flag_cleanup(
                 records_collection,
                 originals[str(report["record_id"])],
@@ -6273,7 +6337,7 @@ async def _run(args: argparse.Namespace) -> int:
                 "review_flags": report["after"]["review_flags"],
                 "review_status": "pending",
             }
-            await _apply_update(
+            await _apply_players_handbook_pending_update(
                 records_collection,
                 originals[str(report["record_id"])],
                 proposal,
