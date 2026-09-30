@@ -2488,15 +2488,9 @@ def _restore_mulo_sparse_title_from_anchor(
             if "classe armatura" in line or "classe d armatura" in line
         ],
         "hp": [
-            index
-            for index, line in enumerate(normalized)
-            if "punti ferita" in line
+            index for index, line in enumerate(normalized) if "punti ferita" in line
         ],
-        "speed": [
-            index
-            for index, line in enumerate(normalized)
-            if "velocita" in line
-        ],
+        "speed": [index for index, line in enumerate(normalized) if "velocita" in line],
     }
     if any(len(indexes) != 1 for indexes in marker_indexes.values()):
         return page_text
@@ -5648,9 +5642,9 @@ async def _repair_one(
         )
         sparse_anchor_verified = bool(
             (
-                quality.get(physical_page, {}).get("segments", {}).get(
-                    "sparse-full", {}
-                )
+                quality.get(physical_page, {})
+                .get("segments", {})
+                .get("sparse-full", {})
             ).get("sparse_anchor_found")
         )
         candidate = _agreed_target_candidate(
