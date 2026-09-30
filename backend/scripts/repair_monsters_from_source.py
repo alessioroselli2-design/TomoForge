@@ -4249,12 +4249,16 @@ def _ocr_source_window(
             "source-guided repair window unexpectedly exceeded 3 pages"
         )
 
+    if name == "Bodak":
+        dpi = max(dpi, 400)
     effective_dpi, primary_psm, secondary_psm = _layout_ocr_settings(
         source,
         dpi=dpi,
         psm=psm,
         comparison_psm=comparison_psm,
     )
+    if name == "Bodak":
+        primary_psm, secondary_psm = 6, 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
