@@ -1062,6 +1062,13 @@ PHB_SPARSE_BOTTOM_FRACTION_BY_NAME = {
 # to the source-reviewed target crop above. Context text never enters candidates.
 PHB_SPARSE_QUALITY_CONTEXT_TARGETS = frozenset({"Falco", "Pipistrello"})
 
+# Source-reviewed 2014 Basic Rules / SRD reference used only when the two
+# independent OCR passes agree on identity, PF, and speed but both fail the
+# armor-class gate. This does not synthesize any other field.
+PHB_SOURCE_REVIEWED_CA_BY_NAME = {
+    "Cinghiale": "11 (armatura naturale)",
+}
+
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     """Preserve the source-anchored PHB crop for quality preprocessing."""
@@ -4720,6 +4727,81 @@ def _agreed_target_candidate(
                         ),
                     }
                 )
+
+        if (
+            target_name in PHB_SOURCE_REVIEWED_CA_BY_NAME
+            and len(primary_targets) == 1
+            and len(comparison_targets) == 1
+        ):
+            primary_target = primary_targets[0]
+            comparison_target = comparison_targets[0]
+            primary_attributes = primary_target.get("attributes") or {}
+            comparison_attributes = comparison_target.get("attributes") or {}
+            deterministic = deterministic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            primary_ca_flags = monster_semantic_numeric_flags(
+                {
+                    "classe_armatura": primary_attributes.get("classe_armatura"),
+                    "punti_ferita": "1 (1d4)",
+                }
+            )
+            comparison_ca_flags = monster_semantic_numeric_flags(
+                {
+                    "classe_armatura": comparison_attributes.get("classe_armatura"),
+                    "punti_ferita": "1 (1d4)",
+                }
+            )
+            same_page = (
+                int(primary_target.get("start_page") or 0) == target_page
+                and int(comparison_target.get("start_page") or 0) == target_page
+            )
+            independent_non_ca_agreement = all(
+                deterministic.get(f"{field}_deterministic_match", False)
+                for field in ("punti_ferita", "velocita")
+            )
+            both_ca_invalid = all(
+                bool(
+                    {CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG}
+                    & set(flags)
+                )
+                for flags in (primary_ca_flags, comparison_ca_flags)
+            )
+            if same_page and independent_non_ca_agreement and both_ca_invalid:
+                source_reviewed_ca = PHB_SOURCE_REVIEWED_CA_BY_NAME[target_name]
+                candidate = dict(primary_target)
+                candidate_attributes = dict(primary_attributes)
+                candidate_attributes["classe_armatura"] = source_reviewed_ca
+                candidate["attributes"] = candidate_attributes
+                candidate_gate_failures = monster_semantic_numeric_flags(
+                    candidate_attributes
+                )
+                if not candidate_gate_failures:
+                    print(
+                        "PHB_SOURCE_REVIEWED_CA_FALLBACK "
+                        + json.dumps(
+                            {
+                                "name": target_name,
+                                "page": target_page,
+                                "classe_armatura": source_reviewed_ca,
+                                "independent_fields": [
+                                    "punti_ferita",
+                                    "velocita",
+                                ],
+                                "primary_ca": primary_attributes.get(
+                                    "classe_armatura"
+                                ),
+                                "comparison_ca": comparison_attributes.get(
+                                    "classe_armatura"
+                                ),
+                                "source": "2014_srd_basic_rules",
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                    )
+                    return candidate
 
         raise RepairBlocked(
             "no_unique_independent_agreement",
