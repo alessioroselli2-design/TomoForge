@@ -839,6 +839,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_ae7d3851315e5d1e8ec09fed56397623": 150.0,  # Velociraptor
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_73328b58b96b57738c11d62b83f32c82": 82,  # Cervello Antico: referenced stat-block page
     "ref_55f881bc0c4e5ea6ae90b26869321b71": 47,  # Addolorato Solitario: page 45 is introductory prose
     "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 47,  # Addolorato Smarrito stat block
 }
@@ -847,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_73328b58b96b57738c11d62b83f32c82",  # Cervello Antico: selected referenced page 82
     "ref_b163e723e8dc549894ee8501f4f6152f",  # Celeresto: sole source reference, page 79
     "ref_8d48d375b778533fbe95ba07bd4ae054",  # Bulezau: sole source reference, page 75
     "ref_9b905e15da9751c09cf177cc8f68522f",  # Brontosauro: sole source reference, page 96
@@ -2862,11 +2864,7 @@ def _clean_celeresto_core_prefixes(page_text: str, target_name: str) -> str:
         return page_text
     lines = page_text.splitlines()
     normalized = [normalize_reference_name(line) for line in lines]
-    titles = [
-        index
-        for index, line in enumerate(normalized)
-        if line == "celeresto"
-    ]
+    titles = [index for index, line in enumerate(normalized) if line == "celeresto"]
     descriptors = [
         index
         for index, line in enumerate(normalized)
@@ -5123,6 +5121,7 @@ def _ocr_source_window(
                         "Brontosauro",
                         "Bulezau",
                         "Celeresto",
+                        "Cervello Antico",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
