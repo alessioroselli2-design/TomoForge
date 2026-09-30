@@ -4905,6 +4905,60 @@ def _agreed_target_candidate(
             ),
             flush=True,
         )
+    if target_name == "Addolorato Deforme":
+        primary_deforme = [
+            item
+            for item in primary
+            if normalize_reference_name(str(item.get("name") or ""))
+            == normalize_reference_name(target_name)
+            and int(item.get("start_page") or 0) == 46
+        ]
+        comparison_deforme = [
+            item
+            for item in comparison
+            if str(item.get("name") or "") == "ADDOLORATO DEFORME hi"
+            and int(item.get("start_page") or 0) == 46
+        ]
+        if len(primary_deforme) == 1 and len(comparison_deforme) == 1:
+            primary_attributes = primary_deforme[0].get("attributes") or {}
+            comparison_attributes = comparison_deforme[0].get("attributes") or {}
+            if (
+                primary_attributes.get("classe_armatura")
+                == "15 (armatura naturale)"
+                and primary_attributes.get("punti_ferita") == "10 (4d6 - 4)"
+                and primary_attributes.get("velocita") == "12 m"
+                and comparison_attributes.get("classe_armatura")
+                == "15 (armatura naturale) V"
+                and comparison_attributes.get("punti_ferita") == "10 (4d6 - 4)"
+                and comparison_attributes.get("velocita") == "12 m"
+            ):
+                sanitized = dict(comparison_deforme[0])
+                sanitized["name"] = target_name
+                sanitized["normalized_name"] = normalize_reference_name(target_name)
+                sanitized_attributes = dict(comparison_attributes)
+                sanitized_attributes["classe_armatura"] = primary_attributes[
+                    "classe_armatura"
+                ]
+                sanitized["attributes"] = sanitized_attributes
+                comparison = [
+                    sanitized if item is comparison_deforme[0] else item
+                    for item in comparison
+                ]
+                print(
+                    "MPMM_ADDOLORATO_DEFORME_OCR_SUFFIX_CLEANUP "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "page": 46,
+                            "removed_name_suffix": "hi",
+                            "removed_ca_suffix": "V",
+                            "numeric_values_modified": False,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+
     agreed_forward = agreed_monster_records(
         primary,
         comparison,
