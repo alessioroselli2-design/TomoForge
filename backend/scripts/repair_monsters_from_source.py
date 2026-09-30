@@ -848,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_d740777fcfbb52169d3621c8f57f5e3f",  # Delfino: sole source page 89
     "ref_900c8f9a4c74514684531df9b6ab0ccd",  # Collezionista Di Cadaveri: sole source page 88
     "ref_73328b58b96b57738c11d62b83f32c82",  # Cervello Antico: selected referenced page 82
     "ref_b163e723e8dc549894ee8501f4f6152f",  # Celeresto: sole source reference, page 79
@@ -4591,7 +4592,9 @@ def _ocr_source_window(
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
     if not sparse_full_page and name in {
-        "Berbalang", "Bove Fetente", "Collezionista Di Cadaveri"
+        "Berbalang",
+        "Bove Fetente",
+        "Collezionista Di Cadaveri",
     }:
         # Pages 68/70: left stat blocks; center overlap captures
         # detached fragments from the adjacent right-column prose.
@@ -5126,6 +5129,7 @@ def _ocr_source_window(
                         "Celeresto",
                         "Cervello Antico",
                         "Collezionista Di Cadaveri",
+                        "Delfino",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
