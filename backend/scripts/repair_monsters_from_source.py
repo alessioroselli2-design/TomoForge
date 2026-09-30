@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_b163e723e8dc549894ee8501f4f6152f",  # Celeresto: sole source reference, page 79
     "ref_8d48d375b778533fbe95ba07bd4ae054",  # Bulezau: sole source reference, page 75
     "ref_9b905e15da9751c09cf177cc8f68522f",  # Brontosauro: sole source reference, page 96
     "ref_bb40323f98c45bf89fdcddcefc53a31f",  # Bove Fetente: sole source reference, page 70
@@ -5063,6 +5064,7 @@ def _ocr_source_window(
                         "Bove Fetente",
                         "Brontosauro",
                         "Bulezau",
+                        "Celeresto",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
@@ -5415,6 +5417,7 @@ def _agreed_target_candidate(
         "Bove Fetente",
         "Brontosauro",
         "Bulezau",
+        "Celeresto",
     }:
         print(
             "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
