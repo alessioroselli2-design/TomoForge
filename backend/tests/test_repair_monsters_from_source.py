@@ -2557,3 +2557,49 @@ def test_bodak_identity_requires_complete_independent_local_evidence(mutation):
     else:
         assert result == text
     assert _restore_bodak_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "disagreement", "duplicate_geometry"])
+def test_bodak_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
+    from scripts.repair_monsters_from_source import _micro_ocr_bodak_descriptor
+
+    image_path = tmp_path / "bodak.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    descriptor = "Non morto Medio, generalmente caotico malvagio"
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+            for block, top in (
+                [(1, 40), (2, 70)] if mutation == "duplicate_geometry" else [(1, 40)]
+            )
+            for word, value in enumerate(descriptor.split(), 1)
+        )
+    )
+    primary = (
+        ". Non morto Medio, generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 58 (9d8 + 18)\n"
+        "Velocità 9 m\n"
+    )
+    comparison = primary.replace(". Non morto", "on morto").replace("9d8", "948")
+
+    def source_reading(command, *args, **kwargs):
+        if "tsv" in command:
+            return tsv
+        if mutation == "disagreement" and command[command.index("--psm") + 1] == "7":
+            return "on morto Medio, generalmente caotico malvagio"
+        return descriptor
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_bodak_descriptor(image_path, "ita", primary, comparison)
+    if mutation == "none":
+        assert result[0] == primary.replace(". Non morto", "Non morto")
+        assert result[1] == comparison.replace("on morto", "Non morto")
+        assert "948" in result[1]
+    else:
+        assert result == (primary, comparison)
