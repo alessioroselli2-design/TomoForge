@@ -2703,3 +2703,61 @@ def test_celeresto_core_prefix_cleanup_is_scoped_and_preserves_values(mutation):
     else:
         assert result == text
     assert _clean_celeresto_core_prefixes(text, "Babau") == text
+
+@pytest.mark.parametrize("duplicate_target_hp", [False, True])
+def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "delfino.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 700, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "DELFINO\nBestia Media, senza allineamento\n"
+        "Classe Armatura 12 (armatura naturale)\n"
+        "Punti Ferita 11 (248 + 2)\nVelocità 0 m, nuotare 18 m\n"
+        "Apnea. Il delfino può trattenere il respiro, test.\n"
+        "DELFINO SOLLAZZATORE\nFolletto Medio, generalmente caotico buono\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 27 (5d8 + 5)\nVelocità 0 m, nuotare 18 m\n"
+    )
+    rows = [
+        (30, ["DELFINO"]),
+        (60, ["Classe", "Armatura", "12"]),
+        (90, ["Punti", "Ferita", "11", "(248", "+", "2)"]),
+        (120, ["Velocità", "0", "m"]),
+        (160, ["Apnea.", "Il", "delfino", "test."]),
+        (190, ["DELFINO", "SOLLAZZATORE"]),
+        (220, ["Classe", "Armatura", "14"]),
+        (250, ["Punti", "Ferita", "27", "(5d8", "+", "5)"]),
+        (280, ["Velocità", "0", "m"]),
+    ]
+    if duplicate_target_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "11", "(248", "+", "2)"]))
+        text = text.replace("Velocità 0 m", "Punti Ferita 11 (248 + 2)\nVelocità 0 m", 1)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "11 (2d8 + 2)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Delfino")
+    if duplicate_target_hp:
+        assert result == text
+    else:
+        assert result == text.replace("11 (248 + 2)", "11 (2d8 + 2)")
+        assert "27 (5d8 + 5)" in result
+        assert commands[0][commands[0].index("--psm") + 1] == "11"
+        assert commands[1][commands[1].index("--psm") + 1] == "6"
