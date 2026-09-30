@@ -2457,3 +2457,75 @@ def test_arciere_action_identity_restore_requires_unique_local_evidence(mutation
     else:
         assert result == text
     assert _restore_arciere_title_from_local_actions(text, "Babau") == text
+
+
+@pytest.mark.parametrize("missing_identity", [False, True])
+def test_bael_title_restore_preserves_unresolved_dice(missing_identity):
+    from scripts.repair_monsters_from_source import _restore_bael_title_from_local_actions
+
+    text = (
+        "OCR debris\n"
+        "Immondo Grande (Diavolo), legale malvagio\n"
+        "Classe Armatura 18 (piastre)\n"
+        "Punti Ferita 189 (18410 + 90)\n"
+        "Velocità 9 m\n"
+        "Resistenza leggendaria. Se Bael fallisce, test.\n"
+        "Multiattacco. Bael effettua attacchi.\n"
+    )
+    if missing_identity:
+        text = text.replace("Resistenza leggendaria. Se Bael fallisce, test.\n", "")
+    result = _restore_bael_title_from_local_actions(text, "Bael")
+    if missing_identity:
+        assert result == text
+    else:
+        assert result.replace("BAEL\n", "", 1) == text
+        assert "18410" in result
+
+
+@pytest.mark.parametrize("duplicate_hp", [False, True])
+def test_bael_micro_ocr_uses_unique_ordered_core_row(tmp_path, duplicate_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "bael.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "BAEL\n"
+        "Immondo Grande (Diavolo), legale malvagio\n"
+        "Classe Armatura 18 (piastre)\n"
+        "Punti Ferita 189 (18410 + 90)\n"
+        "Velocità 9 m\n"
+        "Rigenerazione. Bael recupera 20 punti ferita.\n"
+        "Se Bael inizia con 0 punti ferita, test.\n"
+    )
+    rows = [
+        (30, ["BAEL"]),
+        (60, ["Classe", "Armatura", "18", "(piastre)"]),
+        (90, ["Punti", "Ferita", "189", "(18410", "+", "90)"]),
+        (120, ["Velocità", "9", "m"]),
+        (160, ["Rigenerazione.", "Bael", "recupera", "20", "punti", "ferita."]),
+    ]
+    if duplicate_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "189", "(18410", "+", "90)"]))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+
+    def source_reading(command, *args, **kwargs):
+        return tsv if "tsv" in command else "189 (18d10 + 90)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 3, text, "Bael")
+    if duplicate_hp:
+        assert result == text
+    else:
+        assert result == text.replace("189 (18410 + 90)", "189 (18d10 + 90)")
