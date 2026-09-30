@@ -1088,6 +1088,11 @@ def _phb_sparse_comparison_uses_adaptive_source(name: str) -> bool:
     return name == "Cavallo Da Guerra"
 
 
+def _phb_sparse_comparison_uses_grayscale_source(name: str) -> bool:
+    """Preserve source detail for the independent Gufo comparison OCR."""
+    return name == "Gufo"
+
+
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
     if not samples:
@@ -3911,6 +3916,26 @@ def _ocr_source_window(
                                         sort_keys=True,
                                     )
                                 )
+                            if _phb_sparse_comparison_uses_grayscale_source(name):
+                                comparison_source_path = image_root / (
+                                    f"page-{page_number:04d}-{segment_name}"
+                                    "-target-comparison-grayscale-x4.png"
+                                )
+                                quality_pixmap.save(comparison_source_path)
+                                comparison_image_path = comparison_source_path
+                                print(
+                                    "PHB_COMPARISON_GRAYSCALE_DIAGNOSTIC "
+                                    + json.dumps(
+                                        {
+                                            "name": name,
+                                            "segment": segment_name,
+                                            "render_scale_factor": 4,
+                                            "preprocessing": "grayscale_only",
+                                        },
+                                        ensure_ascii=False,
+                                        sort_keys=True,
+                                    )
+                                )
                             local_otsu = _local_otsu_inverted_samples(
                                 quality_pixmap.samples,
                                 quality_pixmap.width,
@@ -3925,7 +3950,10 @@ def _ocr_source_window(
                             )
                             cleaned_quality.save(quality_image_path)
                             image_path = quality_image_path
-                            if not _phb_sparse_comparison_uses_adaptive_source(name):
+                            if not (
+                                _phb_sparse_comparison_uses_adaptive_source(name)
+                                or _phb_sparse_comparison_uses_grayscale_source(name)
+                            ):
                                 comparison_image_path = image_path
                             print(
                                 "PHB_QUALITY_PRE_OTSU_DIAGNOSTIC "
