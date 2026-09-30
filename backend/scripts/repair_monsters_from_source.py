@@ -848,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_823f8b15d62359458189ca8d4384152a",  # Divoratore: sole referenced page 98
     "ref_bccdf665b4e05ba1bd9d7f1710103779",  # Dimetrodonte: sole referenced page 97
     "ref_14098ccddd9358e28b83fe7d17bb0734",  # Derro: ordinary stat block on sole referenced page 93
     "ref_d740777fcfbb52169d3621c8f57f5e3f",  # Delfino: sole source page 89
@@ -5332,6 +5333,7 @@ def _ocr_source_window(
                         "Delfino",
                         "Derro",
                         "Dimetrodonte",
+                        "Divoratore",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
