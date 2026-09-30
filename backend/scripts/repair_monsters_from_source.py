@@ -828,6 +828,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
     "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
     "ref_83a6b991bfec5efdb2dda4da60d408bb",  # Colosso Runico
@@ -5303,10 +5304,7 @@ def build_repair_proposal(
     candidate_name_flags = monster_identity_sanity_flags(candidate.get("name"))
     if candidate_name_flags:
         allow_abishai_nero_name_noise = False
-        if str(legacy.get("id") or "") in {
-            "ref_13c451b5c15a5014a05870c538c1027f",  # Abishai Nero
-            "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
-        }:
+        if str(legacy.get("id") or "") == "ref_13c451b5c15a5014a05870c538c1027f":
             legacy_name = normalize_reference_name(str(legacy.get("name") or ""))
             candidate_name = normalize_reference_name(str(candidate.get("name") or ""))
             legacy_pages = {
@@ -5323,41 +5321,6 @@ def build_repair_proposal(
                 legacy.get("attributes") or {},
                 candidate_attributes,
             )
-            if str(legacy.get("id") or "") == "ref_7b77784c85825bfdbf0ee87caa77685c":
-                print(
-                    "MPMM_ABISHAI_VERDE_NAME_DIAGNOSTIC "
-                    + json.dumps(
-                        {
-                            "legacy_name": legacy.get("name"),
-                            "candidate_name": candidate.get("name"),
-                            "legacy_pages": sorted(legacy_pages),
-                            "candidate_pages": sorted(candidate_pages),
-                            "deterministic": {
-                                field: bool(
-                                    deterministic.get(
-                                        f"{field}_deterministic_match", False
-                                    )
-                                )
-                                for field in (
-                                    "classe_armatura",
-                                    "punti_ferita",
-                                    "velocita",
-                                )
-                            },
-                            "boundary": compact_name_boundary_match(
-                                candidate_name, legacy_name
-                            ),
-                            "containment": compact_name_containment_match(
-                                candidate_name, legacy_name
-                            ),
-                            "bounded_edit": compact_name_bounded_edit_match(
-                                candidate_name, legacy_name
-                            ),
-                        },
-                        ensure_ascii=False,
-                        sort_keys=True,
-                    )
-                )
             allow_abishai_nero_name_noise = (
                 bool(legacy_pages & candidate_pages)
                 and (
