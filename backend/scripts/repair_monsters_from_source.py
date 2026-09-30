@@ -4270,6 +4270,11 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
+    if not sparse_full_page and name == "Berbalang":
+        # Page 68 stat block is in the left column; center overlap captures
+        # detached fragments from the adjacent right-column prose.
+        segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
+        column_overlap = 0.0
     if not sparse_full_page and name in TARGET_SEGMENT_BY_NAME:
         target_segment = TARGET_SEGMENT_BY_NAME[name]
         segments = tuple(
@@ -4984,6 +4989,8 @@ def _ocr_source_window(
                         agreement_primary,
                         agreement_comparison,
                     )
+                    if name == "Berbalang":
+                        agreement["source_crop_fractions"] = list(fractions)
                     if sparse_full_page:
                         agreement["sparse_anchor_found"] = sparse_anchor_found
                         agreement["sparse_anchor_crop"] = (
@@ -6464,7 +6471,7 @@ async def _repair_one(
                 candidate = None
                 sparse_retry_required = True
                 break
-            selected_overlap = overlap
+            selected_overlap = 0.0 if source_target_name == "Berbalang" else overlap
             break
         except RepairBlocked as exc:
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
