@@ -2725,9 +2725,13 @@ def _micro_ocr_cinghiale_armor_class_line(
         re.IGNORECASE,
     )
     ca_indexes = [index for index, line in enumerate(lines) if ca_pattern.match(line)]
-    if len(target_indexes) != 1 or len(ca_indexes) != 1:
+    # The sparse crop is already bound to one unique PSM12 title anchor.
+    # Repeated OCR copies of that title inside page_text are therefore not a
+    # second identity. Keep the repair fail-closed on the structural CA line:
+    # exactly one Classe Armatura line must exist in the isolated crop.
+    if len(ca_indexes) != 1:
         return fail(
-            "page_text_anchor_ambiguous",
+            "page_text_ca_ambiguous",
             target_count=len(target_indexes),
             ca_count=len(ca_indexes),
         )
