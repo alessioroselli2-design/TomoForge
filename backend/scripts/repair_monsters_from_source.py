@@ -4612,9 +4612,9 @@ def _ocr_source_window(
                     if (
                         sparse_full_page
                         and page_number == target_page
-                        and name in PHB_SPARSE_QUALITY_CONTEXT_TARGETS
+                        and (name in PHB_SPARSE_QUALITY_CONTEXT_TARGETS or name == "Adrosauro")
                         and sparse_anchor_crop is not None
-                        and sparse_anchor_crop[3] < 1.0
+                        and (sparse_anchor_crop[3] < 1.0 or name == "Adrosauro")
                     ):
                         quality_context_fractions = (
                             sparse_anchor_crop[0],
@@ -4622,6 +4622,10 @@ def _ocr_source_window(
                             sparse_anchor_crop[2],
                             1.0,
                         )
+                        if name == "Adrosauro":
+                            # Quality uses the same source column, including its prose;
+                            # parser/core agreement still use only the anchored crop.
+                            quality_context_fractions = (0.0, 0.0, 0.5, 1.0)
                         quality_context_clip = _clip_rect(
                             page.rect,
                             quality_context_fractions,
