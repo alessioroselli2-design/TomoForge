@@ -848,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_900c8f9a4c74514684531df9b6ab0ccd",  # Collezionista Di Cadaveri: sole source page 88
     "ref_73328b58b96b57738c11d62b83f32c82",  # Cervello Antico: selected referenced page 82
     "ref_b163e723e8dc549894ee8501f4f6152f",  # Celeresto: sole source reference, page 79
     "ref_8d48d375b778533fbe95ba07bd4ae054",  # Bulezau: sole source reference, page 75
@@ -5122,6 +5123,7 @@ def _ocr_source_window(
                         "Bulezau",
                         "Celeresto",
                         "Cervello Antico",
+                        "Collezionista Di Cadaveri",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
