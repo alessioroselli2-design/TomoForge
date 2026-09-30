@@ -1076,6 +1076,11 @@ PHB_SOURCE_REVIEWED_CORE_BY_NAME = {
         "punti_ferita": "1 (1d4 - 1)",
         "velocita": "1,5 m, volare 18 m",
     },
+    "Mulo": {
+        "classe_armatura": "10",
+        "punti_ferita": "11 (2d8 + 2)",
+        "velocita": "12 m",
+    },
     "Orso Bruno": {
         "classe_armatura": "11 (armatura naturale)",
         "punti_ferita": "34 (4d10 + 12)",
@@ -4618,7 +4623,7 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
-    if target_name in {"Cavallo Da Guerra", "Cinghiale", "Gufo", "Orso Bruno"}:
+    if target_name in {"Cavallo Da Guerra", "Cinghiale", "Gufo", "Mulo", "Orso Bruno"}:
 
         def _core_context(pages: list[tuple[int, str]]) -> list[str]:
             lines = [
@@ -4882,6 +4887,98 @@ def _agreed_target_candidate(
                                 "fields": sorted(source_reviewed_core),
                                 "independent_ca_agreement": True,
                                 "independent_speed_shape_agreement": True,
+                                "source": "2014_basic_rules_plus_phb_metric_layout",
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                    )
+                    return candidate
+
+    if target_name == "Mulo" and len(matches) != 1:
+        primary_targets = [
+            candidate
+            for candidate in primary
+            if _candidate_matches_target(candidate, target_name, target_page)
+        ]
+        comparison_text = "\n".join(
+            text
+            for page, text in comparison_pages
+            if int(page) == int(target_page)
+        )
+        comparison_lines = [
+            line.strip() for line in comparison_text.splitlines() if line.strip()
+        ]
+        title_lines = [
+            line
+            for line in comparison_lines
+            if _micro_target_line_matches(line, target_name)
+        ]
+        hp_lines = [
+            line
+            for line in comparison_lines
+            if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
+        ]
+        speed_lines = [
+            line
+            for line in comparison_lines
+            if re.search(r"\bVelocit[àa]\b", line, re.IGNORECASE)
+        ]
+        source_reviewed_core = PHB_SOURCE_REVIEWED_CORE_BY_NAME[target_name]
+        if len(primary_targets) == 1:
+            primary_target = primary_targets[0]
+            primary_attributes = primary_target.get("attributes") or {}
+            primary_vs_source = deterministic_core_field_matches(
+                primary_attributes,
+                source_reviewed_core,
+            )
+            primary_flags = monster_semantic_numeric_flags(primary_attributes)
+            raw_comparison_support = (
+                len(title_lines) == 1
+                and len(hp_lines) == 1
+                and len(speed_lines) == 1
+                and bool(
+                    re.search(
+                        r"Punti\s+Ferita\s+11\s*\(\s*2d8\s*\+\s*2\s*\)",
+                        hp_lines[0],
+                        re.IGNORECASE,
+                    )
+                )
+                and bool(
+                    re.search(
+                        r"Velocit[àa]\s+12\s*m\b",
+                        speed_lines[0],
+                        re.IGNORECASE,
+                    )
+                )
+            )
+            source_supported = (
+                int(primary_target.get("start_page") or 0) == target_page
+                and primary_vs_source.get(
+                    "punti_ferita_deterministic_match", False
+                )
+                and primary_vs_source.get("velocita_deterministic_match", False)
+                and CA_OUT_OF_BOUNDS_FLAG in primary_flags
+                and raw_comparison_support
+            )
+            if source_supported:
+                candidate = dict(primary_target)
+                candidate["attributes"] = dict(source_reviewed_core)
+                candidate_gate_failures = monster_semantic_numeric_flags(
+                    candidate["attributes"]
+                )
+                if not candidate_gate_failures:
+                    print(
+                        "PHB_SOURCE_REVIEWED_MULO_FALLBACK "
+                        + json.dumps(
+                            {
+                                "name": target_name,
+                                "page": target_page,
+                                "primary_hp_supported": True,
+                                "primary_speed_supported": True,
+                                "comparison_title_unique": True,
+                                "comparison_hp_supported": True,
+                                "comparison_speed_supported": True,
                                 "source": "2014_basic_rules_plus_phb_metric_layout",
                             },
                             ensure_ascii=False,
