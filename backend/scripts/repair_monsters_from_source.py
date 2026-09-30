@@ -4258,7 +4258,7 @@ def _ocr_source_window(
         comparison_psm=comparison_psm,
     )
     if name == "Bodak":
-        primary_psm, secondary_psm = 6, 11
+        primary_psm, secondary_psm = 6, 4
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
