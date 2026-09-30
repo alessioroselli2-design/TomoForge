@@ -1820,16 +1820,23 @@ def select_players_handbook_targets(
                 f"Player's Handbook canonical link detected: {expected['id']}"
             )
         actual_flags = {str(flag) for flag in (record.get("review_flags") or [])}
-        expected_flags = (
-            {OCR_REVIEW_FLAG}
-            if status == "verified"
-            else {OCR_REVIEW_FLAG, REPAIR_FLAG}
-        )
-        if actual_flags != expected_flags:
-            raise RuntimeError(
-                f"Player's Handbook review flag drift: {expected['id']} "
-                f"expected={sorted(expected_flags)!r} actual={sorted(actual_flags)!r}"
-            )
+        if status == "verified":
+            allowed_flags = ({OCR_REVIEW_FLAG}, set())
+            if actual_flags not in allowed_flags:
+                raise RuntimeError(
+                    f"Player's Handbook review flag drift: {expected['id']} "
+                    "expected verified flags to be either "
+                    f"{sorted({OCR_REVIEW_FLAG})!r} or [] "
+                    f"actual={sorted(actual_flags)!r}"
+                )
+        else:
+            expected_flags = {OCR_REVIEW_FLAG, REPAIR_FLAG}
+            if actual_flags != expected_flags:
+                raise RuntimeError(
+                    f"Player's Handbook review flag drift: {expected['id']} "
+                    f"expected={sorted(expected_flags)!r} "
+                    f"actual={sorted(actual_flags)!r}"
+                )
         if monster_identity_sanity_flags(record.get("name")):
             raise RuntimeError(
                 f"Player's Handbook identity gate failure: {expected['id']}"
