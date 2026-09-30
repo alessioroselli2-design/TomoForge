@@ -1,0 +1,73 @@
+name: Focused MPMM 1-100 single-monster dry-run
+
+on:
+  push:
+    branches:
+      - codex/mpmm-1-100-audit-20260930
+    paths:
+      - .github/mpmm-1-100-focused-request.txt
+      - .github/workflows/mpmm-1-100-focused.yml
+      - backend/scripts/audit_mpmm_1_100.py
+      - backend/scripts/repair_monsters_from_source.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-mpmm-1-100-focused
+  cancel-in-progress: true
+
+jobs:
+  focused-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Run focused read-only audit
+        run: |
+          set -o pipefail
+          NAME="$(tr -d '\r\n' < .github/mpmm-1-100-focused-request.txt)"
+          python backend/scripts/audit_mpmm_1_100.py \
+            --allow-r2-download \
+            --name "$NAME" \
+            | tee /tmp/mpmm-1-100-focused.log
+
+      - name: Assert focused read-only invariants
+        run: |
+          grep -q '"dry_run": true' /tmp/mpmm-1-100-focused.log
+          grep -q '"targets": 1' /tmp/mpmm-1-100-focused.log
+          grep -q '"updates_performed": 0' /tmp/mpmm-1-100-focused.log
+
+      - name: Upload focused report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpmm-1-100-focused-report
+          path: /tmp/mpmm-1-100-focused.log
+          if-no-files-found: error
+          retention-days: 3
