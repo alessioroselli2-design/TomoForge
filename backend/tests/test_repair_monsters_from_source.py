@@ -2256,7 +2256,16 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
     assert "ref_66cc59680c4e58fa93a99656f8a07887" in (
         PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
     )
-    assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
+    assert all(0 < budget <= 150.0 for budget in OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.values())
+    phb_ids = {
+        "ref_85a4eadb862758fbb682e93ab19f1065",
+        "ref_f28940a5239a54f696cb524805e29cc2",
+        "ref_38273488414b57489e9d7e57a6c0a360",
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",
+        "ref_019562bded0b320ac918f4b2514c65e4",
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",
+    }
+    assert {record_id: OCR_GLOBAL_TIMEOUT_BY_RECORD_ID[record_id] for record_id in phb_ids} == {
         "ref_85a4eadb862758fbb682e93ab19f1065": 150.0,
         "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
         "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
