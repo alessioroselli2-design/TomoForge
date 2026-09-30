@@ -838,6 +838,10 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_81f0825741ca50978cb36fc95f7eaebf": 150.0,  # Uro
     "ref_ae7d3851315e5d1e8ec09fed56397623": 150.0,  # Velociraptor
 }
+SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 47,  # Addolorato Smarrito stat block
+}
+
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
@@ -6040,9 +6044,40 @@ async def _repair_one(
         record,
         active_sources,
     )
+    record_id = str(record.get("id") or "")
+    page_override = SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID.get(record_id)
+    if page_override is not None:
+        matching_refs = [
+            ref
+            for ref in (record.get("source_refs") or [])
+            if isinstance(ref, dict)
+            and int(ref.get("page") or 0) == page_override
+            and str(ref.get("filename") or "")
+            == str(source.get("physical_filename") or "")
+        ]
+        if len(matching_refs) != 1:
+            raise RepairBlocked(
+                "source_page_override_ref_drift",
+                detail=(
+                    f"record_id={record_id} page={page_override} "
+                    f"matching_refs={len(matching_refs)}"
+                ),
+            )
+        source_ref = matching_refs[0]
+        print(
+            "MPMM_SOURCE_PAGE_OVERRIDE "
+            + json.dumps(
+                {
+                    "record_id": record_id,
+                    "name": record.get("name"),
+                    "physical_page": page_override,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
     physical_page = int(source_ref["page"])
     pdf_path = pdf_cache.get(source)
-    record_id = str(record.get("id") or "")
     source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
         record_id,
         str(record.get("name") or ""),
