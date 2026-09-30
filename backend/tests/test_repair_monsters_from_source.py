@@ -2761,3 +2761,30 @@ def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp
         assert "27 (5d8 + 5)" in result
         assert commands[0][commands[0].index("--psm") + 1] == "11"
         assert commands[1][commands[1].index("--psm") + 1] == "6"
+
+@pytest.mark.parametrize("mutation", ["none", "missing_trait", "ambiguous_type"])
+def test_delfino_title_identity_ignores_sollazzatore_shared_speed(mutation):
+    from scripts.repair_monsters_from_source import _restore_delfino_title_from_local_traits
+
+    text = (
+        "Dario\nBestia Media, senza allineamento\n"
+        "Classe Armatura 12 (armatura naturale)\n"
+        "Punti Ferita 11 (248 + 2)\nVelocità 0 m, nuotare 18 m\n"
+        "Apnea. Il delfino può trattenere il respiro, test.\n"
+        "Se, prima del colpo, il delfino ha nuotato per metri, test.\n"
+        "DELFINO SOLLAZZATORE\nFolletto Medio, generalmente caotico buono\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 27 (5d8 + 5)\nVelocità 0 m, nuotare 18 m\n"
+    )
+    if mutation == "missing_trait":
+        text = text.replace("il delfino ha nuotato", "ha nuotato")
+    elif mutation == "ambiguous_type":
+        text += "Bestia Media, senza allineamento\n"
+    result = _restore_delfino_title_from_local_traits(text, "Delfino")
+    if mutation == "none":
+        assert result.replace("DELFINO\nBestia", "Bestia", 1) == text
+        assert "248" in result
+        assert "DELFINO SOLLAZZATORE" in result
+    else:
+        assert result == text
+    assert _restore_delfino_title_from_local_traits(text, "Babau") == text
