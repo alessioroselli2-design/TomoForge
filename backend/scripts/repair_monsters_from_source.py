@@ -4786,9 +4786,7 @@ def _agreed_target_candidate(
                                     "punti_ferita",
                                     "velocita",
                                 ],
-                                "primary_ca": primary_attributes.get(
-                                    "classe_armatura"
-                                ),
+                                "primary_ca": primary_attributes.get("classe_armatura"),
                                 "comparison_ca": comparison_attributes.get(
                                     "classe_armatura"
                                 ),
