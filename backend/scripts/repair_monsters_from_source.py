@@ -2746,8 +2746,15 @@ def _micro_ocr_bodak_descriptor(
     import fitz
 
     command = [
-        "tesseract", str(image_path), "stdout", "-l", languages,
-        "--psm", "6", "tsv", "quiet",
+        "tesseract",
+        str(image_path),
+        "stdout",
+        "-l",
+        languages,
+        "--psm",
+        "6",
+        "tsv",
+        "quiet",
     ]
     tsv = _run_tesseract_bounded(
         command, ocr_budget_started_at, phase="bodak_descriptor_geometry"
@@ -2755,16 +2762,16 @@ def _micro_ocr_bodak_descriptor(
     grouped: dict[tuple[str, ...], list[dict[str, str]]] = {}
     for row in csv.DictReader(io.StringIO(tsv), delimiter="\t"):
         if str(row.get("text") or "").strip():
-            key = tuple(row.get(field, "") for field in (
-                "page_num", "block_num", "par_num", "line_num"
-            ))
+            key = tuple(
+                row.get(field, "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
             grouped.setdefault(key, []).append(row)
     candidates = [
-        words for words in grouped.values()
+        words
+        for words in grouped.values()
         if all(
-            token in normalize_reference_name(
-                " ".join(word["text"] for word in words)
-            )
+            token in normalize_reference_name(" ".join(word["text"] for word in words))
             for token in ("medio", "generalmente", "caotico", "malvagio")
         )
     ]
@@ -2777,8 +2784,10 @@ def _micro_ocr_bodak_descriptor(
     bottom = max(int(word["top"]) + int(word["height"]) for word in words)
     raw_image = fitz.Pixmap(str(image_path))
     rect = fitz.Rect(
-        max(0, left - 8), max(0, top - 4),
-        min(raw_image.width, right + 8), min(raw_image.height, bottom + 4),
+        max(0, left - 8),
+        max(0, top - 4),
+        min(raw_image.width, right + 8),
+        min(raw_image.height, bottom + 4),
     )
     descriptor_path = image_path.with_name(image_path.stem + "-descriptor.png")
     with fitz.open() as document:
@@ -2790,8 +2799,14 @@ def _micro_ocr_bodak_descriptor(
     readings = [
         _run_tesseract_bounded(
             [
-                "tesseract", str(descriptor_path), "stdout", "-l", languages,
-                "--psm", str(mode), "quiet",
+                "tesseract",
+                str(descriptor_path),
+                "stdout",
+                "-l",
+                languages,
+                "--psm",
+                str(mode),
+                "quiet",
             ],
             ocr_budget_started_at,
             phase=f"bodak_descriptor_independent_{mode}",
@@ -2803,7 +2818,8 @@ def _micro_ocr_bodak_descriptor(
         "MPMM_BODAK_DESCRIPTOR_SOURCE_READS "
         + json.dumps(
             {"readings": readings, "crop": list(rect), "modes": [6, 7]},
-            ensure_ascii=False, sort_keys=True,
+            ensure_ascii=False,
+            sort_keys=True,
         )
     )
     if any(normalize_reference_name(reading) != expected for reading in readings):
@@ -2812,10 +2828,12 @@ def _micro_ocr_bodak_descriptor(
     for text, reading in zip((primary, comparison), readings, strict=True):
         lines = text.splitlines()
         indexes = [
-            index for index, line in enumerate(lines)
-            if all(token in normalize_reference_name(line) for token in (
-                "medio", "generalmente", "caotico", "malvagio"
-            ))
+            index
+            for index, line in enumerate(lines)
+            if all(
+                token in normalize_reference_name(line)
+                for token in ("medio", "generalmente", "caotico", "malvagio")
+            )
         ]
         if len(indexes) != 1:
             return primary, comparison
@@ -2823,8 +2841,10 @@ def _micro_ocr_bodak_descriptor(
         # Strip only graphical debris preceding observed core labels.
         for index, line in enumerate(lines):
             lines[index] = re.sub(
-                r"^[^\w]*(?=(?:Classe\s+Armatura|Punti\s+Ferita|Velocit[àa]))",
-                "", line, flags=re.IGNORECASE,
+                r"^[^A-Za-zÀ-ÿ]*(?=(?:Classe\s+Armatura|Punti\s+Ferita|Velocit[àa]))",
+                "",
+                line,
+                flags=re.IGNORECASE,
             )
         restored.append("\n".join(lines) + ("\n" if text.endswith("\n") else ""))
     return restored[0], restored[1]
@@ -4424,7 +4444,7 @@ def _ocr_source_window(
         comparison_psm=comparison_psm,
     )
     if name == "Bodak":
-        primary_psm, secondary_psm = 6, 4
+        primary_psm, secondary_psm = 6, 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
@@ -4698,7 +4718,10 @@ def _ocr_source_window(
                         )
                     if name == "Bodak" and not sparse_full_page:
                         primary, comparison = _micro_ocr_bodak_descriptor(
-                            image_path, languages, primary, comparison,
+                            image_path,
+                            languages,
+                            primary,
+                            comparison,
                             ocr_budget_started_at=ocr_budget_started_at,
                         )
                         primary = _restore_bodak_title_from_local_traits(primary, name)
