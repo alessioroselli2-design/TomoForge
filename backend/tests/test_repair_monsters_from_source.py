@@ -2813,3 +2813,79 @@ def test_derro_title_restore_does_not_accept_sapiente(mutation):
     else:
         assert result == text
     assert _restore_derro_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "missing_trait", "duplicate_hp", "wrong_type"])
+def test_divoratore_identity_requires_unique_local_traits(mutation):
+    from scripts.repair_monsters_from_source import _restore_divoratore_title_from_local_traits
+
+    text = (
+        "OCR debris\n"
+        "Non morto Grande, generalmente caotico malvagio\n"
+        "Classe Armatura 16 (armatura naturale)\n"
+        "Punti Ferita 189 (18410 + 90)\nVelocità 9 m\n"
+        "Natura insolita. Un divoratore non necessita di respirare, test.\n"
+        "Multiattacco. Il divoratore effettua attacchi, test.\n"
+    )
+    if mutation == "missing_trait":
+        text = text.replace("Un divoratore", "La creatura")
+    elif mutation == "duplicate_hp":
+        text += "Punti Ferita 189 (18410 + 90)\n"
+    elif mutation == "wrong_type":
+        text = text.replace("Non morto", "Immondo")
+    result = _restore_divoratore_title_from_local_traits(text, "Divoratore")
+    if mutation == "none":
+        assert result.replace("DIVORATORE\n", "", 1) == text
+        assert "18410" in result
+    else:
+        assert result == text
+    assert _restore_divoratore_title_from_local_traits(text, "Babau") == text
+
+
+@pytest.mark.parametrize("duplicate_hp", [False, True])
+def test_divoratore_micro_ocr_uses_unique_core_not_body_hp(tmp_path, duplicate_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "divoratore.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "DIVORATORE\nNon morto Grande, generalmente caotico malvagio\n"
+        "Classe Armatura 16 (armatura naturale)\n"
+        "Punti Ferita 189 (18410 + 90)\nVelocità 9 m\n"
+        "Il divoratore recupera punti ferita, test.\n"
+    )
+    rows = [
+        (30, ["DIVORATORE"]),
+        (60, ["Classe", "Armatura", "16"]),
+        (90, ["Punti", "Ferita", "189", "(18410", "+", "90)"]),
+        (120, ["Velocità", "9", "m"]),
+        (160, ["Il", "divoratore", "recupera", "punti", "ferita."]),
+    ]
+    if duplicate_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "189", "(18410", "+", "90)"]))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "189 (18d10 + 90)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Divoratore")
+    if duplicate_hp:
+        assert result == text
+    else:
+        assert result == text.replace("18410", "18d10")
+        assert commands[0][commands[0].index("--psm") + 1] == "11"
+        assert commands[1][commands[1].index("--psm") + 1] == "6"
