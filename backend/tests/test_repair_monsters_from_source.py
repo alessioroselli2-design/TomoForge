@@ -2788,3 +2788,28 @@ def test_delfino_title_identity_ignores_sollazzatore_shared_speed(mutation):
     else:
         assert result == text
     assert _restore_delfino_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "sapiente_type", "sapiente_hp", "missing_trait"])
+def test_derro_title_restore_does_not_accept_sapiente(mutation):
+    from scripts.repair_monsters_from_source import _restore_derro_title_from_local_traits
+
+    text = (
+        "DERR\nOCR debris\n"
+        "Aberrazione Piccola, generalmente caotica malvagia\n"
+        "Classe Armatura 13 (armatura di cuoio)\n"
+        "Punti Ferita 13 (3d6 + 3)\nVelocità 9 m\n"
+        "Resistenza alla magia. Il derro dispone di vantaggio, test.\n"
+        "i Sensibilità al sole. Al sole, il derro ha svantaggio, test.\n"
+    )
+    if mutation == "sapiente_type":
+        text = text.replace("Aberrazione Piccola,", "Aberrazione Piccola (Stregone),")
+    elif mutation == "sapiente_hp":
+        text = text.replace("13 (3d6 + 3)", "36 (8d6 + 8)")
+    elif mutation == "missing_trait":
+        text = text.replace("Il derro dispone", "Dispone")
+    result = _restore_derro_title_from_local_traits(text, "Derro")
+    if mutation == "none":
+        assert result.replace("DERRO\nAberrazione", "Aberrazione", 1) == text
+    else:
+        assert result == text
+    assert _restore_derro_title_from_local_traits(text, "Babau") == text
