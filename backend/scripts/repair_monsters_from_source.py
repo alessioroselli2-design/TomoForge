@@ -4999,8 +4999,6 @@ def _agreed_target_candidate(
                 primary_attributes,
                 source_reviewed_core,
             )
-            primary_flags = monster_semantic_numeric_flags(primary_attributes)
-
             first_block_indexes = (
                 descriptor_indexes[:1]
                 + ca_indexes[:1]
@@ -5047,11 +5045,20 @@ def _agreed_target_candidate(
                     )
                 )
             )
+            primary_ca_is_same_bad_ocr = (
+                " ".join(
+                    str(primary_attributes.get("classe_armatura") or "").split()
+                )
+                == "30"
+                and not primary_vs_source.get(
+                    "classe_armatura_deterministic_match", False
+                )
+            )
             source_supported = (
                 int(primary_target.get("start_page") or 0) == target_page
                 and primary_vs_source.get("punti_ferita_deterministic_match", False)
                 and primary_vs_source.get("velocita_deterministic_match", False)
-                and CA_OUT_OF_BOUNDS_FLAG in primary_flags
+                and primary_ca_is_same_bad_ocr
                 and raw_comparison_support
             )
             if source_supported:
@@ -5070,6 +5077,7 @@ def _agreed_target_candidate(
                                 "primary_hp_supported": True,
                                 "primary_speed_supported": True,
                                 "comparison_title_anchor_verified": True,
+                                "comparison_ca_bad_ocr_supported": True,
                                 "comparison_hp_supported": True,
                                 "comparison_speed_supported": True,
                                 "source": "2014_basic_rules_plus_phb_metric_layout",
