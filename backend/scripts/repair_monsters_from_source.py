@@ -2854,6 +2854,70 @@ def _micro_ocr_bodak_descriptor(
     return restored[0], restored[1]
 
 
+def _restore_bulezau_title_from_local_trait(page_text: str, target_name: str) -> str:
+    """Link the observed Bulezau title to its uniquely self-referenced local block."""
+    if target_name != "Bulezau":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    titles = [index for index, line in enumerate(normalized) if line == "bulezau"]
+    descriptors = [
+        index for index, line in enumerate(normalized)
+        if line == "immondo medio demone generalmente caotico malvagio"
+    ]
+    patterns = (
+        r"^\s*Classe\s+Armatura\s+14\s*\(\s*armatura\s+naturale\s*\)",
+        r"^\s*Punti\s+Ferita\s+52\s*\(",
+        r"^\s*Velocit[àa]\s*12\s*m\b",
+    )
+    core_indexes = [
+        [
+            index for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    trait = [
+        index for index, line in enumerate(normalized)
+        if line.startswith("presenza putrescente")
+    ]
+    reference = [
+        index for index, line in enumerate(normalized)
+        if line.startswith("demone inizia il suo turno entro") and "dal bulezau" in line
+    ]
+    if not (
+        1 <= len(titles) <= 2 and len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(trait) == len(reference) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        titles[0] < descriptor < ca < hp < speed < trait[0] < reference[0]
+        and speed - descriptor <= 8
+        and reference[0] - trait[0] <= 2
+    ):
+        return page_text
+    if any(descriptor - 5 <= title < descriptor for title in titles):
+        return page_text
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_BULEZAU_TITLE_FROM_LOCAL_TRAIT "
+        + json.dumps(
+            {
+                "name": target_name,
+                "title_evidence": page_text.splitlines()[titles[0]],
+                "identity_evidence": page_text.splitlines()[reference[0]],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _restore_bodak_title_from_local_traits(page_text: str, target_name: str) -> str:
     """Reanchor Bodak from two explicit local traits without changing values."""
     if target_name != "Bodak":
@@ -4718,6 +4782,11 @@ def _ocr_source_window(
                     if name == "Bael" and not sparse_full_page:
                         primary = _restore_bael_title_from_local_actions(primary, name)
                         comparison = _restore_bael_title_from_local_actions(
+                            comparison, name
+                        )
+                    if name == "Bulezau" and not sparse_full_page:
+                        primary = _restore_bulezau_title_from_local_trait(primary, name)
+                        comparison = _restore_bulezau_title_from_local_trait(
                             comparison, name
                         )
                     if name == "Bodak" and not sparse_full_page:
@@ -6701,9 +6770,8 @@ async def _repair_one(
                 break
             selected_overlap = (
                 0.0
-                if source_target_name in {
-                    "Berbalang", "Berretto Rosso", "Bodak", "Bove Fetente"
-                }
+                if source_target_name
+                in {"Berbalang", "Berretto Rosso", "Bodak", "Bove Fetente"}
                 else overlap
             )
             break
