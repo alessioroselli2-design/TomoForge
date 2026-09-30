@@ -4902,9 +4902,7 @@ def _agreed_target_candidate(
             if _candidate_matches_target(candidate, target_name, target_page)
         ]
         comparison_text = "\n".join(
-            text
-            for page, text in comparison_pages
-            if int(page) == int(target_page)
+            text for page, text in comparison_pages if int(page) == int(target_page)
         )
         comparison_lines = [
             line.strip() for line in comparison_text.splitlines() if line.strip()
@@ -4954,9 +4952,7 @@ def _agreed_target_candidate(
             )
             source_supported = (
                 int(primary_target.get("start_page") or 0) == target_page
-                and primary_vs_source.get(
-                    "punti_ferita_deterministic_match", False
-                )
+                and primary_vs_source.get("punti_ferita_deterministic_match", False)
                 and primary_vs_source.get("velocita_deterministic_match", False)
                 and CA_OUT_OF_BOUNDS_FLAG in primary_flags
                 and raw_comparison_support
