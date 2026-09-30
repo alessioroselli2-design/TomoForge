@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_8d48d375b778533fbe95ba07bd4ae054",  # Bulezau: sole source reference, page 75
     "ref_9b905e15da9751c09cf177cc8f68522f",  # Brontosauro: sole source reference, page 96
     "ref_bb40323f98c45bf89fdcddcefc53a31f",  # Bove Fetente: sole source reference, page 70
     "ref_63b48acb74315053a90845cd07b022bb",  # Bodak: sole source reference, page 73
@@ -4987,6 +4988,7 @@ def _ocr_source_window(
                         "Bodak",
                         "Bove Fetente",
                         "Brontosauro",
+                        "Bulezau",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
@@ -5338,6 +5340,7 @@ def _agreed_target_candidate(
         "Berbalang",
         "Bove Fetente",
         "Brontosauro",
+        "Bulezau",
     }:
         print(
             "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
@@ -6698,7 +6701,9 @@ async def _repair_one(
                 break
             selected_overlap = (
                 0.0
-                if source_target_name in {"Berbalang", "Berretto Rosso", "Bodak"}
+                if source_target_name in {
+                    "Berbalang", "Berretto Rosso", "Bodak", "Bove Fetente"
+                }
                 else overlap
             )
             break
