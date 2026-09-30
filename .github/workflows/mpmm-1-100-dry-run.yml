@@ -6,7 +6,6 @@ on:
       - codex/mpmm-1-100-audit-20260930
     paths:
       - backend/scripts/audit_mpmm_1_100.py
-      - backend/scripts/repair_monsters_from_source.py
       - .github/workflows/mpmm-1-100-dry-run.yml
   pull_request:
     branches:
