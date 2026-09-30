@@ -874,6 +874,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
+    "Celeresto": "right",  # Page 79: prose left, stat block right
     "Brontosauro": "right",  # Page 96: stat block right; title in prose left
     "Arciere": "right",  # Page 55: prose/table left, stat block right
     "Addolorato Affamato": "right",
@@ -2855,6 +2856,60 @@ def _micro_ocr_bodak_descriptor(
     return restored[0], restored[1]
 
 
+def _clean_celeresto_core_prefixes(page_text: str, target_name: str) -> str:
+    """Remove isolated OCR border glyphs from observed Celeresto core labels."""
+    if target_name != "Celeresto":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    titles = [
+        index
+        for index, line in enumerate(normalized)
+        if line == "celeresto"
+    ]
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if line == "folletto minuscolo generalmente caotico malvagio"
+    ]
+    patterns = (
+        r"^[ \t]*(?:[iIl|][ \t]+)?(?P<label>Classe\s+Armatura\b.*)$",
+        r"^[ \t]*(?:[iIl|][ \t]+)?(?P<label>Punti\s+Ferita\b.*)$",
+        r"^[ \t]*(?:[iIl|][ \t]+)?(?P<label>Velocit[àa].*)$",
+    )
+    matches = [
+        [
+            (index, match)
+            for index, line in enumerate(lines)
+            if (match := re.match(pattern, line, re.IGNORECASE))
+        ]
+        for pattern in patterns
+    ]
+    if not (
+        len(titles) == len(descriptors) == 1
+        and all(len(items) == 1 for items in matches)
+    ):
+        return page_text
+    title, descriptor = titles[0], descriptors[0]
+    ca, hp, speed = [items[0][0] for items in matches]
+    if not (
+        title < descriptor < ca < hp < speed
+        and descriptor - title <= 3
+        and speed - descriptor <= 8
+    ):
+        return page_text
+    for items in matches:
+        index, match = items[0]
+        lines[index] = match.group("label")
+    result = "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+    if result != page_text:
+        print(
+            "MPMM_CELERESTO_CORE_PREFIXES "
+            + json.dumps({"name": target_name, "numeric_values_modified": False})
+        )
+    return result
+
+
 def _restore_bulezau_title_from_local_trait(page_text: str, target_name: str) -> str:
     """Link the observed Bulezau title to its uniquely self-referenced local block."""
     if target_name != "Bulezau":
@@ -4790,6 +4845,9 @@ def _ocr_source_window(
                         comparison = _restore_bael_title_from_local_actions(
                             comparison, name
                         )
+                    if name == "Celeresto" and not sparse_full_page:
+                        primary = _clean_celeresto_core_prefixes(primary, name)
+                        comparison = _clean_celeresto_core_prefixes(comparison, name)
                     if name == "Bulezau" and not sparse_full_page:
                         primary = _restore_bulezau_title_from_local_trait(primary, name)
                         comparison = _restore_bulezau_title_from_local_trait(
