@@ -2503,7 +2503,6 @@ def _restore_mulo_sparse_title_from_anchor(
     return f"{target_name.upper()}\n{page_text.lstrip()}"
 
 
-
 def _repair_orso_sparse_structure_from_anchor(
     page_text: str,
     target_name: str,
