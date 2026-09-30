@@ -6230,9 +6230,7 @@ async def _run(args: argparse.Namespace) -> int:
 
         for report in pending_reports:
             expected_flags = sorted([OCR_REVIEW_FLAG, REPAIR_FLAG])
-            actual_flags = sorted(
-                str(flag) for flag in report["after"]["review_flags"]
-            )
+            actual_flags = sorted(str(flag) for flag in report["after"]["review_flags"])
             if actual_flags != expected_flags:
                 raise RuntimeError(
                     "Player's Handbook unexpected pending proposal flags for "
