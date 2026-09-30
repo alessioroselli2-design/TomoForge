@@ -872,6 +872,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
+    "Brontosauro": "right",  # Page 96: stat block right; title in prose left
     "Arciere": "right",  # Page 55: prose/table left, stat block right
     "Addolorato Affamato": "right",
     "Altisauro": "left",
@@ -3678,7 +3679,7 @@ def _micro_ocr_hit_points_line(
         "-l",
         languages,
         "--psm",
-        str(psm),
+        str(11 if name == "Brontosauro" and psm == 4 else psm),
         "tsv",
         "quiet",
     ]
@@ -4469,7 +4470,7 @@ def _ocr_source_window(
         # detached fragments from the adjacent right-column prose.
         segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
         column_overlap = 0.0
-    if not sparse_full_page and name in {"Berretto Rosso", "Bodak", "Brontosauro"}:
+    if not sparse_full_page and name in {"Berretto Rosso", "Bodak"}:
         # Pages 69/73: exclude left-column narrative from the right stat block.
         segments = (("right", (0.5, 0.0, 1.0, 1.0)),)
         column_overlap = 0.0
