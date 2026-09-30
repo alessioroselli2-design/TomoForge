@@ -2872,6 +2872,8 @@ def _restore_delfino_title_from_local_traits(page_text: str, target_name: str) -
         for index, line in enumerate(normalized)
         if line == "bestia media senza allineamento"
     ]
+    if len(descriptors) != 1:
+        return page_text
     patterns = (
         r"\bClasse\s+Armatura\s+12\s*\(\s*armatura\s+naturale\s*\)",
         r"^\s*Punti\s+Ferita\s+11\s*\(",
@@ -2881,7 +2883,8 @@ def _restore_delfino_title_from_local_traits(page_text: str, target_name: str) -
         [
             index
             for index, line in enumerate(lines)
-            if re.search(pattern, line, re.IGNORECASE)
+            if descriptors[0] < index <= descriptors[0] + 8
+            and re.search(pattern, line, re.IGNORECASE)
         ]
         for pattern in patterns
     ]
