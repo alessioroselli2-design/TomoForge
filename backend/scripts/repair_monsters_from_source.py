@@ -5849,6 +5849,25 @@ async def _repair_one(
                 .get("sparse-full", {})
             ).get("sparse_anchor_found")
         )
+        if str(record.get("name") or "") == "Addolorato Affamato":
+            print(
+                "MPMM_ADDOLORATO_AFFAMATO_SPARSE_TEXT "
+                + json.dumps(
+                    {
+                        "primary": [
+                            {"page": page, "text": text[:5000]}
+                            for page, text in primary_pages
+                        ],
+                        "comparison": [
+                            {"page": page, "text": text[:5000]}
+                            for page, text in comparison_pages
+                        ],
+                        "anchor_verified": sparse_anchor_verified,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
         candidate = _agreed_target_candidate(
             primary_pages,
             comparison_pages,
