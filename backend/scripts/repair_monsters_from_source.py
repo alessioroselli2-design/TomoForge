@@ -5253,6 +5253,7 @@ def _ocr_source_window(
                         "Cervello Antico",
                         "Collezionista Di Cadaveri",
                         "Delfino",
+                        "Derro",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
@@ -5606,6 +5607,7 @@ def _agreed_target_candidate(
         "Brontosauro",
         "Bulezau",
         "Celeresto",
+        "Derro",
     }:
         print(
             "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
