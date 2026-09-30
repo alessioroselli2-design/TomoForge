@@ -2456,6 +2456,69 @@ def _restore_cavallo_sparse_title_from_anchor(
     return repaired
 
 
+def _repair_orso_sparse_structure_from_anchor(
+    page_text: str,
+    target_name: str,
+    *,
+    unique_anchor_found: bool,
+) -> str:
+    """Normalize only Orso Bruno structure inside one verified sparse crop."""
+    if target_name != "Orso Bruno" or not unique_anchor_found:
+        return page_text
+
+    raw_lines = page_text.splitlines()
+    patterns = {
+        "descriptor": re.compile(r"\bBestia\s+Gronde\b", re.IGNORECASE),
+        "ca": re.compile(r"\bClasse(?:\s+d['’])?\s+Armatura\b", re.IGNORECASE),
+        "hp": re.compile(r"\bPunti\s+Ferita\b", re.IGNORECASE),
+        "speed": re.compile(r"\bVelocit[àa]\b", re.IGNORECASE),
+    }
+    matches: dict[str, list[tuple[int, re.Match[str]]]] = {}
+    for key, pattern in patterns.items():
+        matches[key] = [
+            (index, match)
+            for index, line in enumerate(raw_lines)
+            for match in [pattern.search(line)]
+            if match is not None
+        ]
+    if any(len(items) != 1 for items in matches.values()):
+        return page_text
+
+    descriptor_index = matches["descriptor"][0][0]
+    ca_index = matches["ca"][0][0]
+    hp_index = matches["hp"][0][0]
+    speed_index = matches["speed"][0][0]
+    if not (
+        descriptor_index < ca_index < hp_index < speed_index
+        and speed_index - descriptor_index <= 8
+    ):
+        return page_text
+
+    repaired_lines = list(raw_lines)
+    descriptor_match = matches["descriptor"][0][1]
+    descriptor_tail = repaired_lines[descriptor_index][descriptor_match.start() :]
+    repaired_lines[descriptor_index] = re.sub(
+        r"\bBestia\s+Gronde\b",
+        "Bestia Grande",
+        descriptor_tail,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    for key in ("ca", "hp", "speed"):
+        index, match = matches[key][0]
+        repaired_lines[index] = repaired_lines[index][match.start() :]
+
+    if not any(
+        _micro_target_line_matches(line, target_name) for line in repaired_lines
+    ):
+        repaired_lines.insert(0, target_name.upper())
+
+    repaired = "\n".join(repaired_lines)
+    if page_text.endswith("\n"):
+        repaired += "\n"
+    return repaired
+
+
 def _collapse_identical_hp_indexes(
     text_lines: list[str],
     indexes: list[int],
@@ -4051,6 +4114,40 @@ def _ocr_source_window(
                                     "segment": segment_name,
                                     "source": "unique_psm11_anchor",
                                     "values_modified": False,
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
+
+                    repaired_orso_primary = _repair_orso_sparse_structure_from_anchor(
+                        primary,
+                        name,
+                        unique_anchor_found=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
+                    repaired_orso_comparison = _repair_orso_sparse_structure_from_anchor(
+                        comparison,
+                        name,
+                        unique_anchor_found=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
+                    if (
+                        repaired_orso_primary != primary
+                        or repaired_orso_comparison != comparison
+                    ):
+                        primary = repaired_orso_primary
+                        comparison = repaired_orso_comparison
+                        print(
+                            "PHB_ORSO_STRUCTURE_RESTORE "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "segment": segment_name,
+                                    "source": "unique_psm11_anchor",
+                                    "numeric_values_modified": False,
                                 },
                                 ensure_ascii=False,
                                 sort_keys=True,
