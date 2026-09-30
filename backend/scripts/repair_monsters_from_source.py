@@ -2351,6 +2351,11 @@ def _sparse_anchor_crop_fractions(
         x0, x1 = 0.42, 1.0
     title_height = max(1, bottom - top)
     y0_pixels = max(0, top - max(title_height * 2, int(height * 0.015)))
+    if target_name == "Adrosauro":
+        # The source-verified stat block is entirely in the left column;
+        # exclude the adjacent Deinonychus block and decorative rule above it.
+        x0, x1 = 0.0, 0.5
+        y0_pixels = max(0, top - max(1, title_height // 3))
     y1 = PHB_SPARSE_BOTTOM_FRACTION_BY_NAME.get(target_name, 1.0)
     if y1 <= y0_pixels / height:
         raise RepairBlocked(
