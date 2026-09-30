@@ -2603,3 +2603,48 @@ def test_bodak_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
         assert "948" in result[1]
     else:
         assert result == (primary, comparison)
+
+def test_brontosauro_comparison_hp_keeps_independent_geometry_and_numeric_modes(tmp_path):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "brontosauro.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "BRONTOSAURO\n"
+        "Bestia Mastodontica (Dinosauro), senza allineamento\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 121 (9420 + 27)\n"
+        "Velocità 9 m\n"
+    )
+    rows = [
+        (30, ["BRONTOSAURO"]),
+        (60, ["Classe", "Armatura", "15"]),
+        (90, ["Punti", "Ferita", "121", "(9420", "+", "27)"]),
+        (120, ["Velocità", "9", "m"]),
+    ]
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "121 (9d20 + 27)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Brontosauro")
+    assert result == text.replace("9420", "9d20")
+    assert commands[0][commands[0].index("--psm") + 1] == "11"
+    assert all(
+        command[command.index("--psm") + 1] == "6" for command in commands[1:]
+    )
