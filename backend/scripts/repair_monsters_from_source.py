@@ -1070,6 +1070,15 @@ PHB_SOURCE_REVIEWED_CA_BY_NAME = {
 }
 
 
+PHB_SOURCE_REVIEWED_CORE_BY_NAME = {
+    "Gufo": {
+        "classe_armatura": "11",
+        "punti_ferita": "1 (1d4 - 1)",
+        "velocita": "1,5 m, volare 18 m",
+    },
+}
+
+
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     """Preserve the source-anchored PHB crop for quality preprocessing."""
     return target_clip
@@ -4669,6 +4678,96 @@ def _agreed_target_candidate(
             ]
             if len(best) == 1:
                 matches = best
+
+    if target_name in PHB_SOURCE_REVIEWED_CORE_BY_NAME:
+        target_normalized = normalize_reference_name(target_name)
+        primary_targets = [
+            candidate
+            for candidate in primary
+            if _candidate_matches_target(candidate, target_name, target_page)
+        ]
+        comparison_targets = [
+            candidate
+            for candidate in comparison
+            if _candidate_matches_target(candidate, target_name, target_page)
+        ]
+        if len(primary_targets) == 1 and len(comparison_targets) == 1:
+            primary_target = primary_targets[0]
+            comparison_target = comparison_targets[0]
+            primary_name = str(
+                primary_target.get("normalized_name")
+                or primary_target.get("name")
+                or ""
+            )
+            comparison_name = str(
+                comparison_target.get("normalized_name")
+                or comparison_target.get("name")
+                or ""
+            )
+            primary_attributes = primary_target.get("attributes") or {}
+            comparison_attributes = comparison_target.get("attributes") or {}
+            deterministic = deterministic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            primary_flags = monster_semantic_numeric_flags(primary_attributes)
+            comparison_flags = monster_semantic_numeric_flags(comparison_attributes)
+            speed_primary = str(primary_attributes.get("velocita") or "").casefold()
+            speed_comparison = str(
+                comparison_attributes.get("velocita") or ""
+            ).casefold()
+            same_identity = (
+                primary_name == target_normalized
+                and comparison_name == target_normalized
+            )
+            same_page = (
+                int(primary_target.get("start_page") or 0) == target_page
+                and int(comparison_target.get("start_page") or 0) == target_page
+            )
+            independent_ca_agreement = bool(
+                deterministic.get("classe_armatura_deterministic_match", False)
+            )
+            both_hp_invalid = (
+                HP_FORMAT_ERROR_FLAG in primary_flags
+                and HP_FORMAT_ERROR_FLAG in comparison_flags
+            )
+            speed_shape_agreement = (
+                "volare" in speed_primary
+                and "volare" in speed_comparison
+                and "18" in speed_primary
+                and "18" in speed_comparison
+                and deterministic.get("velocita_deterministic_match", False)
+            )
+            if (
+                same_identity
+                and same_page
+                and independent_ca_agreement
+                and both_hp_invalid
+                and speed_shape_agreement
+            ):
+                source_reviewed_core = PHB_SOURCE_REVIEWED_CORE_BY_NAME[target_name]
+                candidate = dict(primary_target)
+                candidate["attributes"] = dict(source_reviewed_core)
+                candidate_gate_failures = monster_semantic_numeric_flags(
+                    candidate["attributes"]
+                )
+                if not candidate_gate_failures:
+                    print(
+                        "PHB_SOURCE_REVIEWED_CORE_FALLBACK "
+                        + json.dumps(
+                            {
+                                "name": target_name,
+                                "page": target_page,
+                                "fields": sorted(source_reviewed_core),
+                                "independent_ca_agreement": True,
+                                "independent_speed_shape_agreement": True,
+                                "source": "2014_basic_rules_plus_phb_metric_layout",
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                    )
+                    return candidate
 
     if len(matches) != 1:
         core_fields = ("classe_armatura", "punti_ferita", "velocita")
