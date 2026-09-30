@@ -4612,7 +4612,10 @@ def _ocr_source_window(
                     if (
                         sparse_full_page
                         and page_number == target_page
-                        and (name in PHB_SPARSE_QUALITY_CONTEXT_TARGETS or name == "Adrosauro")
+                        and (
+                            name in PHB_SPARSE_QUALITY_CONTEXT_TARGETS
+                            or name == "Adrosauro"
+                        )
                         and sparse_anchor_crop is not None
                         and (sparse_anchor_crop[3] < 1.0 or name == "Adrosauro")
                     ):
