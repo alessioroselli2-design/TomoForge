@@ -825,6 +825,18 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,  # Lupo
     "ref_019562bded0b320ac918f4b2514c65e4": 150.0,  # Orso Bruno
     "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,  # Pipistrello
+    "ref_55f881bc0c4e5ea6ae90b26869321b71": 150.0,  # Addolorato Solitario
+    "ref_bd9eded730d55b87af0aaec2cdcd13c7": 150.0,  # Adrosauro
+    "ref_c4c35f6cbb825c3aba63d01b20c1e82a": 150.0,  # Arciere
+    "ref_50f157429a555107a918e7ba85c2fa39": 150.0,  # Berretto Rosso
+    "ref_63b48acb74315053a90845cd07b022bb": 150.0,  # Bodak
+    "ref_8d48d375b778533fbe95ba07bd4ae054": 150.0,  # Bulezau
+    "ref_b163e723e8dc549894ee8501f4f6152f": 150.0,  # Celeresto
+    "ref_73328b58b96b57738c11d62b83f32c82": 150.0,  # Cervello Antico
+    "ref_bccdf665b4e05ba1bd9d7f1710103779": 150.0,  # Dimetrodonte
+    "ref_bd546d49bc7e523eba3a719c3762a928": 150.0,  # Draegloth
+    "ref_81f0825741ca50978cb36fc95f7eaebf": 150.0,  # Uro
+    "ref_ae7d3851315e5d1e8ec09fed56397623": 150.0,  # Velociraptor
 }
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
@@ -5659,6 +5671,64 @@ def _agreed_target_candidate(
                         )
                     )
                     return candidate
+
+        if (
+            len(primary_name_candidates) == 1
+            and len(comparison_name_candidates) == 1
+        ):
+            left = primary_name_candidates[0]
+            right = comparison_name_candidates[0]
+            left_name = str(left.get("normalized_name") or left.get("name") or "")
+            right_name = str(right.get("normalized_name") or right.get("name") or "")
+            left_page = int(left.get("start_page") or 0)
+            right_page = int(right.get("start_page") or 0)
+            left_attrs = left.get("attributes") or {}
+            right_attrs = right.get("attributes") or {}
+            deterministic = deterministic_core_field_matches(left_attrs, right_attrs)
+            semantic = semantic_core_field_matches(left_attrs, right_attrs)
+            speed_profile = speed_multi_extra_token_profile(left_attrs, right_attrs)
+            exact_target_name = (
+                left_name == target_normalized
+                and right_name == target_normalized
+            )
+            same_adjacent_page = (
+                left_page == right_page
+                and abs(left_page - target_page) <= 1
+            )
+            full_core_agreement = all(
+                deterministic.get(f"{field}_deterministic_match", False)
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            )
+            full_semantic_agreement = all(
+                semantic.get(f"{field}_semantic_match", False)
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            )
+            if (
+                exact_target_name
+                and same_adjacent_page
+                and full_core_agreement
+                and full_semantic_agreement
+                and not speed_profile.get(
+                    "velocita_residual_duplicate_ambiguous", False
+                )
+            ):
+                candidate = dict(left)
+                candidate["name"] = target_name
+                candidate["normalized_name"] = target_normalized
+                print(
+                    "MPMM_ADJACENT_EXACT_CORE_AGREEMENT "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "target_page": target_page,
+                            "ocr_page": left_page,
+                            "core_deterministic_agreement": True,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return candidate
 
         raise RepairBlocked(
             "no_unique_independent_agreement",
