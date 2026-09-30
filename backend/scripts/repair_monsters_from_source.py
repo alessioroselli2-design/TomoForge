@@ -2662,6 +2662,75 @@ def _restore_arciere_title_from_local_actions(page_text: str, target_name: str) 
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _restore_bael_title_from_local_actions(page_text: str, target_name: str) -> str:
+    """Reanchor Bael only from explicit self-references beside ordered core rows."""
+    if target_name != "Bael":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    if any(_sparse_anchor_matches(line, target_name) for line in lines):
+        return page_text
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if "immondo grande diavolo" in line and "legale malvagio" in line
+    ]
+    patterns = (
+        r"\bClasse\s+Armatura\s+18\s*\(\s*piastre\s*\)",
+        r"\bPunti\s+Ferita\s+189\s*\(",
+        r"\bVelocit[àa]\s+9\s*m\b",
+    )
+    core_indexes = [
+        [
+            index
+            for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    actions = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("multiattacco bael effettua")
+    ]
+    resistance = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("resistenza leggendaria") and "bael" in line
+    ]
+    if not (
+        len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(actions) == 1
+        and len(resistance) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        descriptor < ca < hp < speed < resistance[0] < actions[0]
+        and speed - descriptor <= 10
+    ):
+        return page_text
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_BAEL_TITLE_FROM_ACTIONS "
+        + json.dumps(
+            {
+                "name": target_name,
+                "identity_evidence": [
+                    page_text.splitlines()[resistance[0]],
+                    page_text.splitlines()[actions[0]],
+                ],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _restore_cavallo_sparse_title_from_anchor(
     page_text: str,
     target_name: str,
@@ -4394,8 +4463,15 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    if name == "Bael" and not sparse_full_page:
+                        primary = _restore_bael_title_from_local_actions(primary, name)
+                        comparison = _restore_bael_title_from_local_actions(
+                            comparison, name
+                        )
                     if name == "Arciere" and not sparse_full_page:
-                        primary = _restore_arciere_title_from_local_actions(primary, name)
+                        primary = _restore_arciere_title_from_local_actions(
+                            primary, name
+                        )
                         comparison = _restore_arciere_title_from_local_actions(
                             comparison, name
                         )
