@@ -6130,7 +6130,7 @@ async def _repair_one(
                 sort_keys=True,
             )
         )
-        if str(record.get("name") or "") == "Addolorato Affamato" and overlap == 0.02:
+        if str(record.get("name") or "") in {"Addolorato Affamato", "Adrosauro"} and overlap == 0.02:
             print(
                 "MPMM_ADDOLORATO_AFFAMATO_DYNAMIC_TEXT "
                 + json.dumps(
@@ -6256,7 +6256,7 @@ async def _repair_one(
                 .get("sparse-full", {})
             ).get("sparse_anchor_found")
         )
-        if str(record.get("name") or "") == "Addolorato Smarrito":
+        if str(record.get("name") or "") in {"Addolorato Smarrito", "Adrosauro"}:
             print(
                 "MPMM_ADDOLORATO_SMARRITO_SPARSE_TEXT "
                 + json.dumps(
