@@ -71,7 +71,7 @@ jobs:
           import json
           from pathlib import Path
 
-          log_path = Path('/tmp/players-handbook-dry-run.log')
+          log_path = Path('/tmp/players-handbook-31-dry-run.log')
           lines = log_path.read_text(encoding='utf-8').splitlines()
           try:
               marker = len(lines) - 1 - lines[::-1].index('FINAL_REPORT')
