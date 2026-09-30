@@ -867,6 +867,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
+    "Arciere": "right",  # Page 55: prose/table left, stat block right
     "Addolorato Affamato": "right",
     "Altisauro": "left",
     "Bael": "left",
@@ -2590,6 +2591,75 @@ def _restore_addolorato_affamato_dynamic_title(
     if page_text.endswith("\n"):
         repaired += "\n"
     return repaired
+
+
+def _restore_arciere_title_from_local_actions(page_text: str, target_name: str) -> str:
+    """Reanchor Arciere identity from two explicit self-references in its block."""
+    if target_name != "Arciere":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    if any(_sparse_anchor_matches(line, target_name) for line in lines):
+        return page_text
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if "umanoide medio" in line and "qualsiasi allineamento" in line
+    ]
+    patterns = (
+        r"\bClasse\s+Armatura\s+16\s*\(\s*cuoio\s+borchiato\s*\)",
+        r"\bPunti\s+Ferita\s+75\s*\(\s*10d8\s*\+\s*30\s*\)",
+        r"\bVelocit[àa]\s+9\s*m\b",
+    )
+    core_indexes = [
+        [
+            index
+            for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    multiattack = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("multiattacco l arciere effettua")
+    ]
+    eye = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("occhio dell arciere")
+    ]
+    if not (
+        len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(multiattack) == 1
+        and len(eye) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        descriptor < ca < hp < speed < multiattack[0] < eye[0]
+        and speed - descriptor <= 10
+    ):
+        return page_text
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_ARCIERE_TITLE_FROM_ACTIONS "
+        + json.dumps(
+            {
+                "name": target_name,
+                "identity_evidence": [
+                    page_text.splitlines()[multiattack[0]],
+                    page_text.splitlines()[eye[0]],
+                ],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
 def _restore_cavallo_sparse_title_from_anchor(
@@ -4324,6 +4394,11 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    if name == "Arciere" and not sparse_full_page:
+                        primary = _restore_arciere_title_from_local_actions(primary, name)
+                        comparison = _restore_arciere_title_from_local_actions(
+                            comparison, name
+                        )
                     if name == "Addolorato Affamato" and not sparse_full_page:
                         restored_affamato_primary = (
                             _restore_addolorato_affamato_dynamic_title(
