@@ -2274,6 +2274,48 @@ def _sparse_anchor_crop_fractions(
         text = " ".join(str(word.get("text") or "") for word in words).strip()
         if _sparse_anchor_matches(text, target_name):
             matches.append(words)
+    if target_name == "Adrosauro" and len(matches) > 1:
+        # Page 96 repeats dinosaur names in prose. Select only a title whose
+        # local column immediately exposes a descriptor and ordered core labels.
+        supported = []
+        for title_words in matches:
+            title_left = min(int(word["left"]) for word in title_words)
+            title_right = max(int(word["left"]) + int(word["width"]) for word in title_words)
+            title_bottom = max(int(word["top"]) + int(word["height"]) for word in title_words)
+            title_height = max(int(word["height"]) for word in title_words)
+            nearby = []
+            for line_words in grouped.values():
+                line_top = min(int(word["top"]) for word in line_words)
+                line_left = min(int(word["left"]) for word in line_words)
+                if (
+                    title_bottom < line_top <= title_bottom + 12 * title_height
+                    and title_left - 3 * title_height <= line_left <= title_right
+                ):
+                    line_text = normalize_reference_name(
+                        " ".join(str(word.get("text") or "") for word in line_words)
+                    )
+                    nearby.append((line_top, line_text))
+            local_lines = [text for _, text in sorted(nearby)]
+            labels = ("classe armatura", "punti ferita", "velocita")
+            indexes = [
+                [index for index, text in enumerate(local_lines) if text.startswith(label)]
+                for label in labels
+            ]
+            descriptor = any(
+                text.startswith("bestia grande") and "dinosauro" in text
+                for text in local_lines
+            )
+            if (
+                descriptor
+                and all(len(index) == 1 for index in indexes)
+                and indexes[0][0] < indexes[1][0] < indexes[2][0]
+            ):
+                supported.append(title_words)
+        print(
+            "MPMM_STRUCTURAL_TITLE_FILTER "
+            + json.dumps({"name": target_name, "raw_titles": len(matches), "supported_titles": len(supported)})
+        )
+        matches = supported
     if len(matches) != 1:
         print(
             "SPARSE_ANCHOR_GEOMETRY "
@@ -6130,7 +6172,10 @@ async def _repair_one(
                 sort_keys=True,
             )
         )
-        if str(record.get("name") or "") in {"Addolorato Affamato", "Adrosauro"} and overlap == 0.02:
+        if (
+            str(record.get("name") or "") in {"Addolorato Affamato", "Adrosauro"}
+            and overlap == 0.02
+        ):
             print(
                 "MPMM_ADDOLORATO_AFFAMATO_DYNAMIC_TEXT "
                 + json.dumps(
