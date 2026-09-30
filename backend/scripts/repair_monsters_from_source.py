@@ -4590,7 +4590,9 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
-    if not sparse_full_page and name in {"Berbalang", "Bove Fetente"}:
+    if not sparse_full_page and name in {
+        "Berbalang", "Bove Fetente", "Collezionista Di Cadaveri"
+    }:
         # Pages 68/70: left stat blocks; center overlap captures
         # detached fragments from the adjacent right-column prose.
         segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
@@ -6838,7 +6840,13 @@ async def _repair_one(
             selected_overlap = (
                 0.0
                 if source_target_name
-                in {"Berbalang", "Berretto Rosso", "Bodak", "Bove Fetente"}
+                in {
+                    "Berbalang",
+                    "Berretto Rosso",
+                    "Bodak",
+                    "Bove Fetente",
+                    "Collezionista Di Cadaveri",
+                }
                 else overlap
             )
             break
