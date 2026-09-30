@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_bd9eded730d55b87af0aaec2cdcd13c7",  # Adrosauro: sole source reference, page 96
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
     "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
@@ -1116,7 +1117,6 @@ MPMM_SOURCE_REVIEWED_CORE_BY_NAME = {
         "velocita": "12 m",
     },
 }
-
 
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
@@ -2471,10 +2471,7 @@ def _restore_addolorato_affamato_dynamic_title(
     descriptor_indexes = [
         index
         for index, line in enumerate(normalized_lines)
-        if (
-            "mostruosita media" in line
-            and "neutrale malvagia" in line
-        )
+        if ("mostruosita media" in line and "neutrale malvagia" in line)
     ]
     ca_indexes = [
         index
@@ -4949,8 +4946,7 @@ def _agreed_target_candidate(
             primary_attributes = primary_deforme[0].get("attributes") or {}
             comparison_attributes = comparison_deforme[0].get("attributes") or {}
             if (
-                primary_attributes.get("classe_armatura")
-                == "15 (armatura naturale)"
+                primary_attributes.get("classe_armatura") == "15 (armatura naturale)"
                 and primary_attributes.get("punti_ferita") == "10 (4d6 - 4)"
                 and primary_attributes.get("velocita") == "12 m"
                 and comparison_attributes.get("classe_armatura")
@@ -5637,10 +5633,10 @@ def _agreed_target_candidate(
             )
             primary_page = int(primary_target.get("start_page") or 0)
             comparison_page = int(comparison_target.get("start_page") or 0)
-            adjacent_same_page = (
-                primary_page == comparison_page
-                and primary_page in {target_page, target_page + 1}
-            )
+            adjacent_same_page = primary_page == comparison_page and primary_page in {
+                target_page,
+                target_page + 1,
+            }
             source_reviewed_core = MPMM_SOURCE_REVIEWED_CORE_BY_NAME[target_name]
             source_supported = (
                 adjacent_same_page
@@ -5677,10 +5673,7 @@ def _agreed_target_candidate(
                     )
                     return candidate
 
-        if (
-            len(primary_name_candidates) == 1
-            and len(comparison_name_candidates) == 1
-        ):
+        if len(primary_name_candidates) == 1 and len(comparison_name_candidates) == 1:
             left = primary_name_candidates[0]
             right = comparison_name_candidates[0]
             left_name = str(left.get("normalized_name") or left.get("name") or "")
@@ -5693,12 +5686,10 @@ def _agreed_target_candidate(
             semantic = semantic_core_field_matches(left_attrs, right_attrs)
             speed_profile = speed_multi_extra_token_profile(left_attrs, right_attrs)
             exact_target_name = (
-                left_name == target_normalized
-                and right_name == target_normalized
+                left_name == target_normalized and right_name == target_normalized
             )
             same_adjacent_page = (
-                left_page == right_page
-                and abs(left_page - target_page) <= 1
+                left_page == right_page and abs(left_page - target_page) <= 1
             )
             full_core_agreement = all(
                 deterministic.get(f"{field}_deterministic_match", False)
@@ -5802,10 +5793,10 @@ def build_repair_proposal(
                 or compact_name_containment_match(candidate_name, legacy_name)
                 or compact_name_bounded_edit_match(candidate_name, legacy_name)
             )
-            rabbioso_suffix_match = (
-                str(legacy.get("id") or "")
-                == "ref_a99ccaba6e535852ab3db93771e9335c"
-                and candidate_name.endswith("rabbioso")
+            rabbioso_suffix_match = str(
+                legacy.get("id") or ""
+            ) == "ref_a99ccaba6e535852ab3db93771e9335c" and candidate_name.endswith(
+                "rabbioso"
             )
             allow_abishai_nero_name_noise = (
                 bool(legacy_pages & candidate_pages)
@@ -6139,10 +6130,7 @@ async def _repair_one(
                 sort_keys=True,
             )
         )
-        if (
-            str(record.get("name") or "") == "Addolorato Affamato"
-            and overlap == 0.02
-        ):
+        if str(record.get("name") or "") == "Addolorato Affamato" and overlap == 0.02:
             print(
                 "MPMM_ADDOLORATO_AFFAMATO_DYNAMIC_TEXT "
                 + json.dumps(
