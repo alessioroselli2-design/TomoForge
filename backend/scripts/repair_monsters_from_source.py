@@ -2687,6 +2687,7 @@ def _micro_ocr_cinghiale_armor_class_line(
     micro_psm: int,
     scale_factor: int,
     pass_label: str,
+    otsu_inverted: bool = False,
     ocr_budget_started_at: float | tuple[float, float] | None = None,
     single_target_geometry: bool = False,
 ) -> str:
@@ -2850,6 +2851,14 @@ def _micro_ocr_cinghiale_armor_class_line(
             crop_width * scale_factor,
             crop_height * scale_factor,
         )
+    if otsu_inverted:
+        crop_pixmap = fitz.Pixmap(
+            fitz.csGRAY,
+            crop_pixmap.width,
+            crop_pixmap.height,
+            _otsu_inverted_samples(crop_pixmap.samples),
+            False,
+        )
 
     with tempfile.TemporaryDirectory(
         prefix=f"tomoforge-cinghiale-ca-{pass_label}-"
@@ -2897,6 +2906,7 @@ def _micro_ocr_cinghiale_armor_class_line(
                 "value": candidate_value,
                 "psm": micro_psm,
                 "scale_factor": scale_factor,
+                "otsu_inverted": otsu_inverted,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -4051,8 +4061,9 @@ def _ocr_source_window(
                         primary,
                         name,
                         micro_psm=7,
-                        scale_factor=1,
+                        scale_factor=4,
                         pass_label="primary",
+                        otsu_inverted=False,
                         ocr_budget_started_at=ocr_budget_started_at,
                         single_target_geometry=bool(
                             sparse_full_page and sparse_anchor_found
@@ -4063,9 +4074,10 @@ def _ocr_source_window(
                         languages,
                         comparison,
                         name,
-                        micro_psm=8,
-                        scale_factor=2,
+                        micro_psm=10,
+                        scale_factor=4,
                         pass_label="comparison",
+                        otsu_inverted=True,
                         ocr_budget_started_at=ocr_budget_started_at,
                         single_target_geometry=bool(
                             sparse_full_page and sparse_anchor_found
