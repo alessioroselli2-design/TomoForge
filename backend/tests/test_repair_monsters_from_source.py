@@ -2648,3 +2648,34 @@ def test_brontosauro_comparison_hp_keeps_independent_geometry_and_numeric_modes(
     assert all(
         command[command.index("--psm") + 1] == "6" for command in commands[1:]
     )
+
+@pytest.mark.parametrize("mutation", ["none", "missing_identity", "duplicate_core", "existing_title"])
+def test_bulezau_title_restore_requires_observed_heading_and_local_trait(mutation):
+    from scripts.repair_monsters_from_source import _restore_bulezau_title_from_local_trait
+
+    text = (
+        "BULEZAU\n"
+        "Test sintetico di prosa introduttiva.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Immondo Medio (Demone), generalmente caotico malvagio\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 52 (7d8 + 21)\n"
+        "Velocità 12 m\n"
+        "Presenza putrescente. Una creatura che non sia un\n"
+        "demone inizia il suo turno entro 9 metri dal bulezau, test.\n"
+    )
+    if mutation == "missing_identity":
+        text = text.replace("dal bulezau", "dal demone")
+    elif mutation == "duplicate_core":
+        text += "Classe Armatura 14 (armatura naturale)\n"
+    elif mutation == "existing_title":
+        text = text.replace("Immondo Medio", "BULEZAU\nImmondo Medio")
+    result = _restore_bulezau_title_from_local_trait(text, "Bulezau")
+    if mutation == "none":
+        assert result.replace("BULEZAU\nImmondo", "Immondo", 1) == text
+    else:
+        assert result == text
+    assert _restore_bulezau_title_from_local_trait(text, "Babau") == text
