@@ -2466,6 +2466,50 @@ def _restore_cavallo_sparse_title_from_anchor(
     return repaired
 
 
+def _restore_mulo_sparse_title_from_anchor(
+    page_text: str,
+    target_name: str,
+    *,
+    unique_anchor_found: bool,
+) -> str:
+    """Restore only Mulo identity after one verified sparse title anchor."""
+    if target_name != "Mulo" or not unique_anchor_found:
+        return page_text
+
+    lines = [line for line in page_text.splitlines() if line.strip()]
+    if any(_micro_target_line_matches(line, target_name) for line in lines):
+        return page_text
+
+    normalized = [normalize_reference_name(line) for line in lines]
+    marker_indexes = {
+        "ca": [
+            index
+            for index, line in enumerate(normalized)
+            if "classe armatura" in line or "classe d armatura" in line
+        ],
+        "hp": [
+            index
+            for index, line in enumerate(normalized)
+            if "punti ferita" in line
+        ],
+        "speed": [
+            index
+            for index, line in enumerate(normalized)
+            if "velocita" in line
+        ],
+    }
+    if any(len(indexes) != 1 for indexes in marker_indexes.values()):
+        return page_text
+    ca_index = marker_indexes["ca"][0]
+    hp_index = marker_indexes["hp"][0]
+    speed_index = marker_indexes["speed"][0]
+    if not (ca_index < hp_index < speed_index and speed_index - ca_index <= 6):
+        return page_text
+
+    return f"{target_name.upper()}\n{page_text.lstrip()}"
+
+
+
 def _repair_orso_sparse_structure_from_anchor(
     page_text: str,
     target_name: str,
@@ -4114,6 +4158,28 @@ def _ocr_source_window(
                             sparse_full_page and sparse_anchor_found
                         ),
                     )
+                    restored_mulo_comparison = _restore_mulo_sparse_title_from_anchor(
+                        comparison,
+                        name,
+                        unique_anchor_found=bool(
+                            sparse_full_page and sparse_anchor_found
+                        ),
+                    )
+                    if restored_mulo_comparison != comparison:
+                        comparison = restored_mulo_comparison
+                        print(
+                            "PHB_MULO_TITLE_ANCHOR_RESTORE "
+                            + json.dumps(
+                                {
+                                    "name": name,
+                                    "segment": segment_name,
+                                    "source": "unique_psm11_anchor",
+                                    "values_modified": False,
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        )
                     if restored_comparison != comparison:
                         comparison = restored_comparison
                         print(
