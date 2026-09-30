@@ -2424,3 +2424,36 @@ def test_adrosauro_duplicate_titles_require_one_ordered_local_statblock(
         assert 0.45 < crop[1] < 0.55
     else:
         assert crop is None
+
+
+@pytest.mark.parametrize(
+    ("mutation", "accepted"),
+    [("none", True), ("duplicate_hp", False), ("missing_eye", False), ("wrong_ca", False)],
+)
+def test_arciere_action_identity_restore_requires_unique_local_evidence(mutation, accepted):
+    from scripts.repair_monsters_from_source import _restore_arciere_title_from_local_actions
+
+    text = (
+        "OCR title debris\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 16 (cuoio borchiato)\n"
+        "Punti Ferita 75 (10d8 + 30)\n"
+        "Velocità 9 m\n"
+        "AZIONI\n"
+        "Multiattacco. L'arciere effettua attacchi.\n"
+        "AZIONI BONUS\n"
+        "Occhio dell'arciere. Test sintetico.\n"
+    )
+    if mutation == "duplicate_hp":
+        text += "Punti Ferita 75 (10d8 + 30)\n"
+    elif mutation == "missing_eye":
+        text = text.replace("Occhio dell'arciere. Test sintetico.\n", "")
+    elif mutation == "wrong_ca":
+        text = text.replace("Armatura 16", "Armatura 17")
+    result = _restore_arciere_title_from_local_actions(text, "Arciere")
+    if accepted:
+        assert result.replace("ARCIERE\n", "", 1) == text
+        assert result.index("ARCIERE") < result.index("Umanoide")
+    else:
+        assert result == text
+    assert _restore_arciere_title_from_local_actions(text, "Babau") == text
