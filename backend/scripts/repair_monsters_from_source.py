@@ -5121,6 +5121,32 @@ def _agreed_target_candidate(
 
         primary_name_candidates = name_candidates(primary)
         comparison_name_candidates = name_candidates(comparison)
+        if target_name == "Abishai Verde":
+            print(
+                "MPMM_ABISHAI_VERDE_CORE_DIAGNOSTIC "
+                + json.dumps(
+                    {
+                        "primary": [
+                            {
+                                "name": item.get("name"),
+                                "page": item.get("start_page"),
+                                "attributes": item.get("attributes"),
+                            }
+                            for item in primary_name_candidates
+                        ],
+                        "comparison": [
+                            {
+                                "name": item.get("name"),
+                                "page": item.get("start_page"),
+                                "attributes": item.get("attributes"),
+                            }
+                            for item in comparison_name_candidates
+                        ],
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
         divergent_fields: set[str] = set()
         discarded_pairs: list[dict[str, Any]] = []
         exact_name_match_count = 0
