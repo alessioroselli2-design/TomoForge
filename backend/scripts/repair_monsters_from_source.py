@@ -1093,6 +1093,11 @@ def _phb_sparse_comparison_uses_grayscale_source(name: str) -> bool:
     return name == "Gufo"
 
 
+def _phb_sparse_primary_uses_grayscale_source(name: str) -> bool:
+    """Keep Gufo primary source grayscale; PSM still provides independence."""
+    return name == "Gufo"
+
+
 def _otsu_inverted_samples(samples: bytes) -> bytes:
     """Binarize grayscale samples with Otsu and invert to white-on-black."""
     if not samples:
@@ -3949,7 +3954,23 @@ def _ocr_source_window(
                                 False,
                             )
                             cleaned_quality.save(quality_image_path)
-                            image_path = quality_image_path
+                            if _phb_sparse_primary_uses_grayscale_source(name):
+                                image_path = comparison_source_path
+                                print(
+                                    "PHB_PRIMARY_GRAYSCALE_DIAGNOSTIC "
+                                    + json.dumps(
+                                        {
+                                            "name": name,
+                                            "segment": segment_name,
+                                            "render_scale_factor": 4,
+                                            "preprocessing": "grayscale_only",
+                                        },
+                                        ensure_ascii=False,
+                                        sort_keys=True,
+                                    )
+                                )
+                            else:
+                                image_path = quality_image_path
                             if not (
                                 _phb_sparse_comparison_uses_adaptive_source(name)
                                 or _phb_sparse_comparison_uses_grayscale_source(name)
