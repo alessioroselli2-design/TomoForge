@@ -5303,7 +5303,10 @@ def build_repair_proposal(
     candidate_name_flags = monster_identity_sanity_flags(candidate.get("name"))
     if candidate_name_flags:
         allow_abishai_nero_name_noise = False
-        if str(legacy.get("id") or "") == "ref_13c451b5c15a5014a05870c538c1027f":
+        if str(legacy.get("id") or "") in {
+            "ref_13c451b5c15a5014a05870c538c1027f",  # Abishai Nero
+            "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
+        }:
             legacy_name = normalize_reference_name(str(legacy.get("name") or ""))
             candidate_name = normalize_reference_name(str(candidate.get("name") or ""))
             legacy_pages = {
@@ -5336,7 +5339,7 @@ def build_repair_proposal(
         if not allow_abishai_nero_name_noise:
             raise RepairBlocked("repaired_candidate_corrupted_name")
         print(
-            "MPMM_ABISHAI_NERO_NAME_NOISE_ACCEPTED "
+            "MPMM_BOUNDED_NAME_NOISE_ACCEPTED "
             + json.dumps(
                 {
                     "record_id": legacy.get("id"),
