@@ -5221,6 +5221,93 @@ def _agreed_target_candidate(
                 )
 
         if (
+            target_name == "Abishai Verde"
+            and len(primary_targets) == 1
+            and len(comparison_targets) == 1
+        ):
+            primary_target = primary_targets[0]
+            comparison_target = comparison_targets[0]
+            primary_attributes = primary_target.get("attributes") or {}
+            comparison_attributes = dict(comparison_target.get("attributes") or {})
+
+            def _strip_abishai_verde_trailing_noise(value: Any) -> str:
+                return re.sub(
+                    r"\s+(?:[A-Za-zÀ-ÿ]{1,2})$",
+                    "",
+                    str(value or "").strip(),
+                ).strip()
+
+            cleaned_comparison = dict(comparison_attributes)
+            for field in ("classe_armatura", "velocita"):
+                cleaned_comparison[field] = _strip_abishai_verde_trailing_noise(
+                    cleaned_comparison.get(field)
+                )
+
+            primary_name = normalize_reference_name(
+                str(primary_target.get("name") or "")
+            )
+            comparison_name = normalize_reference_name(
+                str(comparison_target.get("name") or "")
+            )
+            target_normalized_name = normalize_reference_name(target_name)
+            semantic = semantic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            deterministic_after_cleanup = deterministic_core_field_matches(
+                primary_attributes,
+                cleaned_comparison,
+            )
+            source_supported = (
+                int(primary_target.get("start_page") or 0) == target_page
+                and int(comparison_target.get("start_page") or 0) == target_page
+                and primary_name == target_normalized_name
+                and (
+                    comparison_name == target_normalized_name
+                    or compact_name_containment_match(
+                        comparison_name,
+                        target_normalized_name,
+                    )
+                )
+                and all(
+                    semantic.get(f"{field}_semantic_match", False)
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                )
+                and all(
+                    deterministic_after_cleanup.get(
+                        f"{field}_deterministic_match", False
+                    )
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                )
+                and not monster_semantic_numeric_flags(primary_attributes)
+            )
+            if source_supported:
+                print(
+                    "MPMM_ABISHAI_VERDE_TRAILING_NOISE_ACCEPTED "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "page": target_page,
+                            "comparison_ca_before": comparison_attributes.get(
+                                "classe_armatura"
+                            ),
+                            "comparison_speed_before": comparison_attributes.get(
+                                "velocita"
+                            ),
+                            "comparison_ca_after": cleaned_comparison.get(
+                                "classe_armatura"
+                            ),
+                            "comparison_speed_after": cleaned_comparison.get(
+                                "velocita"
+                            ),
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return primary_target
+
+        if (
             target_name in PHB_SOURCE_REVIEWED_CA_BY_NAME
             and len(primary_targets) == 1
             and len(comparison_targets) == 1
