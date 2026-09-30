@@ -2529,3 +2529,31 @@ def test_bael_micro_ocr_uses_unique_ordered_core_row(tmp_path, duplicate_hp):
         assert result == text
     else:
         assert result == text.replace("189 (18410 + 90)", "189 (18d10 + 90)")
+
+@pytest.mark.parametrize("mutation", ["none", "missing_type", "duplicate_hp", "missing_trait"])
+def test_bodak_identity_requires_complete_independent_local_evidence(mutation):
+    from scripts.repair_monsters_from_source import _restore_bodak_title_from_local_traits
+
+    text = (
+        "OCR debris\n"
+        ". Non morto Medio, generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 58 (9d8 + 18)\n"
+        "Velocità 9 m\n"
+        "Ipersensibilità al sole. Il bodak subisce danni, test.\n"
+        "Natura insolita. Il bodak non necessita di respirare, test.\n"
+    )
+    if mutation == "missing_type":
+        text = text.replace("Non morto", "on morto")
+    elif mutation == "duplicate_hp":
+        text += "Punti Ferita 58 (9d8 + 18)\n"
+    elif mutation == "missing_trait":
+        text = text.replace(
+            "Natura insolita. Il bodak non necessita di respirare, test.\n", ""
+        )
+    result = _restore_bodak_title_from_local_traits(text, "Bodak")
+    if mutation == "none":
+        assert result.replace("BODAK\n", "", 1) == text.replace(". Non", "Non", 1)
+    else:
+        assert result == text
+    assert _restore_bodak_title_from_local_traits(text, "Babau") == text
