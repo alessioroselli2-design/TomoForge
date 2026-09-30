@@ -839,6 +839,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_ae7d3851315e5d1e8ec09fed56397623": 150.0,  # Velociraptor
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_55f881bc0c4e5ea6ae90b26869321b71": 47,  # Addolorato Solitario: page 45 is introductory prose
     "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 47,  # Addolorato Smarrito stat block
 }
 
