@@ -830,6 +830,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_1d4ca5e97a5850ba870ee0d9219d2bc9",  # Addolorato Smarrito
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
     "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
@@ -838,6 +839,10 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_7a8a7ac7d33c526486ec2e3ba1ed0b4b",  # Congreghe Di Megere
     "ref_20727b47fb7e5dc0b5e97867d8cdb6bc",  # Consigliere Imperituro
 }
+SOURCE_GUIDED_SPARSE_RETRY_IDS = {
+    "ref_1d4ca5e97a5850ba870ee0d9219d2bc9",  # Addolorato Smarrito
+}
+
 SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS = {
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
     "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
@@ -6030,6 +6035,20 @@ async def _repair_one(
             selected_overlap = overlap
             break
         except RepairBlocked as exc:
+            if (
+                record_id in SOURCE_GUIDED_SPARSE_RETRY_IDS
+                and exc.reason == "no_unique_independent_agreement"
+            ):
+                print(
+                    "MPMM_SOURCE_GUIDED_SPARSE_RETRY "
+                    + json.dumps(
+                        {"name": record.get("name"), "reason": exc.reason},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                sparse_retry_required = True
+                break
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
                 raise
             if (
@@ -6095,9 +6114,18 @@ async def _repair_one(
                 .get("sparse-full", {})
             ).get("sparse_anchor_found")
         )
-        if str(record.get("name") or "") == "Addolorato Affamato":
+        if str(record.get("name") or "") in {
+            "Addolorato Affamato",
+            "Addolorato Smarrito",
+        }:
+            diagnostic_label = (
+                "MPMM_ADDOLORATO_AFFAMATO_SPARSE_TEXT"
+                if str(record.get("name") or "") == "Addolorato Affamato"
+                else "MPMM_ADDOLORATO_SMARRITO_SPARSE_TEXT"
+            )
             print(
-                "MPMM_ADDOLORATO_AFFAMATO_SPARSE_TEXT "
+                diagnostic_label
+                + " "
                 + json.dumps(
                     {
                         "primary": [
