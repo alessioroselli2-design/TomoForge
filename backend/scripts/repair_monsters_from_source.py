@@ -6095,11 +6095,15 @@ async def _repair_one(
                 .get("sparse-full", {})
             ).get("sparse_anchor_found")
         )
-        if str(record.get("name") or "") == "Addolorato Affamato":
+        if str(record.get("name") or "") in {
+            "Addolorato Affamato",
+            "Addolorato Smarrito",
+        }:
             print(
-                "MPMM_ADDOLORATO_AFFAMATO_SPARSE_TEXT "
+                "MPMM_ADDOLORATO_SPARSE_TEXT "
                 + json.dumps(
                     {
+                        "name": record.get("name"),
                         "primary": [
                             {"page": page, "text": text[:5000]}
                             for page, text in primary_pages
