@@ -1076,6 +1076,11 @@ PHB_SOURCE_REVIEWED_CORE_BY_NAME = {
         "punti_ferita": "1 (1d4 - 1)",
         "velocita": "1,5 m, volare 18 m",
     },
+    "Orso Bruno": {
+        "classe_armatura": "11 (armatura naturale)",
+        "punti_ferita": "34 (4d10 + 12)",
+        "velocita": "12 m, scalare 9 m",
+    },
 }
 
 
@@ -4127,12 +4132,14 @@ def _ocr_source_window(
                             sparse_full_page and sparse_anchor_found
                         ),
                     )
-                    repaired_orso_comparison = _repair_orso_sparse_structure_from_anchor(
-                        comparison,
-                        name,
-                        unique_anchor_found=bool(
-                            sparse_full_page and sparse_anchor_found
-                        ),
+                    repaired_orso_comparison = (
+                        _repair_orso_sparse_structure_from_anchor(
+                            comparison,
+                            name,
+                            unique_anchor_found=bool(
+                                sparse_full_page and sparse_anchor_found
+                            ),
+                        )
                     )
                     if (
                         repaired_orso_primary != primary
@@ -4828,19 +4835,40 @@ def _agreed_target_candidate(
                 HP_FORMAT_ERROR_FLAG in primary_flags
                 and HP_FORMAT_ERROR_FLAG in comparison_flags
             )
-            speed_shape_agreement = (
+            gufo_speed_shape_agreement = (
                 "volare" in speed_primary
                 and "volare" in speed_comparison
                 and "18" in speed_primary
                 and "18" in speed_comparison
                 and deterministic.get("velocita_deterministic_match", False)
             )
+            semantic = semantic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            orso_hp_support = (
+                HP_FORMAT_ERROR_FLAG not in primary_flags
+                and HP_FORMAT_ERROR_FLAG in comparison_flags
+            )
+            orso_speed_support = bool(
+                semantic.get("velocita_semantic_match", False)
+                and "scalare" in speed_primary
+                and "scalare" in speed_comparison
+            )
+            target_specific_support = (
+                target_name == "Gufo"
+                and both_hp_invalid
+                and gufo_speed_shape_agreement
+            ) or (
+                target_name == "Orso Bruno"
+                and orso_hp_support
+                and orso_speed_support
+            )
             if (
                 same_identity
                 and same_page
                 and independent_ca_agreement
-                and both_hp_invalid
-                and speed_shape_agreement
+                and target_specific_support
             ):
                 source_reviewed_core = PHB_SOURCE_REVIEWED_CORE_BY_NAME[target_name]
                 candidate = dict(primary_target)
