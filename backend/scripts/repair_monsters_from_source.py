@@ -2862,7 +2862,8 @@ def _restore_bulezau_title_from_local_trait(page_text: str, target_name: str) ->
     normalized = [normalize_reference_name(line) for line in lines]
     titles = [index for index, line in enumerate(normalized) if line == "bulezau"]
     descriptors = [
-        index for index, line in enumerate(normalized)
+        index
+        for index, line in enumerate(normalized)
         if line == "immondo medio demone generalmente caotico malvagio"
     ]
     patterns = (
@@ -2872,21 +2873,25 @@ def _restore_bulezau_title_from_local_trait(page_text: str, target_name: str) ->
     )
     core_indexes = [
         [
-            index for index, line in enumerate(lines)
+            index
+            for index, line in enumerate(lines)
             if re.search(pattern, line, re.IGNORECASE)
         ]
         for pattern in patterns
     ]
     trait = [
-        index for index, line in enumerate(normalized)
+        index
+        for index, line in enumerate(normalized)
         if line.startswith("presenza putrescente")
     ]
     reference = [
-        index for index, line in enumerate(normalized)
+        index
+        for index, line in enumerate(normalized)
         if line.startswith("demone inizia il suo turno entro") and "dal bulezau" in line
     ]
     if not (
-        1 <= len(titles) <= 2 and len(descriptors) == 1
+        1 <= len(titles) <= 2
+        and len(descriptors) == 1
         and all(len(indexes) == 1 for indexes in core_indexes)
         and len(trait) == len(reference) == 1
     ):
