@@ -4856,13 +4856,9 @@ def _agreed_target_candidate(
                 and "scalare" in speed_comparison
             )
             target_specific_support = (
-                target_name == "Gufo"
-                and both_hp_invalid
-                and gufo_speed_shape_agreement
+                target_name == "Gufo" and both_hp_invalid and gufo_speed_shape_agreement
             ) or (
-                target_name == "Orso Bruno"
-                and orso_hp_support
-                and orso_speed_support
+                target_name == "Orso Bruno" and orso_hp_support and orso_speed_support
             )
             if (
                 same_identity
