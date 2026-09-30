@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_50f157429a555107a918e7ba85c2fa39",  # Berretto Rosso: sole source reference, page 69
     "ref_c3551ceba31958819b2379553c32fccb",  # Berbalang: sole source reference, page 68
     "ref_c4c35f6cbb825c3aba63d01b20c1e82a",  # Arciere: sole source reference, page 55
     "ref_bd9eded730d55b87af0aaec2cdcd13c7",  # Adrosauro: sole source reference, page 96
@@ -4767,7 +4768,7 @@ def _ocr_source_window(
                                 sparse_full_page and sparse_anchor_found
                             ),
                         )
-                    if name in {"Altisauro", "Bael", "Adrosauro", "Arciere"}:
+                    if name in {"Altisauro", "Bael", "Adrosauro", "Arciere", "Berretto Rosso"}:
 
                         def _focused_ocr_context(text: str) -> list[str]:
                             raw_lines = [
