@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tomoforge-mpmm-1-100-focused
+  group: tomoforge-mpmm-1-100-focused-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
