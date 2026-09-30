@@ -4810,6 +4810,32 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
+    if target_name == "Addolorato Deforme":
+        print(
+            "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
+            + json.dumps(
+                {
+                    "primary": [
+                        {
+                            "name": item.get("name"),
+                            "start_page": item.get("start_page"),
+                            "attributes": item.get("attributes"),
+                        }
+                        for item in primary
+                    ],
+                    "comparison": [
+                        {
+                            "name": item.get("name"),
+                            "start_page": item.get("start_page"),
+                            "attributes": item.get("attributes"),
+                        }
+                        for item in comparison
+                    ],
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
     if target_name in {"Cavallo Da Guerra", "Cinghiale", "Gufo", "Mulo", "Orso Bruno"}:
 
         def _core_context(pages: list[tuple[int, str]]) -> list[str]:
