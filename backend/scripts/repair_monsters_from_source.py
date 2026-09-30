@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_c3551ceba31958819b2379553c32fccb",  # Berbalang: sole source reference, page 68
     "ref_c4c35f6cbb825c3aba63d01b20c1e82a",  # Arciere: sole source reference, page 55
     "ref_bd9eded730d55b87af0aaec2cdcd13c7",  # Adrosauro: sole source reference, page 96
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
@@ -5105,7 +5106,7 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
-    if target_name == "Addolorato Deforme":
+    if target_name in {"Addolorato Deforme", "Berbalang"}:
         print(
             "MPMM_ADDOLORATO_DEFORME_CANDIDATES "
             + json.dumps(
