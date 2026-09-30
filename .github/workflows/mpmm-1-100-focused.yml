@@ -1,4 +1,5 @@
 name: Focused MPMM 1-100 single-monster dry-run
+# stable focused queue
 
 on:
   push:
