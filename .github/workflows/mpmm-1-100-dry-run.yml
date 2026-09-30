@@ -3,7 +3,7 @@ name: Full MPMM 1-100 53 dry-run
 on:
   push:
     branches:
-      - codex/mpmm-1-100-audit-20260930
+      - codex/mpmm-1-100-fixqueue-20260930
     paths:
       - backend/scripts/audit_mpmm_1_100.py
       - .github/workflows/mpmm-1-100-dry-run.yml
