@@ -878,6 +878,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
+    "Delfino": "right",  # Page 89: both stat blocks right; keep identities distinct
     "Celeresto": "right",  # Page 79: prose left, stat block right
     "Brontosauro": "right",  # Page 96: stat block right; title in prose left
     "Arciere": "right",  # Page 55: prose/table left, stat block right
@@ -3805,7 +3806,7 @@ def _micro_ocr_hit_points_line(
         "-l",
         languages,
         "--psm",
-        str(11 if name == "Brontosauro" and psm == 4 else psm),
+        str(11 if name in {"Brontosauro", "Delfino"} and psm == 4 else psm),
         "tsv",
         "quiet",
     ]
@@ -3859,12 +3860,16 @@ def _micro_ocr_hit_points_line(
             }
         )
         hp_indexes = _collapse_identical_hp_indexes(text_lines, hp_indexes)
-        if name == "Bael":
+        if name in {"Bael", "Delfino"}:
             # Body references to Bael and regeneration are not structural PF rows.
             hp_indexes = [
                 index
                 for index in hp_indexes
                 if hp_line_pattern.match(text_lines[index])
+                and (
+                    name != "Delfino"
+                    or re.match(r"^\s*Punti\s+Ferita\s+11\s*\(", text_lines[index], re.IGNORECASE)
+                )
             ]
         return len(target_indexes), hp_indexes
 
@@ -4026,6 +4031,33 @@ def _micro_ocr_hit_points_line(
             )
         else:
             return fail_closed("bael_structural_hp_anchor_ambiguous")
+    if name == "Delfino":
+        structural = [
+            normalize_reference_name(" ".join(str(word["text"]) for word in words))
+            for words in ordered_lines
+        ]
+        ca_rows = [
+            index for index, text in enumerate(structural)
+            if text.startswith("classe armatura 12")
+        ]
+        hp_rows = [
+            index for index, text in enumerate(structural)
+            if text.startswith("punti ferita 11")
+        ]
+        if not (len(ca_rows) == len(hp_rows) == page_local_hp_count == 1):
+            return fail_closed("delfino_structural_hp_anchor_ambiguous")
+        ca, hp = ca_rows[0], hp_rows[0]
+        nearby_speed = [
+            index for index in range(hp + 1, min(len(structural), hp + 7))
+            if structural[index].startswith("velocita 0")
+        ]
+        if not (ca < hp and hp - ca <= 4 and len(nearby_speed) == 1):
+            return fail_closed("delfino_core_order_ambiguous")
+        label_words = ordered_lines[hp]
+        print(
+            "MPMM_DELFINO_STRUCTURAL_HP_ANCHOR "
+            + json.dumps({"label": structural[hp], "numeric_values_modified": False})
+        )
     if label_words is None:
         return fail_closed("no_unique_structural_hp_anchor")
 
@@ -4049,7 +4081,7 @@ def _micro_ocr_hit_points_line(
     grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
     padding = max(2, (line_bottom - line_top) // 3)
     crop_rect = fitz.IRect(
-        max(0, label_end),
+        max(0, min(int(word["left"]) for word in label_words) if name == "Delfino" else label_end),
         max(0, line_top - padding),
         grayscale.width,
         min(grayscale.height, line_bottom + padding),
@@ -4190,7 +4222,7 @@ def _micro_ocr_hit_points_line(
             "-l",
             languages,
             "--psm",
-            "6" if name == "Brontosauro" and psm == 4 else "7",
+            "6" if name in {"Brontosauro", "Delfino"} and psm == 4 else "7",
             "-c",
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
