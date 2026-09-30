@@ -6181,41 +6181,104 @@ async def _run(args: argparse.Namespace) -> int:
 
     batch_updated_at = None
     if args.target_set == "batch_players_handbook" and args.execute:
+        if blocked or len(reports) != EXPECTED_PLAYERS_HANDBOOK_COUNT:
+            raise RuntimeError(
+                "Player's Handbook batch refused: all 31 proposals must be "
+                "repairable before any UPDATE"
+            )
+
         originals = {str(record["id"]): record for record in targets}
         verified_target_ids = {
             str(record["id"])
             for record in targets
             if str(record.get("review_status") or "") == "verified"
         }
-        blocked_verified_ids = {
-            str(item.get("record_id") or "")
-            for item in blocked
-            if str(item.get("record_id") or "") in verified_target_ids
+        pending_target_ids = {
+            str(record["id"])
+            for record in targets
+            if str(record.get("review_status") or "") == "pending"
         }
         verified_reports = [
             report
             for report in reports
             if str(report.get("record_id") or "") in verified_target_ids
         ]
+        pending_reports = [
+            report
+            for report in reports
+            if str(report.get("record_id") or "") in pending_target_ids
+        ]
+
         if (
             len(verified_target_ids) != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
-            or blocked_verified_ids
             or len(verified_reports) != EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
+            or len(pending_target_ids)
+            != EXPECTED_PLAYERS_HANDBOOK_COUNT
+            - EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
+            or len(pending_reports)
+            != EXPECTED_PLAYERS_HANDBOOK_COUNT
+            - EXPECTED_PLAYERS_HANDBOOK_VERIFIED_COUNT
             or any(
                 not (report.get("verified_flag_cleanup") or {}).get("authorized")
                 for report in verified_reports
             )
         ):
             raise RuntimeError(
-                "Player's Handbook cleanup refused: all 14 verified records "
-                "must pass exact CA/PF/velocita source agreement before any flag write"
+                "Player's Handbook batch refused: expected 14 verified cleanup "
+                "reports and 17 pending repair reports"
             )
+
+        for report in pending_reports:
+            expected_flags = sorted([OCR_REVIEW_FLAG, REPAIR_FLAG])
+            actual_flags = sorted(
+                str(flag) for flag in report["after"]["review_flags"]
+            )
+            if actual_flags != expected_flags:
+                raise RuntimeError(
+                    "Player's Handbook unexpected pending proposal flags for "
+                    f"{report['record_id']}: {actual_flags!r}"
+                )
+            if str(report["after"].get("review_status") or "") != "pending":
+                raise RuntimeError(
+                    "Player's Handbook pending proposal status drift for "
+                    f"{report['record_id']}"
+                )
+            before_attributes = (
+                originals[str(report["record_id"])].get("attributes") or {}
+            )
+            after_attributes = report["after"]["attributes"]
+            for field in set(before_attributes) | set(after_attributes):
+                if field not in {
+                    "classe_armatura",
+                    "punti_ferita",
+                    "velocita",
+                } and before_attributes.get(field) != after_attributes.get(field):
+                    raise RuntimeError(
+                        "Player's Handbook non-core attribute drift for "
+                        f"{report['record_id']}: {field}"
+                    )
+
         await _revalidate_target_snapshots(records_collection, targets)
         batch_updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
         for report in verified_reports:
             await _apply_verified_ocr_flag_cleanup(
                 records_collection,
                 originals[str(report["record_id"])],
+                updated_at=batch_updated_at,
+            )
+            report["executed"] = True
+
+        for report in pending_reports:
+            proposal = {
+                "attributes": report["after"]["attributes"],
+                "review_flags": report["after"]["review_flags"],
+                "review_status": "pending",
+            }
+            await _apply_update(
+                records_collection,
+                originals[str(report["record_id"])],
+                proposal,
                 updated_at=batch_updated_at,
             )
             report["executed"] = True
