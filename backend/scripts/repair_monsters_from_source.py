@@ -3543,7 +3543,11 @@ def _micro_ocr_hit_points_line(
         hp_indexes = _collapse_identical_hp_indexes(text_lines, hp_indexes)
         if name == "Bael":
             # Body references to Bael and regeneration are not structural PF rows.
-            hp_indexes = [index for index in hp_indexes if hp_line_pattern.match(text_lines[index])]
+            hp_indexes = [
+                index
+                for index in hp_indexes
+                if hp_line_pattern.match(text_lines[index])
+            ]
         return len(target_indexes), hp_indexes
 
     def page_wide_tsv_labels() -> list[list[dict[str, str]]]:
@@ -3670,9 +3674,21 @@ def _micro_ocr_hit_points_line(
             normalize_reference_name(" ".join(str(word["text"]) for word in words))
             for words in ordered_lines
         ]
-        ca_rows = [index for index, text in enumerate(structural) if text.startswith("classe armatura 18")]
-        hp_rows = [index for index, text in enumerate(structural) if text.startswith("punti ferita 189")]
-        speed_rows = [index for index, text in enumerate(structural) if text.startswith("velocita 9")]
+        ca_rows = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("classe armatura 18")
+        ]
+        hp_rows = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("punti ferita 189")
+        ]
+        speed_rows = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("velocita 9")
+        ]
         if (
             len(ca_rows) == len(hp_rows) == len(speed_rows) == 1
             and ca_rows[0] < hp_rows[0] < speed_rows[0]
@@ -3682,7 +3698,13 @@ def _micro_ocr_hit_points_line(
             label_words = ordered_lines[hp_rows[0]]
             print(
                 "MPMM_BAEL_STRUCTURAL_HP_ANCHOR "
-                + json.dumps({"name": name, "label": structural[hp_rows[0]], "ordered_core_labels": True})
+                + json.dumps(
+                    {
+                        "name": name,
+                        "label": structural[hp_rows[0]],
+                        "ordered_core_labels": True,
+                    }
+                )
             )
         else:
             return fail_closed("bael_structural_hp_anchor_ambiguous")
