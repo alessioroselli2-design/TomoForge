@@ -4678,6 +4678,8 @@ def _agreed_target_candidate(
     source_language: str,
     target_name: str,
     target_page: int,
+    *,
+    source_anchor_verified: bool = False,
 ) -> dict[str, Any]:
     primary = parse_monster_statblocks(
         primary_pages,
@@ -4998,12 +5000,13 @@ def _agreed_target_candidate(
             )
             primary_flags = monster_semantic_numeric_flags(primary_attributes)
             raw_comparison_support = (
-                len(title_lines) == 1
+                source_anchor_verified
+                and len(title_lines) <= 1
                 and len(hp_lines) == 1
                 and len(speed_lines) == 1
                 and bool(
                     re.search(
-                        r"Punti\s+Ferita\s+11\s*\(\s*2d8\s*\+\s*2\s*\)",
+                        r"Punti\s+Ferita\s+11\s*\(\s*2(?:d|4)8\s*\+\s*2\s*\)",
                         hp_lines[0],
                         re.IGNORECASE,
                     )
@@ -5038,7 +5041,7 @@ def _agreed_target_candidate(
                                 "page": target_page,
                                 "primary_hp_supported": True,
                                 "primary_speed_supported": True,
-                                "comparison_title_unique": True,
+                                "comparison_title_anchor_verified": True,
                                 "comparison_hp_supported": True,
                                 "comparison_speed_supported": True,
                                 "source": "2014_basic_rules_plus_phb_metric_layout",
@@ -5643,6 +5646,13 @@ async def _repair_one(
             target_page_only=target_page_only,
             ocr_budget_started_at=ocr_budget_started_at,
         )
+        sparse_anchor_verified = bool(
+            (
+                quality.get(physical_page, {}).get("segments", {}).get(
+                    "sparse-full", {}
+                )
+            ).get("sparse_anchor_found")
+        )
         candidate = _agreed_target_candidate(
             primary_pages,
             comparison_pages,
@@ -5650,6 +5660,7 @@ async def _repair_one(
             str(source.get("language") or "it"),
             source_target_name,
             physical_page,
+            source_anchor_verified=sparse_anchor_verified,
         )
         selected_overlap = 0.05
     if candidate is None or quality is None:
