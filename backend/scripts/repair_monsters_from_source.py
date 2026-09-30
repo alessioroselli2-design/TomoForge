@@ -4958,6 +4958,23 @@ def _agreed_target_candidate(
                         sort_keys=True,
                     )
                 )
+                clean_primary = dict(primary_deforme[0])
+                clean_primary["name"] = target_name
+                clean_primary["normalized_name"] = normalize_reference_name(target_name)
+                print(
+                    "MPMM_ADDOLORATO_DEFORME_ADJACENT_PAGE_ACCEPTED "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "target_page": target_page,
+                            "statblock_start_page": 46,
+                            "core_values_unchanged": True,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return clean_primary
 
     agreed_forward = agreed_monster_records(
         primary,
