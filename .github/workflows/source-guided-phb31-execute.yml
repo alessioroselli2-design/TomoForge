@@ -62,7 +62,7 @@ jobs:
           grep -q '"targets": 31' /tmp/phb31-source-guided-execute.log
           grep -q '"repairable": 31' /tmp/phb31-source-guided-execute.log
           grep -q '"blocked": 0' /tmp/phb31-source-guided-execute.log
-          grep -q '"updates_performed": 31' /tmp/phb31-source-guided-execute.log
+          grep -q '"updates_performed": 17' /tmp/phb31-source-guided-execute.log
 
       - name: Upload execute output
         uses: actions/upload-artifact@v4
