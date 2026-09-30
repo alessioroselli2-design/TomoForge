@@ -2861,6 +2861,77 @@ def _micro_ocr_bodak_descriptor(
     return restored[0], restored[1]
 
 
+def _restore_delfino_title_from_local_traits(page_text: str, target_name: str) -> str:
+    """Restore only the ordinary dolphin identity from two explicit local traits."""
+    if target_name != "Delfino":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if line == "bestia media senza allineamento"
+    ]
+    patterns = (
+        r"\bClasse\s+Armatura\s+12\s*\(\s*armatura\s+naturale\s*\)",
+        r"^\s*Punti\s+Ferita\s+11\s*\(",
+        r"^\s*Velocit[àa]\s*0\s*m\s*,\s*nuotare\s*18\s*m",
+    )
+    core_indexes = [
+        [
+            index
+            for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    apnea = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("apnea il delfino puo trattenere")
+    ]
+    charge = [
+        index
+        for index, line in enumerate(normalized)
+        if "il delfino ha nuotato" in line
+    ]
+    if not (
+        len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(apnea) == len(charge) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        descriptor < ca < hp < speed < apnea[0] < charge[0]
+        and speed - descriptor <= 8
+    ):
+        return page_text
+    if any(
+        normalized[index] == "delfino"
+        for index in range(max(0, descriptor - 5), descriptor)
+    ):
+        return page_text
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_DELFINO_TITLE_FROM_TRAITS "
+        + json.dumps(
+            {
+                "name": target_name,
+                "identity_evidence": [
+                    page_text.splitlines()[apnea[0]],
+                    page_text.splitlines()[charge[0]],
+                ],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _clean_celeresto_core_prefixes(page_text: str, target_name: str) -> str:
     """Remove isolated OCR border glyphs from observed Celeresto core labels."""
     if target_name != "Celeresto":
@@ -3868,7 +3939,11 @@ def _micro_ocr_hit_points_line(
                 if hp_line_pattern.match(text_lines[index])
                 and (
                     name != "Delfino"
-                    or re.match(r"^\s*Punti\s+Ferita\s+11\s*\(", text_lines[index], re.IGNORECASE)
+                    or re.match(
+                        r"^\s*Punti\s+Ferita\s+11\s*\(",
+                        text_lines[index],
+                        re.IGNORECASE,
+                    )
                 )
             ]
         return len(target_indexes), hp_indexes
@@ -4037,18 +4112,21 @@ def _micro_ocr_hit_points_line(
             for words in ordered_lines
         ]
         ca_rows = [
-            index for index, text in enumerate(structural)
+            index
+            for index, text in enumerate(structural)
             if text.startswith("classe armatura 12")
         ]
         hp_rows = [
-            index for index, text in enumerate(structural)
+            index
+            for index, text in enumerate(structural)
             if text.startswith("punti ferita 11")
         ]
         if not (len(ca_rows) == len(hp_rows) == page_local_hp_count == 1):
             return fail_closed("delfino_structural_hp_anchor_ambiguous")
         ca, hp = ca_rows[0], hp_rows[0]
         nearby_speed = [
-            index for index in range(hp + 1, min(len(structural), hp + 7))
+            index
+            for index in range(hp + 1, min(len(structural), hp + 7))
             if structural[index].startswith("velocita 0")
         ]
         if not (ca < hp and hp - ca <= 4 and len(nearby_speed) == 1):
@@ -4081,7 +4159,12 @@ def _micro_ocr_hit_points_line(
     grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
     padding = max(2, (line_bottom - line_top) // 3)
     crop_rect = fitz.IRect(
-        max(0, min(int(word["left"]) for word in label_words) if name == "Delfino" else label_end),
+        max(
+            0,
+            min(int(word["left"]) for word in label_words)
+            if name == "Delfino"
+            else label_end,
+        ),
         max(0, line_top - padding),
         grayscale.width,
         min(grayscale.height, line_bottom + padding),
@@ -4879,6 +4962,11 @@ def _ocr_source_window(
                     if name == "Bael" and not sparse_full_page:
                         primary = _restore_bael_title_from_local_actions(primary, name)
                         comparison = _restore_bael_title_from_local_actions(
+                            comparison, name
+                        )
+                    if name == "Delfino" and not sparse_full_page:
+                        primary = _restore_delfino_title_from_local_traits(primary, name)
+                        comparison = _restore_delfino_title_from_local_traits(
                             comparison, name
                         )
                     if name == "Celeresto" and not sparse_full_page:
