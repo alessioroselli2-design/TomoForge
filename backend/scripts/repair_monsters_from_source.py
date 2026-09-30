@@ -5745,9 +5745,7 @@ async def _repair_one(
                     },
                 },
             )
-        verified_flags = {
-            str(flag) for flag in (record.get("review_flags") or [])
-        }
+        verified_flags = {str(flag) for flag in (record.get("review_flags") or [])}
         if verified_flags == {OCR_REVIEW_FLAG}:
             cleanup_already_applied = False
         elif not verified_flags:
