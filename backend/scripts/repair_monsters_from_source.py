@@ -4762,10 +4762,7 @@ def _agreed_target_candidate(
                 for field in ("punti_ferita", "velocita")
             )
             both_ca_invalid = all(
-                bool(
-                    {CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG}
-                    & set(flags)
-                )
+                bool({CA_FORMAT_ERROR_FLAG, CA_OUT_OF_BOUNDS_FLAG} & set(flags))
                 for flags in (primary_ca_flags, comparison_ca_flags)
             )
             if same_page and independent_non_ca_agreement and both_ca_invalid:
