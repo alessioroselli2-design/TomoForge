@@ -332,6 +332,18 @@ async def _run(args: argparse.Namespace) -> int:
         {"reference_type": "monster", "source_key": SOURCE_KEY},
     )
     targets = _select_targets(records)
+    if args.name:
+        wanted = args.name.casefold()
+        targets = [
+            record
+            for record in targets
+            if str(record.get("name") or "").casefold() == wanted
+        ]
+        if len(targets) != 1:
+            raise RuntimeError(
+                f"Expected one sealed MPMM 1-100 target named {args.name!r}; "
+                f"found {len(targets)}"
+            )
     active_sources = await repair._fetch_all(
         db.private_reference_sources,
         {"source_status": "active"},
@@ -394,6 +406,7 @@ async def _run(args: argparse.Namespace) -> int:
     final = {
         "dry_run": True,
         "source_key": SOURCE_KEY,
+        "focused_name": args.name or "",
         "targets": len(targets),
         "repairable": len(reports),
         "blocked": len(blocked),
@@ -404,7 +417,8 @@ async def _run(args: argparse.Namespace) -> int:
     }
     print("FINAL_REPORT")
     print(json.dumps(final, ensure_ascii=False, sort_keys=True))
-    return 0 if len(reports) + len(blocked) == EXPECTED_COUNT else 1
+    expected_run_count = 1 if args.name else EXPECTED_COUNT
+    return 0 if len(reports) + len(blocked) == expected_run_count else 1
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -415,6 +429,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--languages", default="ita")
     parser.add_argument("--psm", type=int, default=6)
     parser.add_argument("--comparison-psm", type=int, default=4)
+    parser.add_argument("--name", default="")
     return parser
 
 
