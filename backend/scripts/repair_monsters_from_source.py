@@ -5343,6 +5343,7 @@ async def _apply_update(
     proposal: dict[str, Any],
     *,
     updated_at: str | None = None,
+    expected_review_status: str = "verified",
 ) -> None:
     if legacy.get("canonical_id"):
         raise RepairBlocked(
@@ -5357,7 +5358,7 @@ async def _apply_update(
 
     query: dict[str, Any] = {
         "id": str(legacy["id"]),
-        "review_status": "verified",
+        "review_status": expected_review_status,
     }
     checksum = str(legacy.get("source_text_checksum") or "")
     if checksum:
@@ -5737,15 +5738,21 @@ async def _repair_one(
                     },
                 },
             )
-        if {str(flag) for flag in (record.get("review_flags") or [])} != {
-            OCR_REVIEW_FLAG
-        }:
+        verified_flags = {
+            str(flag) for flag in (record.get("review_flags") or [])
+        }
+        if verified_flags == {OCR_REVIEW_FLAG}:
+            cleanup_already_applied = False
+        elif not verified_flags:
+            cleanup_already_applied = True
+        else:
             raise RepairBlocked("players_handbook_verified_flag_drift")
         verified_flag_cleanup = {
             "authorized": True,
             "agreement": raw_agreement,
             "deterministic_agreement": deterministic_agreement,
             "remove_flag": OCR_REVIEW_FLAG,
+            "already_applied": cleanup_already_applied,
         }
         proposal = {
             "attributes": dict(current_attributes),
@@ -6256,16 +6263,30 @@ async def _run(args: argparse.Namespace) -> int:
                         f"{report['record_id']}: {field}"
                     )
 
+        verified_cleanup_reports = [
+            report
+            for report in verified_reports
+            if not (report.get("verified_flag_cleanup") or {}).get("already_applied")
+        ]
+        verified_already_applied_reports = [
+            report
+            for report in verified_reports
+            if (report.get("verified_flag_cleanup") or {}).get("already_applied")
+        ]
+
         await _revalidate_target_snapshots(records_collection, targets)
         batch_updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
-        for report in verified_reports:
+        for report in verified_cleanup_reports:
             await _apply_verified_ocr_flag_cleanup(
                 records_collection,
                 originals[str(report["record_id"])],
                 updated_at=batch_updated_at,
             )
             report["executed"] = True
+
+        for report in verified_already_applied_reports:
+            report["executed"] = False
 
         for report in pending_reports:
             proposal = {
@@ -6278,6 +6299,7 @@ async def _run(args: argparse.Namespace) -> int:
                 originals[str(report["record_id"])],
                 proposal,
                 updated_at=batch_updated_at,
+                expected_review_status="pending",
             )
             report["executed"] = True
 
@@ -6343,6 +6365,11 @@ async def _run(args: argparse.Namespace) -> int:
             1
             for report in reports
             if (report.get("verified_flag_cleanup") or {}).get("authorized")
+        ),
+        "players_handbook_already_applied": sum(
+            1
+            for report in reports
+            if (report.get("verified_flag_cleanup") or {}).get("already_applied")
         ),
         "reports": reports,
         "blocked_records": blocked,
