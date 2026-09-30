@@ -4463,8 +4463,8 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
-    if not sparse_full_page and name == "Berbalang":
-        # Page 68 stat block is in the left column; center overlap captures
+    if not sparse_full_page and name in {"Berbalang", "Bove Fetente"}:
+        # Pages 68/70: left stat blocks; center overlap captures
         # detached fragments from the adjacent right-column prose.
         segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
         column_overlap = 0.0
