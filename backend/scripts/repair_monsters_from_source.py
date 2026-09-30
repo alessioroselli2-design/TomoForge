@@ -847,6 +847,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_c4c35f6cbb825c3aba63d01b20c1e82a",  # Arciere: sole source reference, page 55
     "ref_bd9eded730d55b87af0aaec2cdcd13c7",  # Adrosauro: sole source reference, page 96
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
     "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
@@ -4559,7 +4560,7 @@ def _ocr_source_window(
                                 sparse_full_page and sparse_anchor_found
                             ),
                         )
-                    if name in {"Altisauro", "Bael", "Adrosauro"}:
+                    if name in {"Altisauro", "Bael", "Adrosauro", "Arciere"}:
 
                         def _focused_ocr_context(text: str) -> list[str]:
                             raw_lines = [
@@ -4795,6 +4796,7 @@ def _ocr_source_window(
                         "Lupo",
                         "Orso Bruno",
                         "Adrosauro",
+                        "Arciere",
                     }:
                         print(
                             "PHB_QUALITY_GATE_DIAGNOSTIC "
