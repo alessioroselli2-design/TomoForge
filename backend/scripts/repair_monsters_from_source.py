@@ -817,6 +817,7 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_55f881bc0c4e5ea6ae90b26869321b71": 150.0,  # Addolorato Solitario
     "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 150.0,  # Addolorato Smarrito
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1": 150.0,  # Addolorato Affamato
     "ref_85a4eadb862758fbb682e93ab19f1065": 150.0,
@@ -830,9 +831,11 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_OVERRIDES = {
+    "ref_55f881bc0c4e5ea6ae90b26869321b71": 47,  # Addolorato Solitario
     "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 47,  # Addolorato Smarrito
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_55f881bc0c4e5ea6ae90b26869321b71",  # Addolorato Solitario
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
     "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
