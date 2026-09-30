@@ -87,6 +87,31 @@ def test_deterministic_core_normalization_handles_only_presentation_noise():
     assert "volare" not in serialized
 
 
+def test_deterministic_speed_normalization_handles_m_in_forma_ocr_join():
+    left = {
+        "classe_armatura": "13",
+        "punti_ferita": "7 (3d4)",
+        "velocita": (
+            "12 m (3 m, volare 12 m in forma di pipistrello; "
+            "12 m, scalare 12 m in forma di millepiedi; "
+            "12 m, nuotare 12 m in forma di rospo)"
+        ),
+    }
+    right = {
+        "classe_armatura": "13",
+        "punti_ferita": "7 (3d4)",
+        "velocita": (
+            "12 m (3 m, volare 12 m in forma di pipistrello; "
+            "12m scalare 12 m in forma di millepiedi; "
+            "12 m, nuotare 12 min forma di rospo)"
+        ),
+    }
+
+    result = deterministic_core_field_matches(left, right)
+
+    assert result["velocita_deterministic_match"] is True
+
+
 def test_deterministic_core_normalization_preserves_unknown_text_and_disagreements():
     left = {
         "classe_armatura": "14 armatura naturale",

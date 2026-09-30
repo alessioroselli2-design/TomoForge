@@ -8,6 +8,7 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 import fitz
+import pytest
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
@@ -25,7 +26,28 @@ from scripts.repair_monsters_from_source import (
     EXPECTED_APPROVED5_COUNT,
     EXPECTED_OBLEX1_COUNT,
     EXPECTED_READY6_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT,
+    EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5,
     HIT_POINTS_FULL_SPECTRUM_CONTRASTS,
+    HIT_POINTS_WHITELIST,
+    OCR_GLOBAL_TIMEOUT_BY_RECORD_ID,
+    PHB_QUALITY_GATE_PRE_OTSU_TARGETS,
+    PHB_SPARSE_BOTTOM_FRACTION_BY_NAME,
+    PHB_SPARSE_CONTINUATION_CLIPS,
+    PHB_SPARSE_QUALITY_CONTEXT_TARGETS,
+    PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS,
+    PLAYERS_HANDBOOK_TIMEOUT4_NAMES,
+    TARGET_SEGMENT_BY_NAME,
     HEALTHY22_TARGETS,
     APPROVED1_TARGETS,
     OCR_REVIEW_FLAG,
@@ -42,13 +64,23 @@ from scripts.repair_monsters_from_source import (
     _layout_profile,
     _layout_segments,
     _local_adaptive_inverted_samples,
+    _local_otsu_inverted_samples,
     _remove_isolated_foreground_noise,
+    _remaining_global_ocr_budget,
+    _repair_numeric_dice_separator_confusion,
     _micro_ocr_hit_points_line,
+    _micro_target_line_matches,
     _otsu_inverted_samples,
+    _phb_quality_pre_otsu_clip,
+    _phb_sparse_uses_quality_pre_otsu,
+    _phb_sparse_comparison_uses_adaptive_source,
+    _phb_sparse_comparison_psm,
+    _restore_cavallo_sparse_title_from_anchor,
     _sample_variance,
     _should_retry_dynamic_layout,
     _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
+    _verified_core_agreement,
     build_repair_proposal,
     resolve_source,
     select_bigby19_targets,
@@ -61,7 +93,301 @@ from scripts.repair_monsters_from_source import (
     select_approved5_targets,
     select_oblex1_targets,
     select_ready6_targets,
+    select_players_handbook_blocked20_targets,
+    select_players_handbook_blocked16_targets,
+    select_players_handbook_blocked12_targets,
+    select_players_handbook_blocked11_targets,
+    select_players_handbook_blocked9_targets,
+    select_players_handbook_blocked8_targets,
 )
+
+
+def test_players_handbook_blocked20_is_sealed_from_full_phb_batch():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked20_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_COUNT == 20
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED20_IDS_MD5
+    assert "Aquila Gigante" not in {row["name"] for row in selected}
+    assert "Coccodrillo" not in {row["name"] for row in selected}
+    assert "Cavallo Da Galoppo" in {row["name"] for row in selected}
+    assert "Topo" in {row["name"] for row in selected}
+
+
+def test_players_handbook_blocked16_is_sealed_from_full_phb_batch():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked16_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_COUNT == 16
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED16_IDS_MD5
+    assert "Cavallo Da Galoppo" not in {row["name"] for row in selected}
+    assert "Gatto" not in {row["name"] for row in selected}
+    assert "Ragno Gigante" not in {row["name"] for row in selected}
+    assert "Serpente Stritolatore" not in {row["name"] for row in selected}
+    assert "Cinghiale" in {row["name"] for row in selected}
+    assert "Imp" in {row["name"] for row in selected}
+
+
+def test_hp_micro_ocr_repeated_title_matches_can_converge_on_one_hp_line(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "Mastino\n"
+        "Mastino\n"
+        "Bestia media\n"
+        "Classe Armatura 12\n"
+        "Punti Ferita 5 (1d8 + 1)\n"
+        "Velocità 12 m\n"
+    )
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Mastino",
+        )
+
+    assert result == page_text
+    run.assert_not_called()
+
+
+def test_players_handbook_blocked12_is_sealed_from_full_phb_batch():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked12_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT == 12
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Corvo" not in selected_names
+    assert "Imp" not in selected_names
+    assert "Mastino" not in selected_names
+    assert "Topo" not in selected_names
+    assert "Cavallo Da Guerra" in selected_names
+    assert "Rana" in selected_names
+
+
+def test_players_handbook_blocked11_is_sealed_after_quasit_passes():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked11_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_COUNT == 11
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED11_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Quasit" not in selected_names
+    assert "Rana" in selected_names
+    assert "Cinghiale" in selected_names
+    assert "Orso Bruno" in selected_names
+
+
+def test_players_handbook_blocked9_is_sealed_after_run107_passes():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked9_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_COUNT == 9
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED9_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Leone" not in selected_names
+    assert "Tigre" not in selected_names
+    assert "Cavallo Da Guerra" in selected_names
+    assert "Cinghiale" in selected_names
+    assert "Rana" in selected_names
+
+
+def test_players_handbook_blocked8_is_sealed_after_mulo_passes():
+    from scripts.repair_monsters_from_source import PLAYERS_HANDBOOK_TARGETS
+
+    records = []
+    for expected in PLAYERS_HANDBOOK_TARGETS:
+        status = expected["status"]
+        records.append(
+            {
+                "id": expected["id"],
+                "name": expected["name"],
+                "reference_type": "monster",
+                "review_status": status,
+                "review_flags": (
+                    [OCR_REVIEW_FLAG]
+                    if status == "verified"
+                    else [OCR_REVIEW_FLAG, REPAIR_FLAG]
+                ),
+                "source_key": "Manuale_del_giocatore__1787259882002.pdf",
+                "source_refs": [
+                    {
+                        "filename": "Manuale_del_giocatore__1787259882002.pdf",
+                        "page": 304,
+                    }
+                ],
+                "canonical_id": None,
+            }
+        )
+
+    selected = select_players_handbook_blocked8_targets(records)
+
+    assert len(selected) == EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_COUNT == 8
+    fingerprint = hashlib.md5(
+        ",".join(sorted(str(row["id"]) for row in selected)).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
+    assert fingerprint == EXPECTED_PLAYERS_HANDBOOK_BLOCKED8_IDS_MD5
+    selected_names = {row["name"] for row in selected}
+    assert "Mulo" not in selected_names
+    assert "Cavallo Da Guerra" in selected_names
+    assert "Falco" in selected_names
+    assert "Rana" in selected_names
 
 
 def test_residual_batches_are_disjoint_complete_and_fingerprinted():
@@ -368,7 +694,7 @@ def test_hp_micro_ocr_contrast_crop_and_character_whitelist(tmp_path):
     micro_command = run.call_args_list[1].args[0]
     assert "--psm" in micro_command
     assert "7" in micro_command
-    assert "tessedit_char_whitelist=0123456789d+() " in micro_command
+    assert "tessedit_char_whitelist=0123456789d+-() " in micro_command
 
 
 def test_hp_micro_ocr_does_not_touch_non_hp_text(tmp_path):
@@ -388,6 +714,123 @@ def test_hp_micro_ocr_does_not_touch_non_hp_text(tmp_path):
 
     assert result == "Classe Armatura 17\nVelocità 3 m"
     run.assert_not_called()
+
+
+def test_hp_micro_ocr_skips_when_unique_local_hp_is_already_valid(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "Quasit\n"
+        "Minuscolo immondo, legale malvagio\n"
+        "Classe Armatura 13\n"
+        "Punti Ferita 7 (3d4)\n"
+        "Velocità 6 m, volare 12 m\n"
+    )
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Quasit",
+        )
+
+    assert result == page_text
+    run.assert_not_called()
+    assert "HP_MICRO_OCR_SKIPPED_VALID_LOCAL" in capsys.readouterr().out
+
+
+def test_micro_target_line_matches_bounded_title_ocr_error():
+    assert _micro_target_line_matches(
+        "Cavallo Da Galopo",
+        "Cavallo Da Galoppo",
+    )
+    assert not _micro_target_line_matches(
+        "Cavallo Da Guerra",
+        "Cavallo Da Galoppo",
+    )
+
+
+def test_verified_core_agreement_accepts_only_presentation_differences():
+    raw, deterministic = _verified_core_agreement(
+        {
+            "classe_armatura": "14 (armatura naturale)",
+            "punti_ferita": "26 (4d10 + 4)",
+            "velocita": "12 m, scalare 9 m",
+        },
+        {
+            "classe_armatura": "14 (armatura naturale}",
+            "punti_ferita": "26 (4d10+4)",
+            "velocita": "12 m, scalare 9m",
+        },
+    )
+
+    assert raw == {
+        "classe_armatura": False,
+        "punti_ferita": False,
+        "velocita": False,
+    }
+    assert deterministic == {
+        "classe_armatura": True,
+        "punti_ferita": True,
+        "velocita": True,
+    }
+
+    _raw, deterministic = _verified_core_agreement(
+        {
+            "classe_armatura": "13",
+            "punti_ferita": "10 (3d4 + 3)",
+            "velocita": "6 m, volare 12 m; 6 m, scalare 6 m",
+        },
+        {
+            "classe_armatura": "13",
+            "punti_ferita": "10 (3d4 + 3)",
+            "velocita": "6 m, volare 12 m",
+        },
+    )
+    assert deterministic["velocita"] is False
+
+
+def test_hp_micro_ocr_replaces_target_local_hp_after_bounded_name_match(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t20\t20\t170\t20\t95\tCavallo Da Galopo",
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti",
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita",
+    ]
+    page_text = (
+        "Altro Mostro\n"
+        "Punti Ferita 99 (9d10 + 45)\n"
+        "Cavallo Da Galopo\n"
+        "Punti Ferita 13 (2d1O + 2)\n"
+        "Velocità 18 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=header + "\n".join(rows) + "\n", stderr=""),
+        CompletedProcess([], 0, stdout="13 (2d10 + 2)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Cavallo Da Galoppo",
+        )
+
+    assert "Altro Mostro\nPunti Ferita 99 (9d10 + 45)" in result
+    assert "Cavallo Da Galopo\nPunti Ferita 13 (2d10 + 2)" in result
 
 
 def test_hp_micro_ocr_uses_target_name_as_upper_anchor(tmp_path):
@@ -533,6 +976,195 @@ def test_hp_micro_ocr_page_wide_fallback_rejects_ambiguous_hp_labels(tmp_path, c
     }
 
 
+def test_hp_micro_ocr_collapses_identical_duplicate_hp_lines(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "Rana\nPunti Ferita 1 (1d4 - 1)\n"
+        "Rana\nPunti Ferita 1 (1d4 - 1)\n"
+    )
+
+    with patch("scripts.repair_monsters_from_source.subprocess.run") as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Rana",
+        )
+
+    assert result == page_text
+    run.assert_not_called()
+
+
+def test_hp_micro_ocr_unique_geometry_can_repair_duplicate_target_copies(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t80\t15\t95\tRana\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t15\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t15\t95\tFerita\n"
+    )
+    page_text = (
+        "Rana\nPunti Ferita 1 (1dA - 1)\nVelocità 6 m\n"
+        "Rana\nPunti Ferita 1 (1d 4 - 1)\nVelocità 6 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="1 (1d4 - 1)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            page_text,
+            "Rana",
+            single_target_geometry=True,
+        )
+
+    assert result.count("Punti Ferita 1 (1d4 - 1)") == 2
+    assert "HP_UNIQUE_GEOMETRY_DUPLICATE_REPLACEMENT" in capsys.readouterr().out
+
+
+def test_hit_points_whitelist_preserves_negative_modifier_sign():
+    assert "-" in HIT_POINTS_WHITELIST
+
+
+def test_numeric_dice_separator_confusion_repairs_only_unique_math_valid_candidate():
+    assert (
+        _repair_numeric_dice_separator_confusion("11 (248 + 2)")
+        == "11 (2d8 + 2)"
+    )
+    assert (
+        _repair_numeric_dice_separator_confusion("1 (144 - 1)")
+        == "1 (1d4 - 1)"
+    )
+
+
+def test_numeric_dice_separator_confusion_fails_closed_on_bad_math_or_valid_input():
+    assert _repair_numeric_dice_separator_confusion("12 (248 + 2)") is None
+    assert _repair_numeric_dice_separator_confusion("11 (2d8 + 2)") is None
+    assert _repair_numeric_dice_separator_confusion("11 (245 + 2)") is None
+
+
+def test_phb_blocked7_source_guided_segments_are_right_column():
+    assert PLAYERS_HANDBOOK_TIMEOUT4_NAMES == {
+        "Falco",
+        "Gufo",
+        "Lupo",
+        "Pipistrello",
+    }
+    assert {
+        name: TARGET_SEGMENT_BY_NAME[name]
+        for name in (
+            "Cavallo Da Guerra",
+            "Cinghiale",
+            "Falco",
+            "Gufo",
+            "Lupo",
+            "Orso Bruno",
+            "Pipistrello",
+        )
+    } == {
+        "Cavallo Da Guerra": "right",
+        "Cinghiale": "right",
+        "Falco": "right",
+        "Gufo": "right",
+        "Lupo": "right",
+        "Orso Bruno": "right",
+        "Pipistrello": "right",
+    }
+
+
+def test_phb_timeout4_full_spectrum_starts_with_x4_no_morphology(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t100\t20\t95\tFalco\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1dA - 1)\n", stderr=""),
+        CompletedProcess([], 0, stdout="1 (1d4 - 1)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Falco\nPunti Ferita 1 (1dA - 1)\nVelocità 3 m, volare 18 m\n",
+            "Falco",
+        )
+
+    assert "Punti Ferita 1 (1d4 - 1)" in result
+    first_spectrum_path = run.call_args_list[5].args[0][1]
+    assert "upscaled-x4" in first_spectrum_path
+    assert "dark-eroded" not in first_spectrum_path
+    assert "dark-dilated" not in first_spectrum_path
+
+
+def test_phb_full_spectrum_uses_native_morphology_only(tmp_path):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t20\t20\t100\t20\t95\tMulo\n"
+        "5\t1\t1\t1\t2\t1\t20\t50\t45\t20\t95\tPunti\n"
+        "5\t1\t1\t1\t2\t2\t72\t50\t50\t20\t95\tFerita\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=tsv, stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (248+ 2)\n", stderr=""),
+        CompletedProcess([], 0, stdout="11 (2d8 + 2)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            3,
+            "Mulo\nPunti Ferita 11 (248+ 2)\nVelocità 12 m\n",
+            "Mulo",
+        )
+
+    assert "Punti Ferita 11 (2d8 + 2)" in result
+    first_spectrum_path = run.call_args_list[5].args[0][1]
+    assert "upscaled-x4" in first_spectrum_path
+    assert "dark-dilated" not in first_spectrum_path
+    assert "dark-eroded" not in first_spectrum_path
+    assert "threshold-140" in first_spectrum_path
+
+
 def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     image_path = tmp_path / "column.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 240), False)
@@ -545,7 +1177,7 @@ def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     )
     page_text = (
         "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
-        "Quetzalcoatlus\nPunti Ferita 30 (4d12 + 4)\n"
+        "Quetzalcoatlus\nPunti Ferita 31 (4d12 + 5)\n"
     )
 
     with patch(
@@ -559,7 +1191,7 @@ def test_hp_micro_ocr_reports_page_text_identity_ambiguity(tmp_path, capsys):
     assert result == page_text
     payload = json.loads(capsys.readouterr().out.split("HP_ANCHOR_DIAGNOSTIC ", 1)[1])
     assert payload["page_text_target_count"] == 2
-    assert payload["page_text_local_hp_count"] == 0
+    assert payload["page_text_local_hp_count"] == 2
     assert payload["tsv_page_wide_hp_label_count"] == 1
     assert payload["tsv_name_anchor_found"] is False
     assert payload["tsv_local_label_found"] is False
@@ -644,11 +1276,9 @@ def test_hp_micro_ocr_retries_corrupted_die_at_lower_contrast(tmp_path):
         .endswith("hit-points-1.2-upscaled-x2-otsu-inverted.png")
     )
     assert crop_sizes[2] == (crop_sizes[1][0] * 2, crop_sizes[1][1] * 2)
-    assert (
-        run.call_args_list[4]
-        .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
-    )
+    assert "upscaled-x4" in run.call_args_list[4].args[0][1]
+    assert "threshold-100" in run.call_args_list[4].args[0][1]
+    assert "dark-dilated" not in run.call_args_list[4].args[0][1]
     assert crop_sizes[3] == (crop_sizes[1][0] * 4, crop_sizes[1][1] * 4)
 
 
@@ -689,7 +1319,7 @@ def test_dark_pixel_erosion_thins_only_into_immediate_neighborhood():
 
 
 def test_full_spectrum_contrast_range_and_background_variance_are_bounded():
-    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (1.0, 1.8, 2.5)
+    assert HIT_POINTS_FULL_SPECTRUM_CONTRASTS == (1.0, 2.0)
     assert _sample_variance(bytes([255, 255, 255])) == 0.0
     assert _sample_variance(bytes([0, 255])) > 36.0
 
@@ -725,11 +1355,9 @@ def test_quetzalcoatlus_fourth_hp_retry_uses_dark_dilation(tmp_path):
         )
 
     assert result == "Quetzalcoatlus\nPunti Ferita 30 (4d10 + 8)\n"
-    assert (
-        run.call_args_list[4]
-        .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
-    )
+    assert "upscaled-x4" in run.call_args_list[4].args[0][1]
+    assert "threshold-100" in run.call_args_list[4].args[0][1]
+    assert "dark-dilated" not in run.call_args_list[4].args[0][1]
 
 
 def test_hp_micro_ocr_retries_modellaghiaccio_nonstandard_die_faces(tmp_path, capsys):
@@ -809,18 +1437,17 @@ def test_hp_micro_ocr_uses_otsu_when_initial_result_fails_math_gate(tmp_path, ca
         .args[0][1]
         .endswith("hit-points-1.2-upscaled-x2-otsu-inverted.png")
     )
-    assert (
-        run.call_args_list[4]
-        .args[0][1]
-        .endswith("hit-points-1.2-dark-dilated-upscaled-x4-otsu-inverted.png")
-    )
+    assert "upscaled-x4" in run.call_args_list[4].args[0][1]
+    assert "threshold-100" in run.call_args_list[4].args[0][1]
+    assert "upscaled-x4" in run.call_args_list[5].args[0][1]
+    assert "threshold-140" in run.call_args_list[5].args[0][1]
     diagnostic = capsys.readouterr().out
     assert '"otsu_hp_format_error": true' in diagnostic
     assert '"upscaled_otsu_hp_format_error": true' in diagnostic
-    assert '"superscaled_otsu_hp_format_error": true' in diagnostic
-    assert '"full_spectrum_attempt_count": 1' in diagnostic
-    assert '"morphology": "erosion"' in diagnostic
-    assert '"threshold": 80' in diagnostic
+    assert '"superscaled_otsu_hp_format_error": null' in diagnostic
+    assert '"full_spectrum_attempt_count": 2' in diagnostic
+    assert '"morphology": "none"' in diagnostic
+    assert '"threshold": 140' in diagnostic
 
 
 def test_otsu_inversion_makes_dark_text_white_and_light_background_black():
@@ -960,6 +1587,22 @@ def test_bigby_layout_profile_splits_columns_and_uses_independent_ocr_modes():
     ) == (300, 3, 4)
 
 
+def test_players_handbook_layout_profile_splits_columns():
+    source = {"logical_source_id": "phb_2014_it"}
+
+    assert _layout_profile(source) == "two_column_vertical"
+    assert _layout_segments(source) == (
+        ("left", (0.0, 0.0, 0.52, 1.0)),
+        ("right", (0.48, 0.0, 1.0, 1.0)),
+    )
+    assert _layout_ocr_settings(
+        source,
+        dpi=220,
+        psm=6,
+        comparison_psm=4,
+    ) == (300, 3, 4)
+
+
 def test_non_two_column_source_keeps_full_page_settings():
     source = {"logical_source_id": "tce_2020_it"}
 
@@ -998,13 +1641,37 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
     )
 
 
-def test_sparse_page_anchor_compacts_layout_whitespace_but_requires_identity():
-    assert _sparse_anchor_matches("RAK   TULKHESH\nClasse Armatura", "Rak Tulkhesh")
-    assert not _sparse_anchor_matches("Altro Mostro\nClasse Armatura", "Rak Tulkhesh")
+def test_sparse_page_anchor_requires_title_like_identity():
+    assert _sparse_anchor_matches("RAK   TULKHESH", "Rak Tulkhesh")
+    assert _sparse_anchor_matches("RAK   TULKHESH X", "Rak Tulkhesh")
+    assert _sparse_anchor_matches("CINGHIAIE", "Cinghiale")
+    assert _sparse_anchor_matches("CING HIALE", "Cinghiale")
+    assert _sparse_anchor_matches("MUIO", "Mulo")
+    assert not _sparse_anchor_matches(
+        "RAK TULKHESH Classe Armatura",
+        "Rak Tulkhesh",
+    )
+    assert not _sparse_anchor_matches(
+        "Il Rak Tulkhesh attacca",
+        "Rak Tulkhesh",
+    )
 
 
 def test_sparse_page_anchor_rejects_empty_target():
     assert not _sparse_anchor_matches("Rak Tulkhesh", "")
+
+
+def test_targeted_ocr_budget_token_extends_only_the_total_budget():
+    with patch(
+        "scripts.repair_monsters_from_source.time.monotonic",
+        return_value=70.0,
+    ):
+        assert _remaining_global_ocr_budget((0.0, 75.0)) == 5.0
+        with pytest.raises(RepairBlocked) as exc:
+            _remaining_global_ocr_budget((0.0, 60.0))
+
+    assert exc.value.reason == "ocr_global_timeout"
+    assert exc.value.diagnostics["budget_seconds"] == 60.0
 
 
 def test_source_pdf_cache_resolves_registered_r2_alias_and_verifies_sha(tmp_path):
@@ -1440,6 +2107,94 @@ def test_background_luminance_stats_detects_nonwhite_frame():
     assert tinted_variance == 0
 
 
+def test_phb_quality_pre_otsu_clip_preserves_source_anchor_geometry():
+    source = fitz.Rect(100, 50, 500, 450)
+
+    orso = _phb_quality_pre_otsu_clip(source, "Orso Bruno")
+    cavallo = _phb_quality_pre_otsu_clip(source, "Cavallo Da Guerra")
+
+    assert orso == source
+    assert cavallo == source
+
+
+def test_orso_bruno_sparse_retry_preserves_source_raster():
+    assert _phb_sparse_uses_quality_pre_otsu("Orso Bruno") is False
+    assert _phb_sparse_uses_quality_pre_otsu("Cavallo Da Guerra") is False
+    assert _phb_sparse_uses_quality_pre_otsu("Gufo") is True
+
+
+def test_cavallo_sparse_comparison_uses_scoped_adaptive_source():
+    assert _phb_sparse_comparison_uses_adaptive_source("Cavallo Da Guerra") is True
+    assert _phb_sparse_comparison_uses_adaptive_source("Cinghiale") is False
+    assert _phb_sparse_comparison_uses_adaptive_source("Gufo") is False
+    assert _phb_sparse_comparison_uses_adaptive_source("Orso Bruno") is False
+
+
+def test_phb_quality_gate_pre_otsu_targets_are_exactly_the_three_residuals():
+    assert PHB_QUALITY_GATE_PRE_OTSU_TARGETS == {
+        "Cavallo Da Guerra",
+        "Gufo",
+        "Orso Bruno",
+    }
+
+
+def test_phb_sparse_continuation_clips_are_source_reviewed_and_bounded():
+    assert PHB_SPARSE_CONTINUATION_CLIPS == {
+        "Gufo": (1, (0.06, 0.0, 0.49, 0.12)),
+        "Lupo": (1, (0.06, 0.0, 0.49, 0.22)),
+    }
+    for page_offset, fractions in PHB_SPARSE_CONTINUATION_CLIPS.values():
+        assert page_offset == 1
+        x0, y0, x1, y1 = fractions
+        assert 0.0 <= x0 < x1 <= 0.5
+        assert y0 == 0.0
+        assert 0.0 < y1 < 0.25
+
+
+def test_phb_sparse_bottom_fractions_stop_before_neighboring_blocks():
+    assert PHB_SPARSE_BOTTOM_FRACTION_BY_NAME == {
+        "Cavallo Da Guerra": 0.455,
+        "Falco": 0.35,
+        "Orso Bruno": 0.84,
+        "Pipistrello": 0.38,
+    }
+    assert all(
+        0.3 < fraction < 0.9
+        for fraction in PHB_SPARSE_BOTTOM_FRACTION_BY_NAME.values()
+    )
+
+
+def test_phb_sparse_quality_context_is_scoped_to_short_isolated_blocks():
+    assert PHB_SPARSE_QUALITY_CONTEXT_TARGETS == {"Falco", "Pipistrello"}
+
+
+def test_local_otsu_inversion_handles_distinct_local_backgrounds():
+    width = 64
+    height = 32
+    samples = bytearray(width * height)
+    for y in range(height):
+        for x in range(width):
+            samples[y * width + x] = 220 if x < 32 else 250
+
+    for y in range(6, 26):
+        for x in range(10, 13):
+            samples[y * width + x] = 30
+        for x in range(43, 46):
+            samples[y * width + x] = 80
+
+    result = _local_otsu_inverted_samples(
+        bytes(samples),
+        width,
+        height,
+        tile_size=32,
+    )
+
+    assert result[10 * width + 11] == 255
+    assert result[10 * width + 44] == 255
+    assert result[2 * width + 2] == 0
+    assert result[2 * width + 50] == 0
+
+
 def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
     image_path = tmp_path / "page.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
@@ -1469,6 +2224,92 @@ def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
     assert "--psm" in command
     assert "11" in command
     assert "tsv" in command
+
+
+def test_sparse_anchor_crop_can_use_distinct_psm12(tmp_path):
+    image_path = tmp_path / "page.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t650\t200\t120\t30\t95\tCINGHIALE\n"
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ) as run:
+        crop = _sparse_anchor_crop_fractions(
+            image_path,
+            "ita",
+            "Cinghiale",
+            psm=12,
+        )
+
+    assert crop is not None
+    command = run.call_args.args[0]
+    psm_index = command.index("--psm")
+    assert command[psm_index + 1] == "12"
+
+
+def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
+    assert "ref_66cc59680c4e58fa93a99656f8a07887" in (
+        PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
+    )
+    assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
+        "ref_85a4eadb862758fbb682e93ab19f1065": 150.0,
+        "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
+        "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be": 150.0,
+        "ref_019562bded0b320ac918f4b2514c65e4": 150.0,
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8": 150.0,
+    }
+
+
+def test_phb_sparse_comparison_psm_stays_independent_and_scoped():
+    assert _phb_sparse_comparison_psm("Cinghiale", 4) == 12
+    assert _phb_sparse_comparison_psm("Rana", 4) == 12
+    assert _phb_sparse_comparison_psm("Cavallo Da Guerra", 4) == 4
+    assert _phb_sparse_comparison_psm("Gufo", 4) == 4
+    assert _phb_sparse_comparison_psm("Orso Bruno", 4) == 4
+    assert _phb_sparse_comparison_psm("Falco", 4) == 12
+
+
+def test_cavallo_sparse_title_restore_requires_unique_anchor_and_ordered_core():
+    comparison = """Bestia Grande, senza allineamento
+pie Classe Armatura 11
+Le Punti Ferita 19 (3d10 + 3)
+Ja delle Velocità 18 m
+FOR DES COS INT SAG CAR
+"""
+
+    restored = _restore_cavallo_sparse_title_from_anchor(
+        comparison,
+        "Cavallo Da Guerra",
+        unique_anchor_found=True,
+    )
+    assert restored.startswith("CAVALLO DA GUERRA\n")
+    assert "\nClasse Armatura 11\n" in restored
+    assert "\nPunti Ferita 19 (3d10 + 3)\n" in restored
+    assert "\nVelocità 18 m\n" in restored
+
+    assert (
+        _restore_cavallo_sparse_title_from_anchor(
+            comparison,
+            "Cavallo Da Guerra",
+            unique_anchor_found=False,
+        )
+        == comparison
+    )
+    assert (
+        _restore_cavallo_sparse_title_from_anchor(
+            "Bestia Grande\nPunti Ferita 19 (3d10 + 3)\nVelocità 18 m\n",
+            "Cavallo Da Guerra",
+            unique_anchor_found=True,
+        )
+        .startswith("CAVALLO DA GUERRA")
+        is False
+    )
 
 
 def test_sparse_anchor_crop_rejects_ambiguous_duplicate_title(tmp_path):

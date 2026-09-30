@@ -98,6 +98,8 @@ def _agreement_metrics(primary: str, comparison: str) -> dict[str, Any]:
     }
     primary_quality = _text_quality(primary)
     comparison_quality = _text_quality(comparison)
+    metrics["primary_quality"] = primary_quality
+    metrics["comparison_quality"] = comparison_quality
     metrics["quality_pass"] = bool(
         primary_quality["chars"] >= 500
         and comparison_quality["chars"] >= 500

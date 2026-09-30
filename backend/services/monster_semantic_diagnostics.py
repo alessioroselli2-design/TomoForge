@@ -32,6 +32,8 @@ _DICE_RE = re.compile(r"(?<=\d)\s*d\s*(?=\d)", re.IGNORECASE)
 _SIGN_RE = re.compile(r"\s*([+\-])\s*")
 _METERS_RE = re.compile(r"\bmetri?\b", re.IGNORECASE)
 _SPACE_BEFORE_M_RE = re.compile(r"(?<=\d)\s+m\b", re.IGNORECASE)
+_SPEED_M_IN_FORMA_RE = re.compile(r"(?<=\d)\s*m\s*in\s+forma\b", re.IGNORECASE)
+_SPEED_MIN_FORMA_RE = re.compile(r"(?<=\d)\s*min\s+forma\b", re.IGNORECASE)
 _WHITESPACE_RE = re.compile(r"\s+")
 
 
@@ -59,6 +61,9 @@ def _deterministic_normalized_value(field: str, value: object) -> str | None:
         return None
     text = prefix.sub("", text, count=1)
     text = _METERS_RE.sub("m", text)
+    if field == "velocita":
+        text = _SPEED_M_IN_FORMA_RE.sub("m in forma", text)
+        text = _SPEED_MIN_FORMA_RE.sub("m in forma", text)
     text = _PUNCTUATION_RE.sub(" ", text)
     text = _DICE_RE.sub("d", text)
     text = _SIGN_RE.sub(r"\1", text)
