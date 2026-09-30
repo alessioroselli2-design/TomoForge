@@ -2865,6 +2865,74 @@ def _micro_ocr_bodak_descriptor(
     return restored[0], restored[1]
 
 
+def _restore_divoratore_title_from_local_traits(page_text: str, target_name: str) -> str:
+    """Reanchor Divoratore only from explicit traits in its unique core block."""
+    if target_name != "Divoratore":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if line == "non morto grande generalmente caotico malvagio"
+    ]
+    patterns = (
+        r"^\s*Classe\s+Armatura\s+16\s*\(\s*armatura\s+naturale\s*\)",
+        r"^\s*Punti\s+Ferita\s+189\s*\(",
+        r"^\s*Velocit[àa]\s*9\s*m\b",
+    )
+    core_indexes = [
+        [
+            index
+            for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    unusual = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("natura insolita un divoratore non necessita")
+    ]
+    multiattack = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("multiattacco il divoratore effettua")
+    ]
+    if not (
+        len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(unusual) == len(multiattack) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        descriptor < ca < hp < speed < unusual[0] < multiattack[0]
+        and speed - descriptor <= 8
+    ):
+        return page_text
+    if descriptor > 0 and normalized[descriptor - 1] == "divoratore":
+        return page_text
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_DIVORATORE_TITLE_FROM_TRAITS "
+        + json.dumps(
+            {
+                "name": target_name,
+                "identity_evidence": [
+                    page_text.splitlines()[unusual[0]],
+                    page_text.splitlines()[multiattack[0]],
+                ],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _restore_derro_title_from_local_traits(page_text: str, target_name: str) -> str:
     """Reanchor ordinary Derro from its own descriptor and explicit trait text."""
     if target_name != "Derro":
@@ -3951,7 +4019,7 @@ def _micro_ocr_hit_points_line(
         "-l",
         languages,
         "--psm",
-        str(11 if name in {"Brontosauro", "Delfino"} and psm == 4 else psm),
+        str(11 if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4 else psm),
         "tsv",
         "quiet",
     ]
@@ -4005,7 +4073,7 @@ def _micro_ocr_hit_points_line(
             }
         )
         hp_indexes = _collapse_identical_hp_indexes(text_lines, hp_indexes)
-        if name in {"Bael", "Delfino"}:
+        if name in {"Bael", "Delfino", "Divoratore"}:
             # Body references to Bael and regeneration are not structural PF rows.
             hp_indexes = [
                 index
@@ -4180,6 +4248,45 @@ def _micro_ocr_hit_points_line(
             )
         else:
             return fail_closed("bael_structural_hp_anchor_ambiguous")
+    if name == "Divoratore":
+        structural = [
+            normalize_reference_name(" ".join(str(word["text"]) for word in words))
+            for words in ordered_lines
+        ]
+        ca_rows = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("classe armatura 16")
+        ]
+        hp_rows = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("punti ferita 189")
+        ]
+        speed_rows = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("velocita 9")
+        ]
+        if (
+            len(ca_rows) == len(hp_rows) == len(speed_rows) == 1
+            and ca_rows[0] < hp_rows[0] < speed_rows[0]
+            and speed_rows[0] - ca_rows[0] <= 6
+            and page_local_hp_count == 1
+        ):
+            label_words = ordered_lines[hp_rows[0]]
+            print(
+                "MPMM_DIVORATORE_STRUCTURAL_HP_ANCHOR "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "label": structural[hp_rows[0]],
+                        "ordered_core_labels": True,
+                    }
+                )
+            )
+        else:
+            return fail_closed("divoratore_structural_hp_anchor_ambiguous")
     if name == "Delfino":
         structural = [
             normalize_reference_name(" ".join(str(word["text"]) for word in words))
@@ -4379,7 +4486,7 @@ def _micro_ocr_hit_points_line(
             "-l",
             languages,
             "--psm",
-            "6" if name in {"Brontosauro", "Delfino"} and psm == 4 else "7",
+            "6" if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4 else "7",
             "-c",
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
@@ -5039,6 +5146,13 @@ def _ocr_source_window(
                         comparison = _restore_bael_title_from_local_actions(
                             comparison, name
                         )
+                    if name == "Divoratore" and not sparse_full_page:
+                        primary = _restore_divoratore_title_from_local_traits(
+                            primary, name
+                        )
+                        comparison = _restore_divoratore_title_from_local_traits(
+                            comparison, name
+                        )
                     if name == "Derro" and not sparse_full_page:
                         primary = _restore_derro_title_from_local_traits(primary, name)
                         comparison = _restore_derro_title_from_local_traits(
@@ -5193,7 +5307,7 @@ def _ocr_source_window(
                     micro_image_path = image_path
                     if (
                         name in QUALITY_FAIL_PRE_OTSU_TARGETS
-                        and name != "Bael"
+                        and name not in {"Bael", "Divoratore"}
                         and not sparse_full_page
                     ):
                         target_normalized = normalize_reference_name(name)
