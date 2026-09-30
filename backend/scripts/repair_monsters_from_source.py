@@ -4784,8 +4784,9 @@ def _ocr_source_window(
         "Berbalang",
         "Bove Fetente",
         "Collezionista Di Cadaveri",
+        "Divoratore",
     }:
-        # Pages 68/70: left stat blocks; center overlap captures
+        # These left stat blocks need no center overlap; it captures: left stat blocks; center overlap captures
         # detached fragments from the adjacent right-column prose.
         segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
         column_overlap = 0.0
@@ -7055,6 +7056,7 @@ async def _repair_one(
                     "Bodak",
                     "Bove Fetente",
                     "Collezionista Di Cadaveri",
+                    "Divoratore",
                 }
                 else overlap
             )
