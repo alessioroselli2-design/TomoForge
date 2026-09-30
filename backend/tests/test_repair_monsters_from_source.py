@@ -2381,3 +2381,46 @@ def test_target_agreement_is_symmetric_when_only_comparison_keeps_target_name():
     assert candidate["name"] == "Rak Tulkhesh"
     assert candidate["attributes"]["ocr_independent_agreement"] is True
     assert candidate["attributes"]["ocr_core_only_same_page_agreement"] is True
+
+
+@pytest.mark.parametrize(
+    ("extra_block", "missing_speed", "expected_anchor"),
+    [(False, False, True), (True, False, False), (False, True, False)],
+)
+def test_adrosauro_duplicate_titles_require_one_ordered_local_statblock(
+    tmp_path, extra_block, missing_speed, expected_anchor
+):
+    image_path = tmp_path / "adrosauro.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    lines = [(100, "ADROSAURO"), (600, "ADROSAURO")]
+    for title_top in ([100, 600] if extra_block else [600]):
+        lines.extend(
+            [
+                (title_top + 60, "Bestia Grande (Dinosauro), senza allineamento"),
+                (title_top + 120, "Classe Armatura 11"),
+                (title_top + 180, "Punti Ferita 19 (3d10 + 3)"),
+            ]
+        )
+        if not missing_speed:
+            lines.append((title_top + 240, "Velocità 12 m"))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{index}\t1\t1\t1\t80\t{top}\t220\t30\t95\t{text}\n"
+            for index, (top, text) in enumerate(lines, 1)
+        )
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        crop = _sparse_anchor_crop_fractions(image_path, "ita", "Adrosauro")
+    if expected_anchor:
+        assert crop is not None
+        assert crop[0] == 0.0
+        assert crop[2] == 0.5
+        assert 0.45 < crop[1] < 0.55
+    else:
+        assert crop is None
