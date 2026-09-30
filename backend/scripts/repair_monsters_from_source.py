@@ -2734,6 +2734,76 @@ def _restore_bael_title_from_local_actions(page_text: str, target_name: str) -> 
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _restore_bodak_title_from_local_traits(page_text: str, target_name: str) -> str:
+    """Reanchor Bodak from two explicit local traits without changing values."""
+    if target_name != "Bodak":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if line == "non morto medio generalmente caotico malvagio"
+    ]
+    patterns = (
+        r"\bClasse\s+Armatura\s+15\s*\(\s*armatura\s+naturale\s*\)",
+        r"\bPunti\s+Ferita\s+58\s*\(\s*9d8\s*\+\s*18\s*\)",
+        r"\bVelocit[àa]\s*9\s*m\b",
+    )
+    core_indexes = [
+        [
+            index
+            for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    sunlight = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("ipersensibilita al sole") and "bodak subisce" in line
+    ]
+    unusual = [
+        index
+        for index, line in enumerate(normalized)
+        if line.startswith("natura insolita il bodak non necessita")
+    ]
+    if not (
+        len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(sunlight) == 1
+        and len(unusual) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        descriptor < ca < hp < speed < sunlight[0] < unusual[0]
+        and speed - descriptor <= 10
+    ):
+        return page_text
+    # Retain the raw OCR title noise above the independently identified block.
+    # Only punctuation preceding the observed descriptor is removed.
+    lines[descriptor] = re.sub(r"^[^\w]*", "", lines[descriptor])
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_BODAK_TITLE_FROM_TRAITS "
+        + json.dumps(
+            {
+                "name": target_name,
+                "identity_evidence": [
+                    page_text.splitlines()[sunlight[0]],
+                    page_text.splitlines()[unusual[0]],
+                ],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _restore_cavallo_sparse_title_from_anchor(
     page_text: str,
     target_name: str,
@@ -4321,6 +4391,24 @@ def _ocr_source_window(
                         alpha=False,
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
+                    if name == "Bodak" and not sparse_full_page:
+                        raw_image = fitz.Pixmap(str(image_path))
+                        threshold = 160
+                        lookup = bytes(
+                            0 if value < threshold else 255 for value in range(256)
+                        )
+                        cleaned_image = fitz.Pixmap(
+                            fitz.csGRAY,
+                            raw_image.width,
+                            raw_image.height,
+                            raw_image.samples.translate(lookup),
+                            False,
+                        )
+                        cleaned_image.save(image_path)
+                        print(
+                            "MPMM_BODAK_SOURCE_CONTRAST "
+                            + json.dumps({"threshold": threshold, "dpi": effective_dpi})
+                        )
                     comparison_image_path = image_path
 
                     sparse_anchor_found = None
@@ -4528,6 +4616,11 @@ def _ocr_source_window(
                     if name == "Bael" and not sparse_full_page:
                         primary = _restore_bael_title_from_local_actions(primary, name)
                         comparison = _restore_bael_title_from_local_actions(
+                            comparison, name
+                        )
+                    if name == "Bodak" and not sparse_full_page:
+                        primary = _restore_bodak_title_from_local_traits(primary, name)
+                        comparison = _restore_bodak_title_from_local_traits(
                             comparison, name
                         )
                     if name == "Arciere" and not sparse_full_page:
