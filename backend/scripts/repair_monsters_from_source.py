@@ -4968,20 +4968,28 @@ def _agreed_target_candidate(
         comparison_lines = [
             line.strip() for line in comparison_text.splitlines() if line.strip()
         ]
-        title_lines = [
-            line
-            for line in comparison_lines
-            if _micro_target_line_matches(line, target_name)
+        normalized_comparison_lines = [
+            normalize_reference_name(line) for line in comparison_lines
         ]
-        hp_lines = [
-            line
-            for line in comparison_lines
-            if re.search(r"\bPunti\s+Ferita\b", line, re.IGNORECASE)
+        descriptor_indexes = [
+            index
+            for index, line in enumerate(normalized_comparison_lines)
+            if "bestia media" in line and "senza allineamento" in line
         ]
-        speed_lines = [
-            line
-            for line in comparison_lines
-            if re.search(r"\bVelocit[àa]\b", line, re.IGNORECASE)
+        ca_indexes = [
+            index
+            for index, line in enumerate(normalized_comparison_lines)
+            if "classe armatura" in line
+        ]
+        hp_indexes = [
+            index
+            for index, line in enumerate(normalized_comparison_lines)
+            if "punti ferita" in line
+        ]
+        speed_indexes = [
+            index
+            for index, line in enumerate(normalized_comparison_lines)
+            if "velocita" in line
         ]
         source_reviewed_core = PHB_SOURCE_REVIEWED_CORE_BY_NAME[target_name]
         if len(primary_targets) == 1:
@@ -4992,22 +5000,49 @@ def _agreed_target_candidate(
                 source_reviewed_core,
             )
             primary_flags = monster_semantic_numeric_flags(primary_attributes)
+
+            first_block_indexes = (
+                descriptor_indexes[:1]
+                + ca_indexes[:1]
+                + hp_indexes[:1]
+                + speed_indexes[:1]
+            )
+            first_block_ordered = (
+                len(first_block_indexes) == 4
+                and first_block_indexes
+                == sorted(first_block_indexes)
+                and first_block_indexes[-1] - first_block_indexes[0] <= 6
+            )
+            first_ca_line = (
+                comparison_lines[ca_indexes[0]] if ca_indexes else ""
+            )
+            first_hp_line = (
+                comparison_lines[hp_indexes[0]] if hp_indexes else ""
+            )
+            first_speed_line = (
+                comparison_lines[speed_indexes[0]] if speed_indexes else ""
+            )
             raw_comparison_support = (
                 source_anchor_verified
-                and len(title_lines) <= 1
-                and len(hp_lines) == 1
-                and len(speed_lines) == 1
+                and first_block_ordered
+                and bool(
+                    re.search(
+                        r"Classe\s+Armatura\s+30\b",
+                        first_ca_line,
+                        re.IGNORECASE,
+                    )
+                )
                 and bool(
                     re.search(
                         r"Punti\s+Ferita\s+11\s*\(\s*2(?:d|4)8\s*\+\s*2\s*\)",
-                        hp_lines[0],
+                        first_hp_line,
                         re.IGNORECASE,
                     )
                 )
                 and bool(
                     re.search(
                         r"Velocit[àa]\s+12\s*m\b",
-                        speed_lines[0],
+                        first_speed_line,
                         re.IGNORECASE,
                     )
                 )
