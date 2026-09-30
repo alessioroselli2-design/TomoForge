@@ -2679,3 +2679,27 @@ def test_bulezau_title_restore_requires_observed_heading_and_local_trait(mutatio
     else:
         assert result == text
     assert _restore_bulezau_title_from_local_trait(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "duplicate_hp", "wrong_type", "non_border_prefix"])
+def test_celeresto_core_prefix_cleanup_is_scoped_and_preserves_values(mutation):
+    from scripts.repair_monsters_from_source import _clean_celeresto_core_prefixes
+
+    text = (
+        "CELERESTO\n"
+        "Folletto Minuscolo, generalmente caotico malvagio\n"
+        "Classe Armatura 16\n"
+        "i Punti Ferita 10 (3d4 + 3)\n"
+        "i Velocità 36 m\n"
+    )
+    if mutation == "duplicate_hp":
+        text += "Punti Ferita 10 (3d4 + 3)\n"
+    elif mutation == "wrong_type":
+        text = text.replace("Folletto", "Bestia")
+    elif mutation == "non_border_prefix":
+        text = text.replace("i Punti", "test Punti")
+    result = _clean_celeresto_core_prefixes(text, "Celeresto")
+    if mutation == "none":
+        assert result == text.replace("i Punti", "Punti").replace("i Velocità", "Velocità")
+    else:
+        assert result == text
+    assert _clean_celeresto_core_prefixes(text, "Babau") == text
