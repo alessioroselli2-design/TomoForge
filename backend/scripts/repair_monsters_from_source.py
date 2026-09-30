@@ -2423,6 +2423,90 @@ def _micro_target_line_matches(line: str, target_name: str) -> bool:
     )
 
 
+def _restore_addolorato_affamato_dynamic_title(
+    page_text: str,
+    target_name: str,
+) -> str:
+    """Restore only the malformed Addolorato Affamato title in its right stat block.
+
+    The page/segment selection is handled upstream. This helper changes no numeric
+    or descriptive value: it requires one coherent descriptor plus unique CA/PF/
+    speed rows with the already-reviewed core values before replacing only the
+    malformed title line immediately above the descriptor.
+    """
+    if target_name != "Addolorato Affamato":
+        return page_text
+
+    raw_lines = page_text.splitlines()
+    if any(_micro_target_line_matches(line, target_name) for line in raw_lines):
+        return page_text
+
+    normalized_lines = [normalize_reference_name(line) for line in raw_lines]
+    descriptor_indexes = [
+        index
+        for index, line in enumerate(normalized_lines)
+        if (
+            "mostruosita media" in line
+            and "neutrale malvagia" in line
+        )
+    ]
+    ca_indexes = [
+        index
+        for index, line in enumerate(raw_lines)
+        if re.search(
+            r"\bClasse\s+Armatura\s+17\s*\(\s*armatura\s+naturale\s*\)",
+            line,
+            re.IGNORECASE,
+        )
+    ]
+    hp_indexes = [
+        index
+        for index, line in enumerate(raw_lines)
+        if re.search(
+            r"\bPunti\s+Ferita\s+225\s*\(\s*30d8\s*\+\s*90\s*\)",
+            line,
+            re.IGNORECASE,
+        )
+    ]
+    speed_indexes = [
+        index
+        for index, line in enumerate(raw_lines)
+        if re.search(r"\bVelocit[àa]\s+9\s*m\b", line, re.IGNORECASE)
+    ]
+    if not (
+        len(descriptor_indexes) == 1
+        and len(ca_indexes) == 1
+        and len(hp_indexes) == 1
+        and len(speed_indexes) == 1
+    ):
+        return page_text
+
+    descriptor_index = descriptor_indexes[0]
+    ca_index = ca_indexes[0]
+    hp_index = hp_indexes[0]
+    speed_index = speed_indexes[0]
+    if not (
+        descriptor_index < ca_index < hp_index < speed_index
+        and speed_index - descriptor_index <= 8
+    ):
+        return page_text
+
+    title_candidates = [
+        index
+        for index in range(max(0, descriptor_index - 4), descriptor_index)
+        if "affamato" in normalized_lines[index]
+    ]
+    if len(title_candidates) != 1:
+        return page_text
+
+    repaired_lines = list(raw_lines)
+    repaired_lines[title_candidates[0]] = target_name.upper()
+    repaired = "\n".join(repaired_lines)
+    if page_text.endswith("\n"):
+        repaired += "\n"
+    return repaired
+
+
 def _restore_cavallo_sparse_title_from_anchor(
     page_text: str,
     target_name: str,
@@ -4155,6 +4239,37 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    if name == "Addolorato Affamato" and not sparse_full_page:
+                        restored_affamato_primary = (
+                            _restore_addolorato_affamato_dynamic_title(
+                                primary,
+                                name,
+                            )
+                        )
+                        restored_affamato_comparison = (
+                            _restore_addolorato_affamato_dynamic_title(
+                                comparison,
+                                name,
+                            )
+                        )
+                        if (
+                            restored_affamato_primary != primary
+                            or restored_affamato_comparison != comparison
+                        ):
+                            primary = restored_affamato_primary
+                            comparison = restored_affamato_comparison
+                            print(
+                                "MPMM_ADDOLORATO_AFFAMATO_TITLE_RESTORE "
+                                + json.dumps(
+                                    {
+                                        "name": name,
+                                        "segment": segment_name,
+                                        "numeric_values_modified": False,
+                                    },
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                )
+                            )
                     restored_comparison = _restore_cavallo_sparse_title_from_anchor(
                         comparison,
                         name,
