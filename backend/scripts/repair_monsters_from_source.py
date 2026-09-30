@@ -829,6 +829,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
     "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
     "ref_c106f9a6c3115dbf8578f832b04e3a3a",  # Altisauro
     "ref_14406fab44dc5f57a4bb06187ba33465",  # Bael
@@ -846,6 +847,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
+    "Addolorato Affamato": "right",
     "Altisauro": "left",
     "Bael": "left",
     "Colosso Runico": "left",
