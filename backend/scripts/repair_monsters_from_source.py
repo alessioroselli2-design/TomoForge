@@ -829,6 +829,9 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
+SOURCE_GUIDED_TARGET_PAGE_OVERRIDES = {
+    "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 47,  # Addolorato Smarrito
+}
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_b8ecefd5b01e59eaa13cc3721d7b2ae1",  # Addolorato Affamato
     "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
@@ -5903,9 +5906,12 @@ async def _repair_one(
         record,
         active_sources,
     )
-    physical_page = int(source_ref["page"])
-    pdf_path = pdf_cache.get(source)
     record_id = str(record.get("id") or "")
+    physical_page = SOURCE_GUIDED_TARGET_PAGE_OVERRIDES.get(
+        record_id,
+        int(source_ref["page"]),
+    )
+    pdf_path = pdf_cache.get(source)
     source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
         record_id,
         str(record.get("name") or ""),
