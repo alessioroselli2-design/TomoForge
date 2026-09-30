@@ -2734,6 +2734,102 @@ def _restore_bael_title_from_local_actions(page_text: str, target_name: str) -> 
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _micro_ocr_bodak_descriptor(
+    image_path: Path,
+    languages: str,
+    primary: str,
+    comparison: str,
+    *,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+) -> tuple[str, str]:
+    """Read the unique observed descriptor geometry in two independent modes."""
+    import fitz
+
+    command = [
+        "tesseract", str(image_path), "stdout", "-l", languages,
+        "--psm", "6", "tsv", "quiet",
+    ]
+    tsv = _run_tesseract_bounded(
+        command, ocr_budget_started_at, phase="bodak_descriptor_geometry"
+    )
+    grouped: dict[tuple[str, ...], list[dict[str, str]]] = {}
+    for row in csv.DictReader(io.StringIO(tsv), delimiter="\t"):
+        if str(row.get("text") or "").strip():
+            key = tuple(row.get(field, "") for field in (
+                "page_num", "block_num", "par_num", "line_num"
+            ))
+            grouped.setdefault(key, []).append(row)
+    candidates = [
+        words for words in grouped.values()
+        if all(
+            token in normalize_reference_name(
+                " ".join(word["text"] for word in words)
+            )
+            for token in ("medio", "generalmente", "caotico", "malvagio")
+        )
+    ]
+    if len(candidates) != 1:
+        return primary, comparison
+    words = candidates[0]
+    left = min(int(word["left"]) for word in words)
+    top = min(int(word["top"]) for word in words)
+    right = max(int(word["left"]) + int(word["width"]) for word in words)
+    bottom = max(int(word["top"]) + int(word["height"]) for word in words)
+    raw_image = fitz.Pixmap(str(image_path))
+    rect = fitz.Rect(
+        max(0, left - 8), max(0, top - 4),
+        min(raw_image.width, right + 8), min(raw_image.height, bottom + 4),
+    )
+    descriptor_path = image_path.with_name(image_path.stem + "-descriptor.png")
+    with fitz.open() as document:
+        page = document.new_page(width=raw_image.width, height=raw_image.height)
+        page.insert_image(page.rect, filename=str(image_path))
+        page.get_pixmap(clip=rect, colorspace=fitz.csGRAY, alpha=False).save(
+            descriptor_path
+        )
+    readings = [
+        _run_tesseract_bounded(
+            [
+                "tesseract", str(descriptor_path), "stdout", "-l", languages,
+                "--psm", str(mode), "quiet",
+            ],
+            ocr_budget_started_at,
+            phase=f"bodak_descriptor_independent_{mode}",
+        ).strip()
+        for mode in (6, 7)
+    ]
+    expected = "non morto medio generalmente caotico malvagio"
+    print(
+        "MPMM_BODAK_DESCRIPTOR_SOURCE_READS "
+        + json.dumps(
+            {"readings": readings, "crop": list(rect), "modes": [6, 7]},
+            ensure_ascii=False, sort_keys=True,
+        )
+    )
+    if any(normalize_reference_name(reading) != expected for reading in readings):
+        return primary, comparison
+    restored = []
+    for text, reading in zip((primary, comparison), readings, strict=True):
+        lines = text.splitlines()
+        indexes = [
+            index for index, line in enumerate(lines)
+            if all(token in normalize_reference_name(line) for token in (
+                "medio", "generalmente", "caotico", "malvagio"
+            ))
+        ]
+        if len(indexes) != 1:
+            return primary, comparison
+        lines[indexes[0]] = reading
+        # Strip only graphical debris preceding observed core labels.
+        for index, line in enumerate(lines):
+            lines[index] = re.sub(
+                r"^[^\w]*(?=(?:Classe\s+Armatura|Punti\s+Ferita|Velocit[àa]))",
+                "", line, flags=re.IGNORECASE,
+            )
+        restored.append("\n".join(lines) + ("\n" if text.endswith("\n") else ""))
+    return restored[0], restored[1]
+
+
 def _restore_bodak_title_from_local_traits(page_text: str, target_name: str) -> str:
     """Reanchor Bodak from two explicit local traits without changing values."""
     if target_name != "Bodak":
@@ -2747,7 +2843,7 @@ def _restore_bodak_title_from_local_traits(page_text: str, target_name: str) -> 
     ]
     patterns = (
         r"\bClasse\s+Armatura\s+15\s*\(\s*armatura\s+naturale\s*\)",
-        r"\bPunti\s+Ferita\s+58\s*\(\s*9d8\s*\+\s*18\s*\)",
+        r"\bPunti\s+Ferita\s+58\s*\(",
         r"\bVelocit[àa]\s*9\s*m\b",
     )
     core_indexes = [
@@ -4391,24 +4487,6 @@ def _ocr_source_window(
                         alpha=False,
                         colorspace=fitz.csGRAY,
                     ).save(image_path)
-                    if name == "Bodak" and not sparse_full_page:
-                        raw_image = fitz.Pixmap(str(image_path))
-                        threshold = 160
-                        lookup = bytes(
-                            0 if value < threshold else 255 for value in range(256)
-                        )
-                        cleaned_image = fitz.Pixmap(
-                            fitz.csGRAY,
-                            raw_image.width,
-                            raw_image.height,
-                            raw_image.samples.translate(lookup),
-                            False,
-                        )
-                        cleaned_image.save(image_path)
-                        print(
-                            "MPMM_BODAK_SOURCE_CONTRAST "
-                            + json.dumps({"threshold": threshold, "dpi": effective_dpi})
-                        )
                     comparison_image_path = image_path
 
                     sparse_anchor_found = None
@@ -4619,6 +4697,10 @@ def _ocr_source_window(
                             comparison, name
                         )
                     if name == "Bodak" and not sparse_full_page:
+                        primary, comparison = _micro_ocr_bodak_descriptor(
+                            image_path, languages, primary, comparison,
+                            ocr_budget_started_at=ocr_budget_started_at,
+                        )
                         primary = _restore_bodak_title_from_local_traits(primary, name)
                         comparison = _restore_bodak_title_from_local_traits(
                             comparison, name
