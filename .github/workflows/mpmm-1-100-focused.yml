@@ -3,7 +3,7 @@ name: Focused MPMM 1-100 single-monster dry-run
 on:
   push:
     branches:
-      - codex/mpmm-1-100-audit-20260930
+      - codex/mpmm-1-100-repair-stable-20260930
     paths:
       - .github/mpmm-1-100-focused-request.txt
       - .github/workflows/mpmm-1-100-focused.yml
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tomoforge-mpmm-1-100-focused
+  group: tomoforge-mpmm-1-100-focused-stable
   cancel-in-progress: false
 
 jobs:
