@@ -2280,8 +2280,12 @@ def _sparse_anchor_crop_fractions(
         supported = []
         for title_words in matches:
             title_left = min(int(word["left"]) for word in title_words)
-            title_right = max(int(word["left"]) + int(word["width"]) for word in title_words)
-            title_bottom = max(int(word["top"]) + int(word["height"]) for word in title_words)
+            title_right = max(
+                int(word["left"]) + int(word["width"]) for word in title_words
+            )
+            title_bottom = max(
+                int(word["top"]) + int(word["height"]) for word in title_words
+            )
             title_height = max(int(word["height"]) for word in title_words)
             nearby = []
             for line_words in grouped.values():
@@ -2298,7 +2302,11 @@ def _sparse_anchor_crop_fractions(
             local_lines = [text for _, text in sorted(nearby)]
             labels = ("classe armatura", "punti ferita", "velocita")
             indexes = [
-                [index for index, text in enumerate(local_lines) if text.startswith(label)]
+                [
+                    index
+                    for index, text in enumerate(local_lines)
+                    if text.startswith(label)
+                ]
                 for label in labels
             ]
             descriptor = any(
@@ -2313,7 +2321,13 @@ def _sparse_anchor_crop_fractions(
                 supported.append(title_words)
         print(
             "MPMM_STRUCTURAL_TITLE_FILTER "
-            + json.dumps({"name": target_name, "raw_titles": len(matches), "supported_titles": len(supported)})
+            + json.dumps(
+                {
+                    "name": target_name,
+                    "raw_titles": len(matches),
+                    "supported_titles": len(supported),
+                }
+            )
         )
         matches = supported
     if len(matches) != 1:
@@ -4545,7 +4559,7 @@ def _ocr_source_window(
                                 sparse_full_page and sparse_anchor_found
                             ),
                         )
-                    if name in {"Altisauro", "Bael"}:
+                    if name in {"Altisauro", "Bael", "Adrosauro"}:
 
                         def _focused_ocr_context(text: str) -> list[str]:
                             raw_lines = [
@@ -4773,6 +4787,7 @@ def _ocr_source_window(
                         "Gufo",
                         "Lupo",
                         "Orso Bruno",
+                        "Adrosauro",
                     }:
                         print(
                             "PHB_QUALITY_GATE_DIAGNOSTIC "
