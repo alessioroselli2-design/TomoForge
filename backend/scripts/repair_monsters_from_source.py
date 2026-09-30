@@ -4064,7 +4064,7 @@ def _micro_ocr_hit_points_line(
             "-l",
             languages,
             "--psm",
-            "7",
+            "6" if name == "Brontosauro" and psm == 4 else "7",
             "-c",
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
