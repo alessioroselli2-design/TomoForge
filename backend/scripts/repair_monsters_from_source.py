@@ -848,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_bccdf665b4e05ba1bd9d7f1710103779",  # Dimetrodonte: sole referenced page 97
     "ref_14098ccddd9358e28b83fe7d17bb0734",  # Derro: ordinary stat block on sole referenced page 93
     "ref_d740777fcfbb52169d3621c8f57f5e3f",  # Delfino: sole source page 89
     "ref_900c8f9a4c74514684531df9b6ab0ccd",  # Collezionista Di Cadaveri: sole source page 88
@@ -2977,8 +2978,7 @@ def _restore_delfino_title_from_local_traits(page_text: str, target_name: str) -
     descriptor = descriptors[0]
     ca, hp, speed = [indexes[0] for indexes in core_indexes]
     if not (
-        descriptor < ca < hp < speed < apnea[0] < charge[0]
-        and speed - descriptor <= 8
+        descriptor < ca < hp < speed < apnea[0] < charge[0] and speed - descriptor <= 8
     ):
         return page_text
     if any(
@@ -5043,7 +5043,9 @@ def _ocr_source_window(
                             comparison, name
                         )
                     if name == "Delfino" and not sparse_full_page:
-                        primary = _restore_delfino_title_from_local_traits(primary, name)
+                        primary = _restore_delfino_title_from_local_traits(
+                            primary, name
+                        )
                         comparison = _restore_delfino_title_from_local_traits(
                             comparison, name
                         )
@@ -5329,6 +5331,7 @@ def _ocr_source_window(
                         "Collezionista Di Cadaveri",
                         "Delfino",
                         "Derro",
+                        "Dimetrodonte",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
