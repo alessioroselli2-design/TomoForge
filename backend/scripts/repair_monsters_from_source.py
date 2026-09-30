@@ -5635,6 +5635,7 @@ def build_repair_proposal(
         if str(legacy.get("id") or "") in {
             "ref_13c451b5c15a5014a05870c538c1027f",  # Abishai Nero
             "ref_7b77784c85825bfdbf0ee87caa77685c",  # Abishai Verde
+            "ref_a99ccaba6e535852ab3db93771e9335c",  # Addolorato Rabbioso
         }:
             legacy_name = normalize_reference_name(str(legacy.get("name") or ""))
             candidate_name = normalize_reference_name(str(candidate.get("name") or ""))
@@ -5652,14 +5653,20 @@ def build_repair_proposal(
                 legacy.get("attributes") or {},
                 candidate_attributes,
             )
+            bounded_name_match = (
+                candidate_name == legacy_name
+                or compact_name_boundary_match(candidate_name, legacy_name)
+                or compact_name_containment_match(candidate_name, legacy_name)
+                or compact_name_bounded_edit_match(candidate_name, legacy_name)
+            )
+            rabbioso_suffix_match = (
+                str(legacy.get("id") or "")
+                == "ref_a99ccaba6e535852ab3db93771e9335c"
+                and candidate_name.endswith("rabbioso")
+            )
             allow_abishai_nero_name_noise = (
                 bool(legacy_pages & candidate_pages)
-                and (
-                    candidate_name == legacy_name
-                    or compact_name_boundary_match(candidate_name, legacy_name)
-                    or compact_name_containment_match(candidate_name, legacy_name)
-                    or compact_name_bounded_edit_match(candidate_name, legacy_name)
-                )
+                and (bounded_name_match or rabbioso_suffix_match)
                 and all(
                     deterministic.get(f"{field}_deterministic_match", False)
                     for field in ("classe_armatura", "punti_ferita", "velocita")
