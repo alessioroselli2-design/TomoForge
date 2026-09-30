@@ -848,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_14098ccddd9358e28b83fe7d17bb0734",  # Derro: ordinary stat block on sole referenced page 93
     "ref_d740777fcfbb52169d3621c8f57f5e3f",  # Delfino: sole source page 89
     "ref_900c8f9a4c74514684531df9b6ab0ccd",  # Collezionista Di Cadaveri: sole source page 88
     "ref_73328b58b96b57738c11d62b83f32c82",  # Cervello Antico: selected referenced page 82
@@ -878,6 +879,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
+    "Derro": "right",  # Page 93: ordinary stat block; Sapiente is on page 94
     "Delfino": "right",  # Page 89: both stat blocks right; keep identities distinct
     "Celeresto": "right",  # Page 79: prose left, stat block right
     "Brontosauro": "right",  # Page 96: stat block right; title in prose left
@@ -2859,6 +2861,74 @@ def _micro_ocr_bodak_descriptor(
             )
         restored.append("\n".join(lines) + ("\n" if text.endswith("\n") else ""))
     return restored[0], restored[1]
+
+
+def _restore_derro_title_from_local_traits(page_text: str, target_name: str) -> str:
+    """Reanchor ordinary Derro from its own descriptor and explicit trait text."""
+    if target_name != "Derro":
+        return page_text
+    lines = page_text.splitlines()
+    normalized = [normalize_reference_name(line) for line in lines]
+    descriptors = [
+        index
+        for index, line in enumerate(normalized)
+        if line == "aberrazione piccola generalmente caotica malvagia"
+    ]
+    patterns = (
+        r"^\s*Classe\s+Armatura\s+13\s*\(\s*armatura\s+di\s+cuoio\s*\)",
+        r"^\s*Punti\s+Ferita\s+13\s*\(\s*3d6\s*\+\s*3\s*\)",
+        r"^\s*Velocit[àa]\s*9\s*m\b",
+    )
+    core_indexes = [
+        [
+            index
+            for index, line in enumerate(lines)
+            if re.search(pattern, line, re.IGNORECASE)
+        ]
+        for pattern in patterns
+    ]
+    resistance = [
+        index
+        for index, line in enumerate(normalized)
+        if "resistenza alla magia" in line and "il derro dispone" in line
+    ]
+    sunlight = [
+        index
+        for index, line in enumerate(normalized)
+        if "sensibilita al sole" in line and "il derro ha" in line
+    ]
+    if not (
+        len(descriptors) == 1
+        and all(len(indexes) == 1 for indexes in core_indexes)
+        and len(resistance) == len(sunlight) == 1
+    ):
+        return page_text
+    descriptor = descriptors[0]
+    ca, hp, speed = [indexes[0] for indexes in core_indexes]
+    if not (
+        descriptor < ca < hp < speed < resistance[0] < sunlight[0]
+        and speed - descriptor <= 8
+    ):
+        return page_text
+    if descriptor > 0 and normalized[descriptor - 1] == "derro":
+        return page_text
+    lines.insert(descriptor, target_name.upper())
+    print(
+        "MPMM_DERRO_TITLE_FROM_TRAITS "
+        + json.dumps(
+            {
+                "name": target_name,
+                "identity_evidence": [
+                    page_text.splitlines()[resistance[0]],
+                    page_text.splitlines()[sunlight[0]],
+                ],
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
 def _restore_delfino_title_from_local_traits(page_text: str, target_name: str) -> str:
@@ -4965,6 +5035,11 @@ def _ocr_source_window(
                     if name == "Bael" and not sparse_full_page:
                         primary = _restore_bael_title_from_local_actions(primary, name)
                         comparison = _restore_bael_title_from_local_actions(
+                            comparison, name
+                        )
+                    if name == "Derro" and not sparse_full_page:
+                        primary = _restore_derro_title_from_local_traits(primary, name)
+                        comparison = _restore_derro_title_from_local_traits(
                             comparison, name
                         )
                     if name == "Delfino" and not sparse_full_page:
