@@ -5323,6 +5323,41 @@ def build_repair_proposal(
                 legacy.get("attributes") or {},
                 candidate_attributes,
             )
+            if str(legacy.get("id") or "") == "ref_7b77784c85825bfdbf0ee87caa77685c":
+                print(
+                    "MPMM_ABISHAI_VERDE_NAME_DIAGNOSTIC "
+                    + json.dumps(
+                        {
+                            "legacy_name": legacy.get("name"),
+                            "candidate_name": candidate.get("name"),
+                            "legacy_pages": sorted(legacy_pages),
+                            "candidate_pages": sorted(candidate_pages),
+                            "deterministic": {
+                                field: bool(
+                                    deterministic.get(
+                                        f"{field}_deterministic_match", False
+                                    )
+                                )
+                                for field in (
+                                    "classe_armatura",
+                                    "punti_ferita",
+                                    "velocita",
+                                )
+                            },
+                            "boundary": compact_name_boundary_match(
+                                candidate_name, legacy_name
+                            ),
+                            "containment": compact_name_containment_match(
+                                candidate_name, legacy_name
+                            ),
+                            "bounded_edit": compact_name_bounded_edit_match(
+                                candidate_name, legacy_name
+                            ),
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
             allow_abishai_nero_name_noise = (
                 bool(legacy_pages & candidate_pages)
                 and (
