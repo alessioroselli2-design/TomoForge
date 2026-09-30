@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: tomoforge-mpmm-1-100-focused
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   focused-read-only:
