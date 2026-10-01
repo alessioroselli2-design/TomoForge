@@ -2938,3 +2938,72 @@ def test_draegloth_descriptor_micro_requires_two_source_reads(tmp_path, mutation
         assert "13410" in result[1]
     else:
         assert result == (primary, comparison)
+
+
+def test_deforme_suffix_cleanup_preserves_source_attributes_and_inputs():
+    attributes = {
+        "classe_armatura": "15 (armatura naturale)",
+        "punti_ferita": "10 (4d6 - 4)",
+        "velocita": "12 m",
+        "synthetic_provenance": "independent primary source",
+    }
+    primary = {
+        "name": "Addolorato Deforme",
+        "normalized_name": "addolorato deforme",
+        "start_page": 46,
+        "source_refs": [{"page": 46}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": "ADDOLORATO DEFORME hi",
+        "normalized_name": "addolorato deforme hi",
+        "attributes": {**attributes, "classe_armatura": "15 (armatura naturale) V"},
+    }
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with patch(
+        "scripts.repair_monsters_from_source.parse_monster_statblocks",
+        side_effect=[[primary], [comparison]],
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
+        )
+    assert candidate["attributes"] == attributes
+    assert json.dumps([primary, comparison], sort_keys=True) == before
+
+
+def test_deforme_ambiguous_identity_cannot_inject_expected_core():
+    attributes = {
+        "classe_armatura": "16 (armatura naturale)",
+        "punti_ferita": "14 (4d6)",
+        "velocita": "9 m",
+    }
+    primary = {
+        "name": "Addolorato Deforme",
+        "normalized_name": "addolorato deforme",
+        "start_page": 46,
+        "source_refs": [{"page": 46}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": "ADDOLORATO DEFORME hi",
+        "normalized_name": "addolorato deforme hi",
+        "attributes": {**attributes, "classe_armatura": "16 (armatura naturale) V"},
+    }
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with (
+        patch(
+            "scripts.repair_monsters_from_source.parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch(
+            "scripts.repair_monsters_from_source.agreed_monster_records",
+            return_value=[],
+        ),
+        pytest.raises(RepairBlocked, match="no_unique_independent_agreement"),
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
+        )
+    assert json.dumps([primary, comparison], sort_keys=True) == before

@@ -1136,13 +1136,6 @@ PHB_SOURCE_REVIEWED_CORE_BY_NAME = {
         "velocita": "12 m, scalare 9 m",
     },
 }
-MPMM_SOURCE_REVIEWED_CORE_BY_NAME = {
-    "Addolorato Deforme": {
-        "classe_armatura": "15 (armatura naturale)",
-        "punti_ferita": "10 (4d6 - 4)",
-        "velocita": "12 m",
-    },
-}
 
 
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
@@ -6731,65 +6724,6 @@ def _agreed_target_candidate(
                                     "classe_armatura"
                                 ),
                                 "source": "2014_srd_basic_rules",
-                            },
-                            ensure_ascii=False,
-                            sort_keys=True,
-                        )
-                    )
-                    return candidate
-
-        if (
-            target_name in MPMM_SOURCE_REVIEWED_CORE_BY_NAME
-            and len(primary_name_candidates) == 1
-            and len(comparison_name_candidates) == 1
-        ):
-            primary_target = primary_name_candidates[0]
-            comparison_target = comparison_name_candidates[0]
-            primary_attributes = primary_target.get("attributes") or {}
-            comparison_attributes = comparison_target.get("attributes") or {}
-            deterministic = deterministic_core_field_matches(
-                primary_attributes,
-                comparison_attributes,
-            )
-            semantic = semantic_core_field_matches(
-                primary_attributes,
-                comparison_attributes,
-            )
-            primary_page = int(primary_target.get("start_page") or 0)
-            comparison_page = int(comparison_target.get("start_page") or 0)
-            adjacent_same_page = primary_page == comparison_page and primary_page in {
-                target_page,
-                target_page + 1,
-            }
-            source_reviewed_core = MPMM_SOURCE_REVIEWED_CORE_BY_NAME[target_name]
-            source_supported = (
-                adjacent_same_page
-                and deterministic.get("punti_ferita_deterministic_match", False)
-                and deterministic.get("velocita_deterministic_match", False)
-                and semantic.get("classe_armatura_semantic_match", False)
-                and semantic.get("punti_ferita_semantic_match", False)
-                and semantic.get("velocita_semantic_match", False)
-            )
-            if source_supported:
-                candidate = dict(primary_target)
-                candidate["name"] = target_name
-                candidate["normalized_name"] = normalize_reference_name(target_name)
-                candidate["attributes"] = dict(source_reviewed_core)
-                candidate_gate_failures = monster_semantic_numeric_flags(
-                    candidate["attributes"]
-                )
-                if not candidate_gate_failures:
-                    print(
-                        "MPMM_SOURCE_REVIEWED_CORE_FALLBACK "
-                        + json.dumps(
-                            {
-                                "name": target_name,
-                                "target_page": target_page,
-                                "ocr_page": primary_page,
-                                "hp_agreement": True,
-                                "speed_agreement": True,
-                                "ca_semantic_agreement": True,
-                                "source": "Mordenkainen_Tome_of_Foes_core_stats",
                             },
                             ensure_ascii=False,
                             sort_keys=True,
