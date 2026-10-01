@@ -2889,3 +2889,49 @@ def test_divoratore_micro_ocr_uses_unique_core_not_body_hp(tmp_path, duplicate_h
         assert result == text.replace("18410", "18d10")
         assert commands[0][commands[0].index("--psm") + 1] == "11"
         assert commands[1][commands[1].index("--psm") + 1] == "6"
+
+@pytest.mark.parametrize("mutation", ["none", "disagreement", "duplicate_geometry"])
+def test_draegloth_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
+    from scripts.repair_monsters_from_source import _micro_ocr_draegloth_descriptor
+
+    image_path = tmp_path / "draegloth.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    descriptor = "Immondo Grande (Demone), generalmente caotico malvagio"
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+            for block, top in (
+                [(1, 40), (2, 70)] if mutation == "duplicate_geometry" else [(1, 40)]
+            )
+            for word, value in enumerate(descriptor.split(), 1)
+        )
+    )
+    primary = (
+        ". Immondo Grande (Demone), generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 123 (13d10 + 52)\n"
+        "Velocità 9 m\n"
+    )
+    comparison = primary.replace(". Immondo", "lmmondo").replace("13d10", "13410")
+
+    def source_reading(command, *args, **kwargs):
+        if "tsv" in command:
+            return tsv
+        if mutation == "disagreement" and command[command.index("--psm") + 1] == "7":
+            return "lmmondo Grande (Demone), generalmente caotico malvagio"
+        return descriptor
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_draegloth_descriptor(image_path, "ita", primary, comparison)
+    if mutation == "none":
+        assert result[0] == primary.replace(". Immondo", "Immondo")
+        assert result[1] == comparison.replace("lmmondo", "Immondo")
+        assert "13410" in result[1]
+    else:
+        assert result == (primary, comparison)
