@@ -2705,7 +2705,8 @@ def test_celeresto_core_prefix_cleanup_is_scoped_and_preserves_values(mutation):
     assert _clean_celeresto_core_prefixes(text, "Babau") == text
 
 @pytest.mark.parametrize("duplicate_target_hp", [False, True])
-def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp):
+@pytest.mark.parametrize("nearby_speed", [False, True])
+def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp, nearby_speed):
     from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
 
     image_path = tmp_path / "delfino.png"
@@ -2732,6 +2733,8 @@ def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp
         (250, ["Punti", "Ferita", "27", "(5d8", "+", "5)"]),
         (280, ["Velocità", "0", "m"]),
     ]
+    if not nearby_speed:
+        rows.insert(6, (205, ["Folletto", "Medio,", "caotico", "buono"]))
     if duplicate_target_hp:
         rows.insert(3, (105, ["Punti", "Ferita", "11", "(248", "+", "2)"]))
         text = text.replace("Velocità 0 m", "Punti Ferita 11 (248 + 2)\nVelocità 0 m", 1)
@@ -2754,7 +2757,7 @@ def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp
         side_effect=source_reading,
     ):
         result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Delfino")
-    if duplicate_target_hp:
+    if duplicate_target_hp or nearby_speed:
         assert result == text
     else:
         assert result == text.replace("11 (248 + 2)", "11 (2d8 + 2)")
