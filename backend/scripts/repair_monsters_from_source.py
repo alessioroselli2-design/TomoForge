@@ -4995,7 +4995,7 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
-    if name == "Bodak":
+    if name in {"Bodak", "Uro"}:
         primary_psm, secondary_psm = 6, 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
@@ -5825,6 +5825,11 @@ def _ocr_source_window(
                             else None
                         )
                     segment_metrics[segment_name] = agreement
+                    if name == "Uro":
+                        print(
+                            "MPMM_URO_QUALITY_DIAGNOSTIC "
+                            + json.dumps(agreement, ensure_ascii=False, sort_keys=True)
+                        )
                     if sparse_full_page and name in {
                         "Cavallo Da Guerra",
                         "Gufo",
