@@ -5029,6 +5029,7 @@ def _ocr_source_window(
         "Bodak",
         "Draegloth",
         "Stegosauro",
+        "Uro",
     }:
         # Pages 69/73: exclude left-column narrative from the right stat block.
         segments = (("right", (0.5, 0.0, 1.0, 1.0)),)
