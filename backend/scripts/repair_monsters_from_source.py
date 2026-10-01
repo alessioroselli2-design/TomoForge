@@ -849,6 +849,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_81f0825741ca50978cb36fc95f7eaebf",  # Uro: sole referenced page 71
     "ref_5eefc25e9c9b5e22aa061386c84628f6",  # Stegosauro: selected referenced page 97
     "ref_bd546d49bc7e523eba3a719c3762a928",  # Draegloth: sole referenced page 99
     "ref_823f8b15d62359458189ca8d4384152a",  # Divoratore: sole referenced page 98
@@ -5590,6 +5591,7 @@ def _ocr_source_window(
                         "Divoratore",
                         "Draegloth",
                         "Stegosauro",
+                        "Uro",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
