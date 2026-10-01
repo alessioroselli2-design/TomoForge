@@ -109,3 +109,41 @@ def test_apply_verified_preserves_provenance_and_records_review_history():
     assert len(history.rows) == 1
     assert history.rows[0]["reference_id"] == "one"
     assert history.rows[0]["review_status"] == "verified"
+
+
+def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
+    assert process.EXPECTED_PENDING == 131
+    assert process.EXPECTED_MPMM_VERIFIED == 64
+    assert process.EXPECTED_GLOBAL_VERIFIED == 113
+
+
+@pytest.mark.parametrize(
+    "record_id",
+    [
+        "ref_25a60967a5b8526fbb235e29d243c019",
+        "ref_a6f22b9706e058a8bd3f4dcbbd24c985",
+        "ref_fae2af9678e6572cb755708aab5c393d",
+        "ref_75abc404d54c51a2a312cbc2cd894e4a",
+        "ref_aadff2eb6eff59af9caddb92deee6614",
+        "ref_744cb23cb7f95be7b5d7521316ce8e78",
+        "ref_c41175075be5535ab3cfd37dbbd7e1e1",
+        "ref_ed33758b9132587a91e04e31c4df0d7a",
+        "ref_9b1196c7b5c85057bd4c60098313a271",
+        "ref_e14604cbec0a5306918cca5f4e74d639",
+        "ref_3986eba313495283bfe6b6f843891add",
+        "ref_90b64fd6ac3057ee8ab373bb0be776a8",
+        "ref_f0919b1e8ef955a19953d273054accaf",
+        "ref_2d833b3db343531b8cbe0669197259bd",
+        "ref_2ea09533213a54178032bc4c5b0b952d",
+        "ref_43a10fe5cecc50f9a2112cbea5b5c839",
+        "ref_b414135fe8fd5447a6aedfba2a419baa",
+        "ref_1e187bb2bbc257439e399104067bf326",
+        "ref_de503e430ad356ec98964fb1a65bd34a",
+        "ref_b624eff23c3e543ba8b2c952761eb707",
+        "ref_be2228ae9b615c7da3734fa7395b016d",
+        "ref_6b0e1564d7325987a342097cebb39316",
+        "ref_a6b5749652855247a3266f61817441fa",
+    ],
+)
+def test_timeout_residuals_use_narrow_extended_aggregate_budget(record_id):
+    assert process.repair.OCR_GLOBAL_TIMEOUT_BY_RECORD_ID[record_id] == 150.0

@@ -96,12 +96,13 @@ jobs:
               assert report["updates_performed"] == 0
           else:
               assert report["initial_pending"] == 131
-              assert report["initial_verified"] == 113
+              assert report["initial_verified"] == 64
+              assert report["initial_global_verified"] == 113
               assert report["updates_performed"] == report["repairable"]
           summary = {
               key: report[key]
               for key in (
-                  "dry_run", "initial_pending", "initial_verified", "targets",
+                  "dry_run", "initial_pending", "initial_verified", "initial_global_verified", "targets",
                   "repairable", "blocked", "updates_performed", "final_pending",
                   "final_verified", "global_monsters",
               )

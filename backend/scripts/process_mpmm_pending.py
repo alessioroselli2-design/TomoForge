@@ -8,7 +8,7 @@ rows from being verified, but it is always retained in the final report.
 
 Default operation is read-only.  ``--execute`` additionally requires the exact
 confirmation token and is refused unless the initial live snapshot contains
-the expected 131 pending and 113 verified records.
+the expected 131 pending MPMM records, 64 verified MPMM records, and 113 verified monsters globally.
 """
 
 from __future__ import annotations
@@ -33,7 +33,8 @@ from services.ocr_semantic_gates import OCR_REVIEW_FLAG, monster_semantic_numeri
 
 LOGICAL_SOURCE_ID = "mpmm_2022_it"
 EXPECTED_PENDING = 131
-EXPECTED_VERIFIED = 113
+EXPECTED_MPMM_VERIFIED = 64
+EXPECTED_GLOBAL_VERIFIED = 113
 DEFAULT_BATCH_SIZE = 25
 CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_131"
 
@@ -171,12 +172,19 @@ async def _run(args: argparse.Namespace) -> int:
     verified_before = [
         row for row in mpmm if str(row.get("review_status") or "") == "verified"
     ]
+    global_verified_before = [
+        row for row in all_monsters if str(row.get("review_status") or "") == "verified"
+    ]
     if args.execute and (
-        len(pending) != EXPECTED_PENDING or len(verified_before) != EXPECTED_VERIFIED
+        len(pending) != EXPECTED_PENDING
+        or len(verified_before) != EXPECTED_MPMM_VERIFIED
+        or len(global_verified_before) != EXPECTED_GLOBAL_VERIFIED
     ):
         raise RuntimeError(
             "MPMM initial-state drift: "
-            f"pending={len(pending)} verified={len(verified_before)}"
+            f"pending={len(pending)} "
+            f"mpmm_verified={len(verified_before)} "
+            f"global_verified={len(global_verified_before)}"
         )
 
     active_sources = await repair._fetch_all(
@@ -280,6 +288,7 @@ async def _run(args: argparse.Namespace) -> int:
         "logical_source_id": LOGICAL_SOURCE_ID,
         "initial_pending": len(pending),
         "initial_verified": len(verified_before),
+        "initial_global_verified": len(global_verified_before),
         "protected_verified_fingerprint_sha256": protected_verified_fingerprint,
         "target_fingerprint_sha256": _fingerprint(pending),
         "targets": len(pending),

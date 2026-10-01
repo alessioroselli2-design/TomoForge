@@ -837,6 +837,32 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_bd546d49bc7e523eba3a719c3762a928": 150.0,  # Draegloth
     "ref_81f0825741ca50978cb36fc95f7eaebf": 150.0,  # Uro
     "ref_ae7d3851315e5d1e8ec09fed56397623": 150.0,  # Velociraptor
+    # MPMM pending-131 residuals that exhausted the 60s aggregate budget.
+    # Individual Tesseract subprocesses remain hard-limited to 15s and all
+    # semantic/numeric acceptance gates remain unchanged.
+    "ref_25a60967a5b8526fbb235e29d243c019": 150.0,  # Capo Vegepigmeo
+    "ref_a6f22b9706e058a8bd3f4dcbbd24c985": 150.0,  # Danzatore Dell'Ombra
+    "ref_fae2af9678e6572cb755708aab5c393d": 150.0,  # Drow Inquisitore
+    "ref_75abc404d54c51a2a312cbc2cd894e4a": 150.0,  # Duergar Guardia Di Pietra
+    "ref_aadff2eb6eff59af9caddb92deee6614": 150.0,  # Esploratore Di Bronzo
+    "ref_744cb23cb7f95be7b5d7521316ce8e78": 150.0,  # Fenice
+    "ref_c41175075be5535ab3cfd37dbbd7e1e1": 150.0,  # Hobgoblin Ombra Di Ferro
+    "ref_ed33758b9132587a91e04e31c4df0d7a": 150.0,  # Kruthik Capoalveare
+    "ref_9b1196c7b5c85057bd4c60098313a271": 150.0,  # Leucrotta
+    "ref_e14604cbec0a5306918cca5f4e74d639": 150.0,  # Mago Apprendista
+    "ref_3986eba313495283bfe6b6f843891add": 150.0,  # Mago Divinatore
+    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 150.0,  # Mago Illusionista
+    "ref_f0919b1e8ef955a19953d273054accaf": 150.0,  # Mago Invocatore
+    "ref_2d833b3db343531b8cbe0669197259bd": 150.0,  # Mitragliatore Di Quercia
+    "ref_2ea09533213a54178032bc4c5b0b952d": 150.0,  # Oblex Antico
+    "ref_43a10fe5cecc50f9a2112cbea5b5c839": 150.0,  # Sciame Di Larve Putride
+    "ref_b414135fe8fd5447a6aedfba2a419baa": 150.0,  # Sciame Di Ratti Cranici
+    "ref_1e187bb2bbc257439e399104067bf326": 150.0,  # Shadar-Kai Trafficante Di Anime
+    "ref_de503e430ad356ec98964fb1a65bd34a": 150.0,  # Vegepigmeo
+    "ref_b624eff23c3e543ba8b2c952761eb707": 150.0,  # Vegepigmeo Spinato
+    "ref_be2228ae9b615c7da3734fa7395b016d": 150.0,  # Warlock Dell'Immondo
+    "ref_6b0e1564d7325987a342097cebb39316": 150.0,  # Yuan-Ti Signore Della Fossa
+    "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_ae7d3851315e5d1e8ec09fed56397623": 97,  # Velociraptor: referenced stat-block page
@@ -4472,6 +4498,10 @@ def _micro_ocr_hit_points_line(
     )
     crop_width = crop_rect.x1 - crop_rect.x0
     crop_height = crop_rect.y1 - crop_rect.y0
+    if crop_width < 1 or crop_height < 1:
+        diagnostics["crop_width"] = crop_width
+        diagnostics["crop_height"] = crop_height
+        return fail_closed("hp_crop_invalid")
     source_samples = grayscale.samples
     crop_samples = b"".join(
         source_samples[
@@ -4480,6 +4510,11 @@ def _micro_ocr_hit_points_line(
         ]
         for row in range(crop_rect.y0, crop_rect.y1)
     )
+    if len(crop_samples) != crop_width * crop_height:
+        diagnostics["crop_width"] = crop_width
+        diagnostics["crop_height"] = crop_height
+        diagnostics["crop_sample_count"] = len(crop_samples)
+        return fail_closed("hp_crop_raster_mismatch")
 
     def run_micro_ocr(
         contrast: float,
