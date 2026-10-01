@@ -56,6 +56,7 @@ jobs:
           python -m pip install -r backend/requirements.txt boto3
 
       - name: Audit pending MPMM records in bounded batches
+        id: audit
         env:
           EXECUTE: ${{ github.event_name == 'workflow_dispatch' && inputs.execute }}
         run: |
@@ -64,8 +65,18 @@ jobs:
           if [[ "$EXECUTE" == "true" ]]; then
             args+=(--execute --confirm VERIFY_MPMM_PENDING_131)
           fi
+          set +e
           python backend/scripts/process_mpmm_pending.py "${args[@]}" \
             | tee /tmp/mpmm-pending-131.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "exit_status=$status" >> "$GITHUB_OUTPUT"
+          # Exit 2 is the documented, fail-closed result when the completed
+          # audit contains blocked records.  Preserve the report and let the
+          # following step validate it; every other non-zero status is a crash.
+          if [[ "$status" -ne 0 && "$status" -ne 2 ]]; then
+            exit "$status"
+          fi
 
       - name: Extract FINAL_REPORT
         if: always()
@@ -87,6 +98,21 @@ jobs:
               assert report["initial_pending"] == 131
               assert report["initial_verified"] == 113
               assert report["updates_performed"] == report["repairable"]
+          summary = {
+              key: report[key]
+              for key in (
+                  "dry_run", "initial_pending", "initial_verified", "targets",
+                  "repairable", "blocked", "updates_performed", "final_pending",
+                  "final_verified", "global_monsters",
+              )
+          }
+          print("MPMM_FINAL_SUMMARY " + json.dumps(summary, ensure_ascii=False))
+          for item in report["blocked_records"]:
+              blocked = {
+                  key: item.get(key)
+                  for key in ("record_id", "name", "reason", "detail")
+              }
+              print("MPMM_BLOCKED " + json.dumps(blocked, ensure_ascii=False))
           PY
 
       - name: Upload FINAL_REPORT
