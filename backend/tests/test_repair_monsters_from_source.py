@@ -3001,9 +3001,10 @@ def test_deforme_ambiguous_identity_cannot_inject_expected_core():
             "scripts.repair_monsters_from_source.agreed_monster_records",
             return_value=[],
         ),
-        pytest.raises(RepairBlocked, match="no_unique_independent_agreement"),
+        pytest.raises(RepairBlocked) as caught,
     ):
         _agreed_target_candidate(
             [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
         )
+    assert caught.value.reason == "no_unique_independent_agreement"
     assert json.dumps([primary, comparison], sort_keys=True) == before
