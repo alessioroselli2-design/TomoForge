@@ -2256,7 +2256,16 @@ def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
     assert "ref_66cc59680c4e58fa93a99656f8a07887" in (
         PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
     )
-    assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
+    assert all(0 < budget <= 150.0 for budget in OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.values())
+    phb_ids = {
+        "ref_85a4eadb862758fbb682e93ab19f1065",
+        "ref_f28940a5239a54f696cb524805e29cc2",
+        "ref_38273488414b57489e9d7e57a6c0a360",
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",
+        "ref_019562bded0b320ac918f4b2514c65e4",
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",
+    }
+    assert {record_id: OCR_GLOBAL_TIMEOUT_BY_RECORD_ID[record_id] for record_id in phb_ids} == {
         "ref_85a4eadb862758fbb682e93ab19f1065": 150.0,
         "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
         "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
@@ -2372,3 +2381,630 @@ def test_target_agreement_is_symmetric_when_only_comparison_keeps_target_name():
     assert candidate["name"] == "Rak Tulkhesh"
     assert candidate["attributes"]["ocr_independent_agreement"] is True
     assert candidate["attributes"]["ocr_core_only_same_page_agreement"] is True
+
+
+@pytest.mark.parametrize(
+    ("extra_block", "missing_speed", "expected_anchor"),
+    [(False, False, True), (True, False, False), (False, True, False)],
+)
+def test_adrosauro_duplicate_titles_require_one_ordered_local_statblock(
+    tmp_path, extra_block, missing_speed, expected_anchor
+):
+    image_path = tmp_path / "adrosauro.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    lines = [(100, "ADROSAURO"), (600, "ADROSAURO")]
+    for title_top in ([100, 600] if extra_block else [600]):
+        lines.extend(
+            [
+                (title_top + 60, "Bestia Grande (Dinosauro), senza allineamento"),
+                (title_top + 120, "Classe Armatura 11"),
+                (title_top + 180, "Punti Ferita 19 (3d10 + 3)"),
+            ]
+        )
+        if not missing_speed:
+            lines.append((title_top + 240, "Velocità 12 m"))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{index}\t1\t1\t1\t80\t{top}\t220\t30\t95\t{text}\n"
+            for index, (top, text) in enumerate(lines, 1)
+        )
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        crop = _sparse_anchor_crop_fractions(image_path, "ita", "Adrosauro")
+    if expected_anchor:
+        assert crop is not None
+        assert crop[0] == 0.0
+        assert crop[2] == 0.5
+        assert 0.45 < crop[1] < 0.55
+    else:
+        assert crop is None
+
+
+@pytest.mark.parametrize(
+    ("mutation", "accepted"),
+    [("none", True), ("duplicate_hp", False), ("missing_eye", False), ("wrong_ca", False)],
+)
+def test_arciere_action_identity_restore_requires_unique_local_evidence(mutation, accepted):
+    from scripts.repair_monsters_from_source import _restore_arciere_title_from_local_actions
+
+    text = (
+        "OCR title debris\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 16 (cuoio borchiato)\n"
+        "Punti Ferita 75 (10d8 + 30)\n"
+        "Velocità 9 m\n"
+        "AZIONI\n"
+        "Multiattacco. L'arciere effettua attacchi.\n"
+        "AZIONI BONUS\n"
+        "Occhio dell'arciere. Test sintetico.\n"
+    )
+    if mutation == "duplicate_hp":
+        text += "Punti Ferita 75 (10d8 + 30)\n"
+    elif mutation == "missing_eye":
+        text = text.replace("Occhio dell'arciere. Test sintetico.\n", "")
+    elif mutation == "wrong_ca":
+        text = text.replace("Armatura 16", "Armatura 17")
+    result = _restore_arciere_title_from_local_actions(text, "Arciere")
+    if accepted:
+        assert result.replace("ARCIERE\n", "", 1) == text
+        assert result.index("ARCIERE") < result.index("Umanoide")
+    else:
+        assert result == text
+    assert _restore_arciere_title_from_local_actions(text, "Babau") == text
+
+
+@pytest.mark.parametrize("missing_identity", [False, True])
+def test_bael_title_restore_preserves_unresolved_dice(missing_identity):
+    from scripts.repair_monsters_from_source import _restore_bael_title_from_local_actions
+
+    text = (
+        "OCR debris\n"
+        "Immondo Grande (Diavolo), legale malvagio\n"
+        "Classe Armatura 18 (piastre)\n"
+        "Punti Ferita 189 (18410 + 90)\n"
+        "Velocità 9 m\n"
+        "Resistenza leggendaria. Se Bael fallisce, test.\n"
+        "Multiattacco. Bael effettua attacchi.\n"
+    )
+    if missing_identity:
+        text = text.replace("Resistenza leggendaria. Se Bael fallisce, test.\n", "")
+    result = _restore_bael_title_from_local_actions(text, "Bael")
+    if missing_identity:
+        assert result == text
+    else:
+        assert result.replace("BAEL\n", "", 1) == text
+        assert "18410" in result
+
+
+@pytest.mark.parametrize("duplicate_hp", [False, True])
+def test_bael_micro_ocr_uses_unique_ordered_core_row(tmp_path, duplicate_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "bael.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "BAEL\n"
+        "Immondo Grande (Diavolo), legale malvagio\n"
+        "Classe Armatura 18 (piastre)\n"
+        "Punti Ferita 189 (18410 + 90)\n"
+        "Velocità 9 m\n"
+        "Rigenerazione. Bael recupera 20 punti ferita.\n"
+        "Se Bael inizia con 0 punti ferita, test.\n"
+    )
+    rows = [
+        (30, ["BAEL"]),
+        (60, ["Classe", "Armatura", "18", "(piastre)"]),
+        (90, ["Punti", "Ferita", "189", "(18410", "+", "90)"]),
+        (120, ["Velocità", "9", "m"]),
+        (160, ["Rigenerazione.", "Bael", "recupera", "20", "punti", "ferita."]),
+    ]
+    if duplicate_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "189", "(18410", "+", "90)"]))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+
+    def source_reading(command, *args, **kwargs):
+        return tsv if "tsv" in command else "189 (18d10 + 90)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 3, text, "Bael")
+    if duplicate_hp:
+        assert result == text
+    else:
+        assert result == text.replace("189 (18410 + 90)", "189 (18d10 + 90)")
+
+@pytest.mark.parametrize("mutation", ["none", "missing_type", "duplicate_hp", "missing_trait"])
+def test_bodak_identity_requires_complete_independent_local_evidence(mutation):
+    from scripts.repair_monsters_from_source import _restore_bodak_title_from_local_traits
+
+    text = (
+        "OCR debris\n"
+        ". Non morto Medio, generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 58 (9d8 + 18)\n"
+        "Velocità 9 m\n"
+        "Ipersensibilità al sole. Il bodak subisce danni, test.\n"
+        "Natura insolita. Il bodak non necessita di respirare, test.\n"
+    )
+    if mutation == "missing_type":
+        text = text.replace("Non morto", "on morto")
+    elif mutation == "duplicate_hp":
+        text += "Punti Ferita 58 (9d8 + 18)\n"
+    elif mutation == "missing_trait":
+        text = text.replace(
+            "Natura insolita. Il bodak non necessita di respirare, test.\n", ""
+        )
+    result = _restore_bodak_title_from_local_traits(text, "Bodak")
+    if mutation == "none":
+        assert result.replace("BODAK\n", "", 1) == text.replace(". Non", "Non", 1)
+    else:
+        assert result == text
+    assert _restore_bodak_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "disagreement", "duplicate_geometry"])
+def test_bodak_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
+    from scripts.repair_monsters_from_source import _micro_ocr_bodak_descriptor
+
+    image_path = tmp_path / "bodak.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    descriptor = "Non morto Medio, generalmente caotico malvagio"
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+            for block, top in (
+                [(1, 40), (2, 70)] if mutation == "duplicate_geometry" else [(1, 40)]
+            )
+            for word, value in enumerate(descriptor.split(), 1)
+        )
+    )
+    primary = (
+        ". Non morto Medio, generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 58 (9d8 + 18)\n"
+        "Velocità 9 m\n"
+    )
+    comparison = primary.replace(". Non morto", "on morto").replace("9d8", "948")
+
+    def source_reading(command, *args, **kwargs):
+        if "tsv" in command:
+            return tsv
+        if mutation == "disagreement" and command[command.index("--psm") + 1] == "7":
+            return "on morto Medio, generalmente caotico malvagio"
+        return descriptor
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_bodak_descriptor(image_path, "ita", primary, comparison)
+    if mutation == "none":
+        assert result[0] == primary.replace(". Non morto", "Non morto")
+        assert result[1] == comparison.replace("on morto", "Non morto")
+        assert "948" in result[1]
+    else:
+        assert result == (primary, comparison)
+
+def test_brontosauro_comparison_hp_keeps_independent_geometry_and_numeric_modes(tmp_path):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "brontosauro.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "BRONTOSAURO\n"
+        "Bestia Mastodontica (Dinosauro), senza allineamento\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 121 (9420 + 27)\n"
+        "Velocità 9 m\n"
+    )
+    rows = [
+        (30, ["BRONTOSAURO"]),
+        (60, ["Classe", "Armatura", "15"]),
+        (90, ["Punti", "Ferita", "121", "(9420", "+", "27)"]),
+        (120, ["Velocità", "9", "m"]),
+    ]
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "121 (9d20 + 27)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Brontosauro")
+    assert result == text.replace("9420", "9d20")
+    assert commands[0][commands[0].index("--psm") + 1] == "11"
+    assert all(
+        command[command.index("--psm") + 1] == "6" for command in commands[1:]
+    )
+
+@pytest.mark.parametrize("mutation", ["none", "missing_identity", "duplicate_core", "existing_title"])
+def test_bulezau_title_restore_requires_observed_heading_and_local_trait(mutation):
+    from scripts.repair_monsters_from_source import _restore_bulezau_title_from_local_trait
+
+    text = (
+        "BULEZAU\n"
+        "Test sintetico di prosa introduttiva.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Immondo Medio (Demone), generalmente caotico malvagio\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 52 (7d8 + 21)\n"
+        "Velocità 12 m\n"
+        "Presenza putrescente. Una creatura che non sia un\n"
+        "demone inizia il suo turno entro 9 metri dal bulezau, test.\n"
+    )
+    if mutation == "missing_identity":
+        text = text.replace("dal bulezau", "dal demone")
+    elif mutation == "duplicate_core":
+        text += "Classe Armatura 14 (armatura naturale)\n"
+    elif mutation == "existing_title":
+        text = text.replace("Immondo Medio", "BULEZAU\nImmondo Medio")
+    result = _restore_bulezau_title_from_local_trait(text, "Bulezau")
+    if mutation == "none":
+        assert result.replace("BULEZAU\nImmondo", "Immondo", 1) == text
+    else:
+        assert result == text
+    assert _restore_bulezau_title_from_local_trait(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "duplicate_hp", "wrong_type", "non_border_prefix"])
+def test_celeresto_core_prefix_cleanup_is_scoped_and_preserves_values(mutation):
+    from scripts.repair_monsters_from_source import _clean_celeresto_core_prefixes
+
+    text = (
+        "CELERESTO\n"
+        "Folletto Minuscolo, generalmente caotico malvagio\n"
+        "Classe Armatura 16\n"
+        "i Punti Ferita 10 (3d4 + 3)\n"
+        "i Velocità 36 m\n"
+    )
+    if mutation == "duplicate_hp":
+        text += "Punti Ferita 10 (3d4 + 3)\n"
+    elif mutation == "wrong_type":
+        text = text.replace("Folletto", "Bestia")
+    elif mutation == "non_border_prefix":
+        text = text.replace("i Punti", "test Punti")
+    result = _clean_celeresto_core_prefixes(text, "Celeresto")
+    if mutation == "none":
+        assert result == text.replace("i Punti", "Punti").replace("i Velocità", "Velocità")
+    else:
+        assert result == text
+    assert _clean_celeresto_core_prefixes(text, "Babau") == text
+
+@pytest.mark.parametrize("duplicate_target_hp", [False, True])
+@pytest.mark.parametrize("nearby_speed", [False, True])
+def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp, nearby_speed):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "delfino.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 700, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "DELFINO\nBestia Media, senza allineamento\n"
+        "Classe Armatura 12 (armatura naturale)\n"
+        "Punti Ferita 11 (248 + 2)\nVelocità 0 m, nuotare 18 m\n"
+        "Apnea. Il delfino può trattenere il respiro, test.\n"
+        "DELFINO SOLLAZZATORE\nFolletto Medio, generalmente caotico buono\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 27 (5d8 + 5)\nVelocità 0 m, nuotare 18 m\n"
+    )
+    rows = [
+        (30, ["DELFINO"]),
+        (60, ["Classe", "Armatura", "12"]),
+        (90, ["Punti", "Ferita", "11", "(248", "+", "2)"]),
+        (120, ["Velocità", "0", "m"]),
+        (160, ["Apnea.", "Il", "delfino", "test."]),
+        (190, ["DELFINO", "SOLLAZZATORE"]),
+        (220, ["Classe", "Armatura", "14"]),
+        (250, ["Punti", "Ferita", "27", "(5d8", "+", "5)"]),
+        (280, ["Velocità", "0", "m"]),
+    ]
+    if not nearby_speed:
+        rows.insert(6, (205, ["Folletto", "Medio,", "caotico", "buono"]))
+    if duplicate_target_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "11", "(248", "+", "2)"]))
+        text = text.replace("Velocità 0 m", "Punti Ferita 11 (248 + 2)\nVelocità 0 m", 1)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "11 (2d8 + 2)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Delfino")
+    if duplicate_target_hp or nearby_speed:
+        assert result == text
+    else:
+        assert result == text.replace("11 (248 + 2)", "11 (2d8 + 2)")
+        assert "27 (5d8 + 5)" in result
+        assert commands[0][commands[0].index("--psm") + 1] == "11"
+        assert commands[1][commands[1].index("--psm") + 1] == "6"
+
+@pytest.mark.parametrize("mutation", ["none", "missing_trait", "ambiguous_type"])
+def test_delfino_title_identity_ignores_sollazzatore_shared_speed(mutation):
+    from scripts.repair_monsters_from_source import _restore_delfino_title_from_local_traits
+
+    text = (
+        "Dario\nBestia Media, senza allineamento\n"
+        "Classe Armatura 12 (armatura naturale)\n"
+        "Punti Ferita 11 (248 + 2)\nVelocità 0 m, nuotare 18 m\n"
+        "Apnea. Il delfino può trattenere il respiro, test.\n"
+        "Se, prima del colpo, il delfino ha nuotato per metri, test.\n"
+        "DELFINO SOLLAZZATORE\nFolletto Medio, generalmente caotico buono\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 27 (5d8 + 5)\nVelocità 0 m, nuotare 18 m\n"
+    )
+    if mutation == "missing_trait":
+        text = text.replace("il delfino ha nuotato", "ha nuotato")
+    elif mutation == "ambiguous_type":
+        text += "Bestia Media, senza allineamento\n"
+    result = _restore_delfino_title_from_local_traits(text, "Delfino")
+    if mutation == "none":
+        assert result.replace("DELFINO\nBestia", "Bestia", 1) == text
+        assert "248" in result
+        assert "DELFINO SOLLAZZATORE" in result
+    else:
+        assert result == text
+    assert _restore_delfino_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "sapiente_type", "sapiente_hp", "missing_trait"])
+def test_derro_title_restore_does_not_accept_sapiente(mutation):
+    from scripts.repair_monsters_from_source import _restore_derro_title_from_local_traits
+
+    text = (
+        "DERR\nOCR debris\n"
+        "Aberrazione Piccola, generalmente caotica malvagia\n"
+        "Classe Armatura 13 (armatura di cuoio)\n"
+        "Punti Ferita 13 (3d6 + 3)\nVelocità 9 m\n"
+        "Resistenza alla magia. Il derro dispone di vantaggio, test.\n"
+        "i Sensibilità al sole. Al sole, il derro ha svantaggio, test.\n"
+    )
+    if mutation == "sapiente_type":
+        text = text.replace("Aberrazione Piccola,", "Aberrazione Piccola (Stregone),")
+    elif mutation == "sapiente_hp":
+        text = text.replace("13 (3d6 + 3)", "36 (8d6 + 8)")
+    elif mutation == "missing_trait":
+        text = text.replace("Il derro dispone", "Dispone")
+    result = _restore_derro_title_from_local_traits(text, "Derro")
+    if mutation == "none":
+        assert result.replace("DERRO\nAberrazione", "Aberrazione", 1) == text
+    else:
+        assert result == text
+    assert _restore_derro_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "missing_trait", "duplicate_hp", "wrong_type"])
+def test_divoratore_identity_requires_unique_local_traits(mutation):
+    from scripts.repair_monsters_from_source import _restore_divoratore_title_from_local_traits
+
+    text = (
+        "OCR debris\n"
+        "Non morto Grande, generalmente caotico malvagio\n"
+        "Classe Armatura 16 (armatura naturale)\n"
+        "Punti Ferita 189 (18410 + 90)\nVelocità 9 m\n"
+        "Natura insolita. Un divoratore non necessita di respirare, test.\n"
+        "Multiattacco. Il divoratore effettua attacchi, test.\n"
+    )
+    if mutation == "missing_trait":
+        text = text.replace("Un divoratore", "La creatura")
+    elif mutation == "duplicate_hp":
+        text += "Punti Ferita 189 (18410 + 90)\n"
+    elif mutation == "wrong_type":
+        text = text.replace("Non morto", "Immondo")
+    result = _restore_divoratore_title_from_local_traits(text, "Divoratore")
+    if mutation == "none":
+        assert result.replace("DIVORATORE\n", "", 1) == text
+        assert "18410" in result
+    else:
+        assert result == text
+    assert _restore_divoratore_title_from_local_traits(text, "Babau") == text
+
+
+@pytest.mark.parametrize("duplicate_hp", [False, True])
+def test_divoratore_micro_ocr_uses_unique_core_not_body_hp(tmp_path, duplicate_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "divoratore.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "DIVORATORE\nNon morto Grande, generalmente caotico malvagio\n"
+        "Classe Armatura 16 (armatura naturale)\n"
+        "Punti Ferita 189 (18410 + 90)\nVelocità 9 m\n"
+        "Il divoratore recupera punti ferita, test.\n"
+    )
+    rows = [
+        (30, ["DIVORATORE"]),
+        (60, ["Classe", "Armatura", "16"]),
+        (90, ["Punti", "Ferita", "189", "(18410", "+", "90)"]),
+        (120, ["Velocità", "9", "m"]),
+        (160, ["Il", "divoratore", "recupera", "punti", "ferita."]),
+    ]
+    if duplicate_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "189", "(18410", "+", "90)"]))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "189 (18d10 + 90)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Divoratore")
+    if duplicate_hp:
+        assert result == text
+    else:
+        assert result == text.replace("18410", "18d10")
+        assert commands[0][commands[0].index("--psm") + 1] == "11"
+        assert commands[1][commands[1].index("--psm") + 1] == "6"
+
+@pytest.mark.parametrize("mutation", ["none", "disagreement", "duplicate_geometry"])
+def test_draegloth_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
+    from scripts.repair_monsters_from_source import _micro_ocr_draegloth_descriptor
+
+    image_path = tmp_path / "draegloth.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    descriptor = "Immondo Grande (Demone), generalmente caotico malvagio"
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+            for block, top in (
+                [(1, 40), (2, 70)] if mutation == "duplicate_geometry" else [(1, 40)]
+            )
+            for word, value in enumerate(descriptor.split(), 1)
+        )
+    )
+    primary = (
+        ". Immondo Grande (Demone), generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 123 (13d10 + 52)\n"
+        "Velocità 9 m\n"
+    )
+    comparison = primary.replace(". Immondo", "lmmondo").replace("13d10", "13410")
+
+    def source_reading(command, *args, **kwargs):
+        if "tsv" in command:
+            return tsv
+        if mutation == "disagreement" and command[command.index("--psm") + 1] == "7":
+            return "lmmondo Grande (Demone), generalmente caotico malvagio"
+        return descriptor
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_draegloth_descriptor(image_path, "ita", primary, comparison)
+    if mutation == "none":
+        assert result[0] == primary.replace(". Immondo", "Immondo")
+        assert result[1] == comparison.replace("lmmondo", "Immondo")
+        assert "13410" in result[1]
+    else:
+        assert result == (primary, comparison)
+
+
+def test_deforme_suffix_cleanup_preserves_source_attributes_and_inputs():
+    attributes = {
+        "classe_armatura": "15 (armatura naturale)",
+        "punti_ferita": "10 (4d6 - 4)",
+        "velocita": "12 m",
+        "synthetic_provenance": "independent primary source",
+    }
+    primary = {
+        "name": "Addolorato Deforme",
+        "normalized_name": "addolorato deforme",
+        "start_page": 46,
+        "source_refs": [{"page": 46}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": "ADDOLORATO DEFORME hi",
+        "normalized_name": "addolorato deforme hi",
+        "attributes": {**attributes, "classe_armatura": "15 (armatura naturale) V"},
+    }
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with patch(
+        "scripts.repair_monsters_from_source.parse_monster_statblocks",
+        side_effect=[[primary], [comparison]],
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
+        )
+    assert candidate["attributes"] == attributes
+    assert json.dumps([primary, comparison], sort_keys=True) == before
+
+
+def test_deforme_ambiguous_identity_cannot_inject_expected_core():
+    attributes = {
+        "classe_armatura": "16 (armatura naturale)",
+        "punti_ferita": "14 (4d6)",
+        "velocita": "9 m",
+    }
+    primary = {
+        "name": "Addolorato Deforme",
+        "normalized_name": "addolorato deforme",
+        "start_page": 46,
+        "source_refs": [{"page": 46}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": "ADDOLORATO DEFORME hi",
+        "normalized_name": "addolorato deforme hi",
+        "attributes": {**attributes, "classe_armatura": "16 (armatura naturale) V"},
+    }
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with (
+        patch(
+            "scripts.repair_monsters_from_source.parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch(
+            "scripts.repair_monsters_from_source.agreed_monster_records",
+            return_value=[],
+        ),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
+        )
+    assert caught.value.reason == "no_unique_independent_agreement"
+    assert json.dumps([primary, comparison], sort_keys=True) == before
