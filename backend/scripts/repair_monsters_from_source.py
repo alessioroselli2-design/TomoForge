@@ -2928,6 +2928,7 @@ def _micro_ocr_draegloth_descriptor(
         page.get_pixmap(clip=rect, colorspace=fitz.csGRAY, alpha=False).save(
             descriptor_path
         )
+    descriptor_languages = "eng+" + languages
     readings = [
         _run_tesseract_bounded(
             [
@@ -2935,7 +2936,7 @@ def _micro_ocr_draegloth_descriptor(
                 str(descriptor_path),
                 "stdout",
                 "-l",
-                languages,
+                descriptor_languages,
                 "--psm",
                 str(mode),
                 "quiet",
@@ -4983,7 +4984,7 @@ def _ocr_source_window(
             "source-guided repair window unexpectedly exceeded 3 pages"
         )
 
-    if name == "Bodak":
+    if name in {"Bodak", "Draegloth"}:
         dpi = max(dpi, 400)
     effective_dpi, primary_psm, secondary_psm = _layout_ocr_settings(
         source,
