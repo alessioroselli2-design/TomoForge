@@ -848,6 +848,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_bd546d49bc7e523eba3a719c3762a928",  # Draegloth: sole referenced page 99
     "ref_823f8b15d62359458189ca8d4384152a",  # Divoratore: sole referenced page 98
     "ref_bccdf665b4e05ba1bd9d7f1710103779",  # Dimetrodonte: sole referenced page 97
     "ref_14098ccddd9358e28b83fe7d17bb0734",  # Derro: ordinary stat block on sole referenced page 93
@@ -2865,7 +2866,9 @@ def _micro_ocr_bodak_descriptor(
     return restored[0], restored[1]
 
 
-def _restore_divoratore_title_from_local_traits(page_text: str, target_name: str) -> str:
+def _restore_divoratore_title_from_local_traits(
+    page_text: str, target_name: str
+) -> str:
     """Reanchor Divoratore only from explicit traits in its unique core block."""
     if target_name != "Divoratore":
         return page_text
@@ -4019,7 +4022,9 @@ def _micro_ocr_hit_points_line(
         "-l",
         languages,
         "--psm",
-        str(11 if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4 else psm),
+        str(
+            11 if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4 else psm
+        ),
         "tsv",
         "quiet",
     ]
@@ -4486,7 +4491,9 @@ def _micro_ocr_hit_points_line(
             "-l",
             languages,
             "--psm",
-            "6" if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4 else "7",
+            "6"
+            if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4
+            else "7",
             "-c",
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
@@ -5449,6 +5456,7 @@ def _ocr_source_window(
                         "Derro",
                         "Dimetrodonte",
                         "Divoratore",
+                        "Draegloth",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
