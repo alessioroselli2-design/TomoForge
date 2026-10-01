@@ -7260,6 +7260,8 @@ async def _repair_one(
                     "Collezionista Di Cadaveri",
                     "Divoratore",
                     "Draegloth",
+                    "Stegosauro",
+                    "Uro",
                 }
                 else overlap
             )

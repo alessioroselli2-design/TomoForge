@@ -1,4 +1,5 @@
 name: Full MPMM 1-100 53 dry-run
+# Final audit includes exact zero-overlap crop provenance for every target.
 
 on:
   push:
