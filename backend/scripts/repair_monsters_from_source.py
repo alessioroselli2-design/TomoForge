@@ -5023,7 +5023,12 @@ def _ocr_source_window(
         # detached fragments from the adjacent right-column prose.
         segments = (("left", (0.0, 0.0, 0.5, 1.0)),)
         column_overlap = 0.0
-    if not sparse_full_page and name in {"Berretto Rosso", "Bodak", "Draegloth"}:
+    if not sparse_full_page and name in {
+        "Berretto Rosso",
+        "Bodak",
+        "Draegloth",
+        "Stegosauro",
+    }:
         # Pages 69/73: exclude left-column narrative from the right stat block.
         segments = (("right", (0.5, 0.0, 1.0, 1.0)),)
         column_overlap = 0.0
