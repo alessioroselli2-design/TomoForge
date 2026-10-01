@@ -839,6 +839,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_ae7d3851315e5d1e8ec09fed56397623": 150.0,  # Velociraptor
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_5eefc25e9c9b5e22aa061386c84628f6": 97,  # Stegosauro: source-observed stat block
     "ref_73328b58b96b57738c11d62b83f32c82": 82,  # Cervello Antico: referenced stat-block page
     "ref_55f881bc0c4e5ea6ae90b26869321b71": 47,  # Addolorato Solitario: page 45 is introductory prose
     "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 47,  # Addolorato Smarrito stat block
@@ -848,6 +849,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_5eefc25e9c9b5e22aa061386c84628f6",  # Stegosauro: selected referenced page 97
     "ref_bd546d49bc7e523eba3a719c3762a928",  # Draegloth: sole referenced page 99
     "ref_823f8b15d62359458189ca8d4384152a",  # Divoratore: sole referenced page 98
     "ref_bccdf665b4e05ba1bd9d7f1710103779",  # Dimetrodonte: sole referenced page 97
@@ -5582,6 +5584,7 @@ def _ocr_source_window(
                         "Dimetrodonte",
                         "Divoratore",
                         "Draegloth",
+                        "Stegosauro",
                     }:
 
                         def _focused_ocr_context(text: str) -> list[str]:
