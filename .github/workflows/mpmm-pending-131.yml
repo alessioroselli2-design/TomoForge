@@ -1,5 +1,5 @@
 name: MPMM pending 131 source verification
-# retrigger read-only audit 2026-10-01 after connector write recovery
+# retrigger read-only audit 2026-10-01 after PHB trigger isolation
 
 on:
   push:
