@@ -4987,7 +4987,7 @@ def _ocr_source_window(
             "source-guided repair window unexpectedly exceeded 3 pages"
         )
 
-    if name in {"Bodak", "Draegloth", "Uro"}:
+    if name in {"Bodak", "Draegloth"}:
         dpi = max(dpi, 400)
     effective_dpi, primary_psm, secondary_psm = _layout_ocr_settings(
         source,
@@ -4995,8 +4995,10 @@ def _ocr_source_window(
         psm=psm,
         comparison_psm=comparison_psm,
     )
-    if name in {"Bodak", "Uro"}:
+    if name == "Bodak":
         primary_psm, secondary_psm = 6, 11
+    if name == "Uro":
+        primary_psm, secondary_psm = 6, 4
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
