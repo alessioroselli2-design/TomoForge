@@ -400,6 +400,13 @@ async def _run(args: argparse.Namespace) -> int:
                         "executed": False,
                     }
                 )
+            completed = len(reports) + len(blocked)
+            if completed % 5 == 0 or completed == len(targets):
+                print(
+                    f"::notice title=MPMM dry-run::{completed}/{len(targets)} "
+                    f"repairable={len(reports)} blocked={len(blocked)}",
+                    flush=True,
+                )
     finally:
         pdf_cache.close()
 

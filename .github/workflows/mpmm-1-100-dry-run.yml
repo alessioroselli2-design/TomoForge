@@ -54,16 +54,34 @@ jobs:
             --allow-r2-download \
             | tee /tmp/mpmm-1-100-dry-run.log
 
-      - name: Assert read-only invariants
+      - name: Assert 53 repairable and read-only invariants
         run: |
-          grep -q '"dry_run": true' /tmp/mpmm-1-100-dry-run.log
-          grep -q '"targets": 53' /tmp/mpmm-1-100-dry-run.log
-          grep -q '"updates_performed": 0' /tmp/mpmm-1-100-dry-run.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lines = Path("/tmp/mpmm-1-100-dry-run.log").read_text().splitlines()
+          marker = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+          report = json.loads(lines[marker + 1])
+          Path("/tmp/mpmm-1-100-FINAL_REPORT.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+          )
+          assert report["dry_run"] is True
+          assert report["targets"] == report["repairable"] == len(report["reports"]) == 53
+          assert report["blocked"] == report["updates_performed"] == 0
+          assert report["blocked_records"] == []
+          assert all(item["executed"] is False for item in report["reports"])
+          assert all(item["gate_failures_after"] == [] for item in report["reports"])
+          print("Verified: 53 repairable / 0 blocked / 0 DB writes")
+          PY
 
       - name: Upload final report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mpmm-1-100-FINAL_REPORT
-          path: /tmp/mpmm-1-100-dry-run.log
+          path: |
+            /tmp/mpmm-1-100-dry-run.log
+            /tmp/mpmm-1-100-FINAL_REPORT.json
           if-no-files-found: error
           retention-days: 3
