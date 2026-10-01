@@ -2866,6 +2866,122 @@ def _micro_ocr_bodak_descriptor(
     return restored[0], restored[1]
 
 
+def _micro_ocr_draegloth_descriptor(
+    image_path: Path,
+    languages: str,
+    primary: str,
+    comparison: str,
+    *,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+) -> tuple[str, str]:
+    """Read the unique observed descriptor geometry in two independent modes."""
+    import fitz
+
+    command = [
+        "tesseract",
+        str(image_path),
+        "stdout",
+        "-l",
+        languages,
+        "--psm",
+        "6",
+        "tsv",
+        "quiet",
+    ]
+    tsv = _run_tesseract_bounded(
+        command, ocr_budget_started_at, phase="draegloth_descriptor_geometry"
+    )
+    grouped: dict[tuple[str, ...], list[dict[str, str]]] = {}
+    for row in csv.DictReader(io.StringIO(tsv), delimiter="\t"):
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                row.get(field, "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+    candidates = [
+        words
+        for words in grouped.values()
+        if all(
+            token in normalize_reference_name(" ".join(word["text"] for word in words))
+            for token in ("grande", "demone", "generalmente", "caotico", "malvagio")
+        )
+    ]
+    if len(candidates) != 1:
+        return primary, comparison
+    words = candidates[0]
+    left = min(int(word["left"]) for word in words)
+    top = min(int(word["top"]) for word in words)
+    right = max(int(word["left"]) + int(word["width"]) for word in words)
+    bottom = max(int(word["top"]) + int(word["height"]) for word in words)
+    raw_image = fitz.Pixmap(str(image_path))
+    rect = fitz.Rect(
+        max(0, left - 8),
+        max(0, top - 4),
+        min(raw_image.width, right + 8),
+        min(raw_image.height, bottom + 4),
+    )
+    descriptor_path = image_path.with_name(image_path.stem + "-descriptor.png")
+    with fitz.open() as document:
+        page = document.new_page(width=raw_image.width, height=raw_image.height)
+        page.insert_image(page.rect, filename=str(image_path))
+        page.get_pixmap(clip=rect, colorspace=fitz.csGRAY, alpha=False).save(
+            descriptor_path
+        )
+    readings = [
+        _run_tesseract_bounded(
+            [
+                "tesseract",
+                str(descriptor_path),
+                "stdout",
+                "-l",
+                languages,
+                "--psm",
+                str(mode),
+                "quiet",
+            ],
+            ocr_budget_started_at,
+            phase=f"draegloth_descriptor_independent_{mode}",
+        ).strip()
+        for mode in (6, 7)
+    ]
+    expected = "immondo grande demone generalmente caotico malvagio"
+    print(
+        "MPMM_DRAEGLOTH_DESCRIPTOR_SOURCE_READS "
+        + json.dumps(
+            {"readings": readings, "crop": list(rect), "modes": [6, 7]},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    if any(normalize_reference_name(reading) != expected for reading in readings):
+        return primary, comparison
+    restored = []
+    for text, reading in zip((primary, comparison), readings, strict=True):
+        lines = text.splitlines()
+        indexes = [
+            index
+            for index, line in enumerate(lines)
+            if all(
+                token in normalize_reference_name(line)
+                for token in ("grande", "demone", "generalmente", "caotico", "malvagio")
+            )
+        ]
+        if len(indexes) != 1:
+            return primary, comparison
+        lines[indexes[0]] = reading
+        # Strip only graphical debris preceding observed core labels.
+        for index, line in enumerate(lines):
+            lines[index] = re.sub(
+                r"^[^A-Za-zÀ-ÿ]*(?=(?:Classe\s+Armatura|Punti\s+Ferita|Velocit[àa]))",
+                "",
+                line,
+                flags=re.IGNORECASE,
+            )
+        restored.append("\n".join(lines) + ("\n" if text.endswith("\n") else ""))
+    return restored[0], restored[1]
+
+
 def _restore_divoratore_title_from_local_traits(
     page_text: str, target_name: str
 ) -> str:
@@ -5152,6 +5268,14 @@ def _ocr_source_window(
                         primary = _restore_bael_title_from_local_actions(primary, name)
                         comparison = _restore_bael_title_from_local_actions(
                             comparison, name
+                        )
+                    if name == "Draegloth" and not sparse_full_page:
+                        primary, comparison = _micro_ocr_draegloth_descriptor(
+                            image_path,
+                            languages,
+                            primary,
+                            comparison,
+                            ocr_budget_started_at=ocr_budget_started_at,
                         )
                     if name == "Divoratore" and not sparse_full_page:
                         primary = _restore_divoratore_title_from_local_traits(
