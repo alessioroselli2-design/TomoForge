@@ -4987,7 +4987,7 @@ def _ocr_source_window(
             "source-guided repair window unexpectedly exceeded 3 pages"
         )
 
-    if name in {"Bodak", "Draegloth"}:
+    if name in {"Bodak", "Draegloth", "Uro"}:
         dpi = max(dpi, 400)
     effective_dpi, primary_psm, secondary_psm = _layout_ocr_settings(
         source,
