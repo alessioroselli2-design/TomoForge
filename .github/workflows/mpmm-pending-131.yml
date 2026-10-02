@@ -13,6 +13,11 @@ on:
       - .github/workflows/mpmm-pending-131.yml
   workflow_dispatch:
     inputs:
+      audit_record_id:
+        description: Optional pending MPMM record ID for a read-only pilot
+        required: false
+        type: string
+        default: ''
       execute:
         description: Verify repairable records after each read-only batch
         required: true
@@ -60,9 +65,13 @@ jobs:
         id: audit
         env:
           EXECUTE: ${{ github.event_name == 'workflow_dispatch' && inputs.execute }}
+          AUDIT_RECORD_ID: ${{ inputs.audit_record_id }}
         run: |
           set -o pipefail
           args=(--allow-r2-download --batch-size 25)
+          if [[ -n "$AUDIT_RECORD_ID" ]]; then
+            args+=(--audit-record-id "$AUDIT_RECORD_ID")
+          fi
           if [[ "$EXECUTE" == "true" ]]; then
             args+=(--execute --confirm VERIFY_MPMM_PENDING_131)
           fi

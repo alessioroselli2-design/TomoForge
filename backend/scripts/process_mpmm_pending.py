@@ -165,10 +165,18 @@ async def _run(args: argparse.Namespace) -> int:
     if args.execute and args.confirm != CONFIRMATION_TOKEN:
         raise RuntimeError("MPMM confirmation token mismatch")
 
+    if args.execute and args.audit_record_id:
+        raise RuntimeError("focused audits are read-only")
+
     collection = db.private_reference_records
     all_monsters = await repair._fetch_all(collection, {"reference_type": "monster"})
     mpmm = [row for row in all_monsters if _is_mpmm(row)]
     pending = [row for row in mpmm if str(row.get("review_status") or "") == "pending"]
+    targets = pending
+    if args.audit_record_id:
+        targets = [row for row in pending if row.get("id") == args.audit_record_id]
+        if len(targets) != 1:
+            raise RuntimeError("focused audit requires exactly one pending MPMM record")
     verified_before = [
         row for row in mpmm if str(row.get("review_status") or "") == "verified"
     ]
@@ -205,7 +213,7 @@ async def _run(args: argparse.Namespace) -> int:
     batch_reports: list[dict[str, Any]] = []
     cache = repair.SourcePdfCache(args.pdf_root, args.allow_r2_download)
     try:
-        for number, batch in enumerate(_partition(pending, args.batch_size), start=1):
+        for number, batch in enumerate(_partition(targets, args.batch_size), start=1):
             batch_ok: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = []
             batch_blocked: list[dict[str, Any]] = []
             for record in batch:
@@ -290,8 +298,8 @@ async def _run(args: argparse.Namespace) -> int:
         "initial_verified": len(verified_before),
         "initial_global_verified": len(global_verified_before),
         "protected_verified_fingerprint_sha256": protected_verified_fingerprint,
-        "target_fingerprint_sha256": _fingerprint(pending),
-        "targets": len(pending),
+        "target_fingerprint_sha256": _fingerprint(targets),
+        "targets": len(targets),
         "repairable": len(reports),
         "blocked": len(blocked),
         "updates_performed": sum(1 for report in reports if report.get("executed")),
@@ -312,6 +320,7 @@ async def _run(args: argparse.Namespace) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Process pending MPMM monsters")
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--audit-record-id", default="", help="Read-only pending MPMM pilot")
     parser.add_argument("--confirm", default="")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--pdf-root", default="")

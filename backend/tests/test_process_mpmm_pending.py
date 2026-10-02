@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
 
@@ -115,6 +117,65 @@ def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
     assert process.EXPECTED_PENDING == 131
     assert process.EXPECTED_MPMM_VERIFIED == 64
     assert process.EXPECTED_GLOBAL_VERIFIED == 113
+
+
+def test_focused_audit_preserves_global_counts_and_never_writes(capsys):
+    rows = [_record("one", "Uno"), _record("two", "Due")]
+    args = process._parser().parse_args(["--audit-record-id", "one"])
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        patch.object(
+            process.repair, "_fetch_all", AsyncMock(side_effect=[rows, [], rows])
+        ),
+        patch.object(
+            process.repair, "_repair_one", AsyncMock(return_value={"after": rows[0]})
+        ) as repair,
+        patch.object(process, "_apply_verified", AsyncMock()) as write,
+    ):
+        assert asyncio.run(process._run(args)) == 0
+    report = json.loads(capsys.readouterr().out.split("FINAL_REPORT\n")[1])
+    assert report["initial_pending"] == report["final_pending"] == 2
+    assert report["targets"] == report["repairable"] == 1
+    assert report["updates_performed"] == 0
+    assert repair.await_args.args[1]["id"] == "one"
+    write.assert_not_called()
+
+
+def test_focused_audit_refuses_execute_even_with_confirmation():
+    args = process._parser().parse_args(
+        [
+            "--audit-record-id",
+            "one",
+            "--execute",
+            "--confirm",
+            process.CONFIRMATION_TOKEN,
+        ]
+    )
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        pytest.raises(RuntimeError, match="focused audits are read-only"),
+    ):
+        asyncio.run(process._run(args))
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        None,
+        {**_record("one", "Uno"), "review_status": "verified"},
+        {**_record("one", "Uno"), "source_refs": []},
+    ],
+)
+def test_focused_audit_refuses_records_outside_pending_mpmm(row):
+    args = process._parser().parse_args(["--audit-record-id", "one"])
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        patch.object(
+            process.repair, "_fetch_all", AsyncMock(return_value=[row] if row else [])
+        ),
+        pytest.raises(RuntimeError, match="exactly one pending MPMM record"),
+    ):
+        asyncio.run(process._run(args))
 
 
 @pytest.mark.parametrize(
