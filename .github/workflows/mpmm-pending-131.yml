@@ -78,7 +78,7 @@ jobs:
             args+=(--execute --confirm VERIFY_MPMM_PENDING_131)
           fi
           set +e
-          python backend/scripts/process_mpmm_pending.py "${args[@]}" \
+          python backend/scripts/run_mpmm_audit.py "${args[@]}" \
             | tee /tmp/mpmm-pending-131.log
           status=${PIPESTATUS[0]}
           set -e
@@ -123,7 +123,7 @@ jobs:
           for item in report["blocked_records"]:
               blocked = {
                   key: item.get(key)
-                  for key in ("record_id", "name", "reason", "detail")
+                  for key in ("record_id", "reason")
               }
               print("MPMM_BLOCKED " + json.dumps(blocked, ensure_ascii=False))
           PY
@@ -134,7 +134,6 @@ jobs:
         with:
           name: MPMM_PENDING_131_FINAL_REPORT
           path: |
-            /tmp/mpmm-pending-131.log
             /tmp/MPMM_PENDING_131_FINAL_REPORT.json
           if-no-files-found: error
           retention-days: 14

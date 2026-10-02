@@ -3255,11 +3255,15 @@ def test_grung_brado_audit_uses_only_the_unique_registered_variant_page(refs):
     assert json.dumps(record, sort_keys=True) == before
 
 
-def test_grung_elite_audit_excludes_unregistered_base_grung_page():
+@pytest.mark.parametrize("identifier,name,page", [
+    ("ref_09eb88310e015ab6aa41d9dc35874f48", "Grung Guerriero D'Élite", 45),
+    ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo", 65),
+])
+def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, name, page):
     record = {
-        "id": "ref_09eb88310e015ab6aa41d9dc35874f48", "name": "Grung Guerriero D'Élite",
+        "id": identifier, "name": name,
         "review_status": "pending",
-        "source_refs": [{"filename": "synthetic.pdf", "page": 45}],
+        "source_refs": [{"filename": "synthetic.pdf", "page": page}],
     }
     source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
     args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
@@ -3272,7 +3276,7 @@ def test_grung_elite_audit_excludes_unregistered_base_grung_page():
     ):
         asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
     assert caught.value.reason == "pilot_stop"
-    assert ocr.call_args.args[1] == 45
+    assert ocr.call_args.args[1] == page
     assert ocr.call_args.kwargs["target_page_only"] is True
     assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
     assert json.dumps(record, sort_keys=True) == before

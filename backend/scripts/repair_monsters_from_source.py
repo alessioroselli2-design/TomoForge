@@ -878,6 +878,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_25a60967a5b8526fbb235e29d243c019",  # Capo Vegepigmeo: sole registered page 65
     "ref_dfcfc30092385b9d9facc6af40035fd4",  # Grung Brado: exclude the base Grung on page 44
     "ref_09eb88310e015ab6aa41d9dc35874f48",  # Grung Guerriero D'Élite: sole registered page 45
     "ref_ae7d3851315e5d1e8ec09fed56397623",  # Velociraptor: selected referenced page 97
@@ -7360,6 +7361,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo"),
             ("ref_b63e546c22a25155ae4ac40598eb7e3e", "Oscuride"),
             ("ref_d4c1987a935255ae9e854e228b9e4824", "Oscuride Anziano"),
         }
@@ -7717,6 +7719,7 @@ async def _repair_one(
         },
         "source": {
             "physical_filename": source.get("physical_filename"),
+            "physical_sha256": source.get("physical_sha256"),
             "logical_source_id": source.get("logical_source_id"),
             "source_role": source.get("source_role"),
             "source_status": source.get("source_status"),
