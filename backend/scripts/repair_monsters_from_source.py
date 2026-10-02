@@ -7358,8 +7358,11 @@ async def _repair_one(
         and source.get("logical_source_id") == "mpmm_2022_it"
     )
     require_exact_target_identity = (
-        record_id == "ref_b63e546c22a25155ae4ac40598eb7e3e"
-        and record.get("name") == "Oscuride"
+        (record_id, record.get("name"))
+        in {
+            ("ref_b63e546c22a25155ae4ac40598eb7e3e", "Oscuride"),
+            ("ref_d4c1987a935255ae9e854e228b9e4824", "Oscuride Anziano"),
+        }
         and record.get("review_status") == "pending"
         and source.get("logical_source_id") == "mpmm_2022_it"
     )

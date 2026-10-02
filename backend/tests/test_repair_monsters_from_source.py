@@ -3355,8 +3355,9 @@ def test_pending_kithrak_clean_core_gate_does_not_assume_expected_values():
     assert build_repair_proposal(legacy, candidate)["attributes"] == candidate["attributes"]
 
 
+@pytest.mark.parametrize("target", ["Oscuride", "Oscuride Anziano"])
 @pytest.mark.parametrize("mutation", ["none", "ca_disagreement", "duplicate", "missing_exact"])
-def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutation):
+def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutation, target):
     base = {
         "name": "OSCURIDE", "normalized_name": "oscuride", "start_page": 13,
         "source_refs": [{"page": 13}],
@@ -3368,25 +3369,27 @@ def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutati
     }
     primary = [base, variant]
     comparison = [base, variant]
+    selected = base if target == "Oscuride" else variant
+    other = variant if target == "Oscuride" else base
     if mutation == "ca_disagreement":
-        comparison = [{**base, "attributes": {**base["attributes"], "classe_armatura": "15"}}, variant]
+        comparison = [{**selected, "attributes": {**selected["attributes"], "classe_armatura": "16"}}, other]
     elif mutation == "duplicate":
-        primary = [base, base, variant]
+        primary = [selected, selected, other]
     elif mutation == "missing_exact":
-        comparison = [variant]
+        comparison = [other]
     before = json.dumps([primary, comparison], sort_keys=True)
     with patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]):
         if mutation == "none":
             candidate = _agreed_target_candidate(
-                [], [], "synthetic.pdf", "it", "Oscuride", 13,
+                [], [], "synthetic.pdf", "it", target, 13,
                 require_exact_target_identity=True,
             )
-            assert candidate["name"] == "OSCURIDE"
-            assert candidate["attributes"]["punti_ferita"] == "13 (3d6 + 3)"
+            assert candidate["name"] == selected["name"]
+            assert candidate["attributes"]["punti_ferita"] == selected["attributes"]["punti_ferita"]
         else:
             with pytest.raises(RepairBlocked):
                 _agreed_target_candidate(
-                    [], [], "synthetic.pdf", "it", "Oscuride", 13,
+                    [], [], "synthetic.pdf", "it", target, 13,
                     require_exact_target_identity=True,
                 )
     assert json.dumps([primary, comparison], sort_keys=True) == before
