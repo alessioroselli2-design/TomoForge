@@ -3088,3 +3088,56 @@ def test_bheur_corrupted_candidate_reports_evidence_and_still_blocks():
     assert caught.value.diagnostics["candidate_name"] == candidate["name"]
     assert caught.value.diagnostics["candidate_core"] == candidate["attributes"]
     assert caught.value.diagnostics["candidate_source_refs"] == candidate["source_refs"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "MEGERA | BHEUR\n", "| MEGERA BHEUR altro\n", "|| MEGERA BHEUR\n",
+        "| MEGERA BHEUR\n| MEGERA BHEUR\n",
+    ],
+)
+def test_bheur_rule_isolation_refuses_other_noise_and_duplicate_titles(text):
+    assert repair._isolate_bheur_title_rule(text) == text
+
+
+def test_bheur_rule_isolation_retains_debris_and_all_numeric_source_text():
+    text = "| MEGERA BHEUR\nClasse Armatura 17\nPunti Ferita 91 (14d8 + 28)\n"
+    assert repair._isolate_bheur_title_rule(text) == text.replace(
+        "| MEGERA BHEUR", "|\nMEGERA BHEUR"
+    )
+
+
+@pytest.mark.parametrize("comparison_ca", ["17", "18"])
+def test_bheur_isolated_rule_still_requires_independent_core_agreement(comparison_ca):
+    text = (
+        "| MEGERA BHEUR\nFolletto Medio, caotico malvagio\n"
+        "Classe Armatura 17 (armatura naturale)\nPunti Ferita 91 (14d8 + 28)\n"
+        "Velocità 9 m, volare 15 m\nFor Des Cos Int Sag Car\n"
+        "13 (+1) 16 (+3) 14 (+2) 12 (+1) 13 (+1) 16 (+3)\n"
+        "Sensi scurovisione 18 m\nLinguaggi Comune\nSfida 7\nAzioni\nArtiglio.\n"
+    )
+    before = [(84, text)]
+    comparison = [(84, text.replace("Armatura 17", f"Armatura {comparison_ca}"))]
+    if comparison_ca != "17":
+        with pytest.raises(RepairBlocked):
+            _agreed_target_candidate(
+                before, comparison, "synthetic.pdf", "it", "Megera Bheur", 84,
+                isolate_bheur_title_rule=True,
+            )
+    else:
+        candidate = _agreed_target_candidate(
+            before, comparison, "synthetic.pdf", "it", "Megera Bheur", 84,
+            isolate_bheur_title_rule=True,
+        )
+        assert candidate["name"] == "MEGERA BHEUR"
+        assert candidate["attributes"]["punti_ferita"] == "91 (14d8 + 28)"
+        assert candidate["source_refs"][0]["page"] == 84
+        raw_candidate = _agreed_target_candidate(
+            before, comparison, "synthetic.pdf", "it", "Megera Bheur", 84
+        )
+        with pytest.raises(RepairBlocked, match="repaired_candidate_corrupted_name"):
+            build_repair_proposal(
+                {"id": "ref_f2cee258e0c45f8d96d22bb9f71c9e7a"}, raw_candidate
+            )
+    assert before == [(84, text)]

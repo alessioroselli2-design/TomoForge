@@ -5957,6 +5957,27 @@ def _candidate_matches_target(
     return name_match and (same_page or adjacent_page)
 
 
+def _isolate_bheur_title_rule(page_text: str) -> str:
+    """Keep an isolated OCR rule outside the exact observed Bheur heading."""
+    lines = page_text.splitlines()
+    matches = [
+        index
+        for index, line in enumerate(lines)
+        if re.fullmatch(r"\s*\|\s+MEGERA\s+BHEUR\s*", line, re.IGNORECASE)
+    ]
+    if len(matches) != 1:
+        return page_text
+    index = matches[0]
+    raw_title = lines[index]
+    # Retain the rule as a separate debris line; copy the observed title letters.
+    lines[index] = "|\n" + raw_title.lstrip().removeprefix("|").lstrip()
+    print(
+        "MPMM_BHEUR_TITLE_RULE_ISOLATED "
+        + json.dumps({"raw_title": raw_title, "numeric_values_modified": False})
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _agreed_target_candidate(
     primary_pages: list[tuple[int, str]],
     comparison_pages: list[tuple[int, str]],
@@ -5966,7 +5987,17 @@ def _agreed_target_candidate(
     target_page: int,
     *,
     source_anchor_verified: bool = False,
+    isolate_bheur_title_rule: bool = False,
 ) -> dict[str, Any]:
+    if isolate_bheur_title_rule and target_name == "Megera Bheur":
+        primary_pages = [
+            (page, _isolate_bheur_title_rule(text) if page == target_page else text)
+            for page, text in primary_pages
+        ]
+        comparison_pages = [
+            (page, _isolate_bheur_title_rule(text) if page == target_page else text)
+            for page, text in comparison_pages
+        ]
     primary = parse_monster_statblocks(
         primary_pages,
         source_filename,
@@ -7179,6 +7210,12 @@ async def _repair_one(
             )
         )
     physical_page = int(source_ref["page"])
+    isolate_bheur_title_rule = (
+        record_id == "ref_f2cee258e0c45f8d96d22bb9f71c9e7a"
+        and record.get("name") == "Megera Bheur"
+        and record.get("review_status") == "pending"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+    )
     pdf_path = pdf_cache.get(source)
     source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
         record_id,
@@ -7272,6 +7309,7 @@ async def _repair_one(
                 str(source.get("language") or "it"),
                 source_target_name,
                 physical_page,
+                isolate_bheur_title_rule=isolate_bheur_title_rule,
             )
             print(
                 "PHB_AGREEMENT_TIMING "
@@ -7442,6 +7480,7 @@ async def _repair_one(
             source_target_name,
             physical_page,
             source_anchor_verified=sparse_anchor_verified,
+            isolate_bheur_title_rule=isolate_bheur_title_rule,
         )
         selected_overlap = 0.05
     if candidate is None or quality is None:
