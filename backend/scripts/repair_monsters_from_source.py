@@ -7270,11 +7270,21 @@ async def _repair_one(
             )
             if (
                 record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
-                and HP_FORMAT_ERROR_FLAG
-                in monster_semantic_numeric_flags(candidate.get("attributes") or {})
+                or (
+                    record_id == "ref_4b2e9b5984dd506d89caf10b4f15c3fd"
+                    and record.get("name") == "Korred"
+                    and record.get("review_status") == "pending"
+                    and source.get("logical_source_id") == "mpmm_2022_it"
+                )
+            ) and HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+                candidate.get("attributes") or {}
             ):
                 print(
-                    "PHB_HP_SPARSE_RETRY "
+                    (
+                        "PHB_HP_SPARSE_RETRY "
+                        if record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
+                        else "MPMM_HP_SPARSE_RETRY "
+                    )
                     + json.dumps(
                         {"name": record.get("name"), "reason": HP_FORMAT_ERROR_FLAG},
                         ensure_ascii=False,

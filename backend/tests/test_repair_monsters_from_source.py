@@ -6,9 +6,12 @@ from datetime import datetime
 from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import fitz
 import pytest
+from scripts import repair_monsters_from_source as repair
+
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
@@ -3008,3 +3011,58 @@ def test_deforme_ambiguous_identity_cannot_inject_expected_core():
         )
     assert caught.value.reason == "no_unique_independent_agreement"
     assert json.dumps([primary, comparison], sort_keys=True) == before
+
+
+@pytest.mark.parametrize(
+    "record_overrides,logical_source,expected_calls",
+    [
+        ({}, "mpmm_2022_it", 2),
+        ({"id": "another_record"}, "mpmm_2022_it", 1),
+        ({"name": "Another Monster"}, "mpmm_2022_it", 1),
+        ({"review_status": "verified"}, "mpmm_2022_it", 1),
+        ({}, "another_source", 1),
+    ],
+)
+def test_korred_invalid_agreement_retries_sparse_without_bypassing_hp_gate(
+    record_overrides, logical_source, expected_calls
+):
+    record = {
+        "id": "ref_4b2e9b5984dd506d89caf10b4f15c3fd",
+        "name": "Korred",
+        "review_status": "pending",
+        **record_overrides,
+    }
+    source = {
+        "logical_source_id": logical_source,
+        "physical_filename": "synthetic.pdf",
+        "physical_pages": 100,
+    }
+    candidate = {
+        "name": "Korred",
+        "attributes": {
+            "classe_armatura": "17",
+            "punti_ferita": "unreadable",
+            "velocita": "9 m",
+        },
+    }
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4)
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, {"page": 10})),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(
+            repair, "_ocr_source_window", return_value=([], [], {10: {}})
+        ) as ocr,
+        patch.object(repair, "_agreed_target_candidate", return_value=candidate),
+        pytest.raises(repair.RepairBlocked) as caught,
+    ):
+        asyncio.run(
+            repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args)
+        )
+    assert caught.value.reason == "repaired_candidate_failed_gates"
+    assert "HP_format_error" in caught.value.detail
+    assert ocr.call_count == expected_calls
+    budget = ocr.call_args_list[0].kwargs["ocr_budget_started_at"]
+    assert budget[1] == 60.0
+    if expected_calls == 2:
+        assert ocr.call_args_list[1].kwargs["sparse_full_page"] is True
+        assert ocr.call_args_list[1].kwargs["ocr_budget_started_at"] is budget
