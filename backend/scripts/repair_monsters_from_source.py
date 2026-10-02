@@ -6102,6 +6102,17 @@ def _agreed_target_candidate(
 
         primary_exact = exact_targets(primary)
         comparison_exact = exact_targets(comparison)
+
+        def compatible_targets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                candidate
+                for candidate in records
+                if int(candidate.get("start_page") or 0) == target_page
+                and _candidate_matches_target(candidate, target_name, target_page)
+            ]
+
+        primary_compatible = compatible_targets(primary)
+        comparison_compatible = compatible_targets(comparison)
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
@@ -6109,6 +6120,8 @@ def _agreed_target_candidate(
                 diagnostics={
                     "primary_exact_candidates": len(primary_exact),
                     "comparison_exact_candidates": len(comparison_exact),
+                    "primary_compatible_candidates": len(primary_compatible),
+                    "comparison_compatible_candidates": len(comparison_compatible),
                 },
             )
         primary, comparison = primary_exact, comparison_exact
