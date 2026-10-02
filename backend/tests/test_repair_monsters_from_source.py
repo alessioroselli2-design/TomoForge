@@ -3276,3 +3276,46 @@ def test_grung_elite_audit_excludes_unregistered_base_grung_page():
     assert ocr.call_args.kwargs["target_page_only"] is True
     assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
     assert json.dumps(record, sort_keys=True) == before
+
+
+@pytest.mark.parametrize("suffix", ["Ù", "i"])
+def test_kithrak_isolation_preserves_numeric_text_and_raw_glyph(suffix):
+    text = f"GITHYANKI KITH'RAK {suffix}\nClasse Armatura 18 (piastre) (\nPunti Ferita 180 (24d8 + 72)\nVelocità 9 m 3\n"
+    assert repair._isolate_kithrak_title_debris(text) == text.replace(
+        f"GITHYANKI KITH'RAK {suffix}", f"{suffix}\nGITHYANKI KITH'RAK"
+    )
+
+
+@pytest.mark.parametrize("title", [
+    "GITHYANKI KITH'RAK altro", "GITHYANKI KITH'RAK ii",
+    "GITHYANKI KITH'RAK I", "GITHYANKI KITH'RAK Ù\nGITHYANKI KITH'RAK i",
+])
+def test_kithrak_isolation_rejects_unobserved_or_duplicate_titles(title):
+    assert repair._isolate_kithrak_title_debris(title) == title
+
+
+@pytest.mark.parametrize("comparison_ca", ["18", "19"])
+def test_kithrak_isolated_title_keeps_independent_numeric_gate(comparison_ca):
+    text = (
+        "GITHYANKI KITH'RAK Ù\nUmanoide Medio, legale malvagio\n"
+        "Classe Armatura 18 (piastre)\nPunti Ferita 180 (24d8 + 72)\n"
+        "Velocità 9 m\nFor Des Cos Int Sag Car\n"
+        "18 (+4) 16 (+3) 16 (+3) 16 (+3) 15 (+2) 17 (+3)\n"
+        "Sensi percezione passiva 12\nLinguaggi Gith\nSfida 12\nAzioni\nSpada.\n"
+    )
+    primary = [(36, text)]
+    comparison = [(36, text.replace("RAK Ù", "RAK i").replace("Armatura 18", f"Armatura {comparison_ca}"))]
+    if comparison_ca == "18":
+        candidate = _agreed_target_candidate(
+            primary, comparison, "synthetic.pdf", "it", "Githyanki Kith'Rak", 36,
+            isolate_kithrak_title_debris=True,
+        )
+        assert candidate["name"] == "GITHYANKI KITH'RAK"
+        assert candidate["attributes"]["punti_ferita"] == "180 (24d8 + 72)"
+    else:
+        with pytest.raises(RepairBlocked):
+            _agreed_target_candidate(
+                primary, comparison, "synthetic.pdf", "it", "Githyanki Kith'Rak", 36,
+                isolate_kithrak_title_debris=True,
+            )
+    assert primary == [(36, text)]

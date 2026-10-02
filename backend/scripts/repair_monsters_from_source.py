@@ -6025,6 +6025,26 @@ def _isolate_bheur_title_rule(page_text: str) -> str:
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _isolate_kithrak_title_debris(page_text: str) -> str:
+    """Retain observed single-glyph suffixes outside the exact Kith'Rak title."""
+    lines = page_text.splitlines()
+    matches = [
+        (index, match)
+        for index, line in enumerate(lines)
+        if (match := re.fullmatch(r"\s*(GITHYANKI\s+KITH'RAK)\s+([Ùi])\s*", line))
+    ]
+    if len(matches) != 1:
+        return page_text
+    index, match = matches[0]
+    raw_title = lines[index]
+    lines[index] = match.group(2) + "\n" + match.group(1)
+    print(
+        "MPMM_KITHRAK_TITLE_DEBRIS_ISOLATED "
+        + json.dumps({"raw_title": raw_title, "numeric_values_modified": False})
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _agreed_target_candidate(
     primary_pages: list[tuple[int, str]],
     comparison_pages: list[tuple[int, str]],
@@ -6035,8 +6055,18 @@ def _agreed_target_candidate(
     *,
     source_anchor_verified: bool = False,
     isolate_bheur_title_rule: bool = False,
+    isolate_kithrak_title_debris: bool = False,
     include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
+    if isolate_kithrak_title_debris and target_name == "Githyanki Kith'Rak":
+        primary_pages = [
+            (page, _isolate_kithrak_title_debris(text) if page == target_page else text)
+            for page, text in primary_pages
+        ]
+        comparison_pages = [
+            (page, _isolate_kithrak_title_debris(text) if page == target_page else text)
+            for page, text in comparison_pages
+        ]
     if isolate_bheur_title_rule and target_name == "Megera Bheur":
         primary_pages = [
             (page, _isolate_bheur_title_rule(text) if page == target_page else text)
@@ -7286,6 +7316,12 @@ async def _repair_one(
         and record.get("review_status") == "pending"
         and source.get("logical_source_id") == "mpmm_2022_it"
     )
+    isolate_kithrak_title_debris = (
+        record_id == "ref_e4ce5aac88725918a98e4f1dacc8cd1a"
+        and record.get("name") == "Githyanki Kith'Rak"
+        and record.get("review_status") == "pending"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+    )
     pdf_path = pdf_cache.get(source)
     source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
         record_id,
@@ -7380,6 +7416,7 @@ async def _repair_one(
                 source_target_name,
                 physical_page,
                 isolate_bheur_title_rule=isolate_bheur_title_rule,
+                isolate_kithrak_title_debris=isolate_kithrak_title_debris,
                 include_core_diagnostics=args.target_set == "batch_mpmm_pending_131",
             )
             print(
@@ -7552,6 +7589,7 @@ async def _repair_one(
             physical_page,
             source_anchor_verified=sparse_anchor_verified,
             isolate_bheur_title_rule=isolate_bheur_title_rule,
+            isolate_kithrak_title_debris=isolate_kithrak_title_debris,
             include_core_diagnostics=args.target_set == "batch_mpmm_pending_131",
         )
         selected_overlap = 0.05
