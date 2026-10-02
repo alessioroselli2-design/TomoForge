@@ -59,6 +59,7 @@ from services.monster_semantic_diagnostics import (
 )
 from services.monster_speed_token_diagnostics import speed_multi_extra_token_profile
 from services.monster_statblock_ocr import (
+    _find_header,
     agreed_monster_records,
     parse_monster_statblocks,
 )
@@ -4046,6 +4047,35 @@ def _micro_ocr_cinghiale_armor_class_line(
     return rebuilt
 
 
+def _korred_structural_hp_anchors(lines: list[str]) -> tuple[list[int], list[int]]:
+    """Exclude narrative/name mentions and HP prose from Korred's micro crop."""
+    anchors: list[tuple[int, int]] = []
+    for ca_index, line in enumerate(lines):
+        if not re.match(r"\s*Classe\s+Armatura\b", line, re.IGNORECASE):
+            continue
+        header = _find_header(lines, ca_index)
+        if header is None or normalize_reference_name(header[1]) != "korred":
+            continue
+        title_index = header[0]
+        following = range(ca_index + 1, min(len(lines), ca_index + 9))
+        speed_indexes = [
+            index
+            for index in following
+            if re.match(r"\s*Velocit[àa]\b", lines[index], re.IGNORECASE)
+        ]
+        if len(speed_indexes) != 1:
+            continue
+        hp_indexes = [
+            index
+            for index in range(ca_index + 1, speed_indexes[0])
+            if re.match(r"\s*Punti\s+Ferita\b", lines[index], re.IGNORECASE)
+        ]
+        if len(hp_indexes) == 1:
+            anchors.append((title_index, hp_indexes[0]))
+    # Duplicate core anchors remain ambiguous even when they share a title/PF row.
+    return sorted(title for title, _ in anchors), sorted(hp for _, hp in anchors)
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -4129,6 +4159,8 @@ def _micro_ocr_hit_points_line(
             text_lines,
             local_hp_indexes,
         )
+        if name == "Korred":
+            target_indexes, local_hp_indexes = _korred_structural_hp_anchors(text_lines)
         if len(local_hp_indexes) == 1:
             local_match = hp_line_pattern.match(text_lines[local_hp_indexes[0]])
             if local_match is not None:
@@ -4198,6 +4230,9 @@ def _micro_ocr_hit_points_line(
 
     def page_text_anchor_details() -> tuple[int, list[int]]:
         text_lines = page_text.splitlines()
+        if name == "Korred":
+            titles, hp_indexes = _korred_structural_hp_anchors(text_lines)
+            return len(titles), hp_indexes
         target_indexes = [
             index
             for index, line in enumerate(text_lines)
@@ -4279,10 +4314,19 @@ def _micro_ocr_hit_points_line(
     )
     diagnostics["tsv_name_anchor_found"] = name_line_index is not None
     label_words: list[dict[str, str]] | None = None
+    if name == "Korred":
+        tsv_lines = [
+            " ".join(str(word["text"]) for word in words) for words in ordered_lines
+        ]
+        titles, hp_indexes = _korred_structural_hp_anchors(tsv_lines)
+        name_line_index = titles[0] if len(titles) == len(hp_indexes) == 1 else None
+        diagnostics["tsv_name_anchor_found"] = name_line_index is not None
+        if name_line_index is not None:
+            label_words = ordered_lines[hp_indexes[0]]
     # The target name remains the required upper anchor. Descriptor and wrapped
     # lines vary across legacy layouts, so scan subsequent TSV lines; the crop
     # is still bound to the first HP label below that exact target identity.
-    if name_line_index is not None:
+    if name_line_index is not None and label_words is None:
         for words in ordered_lines[name_line_index + 1 :]:
             normalized = " ".join(str(word["text"]) for word in words).casefold()
             if "punti" in normalized and "ferita" in normalized:

@@ -3141,3 +3141,64 @@ def test_bheur_isolated_rule_still_requires_independent_core_agreement(compariso
                 {"id": "ref_f2cee258e0c45f8d96d22bb9f71c9e7a"}, raw_candidate
             )
     assert before == [(84, text)]
+
+
+def test_korred_hp_anchor_ignores_narrative_mentions_and_prose_hp():
+    lines = [
+        "KORRED", "Il korred usa i suoi capelli.", "Punti Ferita nella descrizione.",
+        "KORRED", "Folletto Piccolo, caotico neutrale", "Classe Armatura 17",
+        "Punti Ferita 93 (11d6 + 55)", "Velocità 9 m, scavare 9 m",
+        "Il korred recupera Punti Ferita.", "Punti Ferita nella capacità del korred.",
+    ]
+    assert repair._korred_structural_hp_anchors(lines) == ([3], [6])
+
+
+@pytest.mark.parametrize("damage", ["duplicate_hp", "missing_speed", "duplicate_block", "other_title"])
+def test_korred_structural_hp_anchor_fails_closed_on_missing_or_ambiguous_block(damage):
+    lines = ["KORRED", "Folletto Piccolo", "Classe Armatura 17", "Punti Ferita unreadable", "Velocità 9 m"]
+    if damage == "duplicate_hp":
+        lines.insert(4, "Punti Ferita 14 (4d6)")
+    elif damage == "missing_speed":
+        lines.pop()
+    elif damage == "other_title":
+        lines[0] = "ALTRO MOSTRO"
+    else:
+        # Keep independent ambiguous blocks; do not collapse equal HP values.
+        lines = lines + ["Azioni"] * 9 + lines
+        titles, hp = repair._korred_structural_hp_anchors(lines)
+        assert len(titles) == len(hp) == 2
+        return
+    assert repair._korred_structural_hp_anchors(lines) == ([], [])
+
+
+def test_korred_duplicate_ca_anchor_is_not_collapsed():
+    lines = ["KORRED", "Folletto Piccolo", "Classe Armatura 17", "Classe Armatura 18", "Punti Ferita 93 (11d6 + 55)", "Velocità 9 m"]
+    assert repair._korred_structural_hp_anchors(lines) == ([0, 0], [4, 4])
+
+
+def test_korred_micro_crop_replaces_only_unique_structural_hp(tmp_path):
+    lines = [
+        "KORRED", "Il korred usa i capelli.", "Punti Ferita nella descrizione.",
+        "KORRED", "Folletto Piccolo", "Classe Armatura 17",
+        "Punti Ferita unreadable", "Velocità 9 m, scavare 9 m",
+        "Il korred recupera Punti Ferita.", "Punti Ferita nella capacità del korred.",
+    ]
+    image_path = tmp_path / "synthetic-korred.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 900, 400), False)
+    image.clear_with(255)
+    image.save(image_path)
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = [
+        f"5\t1\t1\t1\t{index + 1}\t{word_index + 1}\t{20 + word_index * 90}\t{15 + index * 25}\t80\t12\t95\t{word}"
+        for index, line in enumerate(lines)
+        for word_index, word in enumerate(line.split())
+    ]
+    page_text = "\n".join(lines) + "\n"
+    with patch.object(
+        repair.subprocess, "run", side_effect=[
+            CompletedProcess([], 0, stdout=header + "\n".join(rows) + "\n", stderr=""),
+            CompletedProcess([], 0, stdout="93 (11d6 + 55)\n", stderr=""),
+        ],
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 3, page_text, "Korred")
+    assert result == page_text.replace("Punti Ferita unreadable", "Punti Ferita 93 (11d6 + 55)")
