@@ -3017,7 +3017,7 @@ def test_deforme_ambiguous_identity_cannot_inject_expected_core():
     "record_overrides,logical_source,expected_calls",
     [
         ({}, "mpmm_2022_it", 2),
-        ({"id": "another_record"}, "mpmm_2022_it", 1),
+        ({"id": "ref_25a60967a5b8526fbb235e29d243c019"}, "mpmm_2022_it", 1),
         ({"name": "Another Monster"}, "mpmm_2022_it", 1),
         ({"review_status": "verified"}, "mpmm_2022_it", 1),
         ({}, "another_source", 1),
@@ -3045,7 +3045,10 @@ def test_korred_invalid_agreement_retries_sparse_without_bypassing_hp_gate(
             "velocita": "9 m",
         },
     }
-    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4)
+    args = SimpleNamespace(
+        dpi=220, languages="ita", psm=6, comparison_psm=4,
+        target_set="batch_mpmm_pending_131",
+    )
     with (
         patch.object(repair, "resolve_source", return_value=(source, {"page": 10})),
         patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
@@ -3066,3 +3069,22 @@ def test_korred_invalid_agreement_retries_sparse_without_bypassing_hp_gate(
     if expected_calls == 2:
         assert ocr.call_args_list[1].kwargs["sparse_full_page"] is True
         assert ocr.call_args_list[1].kwargs["ocr_budget_started_at"] is budget
+
+
+def test_bheur_corrupted_candidate_reports_evidence_and_still_blocks():
+    candidate = {
+        "name": "Megera Bheur |",
+        "start_page": 84,
+        "source_refs": [{"filename": "synthetic.pdf", "page": 84}],
+        "attributes": {
+            "classe_armatura": "17 (armatura naturale)",
+            "punti_ferita": "91 (14d8 + 28)",
+            "velocita": "9 m",
+        },
+    }
+    with pytest.raises(RepairBlocked) as caught:
+        build_repair_proposal({"id": "ref_f2cee258e0c45f8d96d22bb9f71c9e7a"}, candidate)
+    assert caught.value.reason == "repaired_candidate_corrupted_name"
+    assert caught.value.diagnostics["candidate_name"] == candidate["name"]
+    assert caught.value.diagnostics["candidate_core"] == candidate["attributes"]
+    assert caught.value.diagnostics["candidate_source_refs"] == candidate["source_refs"]

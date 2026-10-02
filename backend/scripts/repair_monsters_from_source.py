@@ -6846,11 +6846,26 @@ def build_repair_proposal(
 ) -> dict[str, Any]:
     """Build a minimal core-field repair and run all OCR gates in memory."""
     candidate_attributes = dict(candidate.get("attributes") or {})
+    diagnostics = None
+    if legacy.get("id") in {
+        "ref_4b2e9b5984dd506d89caf10b4f15c3fd",  # Korred
+        "ref_f2cee258e0c45f8d96d22bb9f71c9e7a",  # Megera Bheur
+    }:
+        diagnostics = {
+            "candidate_name": candidate.get("name"),
+            "candidate_start_page": candidate.get("start_page"),
+            "candidate_source_refs": candidate.get("source_refs"),
+            "candidate_core": {
+                field: candidate_attributes.get(field)
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            },
+        }
     gate_failures = monster_semantic_numeric_flags(candidate_attributes)
     if gate_failures:
         raise RepairBlocked(
             "repaired_candidate_failed_gates",
             ",".join(sorted(gate_failures)),
+            diagnostics=diagnostics,
         )
     if not str(candidate_attributes.get("velocita") or "").strip():
         raise RepairBlocked("repaired_candidate_missing_speed")
@@ -6900,7 +6915,9 @@ def build_repair_proposal(
                 )
             )
         if not allow_abishai_nero_name_noise:
-            raise RepairBlocked("repaired_candidate_corrupted_name")
+            raise RepairBlocked(
+                "repaired_candidate_corrupted_name", diagnostics=diagnostics
+            )
         print(
             "MPMM_BOUNDED_NAME_NOISE_ACCEPTED "
             + json.dumps(
@@ -7179,7 +7196,9 @@ async def _repair_one(
     # each individual Tesseract subprocess remains hard-limited to 15s.
     ocr_budget_started_at = (
         time.monotonic(),
-        OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
+        OCR_GLOBAL_TIMEOUT_SECONDS
+        if args.target_set == "batch_mpmm_pending_131"
+        else OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
             record_id,
             OCR_GLOBAL_TIMEOUT_SECONDS,
         ),
