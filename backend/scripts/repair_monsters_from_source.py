@@ -866,6 +866,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_dfcfc30092385b9d9facc6af40035fd4": 45,  # Grung Brado: registered variant page; 44 is base Grung
     "ref_ae7d3851315e5d1e8ec09fed56397623": 97,  # Velociraptor: referenced stat-block page
     "ref_5eefc25e9c9b5e22aa061386c84628f6": 97,  # Stegosauro: source-observed stat block
     "ref_73328b58b96b57738c11d62b83f32c82": 82,  # Cervello Antico: referenced stat-block page
@@ -877,6 +878,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_dfcfc30092385b9d9facc6af40035fd4",  # Grung Brado: exclude the base Grung on page 44
     "ref_ae7d3851315e5d1e8ec09fed56397623",  # Velociraptor: selected referenced page 97
     "ref_81f0825741ca50978cb36fc95f7eaebf",  # Uro: sole referenced page 71
     "ref_5eefc25e9c9b5e22aa061386c84628f6",  # Stegosauro: selected referenced page 97
@@ -7623,6 +7625,11 @@ async def _repair_one(
     report = {
         "name": record.get("name"),
         "record_id": record.get("id"),
+        "source_candidate_identity": {
+            "name": candidate.get("name"),
+            "normalized_name": candidate.get("normalized_name"),
+            "start_page": candidate.get("start_page"),
+        },
         "source": {
             "physical_filename": source.get("physical_filename"),
             "logical_source_id": source.get("logical_source_id"),

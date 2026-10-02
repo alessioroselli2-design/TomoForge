@@ -3225,3 +3225,31 @@ def test_mpmm_core_diagnostics_preserve_failed_agreement_and_exclude_page_text()
     assert diagnostic["primary_core_candidates"][0]["core"] == primary["attributes"]
     assert diagnostic["comparison_core_candidates"][0]["core"] == comparison["attributes"]
     assert "PRIVATE_PAGE_TEXT_MUST_NOT_BE_EMITTED" not in json.dumps(diagnostic)
+
+
+@pytest.mark.parametrize("refs", [[44, 45], [44], [44, 45, 45]])
+def test_grung_brado_audit_uses_only_the_unique_registered_variant_page(refs):
+    record = {
+        "id": "ref_dfcfc30092385b9d9facc6af40035fd4", "name": "Grung Brado",
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    before = json.dumps(record, sort_keys=True)
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    if refs == [44, 45]:
+        assert caught.value.reason == "pilot_stop"
+        assert ocr.call_args.args[1] == 45
+        assert ocr.call_args.kwargs["target_page_only"] is True
+        assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    else:
+        assert caught.value.reason == "source_page_override_ref_drift"
+        ocr.assert_not_called()
+    assert json.dumps(record, sort_keys=True) == before
