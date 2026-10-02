@@ -17,6 +17,11 @@ PUBLIC_REASONS = frozenset(
     {
         "ocr_global_timeout",
         "no_unique_independent_agreement",
+        "no_unique_exact_target_identity",
+        "target_page_quality_fail",
+        "dynamic_layout_exhausted",
+        "ocr_subprocess_timeout",
+        "ocr_subprocess_failed",
         "repaired_candidate_core_debris",
         "repaired_candidate_failed_gates",
         "repaired_candidate_missing_speed",
@@ -104,6 +109,14 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                 "core_disagreement": {
                     field: field in diagnostics.get("divergent_core_fields", [])
                     for field in CORE_FIELDS
+                },
+                "exact_identity_candidates": {
+                    path: _count(diagnostics[key])
+                    for path, key in (
+                        ("primary", "primary_exact_candidates"),
+                        ("comparison", "comparison_exact_candidates"),
+                    )
+                    if key in diagnostics
                 },
             }
         )

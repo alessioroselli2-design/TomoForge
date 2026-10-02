@@ -121,6 +121,29 @@ def test_unrecognized_block_reason_and_malformed_metadata_cannot_export_text():
         runner.public_report(private)
 
 
+def test_exact_identity_failure_publishes_only_counts():
+    private = _report()
+    private["blocked_records"] = [
+        {
+            "record_id": IDENTIFIER,
+            "reason": "no_unique_exact_target_identity",
+            "detail": PRIVATE,
+            "diagnostics": {
+                "primary_exact_candidates": 0,
+                "comparison_exact_candidates": 1,
+                "private": PRIVATE,
+            },
+        }
+    ]
+    public = runner.public_report(private)
+    assert PRIVATE not in json.dumps(public)
+    assert public["blocked_records"][0]["reason"] == "no_unique_exact_target_identity"
+    assert public["blocked_records"][0]["exact_identity_candidates"] == {
+        "primary": 0,
+        "comparison": 1,
+    }
+
+
 @pytest.mark.parametrize("status", [0, 2, 1])
 def test_worker_stdout_stderr_and_crashes_never_reach_public_output(capsys, status):
     def worker(command, *, stdout, stderr, check):

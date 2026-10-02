@@ -6106,6 +6106,10 @@ def _agreed_target_candidate(
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
                 f"primary={len(primary_exact)} comparison={len(comparison_exact)}",
+                diagnostics={
+                    "primary_exact_candidates": len(primary_exact),
+                    "comparison_exact_candidates": len(comparison_exact),
+                },
             )
         primary, comparison = primary_exact, comparison_exact
     if target_name in {
