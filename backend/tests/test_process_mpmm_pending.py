@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from unittest.mock import AsyncMock, PropertyMock, patch
 
@@ -156,6 +157,39 @@ def test_focused_audit_refuses_execute_even_with_confirmation():
         pytest.raises(RuntimeError, match="focused audits are read-only"),
     ):
         asyncio.run(process._run(args))
+
+
+@pytest.mark.parametrize("arguments", [[], ["--execute", "--confirm", process.CONFIRMATION_TOKEN]])
+def test_encrypted_page_evidence_refuses_unfocused_and_write_runs(arguments):
+    args = process._parser().parse_args(
+        arguments + ["--source-evidence-public-key", "invalid"]
+    )
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        pytest.raises(RuntimeError, match="encrypted page evidence requires a focused read-only audit"),
+    ):
+        asyncio.run(process._run(args))
+
+
+def test_source_pixels_are_encrypted_and_bound_to_the_target_record():
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.exceptions import InvalidTag
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=3072)
+    pixels = b"synthetic private page pixels"
+    envelope = process._encrypted_page_evidence(pixels, private_key.public_key(), "one")
+    key = private_key.decrypt(
+        base64.b64decode(envelope["encrypted_key"]),
+        padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None),
+    )
+    ciphertext = base64.b64decode(envelope["ciphertext"])
+    nonce = base64.b64decode(envelope["nonce"])
+    assert pixels not in ciphertext
+    assert AESGCM(key).decrypt(nonce, ciphertext, b"one") == pixels
+    with pytest.raises(InvalidTag):
+        AESGCM(key).decrypt(nonce, ciphertext, b"another_record")
 
 
 @pytest.mark.parametrize(

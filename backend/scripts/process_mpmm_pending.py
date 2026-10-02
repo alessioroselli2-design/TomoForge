@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -37,6 +39,27 @@ EXPECTED_MPMM_VERIFIED = 64
 EXPECTED_GLOBAL_VERIFIED = 113
 DEFAULT_BATCH_SIZE = 25
 CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_131"
+
+
+def _encrypted_page_evidence(png: bytes, public_key: Any, record_id: str) -> dict[str, str]:
+    """Encrypt private source pixels before any diagnostic logging."""
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    key = os.urandom(32)
+    nonce = os.urandom(12)
+    return {
+        "record_id": record_id,
+        "encrypted_key": base64.b64encode(public_key.encrypt(
+            key, padding.OAEP(mgf=padding.MGF1(hashes.SHA256()),
+                              algorithm=hashes.SHA256(), label=None)
+        )).decode(),
+        "nonce": base64.b64encode(nonce).decode(),
+        "ciphertext": base64.b64encode(
+            AESGCM(key).encrypt(nonce, png, record_id.encode())
+        ).decode(),
+    }
 
 
 def _logical_source_ids(record: dict[str, Any]) -> set[str]:
@@ -167,6 +190,18 @@ async def _run(args: argparse.Namespace) -> int:
 
     if args.execute and args.audit_record_id:
         raise RuntimeError("focused audits are read-only")
+    public_key = None
+    if args.source_evidence_public_key:
+        if args.execute or not args.audit_record_id:
+            raise RuntimeError("encrypted page evidence requires a focused read-only audit")
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+
+        public_key = serialization.load_der_public_key(
+            base64.b64decode(args.source_evidence_public_key, validate=True)
+        )
+        if not isinstance(public_key, RSAPublicKey) or public_key.key_size < 3072:
+            raise RuntimeError("source evidence requires an RSA public key of at least 3072 bits")
 
     collection = db.private_reference_records
     all_monsters = await repair._fetch_all(collection, {"reference_type": "monster"})
@@ -218,6 +253,24 @@ async def _run(args: argparse.Namespace) -> int:
             batch_blocked: list[dict[str, Any]] = []
             for record in batch:
                 try:
+                    if public_key is not None:
+                        import fitz
+
+                        source, ref = repair.resolve_source(record, active_sources)
+                        with fitz.open(cache.get(source)) as document:
+                            pixmap = document.load_page(int(ref["page"]) - 1).get_pixmap(
+                                matrix=fitz.Matrix(1.5, 1.5),
+                                colorspace=fitz.csGRAY, alpha=False,
+                            )
+                            evidence = _encrypted_page_evidence(
+                                pixmap.tobytes("png"), public_key, record["id"]
+                            )
+                        print("MPMM_ENCRYPTED_SOURCE_PAGE " + json.dumps({
+                            **evidence,
+                            "physical_filename": source["physical_filename"],
+                            "physical_page": ref["page"],
+                            "physical_sha256": source["physical_sha256"],
+                        }))
                     report = await repair._repair_one(
                         collection, record, active_sources, cache, stage_args
                     )
@@ -321,6 +374,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Process pending MPMM monsters")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--audit-record-id", default="", help="Read-only pending MPMM pilot")
+    parser.add_argument("--source-evidence-public-key", default="")
     parser.add_argument("--confirm", default="")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--pdf-root", default="")

@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ''
+      source_evidence_public_key:
+        description: Optional base64 DER RSA public key for encrypted single-page evidence
+        required: false
+        type: string
+        default: ''
       execute:
         description: Verify repairable records after each read-only batch
         required: true
@@ -66,11 +71,15 @@ jobs:
         env:
           EXECUTE: ${{ github.event_name == 'workflow_dispatch' && inputs.execute }}
           AUDIT_RECORD_ID: ${{ inputs.audit_record_id }}
+          SOURCE_EVIDENCE_PUBLIC_KEY: ${{ inputs.source_evidence_public_key }}
         run: |
           set -o pipefail
           args=(--allow-r2-download --batch-size 25)
           if [[ -n "$AUDIT_RECORD_ID" ]]; then
             args+=(--audit-record-id "$AUDIT_RECORD_ID")
+          fi
+          if [[ -n "$SOURCE_EVIDENCE_PUBLIC_KEY" ]]; then
+            args+=(--source-evidence-public-key "$SOURCE_EVIDENCE_PUBLIC_KEY")
           fi
           if [[ "$EXECUTE" == "true" ]]; then
             args+=(--execute --confirm VERIFY_MPMM_PENDING_131)
