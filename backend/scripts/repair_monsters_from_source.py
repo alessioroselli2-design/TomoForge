@@ -6032,6 +6032,7 @@ def _agreed_target_candidate(
     *,
     source_anchor_verified: bool = False,
     isolate_bheur_title_rule: bool = False,
+    include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
     if isolate_bheur_title_rule and target_name == "Megera Bheur":
         primary_pages = [
@@ -6910,6 +6911,28 @@ def _agreed_target_candidate(
                 "discarded_pairs": discarded_pairs,
                 "target_normalized_name": target_normalized,
                 "target_page": target_page,
+                **(
+                    {
+                        label: [
+                            {
+                                "name": item.get("name"),
+                                "start_page": item.get("start_page"),
+                                "core": {
+                                    field: (item.get("attributes") or {}).get(field)
+                                    for field in core_fields
+                                },
+                            }
+                            for item in records
+                            if int(item.get("start_page") or 0) == target_page
+                        ]
+                        for label, records in (
+                            ("primary_core_candidates", primary),
+                            ("comparison_core_candidates", comparison),
+                        )
+                    }
+                    if include_core_diagnostics
+                    else {}
+                ),
             },
         )
     return matches[0]
@@ -7354,6 +7377,7 @@ async def _repair_one(
                 source_target_name,
                 physical_page,
                 isolate_bheur_title_rule=isolate_bheur_title_rule,
+                include_core_diagnostics=args.target_set == "batch_mpmm_pending_131",
             )
             print(
                 "PHB_AGREEMENT_TIMING "
@@ -7525,6 +7549,7 @@ async def _repair_one(
             physical_page,
             source_anchor_verified=sparse_anchor_verified,
             isolate_bheur_title_rule=isolate_bheur_title_rule,
+            include_core_diagnostics=args.target_set == "batch_mpmm_pending_131",
         )
         selected_overlap = 0.05
     if candidate is None or quality is None:

@@ -3202,3 +3202,26 @@ def test_korred_micro_crop_replaces_only_unique_structural_hp(tmp_path):
     ):
         result = _micro_ocr_hit_points_line(image_path, "ita", 3, page_text, "Korred")
     assert result == page_text.replace("Punti Ferita unreadable", "Punti Ferita 93 (11d6 + 55)")
+
+
+def test_mpmm_core_diagnostics_preserve_failed_agreement_and_exclude_page_text():
+    primary = {
+        "name": "Mostro Prova", "normalized_name": "mostro prova",
+        "start_page": 12, "source_refs": [{"page": 12}],
+        "full_text": "PRIVATE_PAGE_TEXT_MUST_NOT_BE_EMITTED",
+        "attributes": {"classe_armatura": "17", "punti_ferita": "93 (11d6 + 55)", "velocita": "9 m"},
+    }
+    comparison = {**primary, "attributes": {**primary["attributes"], "classe_armatura": "18"}}
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Mostro Prova", 12,
+            include_core_diagnostics=True,
+        )
+    assert caught.value.reason == "no_unique_independent_agreement"
+    diagnostic = caught.value.diagnostics
+    assert diagnostic["primary_core_candidates"][0]["core"] == primary["attributes"]
+    assert diagnostic["comparison_core_candidates"][0]["core"] == comparison["attributes"]
+    assert "PRIVATE_PAGE_TEXT_MUST_NOT_BE_EMITTED" not in json.dumps(diagnostic)
