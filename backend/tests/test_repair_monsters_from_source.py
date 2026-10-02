@@ -3353,3 +3353,40 @@ def test_pending_kithrak_clean_core_gate_does_not_assume_expected_values():
         "attributes": {"classe_armatura": "17 (armatura naturale)", "punti_ferita": "93 (11d6 + 55)", "velocita": "12 m"},
     }
     assert build_repair_proposal(legacy, candidate)["attributes"] == candidate["attributes"]
+
+
+@pytest.mark.parametrize("mutation", ["none", "ca_disagreement", "duplicate", "missing_exact"])
+def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutation):
+    base = {
+        "name": "OSCURIDE", "normalized_name": "oscuride", "start_page": 13,
+        "source_refs": [{"page": 13}],
+        "attributes": {"classe_armatura": "14 (armatura di cuoio)", "punti_ferita": "13 (3d6 + 3)", "velocita": "9 m"},
+    }
+    variant = {
+        **base, "name": "OSCURIDE ANZIANO", "normalized_name": "oscuride anziano",
+        "attributes": {"classe_armatura": "15 (armatura di cuoio borchiato)", "punti_ferita": "27 (5d8 + 5)", "velocita": "9 m"},
+    }
+    primary = [base, variant]
+    comparison = [base, variant]
+    if mutation == "ca_disagreement":
+        comparison = [{**base, "attributes": {**base["attributes"], "classe_armatura": "15"}}, variant]
+    elif mutation == "duplicate":
+        primary = [base, base, variant]
+    elif mutation == "missing_exact":
+        comparison = [variant]
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]):
+        if mutation == "none":
+            candidate = _agreed_target_candidate(
+                [], [], "synthetic.pdf", "it", "Oscuride", 13,
+                require_exact_target_identity=True,
+            )
+            assert candidate["name"] == "OSCURIDE"
+            assert candidate["attributes"]["punti_ferita"] == "13 (3d6 + 3)"
+        else:
+            with pytest.raises(RepairBlocked):
+                _agreed_target_candidate(
+                    [], [], "synthetic.pdf", "it", "Oscuride", 13,
+                    require_exact_target_identity=True,
+                )
+    assert json.dumps([primary, comparison], sort_keys=True) == before

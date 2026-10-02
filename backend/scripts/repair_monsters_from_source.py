@@ -6056,6 +6056,7 @@ def _agreed_target_candidate(
     source_anchor_verified: bool = False,
     isolate_bheur_title_rule: bool = False,
     isolate_kithrak_title_debris: bool = False,
+    require_exact_target_identity: bool = False,
     include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
     if isolate_kithrak_title_debris and target_name == "Githyanki Kith'Rak":
@@ -6086,6 +6087,26 @@ def _agreed_target_candidate(
         source_filename,
         source_language,
     )
+    if require_exact_target_identity:
+        normalized_target = normalize_reference_name(target_name)
+
+        def exact_targets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                candidate
+                for candidate in records
+                if candidate.get("normalized_name") == normalized_target
+                and int(candidate.get("start_page") or 0) == target_page
+                and _candidate_matches_target(candidate, target_name, target_page)
+            ]
+
+        primary_exact = exact_targets(primary)
+        comparison_exact = exact_targets(comparison)
+        if len(primary_exact) != 1 or len(comparison_exact) != 1:
+            raise RepairBlocked(
+                "no_unique_exact_target_identity",
+                f"primary={len(primary_exact)} comparison={len(comparison_exact)}",
+            )
+        primary, comparison = primary_exact, comparison_exact
     if target_name in {
         "Addolorato Deforme",
         "Berbalang",
@@ -7336,6 +7357,12 @@ async def _repair_one(
         and record.get("review_status") == "pending"
         and source.get("logical_source_id") == "mpmm_2022_it"
     )
+    require_exact_target_identity = (
+        record_id == "ref_b63e546c22a25155ae4ac40598eb7e3e"
+        and record.get("name") == "Oscuride"
+        and record.get("review_status") == "pending"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+    )
     pdf_path = pdf_cache.get(source)
     source_target_name = SOURCE_GUIDED_TARGET_NAME_OVERRIDES.get(
         record_id,
@@ -7431,6 +7458,7 @@ async def _repair_one(
                 physical_page,
                 isolate_bheur_title_rule=isolate_bheur_title_rule,
                 isolate_kithrak_title_debris=isolate_kithrak_title_debris,
+                require_exact_target_identity=require_exact_target_identity,
                 include_core_diagnostics=args.target_set == "batch_mpmm_pending_131",
             )
             print(
@@ -7604,6 +7632,7 @@ async def _repair_one(
             source_anchor_verified=sparse_anchor_verified,
             isolate_bheur_title_rule=isolate_bheur_title_rule,
             isolate_kithrak_title_debris=isolate_kithrak_title_debris,
+            require_exact_target_identity=require_exact_target_identity,
             include_core_diagnostics=args.target_set == "batch_mpmm_pending_131",
         )
         selected_overlap = 0.05
