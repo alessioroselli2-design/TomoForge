@@ -879,6 +879,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_dfcfc30092385b9d9facc6af40035fd4",  # Grung Brado: exclude the base Grung on page 44
+    "ref_09eb88310e015ab6aa41d9dc35874f48",  # Grung Guerriero D'Élite: sole registered page 45
     "ref_ae7d3851315e5d1e8ec09fed56397623",  # Velociraptor: selected referenced page 97
     "ref_81f0825741ca50978cb36fc95f7eaebf",  # Uro: sole referenced page 71
     "ref_5eefc25e9c9b5e22aa061386c84628f6",  # Stegosauro: selected referenced page 97
