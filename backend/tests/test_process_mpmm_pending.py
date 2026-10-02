@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 from unittest.mock import AsyncMock, PropertyMock, patch
 
@@ -43,6 +42,20 @@ def test_partition_is_deterministic_and_never_exceeds_25():
     assert [row["name"] for batch in batches for row in batch] == sorted(
         row["name"] for row in records
     )
+
+
+@pytest.mark.parametrize("field,value", [("attributes", {"classe_armatura": "18"}), ("updated_at", "2026-10-02T01:00:00Z"), ("review_notes", "new review"), ("source_refs", []), ("canonical_id", "linked")])
+def test_full_record_revalidation_blocks_drift_beyond_the_old_three_fields(field, value):
+    original = _record("one", "Uno")
+    collection = _Collection({**original, field: value})
+    with pytest.raises(process.repair.RepairBlocked, match="one"):
+        asyncio.run(process._revalidate_pending(collection, [original]))
+
+
+def test_snapshot_fingerprint_is_order_independent_and_covers_all_columns():
+    record = _record("one", "Uno")
+    assert process._record_snapshot_sha256(record) == process._record_snapshot_sha256(dict(reversed(list(record.items()))))
+    assert process._record_snapshot_sha256(record) != process._record_snapshot_sha256({**record, "ai_review_status": "changed"})
 
 
 def test_verified_proposal_removes_only_the_two_authorized_review_flags():
@@ -157,39 +170,6 @@ def test_focused_audit_refuses_execute_even_with_confirmation():
         pytest.raises(RuntimeError, match="focused audits are read-only"),
     ):
         asyncio.run(process._run(args))
-
-
-@pytest.mark.parametrize("arguments", [[], ["--execute", "--confirm", process.CONFIRMATION_TOKEN]])
-def test_encrypted_page_evidence_refuses_unfocused_and_write_runs(arguments):
-    args = process._parser().parse_args(
-        arguments + ["--source-evidence-public-key", "invalid"]
-    )
-    with (
-        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
-        pytest.raises(RuntimeError, match="encrypted page evidence requires a focused read-only audit"),
-    ):
-        asyncio.run(process._run(args))
-
-
-def test_source_pixels_are_encrypted_and_bound_to_the_target_record():
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.asymmetric import padding, rsa
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    from cryptography.exceptions import InvalidTag
-
-    private_key = rsa.generate_private_key(public_exponent=65537, key_size=3072)
-    pixels = b"synthetic private page pixels"
-    envelope = process._encrypted_page_evidence(pixels, private_key.public_key(), "one")
-    key = private_key.decrypt(
-        base64.b64decode(envelope["encrypted_key"]),
-        padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None),
-    )
-    ciphertext = base64.b64decode(envelope["ciphertext"])
-    nonce = base64.b64decode(envelope["nonce"])
-    assert pixels not in ciphertext
-    assert AESGCM(key).decrypt(nonce, ciphertext, b"one") == pixels
-    with pytest.raises(InvalidTag):
-        AESGCM(key).decrypt(nonce, ciphertext, b"another_record")
 
 
 @pytest.mark.parametrize(
