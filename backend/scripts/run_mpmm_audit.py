@@ -118,6 +118,14 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     )
                     if key in diagnostics
                 },
+                "compatible_identity_candidates": {
+                    path: _count(diagnostics[key])
+                    for path, key in (
+                        ("primary", "primary_compatible_candidates"),
+                        ("comparison", "comparison_compatible_candidates"),
+                    )
+                    if key in diagnostics
+                },
             }
         )
     result["reports"] = []
