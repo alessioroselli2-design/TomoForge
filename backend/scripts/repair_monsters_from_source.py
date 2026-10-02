@@ -6981,6 +6981,7 @@ def build_repair_proposal(
     if legacy.get("id") in {
         "ref_4b2e9b5984dd506d89caf10b4f15c3fd",  # Korred
         "ref_f2cee258e0c45f8d96d22bb9f71c9e7a",  # Megera Bheur
+        "ref_e4ce5aac88725918a98e4f1dacc8cd1a",  # Githyanki Kith'Rak
     }:
         diagnostics = {
             "candidate_name": candidate.get("name"),
@@ -6998,6 +6999,19 @@ def build_repair_proposal(
             ",".join(sorted(gate_failures)),
             diagnostics=diagnostics,
         )
+    if (
+        legacy.get("id") == "ref_e4ce5aac88725918a98e4f1dacc8cd1a"
+        and legacy.get("name") == "Githyanki Kith'Rak"
+        and legacy.get("review_status") == "pending"
+    ):
+        ca = str(candidate_attributes.get("classe_armatura") or "")
+        speed = str(candidate_attributes.get("velocita") or "")
+        if ca.count("(") != ca.count(")") or re.search(r"\bm\s+\d+\s*$", speed):
+            raise RepairBlocked(
+                "repaired_candidate_core_debris",
+                "unbalanced CA qualifier or trailing speed number without unit",
+                diagnostics=diagnostics,
+            )
     if not str(candidate_attributes.get("velocita") or "").strip():
         raise RepairBlocked("repaired_candidate_missing_speed")
     if entity_name_semantic_flags(candidate.get("name")):

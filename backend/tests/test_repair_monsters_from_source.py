@@ -3319,3 +3319,37 @@ def test_kithrak_isolated_title_keeps_independent_numeric_gate(comparison_ca):
                 isolate_kithrak_title_debris=True,
             )
     assert primary == [(36, text)]
+
+
+@pytest.mark.parametrize("ca,speed", [
+    ("18 (piastre) (", "9 m"), ("18 (piastre)", "9 m 3"),
+    ("18 (piastre) (", "9 m 3"),
+])
+def test_pending_kithrak_agreed_core_debris_still_blocks(ca, speed):
+    legacy = {
+        "id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a", "name": "Githyanki Kith'Rak",
+        "review_status": "pending", "review_flags": ["ocr_da_verificare", "source_guided_repair"],
+        "attributes": {},
+    }
+    candidate = {
+        "name": legacy["name"], "start_page": 36, "source_refs": [{"page": 36}],
+        "attributes": {"classe_armatura": ca, "punti_ferita": "180 (24d8 + 72)", "velocita": speed},
+    }
+    before = json.dumps([legacy, candidate], sort_keys=True)
+    with pytest.raises(RepairBlocked) as caught:
+        build_repair_proposal(legacy, candidate)
+    assert caught.value.reason == "repaired_candidate_core_debris"
+    assert json.dumps([legacy, candidate], sort_keys=True) == before
+
+
+def test_pending_kithrak_clean_core_gate_does_not_assume_expected_values():
+    legacy = {
+        "id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a", "name": "Githyanki Kith'Rak",
+        "review_status": "pending", "review_flags": ["ocr_da_verificare", "source_guided_repair"],
+        "attributes": {},
+    }
+    candidate = {
+        "name": legacy["name"], "start_page": 36, "source_refs": [{"page": 36}],
+        "attributes": {"classe_armatura": "17 (armatura naturale)", "punti_ferita": "93 (11d6 + 55)", "velocita": "12 m"},
+    }
+    assert build_repair_proposal(legacy, candidate)["attributes"] == candidate["attributes"]
