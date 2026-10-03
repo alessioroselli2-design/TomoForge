@@ -3308,6 +3308,7 @@ def test_grung_brado_audit_uses_only_the_unique_registered_variant_page(refs):
 @pytest.mark.parametrize("identifier,name,page", [
     ("ref_09eb88310e015ab6aa41d9dc35874f48", "Grung Guerriero D'Élite", 45),
     ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo", 65),
+    ("ref_e4ce5aac88725918a98e4f1dacc8cd1a", "Githyanki Kith'Rak", 36),
 ])
 def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, name, page):
     record = {

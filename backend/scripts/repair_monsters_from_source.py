@@ -878,6 +878,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_e4ce5aac88725918a98e4f1dacc8cd1a",  # Kith'Rak: sole registered page 36
     "ref_25a60967a5b8526fbb235e29d243c019",  # Capo Vegepigmeo: sole registered page 65
     "ref_dfcfc30092385b9d9facc6af40035fd4",  # Grung Brado: exclude the base Grung on page 44
     "ref_09eb88310e015ab6aa41d9dc35874f48",  # Grung Guerriero D'Élite: sole registered page 45
@@ -5086,6 +5087,13 @@ def _ocr_source_window(
         # Sparse segmentation independently re-reads the exact target title and
         # compact core labels on this registered page.
         secondary_psm = 11
+    if (
+        name == "Githyanki Kith'Rak"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 36
+        and target_page_only
+    ):
+        primary_psm, secondary_psm = 6, 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
