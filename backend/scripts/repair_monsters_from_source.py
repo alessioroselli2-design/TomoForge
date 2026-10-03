@@ -5096,6 +5096,13 @@ def _ocr_source_window(
         and target_page_only
     ):
         primary_psm, secondary_psm = 11, 12
+    if (
+        name == "Vegepigmeo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 66
+        and target_page_only
+    ):
+        primary_psm = 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
