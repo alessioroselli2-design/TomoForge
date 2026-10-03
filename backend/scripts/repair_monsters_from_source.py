@@ -6052,16 +6052,29 @@ def _identity_source_counts(
     target_name: str,
     target_page: int,
 ) -> dict[str, int]:
-    """Inspect title order inside the worker without publishing source strings."""
+    """Inspect identity and parser structure without publishing source strings."""
+    from services.monster_statblock_ocr import (
+        _core_anchor,
+        _has_any_marker_near,
+        _line_is_descriptor,
+    )
+
     expected = normalize_reference_name(target_name)
     tokens = expected.split()
     reversed_title = " ".join(reversed(tokens))
-    lines = [
-        normalize_reference_name(line)
+    raw_lines = [
+        line.strip()
         for page, text in pages
         if page == target_page
         for line in text.splitlines()
         if line.strip()
+    ]
+    lines = [normalize_reference_name(line) for line in raw_lines]
+    anchors = [index for index, line in enumerate(raw_lines) if _core_anchor(line)]
+    headers = [
+        header
+        for index in anchors
+        if (header := _find_header(raw_lines, index)) is not None
     ]
     reversed_candidates = [
         candidate
@@ -6085,6 +6098,38 @@ def _identity_source_counts(
         "candidates_on_page": sum(
             int(candidate.get("start_page") or 0) == target_page
             for candidate in candidates
+        ),
+        "core_anchors": len(anchors),
+        "armor_label_mentions": sum(
+            "classe armatura" in line or "classe d armatura" in line for line in lines
+        ),
+        "hp_label_lines": sum(line.startswith("punti ferita") for line in lines),
+        "speed_label_lines": sum(line.startswith("velocita") for line in lines),
+        "descriptor_lines": sum(_line_is_descriptor(line) for line in raw_lines),
+        "split_descriptor_pairs": sum(
+            not _line_is_descriptor(first)
+            and not _line_is_descriptor(second)
+            and _line_is_descriptor(first + " " + second)
+            for first, second in zip(raw_lines, raw_lines[1:])
+        ),
+        "anchors_with_hp": sum(
+            _has_any_marker_near(raw_lines, index, ("Punti Ferita", "Hit Points"), 6)
+            for index in anchors
+        ),
+        "anchors_with_speed": sum(
+            _has_any_marker_near(raw_lines, index, ("Velocità", "Velocita", "Speed"), 8)
+            for index in anchors
+        ),
+        "anchors_with_descriptor": sum(
+            any(
+                _line_is_descriptor(line)
+                for line in raw_lines[max(0, index - 8) : index]
+            )
+            for index in anchors
+        ),
+        "valid_headers": len(headers),
+        "exact_headers": sum(
+            normalize_reference_name(header[1]) == expected for header in headers
         ),
     }
 

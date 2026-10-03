@@ -2993,6 +2993,22 @@ def test_private_title_order_probe_does_not_accept_reordered_names_or_adjacent_e
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
+def test_private_structure_probe_identifies_split_descriptor_without_repairing_it():
+    text = (
+        "SYNTHETIC GUARD\nPianta\nPiccola, senza allineamento\n"
+        "Classe Armatura 15\nPunti Ferita 45 (6d10 + 12)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Synthetic Guard", 7)
+    assert counts["core_anchors"] == counts["anchors_with_hp"] == counts["anchors_with_speed"] == 1
+    assert counts["split_descriptor_pairs"] == 1
+    assert counts["descriptor_lines"] == counts["valid_headers"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert json.dumps(pages) == before
+
+
 def test_deforme_ambiguous_identity_cannot_inject_expected_core():
     attributes = {
         "classe_armatura": "16 (armatura naturale)",

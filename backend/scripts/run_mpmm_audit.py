@@ -136,6 +136,17 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                             "reversed_exact_candidates",
                             "reversed_core_candidates",
                             "candidates_on_page",
+                            "core_anchors",
+                            "armor_label_mentions",
+                            "hp_label_lines",
+                            "speed_label_lines",
+                            "descriptor_lines",
+                            "split_descriptor_pairs",
+                            "anchors_with_hp",
+                            "anchors_with_speed",
+                            "anchors_with_descriptor",
+                            "valid_headers",
+                            "exact_headers",
                         )
                         if metric in values
                     }
