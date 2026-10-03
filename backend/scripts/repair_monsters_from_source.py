@@ -866,6 +866,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_aadff2eb6eff59af9caddb92deee6614": 81,  # Esploratore Di Bronzo: originally registered page
     "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
     "ref_b624eff23c3e543ba8b2c952761eb707": 66,  # Vegepigmeo Spinato: registered stat-block page
     "ref_dfcfc30092385b9d9facc6af40035fd4": 45,  # Grung Brado: registered variant page; 44 is base Grung
@@ -880,6 +881,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_aadff2eb6eff59af9caddb92deee6614",  # Esploratore Di Bronzo: registered page 81
     "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore: sole registered page 8
     "ref_75abc404d54c51a2a312cbc2cd894e4a",  # Duergar Guardia Di Pietra: sole registered page 10
     "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore: sole registered page 4
@@ -6377,6 +6379,7 @@ def _agreed_target_candidate(
                             "Drow Inquisitore",
                             "Duergar Guardia Di Pietra",
                             "Duergar Martellatore",
+                            "Esploratore Di Bronzo",
                         }
                         else {}
                     ),
@@ -7636,6 +7639,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo"),
             ("ref_8def8c405c2452a4a10ff597fd89fdc8", "Duergar Martellatore"),
             ("ref_75abc404d54c51a2a312cbc2cd894e4a", "Duergar Guardia Di Pietra"),
             ("ref_fae2af9678e6572cb755708aab5c393d", "Drow Inquisitore"),
