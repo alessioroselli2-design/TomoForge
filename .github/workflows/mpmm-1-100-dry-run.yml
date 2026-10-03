@@ -1,0 +1,88 @@
+name: Full MPMM 1-100 53 dry-run
+# Final audit includes exact zero-overlap crop provenance for every target.
+
+on:
+  push:
+    branches:
+      - codex/mpmm-1-100-audit-20260930
+    paths:
+      - backend/scripts/audit_mpmm_1_100.py
+      - .github/workflows/mpmm-1-100-dry-run.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-mpmm-1-100-53-dry-run
+  cancel-in-progress: true
+
+jobs:
+  mpmm-1-100-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Run sealed MPMM 1-100 read-only audit
+        run: |
+          set -o pipefail
+          python backend/scripts/audit_mpmm_1_100.py \
+            --allow-r2-download \
+            | tee /tmp/mpmm-1-100-dry-run.log
+
+      - name: Assert 53 repairable and read-only invariants
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lines = Path("/tmp/mpmm-1-100-dry-run.log").read_text().splitlines()
+          marker = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+          report = json.loads(lines[marker + 1])
+          Path("/tmp/mpmm-1-100-FINAL_REPORT.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+          )
+          assert report["dry_run"] is True
+          assert report["targets"] == report["repairable"] == len(report["reports"]) == 53
+          assert report["blocked"] == report["updates_performed"] == 0
+          assert report["blocked_records"] == []
+          assert all(item["executed"] is False for item in report["reports"])
+          assert all(item["gate_failures_after"] == [] for item in report["reports"])
+          print("Verified: 53 repairable / 0 blocked / 0 DB writes")
+          PY
+
+      - name: Upload final report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpmm-1-100-FINAL_REPORT
+          path: |
+            /tmp/mpmm-1-100-dry-run.log
+            /tmp/mpmm-1-100-FINAL_REPORT.json
+          if-no-files-found: error
+          retention-days: 3

@@ -1,0 +1,139 @@
+name: MPMM pending 131 source verification
+# retrigger read-only audit 2026-10-01 after PHB trigger isolation
+
+on:
+  push:
+    branches:
+      - codex/mpmm-pending-131-20261001
+    paths:
+      - backend/scripts/process_mpmm_pending.py
+      - backend/scripts/repair_monsters_from_source.py
+      - backend/services/monster_statblock_ocr.py
+      - backend/services/ocr_semantic_gates.py
+      - .github/workflows/mpmm-pending-131.yml
+  workflow_dispatch:
+    inputs:
+      audit_record_id:
+        description: Optional pending MPMM record ID for a read-only pilot
+        required: false
+        type: string
+        default: ''
+      execute:
+        description: Verify repairable records after each read-only batch
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Focused pilots are enforced read-only by the script and can safely run
+  # beside a full read-only snapshot. All write-enabled runs keep one group.
+  group: tomoforge-mpmm-pending-131${{ github.event_name == 'workflow_dispatch' && inputs.execute == false && inputs.audit_record_id != '' && format('-readonly-{0}', inputs.audit_record_id) || '' }}
+  cancel-in-progress: false
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Audit pending MPMM records in bounded batches
+        id: audit
+        env:
+          EXECUTE: ${{ github.event_name == 'workflow_dispatch' && inputs.execute }}
+          AUDIT_RECORD_ID: ${{ inputs.audit_record_id }}
+        run: |
+          set -o pipefail
+          args=(--allow-r2-download --batch-size 25)
+          if [[ -n "$AUDIT_RECORD_ID" ]]; then
+            args+=(--audit-record-id "$AUDIT_RECORD_ID")
+          fi
+          if [[ "$EXECUTE" == "true" ]]; then
+            args+=(--execute --confirm VERIFY_MPMM_PENDING_131)
+          fi
+          set +e
+          python backend/scripts/run_mpmm_audit.py "${args[@]}" \
+            | tee /tmp/mpmm-pending-131.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "exit_status=$status" >> "$GITHUB_OUTPUT"
+          # Exit 2 is the documented, fail-closed result when the completed
+          # audit contains blocked records.  Preserve the report and let the
+          # following step validate it; every other non-zero status is a crash.
+          if [[ "$status" -ne 0 && "$status" -ne 2 ]]; then
+            exit "$status"
+          fi
+
+      - name: Extract FINAL_REPORT
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lines = Path("/tmp/mpmm-pending-131.log").read_text().splitlines()
+          marker = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+          report = json.loads(lines[marker + 1])
+          Path("/tmp/MPMM_PENDING_131_FINAL_REPORT.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+          )
+          assert all(batch["target"] <= 25 for batch in report["batches"])
+          if report["dry_run"]:
+              assert report["updates_performed"] == 0
+          else:
+              assert report["initial_pending"] == 131
+              assert report["initial_verified"] == 64
+              assert report["initial_global_verified"] == 113
+              assert report["updates_performed"] == report["repairable"]
+          summary = {
+              key: report[key]
+              for key in (
+                  "dry_run", "initial_pending", "initial_verified", "initial_global_verified", "targets",
+                  "repairable", "blocked", "updates_performed", "final_pending",
+                  "final_verified", "global_monsters",
+              )
+          }
+          print("MPMM_FINAL_SUMMARY " + json.dumps(summary, ensure_ascii=False))
+          for item in report["blocked_records"]:
+              blocked = {
+                  key: item.get(key)
+                  for key in ("record_id", "reason")
+              }
+              print("MPMM_BLOCKED " + json.dumps(blocked, ensure_ascii=False))
+          PY
+
+      - name: Upload FINAL_REPORT
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MPMM_PENDING_131_FINAL_REPORT
+          path: |
+            /tmp/MPMM_PENDING_131_FINAL_REPORT.json
+          if-no-files-found: error
+          retention-days: 14

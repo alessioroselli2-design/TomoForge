@@ -60,6 +60,7 @@ _CREATURE_TYPE_WORDS = (
     "non morto",
     "non-morto",
     "pianta",
+    "vegetale",
     "umanoide",
     "aberration",
     "beast",
