@@ -5127,6 +5127,14 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         secondary_psm = 6
     if (
+        name == "Duergar Martellatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 8
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        secondary_psm = 6
+    if (
         name == "Drow Inquisitore"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 4
