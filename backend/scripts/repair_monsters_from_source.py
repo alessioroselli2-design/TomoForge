@@ -6112,6 +6112,7 @@ def _identity_source_counts(
         _core_anchor,
         _has_any_marker_near,
         _line_is_descriptor,
+        _line_is_title_candidate,
     )
 
     expected = normalize_reference_name(target_name)
@@ -6126,6 +6127,14 @@ def _identity_source_counts(
     ]
     lines = [normalize_reference_name(line) for line in raw_lines]
     title_indexes = [index for index, line in enumerate(lines) if line == expected]
+    wrapped_title_indexes = [
+        index
+        for index in range(len(raw_lines) - 1)
+        if normalize_reference_name(raw_lines[index] + " " + raw_lines[index + 1])
+        == expected
+        and _line_is_title_candidate(raw_lines[index])
+        and _line_is_title_candidate(raw_lines[index + 1])
+    ]
 
     def plant_descriptor(line: str) -> bool:
         return bool(
@@ -6147,6 +6156,24 @@ def _identity_source_counts(
         and _candidate_matches_target(candidate, reversed_title, target_page)
     ]
     return {
+        "wrapped_title_pairs": len(wrapped_title_indexes),
+        "wrapped_title_descriptor_pairs": sum(
+            index + 2 < len(raw_lines) and _line_is_descriptor(raw_lines[index + 2])
+            for index in wrapped_title_indexes
+        ),
+        "wrapped_title_core_headers": sum(
+            index + 3 < len(raw_lines)
+            and (index == 0 or not _line_is_title_candidate(raw_lines[index - 1]))
+            and _line_is_descriptor(raw_lines[index + 2])
+            and _core_anchor(raw_lines[index + 3])
+            and _has_any_marker_near(
+                raw_lines, index + 3, ("Punti Ferita", "Hit Points"), 6
+            )
+            and _has_any_marker_near(
+                raw_lines, index + 3, ("Velocità", "Velocita", "Speed"), 8
+            )
+            for index in wrapped_title_indexes
+        ),
         "exact_title_lines": sum(line == expected for line in lines),
         "reversed_title_lines": sum(line == reversed_title for line in lines),
         "all_name_tokens_lines": sum(
@@ -6303,6 +6330,7 @@ def _agreed_target_candidate(
                             "Vegepigmeo",
                             "Danzatore Dell'Ombra",
                             "Duergar Despota",
+                            "Drow Inquisitore",
                         }
                         else {}
                     ),

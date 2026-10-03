@@ -3010,6 +3010,22 @@ def test_private_structure_probe_identifies_split_descriptor_without_repairing_i
     assert json.dumps(pages) == before
 
 
+@pytest.mark.parametrize("prefix,suffix,expected", [("", "", 1), ("VECCHIO\n", "", 0), ("", "MAGGIORE\n", 0)])
+def test_private_wrapped_title_probe_requires_complete_unextended_core_header(prefix, suffix, expected):
+    text = (
+        prefix + "GUARDIANO\nFITTIZIO\n" + suffix
+        + "Umanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\nPunti Ferita 18 (4d4 + 8)\nVelocità 5 m\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["wrapped_title_pairs"] == 1
+    assert counts["wrapped_title_core_headers"] == expected
+    assert counts["exact_title_lines"] == 0
+    assert json.dumps(pages) == before
+
+
 def test_private_descriptor_vocabulary_probe_never_modifies_source_text():
     text = (
         "SYNTHETIC GUARD\nVegetale Piccolo, senza allineamento\n"
