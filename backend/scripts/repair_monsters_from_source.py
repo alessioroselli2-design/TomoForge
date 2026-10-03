@@ -6046,6 +6046,72 @@ def _isolate_kithrak_title_debris(page_text: str) -> str:
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _join_independent_target_descriptors(
+    primary_pages: list[tuple[int, str]],
+    comparison_pages: list[tuple[int, str]],
+    target_name: str,
+    target_page: int,
+) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
+    """Join observed descriptor fragments only with unique two-pass support.
+
+    Both fragments must sit between the exact observed title and its armor
+    anchor. Core values are never changed, and the existing header checks must
+    succeed after joining. Ambiguity or independent descriptor disagreement
+    leaves both OCR readings untouched.
+    """
+    from services.monster_statblock_ocr import _core_anchor, _line_is_descriptor
+
+    expected = normalize_reference_name(target_name)
+
+    def proposals(pages: list[tuple[int, str]]) -> list[tuple[int, str, str]]:
+        result = []
+        for page_index, (page, text) in enumerate(pages):
+            if page != target_page:
+                continue
+            lines = text.splitlines()
+            indexes = [index for index, line in enumerate(lines) if line.strip()]
+            for position in range(len(indexes) - 3):
+                title, first, second, anchor = indexes[position : position + 4]
+                if normalize_reference_name(lines[title]) != expected:
+                    continue
+                fragments = (lines[first].strip(), lines[second].strip())
+                if any(_line_is_descriptor(fragment) for fragment in fragments):
+                    continue
+                descriptor = " ".join(fragments)
+                if not _line_is_descriptor(descriptor) or not _core_anchor(
+                    lines[anchor]
+                ):
+                    continue
+                joined = list(lines)
+                joined[first] = descriptor
+                del joined[second]
+                header = _find_header(joined, anchor - 1)
+                if header is None or normalize_reference_name(header[1]) != expected:
+                    continue
+                result.append(
+                    (
+                        page_index,
+                        "\n".join(joined) + ("\n" if text.endswith("\n") else ""),
+                        normalize_reference_name(descriptor),
+                    )
+                )
+        return result
+
+    primary = proposals(primary_pages)
+    comparison = proposals(comparison_pages)
+    if len(primary) != 1 or len(comparison) != 1 or primary[0][2] != comparison[0][2]:
+        return primary_pages, comparison_pages
+    restored = []
+    for pages, (index, text, _) in (
+        (primary_pages, primary[0]),
+        (comparison_pages, comparison[0]),
+    ):
+        copy = list(pages)
+        copy[index] = (target_page, text)
+        restored.append(copy)
+    return restored[0], restored[1]
+
+
 def _identity_source_counts(
     pages: list[tuple[int, str]],
     candidates: list[dict[str, Any]],
@@ -6148,6 +6214,10 @@ def _agreed_target_candidate(
     require_exact_target_identity: bool = False,
     include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
+    if require_exact_target_identity and target_name == "Capo Vegepigmeo":
+        primary_pages, comparison_pages = _join_independent_target_descriptors(
+            primary_pages, comparison_pages, target_name, target_page
+        )
     if isolate_kithrak_title_debris and target_name == "Githyanki Kith'Rak":
         primary_pages = [
             (page, _isolate_kithrak_title_debris(text) if page == target_page else text)
