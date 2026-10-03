@@ -2975,6 +2975,24 @@ def test_deforme_suffix_cleanup_preserves_source_attributes_and_inputs():
     assert json.dumps([primary, comparison], sort_keys=True) == before
 
 
+def test_private_title_order_probe_does_not_accept_reordered_names_or_adjacent_evidence():
+    target = "Synthetic Guard"
+    candidate = {
+        "name": "GUARD SYNTHETIC", "normalized_name": "guard synthetic", "start_page": 7,
+        "source_refs": [{"page": 7}],
+        "attributes": {"classe_armatura": "15", "punti_ferita": "45 (6d10 + 12)", "velocita": "9 m"},
+    }
+    pages = [(7, "GUARD SYNTHETIC\nPRIVATE_SOURCE_SENTINEL\n"), (8, "SYNTHETIC GUARD\n")]
+    counts = repair._identity_source_counts(pages, [candidate], target, 7)
+    assert counts["reversed_title_lines"] == counts["reversed_core_candidates"] == 1
+    assert counts["exact_title_lines"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    with patch.object(repair, "parse_monster_statblocks", side_effect=[[candidate], [candidate]]):
+        with pytest.raises(RepairBlocked) as caught:
+            _agreed_target_candidate(pages, pages, "synthetic.pdf", "it", target, 7, require_exact_target_identity=True)
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
 def test_deforme_ambiguous_identity_cannot_inject_expected_core():
     attributes = {
         "classe_armatura": "16 (armatura naturale)",

@@ -6046,6 +6046,49 @@ def _isolate_kithrak_title_debris(page_text: str) -> str:
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _identity_source_counts(
+    pages: list[tuple[int, str]],
+    candidates: list[dict[str, Any]],
+    target_name: str,
+    target_page: int,
+) -> dict[str, int]:
+    """Inspect title order inside the worker without publishing source strings."""
+    expected = normalize_reference_name(target_name)
+    tokens = expected.split()
+    reversed_title = " ".join(reversed(tokens))
+    lines = [
+        normalize_reference_name(line)
+        for page, text in pages
+        if page == target_page
+        for line in text.splitlines()
+        if line.strip()
+    ]
+    reversed_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.get("normalized_name") == reversed_title
+        and int(candidate.get("start_page") or 0) == target_page
+        and _candidate_matches_target(candidate, reversed_title, target_page)
+    ]
+    return {
+        "exact_title_lines": sum(line == expected for line in lines),
+        "reversed_title_lines": sum(line == reversed_title for line in lines),
+        "all_name_tokens_lines": sum(
+            all(token in line.split() for token in tokens) for line in lines
+        ),
+        "reversed_exact_candidates": len(reversed_candidates),
+        "reversed_core_candidates": sum(
+            not monster_semantic_numeric_flags(candidate.get("attributes") or {})
+            and bool((candidate.get("attributes") or {}).get("velocita"))
+            for candidate in reversed_candidates
+        ),
+        "candidates_on_page": sum(
+            int(candidate.get("start_page") or 0) == target_page
+            for candidate in candidates
+        ),
+    }
+
+
 def _agreed_target_candidate(
     primary_pages: list[tuple[int, str]],
     comparison_pages: list[tuple[int, str]],
@@ -6122,6 +6165,19 @@ def _agreed_target_candidate(
                     "comparison_exact_candidates": len(comparison_exact),
                     "primary_compatible_candidates": len(primary_compatible),
                     "comparison_compatible_candidates": len(comparison_compatible),
+                    **(
+                        {
+                            f"{path}_identity_source_counts": _identity_source_counts(
+                                pages, records, target_name, target_page
+                            )
+                            for path, pages, records in (
+                                ("primary", primary_pages, primary),
+                                ("comparison", comparison_pages, comparison),
+                            )
+                        }
+                        if target_name == "Capo Vegepigmeo"
+                        else {}
+                    ),
                 },
             )
         primary, comparison = primary_exact, comparison_exact

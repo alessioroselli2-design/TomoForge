@@ -126,6 +126,25 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     )
                     if key in diagnostics
                 },
+                "identity_source_counts": {
+                    path: {
+                        metric: _count(values[metric])
+                        for metric in (
+                            "exact_title_lines",
+                            "reversed_title_lines",
+                            "all_name_tokens_lines",
+                            "reversed_exact_candidates",
+                            "reversed_core_candidates",
+                            "candidates_on_page",
+                        )
+                        if metric in values
+                    }
+                    for path in ("primary", "comparison")
+                    if isinstance(
+                        values := diagnostics.get(f"{path}_identity_source_counts"),
+                        dict,
+                    )
+                },
             }
         )
     result["reports"] = []

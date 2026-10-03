@@ -144,6 +144,37 @@ def test_exact_identity_failure_publishes_only_counts():
     }
 
 
+def test_identity_source_diagnostics_cannot_export_source_content():
+    private = _report()
+    private["blocked_records"] = [
+        {
+            "record_id": IDENTIFIER,
+            "reason": "no_unique_exact_target_identity",
+            "diagnostics": {
+                "primary_identity_source_counts": {
+                    "reversed_title_lines": 1,
+                    "raw_title": PRIVATE,
+                },
+                "comparison_identity_source_counts": {
+                    "reversed_exact_candidates": 1,
+                    "candidate_core": PRIVATE,
+                },
+            },
+        }
+    ]
+    public = runner.public_report(private)
+    assert PRIVATE not in json.dumps(public)
+    assert public["blocked_records"][0]["identity_source_counts"] == {
+        "primary": {"reversed_title_lines": 1},
+        "comparison": {"reversed_exact_candidates": 1},
+    }
+    private["blocked_records"][0]["diagnostics"]["primary_identity_source_counts"][
+        "reversed_title_lines"
+    ] = PRIVATE
+    with pytest.raises(ValueError, match="invalid audit count"):
+        runner.public_report(private)
+
+
 @pytest.mark.parametrize("status", [0, 2, 1])
 def test_worker_stdout_stderr_and_crashes_never_reach_public_output(capsys, status):
     def worker(command, *, stdout, stderr, check):
