@@ -3306,9 +3306,13 @@ def test_grung_brado_audit_uses_only_the_unique_registered_variant_page(refs):
 
 
 @pytest.mark.parametrize("refs", [[65, 66], [65], [65, 66, 66]])
-def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs):
+@pytest.mark.parametrize("identifier,name", [
+    ("ref_de503e430ad356ec98964fb1a65bd34a", "Vegepigmeo"),
+    ("ref_b624eff23c3e543ba8b2c952761eb707", "Vegepigmeo Spinato"),
+])
+def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identifier, name):
     record = {
-        "id": "ref_de503e430ad356ec98964fb1a65bd34a", "name": "Vegepigmeo",
+        "id": identifier, "name": name,
         "review_status": "pending",
         "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
     }
