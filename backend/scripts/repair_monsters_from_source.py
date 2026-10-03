@@ -866,6 +866,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
     "ref_dfcfc30092385b9d9facc6af40035fd4": 45,  # Grung Brado: registered variant page; 44 is base Grung
     "ref_ae7d3851315e5d1e8ec09fed56397623": 97,  # Velociraptor: referenced stat-block page
     "ref_5eefc25e9c9b5e22aa061386c84628f6": 97,  # Stegosauro: source-observed stat block
@@ -878,6 +879,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_de503e430ad356ec98964fb1a65bd34a",  # Vegepigmeo: exact registered page 66
     "ref_e4ce5aac88725918a98e4f1dacc8cd1a",  # Kith'Rak: sole registered page 36
     "ref_25a60967a5b8526fbb235e29d243c019",  # Capo Vegepigmeo: sole registered page 65
     "ref_dfcfc30092385b9d9facc6af40035fd4",  # Grung Brado: exclude the base Grung on page 44
@@ -6259,7 +6261,7 @@ def _agreed_target_candidate(
                                 ("comparison", comparison_pages, comparison),
                             )
                         }
-                        if target_name == "Capo Vegepigmeo"
+                        if target_name in {"Capo Vegepigmeo", "Vegepigmeo"}
                         else {}
                     ),
                 },
@@ -7518,6 +7520,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_de503e430ad356ec98964fb1a65bd34a", "Vegepigmeo"),
             ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo"),
             ("ref_b63e546c22a25155ae4ac40598eb7e3e", "Oscuride"),
             ("ref_d4c1987a935255ae9e854e228b9e4824", "Oscuride Anziano"),

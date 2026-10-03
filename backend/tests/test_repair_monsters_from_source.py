@@ -3305,6 +3305,32 @@ def test_grung_brado_audit_uses_only_the_unique_registered_variant_page(refs):
     assert json.dumps(record, sort_keys=True) == before
 
 
+@pytest.mark.parametrize("refs", [[65, 66], [65], [65, 66, 66]])
+def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs):
+    record = {
+        "id": "ref_de503e430ad356ec98964fb1a65bd34a", "name": "Vegepigmeo",
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    if refs == [65, 66]:
+        assert caught.value.reason == "pilot_stop"
+        assert ocr.call_args.args[1] == 66
+        assert ocr.call_args.kwargs["target_page_only"] is True
+        assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    else:
+        assert caught.value.reason == "source_page_override_ref_drift"
+        ocr.assert_not_called()
+
+
 @pytest.mark.parametrize("identifier,name,page", [
     ("ref_09eb88310e015ab6aa41d9dc35874f48", "Grung Guerriero D'Élite", 45),
     ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo", 65),
