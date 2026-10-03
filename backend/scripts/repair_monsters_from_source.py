@@ -880,6 +880,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore: sole registered page 4
     "ref_a8c5d07ab39252f8a22f4744181983df",  # Duergar Despota: sole registered page 9
     "ref_a6f22b9706e058a8bd3f4dcbbd24c985",  # Danzatore Dell'Ombra: sole registered page 40
     "ref_de503e430ad356ec98964fb1a65bd34a",  # Vegepigmeo: exact registered page 66
@@ -5123,6 +5124,14 @@ def _ocr_source_window(
     ):
         effective_dpi = max(effective_dpi, 400)
         secondary_psm = 6
+    if (
+        name == "Drow Inquisitore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 4
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        secondary_psm = 6
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
@@ -7553,6 +7562,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_fae2af9678e6572cb755708aab5c393d", "Drow Inquisitore"),
             ("ref_a8c5d07ab39252f8a22f4744181983df", "Duergar Despota"),
             ("ref_a6f22b9706e058a8bd3f4dcbbd24c985", "Danzatore Dell'Ombra"),
             ("ref_de503e430ad356ec98964fb1a65bd34a", "Vegepigmeo"),
