@@ -880,6 +880,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore: sole registered page 8
     "ref_75abc404d54c51a2a312cbc2cd894e4a",  # Duergar Guardia Di Pietra: sole registered page 10
     "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore: sole registered page 4
     "ref_a8c5d07ab39252f8a22f4744181983df",  # Duergar Despota: sole registered page 9
@@ -5126,13 +5127,6 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         secondary_psm = 6
     if (
-        name == "Duergar Guardia Di Pietra"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 10
-        and target_page_only
-    ):
-        primary_psm, secondary_psm = 11, 12
-    if (
         name == "Drow Inquisitore"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 4
@@ -6374,6 +6368,7 @@ def _agreed_target_candidate(
                             "Duergar Despota",
                             "Drow Inquisitore",
                             "Duergar Guardia Di Pietra",
+                            "Duergar Martellatore",
                         }
                         else {}
                     ),
@@ -7633,6 +7628,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_8def8c405c2452a4a10ff597fd89fdc8", "Duergar Martellatore"),
             ("ref_75abc404d54c51a2a312cbc2cd894e4a", "Duergar Guardia Di Pietra"),
             ("ref_fae2af9678e6572cb755708aab5c393d", "Drow Inquisitore"),
             ("ref_a8c5d07ab39252f8a22f4744181983df", "Duergar Despota"),
