@@ -5115,6 +5115,13 @@ def _ocr_source_window(
     ):
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
+    if (
+        name == "Duergar Despota"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 9
+        and target_page_only
+    ):
+        secondary_psm = 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
@@ -6281,7 +6288,12 @@ def _agreed_target_candidate(
                             )
                         }
                         if target_name
-                        in {"Capo Vegepigmeo", "Vegepigmeo", "Danzatore Dell'Ombra"}
+                        in {
+                            "Capo Vegepigmeo",
+                            "Vegepigmeo",
+                            "Danzatore Dell'Ombra",
+                            "Duergar Despota",
+                        }
                         else {}
                     ),
                 },
