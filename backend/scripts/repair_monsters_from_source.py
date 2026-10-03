@@ -6136,6 +6136,14 @@ def _identity_source_counts(
         if line.strip()
     ]
     lines = [normalize_reference_name(line) for line in raw_lines]
+    title_indexes = [index for index, line in enumerate(lines) if line == expected]
+
+    def plant_descriptor(line: str) -> bool:
+        return bool(
+            re.search(r"\bvegetale\b", normalize_reference_name(line))
+            and _line_is_descriptor(re.sub(r"\bvegetale\b", "pianta", line, flags=re.I))
+        )
+
     anchors = [index for index, line in enumerate(raw_lines) if _core_anchor(line)]
     headers = [
         header
@@ -6196,6 +6204,20 @@ def _identity_source_counts(
         "valid_headers": len(headers),
         "exact_headers": sum(
             normalize_reference_name(header[1]) == expected for header in headers
+        ),
+        "plant_synonym_descriptor_lines": sum(
+            plant_descriptor(line) for line in raw_lines
+        ),
+        "plant_synonym_after_exact_title": sum(
+            index + 1 < len(raw_lines) and plant_descriptor(raw_lines[index + 1])
+            for index in title_indexes
+        ),
+        "split_descriptor_after_exact_title": sum(
+            index + 2 < len(raw_lines)
+            and not _line_is_descriptor(raw_lines[index + 1])
+            and not _line_is_descriptor(raw_lines[index + 2])
+            and _line_is_descriptor(raw_lines[index + 1] + " " + raw_lines[index + 2])
+            for index in title_indexes
         ),
     }
 

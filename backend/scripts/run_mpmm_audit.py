@@ -147,6 +147,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                             "anchors_with_descriptor",
                             "valid_headers",
                             "exact_headers",
+                            "plant_synonym_descriptor_lines",
+                            "plant_synonym_after_exact_title",
+                            "split_descriptor_after_exact_title",
                         )
                         if metric in values
                     }

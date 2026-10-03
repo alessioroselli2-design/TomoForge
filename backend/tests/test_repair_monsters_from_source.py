@@ -3004,9 +3004,20 @@ def test_private_structure_probe_identifies_split_descriptor_without_repairing_i
     counts = repair._identity_source_counts(pages, [], "Synthetic Guard", 7)
     assert counts["core_anchors"] == counts["anchors_with_hp"] == counts["anchors_with_speed"] == 1
     assert counts["split_descriptor_pairs"] == 1
+    assert counts["split_descriptor_after_exact_title"] == 1
     assert counts["descriptor_lines"] == counts["valid_headers"] == 0
     assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
     assert json.dumps(pages) == before
+
+
+def test_private_descriptor_vocabulary_probe_does_not_modify_unknown_descriptor():
+    pages = [(7, _split_descriptor_text().replace("Pianta\nPiccola", "Vegetale Piccolo"))]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Synthetic Guard", 7)
+    assert counts["plant_synonym_descriptor_lines"] == counts["plant_synonym_after_exact_title"] == 1
+    assert counts["descriptor_lines"] == counts["valid_headers"] == 0
+    assert json.dumps(pages) == before
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
 
 
 def _split_descriptor_text(title="SYNTHETIC GUARD", descriptor="Piccola, senza allineamento"):
