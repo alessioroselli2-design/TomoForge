@@ -880,6 +880,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_a6f22b9706e058a8bd3f4dcbbd24c985",  # Danzatore Dell'Ombra: sole registered page 40
     "ref_de503e430ad356ec98964fb1a65bd34a",  # Vegepigmeo: exact registered page 66
     "ref_b624eff23c3e543ba8b2c952761eb707",  # Vegepigmeo Spinato: exact registered page 66
     "ref_e4ce5aac88725918a98e4f1dacc8cd1a",  # Kith'Rak: sole registered page 36
@@ -7529,6 +7530,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_a6f22b9706e058a8bd3f4dcbbd24c985", "Danzatore Dell'Ombra"),
             ("ref_de503e430ad356ec98964fb1a65bd34a", "Vegepigmeo"),
             ("ref_b624eff23c3e543ba8b2c952761eb707", "Vegepigmeo Spinato"),
             ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo"),

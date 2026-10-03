@@ -3336,6 +3336,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
 
 
 @pytest.mark.parametrize("identifier,name,page", [
+    ("ref_a6f22b9706e058a8bd3f4dcbbd24c985", "Danzatore Dell'Ombra", 40),
     ("ref_09eb88310e015ab6aa41d9dc35874f48", "Grung Guerriero D'Élite", 45),
     ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo", 65),
     ("ref_e4ce5aac88725918a98e4f1dacc8cd1a", "Githyanki Kith'Rak", 36),
