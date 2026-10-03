@@ -5083,9 +5083,9 @@ def _ocr_source_window(
         and target_page == 65
         and target_page_only
     ):
-        # Re-read the compact target block with independent block segmentation;
-        # PSM 4 misidentifies an intervening line as the title on this page.
-        secondary_psm = 6
+        # Sparse segmentation independently re-reads the exact target title and
+        # compact core labels on this registered page.
+        secondary_psm = 11
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
