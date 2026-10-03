@@ -6117,6 +6117,7 @@ def _identity_source_counts(
 ) -> dict[str, int]:
     """Inspect identity and parser structure without publishing source strings."""
     from services.monster_statblock_ocr import (
+        _attributes,
         _core_anchor,
         _has_any_marker_near,
         _line_is_descriptor,
@@ -6137,6 +6138,20 @@ def _identity_source_counts(
         for index, line in enumerate(parser_lines)
         if _core_anchor(line)
         and (header := _find_header(parser_lines, index)) is not None
+    ]
+    header_starts = sorted({header[0] for header in parser_headers})
+    parser_attributes = [
+        _attributes(
+            "\n".join(line for line in parser_lines[header[0] : next_start] if line),
+            header[2],
+        )
+        for header in parser_headers
+        for next_start in [
+            next(
+                (start for start in header_starts if start > header[0]),
+                len(parser_lines),
+            )
+        ]
     ]
     raw_lines = [line for line in parser_lines if line]
     lines = [normalize_reference_name(line) for line in raw_lines]
@@ -6173,6 +6188,15 @@ def _identity_source_counts(
         "parser_valid_headers": len(parser_headers),
         "parser_exact_headers": sum(
             normalize_reference_name(header[1]) == expected for header in parser_headers
+        ),
+        "parser_armor_fields": sum(
+            bool(attrs.get("classe_armatura")) for attrs in parser_attributes
+        ),
+        "parser_hp_fields": sum(
+            bool(attrs.get("punti_ferita")) for attrs in parser_attributes
+        ),
+        "parser_speed_fields": sum(
+            bool(attrs.get("velocita")) for attrs in parser_attributes
         ),
         "wrapped_title_pairs": len(wrapped_title_indexes),
         "wrapped_title_descriptor_pairs": sum(

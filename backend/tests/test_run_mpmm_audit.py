@@ -156,6 +156,9 @@ def test_identity_source_diagnostics_cannot_export_source_content():
                     "valid_headers": 0,
                     "parser_valid_headers": 0,
                     "parser_exact_headers": 0,
+                    "parser_armor_fields": 1,
+                    "parser_hp_fields": 0,
+                    "parser_speed_fields": 1,
                     "raw_title": PRIVATE,
                 },
                 "comparison_identity_source_counts": {
@@ -168,7 +171,7 @@ def test_identity_source_diagnostics_cannot_export_source_content():
     public = runner.public_report(private)
     assert PRIVATE not in json.dumps(public)
     assert public["blocked_records"][0]["identity_source_counts"] == {
-        "primary": {"reversed_title_lines": 1, "valid_headers": 0, "parser_valid_headers": 0, "parser_exact_headers": 0},
+        "primary": {"reversed_title_lines": 1, "valid_headers": 0, "parser_valid_headers": 0, "parser_exact_headers": 0, "parser_armor_fields": 1, "parser_hp_fields": 0, "parser_speed_fields": 1},
         "comparison": {"reversed_exact_candidates": 1},
     }
     private["blocked_records"][0]["diagnostics"]["primary_identity_source_counts"][

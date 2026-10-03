@@ -3041,6 +3041,22 @@ def test_private_header_probe_preserves_parser_spacing_and_source_text():
     assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
 
 
+def test_private_core_presence_probe_does_not_join_detached_hp_value():
+    text = (
+        "GUARDIANO FITTIZIO\nUmanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\nPunti Ferita\n18 (4d4 + 8)\nVelocità 5 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["parser_exact_headers"] == 1
+    assert counts["parser_armor_fields"] == counts["parser_speed_fields"] == 1
+    assert counts["parser_hp_fields"] == 0
+    assert json.dumps(pages) == before
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+
+
 def test_private_descriptor_vocabulary_probe_never_modifies_source_text():
     text = (
         "SYNTHETIC GUARD\nVegetale Piccolo, senza allineamento\n"

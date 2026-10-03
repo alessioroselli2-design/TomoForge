@@ -132,6 +132,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                         for metric in (
                             "parser_valid_headers",
                             "parser_exact_headers",
+                            "parser_armor_fields",
+                            "parser_hp_fields",
+                            "parser_speed_fields",
                             "wrapped_title_pairs",
                             "wrapped_title_descriptor_pairs",
                             "wrapped_title_core_headers",
