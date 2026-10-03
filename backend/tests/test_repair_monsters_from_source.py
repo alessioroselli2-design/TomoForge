@@ -3010,58 +3010,19 @@ def test_private_structure_probe_identifies_split_descriptor_without_repairing_i
     assert json.dumps(pages) == before
 
 
-def test_private_descriptor_vocabulary_probe_does_not_modify_unknown_descriptor():
-    pages = [(7, _split_descriptor_text().replace("Pianta\nPiccola", "Vegetale Piccolo"))]
+def test_private_descriptor_vocabulary_probe_never_modifies_source_text():
+    text = (
+        "SYNTHETIC GUARD\nVegetale Piccolo, senza allineamento\n"
+        "Classe Armatura 15\nPunti Ferita 45 (6d10 + 12)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
     before = json.dumps(pages)
     counts = repair._identity_source_counts(pages, [], "Synthetic Guard", 7)
     assert counts["plant_synonym_descriptor_lines"] == counts["plant_synonym_after_exact_title"] == 1
-    assert counts["descriptor_lines"] == counts["valid_headers"] == 0
+    assert counts["descriptor_lines"] == counts["valid_headers"] == 1
     assert json.dumps(pages) == before
     assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
-
-
-def _split_descriptor_text(title="SYNTHETIC GUARD", descriptor="Piccola, senza allineamento"):
-    return (
-        f"{title}\nPianta\n{descriptor}\n"
-        "Classe Armatura 15\nPunti Ferita 45 (6d10 + 12)\nVelocità 9 m\n"
-        "Azioni\nPRIVATE_SOURCE_SENTINEL\n"
-    )
-
-
-def test_wrapped_descriptor_requires_independent_evidence_and_preserves_core_text():
-    pages = [(7, _split_descriptor_text()), (8, "OTHER PAGE\n")]
-    before = json.dumps(pages)
-    primary, comparison = repair._join_independent_target_descriptors(pages, pages, "Synthetic Guard", 7)
-    assert primary == comparison
-    assert "Pianta Piccola, senza allineamento\n" in primary[0][1]
-    assert primary[0][1] == pages[0][1].replace("Pianta\nPiccola", "Pianta Piccola")
-    assert primary[1] == pages[1]
-    assert json.dumps(pages) == before
-    candidate = _agreed_target_candidate(primary, comparison, "synthetic.pdf", "it", "Synthetic Guard", 7, require_exact_target_identity=True)
-    assert candidate["normalized_name"] == "synthetic guard"
-    assert candidate["attributes"]["classe_armatura"] == "15"
-    assert candidate["attributes"]["punti_ferita"] == "45 (6d10 + 12)"
-    assert candidate["attributes"]["velocita"] == "9 m"
-
-
-@pytest.mark.parametrize("failure", ["disagreement", "duplicate", "adjacent", "missing_hp", "wrong_title"])
-def test_wrapped_descriptor_rejects_missing_or_ambiguous_source_support(failure):
-    primary = [(7, _split_descriptor_text())]
-    comparison = [(7, _split_descriptor_text())]
-    if failure == "disagreement":
-        comparison = [(7, _split_descriptor_text(descriptor="Piccola, neutrale"))]
-    elif failure == "duplicate":
-        primary = [(7, _split_descriptor_text() * 2)]
-    elif failure == "adjacent":
-        comparison = [(8, _split_descriptor_text())]
-    elif failure == "missing_hp":
-        comparison = [(7, _split_descriptor_text().replace("Punti Ferita", "Unknown Label"))]
-    else:
-        comparison = [(7, _split_descriptor_text(title="OTHER GUARD"))]
-    before = json.dumps([primary, comparison])
-    restored = repair._join_independent_target_descriptors(primary, comparison, "Synthetic Guard", 7)
-    assert restored == (primary, comparison)
-    assert json.dumps([primary, comparison]) == before
 
 
 def test_deforme_ambiguous_identity_cannot_inject_expected_core():

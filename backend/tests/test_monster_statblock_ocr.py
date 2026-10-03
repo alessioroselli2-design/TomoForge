@@ -56,6 +56,27 @@ def test_parses_one_complete_monster_and_keeps_review_gate():
     ]
 
 
+def test_italian_plant_descriptor_is_recognized_without_changing_core_text():
+    text = _goblin_text(title="SYNTHETIC GUARD").replace(
+        "Piccolo umanoide (goblinoide), neutrale malvagio",
+        "Vegetale Piccolo, senza allineamento",
+    )
+    records = parse_monster_statblocks([(7, text)], "synthetic.pdf")
+    assert len(records) == 1
+    assert records[0]["name"] == "SYNTHETIC GUARD"
+    assert records[0]["attributes"]["descrittore_creatura"] == "Vegetale Piccolo, senza allineamento"
+    assert records[0]["attributes"]["punti_ferita"] == "7 (2d6)"
+    assert records[0]["attributes"]["classe_armatura"] == "15 (armatura di cuoio, scudo)"
+    assert records[0]["attributes"]["velocita"] == "9 m"
+    assert "ocr_da_verificare" in records[0]["review_flags"]
+    for invalid in (
+        text.replace("Vegetale Piccolo", "Vegetale"),
+        text.replace("Punti Ferita", "Unknown Label"),
+        text.replace("Velocità", "Unknown Label"),
+    ):
+        assert parse_monster_statblocks([(7, invalid)], "synthetic.pdf") == []
+
+
 def test_hit_points_wrap_with_open_parenthesis_is_joined_conservatively():
     text = """RANA
 Minuscola bestia, senza allineamento
