@@ -5122,7 +5122,7 @@ def _ocr_source_window(
         and target_page_only
     ):
         effective_dpi = max(effective_dpi, 400)
-        secondary_psm = 11
+        secondary_psm = 6
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
