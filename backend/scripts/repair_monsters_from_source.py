@@ -5077,6 +5077,15 @@ def _ocr_source_window(
         primary_psm, secondary_psm = 6, 11
     if name == "Uro":
         primary_psm, secondary_psm = 6, 4
+    if (
+        name == "Capo Vegepigmeo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 65
+        and target_page_only
+    ):
+        # Re-read the compact target block with independent block segmentation;
+        # PSM 4 misidentifies an intervening line as the title on this page.
+        secondary_psm = 6
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
