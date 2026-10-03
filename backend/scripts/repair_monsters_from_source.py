@@ -6119,13 +6119,19 @@ def _identity_source_counts(
     expected = normalize_reference_name(target_name)
     tokens = expected.split()
     reversed_title = " ".join(reversed(tokens))
-    raw_lines = [
+    parser_lines = [
         line.strip()
         for page, text in pages
         if page == target_page
         for line in text.splitlines()
-        if line.strip()
     ]
+    parser_headers = [
+        header
+        for index, line in enumerate(parser_lines)
+        if _core_anchor(line)
+        and (header := _find_header(parser_lines, index)) is not None
+    ]
+    raw_lines = [line for line in parser_lines if line]
     lines = [normalize_reference_name(line) for line in raw_lines]
     title_indexes = [index for index, line in enumerate(lines) if line == expected]
     wrapped_title_indexes = [
@@ -6157,6 +6163,10 @@ def _identity_source_counts(
         and _candidate_matches_target(candidate, reversed_title, target_page)
     ]
     return {
+        "parser_valid_headers": len(parser_headers),
+        "parser_exact_headers": sum(
+            normalize_reference_name(header[1]) == expected for header in parser_headers
+        ),
         "wrapped_title_pairs": len(wrapped_title_indexes),
         "wrapped_title_descriptor_pairs": sum(
             index + 2 < len(raw_lines) and _line_is_descriptor(raw_lines[index + 2])

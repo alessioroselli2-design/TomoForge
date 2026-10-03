@@ -130,6 +130,8 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     path: {
                         metric: _count(values[metric])
                         for metric in (
+                            "parser_valid_headers",
+                            "parser_exact_headers",
                             "wrapped_title_pairs",
                             "wrapped_title_descriptor_pairs",
                             "wrapped_title_core_headers",

@@ -154,6 +154,8 @@ def test_identity_source_diagnostics_cannot_export_source_content():
                 "primary_identity_source_counts": {
                     "reversed_title_lines": 1,
                     "valid_headers": 0,
+                    "parser_valid_headers": 0,
+                    "parser_exact_headers": 0,
                     "raw_title": PRIVATE,
                 },
                 "comparison_identity_source_counts": {
@@ -166,11 +168,11 @@ def test_identity_source_diagnostics_cannot_export_source_content():
     public = runner.public_report(private)
     assert PRIVATE not in json.dumps(public)
     assert public["blocked_records"][0]["identity_source_counts"] == {
-        "primary": {"reversed_title_lines": 1, "valid_headers": 0},
+        "primary": {"reversed_title_lines": 1, "valid_headers": 0, "parser_valid_headers": 0, "parser_exact_headers": 0},
         "comparison": {"reversed_exact_candidates": 1},
     }
     private["blocked_records"][0]["diagnostics"]["primary_identity_source_counts"][
-        "reversed_title_lines"
+        "parser_exact_headers"
     ] = PRIVATE
     with pytest.raises(ValueError, match="invalid audit count"):
         runner.public_report(private)
