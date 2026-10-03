@@ -880,6 +880,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_75abc404d54c51a2a312cbc2cd894e4a",  # Duergar Guardia Di Pietra: sole registered page 10
     "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore: sole registered page 4
     "ref_a8c5d07ab39252f8a22f4744181983df",  # Duergar Despota: sole registered page 9
     "ref_a6f22b9706e058a8bd3f4dcbbd24c985",  # Danzatore Dell'Ombra: sole registered page 40
@@ -5130,8 +5131,8 @@ def _ocr_source_window(
         and target_page == 4
         and target_page_only
     ):
-        effective_dpi = max(effective_dpi, 500)
-        primary_psm, secondary_psm = 3, 12
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 4, 12
     if sparse_full_page:
         # Geometry is already locked by a unique title anchor. Keep the
         # primary layout unchanged and vary only the independent comparison
@@ -6331,6 +6332,7 @@ def _agreed_target_candidate(
                             "Danzatore Dell'Ombra",
                             "Duergar Despota",
                             "Drow Inquisitore",
+                            "Duergar Guardia Di Pietra",
                         }
                         else {}
                     ),
@@ -7590,6 +7592,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_75abc404d54c51a2a312cbc2cd894e4a", "Duergar Guardia Di Pietra"),
             ("ref_fae2af9678e6572cb755708aab5c393d", "Drow Inquisitore"),
             ("ref_a8c5d07ab39252f8a22f4744181983df", "Duergar Despota"),
             ("ref_a6f22b9706e058a8bd3f4dcbbd24c985", "Danzatore Dell'Ombra"),
