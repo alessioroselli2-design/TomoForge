@@ -3405,6 +3405,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
 
 
 @pytest.mark.parametrize("identifier,name,page", [
+    ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort", 71),
     ("ref_ef1a5c6b4a9b5b809ccba61565f49a36", "Xvart", 71),
     ("ref_51cc5af68a475cb2a7ac137ede8e1cc7", "Mirmidone Elementale Di Fuoco", 88),
     ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon", 12),

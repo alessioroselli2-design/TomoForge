@@ -884,6 +884,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_a039088ef69452beaaedb512ab702231",  # Xvart Warlock Di Raxivort: sole registered page 71
     "ref_ef1a5c6b4a9b5b809ccba61565f49a36",  # Xvart: sole registered page 71
     "ref_51cc5af68a475cb2a7ac137ede8e1cc7",  # Mirmidone Elementale Di Fuoco: sole registered page 88
     "ref_10a974bfc32a521c8d9a8db1aab0123d",  # Orthon: sole registered page 12
@@ -6484,6 +6485,7 @@ def _agreed_target_candidate(
                             "Orthon",
                             "Mirmidone Elementale Di Fuoco",
                             "Xvart",
+                            "Xvart Warlock Di Raxivort",
                             "Leviatano",
                         }
                         else {}
@@ -7744,6 +7746,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort"),
             ("ref_ef1a5c6b4a9b5b809ccba61565f49a36", "Xvart"),
             ("ref_51cc5af68a475cb2a7ac137ede8e1cc7", "Mirmidone Elementale Di Fuoco"),
             ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon"),
