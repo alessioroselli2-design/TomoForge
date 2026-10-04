@@ -5102,6 +5102,13 @@ def _ocr_source_window(
         # compact core labels on this registered page.
         secondary_psm = 11
     if (
+        name == "Juiblex"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 56
+        and target_page_only
+    ):
+        secondary_psm = 11
+    if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 36
