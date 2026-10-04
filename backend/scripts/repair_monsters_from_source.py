@@ -884,6 +884,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_10a974bfc32a521c8d9a8db1aab0123d",  # Orthon: sole registered page 12
     "ref_f0919b1e8ef955a19953d273054accaf",  # Mago Invocatore: selected registered page 72
     "ref_95407fdd26ae57e88fc3943545bd5cc4",  # Mago Trasmutatore: sole registered page 74
     "ref_3986eba313495283bfe6b6f843891add",  # Mago Divinatore: sole registered page 68
@@ -5147,7 +5148,7 @@ def _ocr_source_window(
         and target_page_only
     ):
         effective_dpi = max(effective_dpi, 400)
-        secondary_psm = 11
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6456,6 +6457,7 @@ def _agreed_target_candidate(
                             "Mago Divinatore",
                             "Mago Invocatore",
                             "Mago Trasmutatore",
+                            "Orthon",
                             "Leviatano",
                         }
                         else {}
@@ -7716,6 +7718,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon"),
             ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore"),
             ("ref_95407fdd26ae57e88fc3943545bd5cc4", "Mago Trasmutatore"),
             ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore"),
