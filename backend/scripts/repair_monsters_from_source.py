@@ -6231,6 +6231,7 @@ def _identity_source_counts(
         _core_anchor,
         _has_any_marker_near,
         _line_is_descriptor,
+        _line_is_italian_swarm_descriptor,
         _line_is_title_candidate,
     )
 
@@ -6300,6 +6301,14 @@ def _identity_source_counts(
         and _candidate_matches_target(candidate, reversed_title, target_page)
     ]
     return {
+        "swarm_descriptor_lines": sum(
+            _line_is_italian_swarm_descriptor(line) for line in raw_lines
+        ),
+        "swarm_descriptor_after_exact_title": sum(
+            index + 1 < len(raw_lines)
+            and _line_is_italian_swarm_descriptor(raw_lines[index + 1])
+            for index in title_indexes
+        ),
         "known_title_suffix_lines": sum(known_title_suffix(line) for line in raw_lines),
         "parser_known_title_suffix_headers": sum(
             known_title_suffix(header[1]) for header in parser_headers

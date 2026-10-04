@@ -2993,6 +2993,28 @@ def test_private_title_order_probe_does_not_accept_reordered_names_or_adjacent_e
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
+@pytest.mark.parametrize("descriptor,expected", [
+    ("Sciame Enorme di bestie Piccole, neutrale", 1),
+    ("Sciame Medio di aberrazioni Minuscole, legale buono", 1),
+    ("Uno sciame Enorme di bestie Piccole, neutrale", 0),
+    ("Sciame Enorme di oggetti Piccoli, neutrale", 0),
+    ("Sciame di bestie Piccole, neutrale", 0),
+])
+def test_swarm_descriptor_probe_preserves_source_and_does_not_accept_it(descriptor, expected):
+    text = (
+        f"GUARDIANO FITTIZIO\n{descriptor}\n"
+        "Classe Armatura 13\nPunti Ferita 31 (7d6 + 7)\nVelocità 6 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["swarm_descriptor_lines"] == expected
+    assert counts["swarm_descriptor_after_exact_title"] == expected
+    assert counts["descriptor_lines"] == counts["parser_valid_headers"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert pages == [(7, text)]
+
+
 def test_private_structure_probe_identifies_split_descriptor_without_repairing_it():
     text = (
         "SYNTHETIC GUARD\nPianta\nPiccola, senza allineamento\n"

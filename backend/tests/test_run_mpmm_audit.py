@@ -152,6 +152,8 @@ def test_identity_source_diagnostics_cannot_export_source_content():
             "reason": "no_unique_exact_target_identity",
             "diagnostics": {
                 "primary_identity_source_counts": {
+                    "swarm_descriptor_lines": 1,
+                    "swarm_descriptor_after_exact_title": 1,
                     "known_title_suffix_lines": 1,
                     "parser_known_title_suffix_headers": 1,
                     "reversed_title_lines": 1,
@@ -173,7 +175,7 @@ def test_identity_source_diagnostics_cannot_export_source_content():
     public = runner.public_report(private)
     assert PRIVATE not in json.dumps(public)
     assert public["blocked_records"][0]["identity_source_counts"] == {
-        "primary": {"known_title_suffix_lines": 1, "parser_known_title_suffix_headers": 1, "reversed_title_lines": 1, "valid_headers": 0, "parser_valid_headers": 0, "parser_exact_headers": 0, "parser_armor_fields": 1, "parser_hp_fields": 0, "parser_speed_fields": 1},
+        "primary": {"swarm_descriptor_lines": 1, "swarm_descriptor_after_exact_title": 1, "known_title_suffix_lines": 1, "parser_known_title_suffix_headers": 1, "reversed_title_lines": 1, "valid_headers": 0, "parser_valid_headers": 0, "parser_exact_headers": 0, "parser_armor_fields": 1, "parser_hp_fields": 0, "parser_speed_fields": 1},
         "comparison": {"reversed_exact_candidates": 1},
     }
     private["blocked_records"][0]["diagnostics"]["primary_identity_source_counts"][

@@ -148,6 +148,20 @@ def _normalize_monster_name(value: str) -> str:
     return normalize_reference_name(value)
 
 
+def _line_is_italian_swarm_descriptor(line: str) -> bool:
+    """Inspect explicit swarm grammar; never join or rewrite source lines."""
+    value = _norm(line)
+    return len(value) <= 180 and bool(
+        re.fullmatch(
+            r"sciame (?:minuscol[oa]|piccol[oa]|medi[oa]|grande|enorme|mastodontic[oa]) "
+            r"di (?:bestie|aberrazioni) (?:minuscol[ie]|piccol[ie])"
+            r"(?: (?:(?:generalmente )?(?:legale|neutrale|caotico) "
+            r"(?:buono|neutrale|malvagio)|neutrale|senza allineamento|qualsiasi allineamento))?",
+            value,
+        )
+    )
+
+
 def _line_is_descriptor(line: str) -> bool:
     value = _norm(line)
     return (
