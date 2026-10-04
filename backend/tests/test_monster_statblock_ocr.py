@@ -77,6 +77,37 @@ def test_italian_plant_descriptor_is_recognized_without_changing_core_text():
         assert parse_monster_statblocks([(7, invalid)], "synthetic.pdf") == []
 
 
+def test_explicit_italian_swarm_descriptor_preserves_identity_core_and_review():
+    original_descriptor = "Piccolo umanoide (goblinoide), neutrale malvagio"
+    for descriptor in (
+        "Sciame Enorme di bestie Piccole, neutrale",
+        "Sciame Medio di aberrazioni Minuscole, legale buono",
+    ):
+        text = _goblin_text(title="GUARDIANO FITTIZIO").replace(original_descriptor, descriptor)
+        records = parse_monster_statblocks([(7, text)], "synthetic.pdf")
+        assert len(records) == 1
+        record = records[0]
+        assert record["name"] == "GUARDIANO FITTIZIO"
+        assert record["attributes"]["descrittore_creatura"] == descriptor
+        assert record["attributes"]["classe_armatura"] == "15 (armatura di cuoio, scudo)"
+        assert record["attributes"]["punti_ferita"] == "7 (2d6)"
+        assert record["attributes"]["velocita"] == "9 m"
+        assert record["source_refs"][0]["page"] == 7
+        assert "ocr_da_verificare" in record["review_flags"]
+        for invalid in (text.replace("Punti Ferita", "Unknown Label"), text.replace("Velocità", "Unknown Label")):
+            assert parse_monster_statblocks([(7, invalid)], "synthetic.pdf") == []
+    for descriptor in (
+        "Uno sciame Enorme di bestie Piccole, neutrale",
+        "Sciame Enorme di oggetti Piccoli, neutrale",
+        "Sciame di bestie Piccole, neutrale",
+        "Sciame Enorme di bestie, neutrale",
+        "Sciame Enorme di bestie Piccole e altro testo",
+        "Sciame Enorme di bestie Piccole, sconosciuto",
+    ):
+        text = _goblin_text(title="GUARDIANO FITTIZIO").replace(original_descriptor, descriptor)
+        assert parse_monster_statblocks([(7, text)], "synthetic.pdf") == []
+
+
 def test_hit_points_wrap_with_open_parenthesis_is_joined_conservatively():
     text = """RANA
 Minuscola bestia, senza allineamento

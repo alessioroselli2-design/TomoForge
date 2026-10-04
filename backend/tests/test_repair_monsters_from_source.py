@@ -3000,7 +3000,7 @@ def test_private_title_order_probe_does_not_accept_reordered_names_or_adjacent_e
     ("Sciame Enorme di oggetti Piccoli, neutrale", 0),
     ("Sciame di bestie Piccole, neutrale", 0),
 ])
-def test_swarm_descriptor_probe_preserves_source_and_does_not_accept_it(descriptor, expected):
+def test_swarm_descriptor_probe_preserves_source_and_reports_strict_structure(descriptor, expected):
     text = (
         f"GUARDIANO FITTIZIO\n{descriptor}\n"
         "Classe Armatura 13\nPunti Ferita 31 (7d6 + 7)\nVelocità 6 m\n"
@@ -3010,9 +3010,28 @@ def test_swarm_descriptor_probe_preserves_source_and_does_not_accept_it(descript
     counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
     assert counts["swarm_descriptor_lines"] == expected
     assert counts["swarm_descriptor_after_exact_title"] == expected
-    assert counts["descriptor_lines"] == counts["parser_valid_headers"] == 0
+    assert counts["descriptor_lines"] == counts["parser_valid_headers"] == expected
     assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
     assert pages == [(7, text)]
+
+
+@pytest.mark.parametrize("label,value", [
+    ("Classe Armatura 13", "Classe Armatura 14"),
+    ("Punti Ferita 31 (7d6 + 7)", "Punti Ferita 38 (7d6 + 14)"),
+    ("Velocità 6 m", "Velocità 9 m"),
+])
+def test_swarm_descriptor_keeps_independent_core_disagreement_closed(label, value):
+    primary = (
+        "GUARDIANO FITTIZIO\nSciame Enorme di bestie Piccole, neutrale\n"
+        "Classe Armatura 13\nPunti Ferita 31 (7d6 + 7)\nVelocità 6 m\n"
+    )
+    with pytest.raises(RepairBlocked) as caught:
+        _agreed_target_candidate(
+            [(7, primary)], [(7, primary.replace(label, value))],
+            "synthetic.pdf", "it", "Guardiano Fittizio", 7,
+            require_exact_target_identity=True,
+        )
+    assert caught.value.reason == "no_unique_independent_agreement"
 
 
 def test_private_structure_probe_identifies_split_descriptor_without_repairing_it():

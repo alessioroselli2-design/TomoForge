@@ -164,7 +164,7 @@ def _line_is_italian_swarm_descriptor(line: str) -> bool:
 
 def _line_is_descriptor(line: str) -> bool:
     value = _norm(line)
-    return (
+    return _line_is_italian_swarm_descriptor(line) or (
         any(re.search(rf"\b{re.escape(size)}\b", value) for size in _SIZE_WORDS)
         and any(
             re.search(rf"\b{re.escape(creature_type)}\b", value)
@@ -172,6 +172,7 @@ def _line_is_descriptor(line: str) -> bool:
         )
         and len(value) <= 180
     )
+
 
 def _line_is_title_candidate(line: str) -> bool:
     raw = clean_text(line or "").strip(" .:;,—–-")
