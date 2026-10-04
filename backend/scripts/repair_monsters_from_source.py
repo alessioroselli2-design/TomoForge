@@ -5174,6 +5174,13 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
     if (
+        name == "Sciame Di Larve Putride"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 34
+        and target_page_only
+    ):
+        primary_psm, secondary_psm = 4, 3
+    if (
         name == "Xvart"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 71
