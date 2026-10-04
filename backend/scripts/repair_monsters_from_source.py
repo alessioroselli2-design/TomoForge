@@ -885,6 +885,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_b414135fe8fd5447a6aedfba2a419baa",  # Sciame Di Ratti Cranici: sole registered page 28
     "ref_2ea09533213a54178032bc4c5b0b952d",  # Oblex Antico: sole registered page 6
     "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
     "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
@@ -5164,14 +5165,6 @@ def _ocr_source_window(
     ):
         secondary_psm = 12
     if (
-        name == "Oblex Antico"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 6
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        secondary_psm = 11
-    if (
         name == "Xvart"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 71
@@ -6510,6 +6503,7 @@ def _agreed_target_candidate(
                             "Warlock Dell'Immondo",
                             "Moloch",
                             "Oblex Antico",
+                            "Sciame Di Ratti Cranici",
                             "Leviatano",
                         }
                         else {}
@@ -7770,6 +7764,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_b414135fe8fd5447a6aedfba2a419baa", "Sciame Di Ratti Cranici"),
             ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico"),
             ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch"),
             ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo"),
