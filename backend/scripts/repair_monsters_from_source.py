@@ -5151,6 +5151,13 @@ def _ocr_source_window(
     ):
         secondary_psm = 6
     if (
+        name == "Xvart"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 71
+        and target_page_only
+    ):
+        primary_psm = 6
+    if (
         name == "Mirmidone Elementale Di Fuoco"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 88
