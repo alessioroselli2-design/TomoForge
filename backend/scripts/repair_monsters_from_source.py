@@ -866,6 +866,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: registered alternative page
     "ref_6a30875b811b5a9982e1afd61f80126b": 56,  # Juiblex: registered alternative page
     "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
     "ref_b624eff23c3e543ba8b2c952761eb707": 66,  # Vegepigmeo Spinato: registered stat-block page
@@ -881,6 +882,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_e14604cbec0a5306918cca5f4e74d639",  # Mago Apprendista: selected registered page 69
     "ref_9b1196c7b5c85057bd4c60098313a271",  # Leucrotta: sole registered page 65
     "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex: examine only selected registered page 56
     "ref_c41175075be5535ab3cfd37dbbd7e1e1",  # Hobgoblin Ombra Di Ferro: sole registered page 49
@@ -5162,7 +5164,7 @@ def _ocr_source_window(
         and target_page_only
     ):
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 3, 11
+        primary_psm, secondary_psm = 12, 11
     if (
         name == "Drow Inquisitore"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6420,6 +6422,7 @@ def _agreed_target_candidate(
                             "Hobgoblin Ombra Di Ferro",
                             "Juiblex",
                             "Leucrotta",
+                            "Mago Apprendista",
                         }
                         else {}
                     ),
@@ -7679,6 +7682,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_e14604cbec0a5306918cca5f4e74d639", "Mago Apprendista"),
             ("ref_9b1196c7b5c85057bd4c60098313a271", "Leucrotta"),
             ("ref_6a30875b811b5a9982e1afd61f80126b", "Juiblex"),
             ("ref_c41175075be5535ab3cfd37dbbd7e1e1", "Hobgoblin Ombra Di Ferro"),
