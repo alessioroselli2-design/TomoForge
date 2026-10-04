@@ -5161,6 +5161,7 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
+        effective_dpi = max(effective_dpi, 400)
         secondary_psm = 12
     if (
         name == "Xvart"
