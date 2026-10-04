@@ -5132,6 +5132,13 @@ def _ocr_source_window(
     ):
         secondary_psm = 11
     if (
+        name == "Mago Trasmutatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 74
+        and target_page_only
+    ):
+        secondary_psm = 11
+    if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 36
