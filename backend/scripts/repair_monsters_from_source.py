@@ -5164,6 +5164,14 @@ def _ocr_source_window(
     ):
         secondary_psm = 12
     if (
+        name == "Oblex Antico"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 6
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        secondary_psm = 11
+    if (
         name == "Xvart"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 71
