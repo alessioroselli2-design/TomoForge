@@ -5120,6 +5120,14 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         secondary_psm = 11
     if (
+        name == "Mago Apprendista"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 69
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        secondary_psm = 6
+    if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 36
