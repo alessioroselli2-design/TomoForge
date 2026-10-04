@@ -885,6 +885,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_43a10fe5cecc50f9a2112cbea5b5c839",  # Sciame Di Larve Putride: sole registered page 34
     "ref_b414135fe8fd5447a6aedfba2a419baa",  # Sciame Di Ratti Cranici: sole registered page 28
     "ref_2ea09533213a54178032bc4c5b0b952d",  # Oblex Antico: sole registered page 6
     "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
@@ -6512,6 +6513,7 @@ def _agreed_target_candidate(
                             "Moloch",
                             "Oblex Antico",
                             "Sciame Di Ratti Cranici",
+                            "Sciame Di Larve Putride",
                             "Leviatano",
                         }
                         else {}
@@ -7772,6 +7774,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_43a10fe5cecc50f9a2112cbea5b5c839", "Sciame Di Larve Putride"),
             ("ref_b414135fe8fd5447a6aedfba2a419baa", "Sciame Di Ratti Cranici"),
             ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico"),
             ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch"),
