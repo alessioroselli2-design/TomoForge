@@ -89,6 +89,23 @@ def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     assert public["blocked_records"][0]["core_disagreement"]["punti_ferita"] is True
 
 
+@pytest.mark.parametrize("speed,expected", [
+    (" 9 m ", True),
+    ("9  m", True),
+    ("9\nm", True),
+    ("9 m 3", False),
+    ("9 m, volare 9 m", False),
+    ("12 m", False),
+])
+def test_core_whitespace_equality_keeps_every_non_whitespace_token(speed, expected):
+    private = _report()
+    private["reports"][0]["after"]["attributes"]["velocita"] = speed
+    public = runner.public_report(private)
+    assert public["reports"][0]["existing_core_whitespace_equal"] is expected
+    assert public["reports"][0]["changed_core_fields"] == ["velocita"]
+    assert PRIVATE not in json.dumps(public)
+
+
 @pytest.mark.parametrize("mutation", ["identity", "core", "gate"])
 def test_original_attributes_are_supported_only_with_identity_agreement_and_gates(
     mutation,

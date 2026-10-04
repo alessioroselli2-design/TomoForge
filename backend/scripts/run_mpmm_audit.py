@@ -195,6 +195,12 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                 "existing_attributes_supported": exact_identity
                 and all(agreement.values())
                 and not monster_semantic_numeric_flags(before),
+                "existing_core_whitespace_equal": all(
+                    bool(before.get(field))
+                    and bool(after.get(field))
+                    and str(before[field]).split() == str(after[field]).split()
+                    for field in CORE_FIELDS
+                ),
                 "changed_core_fields": [
                     field
                     for field in CORE_FIELDS
