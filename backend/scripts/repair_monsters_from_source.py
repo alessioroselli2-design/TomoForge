@@ -884,6 +884,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_51cc5af68a475cb2a7ac137ede8e1cc7",  # Mirmidone Elementale Di Fuoco: sole registered page 88
     "ref_10a974bfc32a521c8d9a8db1aab0123d",  # Orthon: sole registered page 12
     "ref_f0919b1e8ef955a19953d273054accaf",  # Mago Invocatore: selected registered page 72
     "ref_95407fdd26ae57e88fc3943545bd5cc4",  # Mago Trasmutatore: sole registered page 74
@@ -6465,6 +6466,7 @@ def _agreed_target_candidate(
                             "Mago Invocatore",
                             "Mago Trasmutatore",
                             "Orthon",
+                            "Mirmidone Elementale Di Fuoco",
                             "Leviatano",
                         }
                         else {}
@@ -7725,6 +7727,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_51cc5af68a475cb2a7ac137ede8e1cc7", "Mirmidone Elementale Di Fuoco"),
             ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon"),
             ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore"),
             ("ref_95407fdd26ae57e88fc3943545bd5cc4", "Mago Trasmutatore"),

@@ -3405,6 +3405,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
 
 
 @pytest.mark.parametrize("identifier,name,page", [
+    ("ref_51cc5af68a475cb2a7ac137ede8e1cc7", "Mirmidone Elementale Di Fuoco", 88),
     ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon", 12),
     ("ref_95407fdd26ae57e88fc3943545bd5cc4", "Mago Trasmutatore", 74),
     ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore", 68),
