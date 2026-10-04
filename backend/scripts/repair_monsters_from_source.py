@@ -885,6 +885,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_2ea09533213a54178032bc4c5b0b952d",  # Oblex Antico: sole registered page 6
     "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
     "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
     "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico: sole registered page 68
@@ -5161,7 +5162,6 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
-        effective_dpi = max(effective_dpi, 400)
         secondary_psm = 12
     if (
         name == "Xvart"
@@ -6501,6 +6501,7 @@ def _agreed_target_candidate(
                             "Warlock Del Grande Antico",
                             "Warlock Dell'Immondo",
                             "Moloch",
+                            "Oblex Antico",
                             "Leviatano",
                         }
                         else {}
@@ -7761,6 +7762,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico"),
             ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch"),
             ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo"),
             ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico"),

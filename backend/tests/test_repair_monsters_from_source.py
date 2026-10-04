@@ -3405,6 +3405,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
 
 
 @pytest.mark.parametrize("identifier,name,page", [
+    ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico", 6),
     ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo", 69),
     ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico", 68),
     ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort", 71),
