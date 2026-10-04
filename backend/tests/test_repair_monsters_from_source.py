@@ -3440,10 +3440,17 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
     assert json.dumps(record, sort_keys=True) == before
 
 
-@pytest.mark.parametrize("refs", [[68, 71], [71], [68, 68, 71]])
-def test_illusionista_requires_one_original_registered_selected_page(refs):
+@pytest.mark.parametrize("identifier,name,page,refs", [
+    ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [68, 71]),
+    ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [71]),
+    ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [68, 68, 71]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72, 72]),
+])
+def test_mage_requires_one_original_registered_selected_page(identifier, name, page, refs):
     record = {
-        "id": "ref_90b64fd6ac3057ee8ab373bb0be776a8", "name": "Mago Illusionista",
+        "id": identifier, "name": name,
         "review_status": "pending",
         "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
     }
@@ -3457,9 +3464,9 @@ def test_illusionista_requires_one_original_registered_selected_page(refs):
         pytest.raises(RepairBlocked) as caught,
     ):
         asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
-    if refs == [68, 71]:
+    if refs.count(page) == 1:
         assert caught.value.reason == "pilot_stop"
-        assert ocr.call_args.args[1] == 68
+        assert ocr.call_args.args[1] == page
         assert ocr.call_args.kwargs["target_page_only"] is True
         assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
     else:
