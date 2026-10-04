@@ -3057,6 +3057,27 @@ def test_private_core_presence_probe_does_not_join_detached_hp_value():
     assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
 
 
+@pytest.mark.parametrize("suffix,expected", [("i", 1), ("Ù", 1), ("I", 0), ("ii", 0), ("altro", 0)])
+def test_private_title_suffix_probe_never_repairs_or_accepts_identity(suffix, expected):
+    text = (
+        f"GUARDIANO FITTIZIO {suffix}\nUmanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\nPunti Ferita 18 (4d4 + 8)\nVelocità 5 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text), (8, "GUARDIANO FITTIZIO i\n")]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["known_title_suffix_lines"] == expected
+    assert counts["parser_known_title_suffix_headers"] == expected
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert json.dumps(pages) == before
+    with pytest.raises(RepairBlocked, match="no_unique_exact_target_identity"):
+        _agreed_target_candidate(
+            pages, pages, "synthetic.pdf", "it", "Guardiano Fittizio", 7,
+            require_exact_target_identity=True,
+        )
+
+
 def test_private_descriptor_vocabulary_probe_never_modifies_source_text():
     text = (
         "SYNTHETIC GUARD\nVegetale Piccolo, senza allineamento\n"

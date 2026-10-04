@@ -6177,6 +6177,11 @@ def _identity_source_counts(
         ]
     ]
     raw_lines = [line for line in parser_lines if line]
+
+    def known_title_suffix(line: str) -> bool:
+        match = re.fullmatch(r"(.*?)\s+([Ùi])", line.strip())
+        return bool(match and normalize_reference_name(match.group(1)) == expected)
+
     lines = [normalize_reference_name(line) for line in raw_lines]
     title_indexes = [index for index, line in enumerate(lines) if line == expected]
     wrapped_title_indexes = [
@@ -6208,6 +6213,10 @@ def _identity_source_counts(
         and _candidate_matches_target(candidate, reversed_title, target_page)
     ]
     return {
+        "known_title_suffix_lines": sum(known_title_suffix(line) for line in raw_lines),
+        "parser_known_title_suffix_headers": sum(
+            known_title_suffix(header[1]) for header in parser_headers
+        ),
         "parser_valid_headers": len(parser_headers),
         "parser_exact_headers": sum(
             normalize_reference_name(header[1]) == expected for header in parser_headers
