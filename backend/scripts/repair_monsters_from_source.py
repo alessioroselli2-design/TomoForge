@@ -866,6 +866,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: registered alternative page
@@ -884,6 +885,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
     "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
     "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico: sole registered page 68
     "ref_a039088ef69452beaaedb512ab702231",  # Xvart Warlock Di Raxivort: sole registered page 71
@@ -5154,14 +5156,6 @@ def _ocr_source_window(
     ):
         secondary_psm = 6
     if (
-        name == "Warlock Dell'Immondo"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 69
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
-    if (
         name == "Xvart"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 71
@@ -6498,6 +6492,7 @@ def _agreed_target_candidate(
                             "Xvart Warlock Di Raxivort",
                             "Warlock Del Grande Antico",
                             "Warlock Dell'Immondo",
+                            "Moloch",
                             "Leviatano",
                         }
                         else {}
@@ -7758,6 +7753,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch"),
             ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo"),
             ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico"),
             ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort"),

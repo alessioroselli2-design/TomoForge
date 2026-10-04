@@ -3447,6 +3447,9 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
 
 
 @pytest.mark.parametrize("identifier,name,page,refs", [
+    ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89, 90]),
+    ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89]),
+    ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89, 90, 90]),
     ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [68, 71]),
     ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [71]),
     ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [68, 68, 71]),
