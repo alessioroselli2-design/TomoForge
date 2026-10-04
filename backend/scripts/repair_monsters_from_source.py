@@ -5147,7 +5147,7 @@ def _ocr_source_window(
         and target_page_only
     ):
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        secondary_psm = 11
     if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
