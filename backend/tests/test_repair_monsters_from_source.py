@@ -3383,6 +3383,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
 
 
 @pytest.mark.parametrize("identifier,name,page", [
+    ("ref_c41175075be5535ab3cfd37dbbd7e1e1", "Hobgoblin Ombra Di Ferro", 49),
     ("ref_fae2af9678e6572cb755708aab5c393d", "Drow Inquisitore", 4),
     ("ref_a8c5d07ab39252f8a22f4744181983df", "Duergar Despota", 9),
     ("ref_a6f22b9706e058a8bd3f4dcbbd24c985", "Danzatore Dell'Ombra", 40),

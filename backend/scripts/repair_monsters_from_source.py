@@ -880,6 +880,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_c41175075be5535ab3cfd37dbbd7e1e1",  # Hobgoblin Ombra Di Ferro: sole registered page 49
     "ref_744cb23cb7f95be7b5d7521316ce8e78",  # Fenice: sole registered page 23
     "ref_aadff2eb6eff59af9caddb92deee6614",  # Esploratore Di Bronzo: registered page 79
     "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore: sole registered page 8
@@ -5143,7 +5144,7 @@ def _ocr_source_window(
         and target_page_only
     ):
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 11
+        primary_psm, secondary_psm = 12, 11
     if (
         name == "Drow Inquisitore"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6389,6 +6390,7 @@ def _agreed_target_candidate(
                             "Duergar Martellatore",
                             "Esploratore Di Bronzo",
                             "Fenice",
+                            "Hobgoblin Ombra Di Ferro",
                         }
                         else {}
                     ),
@@ -7648,6 +7650,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_c41175075be5535ab3cfd37dbbd7e1e1", "Hobgoblin Ombra Di Ferro"),
             ("ref_744cb23cb7f95be7b5d7521316ce8e78", "Fenice"),
             ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo"),
             ("ref_8def8c405c2452a4a10ff597fd89fdc8", "Duergar Martellatore"),
