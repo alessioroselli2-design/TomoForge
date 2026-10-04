@@ -3438,6 +3438,34 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
     assert json.dumps(record, sort_keys=True) == before
 
 
+@pytest.mark.parametrize("refs", [[68, 71], [68], [68, 71, 71]])
+def test_illusionista_requires_one_original_registered_alternative(refs):
+    record = {
+        "id": "ref_90b64fd6ac3057ee8ab373bb0be776a8", "name": "Mago Illusionista",
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    before = json.dumps(record, sort_keys=True)
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    if refs == [68, 71]:
+        assert caught.value.reason == "pilot_stop"
+        assert ocr.call_args.args[1] == 71
+        assert ocr.call_args.kwargs["target_page_only"] is True
+        assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    else:
+        assert caught.value.reason == "source_page_override_ref_drift"
+        ocr.assert_not_called()
+    assert json.dumps(record, sort_keys=True) == before
+
+
 @pytest.mark.parametrize("suffix", ["Ù", "i"])
 def test_kithrak_isolation_preserves_numeric_text_and_raw_glyph(suffix):
     text = f"GITHYANKI KITH'RAK {suffix}\nClasse Armatura 18 (piastre) (\nPunti Ferita 180 (24d8 + 72)\nVelocità 9 m 3\n"
