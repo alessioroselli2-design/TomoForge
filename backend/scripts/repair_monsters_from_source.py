@@ -5147,7 +5147,7 @@ def _ocr_source_window(
         and target_page == 12
         and target_page_only
     ):
-        secondary_psm = 11
+        secondary_psm = 6
     if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
