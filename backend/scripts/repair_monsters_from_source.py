@@ -881,6 +881,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_9b1196c7b5c85057bd4c60098313a271",  # Leucrotta: sole registered page 65
     "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex: examine only selected registered page 56
     "ref_c41175075be5535ab3cfd37dbbd7e1e1",  # Hobgoblin Ombra Di Ferro: sole registered page 49
     "ref_744cb23cb7f95be7b5d7521316ce8e78",  # Fenice: sole registered page 23
@@ -6401,6 +6402,7 @@ def _agreed_target_candidate(
                             "Fenice",
                             "Hobgoblin Ombra Di Ferro",
                             "Juiblex",
+                            "Leucrotta",
                         }
                         else {}
                     ),
@@ -7660,6 +7662,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_9b1196c7b5c85057bd4c60098313a271", "Leucrotta"),
             ("ref_6a30875b811b5a9982e1afd61f80126b", "Juiblex"),
             ("ref_c41175075be5535ab3cfd37dbbd7e1e1", "Hobgoblin Ombra Di Ferro"),
             ("ref_744cb23cb7f95be7b5d7521316ce8e78", "Fenice"),
