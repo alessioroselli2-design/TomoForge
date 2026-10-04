@@ -3405,6 +3405,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
 
 
 @pytest.mark.parametrize("identifier,name,page", [
+    ("ref_95407fdd26ae57e88fc3943545bd5cc4", "Mago Trasmutatore", 74),
     ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore", 68),
     ("ref_4ea78cedcefc5ac885f0d93dcffba7ae", "Leviatano", 66),
     ("ref_9b1196c7b5c85057bd4c60098313a271", "Leucrotta", 65),
