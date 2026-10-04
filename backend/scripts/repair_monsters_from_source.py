@@ -883,6 +883,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_3986eba313495283bfe6b6f843891add",  # Mago Divinatore: sole registered page 68
     "ref_90b64fd6ac3057ee8ab373bb0be776a8",  # Mago Illusionista: selected registered page 68
     "ref_4ea78cedcefc5ac885f0d93dcffba7ae",  # Leviatano: sole registered page 66
     "ref_e14604cbec0a5306918cca5f4e74d639",  # Mago Apprendista: selected registered page 69
@@ -5130,14 +5131,6 @@ def _ocr_source_window(
     ):
         secondary_psm = 11
     if (
-        name == "Mago Illusionista"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 68
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        secondary_psm = 11
-    if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 36
@@ -6442,6 +6435,7 @@ def _agreed_target_candidate(
                             "Leucrotta",
                             "Mago Apprendista",
                             "Mago Illusionista",
+                            "Mago Divinatore",
                             "Leviatano",
                         }
                         else {}
@@ -7702,6 +7696,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore"),
             ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista"),
             ("ref_4ea78cedcefc5ac885f0d93dcffba7ae", "Leviatano"),
             ("ref_e14604cbec0a5306918cca5f4e74d639", "Mago Apprendista"),
