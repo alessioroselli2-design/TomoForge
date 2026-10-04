@@ -5223,8 +5223,14 @@ def _ocr_source_window(
         and target_page == 40
         and target_page_only
     ):
+        # The previous sparse-text 11/12 pair found text but did not produce
+        # two independently exact stat-block identities.  The registered page
+        # is already isolated, so re-read each column as structured text:
+        # PSM 4 assumes a variable-size single column while PSM 6 assumes one
+        # uniform text block.  They remain independent segmentation modes and
+        # all exact-identity/core gates stay unchanged.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Duergar Despota"
         and source.get("logical_source_id") == "mpmm_2022_it"
