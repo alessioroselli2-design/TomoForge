@@ -954,7 +954,8 @@ PRE_OTSU_SCALE_BY_TARGET = {
     "Altisauro": 2,
 }
 TARGET_SEGMENT_BY_NAME = {
-    "Danzatore Dell\'Ombra": "left",  # bounded fail-closed column probe; exact identity still required
+    # Bounded fail-closed column probe; exact identity is still required.
+    "Danzatore Dell\'Ombra": "left",
     "Derro": "right",  # Page 93: ordinary stat block; Sapiente is on page 94
     "Delfino": "right",  # Page 89: both stat blocks right; keep identities distinct
     "Celeresto": "right",  # Page 79: prose left, stat block right
