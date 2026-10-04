@@ -884,6 +884,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
     "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico: sole registered page 68
     "ref_a039088ef69452beaaedb512ab702231",  # Xvart Warlock Di Raxivort: sole registered page 71
     "ref_ef1a5c6b4a9b5b809ccba61565f49a36",  # Xvart: sole registered page 71
@@ -5153,14 +5154,6 @@ def _ocr_source_window(
     ):
         secondary_psm = 6
     if (
-        name == "Warlock Del Grande Antico"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 68
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
-    if (
         name == "Xvart"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 71
@@ -6496,6 +6489,7 @@ def _agreed_target_candidate(
                             "Xvart",
                             "Xvart Warlock Di Raxivort",
                             "Warlock Del Grande Antico",
+                            "Warlock Dell'Immondo",
                             "Leviatano",
                         }
                         else {}
@@ -7756,6 +7750,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo"),
             ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico"),
             ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort"),
             ("ref_ef1a5c6b4a9b5b809ccba61565f49a36", "Xvart"),
