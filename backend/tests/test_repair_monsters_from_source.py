@@ -3071,11 +3071,12 @@ def test_private_title_suffix_probe_never_repairs_or_accepts_identity(suffix, ex
     assert counts["parser_known_title_suffix_headers"] == expected
     assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
     assert json.dumps(pages) == before
-    with pytest.raises(RepairBlocked, match="no_unique_exact_target_identity"):
+    with pytest.raises(RepairBlocked) as caught:
         _agreed_target_candidate(
             pages, pages, "synthetic.pdf", "it", "Guardiano Fittizio", 7,
             require_exact_target_identity=True,
         )
+    assert caught.value.reason == "no_unique_exact_target_identity"
 
 
 def test_private_descriptor_vocabulary_probe_never_modifies_source_text():
