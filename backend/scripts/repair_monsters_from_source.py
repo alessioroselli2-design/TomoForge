@@ -866,7 +866,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
-    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 71,  # Mago Illusionista: registered alternative page
+    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: registered alternative page
     "ref_6a30875b811b5a9982e1afd61f80126b": 56,  # Juiblex: registered alternative page
     "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
@@ -883,7 +883,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
-    "ref_90b64fd6ac3057ee8ab373bb0be776a8",  # Mago Illusionista: selected registered page 71
+    "ref_90b64fd6ac3057ee8ab373bb0be776a8",  # Mago Illusionista: selected registered page 68
     "ref_4ea78cedcefc5ac885f0d93dcffba7ae",  # Leviatano: sole registered page 66
     "ref_e14604cbec0a5306918cca5f4e74d639",  # Mago Apprendista: selected registered page 69
     "ref_9b1196c7b5c85057bd4c60098313a271",  # Leucrotta: sole registered page 65
@@ -5129,14 +5129,6 @@ def _ocr_source_window(
         and target_page_only
     ):
         secondary_psm = 11
-    if (
-        name == "Mago Illusionista"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 71
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
     if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"

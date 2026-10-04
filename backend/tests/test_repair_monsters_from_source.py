@@ -3438,8 +3438,8 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
     assert json.dumps(record, sort_keys=True) == before
 
 
-@pytest.mark.parametrize("refs", [[68, 71], [68], [68, 71, 71]])
-def test_illusionista_requires_one_original_registered_alternative(refs):
+@pytest.mark.parametrize("refs", [[68, 71], [71], [68, 68, 71]])
+def test_illusionista_requires_one_original_registered_selected_page(refs):
     record = {
         "id": "ref_90b64fd6ac3057ee8ab373bb0be776a8", "name": "Mago Illusionista",
         "review_status": "pending",
@@ -3457,7 +3457,7 @@ def test_illusionista_requires_one_original_registered_alternative(refs):
         asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
     if refs == [68, 71]:
         assert caught.value.reason == "pilot_stop"
-        assert ocr.call_args.args[1] == 71
+        assert ocr.call_args.args[1] == 68
         assert ocr.call_args.kwargs["target_page_only"] is True
         assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
     else:
