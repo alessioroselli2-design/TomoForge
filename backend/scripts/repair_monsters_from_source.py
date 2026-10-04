@@ -882,6 +882,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_4ea78cedcefc5ac885f0d93dcffba7ae",  # Leviatano: sole registered page 66
     "ref_e14604cbec0a5306918cca5f4e74d639",  # Mago Apprendista: selected registered page 69
     "ref_9b1196c7b5c85057bd4c60098313a271",  # Leucrotta: sole registered page 65
     "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex: examine only selected registered page 56
@@ -5120,14 +5121,6 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         secondary_psm = 11
     if (
-        name == "Mago Apprendista"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 69
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        secondary_psm = 6
-    if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 36
@@ -6431,6 +6424,7 @@ def _agreed_target_candidate(
                             "Juiblex",
                             "Leucrotta",
                             "Mago Apprendista",
+                            "Leviatano",
                         }
                         else {}
                     ),
@@ -7690,6 +7684,7 @@ async def _repair_one(
     require_exact_target_identity = (
         (record_id, record.get("name"))
         in {
+            ("ref_4ea78cedcefc5ac885f0d93dcffba7ae", "Leviatano"),
             ("ref_e14604cbec0a5306918cca5f4e74d639", "Mago Apprendista"),
             ("ref_9b1196c7b5c85057bd4c60098313a271", "Leucrotta"),
             ("ref_6a30875b811b5a9982e1afd61f80126b", "Juiblex"),
