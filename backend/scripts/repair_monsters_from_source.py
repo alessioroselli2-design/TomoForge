@@ -5142,6 +5142,13 @@ def _ocr_source_window(
     ):
         secondary_psm = 11
     if (
+        name == "Orthon"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 12
+        and target_page_only
+    ):
+        secondary_psm = 11
+    if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 72
