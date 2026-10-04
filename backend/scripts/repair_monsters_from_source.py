@@ -5153,6 +5153,14 @@ def _ocr_source_window(
     ):
         secondary_psm = 6
     if (
+        name == "Warlock Del Grande Antico"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 68
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
+    if (
         name == "Xvart"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 71
