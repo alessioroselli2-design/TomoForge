@@ -6545,7 +6545,9 @@ def _agreed_target_candidate(
             compatible_fallback_diagnostics = {
                 "eligible_name": True,
                 "primary_exact_title_lines": primary_counts.get("exact_title_lines", 0),
-                "comparison_exact_title_lines": comparison_counts.get("exact_title_lines", 0),
+                "comparison_exact_title_lines": comparison_counts.get(
+                    "exact_title_lines", 0
+                ),
                 "primary_gate_flags": primary_gate_flags,
                 "comparison_gate_flags": comparison_gate_flags,
                 "core_match": {
@@ -6591,7 +6593,8 @@ def _agreed_target_candidate(
                     "comparison_compatible_candidates": len(comparison_compatible),
                     **(
                         {"compatible_fallback": compatible_fallback_diagnostics}
-                        if target_name in SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+                        if target_name
+                        in SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
                         else {}
                     ),
                     **(
