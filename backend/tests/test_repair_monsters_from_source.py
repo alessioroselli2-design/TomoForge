@@ -81,6 +81,7 @@ from scripts.repair_monsters_from_source import (
     _restore_cavallo_sparse_title_from_anchor,
     _sample_variance,
     _should_retry_dynamic_layout,
+    _should_retry_exact_identity_sparse,
     _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
     _verified_core_agreement,
@@ -1617,6 +1618,17 @@ def test_non_two_column_source_keeps_full_page_settings():
         psm=6,
         comparison_psm=4,
     ) == (220, 6, 4)
+
+
+def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_failure():
+    warlock_id = "ref_583cbd071aec5dc58748c4b27e4005b5"
+    other_id = "ref_a6f22b9706e058a8bd3f4dcbbd24c985"
+    exact_failure = RepairBlocked("no_unique_exact_target_identity")
+    core_failure = RepairBlocked("no_unique_independent_agreement")
+
+    assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is True
+    assert _should_retry_exact_identity_sparse(core_failure, warlock_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, other_id) is False
 
 
 def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
