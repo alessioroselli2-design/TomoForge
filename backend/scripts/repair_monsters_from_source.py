@@ -884,6 +884,13 @@ SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
 SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
     "ref_1e187bb2bbc257439e399104067bf326": "Shadar-Kai Trafficante Di Anime",
 }
+SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
+    {
+        "Danzatore Dell'Ombra",
+        "Warlock Del Grande Antico",
+        "Xvart Warlock Di Raxivort",
+    }
+)
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_1e187bb2bbc257439e399104067bf326",  # Shadar-Kai Trafficante Di Anime: sole registered page 41
     "ref_43a10fe5cecc50f9a2112cbea5b5c839",  # Sciame Di Larve Putride: sole registered page 34
@@ -6491,6 +6498,68 @@ def _agreed_target_candidate(
 
         primary_compatible = compatible_targets(primary)
         comparison_compatible = compatible_targets(comparison)
+
+        if (
+            (len(primary_exact) != 1 or len(comparison_exact) != 1)
+            and target_name in SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+            and len(primary_compatible) == 1
+            and len(comparison_compatible) == 1
+        ):
+            primary_counts = _identity_source_counts(
+                primary_pages,
+                primary,
+                target_name,
+                target_page,
+            )
+            comparison_counts = _identity_source_counts(
+                comparison_pages,
+                comparison,
+                target_name,
+                target_page,
+            )
+            primary_attributes = primary_compatible[0].get("attributes") or {}
+            comparison_attributes = comparison_compatible[0].get("attributes") or {}
+            deterministic = deterministic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            clean_core = (
+                not monster_semantic_numeric_flags(primary_attributes)
+                and not monster_semantic_numeric_flags(comparison_attributes)
+                and all(
+                    deterministic.get(f"{field}_deterministic_match", False)
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                )
+            )
+            exact_title_is_unique = (
+                primary_counts.get("exact_title_lines") == 1
+                and comparison_counts.get("exact_title_lines") == 1
+            )
+            if exact_title_is_unique and clean_core:
+                primary_target = dict(primary_compatible[0])
+                comparison_target = dict(comparison_compatible[0])
+                for candidate in (primary_target, comparison_target):
+                    candidate["name"] = target_name
+                    candidate["normalized_name"] = normalized_target
+                primary_exact = [primary_target]
+                comparison_exact = [comparison_target]
+                print(
+                    "MPMM_EXACT_TITLE_COMPATIBLE_IDENTITY_FALLBACK "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "page": target_page,
+                            "primary_compatible_candidates": 1,
+                            "comparison_compatible_candidates": 1,
+                            "primary_exact_title_lines": 1,
+                            "comparison_exact_title_lines": 1,
+                            "core_fields_agree": True,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
