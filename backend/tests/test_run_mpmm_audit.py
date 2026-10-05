@@ -161,6 +161,50 @@ def test_exact_identity_failure_publishes_only_counts():
     }
 
 
+def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
+    private = _report()
+    private["blocked_records"] = [
+        {
+            "record_id": IDENTIFIER,
+            "reason": "no_unique_exact_target_identity",
+            "diagnostics": {
+                "compatible_fallback": {
+                    "eligible_name": True,
+                    "primary_exact_title_lines": 1,
+                    "comparison_exact_title_lines": 1,
+                    "primary_gate_flags": ["HP_format_error", PRIVATE],
+                    "comparison_gate_flags": ["CA_format_error"],
+                    "core_match": {
+                        "classe_armatura": True,
+                        "punti_ferita": True,
+                        "velocita": True,
+                        "private": PRIVATE,
+                    },
+                    "private": PRIVATE,
+                }
+            },
+        }
+    ]
+    public = runner.public_report(private)
+    encoded = json.dumps(public)
+    assert PRIVATE not in encoded
+    diagnostic = public["blocked_records"][0]["compatible_fallback"]
+    assert diagnostic == {
+        "eligible_name": True,
+        "primary_exact_title_lines": 1,
+        "comparison_exact_title_lines": 1,
+        "primary_gate_flags": ["HP_format_error"],
+        "comparison_gate_flags": ["CA_format_error"],
+        "primary_gate_flag_count": 2,
+        "comparison_gate_flag_count": 1,
+        "core_match": {
+            "classe_armatura": True,
+            "punti_ferita": True,
+            "velocita": True,
+        },
+    }
+
+
 def test_identity_source_diagnostics_cannot_export_source_content():
     private = _report()
     private["blocked_records"] = [
