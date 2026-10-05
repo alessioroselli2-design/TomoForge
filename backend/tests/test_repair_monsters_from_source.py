@@ -85,6 +85,7 @@ from scripts.repair_monsters_from_source import (
     _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
     _sparse_anchor_psms,
+    _source_guided_sparse_ocr_psms,
     _verified_core_agreement,
     build_repair_proposal,
     resolve_source,
@@ -1654,6 +1655,14 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
     assert (
         _should_retry_dynamic_layout(missing, {"logical_source_id": "tce_2020_it"})
         is False
+    )
+
+
+def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
+    assert _source_guided_sparse_ocr_psms("Drow Inquisitore", 4, 12) == (6, 12)
+    assert _source_guided_sparse_ocr_psms("Warlock Del Grande Antico", 3, 4) == (
+        3,
+        4,
     )
 
 
