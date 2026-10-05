@@ -896,6 +896,9 @@ SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
         "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico
     }
 )
+SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
+    "Warlock Del Grande Antico": (3, 4),
+}
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_1e187bb2bbc257439e399104067bf326",  # Shadar-Kai Trafficante Di Anime: sole registered page 41
     "ref_43a10fe5cecc50f9a2112cbea5b5c839",  # Sciame Di Larve Putride: sole registered page 34
@@ -2280,6 +2283,11 @@ def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> 
         diagnostics.get("primary_name_candidates") == 0
         or diagnostics.get("comparison_name_candidates") == 0
     )
+
+
+def _sparse_anchor_psms(name: str) -> tuple[int, ...]:
+    """Return title-localization modes only; canonical OCR gates stay unchanged."""
+    return (11, *SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME.get(name, ()))
 
 
 def _sparse_anchor_matches(page_text: str, target_name: str) -> bool:
@@ -5364,12 +5372,17 @@ def _ocr_source_window(
                     sparse_anchor_found = None
                     sparse_anchor_crop = None
                     if sparse_full_page:
-                        sparse_anchor_crop = _sparse_anchor_crop_fractions(
-                            image_path,
-                            languages,
-                            name,
-                            ocr_budget_started_at=ocr_budget_started_at,
-                        )
+                        sparse_anchor_crop = None
+                        for anchor_psm in _sparse_anchor_psms(name):
+                            sparse_anchor_crop = _sparse_anchor_crop_fractions(
+                                image_path,
+                                languages,
+                                name,
+                                psm=anchor_psm,
+                                ocr_budget_started_at=ocr_budget_started_at,
+                            )
+                            if sparse_anchor_crop is not None:
+                                break
                         if sparse_anchor_crop is None and name == "Cinghiale":
                             sparse_anchor_crop = _sparse_anchor_crop_fractions(
                                 image_path,
