@@ -11,6 +11,7 @@ on:
       - backend/services/monster_statblock_ocr.py
       - backend/services/ocr_semantic_gates.py
       - .github/workflows/mpmm-pending-131.yml
+      - .github/mpmm-audit-focus.txt
   workflow_dispatch:
     inputs:
       audit_record_id:
@@ -30,7 +31,7 @@ permissions:
 concurrency:
   # Focused pilots are enforced read-only by the script and can safely run
   # beside a full read-only snapshot. All write-enabled runs keep one group.
-  group: tomoforge-mpmm-pending-131${{ github.event_name == 'workflow_dispatch' && inputs.execute == false && inputs.audit_record_id != '' && format('-readonly-{0}', inputs.audit_record_id) || '' }}
+  group: tomoforge-mpmm-pending-131${{ github.event_name == 'push' && '-readonly-push-focus' || (github.event_name == 'workflow_dispatch' && inputs.execute == false && inputs.audit_record_id != '' && format('-readonly-{0}', inputs.audit_record_id) || '') }}
   cancel-in-progress: false
 
 jobs:
@@ -71,6 +72,16 @@ jobs:
         run: |
           set -o pipefail
           args=(--allow-r2-download --batch-size 25)
+          if [[ "${{ github.event_name }}" == "push" && -f .github/mpmm-audit-focus.txt ]]; then
+            focus="$(tr -d '[:space:]' < .github/mpmm-audit-focus.txt)"
+            if [[ -n "$focus" ]]; then
+              if [[ ! "$focus" =~ ^ref_[0-9a-f]{32}$ ]]; then
+                echo "Invalid read-only focus record id"
+                exit 1
+              fi
+              AUDIT_RECORD_ID="$focus"
+            fi
+          fi
           if [[ -n "$AUDIT_RECORD_ID" ]]; then
             args+=(--audit-record-id "$AUDIT_RECORD_ID")
           fi
