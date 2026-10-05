@@ -7,6 +7,7 @@ on:
       - codex/mpmm-pending-131-20261001
     paths:
       - backend/scripts/process_mpmm_pending.py
+      - backend/scripts/run_mpmm_audit.py
       - backend/scripts/repair_monsters_from_source.py
       - backend/services/monster_statblock_ocr.py
       - backend/services/ocr_semantic_gates.py
