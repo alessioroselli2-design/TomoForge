@@ -2296,6 +2296,17 @@ def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> 
     )
 
 
+def _source_guided_sparse_ocr_psms(
+    name: str,
+    primary_psm: int,
+    secondary_psm: int,
+) -> tuple[int, int]:
+    """Keep two independent OCR layouts for a source-scoped sparse crop."""
+    if name in SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME:
+        return SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME[name]
+    return primary_psm, _phb_sparse_comparison_psm(name, secondary_psm)
+
+
 def _sparse_anchor_psms(name: str) -> tuple[int, ...]:
     """Return title-localization modes only; canonical OCR gates stay unchanged."""
     return (11, *SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME.get(name, ()))
@@ -5309,10 +5320,11 @@ def _ocr_source_window(
         # Geometry is already locked by a unique title anchor. Keep two
         # independent OCR layouts; selected MPMM residuals may use a
         # source-scoped pair better suited to the isolated stat block.
-        if name in SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME:
-            primary_psm, secondary_psm = SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME[name]
-        else:
-            secondary_psm = _phb_sparse_comparison_psm(name, secondary_psm)
+        primary_psm, secondary_psm = _source_guided_sparse_ocr_psms(
+            name,
+            primary_psm,
+            secondary_psm,
+        )
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
