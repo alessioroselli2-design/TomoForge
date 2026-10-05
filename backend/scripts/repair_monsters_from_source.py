@@ -891,6 +891,11 @@ SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
         "Xvart Warlock Di Raxivort",
     }
 )
+SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
+    {
+        "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico
+    }
+)
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_1e187bb2bbc257439e399104067bf326",  # Shadar-Kai Trafficante Di Anime: sole registered page 41
     "ref_43a10fe5cecc50f9a2112cbea5b5c839",  # Sciame Di Larve Putride: sole registered page 34
@@ -8089,6 +8094,20 @@ async def _repair_one(
             )
             break
         except RepairBlocked as exc:
+            if (
+                exc.reason == "no_unique_exact_target_identity"
+                and record_id in SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS
+            ):
+                print(
+                    "MPMM_EXACT_IDENTITY_SPARSE_RETRY "
+                    + json.dumps(
+                        {"name": record.get("name"), "reason": exc.reason},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                sparse_retry_required = True
+                break
             if str(record.get("id") or "") in SOURCE_GUIDED_NO_DYNAMIC_LAYOUT_RETRY_IDS:
                 raise
             if (
