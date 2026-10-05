@@ -3606,6 +3606,75 @@ def test_pending_kithrak_clean_core_gate_does_not_assume_expected_values():
     assert build_repair_proposal(legacy, candidate)["attributes"] == candidate["attributes"]
 
 
+def _mpmm_compatible_identity_candidate(name_suffix="i", *, ca="15 (cuoio borchiato)"):
+    return {
+        "name": f"DANZATORE DELL'OMBRA {name_suffix}",
+        "normalized_name": f"danzatore dell ombra {name_suffix}",
+        "start_page": 40,
+        "source_refs": [{"page": 40}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "71 (13d8 + 13)",
+            "velocita": "9 m",
+        },
+    }
+
+
+def test_mpmm_exact_title_compatible_fallback_keeps_independent_core_gate():
+    primary = _mpmm_compatible_identity_candidate("i")
+    comparison = _mpmm_compatible_identity_candidate("l")
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(
+            repair,
+            "_identity_source_counts",
+            side_effect=[{"exact_title_lines": 1}, {"exact_title_lines": 1}],
+        ),
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Danzatore Dell'Ombra", 40,
+            require_exact_target_identity=True,
+        )
+    assert candidate["name"] == "Danzatore Dell'Ombra"
+    assert candidate["normalized_name"] == repair.normalize_reference_name(
+        "Danzatore Dell'Ombra"
+    )
+    assert candidate["attributes"] == primary["attributes"]
+
+
+@pytest.mark.parametrize("mutation", ["missing_title", "core_disagreement", "duplicate"])
+def test_mpmm_exact_title_compatible_fallback_fails_closed(mutation):
+    primary = _mpmm_compatible_identity_candidate("i")
+    comparison = _mpmm_compatible_identity_candidate("l")
+    primary_records = [primary]
+    comparison_records = [comparison]
+    counts = [{"exact_title_lines": 1}, {"exact_title_lines": 1}]
+    if mutation == "missing_title":
+        counts[1] = {"exact_title_lines": 0}
+    elif mutation == "core_disagreement":
+        comparison = _mpmm_compatible_identity_candidate("l", ca="16")
+        comparison_records = [comparison]
+    elif mutation == "duplicate":
+        primary_records = [primary, _mpmm_compatible_identity_candidate("ii")]
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Danzatore Dell'Ombra", 40,
+            require_exact_target_identity=True,
+        )
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
 @pytest.mark.parametrize("target", ["Oscuride", "Oscuride Anziano"])
 @pytest.mark.parametrize("mutation", ["none", "ca_disagreement", "duplicate", "missing_exact"])
 def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutation, target):
