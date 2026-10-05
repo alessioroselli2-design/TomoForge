@@ -67,7 +67,8 @@ jobs:
         id: audit
         env:
           EXECUTE: ${{ github.event_name == 'workflow_dispatch' && inputs.execute }}
-          AUDIT_RECORD_ID: ${{ inputs.audit_record_id }}
+          # Push fallback is intentionally scoped to Danzatore and remains read-only.
+          AUDIT_RECORD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.audit_record_id || 'ref_a6f22b9706e058a8bd3f4dcbbd24c985' }}
         run: |
           set -o pipefail
           args=(--allow-r2-download --batch-size 25)
