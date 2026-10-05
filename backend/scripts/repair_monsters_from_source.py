@@ -2261,6 +2261,14 @@ def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     return default_psm
 
 
+def _should_retry_exact_identity_sparse(exc: RepairBlocked, record_id: str) -> bool:
+    """Retry one source-guided target with sparse anchoring without relaxing gates."""
+    return (
+        exc.reason == "no_unique_exact_target_identity"
+        and record_id in SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS
+    )
+
+
 def _should_retry_dynamic_layout(exc: RepairBlocked, source: dict[str, Any]) -> bool:
     """Retry wider column clips only when target identity was absent in OCR."""
     if exc.reason != "no_unique_independent_agreement":
@@ -8094,10 +8102,7 @@ async def _repair_one(
             )
             break
         except RepairBlocked as exc:
-            if (
-                exc.reason == "no_unique_exact_target_identity"
-                and record_id in SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS
-            ):
+            if _should_retry_exact_identity_sparse(exc, record_id):
                 print(
                     "MPMM_EXACT_IDENTITY_SPARSE_RETRY "
                     + json.dumps(
