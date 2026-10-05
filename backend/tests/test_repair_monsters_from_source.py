@@ -1659,7 +1659,11 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
 
 def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
     assert _sparse_anchor_psms("Warlock Del Grande Antico") == (11, 3, 4)
-    assert _sparse_anchor_psms("Drow Inquisitore") == (11,)
+    assert _sparse_anchor_psms("Drow Inquisitore") == (11, 4, 12)
+    assert _sparse_anchor_psms("Duergar Martellatore") == (11, 4)
+    assert _sparse_anchor_psms("Fenice") == (11, 4)
+    assert _sparse_anchor_psms("Juiblex") == (11, 3)
+    assert _sparse_anchor_psms("Danzatore Dell'Ombra") == (11,)
 
 
 def test_sparse_page_anchor_requires_title_like_identity():
