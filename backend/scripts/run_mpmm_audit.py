@@ -13,6 +13,14 @@ from typing import Any
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 CORE_FIELDS = ("classe_armatura", "punti_ferita", "velocita")
+PUBLIC_COMPATIBLE_GATE_FLAGS = frozenset(
+    {
+        "CA_out_of_bounds",
+        "CA_format_error",
+        "HP_format_error",
+    }
+)
+
 PUBLIC_REASONS = frozenset(
     {
         "ocr_global_timeout",
@@ -126,6 +134,45 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     )
                     if key in diagnostics
                 },
+                "compatible_fallback": (
+                    {
+                        "eligible_name": fallback.get("eligible_name") is True,
+                        "primary_exact_title_lines": _count(
+                            fallback.get("primary_exact_title_lines", 0)
+                        ),
+                        "comparison_exact_title_lines": _count(
+                            fallback.get("comparison_exact_title_lines", 0)
+                        ),
+                        "primary_gate_flags": sorted(
+                            {
+                                flag
+                                for flag in fallback.get("primary_gate_flags", [])
+                                if flag in PUBLIC_COMPATIBLE_GATE_FLAGS
+                            }
+                        ),
+                        "comparison_gate_flags": sorted(
+                            {
+                                flag
+                                for flag in fallback.get("comparison_gate_flags", [])
+                                if flag in PUBLIC_COMPATIBLE_GATE_FLAGS
+                            }
+                        ),
+                        "primary_gate_flag_count": _count(
+                            len(fallback.get("primary_gate_flags", []))
+                        ),
+                        "comparison_gate_flag_count": _count(
+                            len(fallback.get("comparison_gate_flags", []))
+                        ),
+                        "core_match": {
+                            field: (fallback.get("core_match") or {}).get(field) is True
+                            for field in CORE_FIELDS
+                        },
+                    }
+                    if isinstance(
+                        fallback := diagnostics.get("compatible_fallback"), dict
+                    )
+                    else {}
+                ),
                 "identity_source_counts": {
                     path: {
                         metric: _count(values[metric])
