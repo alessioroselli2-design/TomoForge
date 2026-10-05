@@ -134,6 +134,41 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     )
                     if key in diagnostics
                 },
+                "target_page_quality": (
+                    {
+                        "segments": {
+                            segment: {
+                                key: bool(value)
+                                for key, value in values.items()
+                                if key
+                                in {
+                                    "quality_pass",
+                                    "sparse_anchor_found",
+                                    "primary_chars_ok",
+                                    "comparison_chars_ok",
+                                    "primary_letter_ratio_ok",
+                                    "comparison_letter_ratio_ok",
+                                    "primary_printable_ratio_ok",
+                                    "comparison_printable_ratio_ok",
+                                    "primary_word_count_ok",
+                                    "comparison_word_count_ok",
+                                    "token_dice_ok",
+                                    "unique_jaccard_ok",
+                                    "length_ratio_ok",
+                                }
+                            }
+                            for segment in ("left", "right", "full", "sparse-full")
+                            if isinstance(
+                                values := quality.get("segments", {}).get(segment),
+                                dict,
+                            )
+                        }
+                    }
+                    if isinstance(
+                        quality := diagnostics.get("target_page_quality"), dict
+                    )
+                    else {}
+                ),
                 "compatible_fallback": (
                     {
                         "eligible_name": fallback.get("eligible_name") is True,
