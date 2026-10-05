@@ -907,6 +907,9 @@ SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
     "Fenice": (4,),
     "Juiblex": (3,),
 }
+SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME = {
+    "Drow Inquisitore": (6, 12),
+}
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_1e187bb2bbc257439e399104067bf326",  # Shadar-Kai Trafficante Di Anime: sole registered page 41
     "ref_43a10fe5cecc50f9a2112cbea5b5c839",  # Sciame Di Larve Putride: sole registered page 34
@@ -5303,10 +5306,13 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 4, 12
     if sparse_full_page:
-        # Geometry is already locked by a unique title anchor. Keep the
-        # primary layout unchanged and vary only the independent comparison
-        # segmentation mode for the remaining PHB identity failures.
-        secondary_psm = _phb_sparse_comparison_psm(name, secondary_psm)
+        # Geometry is already locked by a unique title anchor. Keep two
+        # independent OCR layouts; selected MPMM residuals may use a
+        # source-scoped pair better suited to the isolated stat block.
+        if name in SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME:
+            primary_psm, secondary_psm = SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME[name]
+        else:
+            secondary_psm = _phb_sparse_comparison_psm(name, secondary_psm)
     if primary_psm == secondary_psm:
         raise RepairBlocked("ocr_layout_modes_not_independent")
 
