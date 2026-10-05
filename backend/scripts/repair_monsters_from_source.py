@@ -6498,6 +6498,7 @@ def _agreed_target_candidate(
 
         primary_compatible = compatible_targets(primary)
         comparison_compatible = compatible_targets(comparison)
+        compatible_fallback_diagnostics: dict[str, Any] = {}
 
         if (
             (len(primary_exact) != 1 or len(comparison_exact) != 1)
@@ -6531,10 +6532,29 @@ def _agreed_target_candidate(
                     for field in ("classe_armatura", "punti_ferita", "velocita")
                 )
             )
+            primary_gate_flags = sorted(
+                monster_semantic_numeric_flags(primary_attributes)
+            )
+            comparison_gate_flags = sorted(
+                monster_semantic_numeric_flags(comparison_attributes)
+            )
             exact_title_is_unique = (
                 primary_counts.get("exact_title_lines") == 1
                 and comparison_counts.get("exact_title_lines") == 1
             )
+            compatible_fallback_diagnostics = {
+                "eligible_name": True,
+                "primary_exact_title_lines": primary_counts.get("exact_title_lines", 0),
+                "comparison_exact_title_lines": comparison_counts.get("exact_title_lines", 0),
+                "primary_gate_flags": primary_gate_flags,
+                "comparison_gate_flags": comparison_gate_flags,
+                "core_match": {
+                    field: bool(
+                        deterministic.get(f"{field}_deterministic_match", False)
+                    )
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                },
+            }
             if exact_title_is_unique and clean_core:
                 primary_target = dict(primary_compatible[0])
                 comparison_target = dict(comparison_compatible[0])
@@ -6569,6 +6589,11 @@ def _agreed_target_candidate(
                     "comparison_exact_candidates": len(comparison_exact),
                     "primary_compatible_candidates": len(primary_compatible),
                     "comparison_compatible_candidates": len(comparison_compatible),
+                    **(
+                        {"compatible_fallback": compatible_fallback_diagnostics}
+                        if target_name in SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+                        else {}
+                    ),
                     **(
                         {
                             f"{path}_identity_source_counts": _identity_source_counts(
