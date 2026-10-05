@@ -84,6 +84,7 @@ from scripts.repair_monsters_from_source import (
     _should_retry_exact_identity_sparse,
     _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
+    _sparse_anchor_psms,
     _verified_core_agreement,
     build_repair_proposal,
     resolve_source,
@@ -1654,6 +1655,11 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
         _should_retry_dynamic_layout(missing, {"logical_source_id": "tce_2020_it"})
         is False
     )
+
+
+def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
+    assert _sparse_anchor_psms("Warlock Del Grande Antico") == (11, 3, 4)
+    assert _sparse_anchor_psms("Drow Inquisitore") == (11,)
 
 
 def test_sparse_page_anchor_requires_title_like_identity():
