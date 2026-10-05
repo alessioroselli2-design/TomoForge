@@ -161,6 +161,50 @@ def test_exact_identity_failure_publishes_only_counts():
     }
 
 
+def test_target_quality_diagnostics_export_only_boolean_gate_results():
+    private = _report()
+    private["blocked_records"] = [
+        {
+            "record_id": IDENTIFIER,
+            "reason": "target_page_quality_fail",
+            "diagnostics": {
+                "target_page_quality": {
+                    "segments": {
+                        "sparse-full": {
+                            "quality_pass": False,
+                            "sparse_anchor_found": True,
+                            "primary_chars_ok": True,
+                            "comparison_chars_ok": False,
+                            "token_dice_ok": False,
+                            "unique_jaccard_ok": True,
+                            "length_ratio_ok": True,
+                            "private": PRIVATE,
+                        },
+                        PRIVATE: {"quality_pass": True},
+                    },
+                    "private": PRIVATE,
+                }
+            },
+        }
+    ]
+    public = runner.public_report(private)
+    encoded = json.dumps(public)
+    assert PRIVATE not in encoded
+    assert public["blocked_records"][0]["target_page_quality"] == {
+        "segments": {
+            "sparse-full": {
+                "quality_pass": False,
+                "sparse_anchor_found": True,
+                "primary_chars_ok": True,
+                "comparison_chars_ok": False,
+                "token_dice_ok": False,
+                "unique_jaccard_ok": True,
+                "length_ratio_ok": True,
+            }
+        }
+    }
+
+
 def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
     private = _report()
     private["blocked_records"] = [
