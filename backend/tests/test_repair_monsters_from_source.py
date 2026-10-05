@@ -3640,7 +3640,12 @@ def test_mpmm_exact_title_compatible_fallback_keeps_independent_core_gate():
     assert candidate["normalized_name"] == repair.normalize_reference_name(
         "Danzatore Dell'Ombra"
     )
-    assert candidate["attributes"] == primary["attributes"]
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+    assert candidate["attributes"]["ocr_independent_agreement"] is True
+    assert candidate["attributes"]["ocr_clean_deterministic_core_agreement"] is True
 
 
 @pytest.mark.parametrize("mutation", ["missing_title", "core_disagreement", "duplicate"])
@@ -3649,14 +3654,17 @@ def test_mpmm_exact_title_compatible_fallback_fails_closed(mutation):
     comparison = _mpmm_compatible_identity_candidate("l")
     primary_records = [primary]
     comparison_records = [comparison]
-    counts = [{"exact_title_lines": 1}, {"exact_title_lines": 1}]
-    if mutation == "missing_title":
-        counts[1] = {"exact_title_lines": 0}
-    elif mutation == "core_disagreement":
+    if mutation == "core_disagreement":
         comparison = _mpmm_compatible_identity_candidate("l", ca="16")
         comparison_records = [comparison]
     elif mutation == "duplicate":
         primary_records = [primary, _mpmm_compatible_identity_candidate("ii")]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        first_name = str((records[0] if records else {}).get("name") or "")
+        if mutation == "missing_title" and first_name.endswith(" l"):
+            return {"exact_title_lines": 0}
+        return {"exact_title_lines": 1}
 
     with (
         patch.object(
@@ -3665,7 +3673,7 @@ def test_mpmm_exact_title_compatible_fallback_fails_closed(mutation):
             side_effect=[primary_records, comparison_records],
         ),
         patch.object(repair, "_candidate_matches_target", return_value=True),
-        patch.object(repair, "_identity_source_counts", side_effect=counts),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
         pytest.raises(RepairBlocked) as caught,
     ):
         _agreed_target_candidate(
