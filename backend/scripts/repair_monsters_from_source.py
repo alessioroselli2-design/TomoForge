@@ -6215,21 +6215,16 @@ def _ocr_source_window(
                     comparison_quality.get("printable_ratio") or 0.0
                 )
                 >= 0.99,
-                "primary_word_count_ok": int(
-                    primary_quality.get("word_count") or 0
-                )
+                "primary_word_count_ok": int(primary_quality.get("word_count") or 0)
                 >= 80,
                 "comparison_word_count_ok": int(
                     comparison_quality.get("word_count") or 0
                 )
                 >= 80,
                 "token_dice_ok": float(agreement.get("token_dice") or 0.0) >= 0.72,
-                "unique_jaccard_ok": float(
-                    agreement.get("unique_jaccard") or 0.0
-                )
+                "unique_jaccard_ok": float(agreement.get("unique_jaccard") or 0.0)
                 >= 0.60,
-                "length_ratio_ok": float(agreement.get("length_ratio") or 0.0)
-                >= 0.72,
+                "length_ratio_ok": float(agreement.get("length_ratio") or 0.0) >= 0.72,
             }
         raise RepairBlocked(
             "target_page_quality_fail",
