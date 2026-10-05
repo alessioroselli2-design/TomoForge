@@ -6176,7 +6176,52 @@ def _ocr_source_window(
         document.close()
 
     if target_page not in {page for page, _ in primary_pages}:
-        raise RepairBlocked("target_page_quality_fail")
+        target_metrics = metrics.get(target_page) or {}
+        quality_diagnostics: dict[str, Any] = {"segments": {}}
+        for segment_name, agreement in (target_metrics.get("segments") or {}).items():
+            primary_quality = agreement.get("primary_quality") or {}
+            comparison_quality = agreement.get("comparison_quality") or {}
+            quality_diagnostics["segments"][segment_name] = {
+                "quality_pass": agreement.get("quality_pass") is True,
+                "sparse_anchor_found": agreement.get("sparse_anchor_found") is True,
+                "primary_chars_ok": int(primary_quality.get("chars") or 0) >= 500,
+                "comparison_chars_ok": int(comparison_quality.get("chars") or 0) >= 500,
+                "primary_letter_ratio_ok": float(
+                    primary_quality.get("letter_ratio") or 0.0
+                )
+                >= 0.65,
+                "comparison_letter_ratio_ok": float(
+                    comparison_quality.get("letter_ratio") or 0.0
+                )
+                >= 0.65,
+                "primary_printable_ratio_ok": float(
+                    primary_quality.get("printable_ratio") or 0.0
+                )
+                >= 0.99,
+                "comparison_printable_ratio_ok": float(
+                    comparison_quality.get("printable_ratio") or 0.0
+                )
+                >= 0.99,
+                "primary_word_count_ok": int(
+                    primary_quality.get("word_count") or 0
+                )
+                >= 80,
+                "comparison_word_count_ok": int(
+                    comparison_quality.get("word_count") or 0
+                )
+                >= 80,
+                "token_dice_ok": float(agreement.get("token_dice") or 0.0) >= 0.72,
+                "unique_jaccard_ok": float(
+                    agreement.get("unique_jaccard") or 0.0
+                )
+                >= 0.60,
+                "length_ratio_ok": float(agreement.get("length_ratio") or 0.0)
+                >= 0.72,
+            }
+        raise RepairBlocked(
+            "target_page_quality_fail",
+            diagnostics={"target_page_quality": quality_diagnostics},
+        )
     return primary_pages, comparison_pages, metrics
 
 
