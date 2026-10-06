@@ -4428,7 +4428,7 @@ def _reconstruct_drow_missing_hp_line(
 
     ca_index = ca_indexes[0]
     speed_index = speed_indexes[0]
-    if not (target_index < ca_index < speed_index and speed_index - ca_index <= 6):
+    if not (target_index < ca_index < speed_index and speed_index - ca_index <= 7):
         return None
 
     if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
