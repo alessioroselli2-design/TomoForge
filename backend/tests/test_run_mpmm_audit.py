@@ -224,6 +224,14 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
                         "velocita": True,
                         "private": PRIVATE,
                     },
+                    "hp_repair_shape": {
+                        "has_open_paren": True,
+                        "has_close_paren": False,
+                        "ends_close_paren": False,
+                        "has_d_separator": True,
+                        "has_modifier_sign": True,
+                        "private": PRIVATE,
+                    },
                     "private": PRIVATE,
                 }
             },
@@ -250,6 +258,13 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
         "hp_repair_attempted": False,
         "hp_repair_has_letter_confusion": False,
         "hp_repair_has_spaced_digits": False,
+        "hp_repair_shape": {
+            "has_open_paren": True,
+            "has_close_paren": False,
+            "ends_close_paren": False,
+            "has_d_separator": True,
+            "has_modifier_sign": True,
+        },
         "hp_repair_candidate_valid": False,
         "hp_repair_matches_peer": False,
     }
