@@ -4146,6 +4146,29 @@ def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
+def test_hp_leading_prefix_peer_repair_accepts_only_exact_clean_peer():
+    contaminated = "3 50 (28d12 + 1 68) 2d8 + 4"
+    peer = "350 (28d12 + 168)"
+    assert repair._repair_hp_leading_prefix_to_peer(contaminated, peer) == peer
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            contaminated,
+            "351 (28d12 + 169)",
+        )
+        is None
+    )
+
+
+def test_hp_leading_prefix_peer_repair_rejects_incomplete_leading_expression():
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            "350 (28d12 + 168 2d8 + 4",
+            "350 (28d12 + 168)",
+        )
+        is None
+    )
+
+
 def test_hp_letter_digit_spacing_confusion_reports_sanitized_rejection_gate():
     diagnostics = {}
     assert (
