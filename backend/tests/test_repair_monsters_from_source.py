@@ -75,6 +75,7 @@ from scripts.repair_monsters_from_source import (
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
+    _ocr_budget_seconds,
     _phb_quality_pre_otsu_clip,
     _phb_sparse_uses_quality_pre_otsu,
     _phb_sparse_comparison_uses_adaptive_source,
@@ -2299,6 +2300,33 @@ def test_sparse_anchor_crop_can_use_distinct_psm12(tmp_path):
     command = run.call_args.args[0]
     psm_index = command.index("--psm")
     assert command[psm_index + 1] == "12"
+
+
+def test_mpmm_extended_ocr_budget_is_limited_to_timed_out_residuals():
+    extended = {
+        "ref_2d833b3db343531b8cbe0669197259bd",
+        "ref_6b0e1564d7325987a342097cebb39316",
+        "ref_a6b5749652855247a3266f61817441fa",
+    }
+    for record_id in extended:
+        assert _ocr_budget_seconds(record_id, "batch_mpmm_pending_131") == 150.0
+
+    # Other MPMM records remain bounded to the ordinary 60-second batch budget
+    # even when they have a larger allowance for non-MPMM targeted workflows.
+    assert (
+        _ocr_budget_seconds(
+            "ref_583cbd071aec5dc58748c4b27e4005b5",
+            "batch_mpmm_pending_131",
+        )
+        == 60.0
+    )
+    assert (
+        _ocr_budget_seconds(
+            "ref_583cbd071aec5dc58748c4b27e4005b5",
+            "other_target_set",
+        )
+        == 150.0
+    )
 
 
 def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
