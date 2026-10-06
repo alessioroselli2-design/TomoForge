@@ -202,6 +202,24 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                             field: (fallback.get("core_match") or {}).get(field) is True
                             for field in CORE_FIELDS
                         },
+                        "hp_ocr_confusion_repaired": (
+                            fallback.get("hp_ocr_confusion_repaired") is True
+                        ),
+                        "hp_repair_attempted": (
+                            fallback.get("hp_repair_attempted") is True
+                        ),
+                        "hp_repair_has_letter_confusion": (
+                            fallback.get("hp_repair_has_letter_confusion") is True
+                        ),
+                        "hp_repair_has_spaced_digits": (
+                            fallback.get("hp_repair_has_spaced_digits") is True
+                        ),
+                        "hp_repair_candidate_valid": (
+                            fallback.get("hp_repair_candidate_valid") is True
+                        ),
+                        "hp_repair_matches_peer": (
+                            fallback.get("hp_repair_matches_peer") is True
+                        ),
                     }
                     if isinstance(
                         fallback := diagnostics.get("compatible_fallback"), dict
