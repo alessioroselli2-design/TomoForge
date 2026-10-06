@@ -3824,6 +3824,112 @@ def test_mpmm_one_side_exact_compatible_fallback_fails_closed(mutation):
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
+def _mpmm_anchored_juiblex_candidate(*, exact: bool, ca: str = "18"):
+    name = "JUIBLEX" if exact else "JUIBLEX i"
+    return {
+        "name": name,
+        "normalized_name": repair.normalize_reference_name(name),
+        "start_page": 56,
+        "source_refs": [{"page": 56}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "350 (28d12 + 168)",
+            "velocita": "9 m, scalare 9 m",
+        },
+    }
+
+
+def _mpmm_anchored_juiblex_counts(records, *, structural=True):
+    exact = any(
+        candidate.get("normalized_name") == repair.normalize_reference_name("Juiblex")
+        for candidate in records
+    )
+    return {
+        "exact_title_lines": 1 if exact else 0,
+        "parser_valid_headers": 1 if structural else 0,
+        "parser_exact_headers": 1 if exact and structural else 0,
+        "anchors_with_descriptor": 1 if structural else 0,
+        "anchors_with_hp": 1 if structural else 0,
+        "anchors_with_speed": 1 if structural else 0,
+        "candidates_on_page": 1 if structural else 0,
+    }
+
+
+def test_mpmm_anchor_backed_one_side_fallback_requires_unique_anchor_and_core_agreement():
+    primary = _mpmm_anchored_juiblex_candidate(exact=True)
+    comparison = _mpmm_anchored_juiblex_candidate(exact=False)
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_anchored_juiblex_counts(records)
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Juiblex", 56,
+            source_anchor_verified=True,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == "Juiblex"
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing_anchor", "missing_structure", "core_disagreement", "duplicate_compatible"],
+)
+def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
+    primary = _mpmm_anchored_juiblex_candidate(exact=True)
+    comparison = _mpmm_anchored_juiblex_candidate(exact=False)
+    primary_records = [primary]
+    comparison_records = [comparison]
+    if mutation == "core_disagreement":
+        comparison_records = [_mpmm_anchored_juiblex_candidate(exact=False, ca="19")]
+    elif mutation == "duplicate_compatible":
+        comparison_records = [
+            comparison,
+            {
+                **comparison,
+                "name": "JUIBLEX ii",
+                "normalized_name": repair.normalize_reference_name("JUIBLEX ii"),
+            },
+        ]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        is_nonexact = not any(
+            candidate.get("normalized_name") == repair.normalize_reference_name("Juiblex")
+            for candidate in records
+        )
+        return _mpmm_anchored_juiblex_counts(
+            records,
+            structural=not (mutation == "missing_structure" and is_nonexact),
+        )
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Juiblex", 56,
+            source_anchor_verified=mutation != "missing_anchor",
+            require_exact_target_identity=True,
+        )
+
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
 @pytest.mark.parametrize("target", ["Oscuride", "Oscuride Anziano"])
 @pytest.mark.parametrize("mutation", ["none", "ca_disagreement", "duplicate", "missing_exact"])
 def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutation, target):
