@@ -24,6 +24,10 @@ PUBLIC_COMPATIBLE_GATE_FLAGS = frozenset(
 PUBLIC_HP_ANCHOR_REASONS = frozenset(
     {
         "bael_structural_hp_anchor_ambiguous",
+        "drow_sparse_missing_hp_reconstruction_ambiguous",
+        "drow_structural_hp_anchor_ambiguous",
+        "drow_text_core_order_ambiguous",
+        "drow_text_identity_anchor_ambiguous",
         "delfino_core_order_ambiguous",
         "delfino_structural_hp_anchor_ambiguous",
         "divoratore_structural_hp_anchor_ambiguous",
