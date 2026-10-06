@@ -57,7 +57,10 @@ from services.monster_semantic_diagnostics import (
     deterministic_core_field_matches,
     semantic_core_field_matches,
 )
-from services.monster_speed_token_diagnostics import speed_multi_extra_token_profile
+from services.monster_speed_token_diagnostics import (
+    speed_multi_extra_token_profile,
+    speed_single_extra_token_profile,
+)
 from services.monster_statblock_ocr import (
     _find_header,
     agreed_monster_records,
@@ -7339,6 +7342,18 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
+            semantic = semantic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            speed_single_profile = speed_single_extra_token_profile(
+                primary_attributes,
+                comparison_attributes,
+            )
+            speed_multi_profile = speed_multi_extra_token_profile(
+                primary_attributes,
+                comparison_attributes,
+            )
             primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
@@ -7548,6 +7563,18 @@ def _agreed_target_candidate(
                         deterministic.get(f"{field}_deterministic_match", False)
                     )
                     for field in ("classe_armatura", "punti_ferita", "velocita")
+                },
+                "semantic_core_match": {
+                    field: bool(semantic.get(f"{field}_semantic_match", False))
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                },
+                "speed_single_extra_token": {
+                    key: bool(value)
+                    for key, value in speed_single_profile.items()
+                },
+                "speed_multi_extra_token": {
+                    key: bool(value)
+                    for key, value in speed_multi_profile.items()
                 },
                 "source_anchor_verified": True,
                 "hp_ocr_confusion_repaired": hp_confusion_repaired,
