@@ -311,6 +311,49 @@ def test_identity_source_diagnostics_cannot_export_source_content():
         runner.public_report(private)
 
 
+def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
+    def worker(command, *, stdout, stderr, check):
+        assert stdout is stderr
+        stdout.write(
+            "HP_ANCHOR_DIAGNOSTIC "
+            + json.dumps(
+                {
+                    "name": PRIVATE,
+                    "reason": "no_unique_structural_hp_anchor",
+                    "page_text_target_count": 1,
+                    "page_text_local_hp_count": 2,
+                    "tsv_page_wide_hp_label_count": 3,
+                    "tsv_name_anchor_found": True,
+                    "tsv_local_label_found": False,
+                    "private": PRIVATE,
+                }
+            )
+            + "\nFINAL_REPORT\n"
+        )
+        stdout.write(json.dumps(_report()) + "\n")
+        stdout.flush()
+        return SimpleNamespace(returncode=0)
+
+    with (
+        patch.object(runner.subprocess, "run", side_effect=worker),
+        patch.object(runner.sys, "argv", ["runner", "--audit-record-id", IDENTIFIER]),
+    ):
+        assert runner.main() == 0
+    output = capsys.readouterr()
+    assert PRIVATE not in output.out + output.err
+    report = json.loads(output.out.split("FINAL_REPORT\n")[1])
+    assert report["hp_anchor_diagnostics"] == [
+        {
+            "reason": "no_unique_structural_hp_anchor",
+            "page_text_target_count": 1,
+            "page_text_local_hp_count": 2,
+            "tsv_page_wide_hp_label_count": 3,
+            "tsv_name_anchor_found": True,
+            "tsv_local_label_found": False,
+        }
+    ]
+
+
 @pytest.mark.parametrize("status", [0, 2, 1])
 def test_worker_stdout_stderr_and_crashes_never_reach_public_output(capsys, status):
     def worker(command, *, stdout, stderr, check):
