@@ -5519,6 +5519,16 @@ def _micro_ocr_hit_points_line(
                 for index in range(target_index + 1, local_end)
                 if normalize_reference_name(text_lines[index]).startswith("velocita")
             ]
+            page_speed_indexes = [
+                index
+                for index in range(target_index + 1, len(text_lines))
+                if normalize_reference_name(text_lines[index]).startswith("velocita")
+            ]
+            page_speed_after_ca = bool(
+                len(permissive_ca_indexes) == 1
+                and len(page_speed_indexes) == 1
+                and permissive_ca_indexes[0] < page_speed_indexes[0]
+            )
             bounded_speed_indexes = (
                 [
                     index
@@ -5541,6 +5551,20 @@ def _micro_ocr_hit_points_line(
                 len(permissive_ca_indexes) == 1
             )
             diagnostics["drow_text_speed_unique"] = len(speed_indexes) == 1
+            diagnostics["drow_text_page_speed_unique"] = len(page_speed_indexes) == 1
+            diagnostics["drow_text_page_speed_after_ca"] = page_speed_after_ca
+            diagnostics["drow_text_page_speed_gap_le_12"] = bool(
+                page_speed_after_ca
+                and page_speed_indexes[0] - permissive_ca_indexes[0] <= 12
+            )
+            diagnostics["drow_text_page_speed_gap_le_16"] = bool(
+                page_speed_after_ca
+                and page_speed_indexes[0] - permissive_ca_indexes[0] <= 16
+            )
+            diagnostics["drow_text_page_speed_gap_le_24"] = bool(
+                page_speed_after_ca
+                and page_speed_indexes[0] - permissive_ca_indexes[0] <= 24
+            )
             diagnostics["drow_text_bounded_speed_unique"] = (
                 len(bounded_speed_indexes) == 1
             )
