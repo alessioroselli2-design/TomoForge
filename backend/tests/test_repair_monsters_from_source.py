@@ -4159,6 +4159,24 @@ def test_hp_leading_prefix_peer_repair_accepts_only_exact_clean_peer():
     )
 
 
+def test_hp_leading_prefix_peer_repair_accepts_only_known_ocr_digit_confusions():
+    peer = "350 (28d12 + 168)"
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            "35O (28dI2 + l68) 2d8 + 4",
+            peer,
+        )
+        == peer
+    )
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            "359 (28d12 + 168) 2d8 + 4",
+            peer,
+        )
+        is None
+    )
+
+
 def test_hp_leading_prefix_peer_repair_rejects_incomplete_leading_expression():
     assert (
         repair._repair_hp_leading_prefix_to_peer(
