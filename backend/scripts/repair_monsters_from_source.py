@@ -4420,7 +4420,7 @@ def _reconstruct_drow_missing_hp_line(
     ]
     speed_indexes = [
         index
-        for index in local_range
+        for index in range(target_index + 1, len(lines))
         if normalize_reference_name(lines[index]).startswith("velocita")
     ]
     if not (len(ca_indexes) == 1 and not hp_indexes and len(speed_indexes) == 1):
@@ -4428,7 +4428,7 @@ def _reconstruct_drow_missing_hp_line(
 
     ca_index = ca_indexes[0]
     speed_index = speed_indexes[0]
-    if not (target_index < ca_index < speed_index and speed_index - ca_index <= 7):
+    if not (target_index < ca_index < speed_index and speed_index - ca_index <= 12):
         return None
 
     if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
@@ -5573,12 +5573,12 @@ def _micro_ocr_hit_points_line(
                 permissive_ordered and speed_indexes[0] - permissive_ca_indexes[0] <= 7
             )
             if not (
-                len(ca_indexes) == len(speed_indexes) == 1
-                and target_index < ca_indexes[0] < speed_indexes[0]
-                and speed_indexes[0] - ca_indexes[0] <= 7
+                len(ca_indexes) == len(page_speed_indexes) == 1
+                and target_index < ca_indexes[0] < page_speed_indexes[0]
+                and page_speed_indexes[0] - ca_indexes[0] <= 12
             ):
                 return fail_closed("drow_text_core_order_ambiguous")
-            text_lines.insert(speed_indexes[0], f"Punti Ferita {value}")
+            text_lines.insert(page_speed_indexes[0], f"Punti Ferita {value}")
             print(
                 "MPMM_DROW_LOCAL_HP_RECONSTRUCTION "
                 + json.dumps(
