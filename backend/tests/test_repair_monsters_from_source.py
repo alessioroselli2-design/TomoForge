@@ -4156,6 +4156,12 @@ def test_hp_letter_digit_spacing_confusion_reports_sanitized_rejection_gate():
         is None
     )
     assert diagnostics == {
+        "prefix_numericish": True,
+        "inner_chars_allowed": True,
+        "single_d_separator": True,
+        "single_modifier_sign": True,
+        "suffix_present": True,
+        "suffix_has_numeric_syntax": True,
         "shape_match": True,
         "trailing_present": True,
         "trailing_has_numeric_syntax": True,
