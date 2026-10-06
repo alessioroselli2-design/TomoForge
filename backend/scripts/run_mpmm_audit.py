@@ -296,6 +296,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                         "hp_repair_matches_peer": (
                             fallback.get("hp_repair_matches_peer") is True
                         ),
+                        "hp_prefix_peer_repaired": (
+                            fallback.get("hp_prefix_peer_repaired") is True
+                        ),
                         "hp_repair_diagnostics": {
                             key: (fallback.get("hp_repair_diagnostics") or {}).get(key)
                             is True
