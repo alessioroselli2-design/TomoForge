@@ -4491,7 +4491,8 @@ def _micro_ocr_hit_points_line(
     page_text_has_hp_label = bool(hp_line_pattern.search(page_text))
     if not page_text_has_hp_label:
         diagnostics["page_text_local_hp_count"] = 0
-        return page_text
+        if not (name == "Drow Inquisitore" and single_target_geometry):
+            return page_text
 
     # The expensive graphical micro-OCR is a repair fallback, not a mandatory
     # third reading. If this independent page pass already contains exactly one
@@ -5378,6 +5379,38 @@ def _micro_ocr_hit_points_line(
     value = " ".join(micro.split())
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
+    if (
+        not page_text_has_hp_label
+        and name == "Drow Inquisitore"
+        and single_target_geometry
+        and page_target_count == 1
+        and page_local_hp_count == 0
+        and name_line_index is not None
+        and label_words is not None
+        and diagnostics.get("drow_local_tsv_structure") is True
+    ):
+        reconstructed = _reconstruct_drow_missing_hp_line(
+            page_text,
+            name,
+            value,
+        )
+        if reconstructed is None:
+            return fail_closed("drow_sparse_missing_hp_reconstruction_ambiguous")
+        print(
+            "MPMM_DROW_SPARSE_MISSING_HP_RECONSTRUCTION "
+            + json.dumps(
+                {
+                    "name": name,
+                    "unique_sparse_geometry": True,
+                    "tsv_name_anchor_found": True,
+                    "tsv_local_label_found": True,
+                    "numeric_gate_passed": True,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return reconstructed
     if page_text_has_hp_label:
         if (
             name == "Drow Inquisitore"
