@@ -3757,6 +3757,119 @@ def test_mpmm_exact_title_compatible_fallback_fails_closed(mutation):
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
+def _mpmm_geometry_only_candidate(name: str, *, ca: str = "15"):
+    return {
+        "name": name,
+        "normalized_name": repair.normalize_reference_name(name),
+        "start_page": 40,
+        "source_refs": [{"page": 40}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "71 (13d8 + 13)",
+            "velocita": "9 m",
+        },
+    }
+
+
+def _mpmm_geometry_identity_counts(records, *, structural=True):
+    return {
+        "exact_title_lines": 0,
+        "candidates_on_page": len(records),
+        "parser_valid_headers": 1 if structural else 0,
+        "core_anchors": 1 if structural else 0,
+        "anchors_with_descriptor": 1 if structural else 0,
+        "anchors_with_hp": 1 if structural else 0,
+        "anchors_with_speed": 1 if structural else 0,
+        "parser_armor_fields": 1 if structural else 0,
+        "parser_hp_fields": 1 if structural else 0,
+        "parser_speed_fields": 1 if structural else 0,
+    }
+
+
+def test_mpmm_geometry_only_identity_fallback_requires_two_clean_unique_blocks():
+    primary = _mpmm_geometry_only_candidate("OMBRA DANZANTE")
+    comparison = _mpmm_geometry_only_candidate("DANZATORE OMBRA")
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_geometry_identity_counts(records)
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            "Danzatore Dell'Ombra",
+            40,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == "Danzatore Dell'Ombra"
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["core_disagreement", "duplicate", "missing_structure", "wrong_page"],
+)
+def test_mpmm_geometry_only_identity_fallback_fails_closed(mutation):
+    primary = _mpmm_geometry_only_candidate("OMBRA DANZANTE")
+    comparison = _mpmm_geometry_only_candidate("DANZATORE OMBRA")
+    primary_records = [primary]
+    comparison_records = [comparison]
+    structural = True
+
+    if mutation == "core_disagreement":
+        comparison_records = [
+            _mpmm_geometry_only_candidate("DANZATORE OMBRA", ca="16")
+        ]
+    elif mutation == "duplicate":
+        primary_records = [
+            primary,
+            _mpmm_geometry_only_candidate("ALTRA OMBRA"),
+        ]
+    elif mutation == "missing_structure":
+        structural = False
+    elif mutation == "wrong_page":
+        primary_records = [{**primary, "start_page": 39}]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_geometry_identity_counts(records, structural=structural)
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            "Danzatore Dell'Ombra",
+            40,
+            require_exact_target_identity=True,
+        )
+
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
 def _mpmm_one_side_exact_candidate(*, exact: bool, ca: str = "18"):
     name = "FENICE" if exact else "FENICE i"
     return {
