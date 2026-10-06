@@ -175,7 +175,7 @@ def test_execute_write_failure_isolated_and_final_report_survives(capsys):
         patch.object(process, "EXPECTED_PENDING_FINGERPRINT", process._fingerprint(rows)),
         patch.object(process, "EXPECTED_VERIFIED_FINGERPRINT", process._fingerprint([])),
         patch.object(
-            process.db.private_reference_records,
+            type(process.db.private_reference_records),
             "find_one",
             AsyncMock(return_value=second),
         ),
