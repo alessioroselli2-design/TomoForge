@@ -2288,6 +2288,35 @@ def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
     assert "tsv" in command
 
 
+def test_warlock_sparse_anchor_crop_keeps_full_page_width_below_unique_title(tmp_path):
+    image_path = tmp_path / "page.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t620\t180\t110\t30\t95\tWARLOCK\n"
+        "5\t1\t1\t1\t1\t2\t740\t180\t55\t30\t95\tDEL\n"
+        "5\t1\t1\t1\t1\t3\t805\t180\t95\t30\t95\tGRANDE\n"
+        "5\t1\t1\t1\t1\t4\t910\t180\t80\t30\t95\tANTICO\n"
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        crop = _sparse_anchor_crop_fractions(
+            image_path,
+            "ita",
+            "Warlock Del Grande Antico",
+        )
+
+    assert crop is not None
+    assert crop[0] == 0.0
+    assert crop[2] == 1.0
+    assert 0.0 <= crop[1] < 0.2
+    assert crop[3] == 1.0
+
+
 def test_sparse_anchor_crop_can_use_distinct_psm12(tmp_path):
     image_path = tmp_path / "page.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
