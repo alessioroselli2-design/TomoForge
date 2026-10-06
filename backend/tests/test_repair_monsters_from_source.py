@@ -4560,7 +4560,12 @@ def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
             assert caught.value.reason == "no_unique_exact_target_identity"
 
 
-def _drow_hp_tsv(*, duplicate_target=False, filler_lines=0):
+def _drow_hp_tsv(
+    *,
+    duplicate_target=False,
+    filler_lines=0,
+    omit_local_hp_label=False,
+):
     header = (
         "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
         "left\ttop\twidth\theight\tconf\ttext\n"
@@ -4577,9 +4582,14 @@ def _drow_hp_tsv(*, duplicate_target=False, filler_lines=0):
         "5\t1\t3\t1\t3\t1\t20\t140\t55\t12\t95\tClasse",
         "5\t1\t3\t1\t3\t2\t80\t140\t70\t12\t95\tArmatura",
         "5\t1\t3\t1\t3\t3\t160\t140\t20\t12\t95\t16",
-        "5\t1\t3\t1\t4\t1\t20\t160\t45\t12\t95\tPunti",
-        "5\t1\t3\t1\t4\t2\t72\t160\t50\t12\t95\tFerita",
     ]
+    if not omit_local_hp_label:
+        rows.extend(
+            [
+                "5\t1\t3\t1\t4\t1\t20\t160\t45\t12\t95\tPunti",
+                "5\t1\t3\t1\t4\t2\t72\t160\t50\t12\t95\tFerita",
+            ]
+        )
     for offset in range(filler_lines):
         line_number = 5 + offset
         top = 180 + offset * 20
@@ -4728,6 +4738,84 @@ def test_drow_sparse_tsv_core_gap_is_bounded_to_twelve_lines(
         assert "Punti Ferita 110 (13d8 + 52)" in result
     else:
         assert result == page_text
+
+
+def test_drow_sparse_micro_uses_unique_ca_speed_band_when_hp_label_is_missing(
+    tmp_path,
+    capsys,
+):
+    image_path = tmp_path / "drow-missing-label.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(omit_local_hp_label=True),
+            stderr="",
+        ),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    assert "Punti Ferita 110 (13d8 + 52)" in result
+    assert "MPMM_DROW_GEOMETRIC_HP_BAND" in capsys.readouterr().out
+
+
+def test_drow_missing_hp_label_geometry_fails_closed_without_single_target_anchor(
+    tmp_path,
+    capsys,
+):
+    image_path = tmp_path / "drow-no-single-target.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(omit_local_hp_label=True),
+            stderr="",
+        ),
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=False,
+        )
+
+    assert result == page_text
+    assert "drow_structural_hp_anchor_ambiguous" in capsys.readouterr().out
 
 
 def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
