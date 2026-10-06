@@ -4684,7 +4684,7 @@ def test_drow_sparse_micro_reconstructs_when_hp_label_is_missing_from_ocr_text(
 
 @pytest.mark.parametrize(
     ("filler_lines", "accepted"),
-    [(9, True), (10, False)],
+    [(10, True), (11, False)],
 )
 def test_drow_sparse_tsv_core_gap_is_bounded_to_twelve_lines(
     tmp_path,
