@@ -5519,6 +5519,19 @@ def _micro_ocr_hit_points_line(
                 for index in range(target_index + 1, local_end)
                 if re.match(r"\s*Velocit[àa]\b", text_lines[index], re.IGNORECASE)
             ]
+            bounded_speed_indexes = (
+                [
+                    index
+                    for index in speed_indexes
+                    if (
+                        len(permissive_ca_indexes) == 1
+                        and permissive_ca_indexes[0] < index
+                        and index - permissive_ca_indexes[0] <= 7
+                    )
+                ]
+                if len(permissive_ca_indexes) == 1
+                else []
+            )
             permissive_ordered = bool(
                 len(permissive_ca_indexes) == len(speed_indexes) == 1
                 and target_index < permissive_ca_indexes[0] < speed_indexes[0]
@@ -5528,6 +5541,9 @@ def _micro_ocr_hit_points_line(
                 len(permissive_ca_indexes) == 1
             )
             diagnostics["drow_text_speed_unique"] = len(speed_indexes) == 1
+            diagnostics["drow_text_bounded_speed_unique"] = (
+                len(bounded_speed_indexes) == 1
+            )
             diagnostics["drow_text_permissive_ordered"] = permissive_ordered
             diagnostics["drow_text_gap_within_bound"] = bool(
                 permissive_ordered
