@@ -4429,10 +4429,6 @@ def _reconstruct_drow_missing_hp_line(
     if not (target_index < ca_index < speed_index and speed_index - ca_index <= 6):
         return None
 
-    header = _find_header(lines, ca_index)
-    if header is None or not _micro_target_line_matches(str(header[1]), name):
-        return None
-
     if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
         {"classe_armatura": "10", "punti_ferita": value}
     ):
@@ -4756,16 +4752,30 @@ def _micro_ocr_hit_points_line(
             for index, text in enumerate(structural)
             if text.startswith("velocita")
         ]
-        drow_local_structure = (
+        first_ca = ca_offsets[0] if ca_offsets else None
+        first_hp = (
+            next((index for index in hp_offsets if first_ca is not None and index > first_ca), None)
+            if first_ca is not None
+            else None
+        )
+        first_speed = (
+            next((index for index in speed_offsets if first_hp is not None and index > first_hp), None)
+            if first_hp is not None
+            else None
+        )
+        drow_local_structure = bool(
             len(tsv_target_indexes) == 1
-            and len(ca_offsets) == len(hp_offsets) == len(speed_offsets) == 1
-            and ca_offsets[0] < hp_offsets[0] < speed_offsets[0]
-            and speed_offsets[0] - ca_offsets[0] <= 6
+            and first_ca is not None
+            and first_ca <= 3
+            and first_hp is not None
+            and first_speed is not None
+            and first_ca < first_hp < first_speed
+            and first_speed - first_ca <= 6
         )
         diagnostics["drow_local_tsv_structure"] = drow_local_structure
         if not drow_local_structure:
             return fail_closed("drow_structural_hp_anchor_ambiguous")
-        label_words = ordered_lines[name_line_index + 1 + hp_offsets[0]]
+        label_words = ordered_lines[name_line_index + 1 + first_hp]
         print(
             "MPMM_DROW_STRUCTURAL_HP_ANCHOR "
             + json.dumps(
