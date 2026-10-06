@@ -387,6 +387,7 @@ def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
                     "tsv_page_wide_hp_label_count": 3,
                     "tsv_name_anchor_found": True,
                     "tsv_local_label_found": False,
+                    "drow_local_tsv_structure": True,
                     "private": PRIVATE,
                 }
             )
@@ -412,6 +413,7 @@ def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
             "tsv_page_wide_hp_label_count": 3,
             "tsv_name_anchor_found": True,
             "tsv_local_label_found": False,
+            "drow_local_tsv_structure": True,
         }
     ]
 
