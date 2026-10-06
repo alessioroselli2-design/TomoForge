@@ -1140,8 +1140,6 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
 
 
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
-    if name == "Warlock Del Grande Antico":
-        return 13
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
     return 7
