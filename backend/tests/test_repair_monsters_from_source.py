@@ -4560,7 +4560,7 @@ def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
             assert caught.value.reason == "no_unique_exact_target_identity"
 
 
-def _drow_hp_tsv(*, duplicate_target=False):
+def _drow_hp_tsv(*, duplicate_target=False, filler_lines=0):
     header = (
         "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
         "left\ttop\twidth\theight\tconf\ttext\n"
@@ -4579,9 +4579,21 @@ def _drow_hp_tsv(*, duplicate_target=False):
         "5\t1\t3\t1\t3\t3\t160\t140\t20\t12\t95\t16",
         "5\t1\t3\t1\t4\t1\t20\t160\t45\t12\t95\tPunti",
         "5\t1\t3\t1\t4\t2\t72\t160\t50\t12\t95\tFerita",
-        "5\t1\t3\t1\t5\t1\t20\t180\t55\t12\t95\tVelocità",
-        "5\t1\t3\t1\t5\t2\t80\t180\t20\t12\t95\t9",
     ]
+    for offset in range(filler_lines):
+        line_number = 5 + offset
+        top = 180 + offset * 20
+        rows.append(
+            f"5\t1\t3\t1\t{line_number}\t1\t20\t{top}\t70\t12\t95\triempitivo"
+        )
+    speed_line = 5 + filler_lines
+    speed_top = 180 + filler_lines * 20
+    rows.extend(
+        [
+            f"5\t1\t3\t1\t{speed_line}\t1\t20\t{speed_top}\t55\t12\t95\tVelocità",
+            f"5\t1\t3\t1\t{speed_line}\t2\t80\t{speed_top}\t20\t12\t95\t9",
+        ]
+    )
     if duplicate_target:
         rows.extend(
             [
@@ -4668,6 +4680,54 @@ def test_drow_sparse_micro_reconstructs_when_hp_label_is_missing_from_ocr_text(
         "Punti Ferita 110 (13d8 + 52)\n"
         "Velocità 9 m"
     ) in result
+
+
+@pytest.mark.parametrize(
+    ("filler_lines", "accepted"),
+    [(9, True), (10, False)],
+)
+def test_drow_sparse_tsv_core_gap_is_bounded_to_twelve_lines(
+    tmp_path,
+    filler_lines,
+    accepted,
+):
+    image_path = tmp_path / "drow-tsv-bound.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 520), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(filler_lines=filler_lines),
+            stderr="",
+        ),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    if accepted:
+        assert "Punti Ferita 110 (13d8 + 52)" in result
+    else:
+        assert result == page_text
 
 
 def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
