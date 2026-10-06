@@ -1118,9 +1118,7 @@ def _repair_hp_letter_digit_spacing_confusion(
         single_d_separator=len(re.findall(r"[dD]", inner)) == 1,
         single_modifier_sign=len(re.findall(r"[+\-−–]", inner)) == 1,
         suffix_present=bool(suffix),
-        suffix_has_numeric_syntax=bool(
-            suffix and re.search(r"[0-9()dD+\-−–]", suffix)
-        ),
+        suffix_has_numeric_syntax=bool(suffix and re.search(r"[0-9()dD+\-−–]", suffix)),
     )
     match = re.fullmatch(
         r"([0-9Oo ]+)\s*\(\s*([0-9lILOo ]+)\s*[dD]\s*([0-9lILOo ]+)\s*"
@@ -7093,14 +7091,13 @@ def _agreed_target_candidate(
                 primary_counts if len(primary_exact) == 1 else comparison_counts
             )
             exact_title_lines = exact_counts.get("exact_title_lines", 0)
-            exact_side_supported = (
-                exact_counts.get("parser_exact_headers", 0) == 1
-                and (
-                    exact_title_lines == 1
-                    or (
-                        target_name == "Warlock Del Grande Antico"
-                        and exact_title_lines == 2
-                    )
+            exact_side_supported = exact_counts.get(
+                "parser_exact_headers", 0
+            ) == 1 and (
+                exact_title_lines == 1
+                or (
+                    target_name == "Warlock Del Grande Antico"
+                    and exact_title_lines == 2
                 )
             )
             compatible_fallback_diagnostics = {
