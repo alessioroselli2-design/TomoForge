@@ -418,6 +418,24 @@ def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
     ]
 
 
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "drow_sparse_missing_hp_reconstruction_ambiguous",
+        "drow_structural_hp_anchor_ambiguous",
+        "drow_text_core_order_ambiguous",
+        "drow_text_identity_anchor_ambiguous",
+    ],
+)
+def test_drow_hp_anchor_reasons_are_public_codes_only(reason):
+    assert runner._public_hp_anchor_event({"reason": reason, "private": PRIVATE}) == {
+        "reason": reason
+    }
+    assert runner._public_hp_anchor_event(
+        {"reason": "private_unknown_reason", "private": PRIVATE}
+    ) == {"reason": "blocked"}
+
+
 @pytest.mark.parametrize("status", [0, 2, 1])
 def test_worker_stdout_stderr_and_crashes_never_reach_public_output(capsys, status):
     def worker(command, *, stdout, stderr, check):
