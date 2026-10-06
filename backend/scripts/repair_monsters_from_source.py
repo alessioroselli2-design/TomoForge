@@ -4733,7 +4733,7 @@ def _micro_ocr_hit_points_line(
                 name,
             )
         ]
-        local_end = min(len(ordered_lines), name_line_index + 13)
+        local_end = min(len(ordered_lines), name_line_index + 20)
         structural = [
             normalize_reference_name(
                 " ".join(str(word["text"]) for word in ordered_lines[index])
@@ -4761,7 +4761,7 @@ def _micro_ocr_hit_points_line(
             [
                 index
                 for index in speed_offsets
-                if first_ca is not None and first_ca < index <= first_ca + 6
+                if first_ca is not None and first_ca < index <= first_ca + 12
             ]
             if first_ca is not None
             else []
