@@ -1205,7 +1205,6 @@ def _repair_hp_letter_digit_spacing_confusion(
     return candidate
 
 
-
 def _repair_hp_leading_prefix_to_peer(
     value: str,
     peer_value: str,
