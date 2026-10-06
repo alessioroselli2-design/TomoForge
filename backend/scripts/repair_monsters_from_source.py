@@ -1093,18 +1093,13 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
         return None
 
     def corrected_digits(raw: str) -> str:
-        return (
-            re.sub(r"\s+", "", raw)
-            .replace("l", "1")
-            .replace("I", "1")
-        )
+        return re.sub(r"\s+", "", raw).replace("l", "1").replace("I", "1")
 
     dice_count_digits = corrected_digits(raw_dice_count)
     die_digits = corrected_digits(raw_die_size)
     modifier_digits = corrected_digits(raw_modifier)
     if not all(
-        digits.isdigit()
-        for digits in (dice_count_digits, die_digits, modifier_digits)
+        digits.isdigit() for digits in (dice_count_digits, die_digits, modifier_digits)
     ):
         return None
 
