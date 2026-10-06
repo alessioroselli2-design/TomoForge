@@ -4385,6 +4385,67 @@ def _korred_structural_hp_anchors(lines: list[str]) -> tuple[list[int], list[int
     return sorted(title for title, _ in anchors), sorted(hp for _, hp in anchors)
 
 
+def _reconstruct_drow_missing_hp_line(
+    page_text: str,
+    name: str,
+    value: str,
+) -> str | None:
+    """Insert one source-anchored Drow PF row only inside its unique local core."""
+    if name != "Drow Inquisitore":
+        return None
+
+    lines = page_text.splitlines()
+    target_indexes = [
+        index
+        for index, line in enumerate(lines)
+        if _micro_target_line_matches(line, name)
+    ]
+    if len(target_indexes) != 1:
+        return None
+
+    target_index = target_indexes[0]
+    window_end = min(len(lines), target_index + 13)
+    local_range = range(target_index + 1, window_end)
+    ca_indexes = [
+        index
+        for index in local_range
+        if re.match(r"\s*Classe\s+(?:D['’]?\s*)?Armatura\b", lines[index], re.IGNORECASE)
+    ]
+    hp_indexes = [
+        index
+        for index in local_range
+        if re.match(r"\s*Punti\s+Ferita\b", lines[index], re.IGNORECASE)
+    ]
+    speed_indexes = [
+        index
+        for index in local_range
+        if re.match(r"\s*Velocit[àa]\b", lines[index], re.IGNORECASE)
+    ]
+    if not (len(ca_indexes) == 1 and not hp_indexes and len(speed_indexes) == 1):
+        return None
+
+    ca_index = ca_indexes[0]
+    speed_index = speed_indexes[0]
+    if not (target_index < ca_index < speed_index and speed_index - ca_index <= 6):
+        return None
+
+    header = _find_header(lines, ca_index)
+    if header is None or not _micro_target_line_matches(str(header[1]), name):
+        return None
+
+    if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+        {"classe_armatura": "10", "punti_ferita": value}
+    ):
+        return None
+
+    rebuilt_lines = list(lines)
+    rebuilt_lines.insert(speed_index, f"Punti Ferita {value}")
+    rebuilt = "\n".join(rebuilt_lines)
+    if page_text.endswith("\n"):
+        rebuilt += "\n"
+    return rebuilt
+
+
 def _micro_ocr_hit_points_line(
     image_path: Path,
     languages: str,
@@ -5293,6 +5354,36 @@ def _micro_ocr_hit_points_line(
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
     if page_text_has_hp_label:
+        if (
+            name == "Drow Inquisitore"
+            and single_target_geometry
+            and page_target_count == 1
+            and page_local_hp_count == 0
+            and name_line_index is not None
+            and label_words is not None
+        ):
+            reconstructed = _reconstruct_drow_missing_hp_line(
+                page_text,
+                name,
+                value,
+            )
+            if reconstructed is not None:
+                print(
+                    "MPMM_DROW_SOURCE_ANCHORED_HP_RECONSTRUCTION "
+                    + json.dumps(
+                        {
+                            "name": name,
+                            "tsv_name_anchor_found": True,
+                            "tsv_local_label_found": True,
+                            "page_text_local_hp_count": 0,
+                            "numeric_gate_passed": True,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return reconstructed
+
         text_lines = page_text.splitlines()
         duplicate_geometry_indexes: list[int] = []
         if (
