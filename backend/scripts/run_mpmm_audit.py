@@ -214,6 +214,16 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                         "hp_repair_has_spaced_digits": (
                             fallback.get("hp_repair_has_spaced_digits") is True
                         ),
+                        "hp_repair_shape": {
+                            key: (fallback.get("hp_repair_shape") or {}).get(key) is True
+                            for key in (
+                                "has_open_paren",
+                                "has_close_paren",
+                                "ends_close_paren",
+                                "has_d_separator",
+                                "has_modifier_sign",
+                            )
+                        },
                         "hp_repair_candidate_valid": (
                             fallback.get("hp_repair_candidate_valid") is True
                         ),
