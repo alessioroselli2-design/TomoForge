@@ -822,6 +822,22 @@ def test_drow_missing_hp_reconstruction_keeps_seven_line_core_gap_bounded(
         assert result is None
 
 
+def test_drow_missing_hp_reconstruction_normalizes_speed_label_accent():
+    text = (
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Velocitá 9 m\n"
+    )
+    result = repair._reconstruct_drow_missing_hp_line(
+        text,
+        "Drow Inquisitore",
+        "30 (4d10 + 8)",
+    )
+    assert result is not None
+    assert "Punti Ferita 30 (4d10 + 8)\nVelocitá 9 m" in result
+
+
 def test_drow_micro_ocr_reconstructs_only_tsv_anchored_missing_local_hp(tmp_path):
     image_path = tmp_path / "drow.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 900, 500), False)
