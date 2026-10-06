@@ -246,6 +246,12 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
             "punti_ferita": True,
             "velocita": True,
         },
+        "hp_ocr_confusion_repaired": False,
+        "hp_repair_attempted": False,
+        "hp_repair_has_letter_confusion": False,
+        "hp_repair_has_spaced_digits": False,
+        "hp_repair_candidate_valid": False,
+        "hp_repair_matches_peer": False,
     }
 
 
