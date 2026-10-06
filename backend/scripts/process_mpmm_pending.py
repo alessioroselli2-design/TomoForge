@@ -32,13 +32,13 @@ from scripts import repair_monsters_from_source as repair
 from services.ocr_semantic_gates import OCR_REVIEW_FLAG, monster_semantic_numeric_flags
 
 LOGICAL_SOURCE_ID = "mpmm_2022_it"
-EXPECTED_PENDING = 29
-EXPECTED_MPMM_VERIFIED = 166
-EXPECTED_GLOBAL_VERIFIED = 215
-EXPECTED_PENDING_FINGERPRINT = "907ea2b93e1d3f134a50a0c25409d10b0a1541e69a1af141a5573dd47b50cc8e"
-EXPECTED_VERIFIED_FINGERPRINT = "6b0edb33bf66fc63ccf5115cb3c45c99e92575bc09f6f526a3c8811925b26c5a"
+EXPECTED_PENDING = 26
+EXPECTED_MPMM_VERIFIED = 169
+EXPECTED_GLOBAL_VERIFIED = 218
+EXPECTED_PENDING_FINGERPRINT = "874bd1fce6b961876fcde23284c5fc080108cd8254685def0ddf0a5c5b50ab44"
+EXPECTED_VERIFIED_FINGERPRINT = "689cbe812366f4f073b4f91877f21f2f949e8aa0081a947f92a1071905cb67eb"
 DEFAULT_BATCH_SIZE = 25
-CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_29"
+CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_26"
 
 
 def _logical_source_ids(record: dict[str, Any]) -> set[str]:
@@ -64,6 +64,27 @@ def _fingerprint(records: list[dict[str, Any]]) -> str:
 def _record_snapshot_sha256(record: dict[str, Any]) -> str:
     payload = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _same_utc_timestamp(value: Any, expected: str) -> bool:
+    def parse(raw_value: Any) -> datetime:
+        if isinstance(raw_value, datetime):
+            parsed = raw_value
+        else:
+            raw = str(raw_value or "").strip()
+            if raw.endswith("Z"):
+                raw = raw[:-1] + "+00:00"
+            elif len(raw) >= 3 and raw[-3] in "+-" and raw[-2:].isdigit():
+                raw += ":00"
+            parsed = datetime.fromisoformat(raw)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+
+    try:
+        return parse(value) == parse(expected)
+    except (TypeError, ValueError):
+        return False
 
 
 def _partition(records: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
@@ -162,7 +183,7 @@ async def _apply_verified(
         raise RuntimeError("post-write canonical link drift")
     if verified.get("source_refs") != original.get("source_refs"):
         raise RuntimeError("post-write provenance drift")
-    if str(verified.get("updated_at") or "") != updated_at:
+    if not _same_utc_timestamp(verified.get("updated_at"), updated_at):
         raise RuntimeError("post-write batch timestamp drift")
 
 
@@ -176,6 +197,10 @@ async def _run(args: argparse.Namespace) -> int:
 
     if args.execute and args.audit_record_id:
         raise RuntimeError("focused audits are read-only")
+    if args.execute_record_id and not args.execute:
+        raise RuntimeError("execute-record-id requires --execute")
+    if args.audit_record_id and args.execute_record_id:
+        raise RuntimeError("audit-record-id and execute-record-id are mutually exclusive")
     collection = db.private_reference_records
     all_monsters = await repair._fetch_all(collection, {"reference_type": "monster"})
     mpmm = [row for row in all_monsters if _is_mpmm(row)]
@@ -185,6 +210,10 @@ async def _run(args: argparse.Namespace) -> int:
         targets = [row for row in pending if row.get("id") == args.audit_record_id]
         if len(targets) != 1:
             raise RuntimeError("focused audit requires exactly one pending MPMM record")
+    elif args.execute_record_id:
+        targets = [row for row in pending if row.get("id") == args.execute_record_id]
+        if len(targets) != 1:
+            raise RuntimeError("single-record execution requires exactly one pending MPMM record")
     verified_before = [
         row for row in mpmm if str(row.get("review_status") or "") == "verified"
     ]
@@ -288,7 +317,9 @@ async def _run(args: argparse.Namespace) -> int:
                             and repair.REPAIR_FLAG not in flags
                             and current.get("canonical_id") == original.get("canonical_id")
                             and current.get("source_refs") == original.get("source_refs")
-                            and str(current.get("updated_at") or "") == timestamp
+                            and _same_utc_timestamp(
+                                current.get("updated_at"), timestamp
+                            )
                         )
                         if not write_landed_cleanly:
                             batch_blocked.append(
@@ -347,7 +378,9 @@ async def _run(args: argparse.Namespace) -> int:
         "initial_global_verified": len(global_verified_before),
         "protected_verified_fingerprint_sha256": protected_verified_fingerprint,
         "target_fingerprint_sha256": (
-            pending_fingerprint if not args.audit_record_id else _fingerprint(targets)
+            pending_fingerprint
+            if not (args.audit_record_id or args.execute_record_id)
+            else _fingerprint(targets)
         ),
         "targets": len(targets),
         "repairable": len(reports),
@@ -371,6 +404,11 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Process pending MPMM monsters")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--audit-record-id", default="", help="Read-only pending MPMM pilot")
+    parser.add_argument(
+        "--execute-record-id",
+        default="",
+        help="Execute exactly one pending MPMM record after sealed-snapshot checks",
+    )
     parser.add_argument("--confirm", default="")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--pdf-root", default="")
