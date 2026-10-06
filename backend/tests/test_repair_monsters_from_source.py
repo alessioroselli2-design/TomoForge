@@ -751,6 +751,112 @@ def test_hp_micro_ocr_skips_when_unique_local_hp_is_already_valid(tmp_path, caps
     assert "HP_MICRO_OCR_SKIPPED_VALID_LOCAL" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ["none", "existing_hp", "duplicate_ca", "duplicate_speed", "invalid_hp"],
+)
+def test_drow_missing_hp_reconstruction_requires_unique_local_core(mutation):
+    text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 20 (3d8 + 6)\n"
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Velocità 9 m\n"
+    )
+    value = "30 (4d10 + 8)"
+    if mutation == "existing_hp":
+        text = text.replace(
+            "Velocità 9 m",
+            "Punti Ferita 30 (4d10 + 8)\nVelocità 9 m",
+        )
+    elif mutation == "duplicate_ca":
+        text = text.replace(
+            "Velocità 9 m",
+            "Classe Armatura 16\nVelocità 9 m",
+        )
+    elif mutation == "duplicate_speed":
+        text += "Velocità 12 m\n"
+    elif mutation == "invalid_hp":
+        value = "30 (4d99 + 8)"
+
+    result = repair._reconstruct_drow_missing_hp_line(
+        text,
+        "Drow Inquisitore",
+        value,
+    )
+    if mutation == "none":
+        assert result == text.replace(
+            "Velocità 9 m",
+            "Punti Ferita 30 (4d10 + 8)\nVelocità 9 m",
+        )
+        assert "ALTRO MOSTRO\nPunti Ferita 20 (3d8 + 6)" in result
+    else:
+        assert result is None
+
+
+def test_drow_micro_ocr_reconstructs_only_tsv_anchored_missing_local_hp(tmp_path):
+    image_path = tmp_path / "drow.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 900, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+
+    page_text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 20 (3d8 + 6)\n"
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Velocità 9 m\n"
+        + "".join(f"riga filler {index}\n" for index in range(15))
+        + "ALTRO MOSTRO DUE\n"
+        "Punti Ferita 40 (6d10 + 7)\n"
+    )
+    rows = [
+        (20, ["DROW", "INQUISITORE"]),
+        (45, ["Umanoide", "Medio", "(Elfo)"]),
+        (70, ["Classe", "Armatura", "15"]),
+        (95, ["Punti", "Ferita", "30", "(4d10", "+", "8)"]),
+        (120, ["Velocità", "9", "m"]),
+        (210, ["Punti", "Ferita", "20", "(3d8", "+", "6)"]),
+        (300, ["Punti", "Ferita", "40", "(6d10", "+", "7)"]),
+    ]
+    header = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
+        "left\ttop\twidth\theight\tconf\ttext\n"
+    )
+    tsv = header + "".join(
+        f"5\t1\t{block}\t1\t1\t{word}\t{20 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+        for block, (top, words) in enumerate(rows, 1)
+        for word, value in enumerate(words, 1)
+    )
+
+    def source_reading(command, *args, **kwargs):
+        return tsv if "tsv" in command else "30 (4d10 + 8)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    assert "DROW INQUISITORE" in result
+    assert (
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Punti Ferita 30 (4d10 + 8)\n"
+        "Velocità 9 m"
+    ) in result
+    assert "Punti Ferita 20 (3d8 + 6)" in result
+    assert "Punti Ferita 40 (6d10 + 7)" in result
+
+
 def test_micro_target_line_matches_bounded_title_ocr_error():
     assert _micro_target_line_matches(
         "Cavallo Da Galopo",
