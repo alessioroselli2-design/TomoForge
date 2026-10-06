@@ -32,7 +32,7 @@ permissions:
 concurrency:
   # Focused pilots are enforced read-only by the script and can safely run
   # beside a full read-only snapshot. All write-enabled runs keep one group.
-  group: tomoforge-mpmm-pending-131${{ github.event_name == 'push' && '-readonly-push-focus' || (github.event_name == 'workflow_dispatch' && inputs.execute == false && inputs.audit_record_id != '' && format('-readonly-{0}', inputs.audit_record_id) || '') }}
+  group: tomoforge-mpmm-pending-131${{ github.event_name == 'push' && format('-readonly-push-{0}', github.sha) || (github.event_name == 'workflow_dispatch' && inputs.execute == false && inputs.audit_record_id != '' && format('-readonly-{0}', inputs.audit_record_id) || '') }}
   cancel-in-progress: false
 
 jobs:
