@@ -1,0 +1,125 @@
+name: MPMM promote repairables one-shot
+
+on:
+  push:
+    branches:
+      - codex/mpmm-pending-131-20261001
+    paths:
+      - .github/mpmm-promote-once.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-mpmm-promote-repairables-once
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.event.head_commit.message == 'Execute approved MPMM repairables snapshot 30'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      EXPECTED_PENDING_FINGERPRINT: f4581b41625407f59f40287c6dbd3d8c21a8f190f6f82b14b16f0a0195c21339
+      EXPECTED_VERIFIED_FINGERPRINT: 8c7be7e195edcc015f811365e5ecadd55138eb5276c112c08036bb9e32be8f06
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Verify one-shot token
+        run: |
+          set -euo pipefail
+          test -f .github/mpmm-promote-once.txt
+          actual="$(tr -d '[:space:]' < .github/mpmm-promote-once.txt)"
+          expected="VERIFY_MPMM_PENDING_30:${EXPECTED_PENDING_FINGERPRINT}"
+          test "$actual" = "$expected"
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Promote only source-verified repairables
+        id: promote
+        run: |
+          set -o pipefail
+          set +e
+          python backend/scripts/run_mpmm_audit.py             --allow-r2-download             --batch-size 25             --execute             --confirm VERIFY_MPMM_PENDING_30             | tee /tmp/mpmm-promote-once.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "exit_status=$status" >> "$GITHUB_OUTPUT"
+          if [[ "$status" -ne 0 && "$status" -ne 2 ]]; then
+            exit "$status"
+          fi
+
+      - name: Verify write report
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          lines = Path("/tmp/mpmm-promote-once.log").read_text().splitlines()
+          marker = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+          report = json.loads(lines[marker + 1])
+
+          assert report["dry_run"] is False
+          assert report["initial_pending"] == 30
+          assert report["initial_verified"] == 165
+          assert report["initial_global_verified"] == 214
+          assert report["target_fingerprint_sha256"] == os.environ["EXPECTED_PENDING_FINGERPRINT"]
+          assert report["protected_verified_fingerprint_sha256"] == os.environ["EXPECTED_VERIFIED_FINGERPRINT"]
+          assert report["updates_performed"] == report["repairable"]
+          assert report["updates_performed"] > 0
+          assert report["final_pending"] == report["initial_pending"] - report["updates_performed"]
+          assert report["final_verified"] == report["initial_verified"] + report["updates_performed"]
+
+          Path("/tmp/MPMM_PROMOTE_ONCE_FINAL_REPORT.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+          )
+          print(
+              "MPMM_PROMOTE_ONCE_SUMMARY "
+              + json.dumps(
+                  {
+                      key: report[key]
+                      for key in (
+                          "initial_pending",
+                          "initial_verified",
+                          "repairable",
+                          "blocked",
+                          "updates_performed",
+                          "final_pending",
+                          "final_verified",
+                          "global_monsters",
+                      )
+                  },
+                  ensure_ascii=False,
+              )
+          )
+          PY
+
+      - name: Upload write report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MPMM_PROMOTE_ONCE_FINAL_REPORT
+          path: /tmp/MPMM_PROMOTE_ONCE_FINAL_REPORT.json
+          if-no-files-found: error
+          retention-days: 14
