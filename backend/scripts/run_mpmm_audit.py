@@ -91,6 +91,7 @@ def _public_hp_anchor_event(payload: Any) -> dict[str, Any] | None:
         "page_text_target_count",
         "page_text_local_hp_count",
         "tsv_page_wide_hp_label_count",
+        "drow_tsv_hp_between_count",
     ):
         value = payload.get(key)
         if type(value) is int and value >= 0:
