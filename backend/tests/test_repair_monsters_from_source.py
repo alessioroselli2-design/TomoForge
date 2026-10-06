@@ -1623,13 +1623,15 @@ def test_non_two_column_source_keeps_full_page_settings():
 
 
 def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_failure():
+    drow_id = "ref_fae2af9678e6572cb755708aab5c393d"
     warlock_id = "ref_583cbd071aec5dc58748c4b27e4005b5"
     other_id = "ref_a6f22b9706e058a8bd3f4dcbbd24c985"
     exact_failure = RepairBlocked("no_unique_exact_target_identity")
     core_failure = RepairBlocked("no_unique_independent_agreement")
 
-    assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is True
-    assert _should_retry_exact_identity_sparse(core_failure, warlock_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, drow_id) is True
+    assert _should_retry_exact_identity_sparse(core_failure, drow_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, other_id) is False
 
 
