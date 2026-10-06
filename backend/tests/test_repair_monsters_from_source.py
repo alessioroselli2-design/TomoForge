@@ -4570,6 +4570,45 @@ def test_drow_hp_micro_reconstructs_only_unique_local_missing_hp(tmp_path, capsy
     assert "MPMM_DROW_STRUCTURAL_HP_ANCHOR" in capsys.readouterr().out
 
 
+
+def test_drow_sparse_micro_reconstructs_when_hp_label_is_missing_from_ocr_text(
+    tmp_path,
+):
+    image_path = tmp_path / "drow-sparse.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=_drow_hp_tsv(), stderr=""),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    assert (
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m"
+    ) in result
+
+
 def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
     tmp_path,
     capsys,
