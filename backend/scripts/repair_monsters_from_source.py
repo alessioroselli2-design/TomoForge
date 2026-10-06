@@ -908,7 +908,7 @@ SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
     "Juiblex": (3,),
 }
 SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME = {
-    "Drow Inquisitore": (6, 12),
+    "Drow Inquisitore": (4, 12),
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_1e187bb2bbc257439e399104067bf326",  # Shadar-Kai Trafficante Di Anime: sole registered page 41
