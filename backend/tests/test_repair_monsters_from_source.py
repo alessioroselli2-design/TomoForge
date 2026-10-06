@@ -3824,7 +3824,12 @@ def test_mpmm_one_side_exact_compatible_fallback_fails_closed(mutation):
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
-def _mpmm_anchored_juiblex_candidate(*, exact: bool, ca: str = "18"):
+def _mpmm_anchored_juiblex_candidate(
+    *,
+    exact: bool,
+    ca: str = "18",
+    hp: str = "350 (28d12 + 168)",
+):
     name = "JUIBLEX" if exact else "JUIBLEX i"
     return {
         "name": name,
@@ -3833,7 +3838,7 @@ def _mpmm_anchored_juiblex_candidate(*, exact: bool, ca: str = "18"):
         "source_refs": [{"page": 56}],
         "attributes": {
             "classe_armatura": ca,
-            "punti_ferita": "350 (28d12 + 168)",
+            "punti_ferita": hp,
             "velocita": "9 m, scalare 9 m",
         },
     }
@@ -3857,7 +3862,10 @@ def _mpmm_anchored_juiblex_counts(records, *, structural=True):
 
 def test_mpmm_anchor_backed_one_side_fallback_requires_unique_anchor_and_core_agreement():
     primary = _mpmm_anchored_juiblex_candidate(exact=True)
-    comparison = _mpmm_anchored_juiblex_candidate(exact=False)
+    comparison = _mpmm_anchored_juiblex_candidate(
+        exact=False,
+        hp="350 (28dl2 + 1 68)",
+    )
 
     def identity_counts(_pages, records, _target_name, _target_page):
         return _mpmm_anchored_juiblex_counts(records)
@@ -3882,7 +3890,13 @@ def test_mpmm_anchor_backed_one_side_fallback_requires_unique_anchor_and_core_ag
 
 @pytest.mark.parametrize(
     "mutation",
-    ["missing_anchor", "missing_structure", "core_disagreement", "duplicate_compatible"],
+    [
+        "missing_anchor",
+        "missing_structure",
+        "core_disagreement",
+        "duplicate_compatible",
+        "hp_unrepairable",
+    ],
 )
 def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
     primary = _mpmm_anchored_juiblex_candidate(exact=True)
@@ -3891,6 +3905,13 @@ def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
     comparison_records = [comparison]
     if mutation == "core_disagreement":
         comparison_records = [_mpmm_anchored_juiblex_candidate(exact=False, ca="19")]
+    elif mutation == "hp_unrepairable":
+        comparison_records = [
+            _mpmm_anchored_juiblex_candidate(
+                exact=False,
+                hp="350 (28dl3 + 1 68)",
+            )
+        ]
     elif mutation == "duplicate_compatible":
         comparison_records = [
             comparison,
@@ -3928,6 +3949,20 @@ def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
         )
 
     assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("350 (28dl2 + 1 68)", "350 (28d12 + 168)"),
+        ("350 (28dI2 + 1 68)", "350 (28d12 + 168)"),
+        ("350 (28d12 + 168)", None),
+        ("350 (28dl3 + 1 68)", None),
+        ("351 (28dl2 + 1 68)", None),
+    ],
+)
+def test_hp_letter_digit_spacing_confusion_is_math_gated(raw, expected):
+    assert repair._repair_hp_letter_digit_spacing_confusion(raw) == expected
 
 
 @pytest.mark.parametrize("target", ["Oscuride", "Oscuride Anziano"])
