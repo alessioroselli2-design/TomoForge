@@ -795,6 +795,33 @@ def test_drow_missing_hp_reconstruction_requires_unique_local_core(mutation):
         assert result is None
 
 
+@pytest.mark.parametrize(
+    ("filler_count", "accepted"),
+    [(6, True), (7, False)],
+)
+def test_drow_missing_hp_reconstruction_keeps_seven_line_core_gap_bounded(
+    filler_count,
+    accepted,
+):
+    text = (
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        + "".join(f"riga filler {index}\n" for index in range(filler_count))
+        + "Velocità 9 m\n"
+    )
+    result = repair._reconstruct_drow_missing_hp_line(
+        text,
+        "Drow Inquisitore",
+        "30 (4d10 + 8)",
+    )
+    if accepted:
+        assert result is not None
+        assert "Punti Ferita 30 (4d10 + 8)\nVelocità 9 m" in result
+    else:
+        assert result is None
+
+
 def test_drow_micro_ocr_reconstructs_only_tsv_anchored_missing_local_hp(tmp_path):
     image_path = tmp_path / "drow.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 900, 500), False)
