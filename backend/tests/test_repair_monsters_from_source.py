@@ -1677,7 +1677,7 @@ def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
     assert _source_guided_sparse_ocr_psms("Drow Inquisitore", 4, 12) == (4, 12)
     assert _source_guided_sparse_ocr_psms("Warlock Del Grande Antico", 3, 4) == (
         3,
-        6,
+        11,
     )
     assert _source_guided_sparse_ocr_psms("Juiblex", 3, 6) == (3, 6)
 
@@ -1688,7 +1688,7 @@ def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
         "Warlock Del Grande Antico",
         3,
         4,
-    ) == (3, 6)
+    ) == (3, 11)
 
 
 def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
