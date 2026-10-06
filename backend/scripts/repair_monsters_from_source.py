@@ -907,6 +907,7 @@ SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES = frozenset(
 SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES = frozenset(
     {
         "Juiblex",
+        "Warlock Del Grande Antico",
     }
 )
 SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES = frozenset(
@@ -6990,9 +6991,16 @@ def _agreed_target_candidate(
             exact_counts = (
                 primary_counts if len(primary_exact) == 1 else comparison_counts
             )
+            exact_title_lines = exact_counts.get("exact_title_lines", 0)
             exact_side_supported = (
-                exact_counts.get("exact_title_lines", 0) == 1
-                and exact_counts.get("parser_exact_headers", 0) == 1
+                exact_counts.get("parser_exact_headers", 0) == 1
+                and (
+                    exact_title_lines == 1
+                    or (
+                        target_name == "Warlock Del Grande Antico"
+                        and exact_title_lines == 2
+                    )
+                )
             )
             compatible_fallback_diagnostics = {
                 "eligible_name": True,
