@@ -7117,9 +7117,7 @@ def _agreed_target_candidate(
                     ),
                     "core_match": {
                         field: bool(
-                            deterministic.get(
-                                f"{field}_deterministic_match", False
-                            )
+                            deterministic.get(f"{field}_deterministic_match", False)
                         )
                         for field in (
                             "classe_armatura",
