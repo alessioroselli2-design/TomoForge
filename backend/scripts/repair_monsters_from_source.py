@@ -5441,6 +5441,16 @@ def _micro_ocr_hit_points_line(
                 {"classe_armatura": "10", "punti_ferita": value}
             )
         )
+    drow_hp_source_bound = bool(
+        (
+            label_words is not None
+            and diagnostics.get("drow_local_tsv_structure") is True
+        )
+        or (
+            drow_core_band_bounds is not None
+            and diagnostics.get("drow_hp_geometry_band_used") is True
+        )
+    )
     if (
         not page_text_has_hp_label
         and name == "Drow Inquisitore"
@@ -5448,8 +5458,7 @@ def _micro_ocr_hit_points_line(
         and page_target_count == 1
         and page_local_hp_count == 0
         and name_line_index is not None
-        and label_words is not None
-        and diagnostics.get("drow_local_tsv_structure") is True
+        and drow_hp_source_bound
     ):
         reconstructed = _reconstruct_drow_missing_hp_line(
             page_text,
@@ -5465,7 +5474,8 @@ def _micro_ocr_hit_points_line(
                     "name": name,
                     "unique_sparse_geometry": True,
                     "tsv_name_anchor_found": True,
-                    "tsv_local_label_found": True,
+                    "tsv_local_label_found": label_words is not None,
+                    "geometry_band_used": drow_core_band_bounds is not None,
                     "numeric_gate_passed": True,
                 },
                 ensure_ascii=False,
@@ -5480,7 +5490,7 @@ def _micro_ocr_hit_points_line(
             and page_target_count == 1
             and page_local_hp_count == 0
             and name_line_index is not None
-            and label_words is not None
+            and drow_hp_source_bound
         ):
             reconstructed = _reconstruct_drow_missing_hp_line(
                 page_text,
