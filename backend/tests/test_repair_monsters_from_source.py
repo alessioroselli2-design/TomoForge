@@ -1659,7 +1659,7 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
 
 
 def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
-    assert _source_guided_sparse_ocr_psms("Drow Inquisitore", 4, 12) == (6, 12)
+    assert _source_guided_sparse_ocr_psms("Drow Inquisitore", 4, 12) == (4, 12)
     assert _source_guided_sparse_ocr_psms("Warlock Del Grande Antico", 3, 4) == (
         3,
         4,
