@@ -128,9 +128,44 @@ def test_apply_verified_preserves_provenance_and_records_review_history():
 
 
 def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
-    assert process.EXPECTED_PENDING == 131
-    assert process.EXPECTED_MPMM_VERIFIED == 64
-    assert process.EXPECTED_GLOBAL_VERIFIED == 113
+    assert process.EXPECTED_PENDING == 30
+    assert process.EXPECTED_MPMM_VERIFIED == 165
+    assert process.EXPECTED_GLOBAL_VERIFIED == 214
+    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_30"
+    assert process.EXPECTED_PENDING_FINGERPRINT == (
+        "f4581b41625407f59f40287c6dbd3d8c21a8f190f6f82b14b16f0a0195c21339"
+    )
+    assert process.EXPECTED_VERIFIED_FINGERPRINT == (
+        "8c7be7e195edcc015f811365e5ecadd55138eb5276c112c08036bb9e32be8f06"
+    )
+
+
+def test_execute_snapshot_fingerprint_drift_blocks_before_source_access():
+    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(30)]
+    verified = [
+        {**_record(f"verified-{index}", f"Verified {index}"), "review_status": "verified"}
+        for index in range(165)
+    ]
+    non_mpmm_verified = [
+        {
+            **_record(f"global-{index}", f"Global {index}"),
+            "review_status": "verified",
+            "source_refs": [{"logical_source_id": "other_source", "page": 1}],
+        }
+        for index in range(49)
+    ]
+    rows = [*pending, *verified, *non_mpmm_verified]
+    args = process._parser().parse_args(
+        ["--execute", "--confirm", process.CONFIRMATION_TOKEN]
+    )
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        patch.object(process.repair, "_fetch_all", AsyncMock(return_value=rows)) as fetch,
+        patch.object(process, "EXPECTED_PENDING_FINGERPRINT", "0" * 64),
+        pytest.raises(RuntimeError, match="initial-state drift"),
+    ):
+        asyncio.run(process._run(args))
+    assert fetch.await_count == 1
 
 
 def test_focused_audit_preserves_global_counts_and_never_writes(capsys):
