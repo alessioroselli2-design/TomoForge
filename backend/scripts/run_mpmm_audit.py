@@ -97,6 +97,30 @@ def _public_hp_anchor_event(payload: Any) -> dict[str, Any] | None:
     return result
 
 
+def _public_hp_micro_event(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    result: dict[str, Any] = {}
+    for key in (
+        "otsu_hp_format_error",
+        "upscaled_otsu_hp_format_error",
+        "superscaled_otsu_hp_format_error",
+    ):
+        value = payload.get(key)
+        if type(value) is bool:
+            result[key] = value
+        elif value is None:
+            result[key] = None
+    attempts = payload.get("full_spectrum_attempt_count")
+    if type(attempts) is int and attempts >= 0:
+        result["full_spectrum_attempt_count"] = attempts
+    result["full_spectrum_accepted"] = isinstance(
+        payload.get("full_spectrum_accepted"),
+        dict,
+    )
+    return result
+
+
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
     identifier = item.get("record_id")
     return {
@@ -382,6 +406,7 @@ def main() -> int:
             runtime_output.seek(0)
             private = None
             hp_anchor_diagnostics: list[dict[str, Any]] = []
+            hp_micro_ocr_diagnostics: list[dict[str, Any]] = []
             for line in runtime_output:
                 stripped = line.strip()
                 if stripped.startswith("HP_ANCHOR_DIAGNOSTIC "):
@@ -392,12 +417,21 @@ def main() -> int:
                     event = _public_hp_anchor_event(payload)
                     if event is not None and len(hp_anchor_diagnostics) < 32:
                         hp_anchor_diagnostics.append(event)
+                elif stripped.startswith("HP_MICRO_OCR_DIAGNOSTIC "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    event = _public_hp_micro_event(payload)
+                    if event is not None and len(hp_micro_ocr_diagnostics) < 32:
+                        hp_micro_ocr_diagnostics.append(event)
                 if stripped == "FINAL_REPORT":
                     private = json.loads(next(runtime_output))
             if private is None:
                 raise RuntimeError("missing final report")
             public = public_report(private)
             public["hp_anchor_diagnostics"] = hp_anchor_diagnostics
+            public["hp_micro_ocr_diagnostics"] = hp_micro_ocr_diagnostics
         print("FINAL_REPORT")
         print(json.dumps(public, sort_keys=True))
         return completed.returncode
