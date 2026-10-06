@@ -5379,6 +5379,13 @@ def _micro_ocr_hit_points_line(
     value = " ".join(micro.split())
     if not value or not re.search(r"\d", value):
         return fail_closed("micro_ocr_numeric_value_missing")
+    if name == "Drow Inquisitore":
+        diagnostics["drow_micro_value_valid"] = (
+            HP_FORMAT_ERROR_FLAG
+            not in monster_semantic_numeric_flags(
+                {"classe_armatura": "10", "punti_ferita": value}
+            )
+        )
     if (
         not page_text_has_hp_label
         and name == "Drow Inquisitore"
@@ -5498,11 +5505,34 @@ def _micro_ocr_hit_points_line(
                 for index in range(target_index + 1, local_end)
                 if re.match(r"\s*Classe\s+Armatura\b", text_lines[index], re.IGNORECASE)
             ]
+            permissive_ca_indexes = [
+                index
+                for index in range(target_index + 1, local_end)
+                if re.match(
+                    r"\s*Classe\s+(?:D['’]?\s*)?Armatura\b",
+                    text_lines[index],
+                    re.IGNORECASE,
+                )
+            ]
             speed_indexes = [
                 index
                 for index in range(target_index + 1, local_end)
                 if re.match(r"\s*Velocit[àa]\b", text_lines[index], re.IGNORECASE)
             ]
+            permissive_ordered = bool(
+                len(permissive_ca_indexes) == len(speed_indexes) == 1
+                and target_index < permissive_ca_indexes[0] < speed_indexes[0]
+            )
+            diagnostics["drow_text_plain_ca_unique"] = len(ca_indexes) == 1
+            diagnostics["drow_text_permissive_ca_unique"] = (
+                len(permissive_ca_indexes) == 1
+            )
+            diagnostics["drow_text_speed_unique"] = len(speed_indexes) == 1
+            diagnostics["drow_text_permissive_ordered"] = permissive_ordered
+            diagnostics["drow_text_gap_within_bound"] = bool(
+                permissive_ordered
+                and speed_indexes[0] - permissive_ca_indexes[0] <= 7
+            )
             if not (
                 len(ca_indexes) == len(speed_indexes) == 1
                 and target_index < ca_indexes[0] < speed_indexes[0]
