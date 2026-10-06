@@ -909,6 +909,11 @@ SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES = frozenset(
         "Juiblex",
     }
 )
+SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES = frozenset(
+    {
+        "Danzatore Dell'Ombra",
+    }
+)
 SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
     {
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
@@ -7033,6 +7038,120 @@ def _agreed_target_candidate(
                     )
                 )
 
+        if (
+            (len(primary_exact) != 1 or len(comparison_exact) != 1)
+            and target_name in SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES
+            and target_name == "Danzatore Dell'Ombra"
+            and target_page == 40
+        ):
+            primary_page_candidates = [
+                candidate
+                for candidate in primary
+                if int(candidate.get("start_page") or 0) == target_page
+            ]
+            comparison_page_candidates = [
+                candidate
+                for candidate in comparison
+                if int(candidate.get("start_page") or 0) == target_page
+            ]
+            if (
+                len(primary_page_candidates) == 1
+                and len(comparison_page_candidates) == 1
+            ):
+                primary_counts = _identity_source_counts(
+                    primary_pages, primary, target_name, target_page
+                )
+                comparison_counts = _identity_source_counts(
+                    comparison_pages, comparison, target_name, target_page
+                )
+                primary_attributes = dict(
+                    primary_page_candidates[0].get("attributes") or {}
+                )
+                comparison_attributes = dict(
+                    comparison_page_candidates[0].get("attributes") or {}
+                )
+                deterministic = deterministic_core_field_matches(
+                    primary_attributes, comparison_attributes
+                )
+                primary_gate_flags = sorted(
+                    monster_semantic_numeric_flags(primary_attributes)
+                )
+                comparison_gate_flags = sorted(
+                    monster_semantic_numeric_flags(comparison_attributes)
+                )
+
+                def structurally_unique(counts: dict[str, int]) -> bool:
+                    return (
+                        counts.get("exact_title_lines", 0) == 0
+                        and counts.get("candidates_on_page", 0) == 1
+                        and counts.get("parser_valid_headers", 0) == 1
+                        and counts.get("core_anchors", 0) == 1
+                        and counts.get("anchors_with_descriptor", 0) == 1
+                        and counts.get("anchors_with_hp", 0) == 1
+                        and counts.get("anchors_with_speed", 0) == 1
+                        and counts.get("parser_armor_fields", 0) == 1
+                        and counts.get("parser_hp_fields", 0) == 1
+                        and counts.get("parser_speed_fields", 0) == 1
+                    )
+
+                clean_core = (
+                    not primary_gate_flags
+                    and not comparison_gate_flags
+                    and all(
+                        deterministic.get(f"{field}_deterministic_match", False)
+                        for field in ("classe_armatura", "punti_ferita", "velocita")
+                    )
+                )
+                structural_support = structurally_unique(
+                    primary_counts
+                ) and structurally_unique(comparison_counts)
+                compatible_fallback_diagnostics = {
+                    "eligible_name": True,
+                    "geometry_only_identity": True,
+                    "registered_page": target_page,
+                    "primary_gate_flags": primary_gate_flags,
+                    "comparison_gate_flags": comparison_gate_flags,
+                    "primary_structurally_unique": structurally_unique(primary_counts),
+                    "comparison_structurally_unique": structurally_unique(
+                        comparison_counts
+                    ),
+                    "core_match": {
+                        field: bool(
+                            deterministic.get(
+                                f"{field}_deterministic_match", False
+                            )
+                        )
+                        for field in (
+                            "classe_armatura",
+                            "punti_ferita",
+                            "velocita",
+                        )
+                    },
+                }
+                if structural_support and clean_core:
+                    primary_target = dict(primary_page_candidates[0])
+                    comparison_target = dict(comparison_page_candidates[0])
+                    for candidate in (primary_target, comparison_target):
+                        candidate["name"] = target_name
+                        candidate["normalized_name"] = normalized_target
+                    primary_exact = [primary_target]
+                    comparison_exact = [comparison_target]
+                    print(
+                        "MPMM_GEOMETRY_ONLY_IDENTITY_FALLBACK "
+                        + json.dumps(
+                            {
+                                "name": target_name,
+                                "page": target_page,
+                                "primary_candidates": 1,
+                                "comparison_candidates": 1,
+                                "structural_support": True,
+                                "core_fields_agree": True,
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                    )
+
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
@@ -7049,6 +7168,7 @@ def _agreed_target_candidate(
                             SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
                             | SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
                             | SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES
+                            | SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES
                         )
                         else {}
                     ),
