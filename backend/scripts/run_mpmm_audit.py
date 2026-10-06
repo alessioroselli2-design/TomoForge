@@ -306,6 +306,12 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                                 "digits_valid",
                                 "die_standard",
                                 "candidate_valid",
+                                "prefix_numericish",
+                                "inner_chars_allowed",
+                                "single_d_separator",
+                                "single_modifier_sign",
+                                "suffix_present",
+                                "suffix_has_numeric_syntax",
                             )
                         },
                     }
