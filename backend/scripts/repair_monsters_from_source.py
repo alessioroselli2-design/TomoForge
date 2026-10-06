@@ -6884,6 +6884,13 @@ def _agreed_target_candidate(
                 bad_hp = str(bad_attributes.get("punti_ferita") or "")
                 hp_repair_has_letter_confusion = bool(re.search(r"[lI]", bad_hp))
                 hp_repair_has_spaced_digits = bool(re.search(r"\d\s+\d", bad_hp))
+                hp_repair_shape = {
+                    "has_open_paren": "(" in bad_hp,
+                    "has_close_paren": ")" in bad_hp,
+                    "ends_close_paren": bad_hp.rstrip().endswith(")"),
+                    "has_d_separator": bool(re.search(r"[dD]", bad_hp)),
+                    "has_modifier_sign": bool(re.search(r"[+\-−–]", bad_hp)),
+                }
                 repaired_hp = _repair_hp_letter_digit_spacing_confusion(bad_hp)
                 hp_repair_candidate_valid = repaired_hp is not None
                 good_hp = " ".join(
@@ -6950,6 +6957,7 @@ def _agreed_target_candidate(
                 "hp_repair_attempted": hp_repair_attempted,
                 "hp_repair_has_letter_confusion": hp_repair_has_letter_confusion,
                 "hp_repair_has_spaced_digits": hp_repair_has_spaced_digits,
+                "hp_repair_shape": hp_repair_shape if hp_repair_attempted else {},
                 "hp_repair_candidate_valid": hp_repair_candidate_valid,
                 "hp_repair_matches_peer": hp_repair_matches_peer,
                 "one_side_exact": True,
