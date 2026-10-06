@@ -1684,6 +1684,18 @@ def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
 
 def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
     assert _sparse_anchor_psms("Warlock Del Grande Antico") == (11, 3, 4)
+
+
+def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
+    identifier = "ref_583cbd071aec5dc58748c4b27e4005b5"
+    assert repair._should_retry_exact_identity_sparse(
+        RepairBlocked("no_unique_exact_target_identity"),
+        identifier,
+    )
+    assert not repair._should_retry_exact_identity_sparse(
+        RepairBlocked("no_unique_independent_agreement"),
+        identifier,
+    )
     assert _sparse_anchor_psms("Drow Inquisitore") == (11, 4, 12)
     assert _sparse_anchor_psms("Duergar Martellatore") == (11, 4)
     assert _sparse_anchor_psms("Fenice") == (11, 4)
