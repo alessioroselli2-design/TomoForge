@@ -6786,8 +6786,7 @@ def _agreed_target_candidate(
         if (
             (len(primary_exact) != 1 or len(comparison_exact) != 1)
             and source_anchor_verified
-            and target_name
-            in SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES
+            and target_name in SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES
             and len(primary_compatible) == 1
             and len(comparison_compatible) == 1
             and (len(primary_exact) == 1) != (len(comparison_exact) == 1)
