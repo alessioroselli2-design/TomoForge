@@ -1139,6 +1139,14 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
     return candidate
 
 
+def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
+    if name == "Warlock Del Grande Antico":
+        return 13
+    if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
+        return 6
+    return 7
+
+
 def _remaining_global_ocr_budget(
     ocr_budget_started_at: float | tuple[float, float] | None,
 ) -> float | None:
@@ -4859,9 +4867,7 @@ def _micro_ocr_hit_points_line(
             "-l",
             languages,
             "--psm",
-            "6"
-            if name in {"Brontosauro", "Delfino", "Divoratore"} and psm == 4
-            else "7",
+            str(_hp_micro_ocr_psm(name, psm)),
             "-c",
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
