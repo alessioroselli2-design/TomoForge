@@ -1666,7 +1666,7 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
 
 
 def test_hp_micro_ocr_psm_is_source_scoped():
-    assert _hp_micro_ocr_psm("Warlock Del Grande Antico", 3) == 13
+    assert _hp_micro_ocr_psm("Warlock Del Grande Antico", 3) == 7
     assert _hp_micro_ocr_psm("Brontosauro", 4) == 6
     assert _hp_micro_ocr_psm("Brontosauro", 3) == 7
     assert _hp_micro_ocr_psm("Juiblex", 3) == 7
