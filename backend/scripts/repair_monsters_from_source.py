@@ -6850,23 +6850,21 @@ def _isolate_bheur_title_rule(page_text: str) -> str:
 
 
 def _isolate_drow_title_debris(page_text: str) -> str:
-    """Isolate one observed OCR suffix from the exact Drow Inquisitore title."""
+    """Isolate one observed OCR suffix from a normalized-exact Drow title."""
     lines = page_text.splitlines()
+    expected = normalize_reference_name("Drow Inquisitore")
     matches = [
         (index, match)
         for index, line in enumerate(lines)
         if (
-            match := re.fullmatch(
-                r"\s*(DROW\s+INQUISITORE)\s+([Ùi])\s*",
-                line,
-                re.IGNORECASE,
-            )
+            (match := re.fullmatch(r"\s*(.*?)\s+([Ùi])\s*", line, re.IGNORECASE))
+            and normalize_reference_name(match.group(1)) == expected
         )
     ]
     if len(matches) != 1:
         return page_text
     index, match = matches[0]
-    lines[index] = match.group(2) + "\n" + match.group(1)
+    lines[index] = match.group(2) + "\n" + match.group(1).strip()
     print(
         "MPMM_DROW_TITLE_DEBRIS_ISOLATED "
         + json.dumps(
