@@ -5546,8 +5546,7 @@ def _micro_ocr_hit_points_line(
             )
             diagnostics["drow_text_permissive_ordered"] = permissive_ordered
             diagnostics["drow_text_gap_within_bound"] = bool(
-                permissive_ordered
-                and speed_indexes[0] - permissive_ca_indexes[0] <= 7
+                permissive_ordered and speed_indexes[0] - permissive_ca_indexes[0] <= 7
             )
             if not (
                 len(ca_indexes) == len(speed_indexes) == 1
