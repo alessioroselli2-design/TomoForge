@@ -4785,6 +4785,7 @@ def _micro_ocr_hit_points_line(
         diagnostics["drow_tsv_ca_local_unique"] = first_ca is not None
         diagnostics["drow_tsv_speed_within_12_unique"] = first_speed is not None
         diagnostics["drow_tsv_hp_between_unique"] = first_hp is not None
+        diagnostics["drow_tsv_hp_between_count"] = len(local_hp_offsets)
         drow_local_structure = bool(
             len(tsv_target_indexes) == 1
             and first_ca is not None
