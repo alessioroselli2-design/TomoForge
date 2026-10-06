@@ -797,9 +797,9 @@ def test_drow_missing_hp_reconstruction_requires_unique_local_core(mutation):
 
 @pytest.mark.parametrize(
     ("filler_count", "accepted"),
-    [(6, True), (7, False)],
+    [(11, True), (12, False)],
 )
-def test_drow_missing_hp_reconstruction_keeps_seven_line_core_gap_bounded(
+def test_drow_missing_hp_reconstruction_keeps_twelve_line_core_gap_bounded(
     filler_count,
     accepted,
 ):
