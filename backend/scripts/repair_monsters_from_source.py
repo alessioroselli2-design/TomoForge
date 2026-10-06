@@ -1082,8 +1082,16 @@ def _repair_numeric_dice_separator_confusion(value: str) -> str | None:
     return next(iter(candidates))
 
 
-def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
+def _repair_hp_letter_digit_spacing_confusion(
+    value: str,
+    diagnostics: dict[str, bool] | None = None,
+) -> str | None:
     """Recover only l/I-for-1 and intra-number spacing when HP math is coherent."""
+
+    def mark(**values: bool) -> None:
+        if diagnostics is not None:
+            diagnostics.update(values)
+
     normalized = " ".join((value or "").split())
     match = re.fullmatch(
         r"([0-9Oo]+)\s*\(\s*([0-9lILOo ]+)\s*[dD]\s*([0-9lILOo ]+)\s*"
@@ -1091,10 +1099,19 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
         normalized,
     )
     if match is None:
+        mark(shape_match=False)
         return None
+    mark(shape_match=True)
     trailing = match.group(6).strip()
+    trailing_has_numeric_syntax = bool(
+        trailing and re.search(r"[0-9()dD+\-−–]", trailing)
+    )
+    mark(
+        trailing_present=bool(trailing),
+        trailing_has_numeric_syntax=trailing_has_numeric_syntax,
+    )
     if trailing:
-        if len(trailing) > 12 or re.search(r"[0-9()dD+\-−–]", trailing):
+        if len(trailing) > 12 or trailing_has_numeric_syntax:
             return None
 
     raw_average = match.group(1)
@@ -1126,7 +1143,7 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
     dice_count_digits = corrected_digits(raw_dice_count)
     die_digits = corrected_digits(raw_die_size)
     modifier_digits = corrected_digits(raw_modifier)
-    if not all(
+    digits_valid = all(
         digits.isdigit()
         for digits in (
             average_digits,
@@ -1134,14 +1151,18 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
             die_digits,
             modifier_digits,
         )
-    ):
+    )
+    mark(digits_valid=digits_valid)
+    if not digits_valid:
         return None
 
     average = int(average_digits)
     dice_count = int(dice_count_digits)
     die_size = int(die_digits)
     modifier = int(modifier_digits)
-    if dice_count <= 0 or die_size not in STANDARD_HIT_DIE_SIZES:
+    die_standard = dice_count > 0 and die_size in STANDARD_HIT_DIE_SIZES
+    mark(die_standard=die_standard)
+    if not die_standard:
         return None
 
     sign = "-" if match.group(4) in {"-", "−", "–"} else "+"
@@ -1149,7 +1170,9 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
     flags = monster_semantic_numeric_flags(
         {"classe_armatura": "10", "punti_ferita": candidate}
     )
-    if HP_FORMAT_ERROR_FLAG in flags:
+    candidate_valid = HP_FORMAT_ERROR_FLAG not in flags
+    mark(candidate_valid=candidate_valid)
+    if not candidate_valid:
         return None
     return candidate
 
@@ -6922,6 +6945,7 @@ def _agreed_target_candidate(
             hp_repair_has_spaced_digits = False
             hp_repair_candidate_valid = False
             hp_repair_matches_peer = False
+            hp_repair_diagnostics: dict[str, bool] = {}
             primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
             comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
             if (HP_FORMAT_ERROR_FLAG in primary_hp_flags) != (
@@ -6948,7 +6972,11 @@ def _agreed_target_candidate(
                     "has_d_separator": bool(re.search(r"[dD]", bad_hp)),
                     "has_modifier_sign": bool(re.search(r"[+\-−–]", bad_hp)),
                 }
-                repaired_hp = _repair_hp_letter_digit_spacing_confusion(bad_hp)
+                hp_repair_diagnostics: dict[str, bool] = {}
+                repaired_hp = _repair_hp_letter_digit_spacing_confusion(
+                    bad_hp,
+                    diagnostics=hp_repair_diagnostics,
+                )
                 hp_repair_candidate_valid = repaired_hp is not None
                 good_hp = " ".join(
                     str(good_attributes.get("punti_ferita") or "").split()
@@ -7024,6 +7052,7 @@ def _agreed_target_candidate(
                 "hp_repair_shape": hp_repair_shape if hp_repair_attempted else {},
                 "hp_repair_candidate_valid": hp_repair_candidate_valid,
                 "hp_repair_matches_peer": hp_repair_matches_peer,
+                "hp_repair_diagnostics": hp_repair_diagnostics,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
                 "exact_side_supported": exact_side_supported,
