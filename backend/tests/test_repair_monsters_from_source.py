@@ -4475,7 +4475,15 @@ def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
                 require_exact_target_identity=True,
             )
             assert candidate["name"] == "Drow Inquisitore"
-            assert candidate["attributes"] == primary["attributes"]
+            assert {
+                field: candidate["attributes"][field]
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            } == primary["attributes"]
+            assert candidate["attributes"]["ocr_independent_agreement"] is True
+            assert (
+                candidate["attributes"]["ocr_clean_deterministic_core_agreement"]
+                is True
+            )
         else:
             with pytest.raises(RepairBlocked) as caught:
                 _agreed_target_candidate(
@@ -4491,7 +4499,7 @@ def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
             assert caught.value.reason == "no_unique_exact_target_identity"
 
 
-def _drow_hp_tsv(*, duplicate_speed=False):
+def _drow_hp_tsv(*, duplicate_target=False):
     header = (
         "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
         "left\ttop\twidth\theight\tconf\ttext\n"
@@ -4513,11 +4521,11 @@ def _drow_hp_tsv(*, duplicate_speed=False):
         "5\t1\t3\t1\t5\t1\t20\t180\t55\t12\t95\tVelocità",
         "5\t1\t3\t1\t5\t2\t80\t180\t20\t12\t95\t9",
     ]
-    if duplicate_speed:
+    if duplicate_target:
         rows.extend(
             [
-                "5\t1\t3\t1\t6\t1\t20\t195\t55\t12\t95\tVelocità",
-                "5\t1\t3\t1\t6\t2\t80\t195\t20\t12\t95\t9",
+                "5\t1\t4\t1\t1\t1\t20\t210\t70\t14\t95\tDROW",
+                "5\t1\t4\t1\t1\t2\t95\t210\t100\t14\t95\tINQUISITORE",
             ]
         )
     return header + "\n".join(rows) + "\n"
@@ -4584,7 +4592,7 @@ def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
         return_value=CompletedProcess(
             [],
             0,
-            stdout=_drow_hp_tsv(duplicate_speed=True),
+            stdout=_drow_hp_tsv(duplicate_target=True),
             stderr="",
         ),
     ):
