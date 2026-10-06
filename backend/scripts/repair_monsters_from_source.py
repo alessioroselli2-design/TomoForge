@@ -897,6 +897,11 @@ SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES = frozenset(
         "Fenice",
     }
 )
+SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES = frozenset(
+    {
+        "Juiblex",
+    }
+)
 SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
     {
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
@@ -6778,6 +6783,106 @@ def _agreed_target_candidate(
                     )
                 )
 
+        if (
+            (len(primary_exact) != 1 or len(comparison_exact) != 1)
+            and source_anchor_verified
+            and target_name
+            in SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES
+            and len(primary_compatible) == 1
+            and len(comparison_compatible) == 1
+            and (len(primary_exact) == 1) != (len(comparison_exact) == 1)
+        ):
+            primary_counts = _identity_source_counts(
+                primary_pages,
+                primary,
+                target_name,
+                target_page,
+            )
+            comparison_counts = _identity_source_counts(
+                comparison_pages,
+                comparison,
+                target_name,
+                target_page,
+            )
+            primary_attributes = primary_compatible[0].get("attributes") or {}
+            comparison_attributes = comparison_compatible[0].get("attributes") or {}
+            deterministic = deterministic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            primary_gate_flags = sorted(
+                monster_semantic_numeric_flags(primary_attributes)
+            )
+            comparison_gate_flags = sorted(
+                monster_semantic_numeric_flags(comparison_attributes)
+            )
+            clean_core = (
+                not primary_gate_flags
+                and not comparison_gate_flags
+                and all(
+                    deterministic.get(f"{field}_deterministic_match", False)
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                )
+            )
+            nonexact_counts = (
+                comparison_counts if len(primary_exact) == 1 else primary_counts
+            )
+            structural_nonexact = (
+                nonexact_counts.get("parser_valid_headers", 0) == 1
+                and nonexact_counts.get("anchors_with_descriptor", 0) >= 1
+                and nonexact_counts.get("anchors_with_hp", 0) >= 1
+                and nonexact_counts.get("anchors_with_speed", 0) >= 1
+                and nonexact_counts.get("candidates_on_page", 0) == 1
+            )
+            exact_counts = (
+                primary_counts if len(primary_exact) == 1 else comparison_counts
+            )
+            exact_side_supported = (
+                exact_counts.get("exact_title_lines", 0) == 1
+                and exact_counts.get("parser_exact_headers", 0) == 1
+            )
+            compatible_fallback_diagnostics = {
+                "eligible_name": True,
+                "primary_exact_title_lines": primary_counts.get("exact_title_lines", 0),
+                "comparison_exact_title_lines": comparison_counts.get(
+                    "exact_title_lines", 0
+                ),
+                "primary_gate_flags": primary_gate_flags,
+                "comparison_gate_flags": comparison_gate_flags,
+                "core_match": {
+                    field: bool(
+                        deterministic.get(f"{field}_deterministic_match", False)
+                    )
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                },
+                "source_anchor_verified": True,
+                "one_side_exact": True,
+                "nonexact_structural_support": structural_nonexact,
+                "exact_side_supported": exact_side_supported,
+            }
+            if exact_side_supported and structural_nonexact and clean_core:
+                primary_target = dict(primary_compatible[0])
+                comparison_target = dict(comparison_compatible[0])
+                for candidate in (primary_target, comparison_target):
+                    candidate["name"] = target_name
+                    candidate["normalized_name"] = normalized_target
+                primary_exact = [primary_target]
+                comparison_exact = [comparison_target]
+                print(
+                    "MPMM_ANCHORED_ONE_SIDE_COMPATIBLE_IDENTITY_FALLBACK "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "page": target_page,
+                            "source_anchor_verified": True,
+                            "nonexact_structural_support": True,
+                            "core_fields_agree": True,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
@@ -6793,6 +6898,7 @@ def _agreed_target_candidate(
                         in (
                             SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
                             | SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
+                            | SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES
                         )
                         else {}
                     ),
