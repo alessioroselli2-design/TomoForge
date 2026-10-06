@@ -294,6 +294,29 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                             field: (fallback.get("core_match") or {}).get(field) is True
                             for field in CORE_FIELDS
                         },
+                        "semantic_core_match": {
+                            field: (fallback.get("semantic_core_match") or {}).get(field)
+                            is True
+                            for field in CORE_FIELDS
+                        },
+                        "speed_single_extra_token": {
+                            key: (fallback.get("speed_single_extra_token") or {}).get(key)
+                            is True
+                            for key in (
+                                "velocita_residual_single_extra_alpha_token_len_3_to_6",
+                                "velocita_residual_single_extra_alpha_token_len_gt6",
+                                "velocita_residual_single_extra_alpha_token_internal",
+                            )
+                        },
+                        "speed_multi_extra_token": {
+                            key: (fallback.get("speed_multi_extra_token") or {}).get(key)
+                            is True
+                            for key in (
+                                "velocita_residual_extra_alpha_tokens_exactly_2",
+                                "velocita_residual_extra_alpha_tokens_3_or_more",
+                                "velocita_residual_duplicate_ambiguous",
+                            )
+                        },
                         "hp_ocr_confusion_repaired": (
                             fallback.get("hp_ocr_confusion_repaired") is True
                         ),
