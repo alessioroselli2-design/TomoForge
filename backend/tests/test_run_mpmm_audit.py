@@ -274,6 +274,12 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
             "digits_valid": False,
             "die_standard": False,
             "candidate_valid": False,
+            "prefix_numericish": False,
+            "inner_chars_allowed": False,
+            "single_d_separator": False,
+            "single_modifier_sign": False,
+            "suffix_present": False,
+            "suffix_has_numeric_syntax": False,
         },
     }
 
