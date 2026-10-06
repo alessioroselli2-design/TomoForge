@@ -4146,6 +4146,22 @@ def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
+def test_hp_letter_digit_spacing_confusion_reports_sanitized_rejection_gate():
+    diagnostics = {}
+    assert (
+        repair._repair_hp_letter_digit_spacing_confusion(
+            "350 (28dl2 + 168) 3",
+            diagnostics=diagnostics,
+        )
+        is None
+    )
+    assert diagnostics == {
+        "shape_match": True,
+        "trailing_present": True,
+        "trailing_has_numeric_syntax": True,
+    }
+
+
 @pytest.mark.parametrize(
     "raw,expected",
     [
