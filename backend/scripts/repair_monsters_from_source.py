@@ -891,11 +891,15 @@ SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
         "Xvart Warlock Di Raxivort",
     }
 )
+SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES = frozenset(
+    {
+        "Duergar Martellatore",
+        "Fenice",
+    }
+)
 SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
     {
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
-        "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore
-        "ref_744cb23cb7f95be7b5d7521316ce8e78",  # Fenice
         "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex
     }
 )
@@ -6673,6 +6677,105 @@ def _agreed_target_candidate(
                     )
                 )
 
+        if (
+            (len(primary_exact) != 1 or len(comparison_exact) != 1)
+            and target_name
+            in SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
+            and len(primary_compatible) == 1
+            and len(comparison_compatible) == 1
+            and (len(primary_exact) == 1) != (len(comparison_exact) == 1)
+        ):
+            primary_counts = _identity_source_counts(
+                primary_pages,
+                primary,
+                target_name,
+                target_page,
+            )
+            comparison_counts = _identity_source_counts(
+                comparison_pages,
+                comparison,
+                target_name,
+                target_page,
+            )
+            primary_attributes = primary_compatible[0].get("attributes") or {}
+            comparison_attributes = comparison_compatible[0].get("attributes") or {}
+            deterministic = deterministic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            primary_gate_flags = sorted(
+                monster_semantic_numeric_flags(primary_attributes)
+            )
+            comparison_gate_flags = sorted(
+                monster_semantic_numeric_flags(comparison_attributes)
+            )
+            clean_core = (
+                not primary_gate_flags
+                and not comparison_gate_flags
+                and all(
+                    deterministic.get(f"{field}_deterministic_match", False)
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                )
+            )
+            nonexact_counts = (
+                comparison_counts if len(primary_exact) == 1 else primary_counts
+            )
+            structural_nonexact = (
+                nonexact_counts.get("exact_title_lines") == 1
+                and nonexact_counts.get("parser_valid_headers", 0) >= 1
+                and nonexact_counts.get("anchors_with_descriptor", 0) >= 1
+                and nonexact_counts.get("anchors_with_hp", 0) >= 1
+                and nonexact_counts.get("anchors_with_speed", 0) >= 1
+            )
+            compatible_fallback_diagnostics = {
+                "eligible_name": True,
+                "primary_exact_title_lines": primary_counts.get(
+                    "exact_title_lines", 0
+                ),
+                "comparison_exact_title_lines": comparison_counts.get(
+                    "exact_title_lines", 0
+                ),
+                "primary_gate_flags": primary_gate_flags,
+                "comparison_gate_flags": comparison_gate_flags,
+                "core_match": {
+                    field: bool(
+                        deterministic.get(f"{field}_deterministic_match", False)
+                    )
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                },
+                "one_side_exact": True,
+                "nonexact_structural_support": structural_nonexact,
+            }
+            if structural_nonexact and clean_core:
+                primary_target = dict(primary_compatible[0])
+                comparison_target = dict(comparison_compatible[0])
+                for candidate in (primary_target, comparison_target):
+                    candidate["name"] = target_name
+                    candidate["normalized_name"] = normalized_target
+                primary_exact = [primary_target]
+                comparison_exact = [comparison_target]
+                print(
+                    "MPMM_ONE_SIDE_EXACT_COMPATIBLE_IDENTITY_FALLBACK "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "page": target_page,
+                            "primary_exact_candidates_before": (
+                                1 if primary_compatible[0].get("normalized_name")
+                                == normalized_target else 0
+                            ),
+                            "comparison_exact_candidates_before": (
+                                1 if comparison_compatible[0].get("normalized_name")
+                                == normalized_target else 0
+                            ),
+                            "nonexact_structural_support": True,
+                            "core_fields_agree": True,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
@@ -6685,7 +6788,10 @@ def _agreed_target_candidate(
                     **(
                         {"compatible_fallback": compatible_fallback_diagnostics}
                         if target_name
-                        in SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+                        in (
+                            SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+                            | SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
+                        )
                         else {}
                     ),
                     **(

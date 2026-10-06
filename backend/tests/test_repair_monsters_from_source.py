@@ -1625,6 +1625,8 @@ def test_non_two_column_source_keeps_full_page_settings():
 def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_failure():
     drow_id = "ref_fae2af9678e6572cb755708aab5c393d"
     warlock_id = "ref_583cbd071aec5dc58748c4b27e4005b5"
+    duergar_id = "ref_8def8c405c2452a4a10ff597fd89fdc8"
+    fenice_id = "ref_744cb23cb7f95be7b5d7521316ce8e78"
     other_id = "ref_a6f22b9706e058a8bd3f4dcbbd24c985"
     exact_failure = RepairBlocked("no_unique_exact_target_identity")
     core_failure = RepairBlocked("no_unique_independent_agreement")
@@ -1632,6 +1634,8 @@ def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_fail
     assert _should_retry_exact_identity_sparse(exact_failure, drow_id) is True
     assert _should_retry_exact_identity_sparse(core_failure, drow_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, duergar_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, fenice_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, other_id) is False
 
 
@@ -3713,6 +3717,109 @@ def test_mpmm_exact_title_compatible_fallback_fails_closed(mutation):
             [], [], "synthetic.pdf", "it", "Danzatore Dell'Ombra", 40,
             require_exact_target_identity=True,
         )
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def _mpmm_one_side_exact_candidate(*, exact: bool, ca: str = "18"):
+    name = "FENICE" if exact else "FENICE i"
+    return {
+        "name": name,
+        "normalized_name": repair.normalize_reference_name(name),
+        "start_page": 23,
+        "source_refs": [{"page": 23}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "175 (10d20 + 70)",
+            "velocita": "6 m, volare 36 m",
+        },
+    }
+
+
+def _mpmm_one_side_identity_counts(records, *, structural=True, title_count=1):
+    exact = any(
+        candidate.get("normalized_name") == repair.normalize_reference_name("Fenice")
+        for candidate in records
+    )
+    return {
+        "exact_title_lines": 2 if exact else title_count,
+        "parser_valid_headers": 1 if structural else 0,
+        "anchors_with_descriptor": 1 if structural else 0,
+        "anchors_with_hp": 1 if structural else 0,
+        "anchors_with_speed": 1 if structural else 0,
+    }
+
+
+def test_mpmm_one_side_exact_compatible_fallback_requires_structural_core_agreement():
+    primary = _mpmm_one_side_exact_candidate(exact=False)
+    comparison = _mpmm_one_side_exact_candidate(exact=True)
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_one_side_identity_counts(records)
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Fenice", 23,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == "Fenice"
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing_title", "missing_structure", "core_disagreement", "duplicate_compatible"],
+)
+def test_mpmm_one_side_exact_compatible_fallback_fails_closed(mutation):
+    primary = _mpmm_one_side_exact_candidate(exact=False)
+    comparison = _mpmm_one_side_exact_candidate(exact=True)
+    primary_records = [primary]
+    comparison_records = [comparison]
+    if mutation == "core_disagreement":
+        comparison_records = [_mpmm_one_side_exact_candidate(exact=True, ca="19")]
+    elif mutation == "duplicate_compatible":
+        primary_records = [
+            primary,
+            {
+                **primary,
+                "name": "FENICE ii",
+                "normalized_name": repair.normalize_reference_name("FENICE ii"),
+            },
+        ]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        is_nonexact = not any(
+            candidate.get("normalized_name") == repair.normalize_reference_name("Fenice")
+            for candidate in records
+        )
+        return _mpmm_one_side_identity_counts(
+            records,
+            structural=not (mutation == "missing_structure" and is_nonexact),
+            title_count=0 if mutation == "missing_title" and is_nonexact else 1,
+        )
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Fenice", 23,
+            require_exact_target_identity=True,
+        )
+
     assert caught.value.reason == "no_unique_exact_target_identity"
 
 
