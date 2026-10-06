@@ -893,7 +893,6 @@ SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
 )
 SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
     {
-        "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
         "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore
         "ref_744cb23cb7f95be7b5d7521316ce8e78",  # Fenice
