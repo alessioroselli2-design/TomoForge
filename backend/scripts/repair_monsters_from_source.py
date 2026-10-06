@@ -1210,35 +1210,48 @@ def _repair_hp_leading_prefix_to_peer(
     value: str,
     peer_value: str,
 ) -> str | None:
-    """Recover one leading HP expression only when it exactly matches the clean peer."""
+    """Confirm a contaminated leading HP expression only against the clean peer."""
     normalized = " ".join((value or "").split())
     peer = " ".join((peer_value or "").split())
-    if not peer:
+    peer_match = re.fullmatch(
+        r"(\d+)\s*\(\s*(\d+)\s*[dD]\s*(\d+)\s*([+\-−–])\s*(\d+)\s*\)",
+        peer,
+    )
+    if peer_match is None:
         return None
     if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
         {"classe_armatura": "10", "punti_ferita": peer}
     ):
         return None
 
-    match = re.match(
-        r"^([0-9Oo ]+\s*\(\s*[0-9lILOo ]+\s*[dD]\s*[0-9lILOo ]+\s*"
-        r"[+\-−–]\s*[0-9lILOo ]+\s*\))",
-        normalized,
-    )
-    if match is None:
-        return None
+    def digit_pattern(digits: str) -> str:
+        variants = {
+            "0": r"[0Oo]",
+            "1": r"[1lIL]",
+        }
+        return r"\s*".join(variants.get(digit, re.escape(digit)) for digit in digits)
 
-    prefix = " ".join(match.group(1).split())
-    repaired = _repair_hp_letter_digit_spacing_confusion(prefix)
-    if repaired is None:
-        flags = monster_semantic_numeric_flags(
-            {"classe_armatura": "10", "punti_ferita": prefix}
-        )
-        if HP_FORMAT_ERROR_FLAG not in flags:
-            repaired = prefix
-    if repaired != peer:
+    sign_pattern = (
+        r"[+\u002B]"
+        if peer_match.group(4) == "+"
+        else r"[\-−–]"
+    )
+    prefix_pattern = re.compile(
+        r"^\s*"
+        + digit_pattern(peer_match.group(1))
+        + r"\s*\(\s*"
+        + digit_pattern(peer_match.group(2))
+        + r"\s*[dD]\s*"
+        + digit_pattern(peer_match.group(3))
+        + r"\s*"
+        + sign_pattern
+        + r"\s*"
+        + digit_pattern(peer_match.group(5))
+        + r"\s*\)"
+    )
+    if prefix_pattern.match(normalized) is None:
         return None
-    return repaired
+    return peer
 
 
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
