@@ -32,11 +32,13 @@ from scripts import repair_monsters_from_source as repair
 from services.ocr_semantic_gates import OCR_REVIEW_FLAG, monster_semantic_numeric_flags
 
 LOGICAL_SOURCE_ID = "mpmm_2022_it"
-EXPECTED_PENDING = 131
-EXPECTED_MPMM_VERIFIED = 64
-EXPECTED_GLOBAL_VERIFIED = 113
+EXPECTED_PENDING = 30
+EXPECTED_MPMM_VERIFIED = 165
+EXPECTED_GLOBAL_VERIFIED = 214
+EXPECTED_PENDING_FINGERPRINT = "f4581b41625407f59f40287c6dbd3d8c21a8f190f6f82b14b16f0a0195c21339"
+EXPECTED_VERIFIED_FINGERPRINT = "8c7be7e195edcc015f811365e5ecadd55138eb5276c112c08036bb9e32be8f06"
 DEFAULT_BATCH_SIZE = 25
-CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_131"
+CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_30"
 
 
 def _logical_source_ids(record: dict[str, Any]) -> set[str]:
@@ -189,16 +191,22 @@ async def _run(args: argparse.Namespace) -> int:
     global_verified_before = [
         row for row in all_monsters if str(row.get("review_status") or "") == "verified"
     ]
+    pending_fingerprint = _fingerprint(pending)
+    verified_fingerprint = _fingerprint(verified_before)
     if args.execute and (
         len(pending) != EXPECTED_PENDING
         or len(verified_before) != EXPECTED_MPMM_VERIFIED
         or len(global_verified_before) != EXPECTED_GLOBAL_VERIFIED
+        or pending_fingerprint != EXPECTED_PENDING_FINGERPRINT
+        or verified_fingerprint != EXPECTED_VERIFIED_FINGERPRINT
     ):
         raise RuntimeError(
             "MPMM initial-state drift: "
             f"pending={len(pending)} "
             f"mpmm_verified={len(verified_before)} "
-            f"global_verified={len(global_verified_before)}"
+            f"global_verified={len(global_verified_before)} "
+            f"pending_fingerprint={pending_fingerprint} "
+            f"verified_fingerprint={verified_fingerprint}"
         )
 
     active_sources = await repair._fetch_all(
@@ -291,7 +299,7 @@ async def _run(args: argparse.Namespace) -> int:
     verified_after = [
         row for row in mpmm_after if str(row.get("review_status") or "") == "verified"
     ]
-    protected_verified_fingerprint = _fingerprint(verified_before)
+    protected_verified_fingerprint = verified_fingerprint
     if args.execute:
         still_verified = [
             row
@@ -308,7 +316,9 @@ async def _run(args: argparse.Namespace) -> int:
         "initial_verified": len(verified_before),
         "initial_global_verified": len(global_verified_before),
         "protected_verified_fingerprint_sha256": protected_verified_fingerprint,
-        "target_fingerprint_sha256": _fingerprint(targets),
+        "target_fingerprint_sha256": (
+            pending_fingerprint if not args.audit_record_id else _fingerprint(targets)
+        ),
         "targets": len(targets),
         "repairable": len(reports),
         "blocked": len(blocked),
