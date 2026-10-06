@@ -57,6 +57,7 @@ PUBLIC_REASONS = frozenset(
         "post_merge_gate_failure",
         "residual_review_flags",
         "verification_gate_failure",
+        "write_apply_failed",
     }
 )
 
