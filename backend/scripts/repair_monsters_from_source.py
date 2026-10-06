@@ -6848,9 +6848,8 @@ def _agreed_target_candidate(
             hp_confusion_repaired = False
             primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
             comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
-            if (
-                (HP_FORMAT_ERROR_FLAG in primary_hp_flags)
-                != (HP_FORMAT_ERROR_FLAG in comparison_hp_flags)
+            if (HP_FORMAT_ERROR_FLAG in primary_hp_flags) != (
+                HP_FORMAT_ERROR_FLAG in comparison_hp_flags
             ):
                 bad_attributes = (
                     primary_attributes
