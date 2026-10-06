@@ -128,23 +128,76 @@ def test_apply_verified_preserves_provenance_and_records_review_history():
 
 
 def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
-    assert process.EXPECTED_PENDING == 30
-    assert process.EXPECTED_MPMM_VERIFIED == 165
-    assert process.EXPECTED_GLOBAL_VERIFIED == 214
-    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_30"
+    assert process.EXPECTED_PENDING == 29
+    assert process.EXPECTED_MPMM_VERIFIED == 166
+    assert process.EXPECTED_GLOBAL_VERIFIED == 215
+    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_29"
     assert process.EXPECTED_PENDING_FINGERPRINT == (
-        "f4581b41625407f59f40287c6dbd3d8c21a8f190f6f82b14b16f0a0195c21339"
+        "907ea2b93e1d3f134a50a0c25409d10b0a1541e69a1af141a5573dd47b50cc8e"
     )
     assert process.EXPECTED_VERIFIED_FINGERPRINT == (
-        "8c7be7e195edcc015f811365e5ecadd55138eb5276c112c08036bb9e32be8f06"
+        "6b0edb33bf66fc63ccf5115cb3c45c99e92575bc09f6f526a3c8811925b26c5a"
+    )
+
+
+def test_execute_write_failure_isolated_and_final_report_survives(capsys):
+    first = _record("one", "Uno")
+    second = _record("two", "Due")
+    rows = [first, second]
+    after = [
+        {**first, "review_status": "verified", "review_flags": []},
+        second,
+    ]
+    args = process._parser().parse_args(
+        ["--execute", "--confirm", process.CONFIRMATION_TOKEN]
+    )
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        patch.object(
+            process.repair,
+            "_fetch_all",
+            AsyncMock(side_effect=[rows, [], after]),
+        ),
+        patch.object(
+            process.repair,
+            "_repair_one",
+            AsyncMock(side_effect=[{"after": first}, {"after": second}]),
+        ),
+        patch.object(process, "_revalidate_pending", AsyncMock()),
+        patch.object(
+            process,
+            "_apply_verified",
+            AsyncMock(side_effect=[None, RuntimeError("synthetic write failure")]),
+        ),
+        patch.object(process, "EXPECTED_PENDING", 2),
+        patch.object(process, "EXPECTED_MPMM_VERIFIED", 0),
+        patch.object(process, "EXPECTED_GLOBAL_VERIFIED", 0),
+        patch.object(process, "EXPECTED_PENDING_FINGERPRINT", process._fingerprint(rows)),
+        patch.object(process, "EXPECTED_VERIFIED_FINGERPRINT", process._fingerprint([])),
+        patch.object(
+            process.db.private_reference_records,
+            "find_one",
+            AsyncMock(return_value=second),
+        ),
+    ):
+        assert asyncio.run(process._run(args)) == 2
+
+    report = json.loads(capsys.readouterr().out.split("FINAL_REPORT\n")[1])
+    assert report["repairable"] == 2
+    assert report["updates_performed"] == 1
+    assert report["final_pending"] == 1
+    assert report["final_verified"] == 1
+    assert any(
+        item["record_id"] == "two" and item["reason"] == "write_apply_failed"
+        for item in report["blocked_records"]
     )
 
 
 def test_execute_snapshot_fingerprint_drift_blocks_before_source_access():
-    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(30)]
+    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(29)]
     verified = [
         {**_record(f"verified-{index}", f"Verified {index}"), "review_status": "verified"}
-        for index in range(165)
+        for index in range(166)
     ]
     non_mpmm_verified = [
         {
