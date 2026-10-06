@@ -1071,31 +1071,50 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
     """Recover only l/I-for-1 and intra-number spacing when HP math is coherent."""
     normalized = " ".join((value or "").split())
     match = re.fullmatch(
-        r"(\d+)\s*\(\s*(\d+)\s*[dD]\s*([0-9lI ]+)\s*"
-        r"([+\-−–])\s*([0-9 ]+)\s*\)",
+        r"(\d+)\s*\(\s*([0-9lI ]+)\s*[dD]\s*([0-9lI ]+)\s*"
+        r"([+\-−–])\s*([0-9lI ]+)\s*\)",
         normalized,
     )
     if match is None:
         return None
 
     average = int(match.group(1))
-    dice_count = int(match.group(2))
+    raw_dice_count = match.group(2)
     raw_die_size = match.group(3)
     raw_modifier = match.group(5)
-    if not re.search(r"[lI]", raw_die_size) and not re.search(r"\d\s+\d", raw_modifier):
+    raw_numeric_groups = (raw_dice_count, raw_die_size, raw_modifier)
+    has_letter_confusion = any(
+        re.search(r"[lI]", raw_group) for raw_group in raw_numeric_groups
+    )
+    has_intra_number_spacing = any(
+        re.search(r"\d\s+\d", raw_group) for raw_group in raw_numeric_groups
+    )
+    if not has_letter_confusion and not has_intra_number_spacing:
         return None
 
-    die_digits = re.sub(r"\s+", "", raw_die_size).replace("l", "1").replace("I", "1")
-    modifier_digits = re.sub(r"\s+", "", raw_modifier)
-    if not die_digits.isdigit() or not modifier_digits.isdigit():
+    def corrected_digits(raw: str) -> str:
+        return (
+            re.sub(r"\s+", "", raw)
+            .replace("l", "1")
+            .replace("I", "1")
+        )
+
+    dice_count_digits = corrected_digits(raw_dice_count)
+    die_digits = corrected_digits(raw_die_size)
+    modifier_digits = corrected_digits(raw_modifier)
+    if not all(
+        digits.isdigit()
+        for digits in (dice_count_digits, die_digits, modifier_digits)
+    ):
         return None
 
+    dice_count = int(dice_count_digits)
     die_size = int(die_digits)
-    if die_size not in STANDARD_HIT_DIE_SIZES:
+    modifier = int(modifier_digits)
+    if dice_count <= 0 or die_size not in STANDARD_HIT_DIE_SIZES:
         return None
 
     sign = "-" if match.group(4) in {"-", "−", "–"} else "+"
-    modifier = int(modifier_digits)
     candidate = f"{average} ({dice_count}d{die_size} {sign} {modifier})"
     flags = monster_semantic_numeric_flags(
         {"classe_armatura": "10", "punti_ferita": candidate}
