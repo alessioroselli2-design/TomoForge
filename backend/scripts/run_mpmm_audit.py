@@ -21,6 +21,25 @@ PUBLIC_COMPATIBLE_GATE_FLAGS = frozenset(
     }
 )
 
+PUBLIC_HP_ANCHOR_REASONS = frozenset(
+    {
+        "bael_structural_hp_anchor_ambiguous",
+        "delfino_core_order_ambiguous",
+        "delfino_structural_hp_anchor_ambiguous",
+        "divoratore_structural_hp_anchor_ambiguous",
+        "ferita_token_missing_from_label",
+        "hp_crop_invalid",
+        "hp_crop_raster_mismatch",
+        "micro_ocr_numeric_value_missing",
+        "micro_ocr_reconstruction_missing_anchor",
+        "micro_ocr_reconstruction_speed_anchor_missing",
+        "micro_ocr_replacement_target_ambiguous",
+        "micro_ocr_target_hp_line_unparseable",
+        "no_unique_structural_hp_anchor",
+        "normalized_target_name_empty",
+    }
+)
+
 PUBLIC_REASONS = frozenset(
     {
         "ocr_global_timeout",
@@ -54,6 +73,28 @@ def _digest(value: Any) -> str | None:
         if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
         else None
     )
+
+
+def _public_hp_anchor_event(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    reason = payload.get("reason")
+    result: dict[str, Any] = {
+        "reason": reason if reason in PUBLIC_HP_ANCHOR_REASONS else "blocked",
+    }
+    for key in (
+        "page_text_target_count",
+        "page_text_local_hp_count",
+        "tsv_page_wide_hp_label_count",
+    ):
+        value = payload.get(key)
+        if type(value) is int and value >= 0:
+            result[key] = value
+    for key in ("tsv_name_anchor_found", "tsv_local_label_found"):
+        value = payload.get(key)
+        if type(value) is bool:
+            result[key] = value
+    return result
 
 
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
@@ -340,12 +381,23 @@ def main() -> int:
                 raise RuntimeError("private audit failed")
             runtime_output.seek(0)
             private = None
+            hp_anchor_diagnostics: list[dict[str, Any]] = []
             for line in runtime_output:
-                if line.strip() == "FINAL_REPORT":
+                stripped = line.strip()
+                if stripped.startswith("HP_ANCHOR_DIAGNOSTIC "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    event = _public_hp_anchor_event(payload)
+                    if event is not None and len(hp_anchor_diagnostics) < 32:
+                        hp_anchor_diagnostics.append(event)
+                if stripped == "FINAL_REPORT":
                     private = json.loads(next(runtime_output))
             if private is None:
                 raise RuntimeError("missing final report")
             public = public_report(private)
+            public["hp_anchor_diagnostics"] = hp_anchor_diagnostics
         print("FINAL_REPORT")
         print(json.dumps(public, sort_keys=True))
         return completed.returncode
