@@ -2315,14 +2315,14 @@ def test_mpmm_extended_ocr_budget_is_limited_to_timed_out_residuals():
     # even when they have a larger allowance for non-MPMM targeted workflows.
     assert (
         _ocr_budget_seconds(
-            "ref_583cbd071aec5dc58748c4b27e4005b5",
+            "ref_fae2af9678e6572cb755708aab5c393d",
             "batch_mpmm_pending_131",
         )
         == 60.0
     )
     assert (
         _ocr_budget_seconds(
-            "ref_583cbd071aec5dc58748c4b27e4005b5",
+            "ref_fae2af9678e6572cb755708aab5c393d",
             "other_target_set",
         )
         == 150.0
