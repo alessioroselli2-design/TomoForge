@@ -4380,3 +4380,222 @@ def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutati
                     require_exact_target_identity=True,
                 )
     assert json.dumps([primary, comparison], sort_keys=True) == before
+
+@pytest.mark.parametrize("suffix", ["Ù", "i"])
+def test_drow_title_debris_isolates_one_observed_suffix_without_numeric_changes(suffix):
+    text = (
+        f"DROW INQUISITORE {suffix}\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m\n"
+    )
+
+    result = repair._isolate_drow_title_debris(text)
+
+    assert result == text.replace(
+        f"DROW INQUISITORE {suffix}",
+        f"{suffix}\nDROW INQUISITORE",
+    )
+    assert "Punti Ferita 110 (13d8 + 52)" in result
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "DROW INQUISITORE altro",
+        "DROW INQUISITORE ii",
+        "DROW INQUISITORE Ù\nDROW INQUISITORE i",
+    ],
+)
+def test_drow_title_debris_rejects_unobserved_or_duplicate_suffixes(title):
+    assert repair._isolate_drow_title_debris(title) == title
+
+
+@pytest.mark.parametrize("source_anchor_verified", [True, False])
+def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
+    source_anchor_verified,
+):
+    primary = {
+        "name": "DROW INQUISITORE",
+        "normalized_name": repair.normalize_reference_name("Drow Inquisitore"),
+        "start_page": 4,
+        "source_refs": [{"page": 4}],
+        "attributes": {
+            "classe_armatura": "16",
+            "punti_ferita": "110 (13d8 + 52)",
+            "velocita": "9 m",
+        },
+    }
+    comparison = {
+        **primary,
+        "name": "DROW INQUISITORE i",
+        "normalized_name": repair.normalize_reference_name("Drow Inquisitore i"),
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name")
+            == repair.normalize_reference_name("Drow Inquisitore")
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 1 if exact else 0,
+            "parser_valid_headers": 1,
+            "parser_exact_headers": 1 if exact else 0,
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+            "candidates_on_page": 1,
+        }
+
+    context = (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(
+            repair,
+            "_identity_source_counts",
+            side_effect=identity_counts,
+        ),
+    )
+    with context[0], context[1], context[2]:
+        if source_anchor_verified:
+            candidate = _agreed_target_candidate(
+                [],
+                [],
+                "synthetic.pdf",
+                "it",
+                "Drow Inquisitore",
+                4,
+                source_anchor_verified=True,
+                require_exact_target_identity=True,
+            )
+            assert candidate["name"] == "Drow Inquisitore"
+            assert candidate["attributes"] == primary["attributes"]
+        else:
+            with pytest.raises(RepairBlocked) as caught:
+                _agreed_target_candidate(
+                    [],
+                    [],
+                    "synthetic.pdf",
+                    "it",
+                    "Drow Inquisitore",
+                    4,
+                    source_anchor_verified=False,
+                    require_exact_target_identity=True,
+                )
+            assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def _drow_hp_tsv(*, duplicate_speed=False):
+    header = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
+        "left\ttop\twidth\theight\tconf\ttext\n"
+    )
+    rows = [
+        "5\t1\t1\t1\t1\t1\t20\t20\t45\t12\t95\tPunti",
+        "5\t1\t1\t1\t1\t2\t72\t20\t50\t12\t95\tFerita",
+        "5\t1\t2\t1\t1\t1\t20\t45\t45\t12\t95\tPunti",
+        "5\t1\t2\t1\t1\t2\t72\t45\t50\t12\t95\tFerita",
+        "5\t1\t3\t1\t1\t1\t20\t100\t70\t14\t95\tDROW",
+        "5\t1\t3\t1\t1\t2\t95\t100\t100\t14\t95\tINQUISITORE",
+        "5\t1\t3\t1\t1\t3\t200\t100\t10\t14\t90\ti",
+        "5\t1\t3\t1\t2\t1\t20\t120\t80\t12\t95\tUmanoide",
+        "5\t1\t3\t1\t3\t1\t20\t140\t55\t12\t95\tClasse",
+        "5\t1\t3\t1\t3\t2\t80\t140\t70\t12\t95\tArmatura",
+        "5\t1\t3\t1\t3\t3\t160\t140\t20\t12\t95\t16",
+        "5\t1\t3\t1\t4\t1\t20\t160\t45\t12\t95\tPunti",
+        "5\t1\t3\t1\t4\t2\t72\t160\t50\t12\t95\tFerita",
+        "5\t1\t3\t1\t5\t1\t20\t180\t55\t12\t95\tVelocità",
+        "5\t1\t3\t1\t5\t2\t80\t180\t20\t12\t95\t9",
+    ]
+    if duplicate_speed:
+        rows.extend(
+            [
+                "5\t1\t3\t1\t6\t1\t20\t195\t55\t12\t95\tVelocità",
+                "5\t1\t3\t1\t6\t2\t80\t195\t20\t12\t95\t9",
+            ]
+        )
+    return header + "\n".join(rows) + "\n"
+
+
+def test_drow_hp_micro_reconstructs_only_unique_local_missing_hp(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 12 (3d6 + 2)\n"
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=_drow_hp_tsv(), stderr=""),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+        )
+
+    assert "ALTRO MOSTRO\nPunti Ferita 12 (3d6 + 2)" in result
+    assert (
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m"
+    ) in result
+    assert "MPMM_DROW_STRUCTURAL_HP_ANCHOR" in capsys.readouterr().out
+
+
+def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
+    tmp_path,
+    capsys,
+):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 12 (3d6 + 2)\n"
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(duplicate_speed=True),
+            stderr="",
+        ),
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+        )
+
+    assert result == page_text
+    assert "drow_structural_hp_anchor_ambiguous" in capsys.readouterr().out
+
