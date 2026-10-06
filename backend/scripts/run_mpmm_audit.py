@@ -104,6 +104,7 @@ def _public_hp_anchor_event(payload: Any) -> dict[str, Any] | None:
         "drow_tsv_ca_local_unique",
         "drow_tsv_speed_within_12_unique",
         "drow_tsv_hp_between_unique",
+        "drow_hp_geometry_band_used",
         "drow_micro_value_valid",
         "drow_text_plain_ca_unique",
         "drow_text_permissive_ca_unique",
