@@ -4443,6 +4443,24 @@ def test_drow_title_debris_isolates_one_observed_suffix_without_numeric_changes(
     assert "Punti Ferita 110 (13d8 + 52)" in result
 
 
+def test_drow_title_debris_accepts_normalized_exact_ocr_prefix():
+    text = (
+        "DROW-INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m\n"
+    )
+
+    result = repair._isolate_drow_title_debris(text)
+
+    assert result == text.replace(
+        "DROW-INQUISITORE i",
+        "i\nDROW-INQUISITORE",
+    )
+    assert "Punti Ferita 110 (13d8 + 52)" in result
+
+
 @pytest.mark.parametrize(
     "title",
     [
