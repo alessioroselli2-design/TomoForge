@@ -2614,6 +2614,12 @@ def _sparse_anchor_crop_fractions(
         x0, x1 = 0.0, 0.58
     else:
         x0, x1 = 0.42, 1.0
+    if target_name == "Warlock Del Grande Antico":
+        # The exact source title is uniquely anchored on the registered page,
+        # while the stat block body crosses the ordinary half-page crop.
+        # Keep the exact vertical anchor but include the full page width.
+        # Multiple parsed blocks still fail the independent-identity gates.
+        x0, x1 = 0.0, 1.0
     title_height = max(1, bottom - top)
     y0_pixels = max(0, top - max(title_height * 2, int(height * 0.015)))
     if target_name == "Adrosauro":
