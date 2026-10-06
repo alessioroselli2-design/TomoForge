@@ -1071,8 +1071,8 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
     """Recover only l/I-for-1 and intra-number spacing when HP math is coherent."""
     normalized = " ".join((value or "").split())
     match = re.fullmatch(
-        r"(\d+)\s*\(\s*([0-9lI ]+)\s*[dD]\s*([0-9lI ]+)\s*"
-        r"([+\-−–])\s*([0-9lI ]+)\s*\)(.*)",
+        r"([0-9Oo]+)\s*\(\s*([0-9lILOo ]+)\s*[dD]\s*([0-9lILOo ]+)\s*"
+        r"([+\-−–])\s*([0-9lILOo ]+)\s*\)(.*)",
         normalized,
     )
     if match is None:
@@ -1082,13 +1082,14 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
         if len(trailing) > 12 or re.search(r"[0-9()dD+\-−–]", trailing):
             return None
 
-    average = int(match.group(1))
+    raw_average = match.group(1)
     raw_dice_count = match.group(2)
     raw_die_size = match.group(3)
     raw_modifier = match.group(5)
     raw_numeric_groups = (raw_dice_count, raw_die_size, raw_modifier)
     has_letter_confusion = any(
-        re.search(r"[lI]", raw_group) for raw_group in raw_numeric_groups
+        re.search(r"[lILOo]", raw_group)
+        for raw_group in (raw_average, *raw_numeric_groups)
     )
     has_intra_number_spacing = any(
         re.search(r"\d\s+\d", raw_group) for raw_group in raw_numeric_groups
@@ -1097,16 +1098,31 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
         return None
 
     def corrected_digits(raw: str) -> str:
-        return re.sub(r"\s+", "", raw).replace("l", "1").replace("I", "1")
+        return (
+            re.sub(r"\s+", "", raw)
+            .replace("l", "1")
+            .replace("L", "1")
+            .replace("I", "1")
+            .replace("o", "0")
+            .replace("O", "0")
+        )
 
+    average_digits = corrected_digits(raw_average)
     dice_count_digits = corrected_digits(raw_dice_count)
     die_digits = corrected_digits(raw_die_size)
     modifier_digits = corrected_digits(raw_modifier)
     if not all(
-        digits.isdigit() for digits in (dice_count_digits, die_digits, modifier_digits)
+        digits.isdigit()
+        for digits in (
+            average_digits,
+            dice_count_digits,
+            die_digits,
+            modifier_digits,
+        )
     ):
         return None
 
+    average = int(average_digits)
     dice_count = int(dice_count_digits)
     die_size = int(die_digits)
     modifier = int(modifier_digits)
@@ -6886,7 +6902,7 @@ def _agreed_target_candidate(
                     else primary_attributes
                 )
                 bad_hp = str(bad_attributes.get("punti_ferita") or "")
-                hp_repair_has_letter_confusion = bool(re.search(r"[lI]", bad_hp))
+                hp_repair_has_letter_confusion = bool(re.search(r"[lILOo]", bad_hp))
                 hp_repair_has_spaced_digits = bool(re.search(r"\d\s+\d", bad_hp))
                 hp_repair_shape = {
                     "has_open_paren": "(" in bad_hp,
