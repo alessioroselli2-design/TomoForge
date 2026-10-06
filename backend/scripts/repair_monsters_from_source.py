@@ -1094,7 +1094,7 @@ def _repair_hp_letter_digit_spacing_confusion(
 
     normalized = " ".join((value or "").split())
     match = re.fullmatch(
-        r"([0-9Oo]+)\s*\(\s*([0-9lILOo ]+)\s*[dD]\s*([0-9lILOo ]+)\s*"
+        r"([0-9Oo ]+)\s*\(\s*([0-9lILOo ]+)\s*[dD]\s*([0-9lILOo ]+)\s*"
         r"([+\-−–])\s*([0-9lILOo ]+)\s*\)(.*)",
         normalized,
     )
@@ -1124,7 +1124,8 @@ def _repair_hp_letter_digit_spacing_confusion(
         for raw_group in (raw_average, *raw_numeric_groups)
     )
     has_intra_number_spacing = any(
-        re.search(r"\d\s+\d", raw_group) for raw_group in raw_numeric_groups
+        re.search(r"\d\s+\d", raw_group)
+        for raw_group in (raw_average, *raw_numeric_groups)
     )
     if not has_letter_confusion and not has_intra_number_spacing:
         return None
