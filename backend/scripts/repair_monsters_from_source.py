@@ -918,6 +918,7 @@ SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
     {
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
         "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex
+        "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico
     }
 )
 SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
