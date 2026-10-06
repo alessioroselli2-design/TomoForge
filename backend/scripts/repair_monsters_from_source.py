@@ -906,6 +906,7 @@ SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES = frozenset(
 )
 SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES = frozenset(
     {
+        "Drow Inquisitore",
         "Juiblex",
         "Warlock Del Grande Antico",
     }
@@ -4663,6 +4664,60 @@ def _micro_ocr_hit_points_line(
                     break
             if label_words is not None:
                 break
+    if name == "Drow Inquisitore" and name_line_index is not None:
+        tsv_target_indexes = [
+            index
+            for index, words in enumerate(ordered_lines)
+            if _micro_target_line_matches(
+                " ".join(str(word["text"]) for word in words),
+                name,
+            )
+        ]
+        local_end = min(len(ordered_lines), name_line_index + 13)
+        structural = [
+            normalize_reference_name(
+                " ".join(str(word["text"]) for word in ordered_lines[index])
+            )
+            for index in range(name_line_index + 1, local_end)
+        ]
+        ca_offsets = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("classe armatura")
+        ]
+        hp_offsets = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("punti ferita")
+        ]
+        speed_offsets = [
+            index
+            for index, text in enumerate(structural)
+            if text.startswith("velocita")
+        ]
+        drow_local_structure = (
+            len(tsv_target_indexes) == 1
+            and len(ca_offsets) == len(hp_offsets) == len(speed_offsets) == 1
+            and ca_offsets[0] < hp_offsets[0] < speed_offsets[0]
+            and speed_offsets[0] - ca_offsets[0] <= 6
+        )
+        diagnostics["drow_local_tsv_structure"] = drow_local_structure
+        if not drow_local_structure:
+            return fail_closed("drow_structural_hp_anchor_ambiguous")
+        label_words = ordered_lines[name_line_index + 1 + hp_offsets[0]]
+        print(
+            "MPMM_DROW_STRUCTURAL_HP_ANCHOR "
+            + json.dumps(
+                {
+                    "name": name,
+                    "unique_tsv_target": True,
+                    "ordered_core_labels": True,
+                    "numeric_values_modified": False,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
     diagnostics["tsv_local_label_found"] = label_words is not None
     if label_words is None and page_target_count == 1 and page_local_hp_count == 1:
         if len(global_labels) == 1:
@@ -5264,6 +5319,55 @@ def _micro_ocr_hit_points_line(
                         "name": name,
                         "page_target_count": page_target_count,
                         "page_hp_lines": len(duplicate_geometry_indexes),
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            rebuilt = "\n".join(text_lines)
+            if page_text.endswith("\n"):
+                rebuilt += "\n"
+            return rebuilt
+        if (
+            name == "Drow Inquisitore"
+            and page_target_count == 1
+            and page_local_hp_count == 0
+            and label_words is not None
+            and diagnostics.get("drow_local_tsv_structure") is True
+        ):
+            target_indexes = [
+                index
+                for index, line in enumerate(text_lines)
+                if _micro_target_line_matches(line, name)
+            ]
+            if len(target_indexes) != 1:
+                return fail_closed("drow_text_identity_anchor_ambiguous")
+            target_index = target_indexes[0]
+            local_end = min(len(text_lines), target_index + 13)
+            ca_indexes = [
+                index
+                for index in range(target_index + 1, local_end)
+                if re.match(r"\s*Classe\s+Armatura\b", text_lines[index], re.IGNORECASE)
+            ]
+            speed_indexes = [
+                index
+                for index in range(target_index + 1, local_end)
+                if re.match(r"\s*Velocit[àa]\b", text_lines[index], re.IGNORECASE)
+            ]
+            if not (
+                len(ca_indexes) == len(speed_indexes) == 1
+                and target_index < ca_indexes[0] < speed_indexes[0]
+                and speed_indexes[0] - ca_indexes[0] <= 7
+            ):
+                return fail_closed("drow_text_core_order_ambiguous")
+            text_lines.insert(speed_indexes[0], f"Punti Ferita {value}")
+            print(
+                "MPMM_DROW_LOCAL_HP_RECONSTRUCTION "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "unique_text_identity": True,
+                        "ordered_text_core": True,
                     },
                     ensure_ascii=False,
                     sort_keys=True,
@@ -6527,6 +6631,39 @@ def _isolate_bheur_title_rule(page_text: str) -> str:
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _isolate_drow_title_debris(page_text: str) -> str:
+    """Isolate one observed OCR suffix from the exact Drow Inquisitore title."""
+    lines = page_text.splitlines()
+    matches = [
+        (index, match)
+        for index, line in enumerate(lines)
+        if (
+            match := re.fullmatch(
+                r"\s*(DROW\s+INQUISITORE)\s+([Ùi])\s*",
+                line,
+                re.IGNORECASE,
+            )
+        )
+    ]
+    if len(matches) != 1:
+        return page_text
+    index, match = matches[0]
+    lines[index] = match.group(2) + "\n" + match.group(1)
+    print(
+        "MPMM_DROW_TITLE_DEBRIS_ISOLATED "
+        + json.dumps(
+            {
+                "name": "Drow Inquisitore",
+                "single_suffix_isolated": True,
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _isolate_kithrak_title_debris(page_text: str) -> str:
     """Retain observed single-glyph suffixes outside the exact Kith'Rak title."""
     lines = page_text.splitlines()
@@ -6750,6 +6887,15 @@ def _agreed_target_candidate(
     require_exact_target_identity: bool = False,
     include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
+    if target_name == "Drow Inquisitore":
+        primary_pages = [
+            (page, _isolate_drow_title_debris(text) if page == target_page else text)
+            for page, text in primary_pages
+        ]
+        comparison_pages = [
+            (page, _isolate_drow_title_debris(text) if page == target_page else text)
+            for page, text in comparison_pages
+        ]
     if isolate_kithrak_title_debris and target_name == "Githyanki Kith'Rak":
         primary_pages = [
             (page, _isolate_kithrak_title_debris(text) if page == target_page else text)
