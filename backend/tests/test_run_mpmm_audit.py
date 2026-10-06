@@ -267,6 +267,7 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
         },
         "hp_repair_candidate_valid": False,
         "hp_repair_matches_peer": False,
+        "hp_prefix_peer_repaired": False,
         "hp_repair_diagnostics": {
             "shape_match": False,
             "trailing_present": False,
