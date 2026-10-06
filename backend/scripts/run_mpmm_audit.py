@@ -99,6 +99,12 @@ def _public_hp_anchor_event(payload: Any) -> dict[str, Any] | None:
         "tsv_name_anchor_found",
         "tsv_local_label_found",
         "drow_local_tsv_structure",
+        "drow_micro_value_valid",
+        "drow_text_plain_ca_unique",
+        "drow_text_permissive_ca_unique",
+        "drow_text_speed_unique",
+        "drow_text_permissive_ordered",
+        "drow_text_gap_within_bound",
     ):
         value = payload.get(key)
         if type(value) is bool:
