@@ -128,15 +128,15 @@ def test_apply_verified_preserves_provenance_and_records_review_history():
 
 
 def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
-    assert process.EXPECTED_PENDING == 29
-    assert process.EXPECTED_MPMM_VERIFIED == 166
-    assert process.EXPECTED_GLOBAL_VERIFIED == 215
-    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_29"
+    assert process.EXPECTED_PENDING == 26
+    assert process.EXPECTED_MPMM_VERIFIED == 169
+    assert process.EXPECTED_GLOBAL_VERIFIED == 218
+    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_26"
     assert process.EXPECTED_PENDING_FINGERPRINT == (
-        "907ea2b93e1d3f134a50a0c25409d10b0a1541e69a1af141a5573dd47b50cc8e"
+        "874bd1fce6b961876fcde23284c5fc080108cd8254685def0ddf0a5c5b50ab44"
     )
     assert process.EXPECTED_VERIFIED_FINGERPRINT == (
-        "6b0edb33bf66fc63ccf5115cb3c45c99e92575bc09f6f526a3c8811925b26c5a"
+        "689cbe812366f4f073b4f91877f21f2f949e8aa0081a947f92a1071905cb67eb"
     )
 
 
@@ -194,10 +194,10 @@ def test_execute_write_failure_isolated_and_final_report_survives(capsys):
 
 
 def test_execute_snapshot_fingerprint_drift_blocks_before_source_access():
-    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(29)]
+    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(26)]
     verified = [
         {**_record(f"verified-{index}", f"Verified {index}"), "review_status": "verified"}
-        for index in range(166)
+        for index in range(169)
     ]
     non_mpmm_verified = [
         {
@@ -241,6 +241,33 @@ def test_focused_audit_preserves_global_counts_and_never_writes(capsys):
     assert report["updates_performed"] == 0
     assert repair.await_args.args[1]["id"] == "one"
     write.assert_not_called()
+
+
+def test_same_utc_timestamp_accepts_equivalent_supabase_formats():
+    expected = "2026-10-06T16:16:13.563943Z"
+    assert process._same_utc_timestamp(
+        "2026-10-06 16:16:13.563943+00",
+        expected,
+    )
+    assert process._same_utc_timestamp(
+        "2026-10-06T16:16:13.563943+00:00",
+        expected,
+    )
+    assert not process._same_utc_timestamp(
+        "2026-10-06T16:16:14.563943+00:00",
+        expected,
+    )
+
+
+def test_execute_record_id_requires_execute():
+    args = process._parser().parse_args(
+        ["--execute-record-id", "one"]
+    )
+    with (
+        patch.object(type(process.db), "configured", PropertyMock(return_value=True)),
+        pytest.raises(RuntimeError, match="requires --execute"),
+    ):
+        asyncio.run(process._run(args))
 
 
 def test_focused_audit_refuses_execute_even_with_confirmation():
