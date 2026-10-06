@@ -1067,6 +1067,44 @@ def _repair_numeric_dice_separator_confusion(value: str) -> str | None:
     return next(iter(candidates))
 
 
+def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
+    """Recover only l/I-for-1 and intra-number spacing when HP math is coherent."""
+    normalized = " ".join((value or "").split())
+    match = re.fullmatch(
+        r"(\d+)\s*\(\s*(\d+)\s*[dD]\s*([0-9lI ]+)\s*"
+        r"([+\-−–])\s*([0-9 ]+)\s*\)",
+        normalized,
+    )
+    if match is None:
+        return None
+
+    average = int(match.group(1))
+    dice_count = int(match.group(2))
+    raw_die_size = match.group(3)
+    raw_modifier = match.group(5)
+    if not re.search(r"[lI]", raw_die_size) and not re.search(r"\d\s+\d", raw_modifier):
+        return None
+
+    die_digits = re.sub(r"\s+", "", raw_die_size).replace("l", "1").replace("I", "1")
+    modifier_digits = re.sub(r"\s+", "", raw_modifier)
+    if not die_digits.isdigit() or not modifier_digits.isdigit():
+        return None
+
+    die_size = int(die_digits)
+    if die_size not in STANDARD_HIT_DIE_SIZES:
+        return None
+
+    sign = "-" if match.group(4) in {"-", "−", "–"} else "+"
+    modifier = int(modifier_digits)
+    candidate = f"{average} ({dice_count}d{die_size} {sign} {modifier})"
+    flags = monster_semantic_numeric_flags(
+        {"classe_armatura": "10", "punti_ferita": candidate}
+    )
+    if HP_FORMAT_ERROR_FLAG in flags:
+        return None
+    return candidate
+
+
 def _remaining_global_ocr_budget(
     ocr_budget_started_at: float | tuple[float, float] | None,
 ) -> float | None:
@@ -6702,8 +6740,37 @@ def _agreed_target_candidate(
                 target_name,
                 target_page,
             )
-            primary_attributes = primary_compatible[0].get("attributes") or {}
-            comparison_attributes = comparison_compatible[0].get("attributes") or {}
+            primary_target_for_gate = dict(primary_compatible[0])
+            comparison_target_for_gate = dict(comparison_compatible[0])
+            primary_attributes = dict(primary_target_for_gate.get("attributes") or {})
+            comparison_attributes = dict(
+                comparison_target_for_gate.get("attributes") or {}
+            )
+            hp_confusion_repaired = False
+            primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
+            comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
+            if target_name == "Juiblex" and (
+                (HP_FORMAT_ERROR_FLAG in primary_hp_flags)
+                != (HP_FORMAT_ERROR_FLAG in comparison_hp_flags)
+            ):
+                bad_attributes = (
+                    primary_attributes
+                    if HP_FORMAT_ERROR_FLAG in primary_hp_flags
+                    else comparison_attributes
+                )
+                good_attributes = (
+                    comparison_attributes
+                    if bad_attributes is primary_attributes
+                    else primary_attributes
+                )
+                repaired_hp = _repair_hp_letter_digit_spacing_confusion(
+                    str(bad_attributes.get("punti_ferita") or "")
+                )
+                good_hp = " ".join(str(good_attributes.get("punti_ferita") or "").split())
+                if repaired_hp is not None and repaired_hp == good_hp:
+                    bad_attributes["punti_ferita"] = repaired_hp
+                    hp_confusion_repaired = True
+
             deterministic = deterministic_core_field_matches(
                 primary_attributes,
                 comparison_attributes,
@@ -6855,6 +6922,7 @@ def _agreed_target_candidate(
                     for field in ("classe_armatura", "punti_ferita", "velocita")
                 },
                 "source_anchor_verified": True,
+                "hp_ocr_confusion_repaired": hp_confusion_repaired,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
                 "exact_side_supported": exact_side_supported,
@@ -6862,6 +6930,8 @@ def _agreed_target_candidate(
             if exact_side_supported and structural_nonexact and clean_core:
                 primary_target = dict(primary_compatible[0])
                 comparison_target = dict(comparison_compatible[0])
+                primary_target["attributes"] = primary_attributes
+                comparison_target["attributes"] = comparison_attributes
                 for candidate in (primary_target, comparison_target):
                     candidate["name"] = target_name
                     candidate["normalized_name"] = normalized_target
@@ -6874,6 +6944,7 @@ def _agreed_target_candidate(
                             "name": target_name,
                             "page": target_page,
                             "source_anchor_verified": True,
+                            "hp_ocr_confusion_repaired": hp_confusion_repaired,
                             "nonexact_structural_support": True,
                             "core_fields_agree": True,
                         },
