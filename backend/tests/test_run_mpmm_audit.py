@@ -388,6 +388,12 @@ def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
                     "tsv_name_anchor_found": True,
                     "tsv_local_label_found": False,
                     "drow_local_tsv_structure": True,
+                    "drow_micro_value_valid": True,
+                    "drow_text_plain_ca_unique": False,
+                    "drow_text_permissive_ca_unique": True,
+                    "drow_text_speed_unique": True,
+                    "drow_text_permissive_ordered": True,
+                    "drow_text_gap_within_bound": True,
                     "private": PRIVATE,
                 }
             )
@@ -414,6 +420,12 @@ def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
             "tsv_name_anchor_found": True,
             "tsv_local_label_found": False,
             "drow_local_tsv_structure": True,
+            "drow_micro_value_valid": True,
+            "drow_text_plain_ca_unique": False,
+            "drow_text_permissive_ca_unique": True,
+            "drow_text_speed_unique": True,
+            "drow_text_permissive_ordered": True,
+            "drow_text_gap_within_bound": True,
         }
     ]
 
