@@ -1,0 +1,144 @@
+name: MPMM promote single verified candidate
+
+on:
+  push:
+    branches:
+      - codex/mpmm-pending-131-20261001
+    paths:
+      - .github/mpmm-promote-single.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-mpmm-promote-single
+  cancel-in-progress: false
+
+jobs:
+  promote-single:
+    if: github.event.head_commit.message == 'Execute approved MPMM single record'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      EXPECTED_PENDING_FINGERPRINT: 874bd1fce6b961876fcde23284c5fc080108cd8254685def0ddf0a5c5b50ab44
+      EXPECTED_VERIFIED_FINGERPRINT: 689cbe812366f4f073b4f91877f21f2f949e8aa0081a947f92a1071905cb67eb
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Verify sealed single-record token
+        id: seal
+        run: |
+          set -euo pipefail
+          test -f .github/mpmm-promote-single.txt
+          actual="$(tr -d '[:space:]' < .github/mpmm-promote-single.txt)"
+          IFS=':' read -r token fingerprint record_id <<< "$actual"
+          test "$token" = "VERIFY_MPMM_PENDING_26"
+          test "$fingerprint" = "$EXPECTED_PENDING_FINGERPRINT"
+          [[ "$record_id" =~ ^ref_[0-9a-f]{32}$ ]]
+          echo "record_id=$record_id" >> "$GITHUB_OUTPUT"
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Promote exactly one source-verified record
+        id: promote
+        env:
+          RECORD_ID: ${{ steps.seal.outputs.record_id }}
+        run: |
+          set -o pipefail
+          set +e
+          python backend/scripts/run_mpmm_audit.py \
+            --allow-r2-download \
+            --batch-size 25 \
+            --execute \
+            --execute-record-id "$RECORD_ID" \
+            --confirm VERIFY_MPMM_PENDING_26 \
+            | tee /tmp/mpmm-promote-single.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "exit_status=$status" >> "$GITHUB_OUTPUT"
+          if [[ "$status" -ne 0 ]]; then
+            exit "$status"
+          fi
+
+      - name: Verify single-record write report
+        env:
+          RECORD_ID: ${{ steps.seal.outputs.record_id }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          lines = Path("/tmp/mpmm-promote-single.log").read_text().splitlines()
+          marker = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+          report = json.loads(lines[marker + 1])
+
+          assert report["dry_run"] is False
+          assert report["initial_pending"] == 26
+          assert report["initial_verified"] == 169
+          assert report["initial_global_verified"] == 218
+          assert report["targets"] == 1
+          assert report["repairable"] == 1
+          assert report["blocked"] == 0
+          assert report["updates_performed"] == 1
+          assert report["final_pending"] == 25
+          assert report["final_verified"] == 170
+          assert report["protected_verified_fingerprint_sha256"] == os.environ["EXPECTED_VERIFIED_FINGERPRINT"]
+          expected_target = hashlib.sha256(os.environ["RECORD_ID"].encode()).hexdigest()
+          assert report["target_fingerprint_sha256"] == expected_target
+          assert len(report["reports"]) == 1
+          assert report["reports"][0]["record_id"] == os.environ["RECORD_ID"]
+          assert report["reports"][0]["executed"] is True
+          assert report["reports"][0]["gate_failure_count_after"] == 0
+
+          Path("/tmp/MPMM_PROMOTE_SINGLE_FINAL_REPORT.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+          )
+          print(
+              "MPMM_PROMOTE_SINGLE_SUMMARY "
+              + json.dumps(
+                  {
+                      key: report[key]
+                      for key in (
+                          "initial_pending",
+                          "initial_verified",
+                          "repairable",
+                          "blocked",
+                          "updates_performed",
+                          "final_pending",
+                          "final_verified",
+                      )
+                  },
+                  ensure_ascii=False,
+              )
+          )
+          PY
+
+      - name: Upload single-record write report
+        uses: actions/upload-artifact@v4
+        with:
+          name: MPMM_PROMOTE_SINGLE_FINAL_REPORT
+          path: /tmp/MPMM_PROMOTE_SINGLE_FINAL_REPORT.json
+          if-no-files-found: error
+          retention-days: 14
