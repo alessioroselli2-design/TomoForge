@@ -865,6 +865,13 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
     "ref_6b0e1564d7325987a342097cebb39316": 150.0,  # Yuan-Ti Signore Della Fossa
     "ref_a6b5749652855247a3266f61817441fa": 150.0,  # Zuggtmoy
 }
+MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
+    {
+        "ref_2d833b3db343531b8cbe0669197259bd",  # Mitragliatore Di Quercia
+        "ref_6b0e1564d7325987a342097cebb39316",  # Yuan-Ti Signore Della Fossa
+        "ref_a6b5749652855247a3266f61817441fa",  # Zuggtmoy
+    }
+)
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
@@ -1143,6 +1150,18 @@ def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
     return 7
+
+
+def _ocr_budget_seconds(record_id: str, target_set: str) -> float:
+    if (
+        target_set == "batch_mpmm_pending_131"
+        and record_id not in MPMM_EXTENDED_OCR_BUDGET_IDS
+    ):
+        return OCR_GLOBAL_TIMEOUT_SECONDS
+    return OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
+        record_id,
+        OCR_GLOBAL_TIMEOUT_SECONDS,
+    )
 
 
 def _remaining_global_ocr_budget(
@@ -8386,12 +8405,7 @@ async def _repair_one(
     # each individual Tesseract subprocess remains hard-limited to 15s.
     ocr_budget_started_at = (
         time.monotonic(),
-        OCR_GLOBAL_TIMEOUT_SECONDS
-        if args.target_set == "batch_mpmm_pending_131"
-        else OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.get(
-            record_id,
-            OCR_GLOBAL_TIMEOUT_SECONDS,
-        ),
+        _ocr_budget_seconds(record_id, args.target_set),
     )
 
     candidate = None
