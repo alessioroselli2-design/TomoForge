@@ -6740,37 +6740,8 @@ def _agreed_target_candidate(
                 target_name,
                 target_page,
             )
-            primary_target_for_gate = dict(primary_compatible[0])
-            comparison_target_for_gate = dict(comparison_compatible[0])
-            primary_attributes = dict(primary_target_for_gate.get("attributes") or {})
-            comparison_attributes = dict(
-                comparison_target_for_gate.get("attributes") or {}
-            )
-            hp_confusion_repaired = False
-            primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
-            comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
-            if target_name == "Juiblex" and (
-                (HP_FORMAT_ERROR_FLAG in primary_hp_flags)
-                != (HP_FORMAT_ERROR_FLAG in comparison_hp_flags)
-            ):
-                bad_attributes = (
-                    primary_attributes
-                    if HP_FORMAT_ERROR_FLAG in primary_hp_flags
-                    else comparison_attributes
-                )
-                good_attributes = (
-                    comparison_attributes
-                    if bad_attributes is primary_attributes
-                    else primary_attributes
-                )
-                repaired_hp = _repair_hp_letter_digit_spacing_confusion(
-                    str(bad_attributes.get("punti_ferita") or "")
-                )
-                good_hp = " ".join(str(good_attributes.get("punti_ferita") or "").split())
-                if repaired_hp is not None and repaired_hp == good_hp:
-                    bad_attributes["punti_ferita"] = repaired_hp
-                    hp_confusion_repaired = True
-
+            primary_attributes = primary_compatible[0].get("attributes") or {}
+            comparison_attributes = comparison_compatible[0].get("attributes") or {}
             deterministic = deterministic_core_field_matches(
                 primary_attributes,
                 comparison_attributes,
@@ -6870,8 +6841,37 @@ def _agreed_target_candidate(
                 target_name,
                 target_page,
             )
-            primary_attributes = primary_compatible[0].get("attributes") or {}
-            comparison_attributes = comparison_compatible[0].get("attributes") or {}
+            primary_attributes = dict(primary_compatible[0].get("attributes") or {})
+            comparison_attributes = dict(
+                comparison_compatible[0].get("attributes") or {}
+            )
+            hp_confusion_repaired = False
+            primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
+            comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
+            if (
+                (HP_FORMAT_ERROR_FLAG in primary_hp_flags)
+                != (HP_FORMAT_ERROR_FLAG in comparison_hp_flags)
+            ):
+                bad_attributes = (
+                    primary_attributes
+                    if HP_FORMAT_ERROR_FLAG in primary_hp_flags
+                    else comparison_attributes
+                )
+                good_attributes = (
+                    comparison_attributes
+                    if bad_attributes is primary_attributes
+                    else primary_attributes
+                )
+                repaired_hp = _repair_hp_letter_digit_spacing_confusion(
+                    str(bad_attributes.get("punti_ferita") or "")
+                )
+                good_hp = " ".join(
+                    str(good_attributes.get("punti_ferita") or "").split()
+                )
+                if repaired_hp is not None and repaired_hp == good_hp:
+                    bad_attributes["punti_ferita"] = repaired_hp
+                    hp_confusion_repaired = True
+
             deterministic = deterministic_core_field_matches(
                 primary_attributes,
                 comparison_attributes,
