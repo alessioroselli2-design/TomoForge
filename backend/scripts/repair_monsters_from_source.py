@@ -4421,7 +4421,7 @@ def _reconstruct_drow_missing_hp_line(
     speed_indexes = [
         index
         for index in local_range
-        if re.match(r"\s*Velocit[àa]\b", lines[index], re.IGNORECASE)
+        if normalize_reference_name(lines[index]).startswith("velocita")
     ]
     if not (len(ca_indexes) == 1 and not hp_indexes and len(speed_indexes) == 1):
         return None
@@ -5517,7 +5517,7 @@ def _micro_ocr_hit_points_line(
             speed_indexes = [
                 index
                 for index in range(target_index + 1, local_end)
-                if re.match(r"\s*Velocit[àa]\b", text_lines[index], re.IGNORECASE)
+                if normalize_reference_name(text_lines[index]).startswith("velocita")
             ]
             bounded_speed_indexes = (
                 [
