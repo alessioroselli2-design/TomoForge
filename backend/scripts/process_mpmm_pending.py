@@ -32,13 +32,13 @@ from scripts import repair_monsters_from_source as repair
 from services.ocr_semantic_gates import OCR_REVIEW_FLAG, monster_semantic_numeric_flags
 
 LOGICAL_SOURCE_ID = "mpmm_2022_it"
-EXPECTED_PENDING = 30
-EXPECTED_MPMM_VERIFIED = 165
-EXPECTED_GLOBAL_VERIFIED = 214
-EXPECTED_PENDING_FINGERPRINT = "f4581b41625407f59f40287c6dbd3d8c21a8f190f6f82b14b16f0a0195c21339"
-EXPECTED_VERIFIED_FINGERPRINT = "8c7be7e195edcc015f811365e5ecadd55138eb5276c112c08036bb9e32be8f06"
+EXPECTED_PENDING = 29
+EXPECTED_MPMM_VERIFIED = 166
+EXPECTED_GLOBAL_VERIFIED = 215
+EXPECTED_PENDING_FINGERPRINT = "907ea2b93e1d3f134a50a0c25409d10b0a1541e69a1af141a5573dd47b50cc8e"
+EXPECTED_VERIFIED_FINGERPRINT = "6b0edb33bf66fc63ccf5115cb3c45c99e92575bc09f6f526a3c8811925b26c5a"
 DEFAULT_BATCH_SIZE = 25
-CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_30"
+CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_29"
 
 
 def _logical_source_ids(record: dict[str, Any]) -> set[str]:
@@ -264,16 +264,46 @@ async def _run(args: argparse.Namespace) -> int:
 
             timestamp = None
             if args.execute and batch_ok:
-                await _revalidate_pending(collection, [item[0] for item in batch_ok])
                 timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 for original, report, proposal in batch_ok:
-                    await _apply_verified(
-                        collection,
-                        db.private_reference_review_history,
-                        original,
-                        proposal,
-                        updated_at=timestamp,
-                    )
+                    try:
+                        await _revalidate_pending(collection, [original])
+                        await _apply_verified(
+                            collection,
+                            db.private_reference_review_history,
+                            original,
+                            proposal,
+                            updated_at=timestamp,
+                        )
+                    except Exception as exc:
+                        current = await collection.find_one({"id": str(original["id"])})
+                        flags = {
+                            str(flag)
+                            for flag in ((current or {}).get("review_flags") or [])
+                        }
+                        write_landed_cleanly = bool(
+                            current is not None
+                            and str(current.get("review_status") or "") == "verified"
+                            and OCR_REVIEW_FLAG not in flags
+                            and repair.REPAIR_FLAG not in flags
+                            and current.get("canonical_id") == original.get("canonical_id")
+                            and current.get("source_refs") == original.get("source_refs")
+                            and str(current.get("updated_at") or "") == timestamp
+                        )
+                        if not write_landed_cleanly:
+                            batch_blocked.append(
+                                {
+                                    "record_snapshot_sha256": report.get(
+                                        "record_snapshot_sha256"
+                                    ),
+                                    "record_id": original.get("id"),
+                                    "name": original.get("name"),
+                                    "reason": "write_apply_failed",
+                                    "detail": str(exc),
+                                    "executed": False,
+                                }
+                            )
+                            continue
                     report["after"] = {**report["after"], **proposal}
                     report["executed"] = True
             reports.extend(report for _, report, _ in batch_ok)
