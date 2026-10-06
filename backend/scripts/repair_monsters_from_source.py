@@ -1041,8 +1041,16 @@ NONSTANDARD_MULTI_DIGIT_DIE_RE = re.compile(
 STANDARD_HIT_DIE_SIZES = frozenset({4, 6, 8, 10, 12, 20})
 
 
-def _repair_numeric_dice_separator_confusion(value: str) -> str | None:
+def _repair_numeric_dice_separator_confusion(
+    value: str,
+    diagnostics: dict[str, bool] | None = None,
+) -> str | None:
     """Recover one OCR'd dice separator only when math leaves one valid expression."""
+
+    def mark(**values: bool) -> None:
+        if diagnostics is not None:
+            diagnostics.update(values)
+
     normalized = " ".join((value or "").split())
     match = re.fullmatch(
         r"(\d+)\s*\(\s*([0-9]+)\s*([+\-−–])?\s*(\d+)?\s*\)",
