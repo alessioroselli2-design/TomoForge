@@ -6846,11 +6846,17 @@ def _agreed_target_candidate(
                 comparison_compatible[0].get("attributes") or {}
             )
             hp_confusion_repaired = False
+            hp_repair_attempted = False
+            hp_repair_has_letter_confusion = False
+            hp_repair_has_spaced_digits = False
+            hp_repair_candidate_valid = False
+            hp_repair_matches_peer = False
             primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
             comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
             if (HP_FORMAT_ERROR_FLAG in primary_hp_flags) != (
                 HP_FORMAT_ERROR_FLAG in comparison_hp_flags
             ):
+                hp_repair_attempted = True
                 bad_attributes = (
                     primary_attributes
                     if HP_FORMAT_ERROR_FLAG in primary_hp_flags
@@ -6861,13 +6867,18 @@ def _agreed_target_candidate(
                     if bad_attributes is primary_attributes
                     else primary_attributes
                 )
-                repaired_hp = _repair_hp_letter_digit_spacing_confusion(
-                    str(bad_attributes.get("punti_ferita") or "")
-                )
+                bad_hp = str(bad_attributes.get("punti_ferita") or "")
+                hp_repair_has_letter_confusion = bool(re.search(r"[lI]", bad_hp))
+                hp_repair_has_spaced_digits = bool(re.search(r"\d\s+\d", bad_hp))
+                repaired_hp = _repair_hp_letter_digit_spacing_confusion(bad_hp)
+                hp_repair_candidate_valid = repaired_hp is not None
                 good_hp = " ".join(
                     str(good_attributes.get("punti_ferita") or "").split()
                 )
-                if repaired_hp is not None and repaired_hp == good_hp:
+                hp_repair_matches_peer = (
+                    repaired_hp is not None and repaired_hp == good_hp
+                )
+                if hp_repair_matches_peer:
                     bad_attributes["punti_ferita"] = repaired_hp
                     hp_confusion_repaired = True
 
@@ -6922,6 +6933,11 @@ def _agreed_target_candidate(
                 },
                 "source_anchor_verified": True,
                 "hp_ocr_confusion_repaired": hp_confusion_repaired,
+                "hp_repair_attempted": hp_repair_attempted,
+                "hp_repair_has_letter_confusion": hp_repair_has_letter_confusion,
+                "hp_repair_has_spaced_digits": hp_repair_has_spaced_digits,
+                "hp_repair_candidate_valid": hp_repair_candidate_valid,
+                "hp_repair_matches_peer": hp_repair_matches_peer,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
                 "exact_side_supported": exact_side_supported,
