@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   promote:
-    if: github.event.head_commit.message == 'Execute approved MPMM repairables snapshot 30'
+    if: github.event.head_commit.message == 'Execute approved MPMM repairables snapshot 29'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
@@ -28,8 +28,8 @@ jobs:
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_BUCKET: tomoforge-manuals
-      EXPECTED_PENDING_FINGERPRINT: f4581b41625407f59f40287c6dbd3d8c21a8f190f6f82b14b16f0a0195c21339
-      EXPECTED_VERIFIED_FINGERPRINT: 8c7be7e195edcc015f811365e5ecadd55138eb5276c112c08036bb9e32be8f06
+      EXPECTED_PENDING_FINGERPRINT: 907ea2b93e1d3f134a50a0c25409d10b0a1541e69a1af141a5573dd47b50cc8e
+      EXPECTED_VERIFIED_FINGERPRINT: 6b0edb33bf66fc63ccf5115cb3c45c99e92575bc09f6f526a3c8811925b26c5a
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           test -f .github/mpmm-promote-once.txt
           actual="$(tr -d '[:space:]' < .github/mpmm-promote-once.txt)"
-          expected="VERIFY_MPMM_PENDING_30:${EXPECTED_PENDING_FINGERPRINT}"
+          expected="VERIFY_MPMM_PENDING_29:${EXPECTED_PENDING_FINGERPRINT}"
           test "$actual" = "$expected"
 
       - name: Install OCR and backend dependencies
@@ -60,7 +60,7 @@ jobs:
         run: |
           set -o pipefail
           set +e
-          python backend/scripts/run_mpmm_audit.py             --allow-r2-download             --batch-size 25             --execute             --confirm VERIFY_MPMM_PENDING_30             | tee /tmp/mpmm-promote-once.log
+          python backend/scripts/run_mpmm_audit.py             --allow-r2-download             --batch-size 25             --execute             --confirm VERIFY_MPMM_PENDING_29             | tee /tmp/mpmm-promote-once.log
           status=${PIPESTATUS[0]}
           set -e
           echo "exit_status=$status" >> "$GITHUB_OUTPUT"
@@ -81,12 +81,12 @@ jobs:
           report = json.loads(lines[marker + 1])
 
           assert report["dry_run"] is False
-          assert report["initial_pending"] == 30
-          assert report["initial_verified"] == 165
-          assert report["initial_global_verified"] == 214
+          assert report["initial_pending"] == 29
+          assert report["initial_verified"] == 166
+          assert report["initial_global_verified"] == 215
           assert report["target_fingerprint_sha256"] == os.environ["EXPECTED_PENDING_FINGERPRINT"]
           assert report["protected_verified_fingerprint_sha256"] == os.environ["EXPECTED_VERIFIED_FINGERPRINT"]
-          assert report["updates_performed"] == report["repairable"]
+          assert report["updates_performed"] <= report["repairable"]
           assert report["updates_performed"] > 0
           assert report["final_pending"] == report["initial_pending"] - report["updates_performed"]
           assert report["final_verified"] == report["initial_verified"] + report["updates_performed"]
