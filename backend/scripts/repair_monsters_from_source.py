@@ -1231,11 +1231,7 @@ def _repair_hp_leading_prefix_to_peer(
         }
         return r"\s*".join(variants.get(digit, re.escape(digit)) for digit in digits)
 
-    sign_pattern = (
-        r"[+\u002B]"
-        if peer_match.group(4) == "+"
-        else r"[\-−–]"
-    )
+    sign_pattern = r"[+\u002B]" if peer_match.group(4) == "+" else r"[\-−–]"
     prefix_pattern = re.compile(
         r"^\s*"
         + digit_pattern(peer_match.group(1))
