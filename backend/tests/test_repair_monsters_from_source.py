@@ -1670,7 +1670,7 @@ def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
         3,
         4,
     )
-    assert _source_guided_sparse_ocr_psms("Juiblex", 3, 6) == (3, 6)
+    assert _source_guided_sparse_ocr_psms("Juiblex", 3, 6) == (3, 4)
 
 
 def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
