@@ -4752,25 +4752,40 @@ def _micro_ocr_hit_points_line(
             for index, text in enumerate(structural)
             if text.startswith("velocita")
         ]
-        first_ca = ca_offsets[0] if ca_offsets else None
-        first_hp = (
-            next((index for index in hp_offsets if first_ca is not None and index > first_ca), None)
+        local_ca_offsets = [index for index in ca_offsets if index <= 3]
+        first_ca = local_ca_offsets[0] if len(local_ca_offsets) == 1 else None
+        local_speed_offsets = (
+            [
+                index
+                for index in speed_offsets
+                if first_ca is not None and first_ca < index <= first_ca + 6
+            ]
             if first_ca is not None
-            else None
+            else []
         )
         first_speed = (
-            next((index for index in speed_offsets if first_hp is not None and index > first_hp), None)
-            if first_hp is not None
-            else None
+            local_speed_offsets[0] if len(local_speed_offsets) == 1 else None
         )
+        local_hp_offsets = (
+            [
+                index
+                for index in hp_offsets
+                if (
+                    first_ca is not None
+                    and first_speed is not None
+                    and first_ca < index < first_speed
+                )
+            ]
+            if first_ca is not None and first_speed is not None
+            else []
+        )
+        first_hp = local_hp_offsets[0] if len(local_hp_offsets) == 1 else None
         drow_local_structure = bool(
             len(tsv_target_indexes) == 1
             and first_ca is not None
-            and first_ca <= 3
             and first_hp is not None
             and first_speed is not None
             and first_ca < first_hp < first_speed
-            and first_speed - first_ca <= 6
         )
         diagnostics["drow_local_tsv_structure"] = drow_local_structure
         if not drow_local_structure:
