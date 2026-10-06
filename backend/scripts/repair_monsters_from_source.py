@@ -1207,6 +1207,42 @@ def _repair_hp_letter_digit_spacing_confusion(
     return candidate
 
 
+
+def _repair_hp_leading_prefix_to_peer(
+    value: str,
+    peer_value: str,
+) -> str | None:
+    """Recover one leading HP expression only when it exactly matches the clean peer."""
+    normalized = " ".join((value or "").split())
+    peer = " ".join((peer_value or "").split())
+    if not peer:
+        return None
+    if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+        {"classe_armatura": "10", "punti_ferita": peer}
+    ):
+        return None
+
+    match = re.match(
+        r"^([0-9Oo ]+\s*\(\s*[0-9lILOo ]+\s*[dD]\s*[0-9lILOo ]+\s*"
+        r"[+\-−–]\s*[0-9lILOo ]+\s*\))",
+        normalized,
+    )
+    if match is None:
+        return None
+
+    prefix = " ".join(match.group(1).split())
+    repaired = _repair_hp_letter_digit_spacing_confusion(prefix)
+    if repaired is None:
+        flags = monster_semantic_numeric_flags(
+            {"classe_armatura": "10", "punti_ferita": prefix}
+        )
+        if HP_FORMAT_ERROR_FLAG not in flags:
+            repaired = prefix
+    if repaired != peer:
+        return None
+    return repaired
+
+
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
@@ -6975,6 +7011,7 @@ def _agreed_target_candidate(
             hp_repair_has_spaced_digits = False
             hp_repair_candidate_valid = False
             hp_repair_matches_peer = False
+            hp_prefix_peer_repaired = False
             hp_repair_diagnostics: dict[str, bool] = {}
             primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
             comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
@@ -7007,10 +7044,16 @@ def _agreed_target_candidate(
                     bad_hp,
                     diagnostics=hp_repair_diagnostics,
                 )
-                hp_repair_candidate_valid = repaired_hp is not None
                 good_hp = " ".join(
                     str(good_attributes.get("punti_ferita") or "").split()
                 )
+                if repaired_hp is None:
+                    repaired_hp = _repair_hp_leading_prefix_to_peer(
+                        bad_hp,
+                        good_hp,
+                    )
+                    hp_prefix_peer_repaired = repaired_hp is not None
+                hp_repair_candidate_valid = repaired_hp is not None
                 hp_repair_matches_peer = (
                     repaired_hp is not None and repaired_hp == good_hp
                 )
@@ -7082,6 +7125,7 @@ def _agreed_target_candidate(
                 "hp_repair_shape": hp_repair_shape if hp_repair_attempted else {},
                 "hp_repair_candidate_valid": hp_repair_candidate_valid,
                 "hp_repair_matches_peer": hp_repair_matches_peer,
+                "hp_prefix_peer_repaired": hp_prefix_peer_repaired,
                 "hp_repair_diagnostics": hp_repair_diagnostics,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
