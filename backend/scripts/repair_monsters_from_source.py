@@ -1072,11 +1072,15 @@ def _repair_hp_letter_digit_spacing_confusion(value: str) -> str | None:
     normalized = " ".join((value or "").split())
     match = re.fullmatch(
         r"(\d+)\s*\(\s*([0-9lI ]+)\s*[dD]\s*([0-9lI ]+)\s*"
-        r"([+\-−–])\s*([0-9lI ]+)\s*\)",
+        r"([+\-−–])\s*([0-9lI ]+)\s*\)(.*)",
         normalized,
     )
     if match is None:
         return None
+    trailing = match.group(6).strip()
+    if trailing:
+        if len(trailing) > 12 or re.search(r"[0-9()dD+\-−–]", trailing):
+            return None
 
     average = int(match.group(1))
     raw_dice_count = match.group(2)
