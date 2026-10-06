@@ -71,6 +71,7 @@ from scripts.repair_monsters_from_source import (
     _remove_isolated_foreground_noise,
     _remaining_global_ocr_budget,
     _repair_numeric_dice_separator_confusion,
+    _hp_micro_ocr_psm,
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
@@ -1662,6 +1663,13 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
         _should_retry_dynamic_layout(missing, {"logical_source_id": "tce_2020_it"})
         is False
     )
+
+
+def test_hp_micro_ocr_psm_is_source_scoped():
+    assert _hp_micro_ocr_psm("Warlock Del Grande Antico", 3) == 13
+    assert _hp_micro_ocr_psm("Brontosauro", 4) == 6
+    assert _hp_micro_ocr_psm("Brontosauro", 3) == 7
+    assert _hp_micro_ocr_psm("Juiblex", 3) == 7
 
 
 def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
