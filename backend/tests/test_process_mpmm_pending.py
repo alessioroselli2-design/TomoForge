@@ -128,15 +128,15 @@ def test_apply_verified_preserves_provenance_and_records_review_history():
 
 
 def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
-    assert process.EXPECTED_PENDING == 26
-    assert process.EXPECTED_MPMM_VERIFIED == 169
-    assert process.EXPECTED_GLOBAL_VERIFIED == 218
-    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_26"
+    assert process.EXPECTED_PENDING == 25
+    assert process.EXPECTED_MPMM_VERIFIED == 170
+    assert process.EXPECTED_GLOBAL_VERIFIED == 219
+    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_25"
     assert process.EXPECTED_PENDING_FINGERPRINT == (
-        "874bd1fce6b961876fcde23284c5fc080108cd8254685def0ddf0a5c5b50ab44"
+        "ec7e45603186028eb330b544c0bd476b2125b3838195725248683e42ed0ad037"
     )
     assert process.EXPECTED_VERIFIED_FINGERPRINT == (
-        "689cbe812366f4f073b4f91877f21f2f949e8aa0081a947f92a1071905cb67eb"
+        "4b8e7ebf387dafbf9211dbf409b09463273eaca89bd04439ad3395c5dd18cc73"
     )
 
 
@@ -194,10 +194,10 @@ def test_execute_write_failure_isolated_and_final_report_survives(capsys):
 
 
 def test_execute_snapshot_fingerprint_drift_blocks_before_source_access():
-    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(26)]
+    pending = [_record(f"pending-{index}", f"Pending {index}") for index in range(25)]
     verified = [
         {**_record(f"verified-{index}", f"Verified {index}"), "review_status": "verified"}
-        for index in range(169)
+        for index in range(170)
     ]
     non_mpmm_verified = [
         {
