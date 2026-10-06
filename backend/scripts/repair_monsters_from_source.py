@@ -4409,7 +4409,9 @@ def _reconstruct_drow_missing_hp_line(
     ca_indexes = [
         index
         for index in local_range
-        if re.match(r"\s*Classe\s+(?:D['’]?\s*)?Armatura\b", lines[index], re.IGNORECASE)
+        if re.match(
+            r"\s*Classe\s+(?:D['’]?\s*)?Armatura\b", lines[index], re.IGNORECASE
+        )
     ]
     hp_indexes = [
         index
@@ -4764,9 +4766,7 @@ def _micro_ocr_hit_points_line(
             if first_ca is not None
             else []
         )
-        first_speed = (
-            local_speed_offsets[0] if len(local_speed_offsets) == 1 else None
-        )
+        first_speed = local_speed_offsets[0] if len(local_speed_offsets) == 1 else None
         local_hp_offsets = (
             [
                 index
