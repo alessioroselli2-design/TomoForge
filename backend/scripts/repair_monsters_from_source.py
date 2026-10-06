@@ -4683,6 +4683,7 @@ def _micro_ocr_hit_points_line(
     )
     diagnostics["tsv_name_anchor_found"] = name_line_index is not None
     label_words: list[dict[str, str]] | None = None
+    drow_core_band_bounds: tuple[int, int] | None = None
     if name == "Korred":
         tsv_lines = [
             " ".join(str(word["text"]) for word in words) for words in ordered_lines
@@ -4795,8 +4796,45 @@ def _micro_ocr_hit_points_line(
         )
         diagnostics["drow_local_tsv_structure"] = drow_local_structure
         if not drow_local_structure:
-            return fail_closed("drow_structural_hp_anchor_ambiguous")
-        label_words = ordered_lines[name_line_index + 1 + first_hp]
+            drow_geometry_band = bool(
+                single_target_geometry
+                and len(tsv_target_indexes) == 1
+                and first_ca is not None
+                and first_speed is not None
+                and len(local_hp_offsets) == 0
+                and first_ca < first_speed
+            )
+            diagnostics["drow_hp_geometry_band_used"] = drow_geometry_band
+            if not drow_geometry_band:
+                return fail_closed("drow_structural_hp_anchor_ambiguous")
+            ca_words = ordered_lines[name_line_index + 1 + first_ca]
+            speed_words = ordered_lines[name_line_index + 1 + first_speed]
+            ca_bottom = max(
+                int(word["top"]) + int(word["height"]) for word in ca_words
+            )
+            speed_top = min(int(word["top"]) for word in speed_words)
+            if speed_top <= ca_bottom:
+                return fail_closed("drow_structural_hp_anchor_ambiguous")
+            drow_core_band_bounds = (ca_bottom, speed_top)
+            label_words = None
+            print(
+                "MPMM_DROW_GEOMETRIC_HP_BAND "
+                + json.dumps(
+                    {
+                        "name": name,
+                        "unique_tsv_target": True,
+                        "unique_ca": True,
+                        "unique_speed": True,
+                        "missing_local_hp_label": True,
+                        "numeric_values_modified": False,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+        else:
+            diagnostics["drow_hp_geometry_band_used"] = False
+            label_words = ordered_lines[name_line_index + 1 + first_hp]
         print(
             "MPMM_DROW_STRUCTURAL_HP_ANCHOR "
             + json.dumps(
@@ -4962,39 +5000,51 @@ def _micro_ocr_hit_points_line(
             "MPMM_DELFINO_STRUCTURAL_HP_ANCHOR "
             + json.dumps({"label": structural[hp], "numeric_values_modified": False})
         )
-    if label_words is None:
+    if label_words is None and drow_core_band_bounds is None:
         return fail_closed("no_unique_structural_hp_anchor")
 
-    ferita_index = next(
-        (
-            index
-            for index, word in enumerate(label_words)
-            if "ferita" in str(word["text"]).casefold()
-        ),
-        None,
-    )
-    if ferita_index is None:
-        return fail_closed("ferita_token_missing_from_label")
-
-    label_end = int(label_words[ferita_index]["left"]) + int(
-        label_words[ferita_index]["width"]
-    )
-    line_top = min(int(word["top"]) for word in label_words)
-    line_bottom = max(int(word["top"]) + int(word["height"]) for word in label_words)
     source_pixmap = fitz.Pixmap(str(image_path))
     grayscale = fitz.Pixmap(fitz.csGRAY, source_pixmap)
-    padding = max(2, (line_bottom - line_top) // 3)
-    crop_rect = fitz.IRect(
-        max(
+    if drow_core_band_bounds is not None:
+        band_top, band_bottom = drow_core_band_bounds
+        crop_rect = fitz.IRect(
             0,
-            min(int(word["left"]) for word in label_words)
-            if name == "Delfino"
-            else label_end,
-        ),
-        max(0, line_top - padding),
-        grayscale.width,
-        min(grayscale.height, line_bottom + padding),
-    )
+            max(0, band_top),
+            grayscale.width,
+            min(grayscale.height, band_bottom),
+        )
+    else:
+        assert label_words is not None
+        ferita_index = next(
+            (
+                index
+                for index, word in enumerate(label_words)
+                if "ferita" in str(word["text"]).casefold()
+            ),
+            None,
+        )
+        if ferita_index is None:
+            return fail_closed("ferita_token_missing_from_label")
+
+        label_end = int(label_words[ferita_index]["left"]) + int(
+            label_words[ferita_index]["width"]
+        )
+        line_top = min(int(word["top"]) for word in label_words)
+        line_bottom = max(
+            int(word["top"]) + int(word["height"]) for word in label_words
+        )
+        padding = max(2, (line_bottom - line_top) // 3)
+        crop_rect = fitz.IRect(
+            max(
+                0,
+                min(int(word["left"]) for word in label_words)
+                if name == "Delfino"
+                else label_end,
+            ),
+            max(0, line_top - padding),
+            grayscale.width,
+            min(grayscale.height, line_bottom + padding),
+        )
     crop_width = crop_rect.x1 - crop_rect.x0
     crop_height = crop_rect.y1 - crop_rect.y0
     if crop_width < 1 or crop_height < 1:
