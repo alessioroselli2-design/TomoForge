@@ -6679,8 +6679,7 @@ def _agreed_target_candidate(
 
         if (
             (len(primary_exact) != 1 or len(comparison_exact) != 1)
-            and target_name
-            in SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
+            and target_name in SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
             and len(primary_compatible) == 1
             and len(comparison_compatible) == 1
             and (len(primary_exact) == 1) != (len(comparison_exact) == 1)
@@ -6729,9 +6728,7 @@ def _agreed_target_candidate(
             )
             compatible_fallback_diagnostics = {
                 "eligible_name": True,
-                "primary_exact_title_lines": primary_counts.get(
-                    "exact_title_lines", 0
-                ),
+                "primary_exact_title_lines": primary_counts.get("exact_title_lines", 0),
                 "comparison_exact_title_lines": comparison_counts.get(
                     "exact_title_lines", 0
                 ),
@@ -6761,12 +6758,16 @@ def _agreed_target_candidate(
                             "name": target_name,
                             "page": target_page,
                             "primary_exact_candidates_before": (
-                                1 if primary_compatible[0].get("normalized_name")
-                                == normalized_target else 0
+                                1
+                                if primary_compatible[0].get("normalized_name")
+                                == normalized_target
+                                else 0
                             ),
                             "comparison_exact_candidates_before": (
-                                1 if comparison_compatible[0].get("normalized_name")
-                                == normalized_target else 0
+                                1
+                                if comparison_compatible[0].get("normalized_name")
+                                == normalized_target
+                                else 0
                             ),
                             "nonexact_structural_support": True,
                             "core_fields_agree": True,
