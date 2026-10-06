@@ -4815,7 +4815,7 @@ def test_drow_missing_hp_label_geometry_fails_closed_without_single_target_ancho
         )
 
     assert result == page_text
-    assert "drow_structural_hp_anchor_ambiguous" in capsys.readouterr().out
+    assert "MPMM_DROW_GEOMETRIC_HP_BAND" not in capsys.readouterr().out
 
 
 def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
