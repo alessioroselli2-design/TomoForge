@@ -141,8 +141,8 @@ def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
 
 
 def test_execute_write_failure_isolated_and_final_report_survives(capsys):
-    first = _record("one", "Uno")
-    second = _record("two", "Due")
+    first = _record("one", "A")
+    second = _record("two", "B")
     rows = [first, second]
     after = [
         {**first, "review_status": "verified", "review_flags": []},
