@@ -91,7 +91,11 @@ def _public_hp_anchor_event(payload: Any) -> dict[str, Any] | None:
         value = payload.get(key)
         if type(value) is int and value >= 0:
             result[key] = value
-    for key in ("tsv_name_anchor_found", "tsv_local_label_found"):
+    for key in (
+        "tsv_name_anchor_found",
+        "tsv_local_label_found",
+        "drow_local_tsv_structure",
+    ):
         value = payload.get(key)
         if type(value) is bool:
             result[key] = value
