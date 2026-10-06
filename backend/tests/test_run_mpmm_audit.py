@@ -311,6 +311,53 @@ def test_identity_source_diagnostics_cannot_export_source_content():
         runner.public_report(private)
 
 
+def test_hp_micro_ocr_diagnostic_exports_only_boolean_outcomes(capsys):
+    def worker(command, *, stdout, stderr, check):
+        assert stdout is stderr
+        stdout.write(
+            "HP_MICRO_OCR_DIAGNOSTIC "
+            + json.dumps(
+                {
+                    "name": PRIVATE,
+                    "initial_raw": PRIVATE,
+                    "otsu_inverted_raw": PRIVATE,
+                    "otsu_hp_format_error": True,
+                    "upscaled_otsu_inverted_raw": PRIVATE,
+                    "upscaled_otsu_hp_format_error": True,
+                    "superscaled_otsu_inverted_raw": PRIVATE,
+                    "superscaled_otsu_hp_format_error": None,
+                    "full_spectrum_attempt_count": 4,
+                    "full_spectrum_accepted": {
+                        "scale_factor": 4,
+                        "private": PRIVATE,
+                    },
+                }
+            )
+            + "\nFINAL_REPORT\n"
+        )
+        stdout.write(json.dumps(_report()) + "\n")
+        stdout.flush()
+        return SimpleNamespace(returncode=0)
+
+    with (
+        patch.object(runner.subprocess, "run", side_effect=worker),
+        patch.object(runner.sys, "argv", ["runner", "--audit-record-id", IDENTIFIER]),
+    ):
+        assert runner.main() == 0
+    output = capsys.readouterr()
+    assert PRIVATE not in output.out + output.err
+    report = json.loads(output.out.split("FINAL_REPORT\n")[1])
+    assert report["hp_micro_ocr_diagnostics"] == [
+        {
+            "otsu_hp_format_error": True,
+            "upscaled_otsu_hp_format_error": True,
+            "superscaled_otsu_hp_format_error": None,
+            "full_spectrum_attempt_count": 4,
+            "full_spectrum_accepted": True,
+        }
+    ]
+
+
 def test_hp_anchor_diagnostic_exports_only_allowlisted_metadata(capsys):
     def worker(command, *, stdout, stderr, check):
         assert stdout is stderr
