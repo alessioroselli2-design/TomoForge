@@ -1044,6 +1044,27 @@ STANDARD_HIT_DIE_SIZES = frozenset({4, 6, 8, 10, 12, 20})
 def _repair_numeric_dice_separator_confusion(value: str) -> str | None:
     """Recover one OCR'd dice separator only when math leaves one valid expression."""
     normalized = " ".join((value or "").split())
+    open_index = normalized.find("(")
+    close_index = normalized.rfind(")")
+    prefix = normalized[:open_index].strip() if open_index >= 0 else normalized
+    inner = (
+        normalized[open_index + 1 : close_index].strip()
+        if open_index >= 0 and close_index > open_index
+        else ""
+    )
+    suffix = normalized[close_index + 1 :].strip() if close_index >= 0 else ""
+    mark(
+        prefix_numericish=bool(re.fullmatch(r"[0-9Oo ]+", prefix)),
+        inner_chars_allowed=bool(
+            inner and re.fullmatch(r"[0-9lILOo dD+\-−– ]+", inner)
+        ),
+        single_d_separator=len(re.findall(r"[dD]", inner)) == 1,
+        single_modifier_sign=len(re.findall(r"[+\-−–]", inner)) == 1,
+        suffix_present=bool(suffix),
+        suffix_has_numeric_syntax=bool(
+            suffix and re.search(r"[0-9()dD+\-−–]", suffix)
+        ),
+    )
     match = re.fullmatch(
         r"(\d+)\s*\(\s*([0-9]+)\s*([+\-−–])?\s*(\d+)?\s*\)",
         normalized,
