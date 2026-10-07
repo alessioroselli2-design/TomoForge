@@ -936,7 +936,7 @@ SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
 SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
     "Warlock Del Grande Antico": (3, 4),
     "Drow Inquisitore": (4, 12),
-    "Duergar Martellatore": (4,),
+    "Duergar Martellatore": (4, 6),
     "Fenice": (4,),
     "Juiblex": (3,),
 }
