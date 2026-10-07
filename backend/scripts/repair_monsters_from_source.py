@@ -875,6 +875,7 @@ OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
 }
 MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
     {
+        "ref_aadff2eb6eff59af9caddb92deee6614",  # Esploratore Di Bronzo
         "ref_2d833b3db343531b8cbe0669197259bd",  # Mitragliatore Di Quercia
         "ref_6b0e1564d7325987a342097cebb39316",  # Yuan-Ti Signore Della Fossa
         "ref_a6b5749652855247a3266f61817441fa",  # Zuggtmoy
@@ -5998,6 +5999,117 @@ def _micro_ocr_hit_points_line(
     )
 
 
+def _esploratore_registered_core_probe(
+    pdf_path: Path,
+    source: dict[str, Any],
+    record_attributes: dict[str, Any],
+    *,
+    languages: str,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+) -> dict[str, bool]:
+    """Validate registered page 81 core values without using OCR identity text."""
+    import fitz
+
+    result = {
+        "registered_page_ref_unique": False,
+        "primary_any_core_match": False,
+        "comparison_any_core_match": False,
+        "primary_unique_core_match": False,
+        "comparison_unique_core_match": False,
+        "independent_core_match_agreement": False,
+    }
+    source_filename = str(source.get("physical_filename") or "")
+    source_language = str(source.get("language") or "it")
+    if not source_filename:
+        return result
+
+    document = fitz.open(pdf_path)
+    try:
+        if document.page_count < 81:
+            return result
+        page = document.load_page(80)
+        matrix = fitz.Matrix(TWO_COLUMN_MIN_DPI / 72.0, TWO_COLUMN_MIN_DPI / 72.0)
+        pass_matches: dict[str, list[dict[str, Any]]] = {}
+        with tempfile.TemporaryDirectory(
+            prefix="tomoforge-esploratore-page81-probe-"
+        ) as tmp:
+            root = Path(tmp)
+            for pass_label, psm in (("primary", 3), ("comparison", 4)):
+                parts: list[str] = []
+                for segment_name, fractions in (
+                    ("left", (0.0, 0.0, 0.5, 1.0)),
+                    ("right", (0.5, 0.0, 1.0, 1.0)),
+                ):
+                    image_path = root / f"{pass_label}-{segment_name}.png"
+                    page.get_pixmap(
+                        matrix=matrix,
+                        clip=_clip_rect(page.rect, fractions),
+                        alpha=False,
+                        colorspace=fitz.csGRAY,
+                    ).save(image_path)
+                    parts.append(
+                        _run_tesseract_bounded(
+                            [
+                                "tesseract",
+                                str(image_path),
+                                "stdout",
+                                "-l",
+                                languages,
+                                "--psm",
+                                str(psm),
+                                "quiet",
+                            ],
+                            ocr_budget_started_at,
+                            phase=f"esploratore_page81_{pass_label}_{segment_name}",
+                        )
+                    )
+
+                candidates = parse_monster_statblocks(
+                    [(81, "\n\n".join(parts))],
+                    source_filename,
+                    source_language,
+                )
+                matches: list[dict[str, Any]] = []
+                for candidate in candidates:
+                    if int(candidate.get("start_page") or 0) != 81:
+                        continue
+                    attributes = candidate.get("attributes") or {}
+                    if monster_semantic_numeric_flags(attributes):
+                        continue
+                    deterministic = deterministic_core_field_matches(
+                        record_attributes,
+                        attributes,
+                    )
+                    if all(
+                        deterministic.get(f"{field}_deterministic_match", False)
+                        for field in ("classe_armatura", "punti_ferita", "velocita")
+                    ):
+                        matches.append(candidate)
+                pass_matches[pass_label] = matches
+                result[f"{pass_label}_any_core_match"] = bool(matches)
+                result[f"{pass_label}_unique_core_match"] = len(matches) == 1
+
+        if (
+            len(pass_matches.get("primary", [])) == 1
+            and len(pass_matches.get("comparison", [])) == 1
+        ):
+            primary_attributes = pass_matches["primary"][0].get("attributes") or {}
+            comparison_attributes = (
+                pass_matches["comparison"][0].get("attributes") or {}
+            )
+            agreement = deterministic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            result["independent_core_match_agreement"] = all(
+                agreement.get(f"{field}_deterministic_match", False)
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            )
+        return result
+    finally:
+        document.close()
+
+
 def _esploratore_tsv_core_diagnostic(
     image_path: Path,
     languages: str,
@@ -10069,6 +10181,41 @@ async def _repair_one(
         time.monotonic(),
         _ocr_budget_seconds(record_id, args.target_set),
     )
+
+    if (
+        record_id == "ref_aadff2eb6eff59af9caddb92deee6614"
+        and str(record.get("name") or "") == "Esploratore Di Bronzo"
+    ):
+        registered_page_refs = [
+            ref
+            for ref in (record.get("source_refs") or [])
+            if isinstance(ref, dict)
+            and int(ref.get("page") or 0) == 81
+            and str(ref.get("filename") or "")
+            == str(source.get("physical_filename") or "")
+        ]
+        probe = {
+            "registered_page_ref_unique": len(registered_page_refs) == 1,
+            "primary_any_core_match": False,
+            "comparison_any_core_match": False,
+            "primary_unique_core_match": False,
+            "comparison_unique_core_match": False,
+            "independent_core_match_agreement": False,
+        }
+        if probe["registered_page_ref_unique"]:
+            observed = _esploratore_registered_core_probe(
+                pdf_path,
+                source,
+                record.get("attributes") or {},
+                languages=args.languages,
+                ocr_budget_started_at=ocr_budget_started_at,
+            )
+            probe.update(observed)
+            probe["registered_page_ref_unique"] = True
+        print(
+            "MPMM_ESPLORATORE_REGISTERED_CORE_PROBE "
+            + json.dumps(probe, sort_keys=True)
+        )
 
     candidate = None
     quality = None
