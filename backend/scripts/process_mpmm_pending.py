@@ -8,7 +8,7 @@ rows from being verified, but it is always retained in the final report.
 
 Default operation is read-only.  ``--execute`` additionally requires the exact
 confirmation token and is refused unless the initial live snapshot contains
-the expected 24 pending MPMM records, 171 verified MPMM records, and 220 verified monsters globally.
+the expected 23 pending MPMM records, 172 verified MPMM records, and 221 verified monsters globally.
 """
 
 from __future__ import annotations
@@ -32,13 +32,13 @@ from scripts import repair_monsters_from_source as repair
 from services.ocr_semantic_gates import OCR_REVIEW_FLAG, monster_semantic_numeric_flags
 
 LOGICAL_SOURCE_ID = "mpmm_2022_it"
-EXPECTED_PENDING = 24
-EXPECTED_MPMM_VERIFIED = 171
-EXPECTED_GLOBAL_VERIFIED = 220
-EXPECTED_PENDING_FINGERPRINT = "e7d61d847484ee616941bfb5b8438bc609c10c82a7e03668e8762e376c7f3191"
-EXPECTED_VERIFIED_FINGERPRINT = "b34adf57f507295f6f65ad0b1e071eab62339bf33a73c32bcd6d1c55ea1550bb"
+EXPECTED_PENDING = 23
+EXPECTED_MPMM_VERIFIED = 172
+EXPECTED_GLOBAL_VERIFIED = 221
+EXPECTED_PENDING_FINGERPRINT = "bacf33c620d714cb252734b806eecd5188d8c025e0e6f963a00099e40d758c40"
+EXPECTED_VERIFIED_FINGERPRINT = "cb5bb2c085369383ec9f8fc5816ac61d0cfdc2ffead56d2ab0397745d8f91889"
 DEFAULT_BATCH_SIZE = 25
-CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_24"
+CONFIRMATION_TOKEN = "VERIFY_MPMM_PENDING_23"
 
 
 def _logical_source_ids(record: dict[str, Any]) -> set[str]:
