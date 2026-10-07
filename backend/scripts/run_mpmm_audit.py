@@ -192,6 +192,34 @@ def _public_martellatore_segment_event(payload: Any) -> dict[str, Any] | None:
     return result
 
 
+def _public_esploratore_tsv_event(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    psm = payload.get("psm")
+    if type(psm) is not int or psm not in {11, 12}:
+        return None
+    result: dict[str, Any] = {"psm": psm}
+    for key in (
+        "target_unique",
+        "ca_unique",
+        "hp_unique",
+        "speed_unique",
+        "target_left_half",
+        "ca_left_half",
+        "hp_left_half",
+        "speed_left_half",
+        "target_ca_same_half",
+        "target_hp_same_half",
+        "ca_after_target",
+        "hp_after_ca",
+        "speed_after_hp",
+    ):
+        value = payload.get(key)
+        if type(value) is bool:
+            result[key] = value
+    return result
+
+
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
     identifier = item.get("record_id")
     return {
@@ -593,6 +621,7 @@ def main() -> int:
             hp_micro_ocr_diagnostics: list[dict[str, Any]] = []
             martellatore_segment_diagnostics: list[dict[str, Any]] = []
             esploratore_segment_diagnostics: list[dict[str, Any]] = []
+            esploratore_tsv_diagnostics: list[dict[str, Any]] = []
             for line in runtime_output:
                 stripped = line.strip()
                 if stripped.startswith("HP_ANCHOR_DIAGNOSTIC "):
@@ -630,6 +659,14 @@ def main() -> int:
                     event = _public_martellatore_segment_event(payload)
                     if event is not None and len(esploratore_segment_diagnostics) < 16:
                         esploratore_segment_diagnostics.append(event)
+                elif stripped.startswith("MPMM_ESPLORATORE_TSV_CORE_DIAGNOSTIC "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    event = _public_esploratore_tsv_event(payload)
+                    if event is not None and len(esploratore_tsv_diagnostics) < 8:
+                        esploratore_tsv_diagnostics.append(event)
                 if stripped == "FINAL_REPORT":
                     private = json.loads(next(runtime_output))
             if private is None:
@@ -642,6 +679,9 @@ def main() -> int:
             )
             public["esploratore_segment_diagnostics"] = (
                 esploratore_segment_diagnostics
+            )
+            public["esploratore_tsv_diagnostics"] = (
+                esploratore_tsv_diagnostics
             )
         print("FINAL_REPORT")
         print(json.dumps(public, sort_keys=True))
