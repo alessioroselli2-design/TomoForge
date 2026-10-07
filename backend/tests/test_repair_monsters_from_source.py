@@ -4565,6 +4565,29 @@ def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutati
                 )
     assert json.dumps([primary, comparison], sort_keys=True) == before
 
+@pytest.mark.parametrize(
+    "comparison_speed,expected",
+    [
+        ("7.5 m", "7,5 m"),
+        ("7x5 m", None),
+    ],
+)
+def test_duergar_speed_non_alphanumeric_repair_uses_exact_peer_only(
+    comparison_speed,
+    expected,
+):
+    primary = {"velocita": "7,5 m"}
+    comparison = {"velocita": comparison_speed}
+    assert (
+        repair._repair_speed_non_alphanumeric_to_exact_peer(
+            primary,
+            comparison,
+            exact_on_left=True,
+        )
+        == expected
+    )
+
+
 def test_duergar_guardia_core_label_repair_preserves_values_exactly():
     text = (
         "DUERGAR GUARDIA DI PIETRA\n"
