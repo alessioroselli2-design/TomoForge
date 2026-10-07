@@ -7170,7 +7170,27 @@ def _identity_source_counts(
             "classe armatura" in line or "classe d armatura" in line for line in lines
         ),
         "hp_label_lines": sum(line.startswith("punti ferita") for line in lines),
+        "hp_label_only_lines": sum(
+            bool(re.fullmatch(r"\s*Punti\s+Ferita\s*:?\s*", line, flags=re.IGNORECASE))
+            for line in raw_lines
+        ),
+        "hp_label_only_next_has_digit": sum(
+            bool(re.fullmatch(r"\s*Punti\s+Ferita\s*:?\s*", raw_lines[index], flags=re.IGNORECASE))
+            and index + 1 < len(raw_lines)
+            and bool(re.search(r"\d", raw_lines[index + 1]))
+            for index in range(len(raw_lines))
+        ),
         "speed_label_lines": sum(line.startswith("velocita") for line in lines),
+        "speed_label_only_lines": sum(
+            bool(re.fullmatch(r"\s*Velocit[àa]\s*:?\s*", line, flags=re.IGNORECASE))
+            for line in raw_lines
+        ),
+        "speed_label_only_next_has_digit": sum(
+            bool(re.fullmatch(r"\s*Velocit[àa]\s*:?\s*", raw_lines[index], flags=re.IGNORECASE))
+            and index + 1 < len(raw_lines)
+            and bool(re.search(r"\d", raw_lines[index + 1]))
+            for index in range(len(raw_lines))
+        ),
         "descriptor_lines": sum(_line_is_descriptor(line) for line in raw_lines),
         "split_descriptor_pairs": sum(
             not _line_is_descriptor(first)
