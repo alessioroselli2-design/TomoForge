@@ -139,6 +139,7 @@ def _public_hp_micro_event(payload: Any) -> dict[str, Any] | None:
         elif value is None:
             result[key] = None
     for key in (
+        "martellatore_psm7_hp_format_error",
         "martellatore_psm13_hp_format_error",
         "martellatore_psm6_hp_format_error",
         "martellatore_alt_psm_accepted",

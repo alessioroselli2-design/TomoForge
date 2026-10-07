@@ -1263,7 +1263,9 @@ def _repair_hp_digit_skeleton_to_peer(
         missing_sign=missing_sign,
         chars_allowed=chars_allowed,
     )
-    if not (paren_shape and spaced_digits and missing_d and missing_sign and chars_allowed):
+    if not (
+        paren_shape and spaced_digits and missing_d and missing_sign and chars_allowed
+    ):
         return None
 
     observed_digits = "".join(re.findall(r"\d", normalized))
@@ -5612,7 +5614,7 @@ def _micro_ocr_hit_points_line(
             martellatore_alt_psm_results: dict[str, bool] = {}
             martellatore_alt_psm_accepted = False
             if name == "Duergar Martellatore" and hp_micro_ocr_failed(micro):
-                for alternate_psm in (13, 6):
+                for alternate_psm in (7, 13, 6):
                     candidate = run_micro_ocr(
                         HIT_POINTS_FALLBACK_CONTRAST,
                         directory,
@@ -5686,15 +5688,14 @@ def _micro_ocr_hit_points_line(
                         ),
                         "full_spectrum_attempt_count": len(full_spectrum_attempts),
                         "full_spectrum_accepted": full_spectrum_accepted,
+                        "martellatore_psm7_hp_format_error": (
+                            martellatore_alt_psm_results.get("psm_7_hp_format_error")
+                        ),
                         "martellatore_psm13_hp_format_error": (
-                            martellatore_alt_psm_results.get(
-                                "psm_13_hp_format_error"
-                            )
+                            martellatore_alt_psm_results.get("psm_13_hp_format_error")
                         ),
                         "martellatore_psm6_hp_format_error": (
-                            martellatore_alt_psm_results.get(
-                                "psm_6_hp_format_error"
-                            )
+                            martellatore_alt_psm_results.get("psm_6_hp_format_error")
                         ),
                         "martellatore_alt_psm_accepted": (
                             martellatore_alt_psm_accepted
@@ -6490,7 +6491,9 @@ def _ocr_source_window(
                                 for line in str(text or "").splitlines()
                                 if line.strip()
                             ]
-                            if any(_sparse_anchor_matches(line, name) for line in lines):
+                            if any(
+                                _sparse_anchor_matches(line, name) for line in lines
+                            ):
                                 return True
                             return any(
                                 _sparse_anchor_matches(f"{first} {second}", name)
