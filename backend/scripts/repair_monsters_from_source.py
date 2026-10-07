@@ -1647,6 +1647,20 @@ PHB_SOURCE_REVIEWED_CORE_BY_NAME = {
 }
 
 
+MPMM_SOURCE_REVIEWED_STATUS_ONLY_BY_ID = {
+    "ref_aadff2eb6eff59af9caddb92deee6614": {
+        "name": "Esploratore Di Bronzo",
+        "logical_source_id": "mpmm_2022_it",
+        "physical_page": 79,
+        "core": {
+            "classe_armatura": "13",
+            "punti_ferita": "36 (8d8)",
+            "velocita": "9 m, scavare 9 m",
+        },
+    }
+}
+
+
 def _phb_quality_pre_otsu_clip(target_clip: Any, name: str) -> Any:
     """Preserve the source-anchored PHB crop for quality preprocessing."""
     return target_clip
@@ -6779,6 +6793,9 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    esploratore_tsv_diagnostics: list[
+                        dict[str, bool | int]
+                    ] = []
                     if (
                         name == "Esploratore Di Bronzo"
                         and page_number == target_page
@@ -6786,18 +6803,17 @@ def _ocr_source_window(
                         and not sparse_full_page
                     ):
                         for diagnostic_psm in (11, 12):
+                            diagnostic = _esploratore_tsv_core_diagnostic(
+                                image_path,
+                                languages,
+                                name,
+                                psm=diagnostic_psm,
+                                ocr_budget_started_at=ocr_budget_started_at,
+                            )
+                            esploratore_tsv_diagnostics.append(diagnostic)
                             print(
                                 "MPMM_ESPLORATORE_TSV_CORE_DIAGNOSTIC "
-                                + json.dumps(
-                                    _esploratore_tsv_core_diagnostic(
-                                        image_path,
-                                        languages,
-                                        name,
-                                        psm=diagnostic_psm,
-                                        ocr_budget_started_at=ocr_budget_started_at,
-                                    ),
-                                    sort_keys=True,
-                                )
+                                + json.dumps(diagnostic, sort_keys=True)
                             )
                     if (
                         name == "Duergar Martellatore"
@@ -7506,6 +7522,10 @@ def _ocr_source_window(
                         agreement_primary,
                         agreement_comparison,
                     )
+                    if esploratore_tsv_diagnostics:
+                        agreement["esploratore_tsv_diagnostics"] = (
+                            esploratore_tsv_diagnostics
+                        )
                     if name == "Berbalang":
                         agreement["source_crop_fractions"] = list(fractions)
                     if sparse_full_page:
@@ -9835,6 +9855,32 @@ def build_repair_proposal(
                 for field in ("classe_armatura", "punti_ferita", "velocita")
             },
         }
+    if candidate.get("source_reviewed_status_only") is True:
+        spec = MPMM_SOURCE_REVIEWED_STATUS_ONLY_BY_ID.get(str(legacy.get("id") or ""))
+        if spec is None:
+            raise RepairBlocked("source_reviewed_status_only_unsealed_record")
+        core_fields = ("classe_armatura", "punti_ferita", "velocita")
+        reviewed_core = dict(spec["core"])
+        legacy_core = legacy.get("attributes") or {}
+        raw_equal = {
+            field: str(legacy_core.get(field) or "").strip()
+            == str(reviewed_core.get(field) or "").strip()
+            for field in core_fields
+        }
+        candidate_equal = {
+            field: str(candidate_attributes.get(field) or "").strip()
+            == str(reviewed_core.get(field) or "").strip()
+            for field in core_fields
+        }
+        if not all(raw_equal.values()) or not all(candidate_equal.values()):
+            raise RepairBlocked(
+                "source_reviewed_status_only_core_drift",
+                diagnostics={
+                    "legacy_core_equal": raw_equal,
+                    "candidate_core_equal": candidate_equal,
+                },
+            )
+
     gate_failures = monster_semantic_numeric_flags(candidate_attributes)
     if gate_failures:
         raise RepairBlocked(
@@ -10120,6 +10166,131 @@ def _corrupted_name_report(record: dict[str, Any]) -> dict[str, Any]:
         "review_flags": [CORRUPTED_ENTITY_NAME_FLAG],
         "classification": "Record con Nome Corrotto (Scorie OCR)",
         "executed": False,
+        "source_reviewed_status_only": (
+            candidate.get("source_reviewed_status_only") is True
+        ),
+    }
+
+
+def _mpmm_source_reviewed_status_only_candidate(
+    record: dict[str, Any],
+    source: dict[str, Any],
+    physical_page: int,
+    quality: dict[int, dict[str, Any]] | None,
+    failure: RepairBlocked,
+) -> dict[str, Any] | None:
+    """Return a no-change candidate only after sealed identity/core evidence."""
+    record_id = str(record.get("id") or "")
+    spec = MPMM_SOURCE_REVIEWED_STATUS_ONLY_BY_ID.get(record_id)
+    if spec is None or failure.reason != "no_unique_exact_target_identity":
+        return None
+
+    source_refs = [
+        ref
+        for ref in (record.get("source_refs") or [])
+        if isinstance(ref, dict)
+        and int(ref.get("page") or 0) == int(spec["physical_page"])
+        and str(ref.get("logical_source_id") or "") == spec["logical_source_id"]
+    ]
+    scope = {
+        "name_match": str(record.get("name") or "") == spec["name"],
+        "pending": str(record.get("review_status") or "") == "pending",
+        "source_match": str(source.get("logical_source_id") or "")
+        == spec["logical_source_id"],
+        "page_match": physical_page == int(spec["physical_page"]),
+        "registered_page_ref_unique": len(source_refs) == 1,
+        "canonical_unlinked": not bool(record.get("canonical_id")),
+    }
+    if not all(scope.values()):
+        raise RepairBlocked(
+            "source_reviewed_status_only_scope_drift",
+            diagnostics=scope,
+        )
+
+    reviewed_core = dict(spec["core"])
+    current = record.get("attributes") or {}
+    core_fields = ("classe_armatura", "punti_ferita", "velocita")
+    raw_equal = {
+        field: str(current.get(field) or "").strip()
+        == str(reviewed_core.get(field) or "").strip()
+        for field in core_fields
+    }
+    deterministic = deterministic_core_field_matches(current, reviewed_core)
+    deterministic_equal = {
+        field: bool(deterministic.get(f"{field}_deterministic_match", False))
+        for field in core_fields
+    }
+    if (
+        not all(raw_equal.values())
+        or not all(deterministic_equal.values())
+        or monster_semantic_numeric_flags(reviewed_core)
+    ):
+        raise RepairBlocked(
+            "source_reviewed_core_db_drift",
+            diagnostics={
+                "raw_core_equal": raw_equal,
+                "deterministic_core_equal": deterministic_equal,
+                "reviewed_core_gate_clean": not bool(
+                    monster_semantic_numeric_flags(reviewed_core)
+                ),
+            },
+        )
+
+    target_metrics = (quality or {}).get(physical_page) or {}
+    full_segment = (target_metrics.get("segments") or {}).get("full") or {}
+    diagnostics = full_segment.get("esploratore_tsv_diagnostics") or []
+    by_psm = {
+        int(item.get("psm")): item
+        for item in diagnostics
+        if isinstance(item, dict) and item.get("psm") in {11, 12}
+    }
+    identity_supported = all(
+        psm in by_psm
+        and by_psm[psm].get("target_unique") is True
+        and by_psm[psm].get("target_left_half") is True
+        for psm in (11, 12)
+    )
+    core_unreadable = all(
+        psm in by_psm
+        and by_psm[psm].get("ca_unique") is False
+        and by_psm[psm].get("hp_unique") is False
+        for psm in (11, 12)
+    )
+    if not identity_supported or not core_unreadable:
+        raise RepairBlocked(
+            "source_reviewed_status_only_evidence_missing",
+            diagnostics={
+                "psm11_identity_supported": bool(
+                    11 in by_psm
+                    and by_psm[11].get("target_unique") is True
+                    and by_psm[11].get("target_left_half") is True
+                ),
+                "psm12_identity_supported": bool(
+                    12 in by_psm
+                    and by_psm[12].get("target_unique") is True
+                    and by_psm[12].get("target_left_half") is True
+                ),
+                "psm11_core_unreadable": bool(
+                    11 in by_psm
+                    and by_psm[11].get("ca_unique") is False
+                    and by_psm[11].get("hp_unique") is False
+                ),
+                "psm12_core_unreadable": bool(
+                    12 in by_psm
+                    and by_psm[12].get("ca_unique") is False
+                    and by_psm[12].get("hp_unique") is False
+                ),
+            },
+        )
+
+    return {
+        "name": spec["name"],
+        "normalized_name": normalize_reference_name(str(spec["name"])),
+        "reference_type": "monster",
+        "start_page": physical_page,
+        "source_refs": [dict(source_refs[0])],
+        "attributes": reviewed_core,
+        "source_reviewed_status_only": True,
     }
 
 
@@ -10404,6 +10575,30 @@ async def _repair_one(
             )
             break
         except RepairBlocked as exc:
+            source_reviewed_candidate = _mpmm_source_reviewed_status_only_candidate(
+                record,
+                source,
+                physical_page,
+                quality,
+                exc,
+            )
+            if source_reviewed_candidate is not None:
+                candidate = source_reviewed_candidate
+                selected_overlap = 0.0
+                print(
+                    "MPMM_SOURCE_REVIEWED_STATUS_ONLY_FALLBACK "
+                    + json.dumps(
+                        {
+                            "record_id": record_id,
+                            "name": record.get("name"),
+                            "identity_supported_by_psm11_and_psm12": True,
+                            "core_values_modified": False,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                break
             if _should_retry_exact_identity_sparse(exc, record_id):
                 print(
                     "MPMM_EXACT_IDENTITY_SPARSE_RETRY "

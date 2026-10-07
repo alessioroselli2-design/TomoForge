@@ -600,6 +600,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                 "candidate_start_page": _count(identity["start_page"]),
                 "source_identity_exact": exact_identity,
                 "gate_failure_count_after": len(item["gate_failures_after"]),
+                "source_reviewed_status_only": (
+                    item.get("source_reviewed_status_only") is True
+                ),
                 "existing_attributes_supported": exact_identity
                 and all(agreement.values())
                 and not monster_semantic_numeric_flags(before),

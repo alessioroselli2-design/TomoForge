@@ -3848,6 +3848,130 @@ def test_mage_requires_one_original_registered_selected_page(identifier, name, p
     assert json.dumps(record, sort_keys=True) == before
 
 
+def _esploratore_status_only_quality(*, psm12_target=True):
+    def diagnostic(psm, target):
+        return {
+            "psm": psm,
+            "target_unique": target,
+            "target_left_half": target,
+            "ca_unique": False,
+            "hp_unique": False,
+        }
+
+    return {
+        79: {
+            "segments": {
+                "full": {
+                    "esploratore_tsv_diagnostics": [
+                        diagnostic(11, True),
+                        diagnostic(12, psm12_target),
+                    ]
+                }
+            }
+        }
+    }
+
+
+def _esploratore_status_only_record():
+    return {
+        "id": "ref_aadff2eb6eff59af9caddb92deee6614",
+        "name": "Esploratore Di Bronzo",
+        "reference_type": "monster",
+        "review_status": "pending",
+        "review_flags": [OCR_REVIEW_FLAG, REPAIR_FLAG],
+        "canonical_id": None,
+        "attributes": {
+            "classe_armatura": "13",
+            "punti_ferita": "36 (8d8)",
+            "velocita": "9 m, scavare 9 m",
+        },
+        "source_refs": [
+            {
+                "page": 79,
+                "logical_source_id": "mpmm_2022_it",
+                "filename": "Mostri del multiverso 101-200.pdf",
+            },
+            {
+                "page": 81,
+                "logical_source_id": "mpmm_2022_it",
+                "filename": "Mostri del multiverso 101-200.pdf",
+            },
+        ],
+    }
+
+
+def test_esploratore_source_reviewed_status_only_requires_no_core_change():
+    record = _esploratore_status_only_record()
+    source = {
+        "logical_source_id": "mpmm_2022_it",
+        "physical_filename": "Mostri del multiverso 101-200.pdf",
+    }
+    candidate = repair._mpmm_source_reviewed_status_only_candidate(
+        record,
+        source,
+        79,
+        _esploratore_status_only_quality(),
+        RepairBlocked("no_unique_exact_target_identity"),
+    )
+
+    assert candidate is not None
+    assert candidate["source_reviewed_status_only"] is True
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == {
+        field: record["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    }
+    proposal = build_repair_proposal(record, candidate)
+    assert {
+        field: proposal["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == {
+        field: record["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    }
+
+
+def test_esploratore_source_reviewed_status_only_blocks_db_core_drift():
+    record = _esploratore_status_only_record()
+    record["attributes"]["classe_armatura"] = "14"
+    source = {
+        "logical_source_id": "mpmm_2022_it",
+        "physical_filename": "Mostri del multiverso 101-200.pdf",
+    }
+
+    with pytest.raises(RepairBlocked) as caught:
+        repair._mpmm_source_reviewed_status_only_candidate(
+            record,
+            source,
+            79,
+            _esploratore_status_only_quality(),
+            RepairBlocked("no_unique_exact_target_identity"),
+        )
+
+    assert caught.value.reason == "source_reviewed_core_db_drift"
+
+
+def test_esploratore_source_reviewed_status_only_requires_two_identity_psms():
+    record = _esploratore_status_only_record()
+    source = {
+        "logical_source_id": "mpmm_2022_it",
+        "physical_filename": "Mostri del multiverso 101-200.pdf",
+    }
+
+    with pytest.raises(RepairBlocked) as caught:
+        repair._mpmm_source_reviewed_status_only_candidate(
+            record,
+            source,
+            79,
+            _esploratore_status_only_quality(psm12_target=False),
+            RepairBlocked("no_unique_exact_target_identity"),
+        )
+
+    assert caught.value.reason == "source_reviewed_status_only_evidence_missing"
+
+
 def test_esploratore_uses_resolved_page_79_target_only():
     identifier = "ref_aadff2eb6eff59af9caddb92deee6614"
     record = {

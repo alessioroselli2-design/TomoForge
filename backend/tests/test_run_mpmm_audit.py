@@ -183,6 +183,14 @@ def test_esploratore_registered_core_probe_exports_only_booleans():
     }
 
 
+def test_public_report_exposes_status_only_marker_without_core_values():
+    private = _report()
+    private["reports"][0]["source_reviewed_status_only"] = True
+    public = runner.public_report(private)
+    assert public["reports"][0]["source_reviewed_status_only"] is True
+    assert "attributes" not in public["reports"][0]
+
+
 def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     private = _report()
     private["blocked_records"] = [

@@ -136,6 +136,7 @@ async def _apply_verified(
     proposal: dict[str, Any],
     *,
     updated_at: str,
+    review_notes: str | None = None,
 ) -> None:
     if original.get("canonical_id"):
         raise repair.RepairBlocked("canonical_record_linked")
@@ -151,7 +152,8 @@ async def _apply_verified(
         "reviewer_email": "",
         "reviewed_at": updated_at,
         "review_status": "verified",
-        "review_notes": (
+        "review_notes": review_notes
+        or (
             "Verifica source-guided sulla fonte italiana ufficiale MPMM; "
             "identità, CA, PF/dadi, velocità e provenance concordi."
         ),
@@ -303,6 +305,15 @@ async def _run(args: argparse.Namespace) -> int:
                             original,
                             proposal,
                             updated_at=timestamp,
+                            review_notes=(
+                                "Verifica source-reviewed status-only: identità "
+                                "confermata sulla pagina italiana registrata MPMM; "
+                                "core preesistenti invariati e cross-checkati sul "
+                                "corrispondente stat block MPMM inglese; nessuna "
+                                "correzione numerica applicata."
+                                if report.get("source_reviewed_status_only") is True
+                                else None
+                            ),
                         )
                     except Exception as exc:
                         current = await collection.find_one({"id": str(original["id"])})
