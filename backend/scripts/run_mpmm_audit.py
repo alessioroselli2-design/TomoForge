@@ -138,6 +138,14 @@ def _public_hp_micro_event(payload: Any) -> dict[str, Any] | None:
             result[key] = value
         elif value is None:
             result[key] = None
+    for key in (
+        "martellatore_psm13_hp_format_error",
+        "martellatore_psm6_hp_format_error",
+        "martellatore_alt_psm_accepted",
+    ):
+        value = payload.get(key)
+        if type(value) is bool:
+            result[key] = value
     attempts = payload.get("full_spectrum_attempt_count")
     if type(attempts) is int and attempts >= 0:
         result["full_spectrum_attempt_count"] = attempts
