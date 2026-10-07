@@ -7511,6 +7511,18 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
+            semantic = semantic_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            speed_single_profile = speed_single_extra_token_profile(
+                primary_attributes,
+                comparison_attributes,
+            )
+            speed_multi_profile = speed_multi_extra_token_profile(
+                primary_attributes,
+                comparison_attributes,
+            )
             primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
