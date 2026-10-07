@@ -148,6 +148,26 @@ def _public_hp_micro_event(payload: Any) -> dict[str, Any] | None:
     return result
 
 
+def _public_martellatore_segment_event(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    segment = payload.get("segment")
+    if segment not in {"left", "right", "full", "sparse-full"}:
+        return None
+    result: dict[str, Any] = {"segment": segment}
+    for key in (
+        "primary_target_anchor",
+        "comparison_target_anchor",
+        "primary_hp_label",
+        "comparison_hp_label",
+        "quality_pass",
+    ):
+        value = payload.get(key)
+        if type(value) is bool:
+            result[key] = value
+    return result
+
+
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
     identifier = item.get("record_id")
     return {
@@ -547,6 +567,7 @@ def main() -> int:
             private = None
             hp_anchor_diagnostics: list[dict[str, Any]] = []
             hp_micro_ocr_diagnostics: list[dict[str, Any]] = []
+            martellatore_segment_diagnostics: list[dict[str, Any]] = []
             for line in runtime_output:
                 stripped = line.strip()
                 if stripped.startswith("HP_ANCHOR_DIAGNOSTIC "):
@@ -565,6 +586,17 @@ def main() -> int:
                     event = _public_hp_micro_event(payload)
                     if event is not None and len(hp_micro_ocr_diagnostics) < 32:
                         hp_micro_ocr_diagnostics.append(event)
+                elif stripped.startswith("MPMM_MARTELLATORE_SEGMENT_DIAGNOSTIC "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    event = _public_martellatore_segment_event(payload)
+                    if (
+                        event is not None
+                        and len(martellatore_segment_diagnostics) < 16
+                    ):
+                        martellatore_segment_diagnostics.append(event)
                 if stripped == "FINAL_REPORT":
                     private = json.loads(next(runtime_output))
             if private is None:
@@ -572,6 +604,9 @@ def main() -> int:
             public = public_report(private)
             public["hp_anchor_diagnostics"] = hp_anchor_diagnostics
             public["hp_micro_ocr_diagnostics"] = hp_micro_ocr_diagnostics
+            public["martellatore_segment_diagnostics"] = (
+                martellatore_segment_diagnostics
+            )
         print("FINAL_REPORT")
         print(json.dumps(public, sort_keys=True))
         return completed.returncode
