@@ -284,6 +284,21 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
             "punti_ferita": True,
             "velocita": True,
         },
+        "semantic_core_match": {
+            "classe_armatura": False,
+            "punti_ferita": False,
+            "velocita": False,
+        },
+        "speed_single_extra_token": {
+            "velocita_residual_single_extra_alpha_token_len_3_to_6": False,
+            "velocita_residual_single_extra_alpha_token_len_gt6": False,
+            "velocita_residual_single_extra_alpha_token_internal": False,
+        },
+        "speed_multi_extra_token": {
+            "velocita_residual_extra_alpha_tokens_exactly_2": False,
+            "velocita_residual_extra_alpha_tokens_3_or_more": False,
+            "velocita_residual_duplicate_ambiguous": False,
+        },
         "hp_ocr_confusion_repaired": False,
         "hp_repair_attempted": False,
         "hp_repair_has_letter_confusion": False,
