@@ -66,6 +66,39 @@ def _report():
     }
 
 
+def test_segment_diagnostic_sanitizer_keeps_only_allowlisted_booleans():
+    payload = {
+        "segment": "left",
+        "primary_target_anchor": True,
+        "comparison_target_anchor": False,
+        "primary_ca_label": True,
+        "comparison_ca_label": False,
+        "primary_hp_label": True,
+        "comparison_hp_label": True,
+        "primary_speed_label": False,
+        "comparison_speed_label": True,
+        "quality_pass": True,
+        "private": PRIVATE,
+        "text": "Punti Ferita 999",
+    }
+    public = runner._public_martellatore_segment_event(payload)
+    encoded = json.dumps(public)
+    assert PRIVATE not in encoded
+    assert "999" not in encoded
+    assert public == {
+        "segment": "left",
+        "primary_target_anchor": True,
+        "comparison_target_anchor": False,
+        "primary_ca_label": True,
+        "comparison_ca_label": False,
+        "primary_hp_label": True,
+        "comparison_hp_label": True,
+        "primary_speed_label": False,
+        "comparison_speed_label": True,
+        "quality_pass": True,
+    }
+
+
 def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     private = _report()
     private["blocked_records"] = [
