@@ -6529,7 +6529,6 @@ def _ocr_source_window(
                         )
                     if (
                         name == "Esploratore Di Bronzo"
-                        and page_number == target_page
                         and not sparse_full_page
                     ):
 
@@ -6553,6 +6552,7 @@ def _ocr_source_window(
                             + json.dumps(
                                 {
                                     "segment": segment_name,
+                                    "page_offset": page_number - target_page,
                                     "primary_target_anchor": (
                                         _esploratore_has_title_anchor(primary)
                                     ),
