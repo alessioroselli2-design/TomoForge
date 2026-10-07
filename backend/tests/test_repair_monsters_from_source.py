@@ -4424,6 +4424,32 @@ def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutati
                 )
     assert json.dumps([primary, comparison], sort_keys=True) == before
 
+def test_duergar_guardia_core_label_repair_preserves_values_exactly():
+    text = (
+        "DUERGAR GUARDIA DI PIETRA\n"
+        "Umanoide Medio (Nano), legale malvagio\n"
+        "Classe Armatura 18\n"
+        "Punti Fèrita 44 (8d8 + 8)\n"
+        "Velocitá 7,5 m\n"
+    )
+
+    result = repair._canonicalize_duergar_guardia_core_labels(text)
+
+    assert "Punti Ferita 44 (8d8 + 8)" in result
+    assert "Velocità 7,5 m" in result
+    assert "44 (8d8 + 8)" in result
+    assert "7,5 m" in result
+
+
+def test_duergar_guardia_core_label_repair_fails_closed_on_duplicate_label():
+    text = (
+        "Punti Fèrita 44 (8d8 + 8)\n"
+        "Punti Fèrita 45 (8d8 + 9)\n"
+        "Velocitá 7,5 m\n"
+    )
+    assert repair._canonicalize_duergar_guardia_core_labels(text) == text
+
+
 @pytest.mark.parametrize("suffix", ["Ù", "i"])
 def test_drow_title_debris_isolates_one_observed_suffix_without_numeric_changes(suffix):
     text = (
