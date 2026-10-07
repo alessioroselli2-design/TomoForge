@@ -1215,6 +1215,49 @@ def _repair_hp_letter_digit_spacing_confusion(
     return candidate
 
 
+def _repair_hp_digit_skeleton_to_peer(
+    value: str,
+    peer_value: str,
+) -> str | None:
+    """Confirm separator-loss OCR only against an exact valid HP peer."""
+    normalized = " ".join((value or "").split())
+    peer = " ".join((peer_value or "").split())
+    peer_match = re.fullmatch(
+        r"(\d+)\s*\(\s*(\d+)\s*[dD]\s*(\d+)\s*([+\-−–])\s*(\d+)\s*\)",
+        peer,
+    )
+    if peer_match is None:
+        return None
+    if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+        {"classe_armatura": "10", "punti_ferita": peer}
+    ):
+        return None
+    if not (
+        normalized.count("(") == 1
+        and normalized.count(")") == 1
+        and normalized.find("(") < normalized.find(")")
+        and normalized.rstrip().endswith(")")
+        and re.search(r"\d\s+\d", normalized)
+        and re.search(r"[dD]", normalized) is None
+        and re.search(r"[+\-−–]", normalized) is None
+        and re.fullmatch(r"[0-9\s(),.;:/|]+", normalized)
+    ):
+        return None
+
+    observed_digits = "".join(re.findall(r"\d", normalized))
+    peer_digits = "".join(
+        (
+            peer_match.group(1),
+            peer_match.group(2),
+            peer_match.group(3),
+            peer_match.group(5),
+        )
+    )
+    if not observed_digits or observed_digits != peer_digits:
+        return None
+    return peer
+
+
 def _repair_hp_leading_prefix_to_peer(
     value: str,
     peer_value: str,
@@ -7592,6 +7635,7 @@ def _agreed_target_candidate(
             hp_repair_candidate_valid = False
             hp_repair_matches_peer = False
             hp_prefix_peer_repaired = False
+            hp_digit_skeleton_repaired = False
             hp_repair_shape: dict[str, bool] = {}
             hp_repair_diagnostics: dict[str, bool] = {}
             primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
@@ -7633,6 +7677,12 @@ def _agreed_target_candidate(
                         good_hp,
                     )
                     hp_prefix_peer_repaired = repaired_hp is not None
+                if repaired_hp is None and target_name == "Duergar Martellatore":
+                    repaired_hp = _repair_hp_digit_skeleton_to_peer(
+                        bad_hp,
+                        good_hp,
+                    )
+                    hp_digit_skeleton_repaired = repaired_hp is not None
                 hp_repair_candidate_valid = repaired_hp is not None
                 hp_repair_matches_peer = (
                     repaired_hp is not None and repaired_hp == good_hp
@@ -7652,7 +7702,7 @@ def _agreed_target_candidate(
             speed_short_suffix_repaired = False
             speed_non_alphanumeric_repaired = False
             if (
-                target_name == "Duergar Guardia Di Pietra"
+                target_name in {"Duergar Guardia Di Pietra", "Duergar Martellatore"}
                 and deterministic.get("classe_armatura_deterministic_match", False)
                 and deterministic.get("punti_ferita_deterministic_match", False)
                 and not deterministic.get("velocita_deterministic_match", False)
@@ -7781,6 +7831,7 @@ def _agreed_target_candidate(
                 "hp_repair_candidate_valid": hp_repair_candidate_valid,
                 "hp_repair_matches_peer": hp_repair_matches_peer,
                 "hp_prefix_peer_repaired": hp_prefix_peer_repaired,
+                "hp_digit_skeleton_repaired": hp_digit_skeleton_repaired,
                 "hp_repair_diagnostics": hp_repair_diagnostics,
                 "speed_short_suffix_repaired": speed_short_suffix_repaired,
                 "speed_non_alphanumeric_repaired": speed_non_alphanumeric_repaired,

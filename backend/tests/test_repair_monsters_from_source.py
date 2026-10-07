@@ -4243,6 +4243,77 @@ def test_duergar_guardia_repairs_hp_and_short_speed_suffix_together():
     } == clean
 
 
+def test_hp_digit_skeleton_peer_repair_requires_exact_digits():
+    peer = "33 (6d8 + 6)"
+    assert repair._repair_hp_digit_skeleton_to_peer("3 3 (6 8 6)", peer) == peer
+    assert repair._repair_hp_digit_skeleton_to_peer("3 4 (6 8 6)", peer) is None
+    assert repair._repair_hp_digit_skeleton_to_peer("33 (6d8 + 6)", peer) is None
+
+
+def test_duergar_martellatore_repairs_separator_loss_hp_and_short_speed_suffix():
+    target = "Duergar Martellatore"
+    clean = {
+        "classe_armatura": "17 (armatura naturale)",
+        "punti_ferita": "33 (6d8 + 6)",
+        "velocita": "6 m",
+    }
+    primary = {
+        "name": target.upper() + " i",
+        "normalized_name": repair.normalize_reference_name(target + " i"),
+        "start_page": 8,
+        "source_refs": [{"page": 8}],
+        "attributes": dict(clean),
+    }
+    comparison = {
+        **primary,
+        "name": target.upper(),
+        "normalized_name": repair.normalize_reference_name(target),
+        "attributes": {
+            **clean,
+            "punti_ferita": "3 3 (6 8 6)",
+            "velocita": "6 m i",
+        },
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name") == repair.normalize_reference_name(target)
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 2 if exact else 1,
+            "parser_valid_headers": 2,
+            "anchors_with_descriptor": 2,
+            "anchors_with_hp": 2,
+            "anchors_with_speed": 2,
+            "candidates_on_page": 2,
+        }
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            target,
+            8,
+            require_exact_target_identity=True,
+        )
+
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == clean
+
+
 @pytest.mark.parametrize(
     "comparison_hp,accepted",
     [
