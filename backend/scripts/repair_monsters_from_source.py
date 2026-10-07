@@ -1218,30 +1218,51 @@ def _repair_hp_letter_digit_spacing_confusion(
 def _repair_hp_digit_skeleton_to_peer(
     value: str,
     peer_value: str,
+    *,
+    diagnostics: dict[str, bool] | None = None,
 ) -> str | None:
     """Confirm separator-loss OCR only against an exact valid HP peer."""
+
+    def mark(**values: bool) -> None:
+        if diagnostics is not None:
+            diagnostics.update({key: bool(value) for key, value in values.items()})
+
     normalized = " ".join((value or "").split())
     peer = " ".join((peer_value or "").split())
     peer_match = re.fullmatch(
         r"(\d+)\s*\(\s*(\d+)\s*[dD]\s*(\d+)\s*([+\-−–])\s*(\d+)\s*\)",
         peer,
     )
+    peer_shape_valid = peer_match is not None
+    mark(peer_shape_valid=peer_shape_valid)
     if peer_match is None:
         return None
-    if HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+
+    peer_gate_clean = HP_FORMAT_ERROR_FLAG not in monster_semantic_numeric_flags(
         {"classe_armatura": "10", "punti_ferita": peer}
-    ):
+    )
+    mark(peer_gate_clean=peer_gate_clean)
+    if not peer_gate_clean:
         return None
-    if not (
+
+    paren_shape = bool(
         normalized.count("(") == 1
         and normalized.count(")") == 1
         and normalized.find("(") < normalized.find(")")
         and normalized.rstrip().endswith(")")
-        and re.search(r"\d\s+\d", normalized)
-        and re.search(r"[dD]", normalized) is None
-        and re.search(r"[+\-−–]", normalized) is None
-        and re.fullmatch(r"[0-9\s(),.;:/|]+", normalized)
-    ):
+    )
+    spaced_digits = bool(re.search(r"\d\s+\d", normalized))
+    missing_d = re.search(r"[dD]", normalized) is None
+    missing_sign = re.search(r"[+\-−–]", normalized) is None
+    chars_allowed = bool(re.fullmatch(r"[0-9\s(),.;:/|]+", normalized))
+    mark(
+        paren_shape=paren_shape,
+        spaced_digits=spaced_digits,
+        missing_d=missing_d,
+        missing_sign=missing_sign,
+        chars_allowed=chars_allowed,
+    )
+    if not (paren_shape and spaced_digits and missing_d and missing_sign and chars_allowed):
         return None
 
     observed_digits = "".join(re.findall(r"\d", normalized))
@@ -1253,7 +1274,9 @@ def _repair_hp_digit_skeleton_to_peer(
             peer_match.group(5),
         )
     )
-    if not observed_digits or observed_digits != peer_digits:
+    digit_skeleton_match = bool(observed_digits and observed_digits == peer_digits)
+    mark(digit_skeleton_match=digit_skeleton_match)
+    if not digit_skeleton_match:
         return None
     return peer
 
@@ -7636,6 +7659,7 @@ def _agreed_target_candidate(
             hp_repair_matches_peer = False
             hp_prefix_peer_repaired = False
             hp_digit_skeleton_repaired = False
+            hp_digit_skeleton_diagnostics: dict[str, bool] = {}
             hp_repair_shape: dict[str, bool] = {}
             hp_repair_diagnostics: dict[str, bool] = {}
             primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
@@ -7681,6 +7705,7 @@ def _agreed_target_candidate(
                     repaired_hp = _repair_hp_digit_skeleton_to_peer(
                         bad_hp,
                         good_hp,
+                        diagnostics=hp_digit_skeleton_diagnostics,
                     )
                     hp_digit_skeleton_repaired = repaired_hp is not None
                 hp_repair_candidate_valid = repaired_hp is not None
@@ -7832,6 +7857,7 @@ def _agreed_target_candidate(
                 "hp_repair_matches_peer": hp_repair_matches_peer,
                 "hp_prefix_peer_repaired": hp_prefix_peer_repaired,
                 "hp_digit_skeleton_repaired": hp_digit_skeleton_repaired,
+                "hp_digit_skeleton_diagnostics": hp_digit_skeleton_diagnostics,
                 "hp_repair_diagnostics": hp_repair_diagnostics,
                 "speed_short_suffix_repaired": speed_short_suffix_repaired,
                 "speed_non_alphanumeric_repaired": speed_non_alphanumeric_repaired,
