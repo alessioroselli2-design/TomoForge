@@ -167,8 +167,12 @@ def _public_martellatore_segment_event(payload: Any) -> dict[str, Any] | None:
     for key in (
         "primary_target_anchor",
         "comparison_target_anchor",
+        "primary_ca_label",
+        "comparison_ca_label",
         "primary_hp_label",
         "comparison_hp_label",
+        "primary_speed_label",
+        "comparison_speed_label",
         "quality_pass",
     ):
         value = payload.get(key)
@@ -577,6 +581,7 @@ def main() -> int:
             hp_anchor_diagnostics: list[dict[str, Any]] = []
             hp_micro_ocr_diagnostics: list[dict[str, Any]] = []
             martellatore_segment_diagnostics: list[dict[str, Any]] = []
+            esploratore_segment_diagnostics: list[dict[str, Any]] = []
             for line in runtime_output:
                 stripped = line.strip()
                 if stripped.startswith("HP_ANCHOR_DIAGNOSTIC "):
@@ -606,6 +611,14 @@ def main() -> int:
                         and len(martellatore_segment_diagnostics) < 16
                     ):
                         martellatore_segment_diagnostics.append(event)
+                elif stripped.startswith("MPMM_ESPLORATORE_SEGMENT_DIAGNOSTIC "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    event = _public_martellatore_segment_event(payload)
+                    if event is not None and len(esploratore_segment_diagnostics) < 16:
+                        esploratore_segment_diagnostics.append(event)
                 if stripped == "FINAL_REPORT":
                     private = json.loads(next(runtime_output))
             if private is None:
@@ -615,6 +628,9 @@ def main() -> int:
             public["hp_micro_ocr_diagnostics"] = hp_micro_ocr_diagnostics
             public["martellatore_segment_diagnostics"] = (
                 martellatore_segment_diagnostics
+            )
+            public["esploratore_segment_diagnostics"] = (
+                esploratore_segment_diagnostics
             )
         print("FINAL_REPORT")
         print(json.dumps(public, sort_keys=True))
