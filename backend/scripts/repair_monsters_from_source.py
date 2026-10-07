@@ -7028,6 +7028,8 @@ def _isolate_kithrak_title_debris(page_text: str) -> str:
 def _canonicalize_duergar_guardia_core_labels(page_text: str) -> str:
     """Canonicalize only uniquely identified OCR-damaged PF/speed labels."""
 
+    from services.monster_statblock_ocr import clean_text
+
     lines = page_text.splitlines()
     specs = (
         (
