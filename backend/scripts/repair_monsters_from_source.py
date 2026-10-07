@@ -7035,6 +7035,7 @@ def _identity_source_counts(
     from services.monster_statblock_ocr import (
         _attributes,
         _core_anchor,
+        clean_text,
         _has_any_marker_near,
         _line_is_descriptor,
         _line_is_italian_swarm_descriptor,
