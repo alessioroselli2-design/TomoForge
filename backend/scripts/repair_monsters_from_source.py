@@ -908,6 +908,7 @@ SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
 )
 SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES = frozenset(
     {
+        "Duergar Guardia Di Pietra",
         "Duergar Martellatore",
         "Fenice",
     }
