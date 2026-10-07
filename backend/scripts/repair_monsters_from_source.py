@@ -7647,22 +7647,23 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
+            speed_short_suffix_repaired = False
             speed_non_alphanumeric_repaired = False
             if (
-                deterministic.get("classe_armatura_deterministic_match", False)
+                target_name == "Duergar Guardia Di Pietra"
+                and deterministic.get("classe_armatura_deterministic_match", False)
                 and deterministic.get("punti_ferita_deterministic_match", False)
                 and not deterministic.get("velocita_deterministic_match", False)
                 and semantic.get("velocita_semantic_match", False)
             ):
-                repaired_speed = _repair_speed_non_alphanumeric_to_exact_peer(
+                repaired_speed = _repair_speed_short_suffix_to_peer(
                     primary_attributes,
                     comparison_attributes,
-                    exact_on_left=len(primary_exact) == 1,
                 )
                 if repaired_speed is not None:
                     primary_attributes["velocita"] = repaired_speed
                     comparison_attributes["velocita"] = repaired_speed
-                    speed_non_alphanumeric_repaired = True
+                    speed_short_suffix_repaired = True
                     deterministic = deterministic_core_field_matches(
                         primary_attributes,
                         comparison_attributes,
@@ -7671,6 +7672,24 @@ def _agreed_target_candidate(
                         primary_attributes,
                         comparison_attributes,
                     )
+                elif not deterministic.get("velocita_deterministic_match", False):
+                    repaired_speed = _repair_speed_non_alphanumeric_to_exact_peer(
+                        primary_attributes,
+                        comparison_attributes,
+                        exact_on_left=len(primary_exact) == 1,
+                    )
+                    if repaired_speed is not None:
+                        primary_attributes["velocita"] = repaired_speed
+                        comparison_attributes["velocita"] = repaired_speed
+                        speed_non_alphanumeric_repaired = True
+                        deterministic = deterministic_core_field_matches(
+                            primary_attributes,
+                            comparison_attributes,
+                        )
+                        semantic = semantic_core_field_matches(
+                            primary_attributes,
+                            comparison_attributes,
+                        )
             speed_residual_single_edit = residual_single_edit_core_field_matches(
                 primary_attributes,
                 comparison_attributes,
@@ -7761,6 +7780,7 @@ def _agreed_target_candidate(
                 "hp_repair_matches_peer": hp_repair_matches_peer,
                 "hp_prefix_peer_repaired": hp_prefix_peer_repaired,
                 "hp_repair_diagnostics": hp_repair_diagnostics,
+                "speed_short_suffix_repaired": speed_short_suffix_repaired,
                 "speed_non_alphanumeric_repaired": speed_non_alphanumeric_repaired,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
