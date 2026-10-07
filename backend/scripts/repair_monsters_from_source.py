@@ -7630,7 +7630,7 @@ def _agreed_target_candidate(
                         primary_attributes,
                         comparison_attributes,
                     )
-                        primary_gate_flags = sorted(
+            primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
             comparison_gate_flags = sorted(
