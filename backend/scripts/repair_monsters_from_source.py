@@ -946,6 +946,7 @@ SOURCE_GUIDED_SPARSE_OCR_PSMS_BY_NAME = {
     "Warlock Del Grande Antico": (3, 11),
 }
 SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
+    "ref_aadff2eb6eff59af9caddb92deee6614",  # Esploratore Di Bronzo: registered page 79
     "ref_1e187bb2bbc257439e399104067bf326",  # Shadar-Kai Trafficante Di Anime: sole registered page 41
     "ref_43a10fe5cecc50f9a2112cbea5b5c839",  # Sciame Di Larve Putride: sole registered page 34
     "ref_b414135fe8fd5447a6aedfba2a419baa",  # Sciame Di Ratti Cranici: sole registered page 28
@@ -6177,6 +6178,14 @@ def _ocr_source_window(
     ):
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 12, 11
+    if (
+        name == "Esploratore Di Bronzo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 79
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Fenice"
         and source.get("logical_source_id") == "mpmm_2022_it"
