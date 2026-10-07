@@ -3881,6 +3881,18 @@ def test_esploratore_uses_resolved_page_79_target_only():
         patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
         patch.object(
             repair,
+            "_esploratore_registered_core_probe",
+            return_value={
+                "registered_page_ref_unique": True,
+                "primary_any_core_match": False,
+                "comparison_any_core_match": False,
+                "primary_unique_core_match": False,
+                "comparison_unique_core_match": False,
+                "independent_core_match_agreement": False,
+            },
+        ),
+        patch.object(
+            repair,
             "_ocr_source_window",
             side_effect=RepairBlocked("pilot_stop"),
         ) as ocr,
