@@ -4812,9 +4812,7 @@ def _micro_ocr_hit_points_line(
                 return fail_closed("drow_structural_hp_anchor_ambiguous")
             ca_words = ordered_lines[name_line_index + 1 + first_ca]
             speed_words = ordered_lines[name_line_index + 1 + first_speed]
-            ca_bottom = max(
-                int(word["top"]) + int(word["height"]) for word in ca_words
-            )
+            ca_bottom = max(int(word["top"]) + int(word["height"]) for word in ca_words)
             speed_top = min(int(word["top"]) for word in speed_words)
             if speed_top <= ca_bottom:
                 return fail_closed("drow_structural_hp_anchor_ambiguous")
@@ -7569,12 +7567,10 @@ def _agreed_target_candidate(
                     for field in ("classe_armatura", "punti_ferita", "velocita")
                 },
                 "speed_single_extra_token": {
-                    key: bool(value)
-                    for key, value in speed_single_profile.items()
+                    key: bool(value) for key, value in speed_single_profile.items()
                 },
                 "speed_multi_extra_token": {
-                    key: bool(value)
-                    for key, value in speed_multi_profile.items()
+                    key: bool(value) for key, value in speed_multi_profile.items()
                 },
                 "source_anchor_verified": True,
                 "hp_ocr_confusion_repaired": hp_confusion_repaired,
