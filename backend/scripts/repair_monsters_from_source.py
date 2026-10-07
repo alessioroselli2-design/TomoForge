@@ -1275,7 +1275,45 @@ def _repair_hp_digit_skeleton_to_peer(
         )
     )
     digit_skeleton_match = bool(observed_digits and observed_digits == peer_digits)
-    mark(digit_skeleton_match=digit_skeleton_match)
+
+    def unique_single_deletion(longer: str, shorter: str) -> bool:
+        if len(longer) != len(shorter) + 1:
+            return False
+        matches = {
+            longer[:index] + longer[index + 1 :]
+            for index in range(len(longer))
+            if longer[:index] + longer[index + 1 :] == shorter
+        }
+        return len(matches) == 1
+
+    same_length = bool(observed_digits and len(observed_digits) == len(peer_digits))
+    one_substitution = bool(
+        same_length
+        and sum(left != right for left, right in zip(observed_digits, peer_digits)) == 1
+    )
+    one_extra_observed = unique_single_deletion(observed_digits, peer_digits)
+    one_missing_observed = unique_single_deletion(peer_digits, observed_digits)
+    one_adjacent_transposition = False
+    if same_length and observed_digits != peer_digits:
+        mismatch = [
+            index
+            for index, (left, right) in enumerate(zip(observed_digits, peer_digits))
+            if left != right
+        ]
+        one_adjacent_transposition = bool(
+            len(mismatch) == 2
+            and mismatch[1] == mismatch[0] + 1
+            and observed_digits[mismatch[0]] == peer_digits[mismatch[1]]
+            and observed_digits[mismatch[1]] == peer_digits[mismatch[0]]
+        )
+    mark(
+        digit_skeleton_match=digit_skeleton_match,
+        same_length=same_length,
+        one_substitution=one_substitution,
+        one_extra_observed=one_extra_observed,
+        one_missing_observed=one_missing_observed,
+        one_adjacent_transposition=one_adjacent_transposition,
+    )
     if not digit_skeleton_match:
         return None
     return peer
