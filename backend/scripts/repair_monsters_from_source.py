@@ -1313,6 +1313,37 @@ def _repair_speed_short_suffix_to_peer(
     return None
 
 
+def _repair_speed_non_alphanumeric_to_exact_peer(
+    left_attributes: dict[str, Any],
+    right_attributes: dict[str, Any],
+    *,
+    exact_on_left: bool,
+) -> str | None:
+    """Use the exact-title peer only for punctuation/format-only speed residue."""
+    semantic = semantic_core_field_matches(left_attributes, right_attributes)
+    deterministic = deterministic_core_field_matches(left_attributes, right_attributes)
+    if not (
+        semantic.get("velocita_semantic_match", False)
+        and not deterministic.get("velocita_deterministic_match", False)
+    ):
+        return None
+
+    left_raw = left_attributes.get("velocita")
+    right_raw = right_attributes.get("velocita")
+    left = _deterministic_normalized_value("velocita", left_raw)
+    right = _deterministic_normalized_value("velocita", right_raw)
+    if not left or not right:
+        return None
+
+    left_skeleton = "".join(char for char in left if char.isalnum())
+    right_skeleton = "".join(char for char in right if char.isalnum())
+    if not left_skeleton or left_skeleton != right_skeleton:
+        return None
+
+    exact_raw = left_raw if exact_on_left else right_raw
+    return str(exact_raw or "").strip() or None
+
+
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
@@ -7616,6 +7647,30 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
+            speed_non_alphanumeric_repaired = False
+            if (
+                deterministic.get("classe_armatura_deterministic_match", False)
+                and deterministic.get("punti_ferita_deterministic_match", False)
+                and not deterministic.get("velocita_deterministic_match", False)
+                and semantic.get("velocita_semantic_match", False)
+            ):
+                repaired_speed = _repair_speed_non_alphanumeric_to_exact_peer(
+                    primary_attributes,
+                    comparison_attributes,
+                    exact_on_left=len(primary_exact) == 1,
+                )
+                if repaired_speed is not None:
+                    primary_attributes["velocita"] = repaired_speed
+                    comparison_attributes["velocita"] = repaired_speed
+                    speed_non_alphanumeric_repaired = True
+                    deterministic = deterministic_core_field_matches(
+                        primary_attributes,
+                        comparison_attributes,
+                    )
+                    semantic = semantic_core_field_matches(
+                        primary_attributes,
+                        comparison_attributes,
+                    )
             speed_single_profile = speed_single_extra_token_profile(
                 primary_attributes,
                 comparison_attributes,
@@ -7681,6 +7736,7 @@ def _agreed_target_candidate(
                 "hp_repair_matches_peer": hp_repair_matches_peer,
                 "hp_prefix_peer_repaired": hp_prefix_peer_repaired,
                 "hp_repair_diagnostics": hp_repair_diagnostics,
+                "speed_non_alphanumeric_repaired": speed_non_alphanumeric_repaired,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
             }
