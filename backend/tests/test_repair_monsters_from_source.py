@@ -4474,8 +4474,10 @@ def test_drow_title_debris_rejects_unobserved_or_duplicate_suffixes(title):
 
 
 @pytest.mark.parametrize("source_anchor_verified", [True, False])
+@pytest.mark.parametrize("comparison_speed", ["9 m", "9 m i"])
 def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
     source_anchor_verified,
+    comparison_speed,
 ):
     primary = {
         "name": "DROW INQUISITORE",
@@ -4492,6 +4494,10 @@ def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
         **primary,
         "name": "DROW INQUISITORE i",
         "normalized_name": repair.normalize_reference_name("Drow Inquisitore i"),
+        "attributes": {
+            **primary["attributes"],
+            "velocita": comparison_speed,
+        },
     }
 
     def identity_counts(_pages, records, _target_name, _target_page):
