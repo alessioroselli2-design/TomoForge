@@ -5998,6 +5998,126 @@ def _micro_ocr_hit_points_line(
     )
 
 
+def _esploratore_tsv_core_diagnostic(
+    image_path: Path,
+    languages: str,
+    name: str,
+    *,
+    psm: int,
+    ocr_budget_started_at: float | tuple[float, float] | None = None,
+) -> dict[str, bool | int]:
+    """Return geometry-only booleans for Esploratore core anchors."""
+    tsv_stdout = _run_tesseract_bounded(
+        [
+            "tesseract",
+            str(image_path),
+            "stdout",
+            "-l",
+            languages,
+            "--psm",
+            str(psm),
+            "tsv",
+            "quiet",
+        ],
+        ocr_budget_started_at,
+        phase=f"esploratore_core_tsv_psm{psm}",
+    )
+    rows = list(csv.DictReader(io.StringIO(tsv_stdout), delimiter="\t"))
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        if str(row.get("text") or "").strip():
+            key = tuple(
+                str(row.get(field) or "")
+                for field in ("page_num", "block_num", "par_num", "line_num")
+            )
+            grouped.setdefault(key, []).append(row)
+
+    lines: list[tuple[str, list[dict[str, str]]]] = []
+    for words in grouped.values():
+        raw = " ".join(str(word.get("text") or "") for word in words).strip()
+        normalized = normalize_reference_name(raw)
+        if normalized:
+            lines.append((normalized, words))
+
+    target_matches = [
+        words for normalized, words in lines if _sparse_anchor_matches(normalized, name)
+    ]
+    if not target_matches:
+        wrapped = _sparse_wrapped_title_candidates(grouped, name)
+        if len(wrapped) == 1:
+            target_matches = wrapped
+
+    ca_matches = [
+        words
+        for normalized, words in lines
+        if "classe" in normalized.split() and "armatura" in normalized.split()
+    ]
+    hp_matches = [
+        words
+        for normalized, words in lines
+        if "punti" in normalized.split() and "ferita" in normalized.split()
+    ]
+    speed_matches = [
+        words for normalized, words in lines if normalized.startswith("velocita")
+    ]
+
+    width = max(
+        (
+            int(word["left"]) + int(word["width"])
+            for _normalized, words in lines
+            for word in words
+        ),
+        default=0,
+    )
+
+    def center_left_half(matches: list[list[dict[str, str]]]) -> bool:
+        if len(matches) != 1 or width <= 0:
+            return False
+        words = matches[0]
+        left = min(int(word["left"]) for word in words)
+        right = max(int(word["left"]) + int(word["width"]) for word in words)
+        return (left + right) < width
+
+    def top(matches: list[list[dict[str, str]]]) -> int | None:
+        if len(matches) != 1:
+            return None
+        return min(int(word["top"]) for word in matches[0])
+
+    target_top = top(target_matches)
+    ca_top = top(ca_matches)
+    hp_top = top(hp_matches)
+    speed_top = top(speed_matches)
+    target_left = center_left_half(target_matches)
+    ca_left = center_left_half(ca_matches)
+    hp_left = center_left_half(hp_matches)
+    speed_left = center_left_half(speed_matches)
+
+    return {
+        "psm": psm,
+        "target_unique": len(target_matches) == 1,
+        "ca_unique": len(ca_matches) == 1,
+        "hp_unique": len(hp_matches) == 1,
+        "speed_unique": len(speed_matches) == 1,
+        "target_left_half": target_left,
+        "ca_left_half": ca_left,
+        "hp_left_half": hp_left,
+        "speed_left_half": speed_left,
+        "target_ca_same_half": (
+            len(target_matches) == len(ca_matches) == 1 and target_left == ca_left
+        ),
+        "target_hp_same_half": (
+            len(target_matches) == len(hp_matches) == 1 and target_left == hp_left
+        ),
+        "ca_after_target": (
+            target_top is not None and ca_top is not None and ca_top > target_top
+        ),
+        "hp_after_ca": ca_top is not None and hp_top is not None and hp_top > ca_top,
+        "speed_after_hp": (
+            hp_top is not None and speed_top is not None and speed_top > hp_top
+        ),
+    }
+
+
 def _ocr_source_window(
     pdf_path: Path,
     target_page: int,
@@ -6491,6 +6611,26 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    if (
+                        name == "Esploratore Di Bronzo"
+                        and page_number == target_page
+                        and segment_name == "full"
+                        and not sparse_full_page
+                    ):
+                        for diagnostic_psm in (11, 12):
+                            print(
+                                "MPMM_ESPLORATORE_TSV_CORE_DIAGNOSTIC "
+                                + json.dumps(
+                                    _esploratore_tsv_core_diagnostic(
+                                        image_path,
+                                        languages,
+                                        name,
+                                        psm=diagnostic_psm,
+                                        ocr_budget_started_at=ocr_budget_started_at,
+                                    ),
+                                    sort_keys=True,
+                                )
+                            )
                     if (
                         name == "Duergar Martellatore"
                         and page_number == target_page
