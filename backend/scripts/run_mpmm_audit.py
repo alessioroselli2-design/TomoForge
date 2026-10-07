@@ -402,6 +402,11 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                                 "missing_sign",
                                 "chars_allowed",
                                 "digit_skeleton_match",
+                                "same_length",
+                                "one_substitution",
+                                "one_extra_observed",
+                                "one_missing_observed",
+                                "one_adjacent_transposition",
                             )
                         },
                         "hp_repair_diagnostics": {
