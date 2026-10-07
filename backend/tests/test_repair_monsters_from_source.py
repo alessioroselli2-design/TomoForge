@@ -1846,6 +1846,10 @@ def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
         RepairBlocked("no_unique_exact_target_identity"),
         identifier,
     )
+    assert repair._should_retry_exact_identity_sparse(
+        RepairBlocked("no_unique_exact_target_identity"),
+        "ref_8def8c405c2452a4a10ff597fd89fdc8",
+    )
     assert not repair._should_retry_exact_identity_sparse(
         RepairBlocked("no_unique_independent_agreement"),
         identifier,
