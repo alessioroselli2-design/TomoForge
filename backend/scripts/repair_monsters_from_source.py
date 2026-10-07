@@ -6566,6 +6566,46 @@ def _ocr_source_window(
                                             re.IGNORECASE,
                                         )
                                     ),
+                                    "primary_class_token": bool(
+                                        re.search(r"\bClasse\b", primary, re.IGNORECASE)
+                                    ),
+                                    "primary_armor_token": bool(
+                                        re.search(r"\bArmatura\b", primary, re.IGNORECASE)
+                                    ),
+                                    "primary_points_token": bool(
+                                        re.search(r"\bPunti\b", primary, re.IGNORECASE)
+                                    ),
+                                    "primary_wound_token": bool(
+                                        re.search(r"\bFerita\b", primary, re.IGNORECASE)
+                                    ),
+                                    "comparison_class_token": bool(
+                                        re.search(
+                                            r"\bClasse\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_armor_token": bool(
+                                        re.search(
+                                            r"\bArmatura\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_points_token": bool(
+                                        re.search(
+                                            r"\bPunti\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_wound_token": bool(
+                                        re.search(
+                                            r"\bFerita\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
                                     "comparison_ca_label": bool(
                                         re.search(
                                             r"\bClasse\s+Armatura\b",
