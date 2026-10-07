@@ -2776,6 +2776,43 @@ def _compose_relative_crop(
     )
 
 
+def _sparse_wrapped_title_candidates(
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]],
+    target_name: str,
+) -> list[list[dict[str, str]]]:
+    """Return unique-looking adjacent wrapped title candidates using geometry only."""
+    line_groups = list(grouped.values())
+    candidates: list[list[dict[str, str]]] = []
+    for first, second in zip(line_groups, line_groups[1:]):
+        if not first or not second:
+            continue
+        if str(first[0].get("page_num") or "") != str(second[0].get("page_num") or ""):
+            continue
+
+        first_text = " ".join(str(word.get("text") or "") for word in first).strip()
+        second_text = " ".join(str(word.get("text") or "") for word in second).strip()
+        combined = f"{first_text} {second_text}".strip()
+        if not _sparse_anchor_matches(combined, target_name):
+            continue
+
+        first_left = min(int(word["left"]) for word in first)
+        second_left = min(int(word["left"]) for word in second)
+        first_bottom = max(int(word["top"]) + int(word["height"]) for word in first)
+        second_top = min(int(word["top"]) for word in second)
+        line_height = max(
+            max(int(word["height"]) for word in first),
+            max(int(word["height"]) for word in second),
+            1,
+        )
+        vertical_gap = second_top - first_bottom
+        if not (0 <= vertical_gap <= 3 * line_height):
+            continue
+        if abs(first_left - second_left) > 3 * line_height:
+            continue
+        candidates.append([*first, *second])
+    return candidates
+
+
 def _sparse_anchor_crop_fractions(
     image_path: Path,
     languages: str,
@@ -2822,6 +2859,8 @@ def _sparse_anchor_crop_fractions(
         text = " ".join(str(word.get("text") or "") for word in words).strip()
         if _sparse_anchor_matches(text, target_name):
             matches.append(words)
+    if target_name == "Duergar Martellatore" and not matches:
+        matches = _sparse_wrapped_title_candidates(grouped, target_name)
     if target_name == "Adrosauro" and len(matches) > 1:
         # Page 96 repeats dinosaur names in prose. Select only a title whose
         # local column immediately exposes a descriptor and ordered core labels.
