@@ -53,6 +53,10 @@ from services.monster_name_diagnostics import (
     compact_name_bounded_edit_match,
     compact_name_containment_match,
 )
+from services.monster_residual_diagnostics import (
+    residual_shape_core_field_matches,
+    residual_single_edit_core_field_matches,
+)
 from services.monster_semantic_diagnostics import (
     deterministic_core_field_matches,
     semantic_core_field_matches,
@@ -7352,6 +7356,28 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
+            speed_residual_single_edit = residual_single_edit_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            ).get("velocita_residual_single_edit_match", False)
+            residual_shape = residual_shape_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            speed_residual_shape = {
+                key: bool(residual_shape.get(f"velocita_residual_{key}", False))
+                for key in (
+                    "edit_distance_2_match",
+                    "edit_distance_3_match",
+                    "extra_alpha_tokens",
+                    "word_order_variation",
+                    "known_manual_label_extra_alpha_tokens",
+                    "parenthetical_extra_alpha_tokens",
+                    "single_extra_alpha_token_short_lt3",
+                    "single_extra_alpha_token_prefix",
+                    "single_extra_alpha_token_suffix",
+                )
+            }
             primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
@@ -7584,6 +7610,8 @@ def _agreed_target_candidate(
                 "speed_multi_extra_token": {
                     key: bool(value) for key, value in speed_multi_profile.items()
                 },
+                "speed_residual_single_edit": bool(speed_residual_single_edit),
+                "speed_residual_shape": speed_residual_shape,
                 "source_anchor_verified": True,
                 "hp_ocr_confusion_repaired": hp_confusion_repaired,
                 "hp_repair_attempted": hp_repair_attempted,
