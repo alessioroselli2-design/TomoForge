@@ -902,6 +902,7 @@ SOURCE_GUIDED_TARGET_NAME_OVERRIDES = {
 SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
     {
         "Danzatore Dell'Ombra",
+        "Duergar Martellatore",
         "Warlock Del Grande Antico",
         "Xvart Warlock Di Raxivort",
     }

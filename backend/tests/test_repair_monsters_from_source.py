@@ -1840,6 +1840,13 @@ def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
     ) == (3, 11)
 
 
+def test_martellatore_uses_exact_title_compatible_fallback_only():
+    assert (
+        "Duergar Martellatore"
+        in repair.SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+    )
+
+
 def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
     identifier = "ref_583cbd071aec5dc58748c4b27e4005b5"
     assert repair._should_retry_exact_identity_sparse(
