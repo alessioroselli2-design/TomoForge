@@ -94,7 +94,7 @@ def test_blocked_drow_hp_anchor_exports_only_allowlisted_booleans():
     private["blocked_records"] = [
         {
             "record_id": IDENTIFIER,
-            "reason": "no_unique_exact_target_identity",
+            "reason": "drow_structural_hp_anchor_ambiguous",
             "diagnostics": {
                 "drow_text_page_speed_unique": True,
                 "drow_text_page_speed_after_ca": True,
@@ -109,7 +109,7 @@ def test_blocked_drow_hp_anchor_exports_only_allowlisted_booleans():
     encoded = json.dumps(public)
     assert PRIVATE not in encoded
     assert public["blocked_records"][0]["hp_anchor"] == {
-        "reason": "blocked",
+        "reason": "drow_structural_hp_anchor_ambiguous",
         "drow_text_page_speed_unique": True,
         "drow_text_page_speed_after_ca": True,
         "drow_text_page_speed_gap_le_12": False,
