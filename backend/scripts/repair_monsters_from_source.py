@@ -7180,6 +7180,27 @@ def _identity_source_counts(
             and bool(re.search(r"\d", raw_lines[index + 1]))
             for index in range(len(raw_lines))
         ),
+        "hp_parser_label_regex_lines": sum(
+            bool(
+                re.match(
+                    r"^\s*(?:Punti\s+Ferita|Hit\s+Points)\s*:?\s*(.*)$",
+                    clean_text(line or ""),
+                    flags=re.IGNORECASE,
+                )
+            )
+            for line in raw_lines
+        ),
+        "hp_parser_value_has_digit": sum(
+            bool(match and re.search(r"\d", match.group(1)))
+            for line in raw_lines
+            for match in [
+                re.match(
+                    r"^\s*(?:Punti\s+Ferita|Hit\s+Points)\s*:?\s*(.*)$",
+                    clean_text(line or ""),
+                    flags=re.IGNORECASE,
+                )
+            ]
+        ),
         "speed_label_lines": sum(line.startswith("velocita") for line in lines),
         "speed_label_only_lines": sum(
             bool(re.fullmatch(r"\s*Velocit[àa]\s*:?\s*", line, flags=re.IGNORECASE))
@@ -7190,6 +7211,27 @@ def _identity_source_counts(
             and index + 1 < len(raw_lines)
             and bool(re.search(r"\d", raw_lines[index + 1]))
             for index in range(len(raw_lines))
+        ),
+        "speed_parser_label_regex_lines": sum(
+            bool(
+                re.match(
+                    r"^\s*(?:Velocit[àa]|Speed)\s*:?\s*(.*)$",
+                    clean_text(line or ""),
+                    flags=re.IGNORECASE,
+                )
+            )
+            for line in raw_lines
+        ),
+        "speed_parser_value_has_digit": sum(
+            bool(match and re.search(r"\d", match.group(1)))
+            for line in raw_lines
+            for match in [
+                re.match(
+                    r"^\s*(?:Velocit[àa]|Speed)\s*:?\s*(.*)$",
+                    clean_text(line or ""),
+                    flags=re.IGNORECASE,
+                )
+            ]
         ),
         "descriptor_lines": sum(_line_is_descriptor(line) for line in raw_lines),
         "split_descriptor_pairs": sum(
