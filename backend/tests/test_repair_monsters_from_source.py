@@ -4180,6 +4180,86 @@ def test_duergar_guardia_one_side_exact_fallback_keeps_core_gates():
 
 
 @pytest.mark.parametrize(
+    "comparison_hp,accepted",
+    [
+        ("4 4 (8d8 + 8)", True),
+        ("4 5 (8d8 + 8)", False),
+    ],
+)
+def test_duergar_guardia_one_side_hp_repair_requires_exact_math_gated_peer(
+    comparison_hp,
+    accepted,
+):
+    target = "Duergar Guardia Di Pietra"
+    attributes = {
+        "classe_armatura": "18",
+        "punti_ferita": "44 (8d8 + 8)",
+        "velocita": "7,5 m",
+    }
+    primary = {
+        "name": target.upper(),
+        "normalized_name": repair.normalize_reference_name(target),
+        "start_page": 10,
+        "source_refs": [{"page": 10}],
+        "attributes": dict(attributes),
+    }
+    comparison = {
+        **primary,
+        "name": target.upper() + " i",
+        "normalized_name": repair.normalize_reference_name(target + " i"),
+        "attributes": {**attributes, "punti_ferita": comparison_hp},
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name") == repair.normalize_reference_name(target)
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 2 if exact else 1,
+            "parser_valid_headers": 1,
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+            "candidates_on_page": 1,
+        }
+
+    context = (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    )
+    with context[0], context[1], context[2]:
+        if accepted:
+            candidate = _agreed_target_candidate(
+                [],
+                [],
+                "synthetic.pdf",
+                "it",
+                target,
+                10,
+                require_exact_target_identity=True,
+            )
+            assert candidate["attributes"]["punti_ferita"] == attributes["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked) as caught:
+                _agreed_target_candidate(
+                    [],
+                    [],
+                    "synthetic.pdf",
+                    "it",
+                    target,
+                    10,
+                    require_exact_target_identity=True,
+                )
+            assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+@pytest.mark.parametrize(
     "mutation",
     ["missing_title", "missing_structure", "core_disagreement", "duplicate_compatible"],
 )
