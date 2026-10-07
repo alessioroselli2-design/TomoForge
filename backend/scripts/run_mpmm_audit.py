@@ -385,6 +385,25 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                         "hp_prefix_peer_repaired": (
                             fallback.get("hp_prefix_peer_repaired") is True
                         ),
+                        "hp_digit_skeleton_repaired": (
+                            fallback.get("hp_digit_skeleton_repaired") is True
+                        ),
+                        "hp_digit_skeleton_diagnostics": {
+                            key: (
+                                fallback.get("hp_digit_skeleton_diagnostics") or {}
+                            ).get(key)
+                            is True
+                            for key in (
+                                "peer_shape_valid",
+                                "peer_gate_clean",
+                                "paren_shape",
+                                "spaced_digits",
+                                "missing_d",
+                                "missing_sign",
+                                "chars_allowed",
+                                "digit_skeleton_match",
+                            )
+                        },
                         "hp_repair_diagnostics": {
                             key: (fallback.get("hp_repair_diagnostics") or {}).get(key)
                             is True
