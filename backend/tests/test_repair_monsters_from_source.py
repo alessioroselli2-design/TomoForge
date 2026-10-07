@@ -1855,7 +1855,7 @@ def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
         identifier,
     )
     assert _sparse_anchor_psms("Drow Inquisitore") == (11, 4, 12)
-    assert _sparse_anchor_psms("Duergar Martellatore") == (11, 4)
+    assert _sparse_anchor_psms("Duergar Martellatore") == (11, 4, 6)
     assert _sparse_anchor_psms("Fenice") == (11, 4)
     assert _sparse_anchor_psms("Juiblex") == (11, 3)
     assert _sparse_anchor_psms("Danzatore Dell'Ombra") == (11,)
