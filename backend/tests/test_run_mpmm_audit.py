@@ -158,6 +158,31 @@ def test_esploratore_tsv_diagnostic_exports_only_allowlisted_geometry():
     }
 
 
+def test_esploratore_registered_core_probe_exports_only_booleans():
+    payload = {
+        "registered_page_ref_unique": True,
+        "primary_any_core_match": True,
+        "comparison_any_core_match": True,
+        "primary_unique_core_match": True,
+        "comparison_unique_core_match": False,
+        "independent_core_match_agreement": False,
+        "candidate_name": PRIVATE,
+        "candidate_core": "13 / 36 / 9",
+    }
+    public = runner._public_esploratore_registered_core_probe(payload)
+    encoded = json.dumps(public)
+    assert PRIVATE not in encoded
+    assert "13 / 36 / 9" not in encoded
+    assert public == {
+        "registered_page_ref_unique": True,
+        "primary_any_core_match": True,
+        "comparison_any_core_match": True,
+        "primary_unique_core_match": True,
+        "comparison_unique_core_match": False,
+        "independent_core_match_agreement": False,
+    }
+
+
 def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     private = _report()
     private["blocked_records"] = [
