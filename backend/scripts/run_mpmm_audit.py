@@ -164,6 +164,9 @@ def _public_martellatore_segment_event(payload: Any) -> dict[str, Any] | None:
     if segment not in {"left", "right", "full", "sparse-full"}:
         return None
     result: dict[str, Any] = {"segment": segment}
+    page_offset = payload.get("page_offset")
+    if type(page_offset) is int and page_offset in {-1, 0, 1}:
+        result["page_offset"] = page_offset
     for key in (
         "primary_target_anchor",
         "comparison_target_anchor",
