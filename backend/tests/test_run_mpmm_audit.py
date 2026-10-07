@@ -410,6 +410,9 @@ def test_hp_micro_ocr_diagnostic_exports_only_boolean_outcomes(capsys):
                     "upscaled_otsu_hp_format_error": True,
                     "superscaled_otsu_inverted_raw": PRIVATE,
                     "superscaled_otsu_hp_format_error": None,
+                    "martellatore_psm13_hp_format_error": True,
+                    "martellatore_psm6_hp_format_error": False,
+                    "martellatore_alt_psm_accepted": True,
                     "full_spectrum_attempt_count": 4,
                     "full_spectrum_accepted": {
                         "scale_factor": 4,
@@ -436,6 +439,9 @@ def test_hp_micro_ocr_diagnostic_exports_only_boolean_outcomes(capsys):
             "otsu_hp_format_error": True,
             "upscaled_otsu_hp_format_error": True,
             "superscaled_otsu_hp_format_error": None,
+            "martellatore_psm13_hp_format_error": True,
+            "martellatore_psm6_hp_format_error": False,
+            "martellatore_alt_psm_accepted": True,
             "full_spectrum_attempt_count": 4,
             "full_spectrum_accepted": True,
         }
