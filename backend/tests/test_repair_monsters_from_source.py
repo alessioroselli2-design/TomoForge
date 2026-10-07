@@ -3848,7 +3848,7 @@ def test_mage_requires_one_original_registered_selected_page(identifier, name, p
     assert json.dumps(record, sort_keys=True) == before
 
 
-def test_esploratore_uses_resolved_registered_page_without_override():
+def test_esploratore_uses_resolved_page_with_adjacent_window():
     identifier = "ref_aadff2eb6eff59af9caddb92deee6614"
     record = {
         "id": identifier,
@@ -3898,7 +3898,7 @@ def test_esploratore_uses_resolved_registered_page_without_override():
 
     assert caught.value.reason == "pilot_stop"
     assert ocr.call_args.args[1] == 79
-    assert ocr.call_args.kwargs["target_page_only"] is True
+    assert ocr.call_args.kwargs["target_page_only"] is False
 
 
 @pytest.mark.parametrize("suffix", ["Ù", "i"])
