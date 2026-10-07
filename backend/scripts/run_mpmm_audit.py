@@ -210,7 +210,10 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     field: field in diagnostics.get("divergent_core_fields", [])
                     for field in CORE_FIELDS
                 },
-                "hp_anchor": _public_hp_anchor_event(diagnostics) or {},
+                "hp_anchor": _public_hp_anchor_event(
+                    {"reason": reason, **diagnostics}
+                )
+                or {},
                 "exact_identity_candidates": {
                     path: _count(diagnostics[key])
                     for path, key in (
