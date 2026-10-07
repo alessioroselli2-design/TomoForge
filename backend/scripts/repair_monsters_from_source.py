@@ -1269,9 +1269,7 @@ def _repair_speed_short_suffix_to_peer(
     if not (
         semantic.get("velocita_semantic_match", False)
         and residual.get("velocita_residual_extra_alpha_tokens", False)
-        and residual.get(
-            "velocita_residual_single_extra_alpha_token_short_lt3", False
-        )
+        and residual.get("velocita_residual_single_extra_alpha_token_short_lt3", False)
         and residual.get("velocita_residual_single_extra_alpha_token_suffix", False)
         and not residual.get("velocita_residual_word_order_variation", False)
         and not residual.get(
