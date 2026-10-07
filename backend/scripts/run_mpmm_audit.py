@@ -173,6 +173,14 @@ def _public_martellatore_segment_event(payload: Any) -> dict[str, Any] | None:
         "comparison_hp_label",
         "primary_speed_label",
         "comparison_speed_label",
+        "primary_class_token",
+        "primary_armor_token",
+        "primary_points_token",
+        "primary_wound_token",
+        "comparison_class_token",
+        "comparison_armor_token",
+        "comparison_points_token",
+        "comparison_wound_token",
         "quality_pass",
     ):
         value = payload.get(key)
