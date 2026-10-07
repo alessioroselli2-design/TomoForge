@@ -967,7 +967,6 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex: examine only selected registered page 56
     "ref_c41175075be5535ab3cfd37dbbd7e1e1",  # Hobgoblin Ombra Di Ferro: sole registered page 49
     "ref_744cb23cb7f95be7b5d7521316ce8e78",  # Fenice: sole registered page 23
-    "ref_aadff2eb6eff59af9caddb92deee6614",  # Esploratore Di Bronzo: registered page 79
     "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore: sole registered page 8
     "ref_75abc404d54c51a2a312cbc2cd894e4a",  # Duergar Guardia Di Pietra: sole registered page 10
     "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore: sole registered page 4
@@ -6178,14 +6177,6 @@ def _ocr_source_window(
     ):
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 12, 11
-    if (
-        name == "Esploratore Di Bronzo"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 81
-        and target_page_only
-    ):
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
     if (
         name == "Fenice"
         and source.get("logical_source_id") == "mpmm_2022_it"
