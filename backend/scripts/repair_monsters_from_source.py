@@ -5311,6 +5311,7 @@ def _micro_ocr_hit_points_line(
         morphological_dark_erosion: bool = False,
         bitonal_threshold: int | None = None,
         adaptive_background_inversion: bool = False,
+        micro_psm_override: int | None = None,
     ) -> str:
         # Fail closed before paying for a new graphical variant.
         remaining_global_ocr_budget()
@@ -5426,7 +5427,11 @@ def _micro_ocr_hit_points_line(
             "-l",
             languages,
             "--psm",
-            str(_hp_micro_ocr_psm(name, psm)),
+            str(
+                micro_psm_override
+                if micro_psm_override is not None
+                else _hp_micro_ocr_psm(name, psm)
+            ),
             "-c",
             f"tessedit_char_whitelist={HIT_POINTS_WHITELIST}",
             "quiet",
@@ -5604,6 +5609,28 @@ def _micro_ocr_hit_points_line(
                             break
                     if full_spectrum_accepted is not None:
                         break
+            martellatore_alt_psm_results: dict[str, bool] = {}
+            martellatore_alt_psm_accepted = False
+            if name == "Duergar Martellatore" and hp_micro_ocr_failed(micro):
+                for alternate_psm in (13, 6):
+                    candidate = run_micro_ocr(
+                        HIT_POINTS_FALLBACK_CONTRAST,
+                        directory,
+                        otsu_inverted=True,
+                        scale_factor=2,
+                        micro_psm_override=alternate_psm,
+                    )
+                    failed = hp_micro_ocr_failed(candidate)
+                    martellatore_alt_psm_results[
+                        f"psm_{alternate_psm}_hp_format_error"
+                    ] = failed
+                    if candidate:
+                        raw_micro_candidates.append(candidate)
+                    if not failed:
+                        micro = candidate
+                        martellatore_alt_psm_accepted = True
+                        break
+
             if hp_micro_ocr_failed(micro):
                 reconstructed = {
                     repaired
@@ -5659,6 +5686,19 @@ def _micro_ocr_hit_points_line(
                         ),
                         "full_spectrum_attempt_count": len(full_spectrum_attempts),
                         "full_spectrum_accepted": full_spectrum_accepted,
+                        "martellatore_psm13_hp_format_error": (
+                            martellatore_alt_psm_results.get(
+                                "psm_13_hp_format_error"
+                            )
+                        ),
+                        "martellatore_psm6_hp_format_error": (
+                            martellatore_alt_psm_results.get(
+                                "psm_6_hp_format_error"
+                            )
+                        ),
+                        "martellatore_alt_psm_accepted": (
+                            martellatore_alt_psm_accepted
+                        ),
                     },
                     ensure_ascii=False,
                     sort_keys=True,
