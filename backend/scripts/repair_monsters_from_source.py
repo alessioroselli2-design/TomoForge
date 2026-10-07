@@ -7550,8 +7550,64 @@ def _agreed_target_candidate(
                 target_name,
                 target_page,
             )
-            primary_attributes = primary_compatible[0].get("attributes") or {}
-            comparison_attributes = comparison_compatible[0].get("attributes") or {}
+            primary_attributes = dict(primary_compatible[0].get("attributes") or {})
+            comparison_attributes = dict(
+                comparison_compatible[0].get("attributes") or {}
+            )
+            hp_confusion_repaired = False
+            hp_repair_attempted = False
+            hp_repair_has_letter_confusion = False
+            hp_repair_has_spaced_digits = False
+            hp_repair_candidate_valid = False
+            hp_repair_matches_peer = False
+            hp_prefix_peer_repaired = False
+            hp_repair_shape: dict[str, bool] = {}
+            hp_repair_diagnostics: dict[str, bool] = {}
+            primary_hp_flags = monster_semantic_numeric_flags(primary_attributes)
+            comparison_hp_flags = monster_semantic_numeric_flags(comparison_attributes)
+            if (HP_FORMAT_ERROR_FLAG in primary_hp_flags) != (
+                HP_FORMAT_ERROR_FLAG in comparison_hp_flags
+            ):
+                hp_repair_attempted = True
+                bad_attributes = (
+                    primary_attributes
+                    if HP_FORMAT_ERROR_FLAG in primary_hp_flags
+                    else comparison_attributes
+                )
+                good_attributes = (
+                    comparison_attributes
+                    if bad_attributes is primary_attributes
+                    else primary_attributes
+                )
+                bad_hp = str(bad_attributes.get("punti_ferita") or "")
+                hp_repair_has_letter_confusion = bool(re.search(r"[lILOo]", bad_hp))
+                hp_repair_has_spaced_digits = bool(re.search(r"\d\s+\d", bad_hp))
+                hp_repair_shape = {
+                    "has_open_paren": "(" in bad_hp,
+                    "has_close_paren": ")" in bad_hp,
+                    "ends_close_paren": bad_hp.rstrip().endswith(")"),
+                    "has_d_separator": bool(re.search(r"[dD]", bad_hp)),
+                    "has_modifier_sign": bool(re.search(r"[+\-−–]", bad_hp)),
+                }
+                repaired_hp = _repair_hp_letter_digit_spacing_confusion(
+                    bad_hp,
+                    diagnostics=hp_repair_diagnostics,
+                )
+                good_hp = " ".join(
+                    str(good_attributes.get("punti_ferita") or "").split()
+                )
+                if repaired_hp is None:
+                    repaired_hp = _repair_hp_leading_prefix_to_peer(
+                        bad_hp,
+                        good_hp,
+                    )
+                    hp_prefix_peer_repaired = repaired_hp is not None
+                hp_repair_candidate_valid = repaired_hp is not None
+                hp_repair_matches_peer = repaired_hp is not None and repaired_hp == good_hp
+                if hp_repair_matches_peer:
+                    bad_attributes["punti_ferita"] = repaired_hp
+                    hp_confusion_repaired = True
+
             deterministic = deterministic_core_field_matches(
                 primary_attributes,
                 comparison_attributes,
@@ -7606,12 +7662,33 @@ def _agreed_target_candidate(
                     )
                     for field in ("classe_armatura", "punti_ferita", "velocita")
                 },
+                "semantic_core_match": {
+                    field: bool(semantic.get(f"{field}_semantic_match", False))
+                    for field in ("classe_armatura", "punti_ferita", "velocita")
+                },
+                "speed_single_extra_token": {
+                    key: bool(value) for key, value in speed_single_profile.items()
+                },
+                "speed_multi_extra_token": {
+                    key: bool(value) for key, value in speed_multi_profile.items()
+                },
+                "hp_ocr_confusion_repaired": hp_confusion_repaired,
+                "hp_repair_attempted": hp_repair_attempted,
+                "hp_repair_has_letter_confusion": hp_repair_has_letter_confusion,
+                "hp_repair_has_spaced_digits": hp_repair_has_spaced_digits,
+                "hp_repair_shape": hp_repair_shape,
+                "hp_repair_candidate_valid": hp_repair_candidate_valid,
+                "hp_repair_matches_peer": hp_repair_matches_peer,
+                "hp_prefix_peer_repaired": hp_prefix_peer_repaired,
+                "hp_repair_diagnostics": hp_repair_diagnostics,
                 "one_side_exact": True,
                 "nonexact_structural_support": structural_nonexact,
             }
             if structural_nonexact and clean_core:
                 primary_target = dict(primary_compatible[0])
                 comparison_target = dict(comparison_compatible[0])
+                primary_target["attributes"] = primary_attributes
+                comparison_target["attributes"] = comparison_attributes
                 for candidate in (primary_target, comparison_target):
                     candidate["name"] = target_name
                     candidate["normalized_name"] = normalized_target
