@@ -6223,11 +6223,7 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
-    if (
-        not sparse_full_page
-        and name == "Esploratore Di Bronzo"
-        and target_page_only
-    ):
+    if not sparse_full_page and name == "Esploratore Di Bronzo" and target_page_only:
         segments = (("full", (0.0, 0.0, 1.0, 1.0)),)
         column_overlap = 0.0
     if not sparse_full_page and name in {
