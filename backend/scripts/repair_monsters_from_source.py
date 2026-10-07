@@ -7356,28 +7356,6 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
-            speed_residual_single_edit = residual_single_edit_core_field_matches(
-                primary_attributes,
-                comparison_attributes,
-            ).get("velocita_residual_single_edit_match", False)
-            residual_shape = residual_shape_core_field_matches(
-                primary_attributes,
-                comparison_attributes,
-            )
-            speed_residual_shape = {
-                key: bool(residual_shape.get(f"velocita_residual_{key}", False))
-                for key in (
-                    "edit_distance_2_match",
-                    "edit_distance_3_match",
-                    "extra_alpha_tokens",
-                    "word_order_variation",
-                    "known_manual_label_extra_alpha_tokens",
-                    "parenthetical_extra_alpha_tokens",
-                    "single_extra_alpha_token_short_lt3",
-                    "single_extra_alpha_token_prefix",
-                    "single_extra_alpha_token_suffix",
-                )
-            }
             primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
@@ -7549,6 +7527,28 @@ def _agreed_target_candidate(
                 primary_attributes,
                 comparison_attributes,
             )
+            speed_residual_single_edit = residual_single_edit_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            ).get("velocita_residual_single_edit_match", False)
+            residual_shape = residual_shape_core_field_matches(
+                primary_attributes,
+                comparison_attributes,
+            )
+            speed_residual_shape = {
+                key: bool(residual_shape.get(f"velocita_residual_{key}", False))
+                for key in (
+                    "edit_distance_2_match",
+                    "edit_distance_3_match",
+                    "extra_alpha_tokens",
+                    "word_order_variation",
+                    "known_manual_label_extra_alpha_tokens",
+                    "parenthetical_extra_alpha_tokens",
+                    "single_extra_alpha_token_short_lt3",
+                    "single_extra_alpha_token_prefix",
+                    "single_extra_alpha_token_suffix",
+                )
+            }
             primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
