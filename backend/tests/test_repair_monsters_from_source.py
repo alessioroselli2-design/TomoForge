@@ -3820,6 +3820,9 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
     ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72]),
     ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68]),
     ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72, 72]),
+    ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo", 81, [79, 81]),
+    ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo", 81, [79]),
+    ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo", 81, [79, 81, 81]),
 ])
 def test_mage_requires_one_original_registered_selected_page(identifier, name, page, refs):
     record = {
