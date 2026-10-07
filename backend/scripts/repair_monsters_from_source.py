@@ -881,6 +881,7 @@ MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
     }
 )
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_aadff2eb6eff59af9caddb92deee6614": 81,  # Esploratore Di Bronzo: second registered source page
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
