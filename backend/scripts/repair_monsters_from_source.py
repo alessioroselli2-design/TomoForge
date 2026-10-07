@@ -6179,6 +6179,14 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 12, 11
     if (
+        name == "Esploratore Di Bronzo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 81
+        and target_page_only
+    ):
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
+    if (
         name == "Fenice"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 23
