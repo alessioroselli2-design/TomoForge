@@ -321,6 +321,39 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                                 "velocita_residual_duplicate_ambiguous",
                             )
                         },
+                        **(
+                            {
+                                "speed_residual_single_edit": fallback.get(
+                                    "speed_residual_single_edit"
+                                )
+                                is True
+                            }
+                            if "speed_residual_single_edit" in fallback
+                            else {}
+                        ),
+                        **(
+                            {
+                                "speed_residual_shape": {
+                                    key: (
+                                        fallback.get("speed_residual_shape") or {}
+                                    ).get(key)
+                                    is True
+                                    for key in (
+                                        "edit_distance_2_match",
+                                        "edit_distance_3_match",
+                                        "extra_alpha_tokens",
+                                        "word_order_variation",
+                                        "known_manual_label_extra_alpha_tokens",
+                                        "parenthetical_extra_alpha_tokens",
+                                        "single_extra_alpha_token_short_lt3",
+                                        "single_extra_alpha_token_prefix",
+                                        "single_extra_alpha_token_suffix",
+                                    )
+                                }
+                            }
+                            if isinstance(fallback.get("speed_residual_shape"), dict)
+                            else {}
+                        ),
                         "hp_ocr_confusion_repaired": (
                             fallback.get("hp_ocr_confusion_repaired") is True
                         ),
