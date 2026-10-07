@@ -58,6 +58,7 @@ from services.monster_residual_diagnostics import (
     residual_single_edit_core_field_matches,
 )
 from services.monster_semantic_diagnostics import (
+    _deterministic_normalized_value,
     deterministic_core_field_matches,
     semantic_core_field_matches,
 )
@@ -1255,6 +1256,62 @@ def _repair_hp_leading_prefix_to_peer(
     if prefix_pattern.match(normalized) is None:
         return None
     return peer
+
+
+def _repair_speed_short_suffix_to_peer(
+    left_attributes: dict[str, Any],
+    right_attributes: dict[str, Any],
+) -> str | None:
+    """Return the clean peer speed only for one proven short trailing OCR token."""
+    semantic = semantic_core_field_matches(left_attributes, right_attributes)
+    residual = residual_shape_core_field_matches(left_attributes, right_attributes)
+    multi = speed_multi_extra_token_profile(left_attributes, right_attributes)
+    if not (
+        semantic.get("velocita_semantic_match", False)
+        and residual.get("velocita_residual_extra_alpha_tokens", False)
+        and residual.get(
+            "velocita_residual_single_extra_alpha_token_short_lt3", False
+        )
+        and residual.get("velocita_residual_single_extra_alpha_token_suffix", False)
+        and not residual.get("velocita_residual_word_order_variation", False)
+        and not residual.get(
+            "velocita_residual_known_manual_label_extra_alpha_tokens", False
+        )
+        and not residual.get(
+            "velocita_residual_parenthetical_extra_alpha_tokens", False
+        )
+        and not multi.get("velocita_residual_duplicate_ambiguous", False)
+        and not multi.get("velocita_residual_extra_alpha_tokens_exactly_2", False)
+        and not multi.get("velocita_residual_extra_alpha_tokens_3_or_more", False)
+    ):
+        return None
+
+    left_raw = left_attributes.get("velocita")
+    right_raw = right_attributes.get("velocita")
+    left = _deterministic_normalized_value("velocita", left_raw)
+    right = _deterministic_normalized_value("velocita", right_raw)
+    if not left or not right:
+        return None
+
+    alpha = re.compile(r"[^\W\d_]+", re.UNICODE)
+    left_tokens = tuple(alpha.findall(left))
+    right_tokens = tuple(alpha.findall(right))
+
+    def has_one_short_suffix_extra(
+        longer: tuple[str, ...],
+        shorter: tuple[str, ...],
+    ) -> bool:
+        return bool(
+            len(longer) == len(shorter) + 1
+            and longer[:-1] == shorter
+            and len(longer[-1]) < 3
+        )
+
+    if has_one_short_suffix_extra(left_tokens, right_tokens):
+        return str(right_raw or "").strip() or None
+    if has_one_short_suffix_extra(right_tokens, left_tokens):
+        return str(left_raw or "").strip() or None
+    return None
 
 
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
@@ -7549,7 +7606,31 @@ def _agreed_target_candidate(
                     "single_extra_alpha_token_suffix",
                 )
             }
-            primary_gate_flags = sorted(
+            speed_short_suffix_repaired = False
+            if (
+                target_name == "Drow Inquisitore"
+                and deterministic.get("classe_armatura_deterministic_match", False)
+                and deterministic.get("punti_ferita_deterministic_match", False)
+                and not deterministic.get("velocita_deterministic_match", False)
+                and semantic.get("velocita_semantic_match", False)
+            ):
+                repaired_speed = _repair_speed_short_suffix_to_peer(
+                    primary_attributes,
+                    comparison_attributes,
+                )
+                if repaired_speed is not None:
+                    primary_attributes["velocita"] = repaired_speed
+                    comparison_attributes["velocita"] = repaired_speed
+                    speed_short_suffix_repaired = True
+                    deterministic = deterministic_core_field_matches(
+                        primary_attributes,
+                        comparison_attributes,
+                    )
+                    semantic = semantic_core_field_matches(
+                        primary_attributes,
+                        comparison_attributes,
+                    )
+                        primary_gate_flags = sorted(
                 monster_semantic_numeric_flags(primary_attributes)
             )
             comparison_gate_flags = sorted(
@@ -7612,6 +7693,7 @@ def _agreed_target_candidate(
                 },
                 "speed_residual_single_edit": bool(speed_residual_single_edit),
                 "speed_residual_shape": speed_residual_shape,
+                "speed_short_suffix_repaired": bool(speed_short_suffix_repaired),
                 "source_anchor_verified": True,
                 "hp_ocr_confusion_repaired": hp_confusion_repaired,
                 "hp_repair_attempted": hp_repair_attempted,
