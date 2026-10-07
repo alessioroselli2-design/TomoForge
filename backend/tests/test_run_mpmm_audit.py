@@ -117,6 +117,47 @@ def test_segment_diagnostic_sanitizer_keeps_only_allowlisted_booleans():
     }
 
 
+def test_esploratore_tsv_diagnostic_exports_only_allowlisted_geometry():
+    payload = {
+        "psm": 11,
+        "target_unique": True,
+        "ca_unique": True,
+        "hp_unique": True,
+        "speed_unique": False,
+        "target_left_half": True,
+        "ca_left_half": True,
+        "hp_left_half": False,
+        "speed_left_half": False,
+        "target_ca_same_half": True,
+        "target_hp_same_half": False,
+        "ca_after_target": True,
+        "hp_after_ca": True,
+        "speed_after_hp": False,
+        "private": PRIVATE,
+        "text": "Classe Armatura 99",
+    }
+    public = runner._public_esploratore_tsv_event(payload)
+    encoded = json.dumps(public)
+    assert PRIVATE not in encoded
+    assert "99" not in encoded
+    assert public == {
+        "psm": 11,
+        "target_unique": True,
+        "ca_unique": True,
+        "hp_unique": True,
+        "speed_unique": False,
+        "target_left_half": True,
+        "ca_left_half": True,
+        "hp_left_half": False,
+        "speed_left_half": False,
+        "target_ca_same_half": True,
+        "target_hp_same_half": False,
+        "ca_after_target": True,
+        "hp_after_ca": True,
+        "speed_after_hp": False,
+    }
+
+
 def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     private = _report()
     private["blocked_records"] = [
