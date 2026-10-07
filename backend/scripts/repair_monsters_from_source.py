@@ -881,7 +881,6 @@ MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
     }
 )
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
-    "ref_aadff2eb6eff59af9caddb92deee6614": 81,  # Esploratore Di Bronzo: second registered source page
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
@@ -6521,6 +6520,84 @@ def _ocr_source_window(
                                     "comparison_hp_label": bool(
                                         re.search(
                                             r"\bPunti\s+Ferita\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                },
+                                sort_keys=True,
+                            )
+                        )
+                    if (
+                        name == "Esploratore Di Bronzo"
+                        and page_number == target_page
+                        and not sparse_full_page
+                    ):
+
+                        def _esploratore_has_title_anchor(text: str) -> bool:
+                            lines = [
+                                line.strip()
+                                for line in str(text or "").splitlines()
+                                if line.strip()
+                            ]
+                            if any(
+                                _sparse_anchor_matches(line, name) for line in lines
+                            ):
+                                return True
+                            return any(
+                                _sparse_anchor_matches(f"{first} {second}", name)
+                                for first, second in zip(lines, lines[1:])
+                            )
+
+                        print(
+                            "MPMM_ESPLORATORE_SEGMENT_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "segment": segment_name,
+                                    "primary_target_anchor": (
+                                        _esploratore_has_title_anchor(primary)
+                                    ),
+                                    "comparison_target_anchor": (
+                                        _esploratore_has_title_anchor(comparison)
+                                    ),
+                                    "primary_ca_label": bool(
+                                        re.search(
+                                            r"\bClasse\s+Armatura\b",
+                                            primary,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_ca_label": bool(
+                                        re.search(
+                                            r"\bClasse\s+Armatura\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "primary_hp_label": bool(
+                                        re.search(
+                                            r"\bPunti\s+Ferita\b",
+                                            primary,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_hp_label": bool(
+                                        re.search(
+                                            r"\bPunti\s+Ferita\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "primary_speed_label": bool(
+                                        re.search(
+                                            r"\bVelocit[àa]\b",
+                                            primary,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_speed_label": bool(
+                                        re.search(
+                                            r"\bVelocit[àa]\b",
                                             comparison,
                                             re.IGNORECASE,
                                         )
