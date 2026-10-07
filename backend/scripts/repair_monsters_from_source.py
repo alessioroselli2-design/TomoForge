@@ -930,7 +930,6 @@ SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
         "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex
         "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico
-        "ref_8def8c405c2452a4a10ff597fd89fdc8",  # Duergar Martellatore
     }
 )
 SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
@@ -1018,6 +1017,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
 TARGET_SEGMENT_BY_NAME = {
     # Bounded fail-closed column probe; exact identity is still required.
     "Danzatore Dell'Ombra": "right",
+    "Duergar Martellatore": "left",
     "Derro": "right",  # Page 93: ordinary stat block; Sapiente is on page 94
     "Delfino": "right",  # Page 89: both stat blocks right; keep identities distinct
     "Celeresto": "right",  # Page 79: prose left, stat block right
@@ -6443,6 +6443,7 @@ def _ocr_source_window(
                         and page_number == target_page
                         and not sparse_full_page
                     ):
+
                         def _has_title_anchor(text: str) -> bool:
                             lines = [
                                 line.strip()

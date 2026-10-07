@@ -1785,7 +1785,7 @@ def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_fail
     assert _should_retry_exact_identity_sparse(exact_failure, drow_id) is True
     assert _should_retry_exact_identity_sparse(core_failure, drow_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is True
-    assert _should_retry_exact_identity_sparse(exact_failure, duergar_id) is True
+    assert _should_retry_exact_identity_sparse(exact_failure, duergar_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, fenice_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, other_id) is False
 
