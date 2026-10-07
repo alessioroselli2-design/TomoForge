@@ -6185,7 +6185,7 @@ def _ocr_source_window(
         and target_page_only
     ):
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 3, 4
     if (
         name == "Fenice"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6223,6 +6223,13 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
+    if (
+        not sparse_full_page
+        and name == "Esploratore Di Bronzo"
+        and target_page_only
+    ):
+        segments = (("full", (0.0, 0.0, 1.0, 1.0)),)
+        column_overlap = 0.0
     if not sparse_full_page and name in {
         "Berbalang",
         "Bove Fetente",
@@ -6536,10 +6543,7 @@ def _ocr_source_window(
                                 sort_keys=True,
                             )
                         )
-                    if (
-                        name == "Esploratore Di Bronzo"
-                        and not sparse_full_page
-                    ):
+                    if name == "Esploratore Di Bronzo" and not sparse_full_page:
 
                         def _esploratore_has_title_anchor(text: str) -> bool:
                             lines = [
@@ -6579,7 +6583,9 @@ def _ocr_source_window(
                                         re.search(r"\bClasse\b", primary, re.IGNORECASE)
                                     ),
                                     "primary_armor_token": bool(
-                                        re.search(r"\bArmatura\b", primary, re.IGNORECASE)
+                                        re.search(
+                                            r"\bArmatura\b", primary, re.IGNORECASE
+                                        )
                                     ),
                                     "primary_points_token": bool(
                                         re.search(r"\bPunti\b", primary, re.IGNORECASE)

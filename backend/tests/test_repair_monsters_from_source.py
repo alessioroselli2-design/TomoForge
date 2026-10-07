@@ -3899,6 +3899,7 @@ def test_esploratore_uses_resolved_page_79_target_only():
     assert caught.value.reason == "pilot_stop"
     assert ocr.call_args.args[1] == 79
     assert ocr.call_args.kwargs["target_page_only"] is True
+    assert identifier in repair.SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
 
 
 @pytest.mark.parametrize("suffix", ["Ù", "i"])
