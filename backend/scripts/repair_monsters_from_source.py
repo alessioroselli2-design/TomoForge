@@ -10166,9 +10166,6 @@ def _corrupted_name_report(record: dict[str, Any]) -> dict[str, Any]:
         "review_flags": [CORRUPTED_ENTITY_NAME_FLAG],
         "classification": "Record con Nome Corrotto (Scorie OCR)",
         "executed": False,
-        "source_reviewed_status_only": (
-            candidate.get("source_reviewed_status_only") is True
-        ),
     }
 
 
@@ -10838,6 +10835,9 @@ async def _repair_one(
         "gate_failures_after": [],
         "would_update": True,
         "executed": False,
+        "source_reviewed_status_only": (
+            candidate.get("source_reviewed_status_only") is True
+        ),
         **(
             {"verified_flag_cleanup": verified_flag_cleanup}
             if verified_flag_cleanup is not None
