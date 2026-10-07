@@ -97,6 +97,36 @@ def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     ("9 m, volare 9 m", False),
     ("12 m", False),
 ])
+
+def test_blocked_drow_hp_anchor_exports_only_allowlisted_booleans():
+    private = _report()
+    private["blocked_records"] = [
+        {
+            "record_id": IDENTIFIER,
+            "reason": "no_unique_exact_target_identity",
+            "diagnostics": {
+                "drow_text_page_speed_unique": True,
+                "drow_text_page_speed_after_ca": True,
+                "drow_text_page_speed_gap_le_12": False,
+                "drow_text_page_speed_gap_le_16": True,
+                "drow_text_page_speed_gap_le_24": True,
+                "private": PRIVATE,
+            },
+        }
+    ]
+    public = runner.public_report(private)
+    encoded = json.dumps(public)
+    assert PRIVATE not in encoded
+    assert public["blocked_records"][0]["hp_anchor"] == {
+        "reason": "blocked",
+        "drow_text_page_speed_unique": True,
+        "drow_text_page_speed_after_ca": True,
+        "drow_text_page_speed_gap_le_12": False,
+        "drow_text_page_speed_gap_le_16": True,
+        "drow_text_page_speed_gap_le_24": True,
+    }
+
+
 def test_core_whitespace_equality_keeps_every_non_whitespace_token(speed, expected):
     private = _report()
     private["reports"][0]["after"]["attributes"]["velocita"] = speed
