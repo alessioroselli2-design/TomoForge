@@ -7025,6 +7025,68 @@ def _isolate_kithrak_title_debris(page_text: str) -> str:
     return "\n".join(lines) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _canonicalize_duergar_guardia_core_labels(page_text: str) -> str:
+    """Canonicalize only uniquely identified OCR-damaged PF/speed labels."""
+
+    lines = page_text.splitlines()
+    specs = (
+        (
+            "punti ferita",
+            "Punti Ferita",
+            re.compile(r"^\s*(?:Punti\s+Ferita|Hit\s+Points)\s*:?\s*(.*)$", re.IGNORECASE),
+        ),
+        (
+            "velocita",
+            "Velocità",
+            re.compile(r"^\s*(?:Velocit[àa]|Speed)\s*:?\s*(.*)$", re.IGNORECASE),
+        ),
+    )
+    selected: list[tuple[int, str, str]] = []
+    for expected, canonical, parser_pattern in specs:
+        matches = [
+            index
+            for index, line in enumerate(lines)
+            if (
+                (normalized := normalize_reference_name(line)) == expected
+                or normalized.startswith(expected + " ")
+            )
+            and parser_pattern.match(clean_text(line or "")) is None
+        ]
+        if len(matches) != 1:
+            return page_text
+        selected.append((matches[0], expected, canonical))
+
+    repaired = list(lines)
+    for index, expected, canonical in selected:
+        original = repaired[index]
+        prefix_end = next(
+            (
+                end
+                for end in range(1, len(original) + 1)
+                if normalize_reference_name(original[:end]) == expected
+            ),
+            None,
+        )
+        if prefix_end is None:
+            return page_text
+        repaired[index] = canonical + original[prefix_end:]
+
+    print(
+        "MPMM_DUERGAR_GUARDIA_CORE_LABELS_CANONICALIZED "
+        + json.dumps(
+            {
+                "name": "Duergar Guardia Di Pietra",
+                "hp_label_canonicalized": True,
+                "speed_label_canonicalized": True,
+                "numeric_values_modified": False,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return "\n".join(repaired) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _identity_source_counts(
     pages: list[tuple[int, str]],
     candidates: list[dict[str, Any]],
@@ -7299,6 +7361,25 @@ def _agreed_target_candidate(
     require_exact_target_identity: bool = False,
     include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
+    if target_name == "Duergar Guardia Di Pietra":
+        primary_pages = [
+            (
+                page,
+                _canonicalize_duergar_guardia_core_labels(text)
+                if page == target_page
+                else text,
+            )
+            for page, text in primary_pages
+        ]
+        comparison_pages = [
+            (
+                page,
+                _canonicalize_duergar_guardia_core_labels(text)
+                if page == target_page
+                else text,
+            )
+            for page, text in comparison_pages
+        ]
     if target_name == "Drow Inquisitore":
         primary_pages = [
             (page, _isolate_drow_title_debris(text) if page == target_page else text)
