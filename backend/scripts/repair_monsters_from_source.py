@@ -7175,7 +7175,11 @@ def _identity_source_counts(
             for line in raw_lines
         ),
         "hp_label_only_next_has_digit": sum(
-            bool(re.fullmatch(r"\s*Punti\s+Ferita\s*:?\s*", raw_lines[index], flags=re.IGNORECASE))
+            bool(
+                re.fullmatch(
+                    r"\s*Punti\s+Ferita\s*:?\s*", raw_lines[index], flags=re.IGNORECASE
+                )
+            )
             and index + 1 < len(raw_lines)
             and bool(re.search(r"\d", raw_lines[index + 1]))
             for index in range(len(raw_lines))
@@ -7207,7 +7211,11 @@ def _identity_source_counts(
             for line in raw_lines
         ),
         "speed_label_only_next_has_digit": sum(
-            bool(re.fullmatch(r"\s*Velocit[àa]\s*:?\s*", raw_lines[index], flags=re.IGNORECASE))
+            bool(
+                re.fullmatch(
+                    r"\s*Velocit[àa]\s*:?\s*", raw_lines[index], flags=re.IGNORECASE
+                )
+            )
             and index + 1 < len(raw_lines)
             and bool(re.search(r"\d", raw_lines[index + 1]))
             for index in range(len(raw_lines))
