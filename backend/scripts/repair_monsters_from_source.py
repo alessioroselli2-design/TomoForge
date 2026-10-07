@@ -6438,6 +6438,51 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    if (
+                        name == "Duergar Martellatore"
+                        and page_number == target_page
+                        and not sparse_full_page
+                    ):
+                        def _has_title_anchor(text: str) -> bool:
+                            lines = [
+                                line.strip()
+                                for line in str(text or "").splitlines()
+                                if line.strip()
+                            ]
+                            if any(_sparse_anchor_matches(line, name) for line in lines):
+                                return True
+                            return any(
+                                _sparse_anchor_matches(f"{first} {second}", name)
+                                for first, second in zip(lines, lines[1:])
+                            )
+
+                        print(
+                            "MPMM_MARTELLATORE_SEGMENT_DIAGNOSTIC "
+                            + json.dumps(
+                                {
+                                    "segment": segment_name,
+                                    "primary_target_anchor": _has_title_anchor(primary),
+                                    "comparison_target_anchor": _has_title_anchor(
+                                        comparison
+                                    ),
+                                    "primary_hp_label": bool(
+                                        re.search(
+                                            r"\bPunti\s+Ferita\b",
+                                            primary,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                    "comparison_hp_label": bool(
+                                        re.search(
+                                            r"\bPunti\s+Ferita\b",
+                                            comparison,
+                                            re.IGNORECASE,
+                                        )
+                                    ),
+                                },
+                                sort_keys=True,
+                            )
+                        )
                     if name == "Bael" and not sparse_full_page:
                         primary = _restore_bael_title_from_local_actions(primary, name)
                         comparison = _restore_bael_title_from_local_actions(
@@ -6980,53 +7025,6 @@ def _ocr_source_window(
                         agreement_primary,
                         agreement_comparison,
                     )
-                    if (
-                        name == "Duergar Martellatore"
-                        and page_number == target_page
-                        and not sparse_full_page
-                    ):
-                        def _has_title_anchor(text: str) -> bool:
-                            lines = [
-                                line.strip()
-                                for line in str(text or "").splitlines()
-                                if line.strip()
-                            ]
-                            if any(_sparse_anchor_matches(line, name) for line in lines):
-                                return True
-                            return any(
-                                _sparse_anchor_matches(f"{first} {second}", name)
-                                for first, second in zip(lines, lines[1:])
-                            )
-
-                        print(
-                            "MPMM_MARTELLATORE_SEGMENT_DIAGNOSTIC "
-                            + json.dumps(
-                                {
-                                    "segment": segment_name,
-                                    "primary_target_anchor": _has_title_anchor(primary),
-                                    "comparison_target_anchor": _has_title_anchor(
-                                        comparison
-                                    ),
-                                    "primary_hp_label": bool(
-                                        re.search(
-                                            r"\bPunti\s+Ferita\b",
-                                            primary,
-                                            re.IGNORECASE,
-                                        )
-                                    ),
-                                    "comparison_hp_label": bool(
-                                        re.search(
-                                            r"\bPunti\s+Ferita\b",
-                                            comparison,
-                                            re.IGNORECASE,
-                                        )
-                                    ),
-                                    "quality_pass": agreement.get("quality_pass")
-                                    is True,
-                                },
-                                sort_keys=True,
-                            )
-                        )
                     if name == "Berbalang":
                         agreement["source_crop_fractions"] = list(fractions)
                     if sparse_full_page:
