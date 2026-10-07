@@ -3820,9 +3820,6 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
     ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72]),
     ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68]),
     ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72, 72]),
-    ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo", 81, [79, 81]),
-    ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo", 81, [79]),
-    ("ref_aadff2eb6eff59af9caddb92deee6614", "Esploratore Di Bronzo", 81, [79, 81, 81]),
 ])
 def test_mage_requires_one_original_registered_selected_page(identifier, name, page, refs):
     record = {
@@ -3849,6 +3846,59 @@ def test_mage_requires_one_original_registered_selected_page(identifier, name, p
         assert caught.value.reason == "source_page_override_ref_drift"
         ocr.assert_not_called()
     assert json.dumps(record, sort_keys=True) == before
+
+
+def test_esploratore_uses_resolved_registered_page_without_override():
+    identifier = "ref_aadff2eb6eff59af9caddb92deee6614"
+    record = {
+        "id": identifier,
+        "name": "Esploratore Di Bronzo",
+        "review_status": "pending",
+        "source_refs": [
+            {"filename": "synthetic.pdf", "page": 79},
+            {"filename": "synthetic.pdf", "page": 81},
+        ],
+    }
+    source = {
+        "physical_filename": "synthetic.pdf",
+        "physical_pages": 100,
+        "logical_source_id": "mpmm_2022_it",
+    }
+    args = SimpleNamespace(
+        dpi=220,
+        languages="ita",
+        psm=6,
+        comparison_psm=4,
+        target_set="batch_mpmm_pending_131",
+    )
+    assert identifier not in repair.SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID
+    with (
+        patch.object(
+            repair,
+            "resolve_source",
+            return_value=(source, record["source_refs"][0]),
+        ),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(
+            repair,
+            "_ocr_source_window",
+            side_effect=RepairBlocked("pilot_stop"),
+        ) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(
+            repair._repair_one(
+                None,
+                record,
+                [],
+                repair.SourcePdfCache("", False),
+                args,
+            )
+        )
+
+    assert caught.value.reason == "pilot_stop"
+    assert ocr.call_args.args[1] == 79
+    assert ocr.call_args.kwargs["target_page_only"] is True
 
 
 @pytest.mark.parametrize("suffix", ["Ù", "i"])
