@@ -1877,6 +1877,45 @@ def test_sparse_page_anchor_requires_title_like_identity():
     )
 
 
+def test_duergar_martellatore_wrapped_sparse_anchor_requires_adjacent_alignment():
+    grouped = {
+        ("1", "1", "1", "1"): [
+            {
+                "page_num": "1",
+                "left": "20",
+                "top": "100",
+                "width": "90",
+                "height": "14",
+                "text": "DUERGAR",
+            }
+        ],
+        ("1", "1", "1", "2"): [
+            {
+                "page_num": "1",
+                "left": "22",
+                "top": "118",
+                "width": "160",
+                "height": "14",
+                "text": "MARTELLATORE",
+            }
+        ],
+    }
+    matches = repair._sparse_wrapped_title_candidates(
+        grouped,
+        "Duergar Martellatore",
+    )
+    assert len(matches) == 1
+
+    grouped[("1", "1", "1", "2")][0]["top"] = "220"
+    assert (
+        repair._sparse_wrapped_title_candidates(
+            grouped,
+            "Duergar Martellatore",
+        )
+        == []
+    )
+
+
 def test_sparse_page_anchor_rejects_empty_target():
     assert not _sparse_anchor_matches("Rak Tulkhesh", "")
 
