@@ -7036,7 +7036,9 @@ def _canonicalize_duergar_guardia_core_labels(page_text: str) -> str:
         (
             "punti ferita",
             "Punti Ferita",
-            re.compile(r"^\s*(?:Punti\s+Ferita|Hit\s+Points)\s*:?\s*(.*)$", re.IGNORECASE),
+            re.compile(
+                r"^\s*(?:Punti\s+Ferita|Hit\s+Points)\s*:?\s*(.*)$", re.IGNORECASE
+            ),
         ),
         (
             "velocita",
