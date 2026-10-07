@@ -220,6 +220,27 @@ def _public_esploratore_tsv_event(payload: Any) -> dict[str, Any] | None:
     return result
 
 
+def _public_esploratore_registered_core_probe(
+    payload: Any,
+) -> dict[str, bool] | None:
+    if not isinstance(payload, dict):
+        return None
+    keys = (
+        "registered_page_ref_unique",
+        "primary_any_core_match",
+        "comparison_any_core_match",
+        "primary_unique_core_match",
+        "comparison_unique_core_match",
+        "independent_core_match_agreement",
+    )
+    result: dict[str, bool] = {}
+    for key in keys:
+        value = payload.get(key)
+        if type(value) is bool:
+            result[key] = value
+    return result if result else None
+
+
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
     identifier = item.get("record_id")
     return {
@@ -622,6 +643,7 @@ def main() -> int:
             martellatore_segment_diagnostics: list[dict[str, Any]] = []
             esploratore_segment_diagnostics: list[dict[str, Any]] = []
             esploratore_tsv_diagnostics: list[dict[str, Any]] = []
+            esploratore_registered_core_probe: dict[str, bool] | None = None
             for line in runtime_output:
                 stripped = line.strip()
                 if stripped.startswith("HP_ANCHOR_DIAGNOSTIC "):
@@ -667,6 +689,14 @@ def main() -> int:
                     event = _public_esploratore_tsv_event(payload)
                     if event is not None and len(esploratore_tsv_diagnostics) < 8:
                         esploratore_tsv_diagnostics.append(event)
+                elif stripped.startswith("MPMM_ESPLORATORE_REGISTERED_CORE_PROBE "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    esploratore_registered_core_probe = (
+                        _public_esploratore_registered_core_probe(payload)
+                    )
                 if stripped == "FINAL_REPORT":
                     private = json.loads(next(runtime_output))
             if private is None:
@@ -682,6 +712,9 @@ def main() -> int:
             )
             public["esploratore_tsv_diagnostics"] = (
                 esploratore_tsv_diagnostics
+            )
+            public["esploratore_registered_core_probe"] = (
+                esploratore_registered_core_probe or {}
             )
         print("FINAL_REPORT")
         print(json.dumps(public, sort_keys=True))
