@@ -6012,6 +6012,20 @@ def _esploratore_registered_core_probe(
 
     result = {
         "registered_page_ref_unique": False,
+        "primary_candidates_present": False,
+        "comparison_candidates_present": False,
+        "primary_clean_candidate_present": False,
+        "comparison_clean_candidate_present": False,
+        "primary_any_ca_match": False,
+        "comparison_any_ca_match": False,
+        "primary_any_hp_match": False,
+        "comparison_any_hp_match": False,
+        "primary_any_speed_match": False,
+        "comparison_any_speed_match": False,
+        "primary_any_two_core_match": False,
+        "comparison_any_two_core_match": False,
+        "primary_any_semantic_three_core_match": False,
+        "comparison_any_semantic_three_core_match": False,
         "primary_any_core_match": False,
         "comparison_any_core_match": False,
         "primary_unique_core_match": False,
@@ -6070,20 +6084,62 @@ def _esploratore_registered_core_probe(
                     source_language,
                 )
                 matches: list[dict[str, Any]] = []
-                for candidate in candidates:
-                    if int(candidate.get("start_page") or 0) != 81:
-                        continue
+                page_candidates = [
+                    candidate
+                    for candidate in candidates
+                    if int(candidate.get("start_page") or 0) == 81
+                ]
+                result[f"{pass_label}_candidates_present"] = bool(page_candidates)
+                for candidate in page_candidates:
                     attributes = candidate.get("attributes") or {}
-                    if monster_semantic_numeric_flags(attributes):
-                        continue
+                    gate_clean = not monster_semantic_numeric_flags(attributes)
+                    if gate_clean:
+                        result[f"{pass_label}_clean_candidate_present"] = True
                     deterministic = deterministic_core_field_matches(
                         record_attributes,
                         attributes,
                     )
-                    if all(
-                        deterministic.get(f"{field}_deterministic_match", False)
+                    semantic = semantic_core_field_matches(
+                        record_attributes,
+                        attributes,
+                    )
+                    field_matches = {
+                        field: bool(
+                            deterministic.get(
+                                f"{field}_deterministic_match",
+                                False,
+                            )
+                        )
                         for field in ("classe_armatura", "punti_ferita", "velocita")
-                    ):
+                    }
+                    result[f"{pass_label}_any_ca_match"] = (
+                        result[f"{pass_label}_any_ca_match"]
+                        or field_matches["classe_armatura"]
+                    )
+                    result[f"{pass_label}_any_hp_match"] = (
+                        result[f"{pass_label}_any_hp_match"]
+                        or field_matches["punti_ferita"]
+                    )
+                    result[f"{pass_label}_any_speed_match"] = (
+                        result[f"{pass_label}_any_speed_match"]
+                        or field_matches["velocita"]
+                    )
+                    result[f"{pass_label}_any_two_core_match"] = (
+                        result[f"{pass_label}_any_two_core_match"]
+                        or sum(field_matches.values()) >= 2
+                    )
+                    result[f"{pass_label}_any_semantic_three_core_match"] = (
+                        result[f"{pass_label}_any_semantic_three_core_match"]
+                        or all(
+                            semantic.get(f"{field}_semantic_match", False)
+                            for field in (
+                                "classe_armatura",
+                                "punti_ferita",
+                                "velocita",
+                            )
+                        )
+                    )
+                    if gate_clean and all(field_matches.values()):
                         matches.append(candidate)
                 pass_matches[pass_label] = matches
                 result[f"{pass_label}_any_core_match"] = bool(matches)
