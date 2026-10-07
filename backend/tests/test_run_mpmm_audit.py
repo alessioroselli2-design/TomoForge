@@ -69,6 +69,7 @@ def _report():
 def test_segment_diagnostic_sanitizer_keeps_only_allowlisted_booleans():
     payload = {
         "segment": "left",
+        "page_offset": -1,
         "primary_target_anchor": True,
         "comparison_target_anchor": False,
         "primary_ca_label": True,
@@ -95,6 +96,7 @@ def test_segment_diagnostic_sanitizer_keeps_only_allowlisted_booleans():
     assert "999" not in encoded
     assert public == {
         "segment": "left",
+        "page_offset": -1,
         "primary_target_anchor": True,
         "comparison_target_anchor": False,
         "primary_ca_label": True,
