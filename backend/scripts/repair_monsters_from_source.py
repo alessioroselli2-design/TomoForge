@@ -7634,7 +7634,9 @@ def _agreed_target_candidate(
                     )
                     hp_prefix_peer_repaired = repaired_hp is not None
                 hp_repair_candidate_valid = repaired_hp is not None
-                hp_repair_matches_peer = repaired_hp is not None and repaired_hp == good_hp
+                hp_repair_matches_peer = (
+                    repaired_hp is not None and repaired_hp == good_hp
+                )
                 if hp_repair_matches_peer:
                     bad_attributes["punti_ferita"] = repaired_hp
                     hp_confusion_repaired = True
