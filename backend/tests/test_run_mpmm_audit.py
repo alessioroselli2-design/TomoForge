@@ -89,15 +89,6 @@ def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     assert public["blocked_records"][0]["core_disagreement"]["punti_ferita"] is True
 
 
-@pytest.mark.parametrize("speed,expected", [
-    (" 9 m ", True),
-    ("9  m", True),
-    ("9\nm", True),
-    ("9 m 3", False),
-    ("9 m, volare 9 m", False),
-    ("12 m", False),
-])
-
 def test_blocked_drow_hp_anchor_exports_only_allowlisted_booleans():
     private = _report()
     private["blocked_records"] = [
@@ -126,6 +117,15 @@ def test_blocked_drow_hp_anchor_exports_only_allowlisted_booleans():
         "drow_text_page_speed_gap_le_24": True,
     }
 
+
+@pytest.mark.parametrize("speed,expected", [
+    (" 9 m ", True),
+    ("9  m", True),
+    ("9\nm", True),
+    ("9 m 3", False),
+    ("9 m, volare 9 m", False),
+    ("12 m", False),
+])
 
 def test_core_whitespace_equality_keeps_every_non_whitespace_token(speed, expected):
     private = _report()
