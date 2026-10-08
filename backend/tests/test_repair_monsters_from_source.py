@@ -4475,6 +4475,50 @@ def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mut
             assert blocked.value.reason == "no_unique_exact_target_identity"
 
 
+@pytest.mark.parametrize("mutation", ["none", "wrong_exact_ca", "not_two_extra_tokens"])
+def test_juiblex_reviewed_peer_core_alignment_is_fail_closed(mutation):
+    clean = {
+        "classe_armatura": "18 (armatura naturale)",
+        "punti_ferita": "350 (28d12 + 168)",
+        "velocita": "9 m, scalare 9 m",
+    }
+    primary = dict(clean)
+    comparison = {
+        **clean,
+        "classe_armatura": "18 armatura naturale OCR",
+        "velocita": "9 m, scalare 9 m OCR extra",
+    }
+    if mutation == "wrong_exact_ca":
+        primary["classe_armatura"] = "19 (armatura naturale)"
+
+    semantic = {
+        f"{field}_semantic_match": True
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    }
+    speed = {
+        "velocita_residual_extra_alpha_tokens_exactly_2": (
+            mutation != "not_two_extra_tokens"
+        ),
+        "velocita_residual_duplicate_ambiguous": False,
+        "velocita_residual_extra_alpha_tokens_3_or_more": False,
+    }
+    with (
+        patch.object(repair, "semantic_core_field_matches", return_value=semantic),
+        patch.object(repair, "speed_multi_extra_token_profile", return_value=speed),
+    ):
+        result = repair._align_juiblex_reviewed_peer_core(
+            primary, comparison, primary_exact=True
+        )
+    if mutation == "none":
+        assert result is not None
+        assert result[0] == clean
+        assert result[1]["classe_armatura"] == clean["classe_armatura"]
+        assert result[1]["velocita"] == clean["velocita"]
+        assert result[1]["punti_ferita"] == clean["punti_ferita"]
+    else:
+        assert result is None
+
+
 def test_duergar_guardia_repairs_hp_and_short_speed_suffix_together():
     target = "Duergar Guardia Di Pietra"
     clean = {

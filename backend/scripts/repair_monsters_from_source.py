@@ -1454,6 +1454,57 @@ def _repair_speed_non_alphanumeric_to_exact_peer(
     return str(exact_raw or "").strip() or None
 
 
+def _align_juiblex_reviewed_peer_core(
+    primary: dict[str, Any],
+    comparison: dict[str, Any],
+    *,
+    primary_exact: bool,
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """Clean only CA/speed OCR debris against the independently reviewed exact side."""
+    reviewed = {
+        "classe_armatura": "18 (armatura naturale)",
+        "punti_ferita": "350 (28d12 + 168)",
+        "velocita": "9 m, scalare 9 m",
+    }
+    exact = primary if primary_exact else comparison
+    nonexact = comparison if primary_exact else primary
+    if monster_semantic_numeric_flags(primary) or monster_semantic_numeric_flags(
+        comparison
+    ):
+        return None
+    exact_reviewed = deterministic_core_field_matches(exact, reviewed)
+    if not all(
+        exact_reviewed.get(f"{field}_deterministic_match", False)
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    ):
+        return None
+    deterministic = deterministic_core_field_matches(primary, comparison)
+    semantic = semantic_core_field_matches(primary, comparison)
+    if not (
+        deterministic.get("punti_ferita_deterministic_match", False)
+        and all(
+            semantic.get(f"{field}_semantic_match", False)
+            for field in ("classe_armatura", "punti_ferita", "velocita")
+        )
+    ):
+        return None
+    speed = speed_multi_extra_token_profile(primary, comparison)
+    if not (
+        speed.get("velocita_residual_extra_alpha_tokens_exactly_2", False)
+        and not speed.get("velocita_residual_duplicate_ambiguous", False)
+        and not speed.get("velocita_residual_extra_alpha_tokens_3_or_more", False)
+    ):
+        return None
+    aligned_nonexact = dict(nonexact)
+    for field in ("classe_armatura", "velocita"):
+        aligned_nonexact[field] = exact[field]
+    return (
+        (dict(exact), aligned_nonexact)
+        if primary_exact
+        else (aligned_nonexact, dict(exact))
+    )
+
+
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
@@ -8727,6 +8778,16 @@ def _agreed_target_candidate(
                     bad_attributes["punti_ferita"] = repaired_hp
                     hp_confusion_repaired = True
 
+            juiblex_core_aligned = False
+            if target_name == "Juiblex":
+                aligned = _align_juiblex_reviewed_peer_core(
+                    primary_attributes,
+                    comparison_attributes,
+                    primary_exact=len(primary_exact) == 1,
+                )
+                if aligned is not None:
+                    primary_attributes, comparison_attributes = aligned
+                    juiblex_core_aligned = True
             deterministic = deterministic_core_field_matches(
                 primary_attributes,
                 comparison_attributes,
@@ -8853,6 +8914,7 @@ def _agreed_target_candidate(
                 "speed_residual_single_edit": bool(speed_residual_single_edit),
                 "speed_residual_shape": speed_residual_shape,
                 "speed_short_suffix_repaired": bool(speed_short_suffix_repaired),
+                "juiblex_core_aligned": bool(juiblex_core_aligned),
                 "source_anchor_verified": True,
                 "hp_ocr_confusion_repaired": hp_confusion_repaired,
                 "hp_repair_attempted": hp_repair_attempted,
