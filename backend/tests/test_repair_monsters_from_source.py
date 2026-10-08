@@ -3926,9 +3926,9 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
     ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [68, 71]),
     ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [71]),
     ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 68, [68, 68, 71]),
-    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 68, [68, 72]),
-    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 68, [68]),
-    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 68, [68, 72, 72]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72, 72]),
 ])
 def test_mage_requires_one_original_registered_selected_page(identifier, name, page, refs):
     record = {
