@@ -1922,6 +1922,19 @@ def test_martellatore_uses_exact_title_compatible_fallback_only():
     )
 
 
+def test_mago_apprendista_hp_label_correction_preserves_value():
+    text = "MAGO APPRENDISTA\nPunti-Ferita 13 (3d8)\nVelocità 9 m\n"
+    result = repair._canonicalize_mago_apprendista_hp_label(text)
+    assert result == "MAGO APPRENDISTA\nPunti Ferita 13 (3d8)\nVelocità 9 m\n"
+
+
+def test_mago_apprendista_hp_label_correction_rejects_ambiguity():
+    text = "Punti-Ferita 13 (3d8)\nPunti-Ferita 40 (9d8)\n"
+    assert repair._canonicalize_mago_apprendista_hp_label(text) == text
+    untouched = "Punti Ferita 13 (3d8)\n"
+    assert repair._canonicalize_mago_apprendista_hp_label(untouched) == untouched
+
+
 def test_mago_apprendista_right_segment_is_source_scoped():
     assert repair.TARGET_SEGMENT_BY_NAME["Mago Apprendista"] == "right"
     assert repair.TARGET_SEGMENT_BY_NAME["Duergar Martellatore"] == "left"

@@ -7946,6 +7946,52 @@ def _canonicalize_duergar_guardia_core_labels(page_text: str) -> str:
     return "\n".join(repaired) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _canonicalize_mago_apprendista_hp_label(page_text: str) -> str:
+    """Repair exactly one damaged HP label, preserving all source values."""
+    from services.monster_statblock_ocr import clean_text
+
+    lines = page_text.splitlines()
+    expected = "punti ferita"
+    parser_pattern = re.compile(
+        r"^\s*(?:Punti\s+Ferita|Hit\s+Points)\s*:?\s*(.*)$",
+        re.IGNORECASE,
+    )
+    matches = [
+        index
+        for index, line in enumerate(lines)
+        if (
+            (normalized := normalize_reference_name(line)) == expected
+            or normalized.startswith(expected + " ")
+        )
+        and parser_pattern.match(clean_text(line or "")) is None
+    ]
+    if len(matches) != 1:
+        return page_text
+
+    index = matches[0]
+    original = lines[index]
+    prefix_end = next(
+        (
+            end
+            for end in range(1, len(original) + 1)
+            if normalize_reference_name(original[:end]) == expected
+        ),
+        None,
+    )
+    if prefix_end is None:
+        return page_text
+    repaired = list(lines)
+    repaired[index] = "Punti Ferita" + original[prefix_end:]
+    print(
+        "MPMM_MAGO_APPRENDISTA_HP_LABEL_CANONICALIZED "
+        + json.dumps(
+            {"single_source_label": True, "numeric_values_modified": False},
+            sort_keys=True,
+        )
+    )
+    return "\n".join(repaired) + ("\n" if page_text.endswith("\n") else "")
+
+
 def _identity_source_counts(
     pages: list[tuple[int, str]],
     candidates: list[dict[str, Any]],
@@ -8220,6 +8266,25 @@ def _agreed_target_candidate(
     require_exact_target_identity: bool = False,
     include_core_diagnostics: bool = False,
 ) -> dict[str, Any]:
+    if target_name == "Mago Apprendista":
+        primary_pages = [
+            (
+                page,
+                _canonicalize_mago_apprendista_hp_label(text)
+                if page == target_page
+                else text,
+            )
+            for page, text in primary_pages
+        ]
+        comparison_pages = [
+            (
+                page,
+                _canonicalize_mago_apprendista_hp_label(text)
+                if page == target_page
+                else text,
+            )
+            for page, text in comparison_pages
+        ]
     if target_name == "Duergar Guardia Di Pietra":
         primary_pages = [
             (
