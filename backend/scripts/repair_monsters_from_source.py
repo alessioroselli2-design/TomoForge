@@ -9153,12 +9153,10 @@ def _agreed_target_candidate(
                 )
                 mago_apprendista_profile.update(
                     primary_name_exact=(
-                        primary_page[0].get("normalized_name")
-                        == normalized_target
+                        primary_page[0].get("normalized_name") == normalized_target
                     ),
                     comparison_name_exact=(
-                        comparison_page[0].get("normalized_name")
-                        == normalized_target
+                        comparison_page[0].get("normalized_name") == normalized_target
                     ),
                     primary_gate_clean=not bool(
                         monster_semantic_numeric_flags(primary_attrs)
@@ -9172,14 +9170,10 @@ def _agreed_target_candidate(
                         agreed.get(f"{field}_deterministic_match", False)
                     )
                     mago_apprendista_profile[f"{field}_primary_reviewed"] = bool(
-                        primary_reviewed.get(
-                            f"{field}_deterministic_match", False
-                        )
+                        primary_reviewed.get(f"{field}_deterministic_match", False)
                     )
                     mago_apprendista_profile[f"{field}_comparison_reviewed"] = bool(
-                        comparison_reviewed.get(
-                            f"{field}_deterministic_match", False
-                        )
+                        comparison_reviewed.get(f"{field}_deterministic_match", False)
                     )
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
