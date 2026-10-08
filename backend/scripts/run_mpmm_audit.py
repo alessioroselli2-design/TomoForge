@@ -272,6 +272,33 @@ def _public_ki_rin_core_profile(payload: Any) -> dict[str, bool]:
     }
 
 
+def _public_mago_apprendista_profile(payload: Any) -> dict[str, bool]:
+    if not isinstance(payload, dict):
+        return {}
+    keys = (
+        "primary_single_candidate",
+        "comparison_single_candidate",
+        "primary_name_exact",
+        "comparison_name_exact",
+        "primary_gate_clean",
+        "comparison_gate_clean",
+        "classe_armatura_peer_match",
+        "classe_armatura_primary_reviewed",
+        "classe_armatura_comparison_reviewed",
+        "punti_ferita_peer_match",
+        "punti_ferita_primary_reviewed",
+        "punti_ferita_comparison_reviewed",
+        "velocita_peer_match",
+        "velocita_primary_reviewed",
+        "velocita_comparison_reviewed",
+    )
+    return {
+        key: payload[key]
+        for key in keys
+        if type(payload.get(key)) is bool
+    }
+
+
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
     identifier = item.get("record_id")
     return {
@@ -340,6 +367,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                 or {},
                 "ki_rin_core_profile": _public_ki_rin_core_profile(
                     diagnostics.get("ki_rin_core_profile")
+                ),
+                "mago_apprendista_profile": _public_mago_apprendista_profile(
+                    diagnostics.get("mago_apprendista_profile")
                 ),
                 "exact_identity_candidates": {
                     path: _count(diagnostics[key])

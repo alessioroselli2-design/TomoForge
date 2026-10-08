@@ -66,6 +66,32 @@ def _report():
     }
 
 
+def test_mago_apprendista_profile_exposes_only_safe_boolean_evidence():
+    payload = {
+        "primary_single_candidate": True,
+        "comparison_single_candidate": True,
+        "primary_name_exact": False,
+        "comparison_name_exact": True,
+        "classe_armatura_peer_match": False,
+        "punti_ferita_primary_reviewed": True,
+        "velocita_comparison_reviewed": True,
+        "private": PRIVATE,
+        "source_text": "Classe Armatura 123",
+    }
+    public = runner._public_mago_apprendista_profile(payload)
+    assert public == {
+        "primary_single_candidate": True,
+        "comparison_single_candidate": True,
+        "primary_name_exact": False,
+        "comparison_name_exact": True,
+        "classe_armatura_peer_match": False,
+        "punti_ferita_primary_reviewed": True,
+        "velocita_comparison_reviewed": True,
+    }
+    assert PRIVATE not in json.dumps(public)
+    assert "123" not in json.dumps(public)
+
+
 def test_ki_rin_profile_exports_only_allowlisted_booleans():
     payload = {
         "primary_gate_clean": True,

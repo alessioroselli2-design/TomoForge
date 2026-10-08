@@ -9116,6 +9116,70 @@ def _agreed_target_candidate(
                         )
                     )
 
+        mago_apprendista_profile: dict[str, bool] = {}
+        if target_name == "Mago Apprendista":
+            primary_page = [
+                item
+                for item in primary
+                if int(item.get("start_page") or 0) == target_page
+            ]
+            comparison_page = [
+                item
+                for item in comparison
+                if int(item.get("start_page") or 0) == target_page
+            ]
+            mago_apprendista_profile["primary_single_candidate"] = (
+                len(primary_page) == 1
+            )
+            mago_apprendista_profile["comparison_single_candidate"] = (
+                len(comparison_page) == 1
+            )
+            if len(primary_page) == len(comparison_page) == 1:
+                primary_attrs = primary_page[0].get("attributes") or {}
+                comparison_attrs = comparison_page[0].get("attributes") or {}
+                reviewed = {
+                    "classe_armatura": "10 (13 con armatura magica)",
+                    "punti_ferita": "13 (3d8)",
+                    "velocita": "9 m",
+                }
+                agreed = deterministic_core_field_matches(
+                    primary_attrs, comparison_attrs
+                )
+                primary_reviewed = deterministic_core_field_matches(
+                    primary_attrs, reviewed
+                )
+                comparison_reviewed = deterministic_core_field_matches(
+                    comparison_attrs, reviewed
+                )
+                mago_apprendista_profile.update(
+                    primary_name_exact=(
+                        primary_page[0].get("normalized_name")
+                        == normalized_target
+                    ),
+                    comparison_name_exact=(
+                        comparison_page[0].get("normalized_name")
+                        == normalized_target
+                    ),
+                    primary_gate_clean=not bool(
+                        monster_semantic_numeric_flags(primary_attrs)
+                    ),
+                    comparison_gate_clean=not bool(
+                        monster_semantic_numeric_flags(comparison_attrs)
+                    ),
+                )
+                for field in ("classe_armatura", "punti_ferita", "velocita"):
+                    mago_apprendista_profile[f"{field}_peer_match"] = bool(
+                        agreed.get(f"{field}_deterministic_match", False)
+                    )
+                    mago_apprendista_profile[f"{field}_primary_reviewed"] = bool(
+                        primary_reviewed.get(
+                            f"{field}_deterministic_match", False
+                        )
+                    )
+                    mago_apprendista_profile[f"{field}_comparison_reviewed"] = bool(
+                        comparison_reviewed.get(
+                            f"{field}_deterministic_match", False
+                        )
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
@@ -9125,6 +9189,11 @@ def _agreed_target_candidate(
                     "comparison_exact_candidates": len(comparison_exact),
                     "primary_compatible_candidates": len(primary_compatible),
                     "comparison_compatible_candidates": len(comparison_compatible),
+                    **(
+                        {"mago_apprendista_profile": mago_apprendista_profile}
+                        if target_name == "Mago Apprendista"
+                        else {}
+                    ),
                     **(
                         {"compatible_fallback": compatible_fallback_diagnostics}
                         if target_name
