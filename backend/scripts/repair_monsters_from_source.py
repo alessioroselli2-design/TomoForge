@@ -904,6 +904,7 @@ SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES = frozenset(
     {
         "Danzatore Dell'Ombra",
         "Duergar Martellatore",
+        "Hobgoblin Ombra Di Ferro",
         "Warlock Del Grande Antico",
         "Xvart Warlock Di Raxivort",
     }
@@ -8166,6 +8167,108 @@ def _agreed_target_candidate(
         primary_compatible = compatible_targets(primary)
         comparison_compatible = compatible_targets(comparison)
         compatible_fallback_diagnostics: dict[str, Any] = {}
+
+        # MPMM page 49: the title survives in both independent OCR texts,
+        # but the stat-block parser may attach a noisy name to its sole header.
+        # Never infer identity from a nearby block unless both OCR passes
+        # independently support one title and one matching, clean core.
+        if (
+            target_name == "Hobgoblin Ombra Di Ferro"
+            and (len(primary_exact) != 1 or len(comparison_exact) != 1)
+        ):
+            primary_page = [
+                item for item in primary
+                if int(item.get("start_page") or 0) == target_page
+            ]
+            comparison_page = [
+                item for item in comparison
+                if int(item.get("start_page") or 0) == target_page
+            ]
+            primary_counts = _identity_source_counts(
+                primary_pages, primary, target_name, target_page
+            )
+            comparison_counts = _identity_source_counts(
+                comparison_pages, comparison, target_name, target_page
+            )
+            reviewed_core = {
+                "classe_armatura": "15 (difesa senza armatura)",
+                "punti_ferita": "32 (5d8 + 10)",
+                "velocita": "12 m",
+            }
+            structure = all(
+                counts.get("exact_title_lines") == 1
+                and counts.get("parser_valid_headers") == 1
+                and counts.get("candidates_on_page") == 1
+                and counts.get("anchors_with_descriptor") == 1
+                and counts.get("anchors_with_hp") == 1
+                and counts.get("anchors_with_speed") == 1
+                for counts in (primary_counts, comparison_counts)
+            )
+            one_each = len(primary_page) == len(comparison_page) == 1
+            primary_core = (primary_page[0].get("attributes") or {}) if one_each else {}
+            comparison_core = (
+                (comparison_page[0].get("attributes") or {}) if one_each else {}
+            )
+            deterministic = deterministic_core_field_matches(
+                primary_core, comparison_core
+            )
+            primary_reviewed = deterministic_core_field_matches(
+                primary_core, reviewed_core
+            )
+            comparison_reviewed = deterministic_core_field_matches(
+                comparison_core, reviewed_core
+            )
+            fields = ("classe_armatura", "punti_ferita", "velocita")
+            agrees = {
+                field: bool(deterministic.get(f"{field}_deterministic_match", False))
+                for field in fields
+            }
+            match_reviewed = {
+                field: bool(
+                    primary_reviewed.get(f"{field}_deterministic_match", False)
+                    and comparison_reviewed.get(f"{field}_deterministic_match", False)
+                )
+                for field in fields
+            }
+            primary_flags = sorted(monster_semantic_numeric_flags(primary_core))
+            comparison_flags = sorted(monster_semantic_numeric_flags(comparison_core))
+            compatible_fallback_diagnostics = {
+                "eligible_name": True,
+                "primary_exact_title_lines": primary_counts.get("exact_title_lines", 0),
+                "comparison_exact_title_lines": comparison_counts.get("exact_title_lines", 0),
+                "primary_gate_flags": primary_flags,
+                "comparison_gate_flags": comparison_flags,
+                "core_match": agrees,
+            }
+            if (
+                structure
+                and one_each
+                and not primary_flags
+                and not comparison_flags
+                and all(agrees.values())
+                and all(match_reviewed.values())
+            ):
+                primary_target = dict(primary_page[0])
+                comparison_target = dict(comparison_page[0])
+                for item in (primary_target, comparison_target):
+                    item["name"] = target_name
+                    item["normalized_name"] = normalized_target
+                primary_exact = [primary_target]
+                comparison_exact = [comparison_target]
+                print(
+                    "MPMM_HOBGOBLIN_PAGE_SINGLETON_CORE_FALLBACK "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "source_page": target_page,
+                            "two_independent_unique_structures": True,
+                            "reviewed_core_exact_match": True,
+                            "numeric_values_modified": False,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
 
         if (
             (len(primary_exact) != 1 or len(comparison_exact) != 1)

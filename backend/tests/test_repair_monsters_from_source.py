@@ -4419,6 +4419,58 @@ def test_duergar_guardia_one_side_exact_fallback_keeps_core_gates():
     } == attributes
 
 
+@pytest.mark.parametrize("mutation", ["none", "title_missing", "core_changed", "two_blocks"])
+def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mutation):
+    target = "Hobgoblin Ombra Di Ferro"
+    core = {
+        "classe_armatura": "15 (difesa senza armatura)",
+        "punti_ferita": "32 (5d8 + 10)",
+        "velocita": "12 m",
+    }
+    candidate = {
+        "name": "HOBGOBLIN OMBRA DI FERRO OCR",
+        "normalized_name": "hobgoblin ombra di ferro ocr",
+        "start_page": 49,
+        "source_refs": [{"page": 49}],
+        "attributes": dict(core),
+    }
+    primary = [candidate]
+    comparison = [dict(candidate)]
+    if mutation == "core_changed":
+        comparison[0]["attributes"] = {**core, "punti_ferita": "37 (5d8 + 15)"}
+    if mutation == "two_blocks":
+        primary.append({**candidate, "name": "OTHER"})
+
+    def counts(_pages, records, _name, _page):
+        return {
+            "exact_title_lines": 0 if mutation == "title_missing" else 1,
+            "parser_valid_headers": len(records),
+            "candidates_on_page": len(records),
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+        }
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=counts),
+    ):
+        if mutation == "none":
+            result = _agreed_target_candidate(
+                [], [], "source.pdf", "it", target, 49,
+                require_exact_target_identity=True,
+            )
+            assert result["attributes"]["punti_ferita"] == core["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked) as blocked:
+                _agreed_target_candidate(
+                    [], [], "source.pdf", "it", target, 49,
+                    require_exact_target_identity=True,
+                )
+            assert blocked.value.reason == "no_unique_exact_target_identity"
+
+
 def test_duergar_guardia_repairs_hp_and_short_speed_suffix_together():
     target = "Duergar Guardia Di Pietra"
     clean = {
