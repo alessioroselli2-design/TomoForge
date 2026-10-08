@@ -66,6 +66,27 @@ def _report():
     }
 
 
+def test_mago_divinatore_segment_reuses_boolean_only_sanitizer():
+    event = runner._public_martellatore_segment_event(
+        {
+            "segment": "left",
+            "primary_target_anchor": True,
+            "comparison_target_anchor": True,
+            "primary_hp_label": True,
+            "comparison_hp_label": True,
+            "private_ocr": PRIVATE,
+        }
+    )
+    assert event == {
+        "segment": "left",
+        "primary_target_anchor": True,
+        "comparison_target_anchor": True,
+        "primary_hp_label": True,
+        "comparison_hp_label": True,
+    }
+    assert PRIVATE not in json.dumps(event)
+
+
 def test_mago_apprendista_segment_exports_only_safe_flags():
     event = runner._public_martellatore_segment_event(
         {

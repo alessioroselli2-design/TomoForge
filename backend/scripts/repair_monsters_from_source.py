@@ -6990,7 +6990,11 @@ def _ocr_source_window(
                             )
                         )
                     if (
-                        name in {"Esploratore Di Bronzo", "Mago Apprendista"}
+                        name in {
+                            "Esploratore Di Bronzo",
+                            "Mago Apprendista",
+                            "Mago Divinatore",
+                        }
                         and not sparse_full_page
                     ):
 
@@ -7010,11 +7014,10 @@ def _ocr_source_window(
                             )
 
                         print(
-                            (
-                                "MPMM_MAGO_APPRENDISTA_SEGMENT_DIAGNOSTIC "
-                                if name == "Mago Apprendista"
-                                else "MPMM_ESPLORATORE_SEGMENT_DIAGNOSTIC "
-                            )
+                            {
+                                "Mago Apprendista": "MPMM_MAGO_APPRENDISTA_SEGMENT_DIAGNOSTIC ",
+                                "Mago Divinatore": "MPMM_MAGO_DIVINATORE_SEGMENT_DIAGNOSTIC ",
+                            }.get(name, "MPMM_ESPLORATORE_SEGMENT_DIAGNOSTIC ")
                             + json.dumps(
                                 {
                                     "segment": segment_name,

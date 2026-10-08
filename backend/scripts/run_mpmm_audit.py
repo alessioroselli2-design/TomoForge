@@ -710,6 +710,7 @@ def main() -> int:
             martellatore_segment_diagnostics: list[dict[str, Any]] = []
             esploratore_segment_diagnostics: list[dict[str, Any]] = []
             mago_apprendista_segment_diagnostics: list[dict[str, Any]] = []
+            mago_divinatore_segment_diagnostics: list[dict[str, Any]] = []
             esploratore_tsv_diagnostics: list[dict[str, Any]] = []
             esploratore_registered_core_probe: dict[str, bool] | None = None
             for line in runtime_output:
@@ -757,6 +758,14 @@ def main() -> int:
                     event = _public_martellatore_segment_event(payload)
                     if event is not None and len(mago_apprendista_segment_diagnostics) < 16:
                         mago_apprendista_segment_diagnostics.append(event)
+                elif stripped.startswith("MPMM_MAGO_DIVINATORE_SEGMENT_DIAGNOSTIC "):
+                    try:
+                        payload = json.loads(stripped.split(" ", 1)[1])
+                    except (json.JSONDecodeError, IndexError):
+                        continue
+                    event = _public_martellatore_segment_event(payload)
+                    if event is not None and len(mago_divinatore_segment_diagnostics) < 16:
+                        mago_divinatore_segment_diagnostics.append(event)
                 elif stripped.startswith("MPMM_ESPLORATORE_TSV_CORE_DIAGNOSTIC "):
                     try:
                         payload = json.loads(stripped.split(" ", 1)[1])
@@ -788,6 +797,9 @@ def main() -> int:
             )
             public["mago_apprendista_segment_diagnostics"] = (
                 mago_apprendista_segment_diagnostics
+            )
+            public["mago_divinatore_segment_diagnostics"] = (
+                mago_divinatore_segment_diagnostics
             )
             public["esploratore_tsv_diagnostics"] = (
                 esploratore_tsv_diagnostics
