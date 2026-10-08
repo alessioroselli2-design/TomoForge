@@ -8283,7 +8283,9 @@ def _agreed_target_candidate(
                             "source_page": target_page,
                             "two_independent_unique_structures": True,
                             "reviewed_core_exact_match": True,
-                            "primary_hp_repaired_from_reviewed_peer": bool(reviewed_peer_hp),
+                            "primary_hp_repaired_from_reviewed_peer": bool(
+                                reviewed_peer_hp
+                            ),
                             "database_core_modified": False,
                         },
                         ensure_ascii=False,
