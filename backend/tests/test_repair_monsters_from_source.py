@@ -4419,7 +4419,7 @@ def test_duergar_guardia_one_side_exact_fallback_keeps_core_gates():
     } == attributes
 
 
-@pytest.mark.parametrize("mutation", ["none", "title_missing", "core_changed", "two_blocks"])
+@pytest.mark.parametrize("mutation", ["none", "title_missing", "core_changed", "two_blocks", "one_bad_hp", "bad_hp_and_bad_peer"])
 def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mutation):
     target = "Hobgoblin Ombra Di Ferro"
     core = {
@@ -4438,6 +4438,10 @@ def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mut
     comparison = [dict(candidate)]
     if mutation == "core_changed":
         comparison[0]["attributes"] = {**core, "punti_ferita": "37 (5d8 + 15)"}
+    if mutation in {"one_bad_hp", "bad_hp_and_bad_peer"}:
+        primary[0]["attributes"] = {**core, "punti_ferita": "3 2 (5 8 10)"}
+    if mutation == "bad_hp_and_bad_peer":
+        comparison[0]["attributes"] = {**core, "punti_ferita": "40 (5d8 + 18)"}
     if mutation == "two_blocks":
         primary.append({**candidate, "name": "OTHER"})
 
@@ -4456,7 +4460,7 @@ def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mut
         patch.object(repair, "_candidate_matches_target", return_value=False),
         patch.object(repair, "_identity_source_counts", side_effect=counts),
     ):
-        if mutation == "none":
+        if mutation in {"none", "one_bad_hp"}:
             result = _agreed_target_candidate(
                 [], [], "source.pdf", "it", target, 49,
                 require_exact_target_identity=True,

@@ -8172,16 +8172,17 @@ def _agreed_target_candidate(
         # but the stat-block parser may attach a noisy name to its sole header.
         # Never infer identity from a nearby block unless both OCR passes
         # independently support one title and one matching, clean core.
-        if (
-            target_name == "Hobgoblin Ombra Di Ferro"
-            and (len(primary_exact) != 1 or len(comparison_exact) != 1)
+        if target_name == "Hobgoblin Ombra Di Ferro" and (
+            len(primary_exact) != 1 or len(comparison_exact) != 1
         ):
             primary_page = [
-                item for item in primary
+                item
+                for item in primary
                 if int(item.get("start_page") or 0) == target_page
             ]
             comparison_page = [
-                item for item in comparison
+                item
+                for item in comparison
                 if int(item.get("start_page") or 0) == target_page
             ]
             primary_counts = _identity_source_counts(
@@ -8235,21 +8236,40 @@ def _agreed_target_candidate(
             compatible_fallback_diagnostics = {
                 "eligible_name": True,
                 "primary_exact_title_lines": primary_counts.get("exact_title_lines", 0),
-                "comparison_exact_title_lines": comparison_counts.get("exact_title_lines", 0),
+                "comparison_exact_title_lines": comparison_counts.get(
+                    "exact_title_lines", 0
+                ),
                 "primary_gate_flags": primary_flags,
                 "comparison_gate_flags": comparison_flags,
                 "core_match": agrees,
             }
-            if (
-                structure
-                and one_each
-                and not primary_flags
+            # One OCR pass may lose the HP dice expression. Reuse the
+            # independently clean peer ONLY when its full core equals the
+            # separately reviewed MPMM source, with CA/speed agreed in both.
+            primary_hp_only_error = primary_flags == [HP_FORMAT_ERROR_FLAG]
+            ca_speed_verified = all(
+                agrees[field] and match_reviewed[field]
+                for field in ("classe_armatura", "velocita")
+            )
+            clean_two_passes = (
+                not primary_flags
                 and not comparison_flags
                 and all(agrees.values())
                 and all(match_reviewed.values())
-            ):
+            )
+            reviewed_peer_hp = (
+                primary_hp_only_error
+                and not comparison_flags
+                and ca_speed_verified
+                and comparison_reviewed.get("punti_ferita_deterministic_match", False)
+            )
+            if structure and one_each and (clean_two_passes or reviewed_peer_hp):
                 primary_target = dict(primary_page[0])
                 comparison_target = dict(comparison_page[0])
+                if reviewed_peer_hp:
+                    repaired_attrs = dict(primary_core)
+                    repaired_attrs["punti_ferita"] = comparison_core["punti_ferita"]
+                    primary_target["attributes"] = repaired_attrs
                 for item in (primary_target, comparison_target):
                     item["name"] = target_name
                     item["normalized_name"] = normalized_target
@@ -8263,7 +8283,8 @@ def _agreed_target_candidate(
                             "source_page": target_page,
                             "two_independent_unique_structures": True,
                             "reviewed_core_exact_match": True,
-                            "numeric_values_modified": False,
+                            "primary_hp_repaired_from_reviewed_peer": bool(reviewed_peer_hp),
+                            "database_core_modified": False,
                         },
                         ensure_ascii=False,
                         sort_keys=True,
