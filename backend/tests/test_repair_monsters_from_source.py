@@ -1925,6 +1925,7 @@ def test_martellatore_uses_exact_title_compatible_fallback_only():
 def test_mago_apprendista_registered_page_69_column_probe_is_scoped():
     identifier = "ref_e14604cbec0a5306918cca5f4e74d639"
     assert repair.SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID[identifier] == 69
+    assert repair.TARGET_SEGMENT_BY_NAME["Mago Apprendista"] == "right"
     assert "Mago Apprendista" not in repair.SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES
 
 

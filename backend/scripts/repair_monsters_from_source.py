@@ -1019,6 +1019,7 @@ PRE_OTSU_SCALE_BY_TARGET = {
 }
 TARGET_SEGMENT_BY_NAME = {
     # Bounded fail-closed column probe; exact identity is still required.
+    "Mago Apprendista": "right",  # Page 69: target and core co-located only on right
     "Danzatore Dell'Ombra": "right",
     "Duergar Martellatore": "left",
     "Derro": "right",  # Page 93: ordinary stat block; Sapiente is on page 94
