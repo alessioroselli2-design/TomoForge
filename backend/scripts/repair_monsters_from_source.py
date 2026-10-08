@@ -883,8 +883,8 @@ MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
 )
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_2d833b3db343531b8cbe0669197259bd": 81,  # Mitragliatore Di Quercia: other registered physical page; fail-closed pilot
-    "ref_7b7dfa362c875ee09468b31a64c96a5a": 89,  # Moloch: another originally registered page for independent read
-    "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
+    "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
+    "ref_f0919b1e8ef955a19953d273054accaf": 68,  # Mago Invocatore: other registered physical page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: diagnose alternate registered-page columns
     "ref_6a30875b811b5a9982e1afd61f80126b": 56,  # Juiblex: registered alternative page
