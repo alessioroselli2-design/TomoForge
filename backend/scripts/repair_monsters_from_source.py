@@ -9180,6 +9180,7 @@ def _agreed_target_candidate(
                         comparison_reviewed.get(
                             f"{field}_deterministic_match", False
                         )
+                    )
         if len(primary_exact) != 1 or len(comparison_exact) != 1:
             raise RepairBlocked(
                 "no_unique_exact_target_identity",
