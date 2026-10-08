@@ -9976,6 +9976,72 @@ def _agreed_target_candidate(
                 )
                 return candidate
 
+        ki_rin_profile: dict[str, bool] = {}
+        if (
+            target_name == "Ki-Rin"
+            and len(primary_name_candidates) == 1
+            and len(comparison_name_candidates) == 1
+        ):
+            left_attrs = primary_name_candidates[0].get("attributes") or {}
+            right_attrs = comparison_name_candidates[0].get("attributes") or {}
+            ki_det = deterministic_core_field_matches(left_attrs, right_attrs)
+            ki_sem = semantic_core_field_matches(left_attrs, right_attrs)
+            ki_edit = residual_single_edit_core_field_matches(left_attrs, right_attrs)
+            ki_shape = residual_shape_core_field_matches(left_attrs, right_attrs)
+            ki_speed = speed_single_extra_token_profile(left_attrs, right_attrs)
+            ki_rin_profile = {
+                "primary_gate_clean": not bool(
+                    monster_semantic_numeric_flags(left_attrs)
+                ),
+                "comparison_gate_clean": not bool(
+                    monster_semantic_numeric_flags(right_attrs)
+                ),
+                "ca_semantic_match": bool(
+                    ki_sem.get("classe_armatura_semantic_match", False)
+                ),
+                "speed_semantic_match": bool(
+                    ki_sem.get("velocita_semantic_match", False)
+                ),
+                "ca_deterministic_match": bool(
+                    ki_det.get("classe_armatura_deterministic_match", False)
+                ),
+                "speed_deterministic_match": bool(
+                    ki_det.get("velocita_deterministic_match", False)
+                ),
+                "ca_residual_single_edit": bool(
+                    ki_edit.get("classe_armatura_residual_single_edit_match", False)
+                ),
+                "speed_residual_single_edit": bool(
+                    ki_edit.get("velocita_residual_single_edit_match", False)
+                ),
+                "ca_residual_non_alphanumeric": bool(
+                    ki_shape.get(
+                        "classe_armatura_residual_non_alphanumeric_only_variation",
+                        False,
+                    )
+                ),
+                "speed_residual_non_alphanumeric": bool(
+                    ki_shape.get(
+                        "velocita_residual_non_alphanumeric_only_variation",
+                        False,
+                    )
+                ),
+                "speed_extra_short_suffix": bool(
+                    ki_shape.get(
+                        "velocita_residual_single_extra_alpha_token_suffix", False
+                    )
+                    and ki_shape.get(
+                        "velocita_residual_single_extra_alpha_token_short_lt3", False
+                    )
+                ),
+                "speed_extra_single_token": bool(
+                    any(ki_speed.values())
+                ),
+                "both_from_same_page": (
+                    int(primary_name_candidates[0].get("start_page") or 0)
+                    == int(comparison_name_candidates[0].get("start_page") or 0)
+                ),
+            }
         raise RepairBlocked(
             "no_unique_independent_agreement",
             f"matching independently-agreed candidates={len(matches)}",
@@ -9989,6 +10055,7 @@ def _agreed_target_candidate(
                 "exact_name_match_count": exact_name_match_count,
                 "containment_match_count": containment_match_count,
                 "divergent_core_fields": sorted(divergent_fields),
+                "ki_rin_core_profile": ki_rin_profile,
                 "discarded_pairs": discarded_pairs,
                 "target_normalized_name": target_normalized,
                 "target_page": target_page,

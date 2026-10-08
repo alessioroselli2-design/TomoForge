@@ -241,6 +241,31 @@ def _public_esploratore_registered_core_probe(
     return result if result else None
 
 
+def _public_ki_rin_core_profile(payload: Any) -> dict[str, bool]:
+    if not isinstance(payload, dict):
+        return {}
+    keys = (
+        "primary_gate_clean",
+        "comparison_gate_clean",
+        "ca_semantic_match",
+        "speed_semantic_match",
+        "ca_deterministic_match",
+        "speed_deterministic_match",
+        "ca_residual_single_edit",
+        "speed_residual_single_edit",
+        "ca_residual_non_alphanumeric",
+        "speed_residual_non_alphanumeric",
+        "speed_extra_short_suffix",
+        "speed_extra_single_token",
+        "both_from_same_page",
+    )
+    return {
+        key: payload[key]
+        for key in keys
+        if type(payload.get(key)) is bool
+    }
+
+
 def _record_metadata(item: dict[str, Any]) -> dict[str, Any]:
     identifier = item.get("record_id")
     return {
@@ -307,6 +332,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                     {"reason": reason, **diagnostics}
                 )
                 or {},
+                "ki_rin_core_profile": _public_ki_rin_core_profile(
+                    diagnostics.get("ki_rin_core_profile")
+                ),
                 "exact_identity_candidates": {
                     path: _count(diagnostics[key])
                     for path, key in (

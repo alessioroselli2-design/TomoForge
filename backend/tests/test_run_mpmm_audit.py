@@ -66,6 +66,27 @@ def _report():
     }
 
 
+def test_ki_rin_profile_exports_only_allowlisted_booleans():
+    payload = {
+        "primary_gate_clean": True,
+        "comparison_gate_clean": True,
+        "ca_semantic_match": False,
+        "speed_extra_short_suffix": True,
+        "both_from_same_page": True,
+        "source_value": PRIVATE,
+        "ca_raw": "20 (PRIVATE)",
+    }
+    public = runner._public_ki_rin_core_profile(payload)
+    assert public == {
+        "primary_gate_clean": True,
+        "comparison_gate_clean": True,
+        "ca_semantic_match": False,
+        "speed_extra_short_suffix": True,
+        "both_from_same_page": True,
+    }
+    assert PRIVATE not in json.dumps(public)
+
+
 def test_segment_diagnostic_sanitizer_keeps_only_allowlisted_booleans():
     payload = {
         "segment": "left",
