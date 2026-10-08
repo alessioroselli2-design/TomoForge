@@ -1935,23 +1935,6 @@ def test_mago_apprendista_hp_label_correction_rejects_ambiguity():
     assert repair._canonicalize_mago_apprendista_hp_label(untouched) == untouched
 
 
-def test_mago_divinatore_adjacent_source_probe_is_bounded():
-    source = {"logical_source_id": "mpmm_2022_it"}
-    assert repair._source_guided_page_bounds(
-        68, 100, source, "Mago Divinatore", target_page_only=False
-    ) == (68, 69)
-    assert repair._source_guided_page_bounds(
-        68, 100, source, "Mago Divinatore", target_page_only=True
-    ) == (68, 68)
-    assert repair._source_guided_page_bounds(
-        68, 100, {"logical_source_id": "other"}, "Mago Divinatore",
-        target_page_only=False,
-    ) == (67, 69)
-    assert repair._source_guided_page_bounds(
-        68, 100, source, "Mago Invocatore", target_page_only=False
-    ) == (67, 69)
-
-
 def test_mago_apprendista_right_segment_is_source_scoped():
     assert repair.TARGET_SEGMENT_BY_NAME["Mago Apprendista"] == "right"
     assert repair.TARGET_SEGMENT_BY_NAME["Duergar Martellatore"] == "left"

@@ -962,6 +962,7 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_10a974bfc32a521c8d9a8db1aab0123d",  # Orthon: sole registered page 12
     "ref_f0919b1e8ef955a19953d273054accaf",  # Mago Invocatore: selected registered page 72
     "ref_95407fdd26ae57e88fc3943545bd5cc4",  # Mago Trasmutatore: sole registered page 74
+    "ref_3986eba313495283bfe6b6f843891add",  # Mago Divinatore: sole registered page 68
     "ref_90b64fd6ac3057ee8ab373bb0be776a8",  # Mago Illusionista: selected registered page 68
     "ref_4ea78cedcefc5ac885f0d93dcffba7ae",  # Leviatano: sole registered page 66
     "ref_e14604cbec0a5306918cca5f4e74d639",  # Mago Apprendista: selected registered page 69
@@ -6419,28 +6420,6 @@ def _mago_apprendista_scoped_psms(
     return primary_psm, secondary_psm
 
 
-def _source_guided_page_bounds(
-    target_page: int,
-    page_total: int,
-    source: dict[str, Any],
-    name: str,
-    *,
-    target_page_only: bool,
-) -> tuple[int, int]:
-    """Keep page probes bounded while protecting all unrelated monsters."""
-    if (
-        name == "Mago Divinatore"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 68
-        and not target_page_only
-    ):
-        # Diagnostic-only adjacent page; exact identity still gates all writes.
-        return target_page, min(page_total, target_page + 1)
-    if target_page_only:
-        return target_page, target_page
-    return max(1, target_page - 1), min(page_total, target_page + 1)
-
-
 def _ocr_source_window(
     pdf_path: Path,
     target_page: int,
@@ -6464,13 +6443,12 @@ def _ocr_source_window(
     """OCR <=3 pages, isolating columns and any quality-fail segment."""
     import fitz
 
-    start_page, end_page = _source_guided_page_bounds(
-        target_page,
-        page_total,
-        source,
-        name,
-        target_page_only=target_page_only,
-    )
+    if target_page_only:
+        start_page = target_page
+        end_page = target_page
+    else:
+        start_page = max(1, target_page - 1)
+        end_page = min(page_total, target_page + 1)
     if end_page - start_page + 1 > 3:
         raise AssertionError(
             "source-guided repair window unexpectedly exceeded 3 pages"
