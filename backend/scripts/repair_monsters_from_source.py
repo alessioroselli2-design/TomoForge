@@ -6142,15 +6142,14 @@ def _esploratore_registered_core_probe(
                         result[f"{pass_label}_any_two_core_match"]
                         or sum(field_matches.values()) >= 2
                     )
-                    result[f"{pass_label}_any_semantic_three_core_match"] = (
-                        result[f"{pass_label}_any_semantic_three_core_match"]
-                        or all(
-                            semantic.get(f"{field}_semantic_match", False)
-                            for field in (
-                                "classe_armatura",
-                                "punti_ferita",
-                                "velocita",
-                            )
+                    result[f"{pass_label}_any_semantic_three_core_match"] = result[
+                        f"{pass_label}_any_semantic_three_core_match"
+                    ] or all(
+                        semantic.get(f"{field}_semantic_match", False)
+                        for field in (
+                            "classe_armatura",
+                            "punti_ferita",
+                            "velocita",
                         )
                     )
                     if gate_clean and all(field_matches.values()):
@@ -6793,9 +6792,7 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
-                    esploratore_tsv_diagnostics: list[
-                        dict[str, bool | int]
-                    ] = []
+                    esploratore_tsv_diagnostics: list[dict[str, bool | int]] = []
                     if (
                         name == "Esploratore Di Bronzo"
                         and page_number == target_page
