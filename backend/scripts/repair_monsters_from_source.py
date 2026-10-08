@@ -6961,7 +6961,7 @@ def _ocr_source_window(
                                 sort_keys=True,
                             )
                         )
-                    if name == "Esploratore Di Bronzo" and not sparse_full_page:
+                    if name in {"Esploratore Di Bronzo", "Mago Apprendista"} and not sparse_full_page:
 
                         def _esploratore_has_title_anchor(text: str) -> bool:
                             lines = [
@@ -6979,7 +6979,11 @@ def _ocr_source_window(
                             )
 
                         print(
-                            "MPMM_ESPLORATORE_SEGMENT_DIAGNOSTIC "
+                            (
+                                "MPMM_MAGO_APPRENDISTA_SEGMENT_DIAGNOSTIC "
+                                if name == "Mago Apprendista"
+                                else "MPMM_ESPLORATORE_SEGMENT_DIAGNOSTIC "
+                            )
                             + json.dumps(
                                 {
                                     "segment": segment_name,

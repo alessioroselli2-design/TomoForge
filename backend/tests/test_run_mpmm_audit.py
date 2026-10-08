@@ -66,6 +66,32 @@ def _report():
     }
 
 
+def test_mago_apprendista_segment_exports_only_safe_flags():
+    event = runner._public_martellatore_segment_event(
+        {
+            "segment": "left",
+            "page_offset": 0,
+            "primary_target_anchor": True,
+            "comparison_target_anchor": False,
+            "primary_ca_label": True,
+            "primary_hp_label": True,
+            "primary_speed_label": True,
+            "source_text": PRIVATE,
+            "unknown_field": "protected",
+        }
+    )
+    assert event == {
+        "segment": "left",
+        "page_offset": 0,
+        "primary_target_anchor": True,
+        "comparison_target_anchor": False,
+        "primary_ca_label": True,
+        "primary_hp_label": True,
+        "primary_speed_label": True,
+    }
+    assert PRIVATE not in json.dumps(event)
+
+
 def test_mago_apprendista_profile_exposes_only_safe_boolean_evidence():
     payload = {
         "primary_single_candidate": True,
