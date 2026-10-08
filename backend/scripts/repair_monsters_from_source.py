@@ -6401,6 +6401,25 @@ def _esploratore_tsv_core_diagnostic(
     }
 
 
+def _mago_apprendista_scoped_psms(
+    name: str,
+    logical_source_id: str,
+    target_page: int,
+    target_page_only: bool,
+    primary_psm: int,
+    secondary_psm: int,
+) -> tuple[int, int]:
+    """Compare independent OCR layouts on the registered source right column."""
+    if (
+        name == "Mago Apprendista"
+        and logical_source_id == "mpmm_2022_it"
+        and target_page == 69
+        and target_page_only
+    ):
+        return 6, 4
+    return primary_psm, secondary_psm
+
+
 def _ocr_source_window(
     pdf_path: Path,
     target_page: int,
@@ -6442,6 +6461,14 @@ def _ocr_source_window(
         dpi=dpi,
         psm=psm,
         comparison_psm=comparison_psm,
+    )
+    primary_psm, secondary_psm = _mago_apprendista_scoped_psms(
+        name,
+        str(source.get("logical_source_id") or ""),
+        target_page,
+        target_page_only,
+        primary_psm,
+        secondary_psm,
     )
     if name == "Bodak":
         primary_psm, secondary_psm = 6, 11
