@@ -258,6 +258,12 @@ def _public_ki_rin_core_profile(payload: Any) -> dict[str, bool]:
         "speed_extra_short_suffix",
         "speed_extra_single_token",
         "both_from_same_page",
+        "ca_primary_reviewed_exact",
+        "ca_comparison_reviewed_exact",
+        "hp_primary_reviewed_exact",
+        "hp_comparison_reviewed_exact",
+        "speed_primary_reviewed_exact",
+        "speed_comparison_reviewed_exact",
     )
     return {
         key: payload[key]

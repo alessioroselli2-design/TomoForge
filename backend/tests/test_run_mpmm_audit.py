@@ -73,6 +73,8 @@ def test_ki_rin_profile_exports_only_allowlisted_booleans():
         "ca_semantic_match": False,
         "speed_extra_short_suffix": True,
         "both_from_same_page": True,
+        "ca_primary_reviewed_exact": True,
+        "speed_comparison_reviewed_exact": False,
         "source_value": PRIVATE,
         "ca_raw": "20 (PRIVATE)",
     }
@@ -83,6 +85,8 @@ def test_ki_rin_profile_exports_only_allowlisted_booleans():
         "ca_semantic_match": False,
         "speed_extra_short_suffix": True,
         "both_from_same_page": True,
+        "ca_primary_reviewed_exact": True,
+        "speed_comparison_reviewed_exact": False,
     }
     assert PRIVATE not in json.dumps(public)
 

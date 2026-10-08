@@ -10034,12 +10034,34 @@ def _agreed_target_candidate(
                         "velocita_residual_single_extra_alpha_token_short_lt3", False
                     )
                 ),
-                "speed_extra_single_token": bool(
-                    any(ki_speed.values())
-                ),
+                "speed_extra_single_token": bool(any(ki_speed.values())),
                 "both_from_same_page": (
                     int(primary_name_candidates[0].get("start_page") or 0)
                     == int(comparison_name_candidates[0].get("start_page") or 0)
+                ),
+                "ca_primary_reviewed_exact": (
+                    str(left_attrs.get("classe_armatura") or "").strip()
+                    == "20 (armatura naturale)"
+                ),
+                "ca_comparison_reviewed_exact": (
+                    str(right_attrs.get("classe_armatura") or "").strip()
+                    == "20 (armatura naturale)"
+                ),
+                "hp_primary_reviewed_exact": (
+                    str(left_attrs.get("punti_ferita") or "").strip()
+                    == "153 (18d10 + 54)"
+                ),
+                "hp_comparison_reviewed_exact": (
+                    str(right_attrs.get("punti_ferita") or "").strip()
+                    == "153 (18d10 + 54)"
+                ),
+                "speed_primary_reviewed_exact": (
+                    str(left_attrs.get("velocita") or "").strip()
+                    == "18 m, volare 36 m (fluttuare)"
+                ),
+                "speed_comparison_reviewed_exact": (
+                    str(right_attrs.get("velocita") or "").strip()
+                    == "18 m, volare 36 m (fluttuare)"
                 ),
             }
         raise RepairBlocked(
