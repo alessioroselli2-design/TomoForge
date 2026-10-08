@@ -1505,6 +1505,55 @@ def _align_juiblex_reviewed_peer_core(
     )
 
 
+def _ki_rin_source_confirmed_candidate(
+    primary: dict[str, Any],
+    comparison: dict[str, Any],
+    target_page: int,
+    profile: dict[str, bool],
+) -> dict[str, Any] | None:
+    """Only preserve a registered Ki-Rin core corroborated by both OCR paths."""
+    target_normalized = normalize_reference_name("Ki-Rin")
+    if any(
+        str(candidate.get("normalized_name") or "") != target_normalized
+        for candidate in (primary, comparison)
+    ):
+        return None
+    primary_page = int(primary.get("start_page") or 0)
+    comparison_page = int(comparison.get("start_page") or 0)
+    if not (
+        primary_page == comparison_page
+        and primary_page in {57, 58}
+        and abs(primary_page - target_page) <= 1
+    ):
+        return None
+    required_true = (
+        "primary_gate_clean",
+        "comparison_gate_clean",
+        "ca_semantic_match",
+        "speed_semantic_match",
+        "ca_residual_single_edit",
+        "speed_residual_single_edit",
+        "speed_extra_short_suffix",
+        "both_from_same_page",
+        "ca_primary_reviewed_exact",
+        "hp_primary_reviewed_exact",
+        "hp_comparison_reviewed_exact",
+        "speed_primary_reviewed_exact",
+    )
+    if any(profile.get(key) is not True for key in required_true):
+        return None
+    if any(
+        profile.get(key) is not False
+        for key in ("ca_deterministic_match", "speed_deterministic_match")
+    ):
+        return None
+    result = dict(primary)
+    result["name"] = "Ki-Rin"
+    result["normalized_name"] = target_normalized
+    result["attributes"] = dict(primary.get("attributes") or {})
+    return result
+
+
 def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
@@ -10064,6 +10113,36 @@ def _agreed_target_candidate(
                     == "18 m, volare 36 m (fluttuare)"
                 ),
             }
+        if (
+            target_name == "Ki-Rin"
+            and len(primary_name_candidates) == 1
+            and len(comparison_name_candidates) == 1
+        ):
+            reviewed_candidate = _ki_rin_source_confirmed_candidate(
+                primary_name_candidates[0],
+                comparison_name_candidates[0],
+                target_page,
+                ki_rin_profile,
+            )
+            if reviewed_candidate is not None:
+                print(
+                    "MPMM_KI_RIN_REVIEWED_OCR_AGREEMENT "
+                    + json.dumps(
+                        {
+                            "name": target_name,
+                            "source_identity_exact": True,
+                            "primary_core_exact": True,
+                            "comparison_hp_exact": True,
+                            "secondary_ca_single_edit": True,
+                            "secondary_speed_short_suffix": True,
+                            "numeric_values_modified": False,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                return reviewed_candidate
+
         raise RepairBlocked(
             "no_unique_independent_agreement",
             f"matching independently-agreed candidates={len(matches)}",

@@ -470,6 +470,81 @@ def test_target_page_plus_one_requires_multi_token_clean_agreement():
     assert _candidate_matches_target(candidate, "Progenie Stellare Hulk", 19) is False
 
 
+def test_ki_rin_source_confirmed_candidate_fails_closed_on_drift():
+    expected = {
+        "classe_armatura": "20 (armatura naturale)",
+        "punti_ferita": "153 (18d10 + 54)",
+        "velocita": "18 m, volare 36 m (fluttuare)",
+    }
+    primary = {
+        "name": "Ki-Rin",
+        "normalized_name": repair.normalize_reference_name("Ki-Rin"),
+        "start_page": 57,
+        "attributes": dict(expected),
+        "source_refs": [{"page": 57}],
+    }
+    comparison = {
+        **primary,
+        "attributes": {
+            **expected,
+            "classe_armatura": "20 (armatura naturali)",
+            "velocita": "18 m, volare 36 m (fluttuare) i",
+        },
+    }
+    gates = {
+        "primary_gate_clean": True,
+        "comparison_gate_clean": True,
+        "ca_semantic_match": True,
+        "speed_semantic_match": True,
+        "ca_residual_single_edit": True,
+        "speed_residual_single_edit": True,
+        "speed_extra_short_suffix": True,
+        "both_from_same_page": True,
+        "ca_primary_reviewed_exact": True,
+        "hp_primary_reviewed_exact": True,
+        "hp_comparison_reviewed_exact": True,
+        "speed_primary_reviewed_exact": True,
+        "ca_deterministic_match": False,
+        "speed_deterministic_match": False,
+    }
+    confirmed = repair._ki_rin_source_confirmed_candidate(
+        primary, comparison, 57, gates
+    )
+    assert confirmed is not None
+    assert confirmed["attributes"] == expected
+
+    for key in (
+        "ca_semantic_match",
+        "speed_extra_short_suffix",
+        "hp_comparison_reviewed_exact",
+        "primary_gate_clean",
+        "ca_primary_reviewed_exact",
+    ):
+        invalid = dict(gates)
+        invalid[key] = False
+        assert (
+            repair._ki_rin_source_confirmed_candidate(
+                primary, comparison, 57, invalid
+            )
+            is None
+        )
+
+    invalid_primary = {**primary, "normalized_name": "other monster"}
+    assert (
+        repair._ki_rin_source_confirmed_candidate(
+            invalid_primary, comparison, 57, gates
+        )
+        is None
+    )
+    invalid_page = {**comparison, "start_page": 59}
+    assert (
+        repair._ki_rin_source_confirmed_candidate(
+            primary, invalid_page, 57, gates
+        )
+        is None
+    )
+
+
 def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():
     primary = [
         {
