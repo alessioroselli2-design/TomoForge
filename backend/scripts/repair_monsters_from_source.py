@@ -882,6 +882,7 @@ MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
     }
 )
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
+    "ref_8e2b2fc142ed5cf096d0c41996afd065": 74,  # Yeenoghu: registered alternative physical page
     "ref_2d833b3db343531b8cbe0669197259bd": 81,  # Mitragliatore Di Quercia: other registered physical page; fail-closed pilot
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
