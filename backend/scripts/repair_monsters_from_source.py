@@ -10055,7 +10055,11 @@ def _agreed_target_candidate(
                 "exact_name_match_count": exact_name_match_count,
                 "containment_match_count": containment_match_count,
                 "divergent_core_fields": sorted(divergent_fields),
-                "ki_rin_core_profile": ki_rin_profile,
+                **(
+                    {"ki_rin_core_profile": ki_rin_profile}
+                    if target_name == "Ki-Rin"
+                    else {}
+                ),
                 "discarded_pairs": discarded_pairs,
                 "target_normalized_name": target_normalized,
                 "target_page": target_page,
