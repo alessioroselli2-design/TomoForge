@@ -1922,6 +1922,12 @@ def test_martellatore_uses_exact_title_compatible_fallback_only():
     )
 
 
+def test_mago_apprendista_alternate_registered_page_probe_is_scoped():
+    identifier = "ref_e14604cbec0a5306918cca5f4e74d639"
+    assert repair.SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID[identifier] == 68
+    assert "Mago Apprendista" not in repair.SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES
+
+
 def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
     identifier = "ref_583cbd071aec5dc58748c4b27e4005b5"
     assert repair._should_retry_exact_identity_sparse(

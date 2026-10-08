@@ -885,7 +885,7 @@ SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
-    "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: registered alternative page
+    "ref_e14604cbec0a5306918cca5f4e74d639": 68,  # Mago Apprendista: probe alternate registered page (dry-run first)
     "ref_6a30875b811b5a9982e1afd61f80126b": 56,  # Juiblex: registered alternative page
     "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
     "ref_b624eff23c3e543ba8b2c952761eb707": 66,  # Vegepigmeo Spinato: registered stat-block page
