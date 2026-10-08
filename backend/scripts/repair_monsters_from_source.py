@@ -6416,7 +6416,7 @@ def _mago_apprendista_scoped_psms(
         and target_page == 69
         and target_page_only
     ):
-        return 6, 4
+        return 11, 4
     return primary_psm, secondary_psm
 
 

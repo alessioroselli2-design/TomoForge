@@ -1942,7 +1942,7 @@ def test_mago_apprendista_right_segment_is_source_scoped():
 
 def test_mago_apprendista_alternate_psms_are_source_page_scoped():
     setting = repair._mago_apprendista_scoped_psms
-    assert setting("Mago Apprendista", "mpmm_2022_it", 69, True, 3, 4) == (6, 4)
+    assert setting("Mago Apprendista", "mpmm_2022_it", 69, True, 3, 4) == (11, 4)
     assert setting("Mago Apprendista", "mpmm_2022_it", 68, True, 3, 4) == (3, 4)
     assert setting("Mago Apprendista", "other", 69, True, 3, 4) == (3, 4)
     assert setting("Mago Apprendista", "mpmm_2022_it", 69, False, 3, 4) == (3, 4)
