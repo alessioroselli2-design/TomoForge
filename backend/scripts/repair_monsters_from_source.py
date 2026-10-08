@@ -6990,7 +6990,8 @@ def _ocr_source_window(
                             )
                         )
                     if (
-                        name in {
+                        name
+                        in {
                             "Esploratore Di Bronzo",
                             "Mago Apprendista",
                             "Mago Divinatore",
