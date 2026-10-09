@@ -292,12 +292,27 @@ def _multiline_speed_value(text: str) -> str:
         if match is None:
             continue
         value = match.group(1).strip(" .;,")
+        continuation_start = index + 1
         if not value:
-            return ""
+            # On some column OCR layouts the speed label is a standalone line.
+            # Read only the *immediately adjacent* line and only when it
+            # begins with an explicit distance unit; never skip other labels
+            # or borrow a number from a neighboring structural field.
+            if continuation_start >= len(lines):
+                return ""
+            neighbor = lines[continuation_start].strip()
+            if not re.match(
+                r"^(?:\d{1,3}|(?:camminare|nuotare|volare|scalare|scavare)\s+\d{1,3})\s*(?:m|metri|ft|feet)\b",
+                neighbor,
+                flags=re.IGNORECASE,
+            ):
+                return ""
+            value = neighbor.strip(" .;,")
+            continuation_start += 1
         balance = value.count("(") - value.count(")")
         if balance <= 0:
             return value
-        for following in lines[index + 1 : index + 4]:
+        for following in lines[continuation_start : continuation_start + 3]:
             normalized = _norm(following)
             if not following.strip():
                 continue
