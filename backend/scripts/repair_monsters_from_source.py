@@ -8545,8 +8545,16 @@ def _agreed_target_candidate(
         # but the stat-block parser may attach a noisy name to its sole header.
         # Never infer identity from a nearby block unless both OCR passes
         # independently support one title and one matching, clean core.
-        if target_name == "Hobgoblin Ombra Di Ferro" and (
-            len(primary_exact) != 1 or len(comparison_exact) != 1
+        if (
+            (
+                target_name == "Hobgoblin Ombra Di Ferro"
+                or (
+                    target_name == "Warlock Dell'Immondo"
+                    and target_page == 69
+                    and source_filename == "Mostri del multiverso 201-294.pdf"
+                )
+            )
+            and (len(primary_exact) != 1 or len(comparison_exact) != 1)
         ):
             primary_page = [
                 item
@@ -8564,11 +8572,19 @@ def _agreed_target_candidate(
             comparison_counts = _identity_source_counts(
                 comparison_pages, comparison, target_name, target_page
             )
-            reviewed_core = {
-                "classe_armatura": "15 (difesa senza armatura)",
-                "punti_ferita": "32 (5d8 + 10)",
-                "velocita": "12 m",
-            }
+            reviewed_core = (
+                {
+                    "classe_armatura": "13 (16 con armatura magica)",
+                    "punti_ferita": "78 (12d8 + 24)",
+                    "velocita": "9 m",
+                }
+                if target_name == "Warlock Dell'Immondo"
+                else {
+                    "classe_armatura": "15 (difesa senza armatura)",
+                    "punti_ferita": "32 (5d8 + 10)",
+                    "velocita": "12 m",
+                }
+            )
             structure = all(
                 counts.get("exact_title_lines") == 1
                 and counts.get("parser_valid_headers") == 1
@@ -8636,7 +8652,7 @@ def _agreed_target_candidate(
                 and ca_speed_verified
                 and comparison_reviewed.get("punti_ferita_deterministic_match", False)
             )
-            if structure and one_each and (clean_two_passes or reviewed_peer_hp):
+            if structure and one_each and (clean_two_passes or (target_name == "Hobgoblin Ombra Di Ferro" and reviewed_peer_hp)):
                 primary_target = dict(primary_page[0])
                 comparison_target = dict(comparison_page[0])
                 if reviewed_peer_hp:
@@ -8649,7 +8665,11 @@ def _agreed_target_candidate(
                 primary_exact = [primary_target]
                 comparison_exact = [comparison_target]
                 print(
-                    "MPMM_HOBGOBLIN_PAGE_SINGLETON_CORE_FALLBACK "
+                    (
+                        "MPMM_WARLOCK_FIEND_SINGLETON_CORE_FALLBACK "
+                        if target_name == "Warlock Dell'Immondo"
+                        else "MPMM_HOBGOBLIN_PAGE_SINGLETON_CORE_FALLBACK "
+                    )
                     + json.dumps(
                         {
                             "name": target_name,
