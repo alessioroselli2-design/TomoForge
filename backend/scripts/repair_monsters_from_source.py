@@ -934,12 +934,10 @@ SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
         "ref_fae2af9678e6572cb755708aab5c393d",  # Drow Inquisitore
         "ref_6a30875b811b5a9982e1afd61f80126b",  # Juiblex
         "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico
-        "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: registered page 69, exact text title present but geometry disconnected
     }
 )
 SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
     "Warlock Del Grande Antico": (3, 4),
-    "Warlock Dell\'Immondo": (3, 4),  # independent source text had exact title in both modes
     "Drow Inquisitore": (4, 12),
     "Duergar Martellatore": (4, 6),
     "Fenice": (4,),
