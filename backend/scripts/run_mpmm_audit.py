@@ -408,6 +408,14 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                                     "token_dice_ok",
                                     "unique_jaccard_ok",
                                     "length_ratio_ok",
+                                    "primary_exact_title_unique",
+                                    "comparison_exact_title_unique",
+                                    "primary_ca_label_seen",
+                                    "comparison_ca_label_seen",
+                                    "primary_hp_label_seen",
+                                    "comparison_hp_label_seen",
+                                    "primary_speed_label_seen",
+                                    "comparison_speed_label_seen",
                                 }
                             }
                             for segment in ("left", "right", "full", "sparse-full")
