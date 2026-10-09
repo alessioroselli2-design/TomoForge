@@ -8204,8 +8204,7 @@ def _identity_source_counts(
             for line in raw_lines
         ),
         "speed_label_value_digit_same_line": sum(
-            line.startswith("velocita")
-            and bool(re.search(r"\d", raw_lines[index]))
+            line.startswith("velocita") and bool(re.search(r"\d", raw_lines[index]))
             for index, line in enumerate(lines)
         ),
         "speed_label_only_lines": sum(
