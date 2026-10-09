@@ -8543,7 +8543,6 @@ def _agreed_target_candidate(
     if (
         target_name == "Shadar-Kai Trafficante Di Anime"
         and target_page == 41
-        and source_filename == "Mostri del multiverso 201-294.pdf"
         and require_exact_target_identity
     ):
         # Page 41 independently preserves exactly two adjacent title lines
