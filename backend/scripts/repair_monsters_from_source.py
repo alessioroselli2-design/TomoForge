@@ -6559,9 +6559,7 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
-        # Read-only, source-locked PSM4/12 pilot at the original DPI.
-        # Never relax exact identity or independent HP/dice agreement.
-        primary_psm, secondary_psm = 4, 12
+        secondary_psm = 12
     if (
         name == "Sciame Di Ratti Cranici"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6629,10 +6627,11 @@ def _ocr_source_window(
         and target_page == 22
         and target_page_only
     ):
-        # Registered page only: probe independent sparse OCR segmentation.
-        # Original exact-name and semantic gates remain mandatory.
+        # Read-only geometry pilot for a source-complete but not independently
+        # exact title: compare column-aware PSM4 and block PSM6 on source page.
+        # Preserve independent identity and original CA/HP/dice/speed gates.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Mago Divinatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
