@@ -496,6 +496,9 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
     diagnostic = public["blocked_records"][0]["compatible_fallback"]
     assert diagnostic == {
         "eligible_name": True,
+        "structure_ok": False,
+        "one_each": False,
+        "two_clean_passes": False,
         "primary_exact_title_lines": 1,
         "comparison_exact_title_lines": 1,
         "primary_gate_flags": ["HP_format_error"],
@@ -506,6 +509,11 @@ def test_compatible_fallback_exports_only_allowlisted_gate_metadata():
             "classe_armatura": True,
             "punti_ferita": True,
             "velocita": True,
+        },
+        "snapshot_core_match": {
+            "classe_armatura": False,
+            "punti_ferita": False,
+            "velocita": False,
         },
         "semantic_core_match": {
             "classe_armatura": False,
