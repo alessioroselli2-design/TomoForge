@@ -143,7 +143,7 @@ def test_hp_dice_line_rejects_incoherent_or_nonadjacent_values():
     original = _goblin_text()
     for observed in (
         "78\n(12d8 + 23)",   # incorrect dice average
-        "78\n\n(12d8 + 24)",  # only strictly adjacent source lines
+        "78\nNarrative text\n(12d8 + 24)",  # unrelated intervening text
         "78\nVelocità 9 m\n(12d8 + 24)",  # never cross structural fields
         "78\n(12d8 + 24) later text",  # unrelated trailing content
         "78\n(12d9 + 18)",  # unsupported die size
