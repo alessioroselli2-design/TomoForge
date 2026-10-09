@@ -125,6 +125,35 @@ FOR DES COS INT SAG CAR
     assert records[0]["attributes"]["punti_ferita"] == "1 (1d4 - 1)"
 
 
+def test_hp_dice_on_immediately_next_line_requires_mathematical_agreement():
+    source = _goblin_text()
+    cases = (
+        ("7\n(2d6)", "7 (2d6)"),
+        ("78\n(12d8 + 24)", "78 (12d8 + 24)"),
+        ("297\n(17d20 + 119)", "297 (17d20 + 119)"),
+    )
+    for observed, expected in cases:
+        text = source.replace("Punti Ferita 7 (2d6)", f"Punti Ferita {observed}")
+        records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+        assert len(records) == 1
+        assert records[0]["attributes"]["punti_ferita"] == expected
+
+
+def test_hp_dice_line_rejects_incoherent_or_nonadjacent_values():
+    original = _goblin_text()
+    for observed in (
+        "78\n(12d8 + 23)",   # incorrect dice average
+        "78\n\n(12d8 + 24)",  # only strictly adjacent source lines
+        "78\nVelocità 9 m\n(12d8 + 24)",  # never cross structural fields
+        "78\n(12d8 + 24) later text",  # unrelated trailing content
+        "78\n(12d9 + 18)",  # unsupported die size
+    ):
+        text = original.replace("Punti Ferita 7 (2d6)", f"Punti Ferita {observed}")
+        records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+        assert len(records) == 1
+        assert records[0]["attributes"]["punti_ferita"] == "78"
+
+
 def test_hit_points_wrap_does_not_cross_structural_field():
     text = """RANA
 Minuscola bestia, senza allineamento
