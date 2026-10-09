@@ -161,6 +161,29 @@ def test_standalone_speed_label_rejects_structural_or_unrelated_following_line()
         assert parse_monster_statblocks([(166, text)], "manuale.pdf") == []
 
 
+def test_exact_normalized_ocr_labels_keep_original_hp_and_speed_values():
+    # Hyphen and apostrophe are OCR separators, not evidence for new values.
+    text = _goblin_text().replace(
+        "Punti Ferita 7 (2d6)", "Punti-Ferita: 7 (2d6)"
+    ).replace("Velocità 9 m", "Velocita' 9 m")
+    records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["punti_ferita"] == "7 (2d6)"
+    assert records[0]["attributes"]["velocita"] == "9 m"
+    assert "ocr_da_verificare" in records[0]["review_flags"]
+
+
+def test_normalized_ocr_label_never_borrows_unrelated_numeric_text():
+    for invalid in (
+        "Velocita' 9 danni",
+        "Velocita' rumore 9 m",
+        "Velocita' 9",
+    ):
+        text = _goblin_text().replace("Velocità 9 m", invalid)
+        assert parse_monster_statblocks([(166, text)], "manuale.pdf") == []
+
+
 def test_speed_wrap_with_open_parenthesis_is_joined_conservatively():
     text = """IMP
 Minuscolo immondo, legale malvagio
