@@ -301,9 +301,11 @@ def _multiline_speed_value(text: str) -> str:
             line,
             flags=re.IGNORECASE,
         )
-        if match is None:
-            # Fail closed unless the entire prefix is exactly the normalized
-            # speed label and the unchanged value starts with a metric unit.
+        if match is None or match.group(1).lstrip().startswith(("'", "’")):
+            # A stray OCR apostrophe after Velocita must not become part of
+            # the value. Require the whole source prefix to normalize to the
+            # exact field label, then retain the original numeric suffix.
+            # Fail closed unless that suffix starts with a metric unit.
             value = _numeric_value_after_normalized_label(line, "velocita")
             if not re.match(
                 r"^\d{1,3}\s*(?:m|metri|ft|feet)\b",
