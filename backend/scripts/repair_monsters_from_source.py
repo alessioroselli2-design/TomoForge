@@ -6426,6 +6426,34 @@ def _mago_apprendista_scoped_psms(
     return primary_psm, secondary_psm
 
 
+def _mpmm_segment_anchor_metrics(
+    primary: str, comparison: str, target_name: str
+) -> dict[str, bool]:
+    """Public-safe source geometry probes; never retain OCR words or values."""
+    target = normalize_reference_name(target_name)
+    result: dict[str, bool] = {}
+    for label, text in (("primary", primary), ("comparison", comparison)):
+        lines = [
+            normalize_reference_name(line)
+            for line in str(text or "").splitlines()
+            if line.strip()
+        ]
+        result[f"{label}_exact_title_unique"] = bool(
+            target and lines.count(target) == 1
+        )
+        result[f"{label}_ca_label_seen"] = any(
+            line.startswith(("classe armatura", "classe d armatura"))
+            for line in lines
+        )
+        result[f"{label}_hp_label_seen"] = any(
+            line.startswith("punti ferita") for line in lines
+        )
+        result[f"{label}_speed_label_seen"] = any(
+            line.startswith("velocita") for line in lines
+        )
+    return result
+
+
 def _ocr_source_window(
     pdf_path: Path,
     target_page: int,
@@ -7739,6 +7767,19 @@ def _ocr_source_window(
                             list(sparse_anchor_crop)
                             if sparse_anchor_crop is not None
                             else None
+                        )
+                    if (
+                        not sparse_full_page
+                        and source.get("logical_source_id") == "mpmm_2022_it"
+                        and name
+                        in {
+                            "Mago Divinatore",
+                            "Mago Illusionista",
+                            "Warlock Dell'Immondo",
+                        }
+                    ):
+                        agreement.update(
+                            _mpmm_segment_anchor_metrics(primary, comparison, name)
                         )
                     segment_metrics[segment_name] = agreement
                     if name == "Uro":
