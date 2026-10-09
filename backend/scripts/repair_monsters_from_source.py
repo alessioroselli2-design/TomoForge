@@ -8134,6 +8134,30 @@ def _identity_source_counts(
         )
 
     anchors = [index for index, line in enumerate(raw_lines) if _core_anchor(line)]
+    # Report only cardinalities of relative source anchors. Do not expose the
+    # licensed page text or infer a target identity from nearby content.
+    title_descriptor_pairs = [
+        (title, descriptor)
+        for title in title_indexes
+        for descriptor in range(title + 1, min(len(raw_lines), title + 5))
+        if _line_is_descriptor(raw_lines[descriptor])
+        and not any(
+            _line_is_descriptor(raw_lines[between])
+            or _core_anchor(raw_lines[between])
+            for between in range(title + 1, descriptor)
+        )
+    ]
+    title_descriptor_core_triples = [
+        (title, descriptor, core)
+        for title, descriptor in title_descriptor_pairs
+        for core in range(descriptor + 1, min(len(raw_lines), descriptor + 5))
+        if _core_anchor(raw_lines[core])
+        and not any(
+            _core_anchor(raw_lines[between])
+            or _line_is_descriptor(raw_lines[between])
+            for between in range(descriptor + 1, core)
+        )
+    ]
     headers = [
         header
         for index in anchors
@@ -8191,6 +8215,15 @@ def _identity_source_counts(
             for index in wrapped_title_indexes
         ),
         "exact_title_lines": sum(line == expected for line in lines),
+        "exact_title_adjacent_descriptor": sum(
+            descriptor == title + 1 for title, descriptor in title_descriptor_pairs
+        ),
+        "exact_title_near_descriptor": len(title_descriptor_pairs),
+        "exact_title_descriptor_near_core": len(title_descriptor_core_triples),
+        "exact_title_descriptor_adjacent_core": sum(
+            descriptor == title + 1 and core == descriptor + 1
+            for title, descriptor, core in title_descriptor_core_triples
+        ),
         "reversed_title_lines": sum(line == reversed_title for line in lines),
         "all_name_tokens_lines": sum(
             all(token in line.split() for token in tokens) for line in lines
