@@ -280,6 +280,18 @@ def _first_match(patterns: Iterable[str], text: str) -> str:
     return ""
 
 
+def _numeric_value_after_normalized_label(line: str, label: str) -> str:
+    """Return unchanged numeric suffix only after an exact normalized core label.
+
+    OCR may put punctuation between label words or use an apostrophe in place
+    of an accent. Normalizing the label *only* must not repair numeric values.
+    """
+    first_digit = re.search(r"\d", line)
+    if first_digit is None or _norm(line[: first_digit.start()]) != label:
+        return ""
+    return clean_text(line[first_digit.start() :]).strip(" .;,")
+
+
 def _multiline_speed_value(text: str) -> str:
     """Join only a clearly wrapped speed value with unbalanced parentheses."""
     lines = [clean_text(line or "") for line in (text or "").splitlines()]
@@ -290,8 +302,17 @@ def _multiline_speed_value(text: str) -> str:
             flags=re.IGNORECASE,
         )
         if match is None:
-            continue
-        value = match.group(1).strip(" .;,")
+            # Fail closed unless the entire prefix is exactly the normalized
+            # speed label and the unchanged value starts with a metric unit.
+            value = _numeric_value_after_normalized_label(line, "velocita")
+            if not re.match(
+                r"^\d{1,3}\s*(?:m|metri|ft|feet)\b",
+                value,
+                flags=re.IGNORECASE,
+            ):
+                continue
+        else:
+            value = match.group(1).strip(" .;,")
         continuation_start = index + 1
         if not value:
             # On some column OCR layouts the speed label is a standalone line.
@@ -337,8 +358,11 @@ def _multiline_hit_points_value(text: str) -> str:
             flags=re.IGNORECASE,
         )
         if match is None:
-            continue
-        value = match.group(1).strip(" .;,")
+            value = _numeric_value_after_normalized_label(line, "punti ferita")
+            if not re.match(r"^\d{1,4}\b", value):
+                continue
+        else:
+            value = match.group(1).strip(" .;,")
         if not value:
             return ""
         balance = value.count("(") - value.count(")")
