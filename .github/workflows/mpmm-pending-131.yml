@@ -87,7 +87,7 @@ jobs:
             args+=(--audit-record-id "$AUDIT_RECORD_ID")
           fi
           if [[ "$EXECUTE" == "true" ]]; then
-            args+=(--execute --confirm VERIFY_MPMM_PENDING_10)
+            args+=(--execute --confirm VERIFY_MPMM_PENDING_9)
           fi
           set +e
           python backend/scripts/run_mpmm_audit.py "${args[@]}" \
@@ -119,11 +119,11 @@ jobs:
           if report["dry_run"]:
               assert report["updates_performed"] == 0
           else:
-              assert report["initial_pending"] == 10
-              assert report["initial_verified"] == 185
-              assert report["initial_global_verified"] == 234
-              assert report["target_fingerprint_sha256"] == "9c46e0dd5f408c4f92a7f9d6ea97073096f7e8165e1b0d202bfc9dc12a5918e1"
-              assert report["protected_verified_fingerprint_sha256"] == "fe6d65a255849c42da1434edc325c751fb4f43146ecef443dacb695623ce59a3"
+              assert report["initial_pending"] == 9
+              assert report["initial_verified"] == 186
+              assert report["initial_global_verified"] == 235
+              assert report["target_fingerprint_sha256"] == "6e6e9e67463bc9a33a36a9586c461fef2e85fd1c233829ce37dbc894d87a73bd"
+              assert report["protected_verified_fingerprint_sha256"] == "e8be7209c1b1c3595e6fc8b27dfa60870898c3cdb3d5148598119faf745ed9ca"
               assert report["updates_performed"] <= report["repairable"]
           summary = {
               key: report[key]
