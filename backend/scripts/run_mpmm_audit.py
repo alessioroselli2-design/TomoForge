@@ -357,6 +357,24 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
             {
                 **_record_metadata(item),
                 "reason": reason if reason in PUBLIC_REASONS else "blocked",
+                # Publish only recognized semantic-gate categories, never the
+                # original OCR values or arbitrary exception details.
+                "semantic_gate_flags": (
+                    sorted(
+                        {
+                            token
+                            for token in str(item.get("detail") or "").split(",")
+                            if token
+                            in {
+                                "CA_out_of_bounds",
+                                "CA_format_error",
+                                "HP_format_error",
+                            }
+                        }
+                    )
+                    if reason == "repaired_candidate_failed_gates"
+                    else []
+                ),
                 "core_disagreement": {
                     field: field in diagnostics.get("divergent_core_fields", [])
                     for field in CORE_FIELDS
