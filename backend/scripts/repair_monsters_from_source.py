@@ -6559,7 +6559,9 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
-        secondary_psm = 12
+        # Read-only, source-locked PSM4/12 pilot at the original DPI.
+        # Never relax exact identity or independent HP/dice agreement.
+        primary_psm, secondary_psm = 4, 12
     if (
         name == "Sciame Di Ratti Cranici"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6611,17 +6613,6 @@ def _ocr_source_window(
         # page. Probe independent sparse segmentation without weakening gates.
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
-    if (
-        name == "Terrore Astrale"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 52
-        and target_page_only
-    ):
-        # Recheck registered page 52 with a contiguous primary OCR layout
-        # and an independently sparse comparison layout at 400 DPI.
-        # Keep exact source identity and all semantic/HP math gates unchanged.
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 6, 12
     if (
         name == "Yeenoghu"
         and source.get("logical_source_id") == "mpmm_2022_it"
