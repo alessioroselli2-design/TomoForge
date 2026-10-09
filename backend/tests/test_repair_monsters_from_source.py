@@ -1851,6 +1851,7 @@ def test_non_two_column_source_keeps_full_page_settings():
 def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_failure():
     drow_id = "ref_fae2af9678e6572cb755708aab5c393d"
     warlock_id = "ref_583cbd071aec5dc58748c4b27e4005b5"
+    fiend_warlock_id = "ref_be2228ae9b615c7da3734fa7395b016d"
     duergar_id = "ref_8def8c405c2452a4a10ff597fd89fdc8"
     fenice_id = "ref_744cb23cb7f95be7b5d7521316ce8e78"
     other_id = "ref_a6f22b9706e058a8bd3f4dcbbd24c985"
@@ -1860,6 +1861,8 @@ def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_fail
     assert _should_retry_exact_identity_sparse(exact_failure, drow_id) is True
     assert _should_retry_exact_identity_sparse(core_failure, drow_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is True
+    assert _should_retry_exact_identity_sparse(exact_failure, fiend_warlock_id)
+    assert not _should_retry_exact_identity_sparse(core_failure, fiend_warlock_id)
     assert _should_retry_exact_identity_sparse(exact_failure, duergar_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, fenice_id) is False
     assert _should_retry_exact_identity_sparse(exact_failure, other_id) is False
