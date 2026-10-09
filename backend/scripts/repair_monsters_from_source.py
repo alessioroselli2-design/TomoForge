@@ -6531,7 +6531,11 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
-        secondary_psm = 12
+        # The registered source-page baseline disagrees specifically on HP.
+        # Probe two independent sparse reads at higher resolution, without
+        # changing the HP/dice mathematical gate or source identity checks.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Sciame Di Ratti Cranici"
         and source.get("logical_source_id") == "mpmm_2022_it"
