@@ -939,6 +939,7 @@ SOURCE_GUIDED_EXACT_IDENTITY_SPARSE_RETRY_IDS = frozenset(
 )
 SOURCE_GUIDED_SPARSE_ANCHOR_PSMS_BY_NAME = {
     "Warlock Del Grande Antico": (3, 4),
+    "Warlock Dell\'Immondo": (3, 4),  # independent source text had exact title in both modes
     "Drow Inquisitore": (4, 12),
     "Duergar Martellatore": (4, 6),
     "Fenice": (4,),
