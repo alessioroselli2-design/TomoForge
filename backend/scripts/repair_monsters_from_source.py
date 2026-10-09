@@ -6617,11 +6617,10 @@ def _ocr_source_window(
         and target_page == 73
         and target_page_only
     ):
-        # Read-only source-locked comparison of column-aware and sparse OCR
-        # on registered physical page 73. Previous sparse pair disagreed on CA.
-        # Preserve independent identity, CA, HP/dice and speed gates.
+        # Re-read unique registered stat block at higher DPI independently;
+        # the baseline pair disagreed on AC despite matching HP and speed.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 11
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Progenie Stellare Straziatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
