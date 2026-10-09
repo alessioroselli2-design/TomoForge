@@ -4650,6 +4650,68 @@ def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mut
             assert blocked.value.reason == "no_unique_exact_target_identity"
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ["none", "wrong_hp", "missing_title", "two_blocks", "bad_hp", "wrong_pdf"],
+)
+def test_warlock_fiend_singleton_identity_requires_independent_clean_source(mutation):
+    target = "Warlock Dell'Immondo"
+    core = {
+        "classe_armatura": "13 (16 con armatura magica)",
+        "punti_ferita": "78 (12d8 + 24)",
+        "velocita": "9 m",
+    }
+    record = {
+        "name": "OCR NARRATIVE TITLE",
+        "normalized_name": "ocr narrative title",
+        "start_page": 69,
+        "source_refs": [{"page": 69}],
+        "attributes": dict(core),
+    }
+    primary = [dict(record)]
+    comparison = [dict(record)]
+    if mutation == "wrong_hp":
+        comparison[0]["attributes"] = {**core, "punti_ferita": "87 (14d8 + 24)"}
+    if mutation == "bad_hp":
+        primary[0]["attributes"] = {**core, "punti_ferita": "7 8 (12d8 + 24)"}
+    if mutation == "two_blocks":
+        primary.append({**record, "name": "UNRELATED"})
+    filename = (
+        "wrong source.pdf" if mutation == "wrong_pdf"
+        else "Mostri del multiverso 201-294.pdf"
+    )
+
+    def structure(_pages, records, _name, _page):
+        return {
+            "exact_title_lines": 0 if mutation == "missing_title" else 1,
+            "parser_valid_headers": len(records),
+            "candidates_on_page": len(records),
+            "anchors_with_descriptor": len(records),
+            "anchors_with_hp": len(records),
+            "anchors_with_speed": len(records),
+        }
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=structure),
+    ):
+        if mutation == "none":
+            candidate = _agreed_target_candidate(
+                [], [], filename, "it", target, 69,
+                require_exact_target_identity=True,
+            )
+            assert candidate["name"] == target
+            assert candidate["attributes"]["punti_ferita"] == core["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked) as blocked:
+                _agreed_target_candidate(
+                    [], [], filename, "it", target, 69,
+                    require_exact_target_identity=True,
+                )
+            assert blocked.value.reason == "no_unique_exact_target_identity"
+
+
 @pytest.mark.parametrize("mutation", ["none", "wrong_exact_ca", "not_two_extra_tokens"])
 def test_juiblex_reviewed_peer_core_alignment_is_fail_closed(mutation):
     clean = {
