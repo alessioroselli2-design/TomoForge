@@ -1938,6 +1938,7 @@ def test_mago_apprendista_hp_label_correction_rejects_ambiguity():
 
 def test_mago_apprendista_right_segment_is_source_scoped():
     assert repair.TARGET_SEGMENT_BY_NAME["Mago Apprendista"] == "right"
+    assert repair.TARGET_SEGMENT_BY_NAME["Warlock Dell'Immondo"] == "right"
     assert repair.TARGET_SEGMENT_BY_NAME["Duergar Martellatore"] == "left"
 
 
