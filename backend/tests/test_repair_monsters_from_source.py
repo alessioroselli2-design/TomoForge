@@ -3463,6 +3463,33 @@ def test_swarm_descriptor_keeps_independent_core_disagreement_closed(label, valu
     assert caught.value.reason == "no_unique_independent_agreement"
 
 
+def test_source_column_metrics_report_only_core_presence_and_exact_title():
+    title = "Mago Divinatore"
+    primary = (
+        "MAGO DIVINATORE\nUmanoide Medio\n"
+        "Classe Armatura 12\nPunti Ferita 58 (13d8)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    comparison = "MAGO DIVINATORE\nClasse Armatura 12\nPunti Ferita 58 (13d8)\n"
+    result = repair._mpmm_segment_anchor_metrics(primary, comparison, title)
+    assert result["primary_exact_title_unique"] is True
+    assert result["comparison_exact_title_unique"] is True
+    assert result["primary_speed_label_seen"] is True
+    assert result["comparison_speed_label_seen"] is False
+    assert all(isinstance(value, bool) for value in result.values())
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(result)
+
+
+def test_source_column_metrics_reject_title_embedded_in_prose():
+    result = repair._mpmm_segment_anchor_metrics(
+        "Un'altra creatura menziona Mago Divinatore nella storia",
+        "MAGO DIVINATORE\nMAGO DIVINATORE",
+        "Mago Divinatore",
+    )
+    assert result["primary_exact_title_unique"] is False
+    assert result["comparison_exact_title_unique"] is False
+
+
 def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
     target = "Mago Divinatore"
     text = (
