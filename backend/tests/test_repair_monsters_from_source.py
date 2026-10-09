@@ -3510,6 +3510,26 @@ def test_shadar_kai_wrapped_title_joins_only_existing_source_words():
     assert repair._join_unique_source_wrapped_title(repaired, target) == repaired
 
 
+def test_shadar_kai_wrapped_title_ignores_blank_ocr_rows_but_preserves_source():
+    target = "Shadar-Kai Trafficante Di Anime"
+    original = (
+        "SHADAR-KAI TRAFFICANTE\n\nDI ANIME\n\n"
+        "Umanoide Medio, neutrale\n\nClasse Armatura 15\n"
+        "Punti Ferita 136 (21d8 + 42)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    repaired = repair._join_unique_source_wrapped_title(original, target)
+    assert repaired.startswith(
+        "SHADAR-KAI TRAFFICANTE DI ANIME\n\n\n"
+        "Umanoide Medio, neutrale\n"
+    )
+    assert repaired.count("SHADAR-KAI TRAFFICANTE DI ANIME") == 1
+    assert "Punti Ferita 136 (21d8 + 42)" in repaired
+    assert "Velocità 9 m" in repaired
+    assert "PRIVATE_SOURCE_SENTINEL" in repaired
+    assert repair._join_unique_source_wrapped_title(repaired, target) == repaired
+
+
 @pytest.mark.parametrize("mutation", ["duplicate", "not_adjacent", "no_descriptor", "no_hp"])
 def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutation):
     target = "Shadar-Kai Trafficante Di Anime"
