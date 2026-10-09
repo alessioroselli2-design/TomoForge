@@ -8119,26 +8119,36 @@ def _join_unique_source_wrapped_title(text: str, target_name: str) -> str:
     )
 
     rows = str(text or "").splitlines()
+    # The stat-block parser ignores blank OCR rows. Match that behavior
+    # when locating the existing title, but keep the original row indexes
+    # so every unrelated source line is preserved byte-for-byte.
+    nonblank_indices = [index for index, row in enumerate(rows) if row.strip()]
+    meaningful = [rows[index] for index in nonblank_indices]
     expected = normalize_reference_name(target_name)
     positions = [
         index
-        for index in range(max(0, len(rows) - 3))
-        if normalize_reference_name(rows[index] + " " + rows[index + 1])
+        for index in range(max(0, len(meaningful) - 3))
+        if normalize_reference_name(meaningful[index] + " " + meaningful[index + 1])
         == expected
-        and _line_is_title_candidate(rows[index])
-        and _line_is_title_candidate(rows[index + 1])
-        and _line_is_descriptor(rows[index + 2])
-        and _core_anchor(rows[index + 3])
-        and _has_any_marker_near(rows, index + 3, ("Punti Ferita",), 6)
+        and _line_is_title_candidate(meaningful[index])
+        and _line_is_title_candidate(meaningful[index + 1])
+        and _line_is_descriptor(meaningful[index + 2])
+        and _core_anchor(meaningful[index + 3])
+        and _has_any_marker_near(meaningful, index + 3, ("Punti Ferita",), 6)
         and _has_any_marker_near(
-            rows, index + 3, ("Velocità", "Velocita"), 8
+            meaningful, index + 3, ("Velocità", "Velocita"), 8
         )
     ]
     if len(positions) != 1:
         return text
-    index = positions[0]
-    combined = rows[index].strip() + " " + rows[index + 1].strip()
-    joined = "\n".join([*rows[:index], combined, *rows[index + 2 :]])
+    first = nonblank_indices[positions[0]]
+    second = nonblank_indices[positions[0] + 1]
+    joined_rows = list(rows)
+    joined_rows[first] = rows[first].strip() + " " + rows[second].strip()
+    # Remove only the second original title row. Blank lines and all
+    # numeric values remain in their original order and spelling.
+    joined_rows.pop(second)
+    joined = "\n".join(joined_rows)
     return joined + ("\n" if text.endswith("\n") else "")
 
 
