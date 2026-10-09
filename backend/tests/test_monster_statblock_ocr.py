@@ -141,6 +141,26 @@ FOR DES COS INT SAG CAR
     assert records[0]["attributes"]["punti_ferita"] == "1 (1d4"
 
 
+def test_speed_label_on_own_line_reads_only_adjacent_metric_value():
+    text = _goblin_text().replace("Velocità 9 m", "Velocità\n9 m (volare 12 m)")
+    records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["velocita"] == "9 m (volare 12 m)"
+    assert "ocr_da_verificare" in records[0]["review_flags"]
+
+
+def test_standalone_speed_label_rejects_structural_or_unrelated_following_line():
+    for replacement in (
+        "Velocità\nFOR DES COS INT SAG CAR",
+        "Velocità\nRaggio 9 m",
+        "Velocità\n9 punti",
+        "Velocità\n",
+    ):
+        text = _goblin_text().replace("Velocità 9 m", replacement)
+        assert parse_monster_statblocks([(166, text)], "manuale.pdf") == []
+
+
 def test_speed_wrap_with_open_parenthesis_is_joined_conservatively():
     text = """IMP
 Minuscolo immondo, legale malvagio
