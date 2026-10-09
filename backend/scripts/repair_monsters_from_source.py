@@ -957,6 +957,7 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_e52cbc4cbea0558097bc4b0eb43a74d4",  # Ogre Scoccadardi: sole registered page 8
     "ref_4b7c7f783b7b5a0bb8f5200c452df52e",  # Nebbia Vampirica: sole registered page 98
     "ref_b962ff6f4fc85b15878fa47915ebf83c",  # Terrore Astrale: sole registered page 52
+    "ref_8e2b2fc142ed5cf096d0c41996afd065",  # Yeenoghu: stat-block page 73 is registered
     "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
     "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
     "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico: sole registered page 68
@@ -6589,6 +6590,16 @@ def _ocr_source_window(
     ):
         # The default layouts disagree on AC and speed: try independently
         # segmented sparse columns, still requiring exact source/core gates.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
+    if (
+        name == "Yeenoghu"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 73
+        and target_page_only
+    ):
+        # Re-read unique registered stat block at higher DPI independently;
+        # the baseline pair disagreed on AC despite matching HP and speed.
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
     if (
