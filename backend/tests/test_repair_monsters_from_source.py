@@ -3491,6 +3491,44 @@ def test_source_column_metrics_reject_title_embedded_in_prose():
     assert result["comparison_exact_title_unique"] is False
 
 
+def test_shadar_kai_wrapped_title_joins_only_existing_source_words():
+    target = "Shadar-Kai Trafficante Di Anime"
+    original = (
+        "SHADAR-KAI TRAFFICANTE\nDI ANIME\n"
+        "Umanoide Medio, neutrale\n"
+        "Classe Armatura 15\n"
+        "Punti Ferita 136 (21d8 + 42)\n"
+        "Velocità 9 m\nPRIVATE_SOURCE_SENTINEL\n"
+    )
+    repaired = repair._join_unique_source_wrapped_title(original, target)
+    assert repaired.startswith(
+        "SHADAR-KAI TRAFFICANTE DI ANIME\nUmanoide Medio, neutrale\n"
+    )
+    assert "Punti Ferita 136 (21d8 + 42)" in repaired
+    assert "Velocità 9 m" in repaired
+    assert "PRIVATE_SOURCE_SENTINEL" in repaired
+    assert repair._join_unique_source_wrapped_title(repaired, target) == repaired
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "not_adjacent", "no_descriptor", "no_hp"])
+def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutation):
+    target = "Shadar-Kai Trafficante Di Anime"
+    valid = (
+        "SHADAR-KAI TRAFFICANTE\nDI ANIME\n"
+        "Umanoide Medio\nClasse Armatura 15\n"
+        "Punti Ferita 136 (21d8 + 42)\nVelocità 9 m\n"
+    )
+    text = {
+        "duplicate": valid + valid,
+        "not_adjacent": valid.replace(
+            "TRAFFICANTE\nDI ANIME", "TRAFFICANTE\nOTHER TITLE\nDI ANIME"
+        ),
+        "no_descriptor": valid.replace("Umanoide Medio", "Some unrelated prose"),
+        "no_hp": valid.replace("Punti Ferita", "Valore Ferita"),
+    }[mutation]
+    assert repair._join_unique_source_wrapped_title(text, target) == text
+
+
 def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
     target = "Mago Divinatore"
     text = (
