@@ -6612,6 +6612,18 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
     if (
+        name == "Warlock Dell'Immondo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 69
+        and target_page_only
+    ):
+        # Source geometry has one complete right-column stat block in both
+        # readers, but both OCR outputs lose the HP dice syntax. Try two
+        # independent sparse layouts at higher resolution. Never substitute
+        # the database HP for source OCR without independent evidence.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
+    if (
         name == "Terrore Astrale"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 52
