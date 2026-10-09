@@ -8179,6 +8179,35 @@ def _identity_source_counts(
             ]
         ),
         "speed_label_lines": sum(line.startswith("velocita") for line in lines),
+        "speed_label_variant_accent_lines": sum(
+            bool(re.match(r"^\s*Velocit[áâãä]\b", line, flags=re.IGNORECASE))
+            for line in raw_lines
+        ),
+        "speed_label_spaced_vowel_lines": sum(
+            bool(
+                re.match(
+                    r"^\s*Velocit\s+[aàáâãä]\b",
+                    line,
+                    flags=re.IGNORECASE,
+                )
+            )
+            for line in raw_lines
+        ),
+        "speed_label_combining_accent_lines": sum(
+            bool(
+                re.match(
+                    r"^\s*Velocita[\u0300-\u036f]+",
+                    line,
+                    flags=re.IGNORECASE,
+                )
+            )
+            for line in raw_lines
+        ),
+        "speed_label_value_digit_same_line": sum(
+            line.startswith("velocita")
+            and bool(re.search(r"\d", raw_lines[index]))
+            for index, line in enumerate(lines)
+        ),
         "speed_label_only_lines": sum(
             bool(re.fullmatch(r"\s*Velocit[àa]\s*:?\s*", line, flags=re.IGNORECASE))
             for line in raw_lines
