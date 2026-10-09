@@ -8135,9 +8135,7 @@ def _join_unique_source_wrapped_title(text: str, target_name: str) -> str:
         and _line_is_descriptor(meaningful[index + 2])
         and _core_anchor(meaningful[index + 3])
         and _has_any_marker_near(meaningful, index + 3, ("Punti Ferita",), 6)
-        and _has_any_marker_near(
-            meaningful, index + 3, ("Velocità", "Velocita"), 8
-        )
+        and _has_any_marker_near(meaningful, index + 3, ("Velocità", "Velocita"), 8)
     ]
     if len(positions) != 1:
         return text
@@ -8612,16 +8610,13 @@ def _agreed_target_candidate(
         # Never infer identity from a nearby block unless both OCR passes
         # independently support one title and one matching, clean core.
         if (
-            (
-                target_name == "Hobgoblin Ombra Di Ferro"
-                or (
-                    target_name == "Warlock Dell'Immondo"
-                    and target_page == 69
-                    and source_filename == "Mostri del multiverso 201-294.pdf"
-                )
+            target_name == "Hobgoblin Ombra Di Ferro"
+            or (
+                target_name == "Warlock Dell'Immondo"
+                and target_page == 69
+                and source_filename == "Mostri del multiverso 201-294.pdf"
             )
-            and (len(primary_exact) != 1 or len(comparison_exact) != 1)
-        ):
+        ) and (len(primary_exact) != 1 or len(comparison_exact) != 1):
             primary_page = [
                 item
                 for item in primary
@@ -8724,7 +8719,14 @@ def _agreed_target_candidate(
                 snapshot_core_match=match_reviewed,
                 two_clean_passes=bool(clean_two_passes),
             )
-            if structure and one_each and (clean_two_passes or (target_name == "Hobgoblin Ombra Di Ferro" and reviewed_peer_hp)):
+            if (
+                structure
+                and one_each
+                and (
+                    clean_two_passes
+                    or (target_name == "Hobgoblin Ombra Di Ferro" and reviewed_peer_hp)
+                )
+            ):
                 primary_target = dict(primary_page[0])
                 comparison_target = dict(comparison_page[0])
                 if reviewed_peer_hp:
