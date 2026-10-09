@@ -6443,8 +6443,7 @@ def _mpmm_segment_anchor_metrics(
             target and lines.count(target) == 1
         )
         result[f"{label}_ca_label_seen"] = any(
-            line.startswith(("classe armatura", "classe d armatura"))
-            for line in lines
+            line.startswith(("classe armatura", "classe d armatura")) for line in lines
         )
         result[f"{label}_hp_label_seen"] = any(
             line.startswith("punti ferita") for line in lines
@@ -11316,8 +11315,7 @@ async def _repair_one(
                         if key in allowed and type(value) is bool
                     }
                     for label, details in segments.items()
-                    if label in {"left", "right", "full"}
-                    and isinstance(details, dict)
+                    if label in {"left", "right", "full"} and isinstance(details, dict)
                 }
                 exc.diagnostics = {
                     **(exc.diagnostics or {}),
