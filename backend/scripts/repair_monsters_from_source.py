@@ -6531,11 +6531,7 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
-        # Preserve the identity-bearing PSM6 segmentation; increase image
-        # resolution to revisit its HP/dice mismatch against independent PSM12.
-        # All existing exact source, HP mathematics, and agreement gates remain.
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 6, 12
+        secondary_psm = 12
     if (
         name == "Sciame Di Ratti Cranici"
         and source.get("logical_source_id") == "mpmm_2022_it"
