@@ -6617,10 +6617,11 @@ def _ocr_source_window(
         and target_page == 52
         and target_page_only
     ):
-        # The default layouts disagree on AC and speed: try independently
-        # segmented sparse columns, still requiring exact source/core gates.
+        # Recheck registered page 52 with a contiguous primary OCR layout
+        # and an independently sparse comparison layout at 400 DPI.
+        # Keep exact source identity and all semantic/HP math gates unchanged.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 6, 12
     if (
         name == "Yeenoghu"
         and source.get("logical_source_id") == "mpmm_2022_it"
