@@ -11265,6 +11265,43 @@ async def _repair_one(
             )
             break
         except RepairBlocked as exc:
+            if (
+                exc.reason == "no_unique_exact_target_identity"
+                and source.get("logical_source_id") == "mpmm_2022_it"
+                and source_target_name
+                in {
+                    "Mago Divinatore",
+                    "Mago Illusionista",
+                    "Warlock Dell'Immondo",
+                }
+            ):
+                # Carry only booleans from the source segment geometry into
+                # sanitized audit diagnostics; never attach raw licensed text.
+                allowed = {
+                    "primary_exact_title_unique",
+                    "comparison_exact_title_unique",
+                    "primary_ca_label_seen",
+                    "comparison_ca_label_seen",
+                    "primary_hp_label_seen",
+                    "comparison_hp_label_seen",
+                    "primary_speed_label_seen",
+                    "comparison_speed_label_seen",
+                }
+                segments = (quality.get(physical_page) or {}).get("segments") or {}
+                visible = {
+                    label: {
+                        key: value
+                        for key, value in details.items()
+                        if key in allowed and type(value) is bool
+                    }
+                    for label, details in segments.items()
+                    if label in {"left", "right", "full"}
+                    and isinstance(details, dict)
+                }
+                exc.diagnostics = {
+                    **(exc.diagnostics or {}),
+                    "target_page_quality": {"segments": visible},
+                }
             source_reviewed_candidate = _mpmm_source_reviewed_status_only_candidate(
                 record,
                 source,
