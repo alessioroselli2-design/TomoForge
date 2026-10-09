@@ -3879,6 +3879,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
     ("ref_b414135fe8fd5447a6aedfba2a419baa", "Sciame Di Ratti Cranici", 28),
     ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico", 6),
     ("ref_e52cbc4cbea0558097bc4b0eb43a74d4", "Ogre Scoccadardi", 8),
+    ("ref_4b7c7f783b7b5a0bb8f5200c452df52e", "Nebbia Vampirica", 98),
     ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo", 69),
     ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico", 68),
     ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort", 71),
