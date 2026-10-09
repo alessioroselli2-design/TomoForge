@@ -433,6 +433,9 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                 "compatible_fallback": (
                     {
                         "eligible_name": fallback.get("eligible_name") is True,
+                        "structure_ok": fallback.get("structure_ok") is True,
+                        "one_each": fallback.get("one_each") is True,
+                        "two_clean_passes": fallback.get("two_clean_passes") is True,
                         "primary_exact_title_lines": _count(
                             fallback.get("primary_exact_title_lines", 0)
                         ),
@@ -461,6 +464,11 @@ def public_report(private: dict[str, Any]) -> dict[str, Any]:
                         ),
                         "core_match": {
                             field: (fallback.get("core_match") or {}).get(field) is True
+                            for field in CORE_FIELDS
+                        },
+                        "snapshot_core_match": {
+                            field: (fallback.get("snapshot_core_match") or {}).get(field)
+                            is True
                             for field in CORE_FIELDS
                         },
                         "semantic_core_match": {
