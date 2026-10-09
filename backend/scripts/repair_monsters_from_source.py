@@ -6617,21 +6617,21 @@ def _ocr_source_window(
         and target_page == 73
         and target_page_only
     ):
-        # Re-read unique registered stat block at higher DPI independently;
-        # the baseline pair disagreed on AC despite matching HP and speed.
+        # Read-only source-locked comparison of column-aware and sparse OCR
+        # on registered physical page 73. Previous sparse pair disagreed on CA.
+        # Preserve independent identity, CA, HP/dice and speed gates.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 11
     if (
         name == "Progenie Stellare Straziatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 22
         and target_page_only
     ):
-        # Read-only geometry pilot for a source-complete but not independently
-        # exact title: compare column-aware PSM4 and block PSM6 on source page.
-        # Preserve independent identity and original CA/HP/dice/speed gates.
+        # Registered page only: probe independent sparse OCR segmentation.
+        # Original exact-name and semantic gates remain mandatory.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 6
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Mago Divinatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
