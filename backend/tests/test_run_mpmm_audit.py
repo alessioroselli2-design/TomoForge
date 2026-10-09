@@ -312,6 +312,27 @@ def test_public_report_excludes_source_values_and_arbitrary_nested_data():
     assert public["blocked_records"][0]["core_disagreement"]["punti_ferita"] is True
 
 
+def test_public_report_semantic_gate_flags_are_allowlisted_only():
+    private = _report()
+    private["blocked_records"] = [
+        {
+            "record_id": IDENTIFIER,
+            "reason": "repaired_candidate_failed_gates",
+            "detail": "HP_format_error,PRIVATE_SOURCE_SENTINEL,CA_format_error",
+            "diagnostics": {"text": PRIVATE},
+        }
+    ]
+    public = runner.public_report(private)
+    assert public["blocked_records"][0]["semantic_gate_flags"] == [
+        "CA_format_error",
+        "HP_format_error",
+    ]
+    assert PRIVATE not in json.dumps(public)
+
+    private["blocked_records"][0]["reason"] = "crash_eccezione_raw"
+    assert runner.public_report(private)["blocked_records"][0]["semantic_gate_flags"] == []
+
+
 def test_blocked_drow_hp_anchor_exports_only_allowlisted_booleans():
     private = _report()
     private["blocked_records"] = [
