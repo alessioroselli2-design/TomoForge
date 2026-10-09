@@ -8651,6 +8651,12 @@ def _agreed_target_candidate(
                 and ca_speed_verified
                 and comparison_reviewed.get("punti_ferita_deterministic_match", False)
             )
+            compatible_fallback_diagnostics.update(
+                structure_ok=bool(structure),
+                one_each=bool(one_each),
+                snapshot_core_match=match_reviewed,
+                two_clean_passes=bool(clean_two_passes),
+            )
             if structure and one_each and (clean_two_passes or (target_name == "Hobgoblin Ombra Di Ferro" and reviewed_peer_hp)):
                 primary_target = dict(primary_page[0])
                 comparison_target = dict(comparison_page[0])
@@ -9489,6 +9495,7 @@ def _agreed_target_candidate(
                             | SOURCE_GUIDED_ONE_SIDE_EXACT_COMPATIBLE_FALLBACK_NAMES
                             | SOURCE_GUIDED_ANCHORED_ONE_SIDE_COMPATIBLE_FALLBACK_NAMES
                             | SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES
+                            | {"Warlock Dell'Immondo"}
                         )
                         else {}
                     ),
