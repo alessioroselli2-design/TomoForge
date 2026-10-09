@@ -958,6 +958,7 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_4b7c7f783b7b5a0bb8f5200c452df52e",  # Nebbia Vampirica: sole registered page 98
     "ref_b962ff6f4fc85b15878fa47915ebf83c",  # Terrore Astrale: sole registered page 52
     "ref_8e2b2fc142ed5cf096d0c41996afd065",  # Yeenoghu: stat-block page 73 is registered
+    "ref_a365a83a27685357b2d5e669fe65102a",  # Progenie Stellare Straziatore: registered page 22
     "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
     "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
     "ref_583cbd071aec5dc58748c4b27e4005b5",  # Warlock Del Grande Antico: sole registered page 68
@@ -6600,6 +6601,16 @@ def _ocr_source_window(
     ):
         # Re-read unique registered stat block at higher DPI independently;
         # the baseline pair disagreed on AC despite matching HP and speed.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
+    if (
+        name == "Progenie Stellare Straziatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 22
+        and target_page_only
+    ):
+        # Registered page only: probe independent sparse OCR segmentation.
+        # Original exact-name and semantic gates remain mandatory.
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
     if (
