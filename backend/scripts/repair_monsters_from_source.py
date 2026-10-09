@@ -6614,6 +6614,17 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
     if (
+        name == "Mago Divinatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 68
+        and target_page_only
+    ):
+        # An exact title occurs but the baseline segmentation leaves the
+        # primary stat block incomplete; two independent sparse layouts
+        # can only pass if each reproduces the exact identity and clean core.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 11, 12
+    if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 72
