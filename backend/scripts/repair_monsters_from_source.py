@@ -8105,6 +8105,43 @@ def _canonicalize_mago_apprendista_hp_label(page_text: str) -> str:
     return "\n".join(repaired) + ("\n" if page_text.endswith("\n") else "")
 
 
+def _join_unique_source_wrapped_title(text: str, target_name: str) -> str:
+    """Join existing adjacent OCR title lines only for one exact stat-block heading.
+
+    Never invent title words or touch source numeric lines. Multiple matches or
+    missing descriptor/CA/HP/speed evidence fail closed without altering text.
+    """
+    from services.monster_statblock_ocr import (
+        _core_anchor,
+        _has_any_marker_near,
+        _line_is_descriptor,
+        _line_is_title_candidate,
+    )
+
+    rows = str(text or "").splitlines()
+    expected = normalize_reference_name(target_name)
+    positions = [
+        index
+        for index in range(max(0, len(rows) - 3))
+        if normalize_reference_name(rows[index] + " " + rows[index + 1])
+        == expected
+        and _line_is_title_candidate(rows[index])
+        and _line_is_title_candidate(rows[index + 1])
+        and _line_is_descriptor(rows[index + 2])
+        and _core_anchor(rows[index + 3])
+        and _has_any_marker_near(rows, index + 3, ("Punti Ferita",), 6)
+        and _has_any_marker_near(
+            rows, index + 3, ("Velocità", "Velocita"), 8
+        )
+    ]
+    if len(positions) != 1:
+        return text
+    index = positions[0]
+    combined = rows[index].strip() + " " + rows[index + 1].strip()
+    joined = "\n".join([*rows[:index], combined, *rows[index + 2 :]])
+    return joined + ("\n" if text.endswith("\n") else "")
+
+
 def _identity_source_counts(
     pages: list[tuple[int, str]],
     candidates: list[dict[str, Any]],
@@ -8501,6 +8538,27 @@ def _agreed_target_candidate(
         ]
         comparison_pages = [
             (page, _isolate_bheur_title_rule(text) if page == target_page else text)
+            for page, text in comparison_pages
+        ]
+    if (
+        target_name == "Shadar-Kai Trafficante Di Anime"
+        and target_page == 41
+        and source_filename == "Mostri del multiverso 201-294.pdf"
+        and require_exact_target_identity
+    ):
+        # Page 41 independently preserves exactly two adjacent title lines
+        # followed immediately by descriptor and complete structural labels.
+        # Joining the *observed* words restores parser structure, not data.
+        primary_pages = [
+            (page, _join_unique_source_wrapped_title(text, target_name))
+            if page == target_page
+            else (page, text)
+            for page, text in primary_pages
+        ]
+        comparison_pages = [
+            (page, _join_unique_source_wrapped_title(text, target_name))
+            if page == target_page
+            else (page, text)
             for page, text in comparison_pages
         ]
     primary = parse_monster_statblocks(
