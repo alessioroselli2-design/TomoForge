@@ -6617,11 +6617,10 @@ def _ocr_source_window(
         and target_page == 52
         and target_page_only
     ):
-        # Sparse layouts identify the source but yield an invalid candidate.
-        # Check two structured, independently segmented column reads without
-        # relaxing original exact-title or HP/dice semantic gates.
+        # The default layouts disagree on AC and speed: try independently
+        # segmented sparse columns, still requiring exact source/core gates.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 6
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Yeenoghu"
         and source.get("logical_source_id") == "mpmm_2022_it"
