@@ -8142,8 +8142,7 @@ def _identity_source_counts(
         for descriptor in range(title + 1, min(len(raw_lines), title + 5))
         if _line_is_descriptor(raw_lines[descriptor])
         and not any(
-            _line_is_descriptor(raw_lines[between])
-            or _core_anchor(raw_lines[between])
+            _line_is_descriptor(raw_lines[between]) or _core_anchor(raw_lines[between])
             for between in range(title + 1, descriptor)
         )
     ]
@@ -8153,8 +8152,7 @@ def _identity_source_counts(
         for core in range(descriptor + 1, min(len(raw_lines), descriptor + 5))
         if _core_anchor(raw_lines[core])
         and not any(
-            _core_anchor(raw_lines[between])
-            or _line_is_descriptor(raw_lines[between])
+            _core_anchor(raw_lines[between]) or _line_is_descriptor(raw_lines[between])
             for between in range(descriptor + 1, core)
         )
     ]
