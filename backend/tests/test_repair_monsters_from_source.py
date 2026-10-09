@@ -3462,6 +3462,39 @@ def test_swarm_descriptor_keeps_independent_core_disagreement_closed(label, valu
     assert caught.value.reason == "no_unique_independent_agreement"
 
 
+def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
+    target = "Mago Divinatore"
+    text = (
+        "MAGO DIVINATORE\nPRIVATE_SOURCE_SENTINEL\n"
+        "Umanoide Medio, neutrale\n"
+        "Classe Armatura 12\nPunti Ferita 58 (13d8)\nVelocità 9 m\n"
+    )
+    pages = [(68, text)]
+    counts = repair._identity_source_counts(pages, [], target, 68)
+    assert counts["exact_title_lines"] == 1
+    assert counts["exact_title_adjacent_descriptor"] == 0
+    assert counts["exact_title_near_descriptor"] == 1
+    assert counts["exact_title_descriptor_near_core"] == 1
+    assert counts["exact_title_descriptor_adjacent_core"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert pages == [(68, text)]
+
+
+def test_exact_title_geometry_rejects_unrelated_descriptor_and_core():
+    text = (
+        "MAGO DIVINATORE\nUmanoide Medio, neutrale\n"
+        "MAGO DI UN ALTRO BLOCCO\nClasse Armatura 12\n"
+        "Punti Ferita 58 (13d8)\nVelocità 9 m\n"
+    )
+    pages = [(68, text)]
+    counts = repair._identity_source_counts(pages, [], "Mago Divinatore", 68)
+    # Geometry is diagnostic only; do not create or verify any candidate.
+    assert counts["exact_title_lines"] == 1
+    assert counts["exact_title_adjacent_descriptor"] == 1
+    assert counts["exact_title_descriptor_adjacent_core"] == 0
+    assert pages == [(68, text)]
+
+
 def test_private_structure_probe_identifies_split_descriptor_without_repairing_it():
     text = (
         "SYNTHETIC GUARD\nPianta\nPiccola, senza allineamento\n"
