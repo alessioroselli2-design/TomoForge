@@ -381,7 +381,10 @@ def _multiline_hit_points_value(text: str) -> str:
             )
             if dice:
                 modifier = int(
-                    (dice.group(3) or "0").replace(" ", "").replace("−", "-").replace("–", "-")
+                    (dice.group(3) or "0")
+                    .replace(" ", "")
+                    .replace("−", "-")
+                    .replace("–", "-")
                 )
                 expected = int(dice.group(1)) * (int(dice.group(2)) + 1) // 2 + modifier
                 if expected == int(value):
