@@ -367,6 +367,25 @@ def _multiline_hit_points_value(text: str) -> str:
             value = match.group(1).strip(" .;,")
         if not value:
             return ""
+        if re.fullmatch(r"\d{1,4}", value) and index + 1 < len(lines):
+            # Two-column OCR can wrap an entire dice expression onto the
+            # *immediately adjacent* line. Only join source-observed dice
+            # when its average mathematically matches the source HP value.
+            # Never borrow from subsequent stat blocks or invent a modifier.
+            following = lines[index + 1].strip()
+            dice = re.fullmatch(
+                r"\(\s*(\d{1,3})d(4|6|8|10|12|20)"
+                r"\s*([+\-−–]\s*\d{1,4})?\s*\)",
+                following,
+                flags=re.IGNORECASE,
+            )
+            if dice:
+                modifier = int(
+                    (dice.group(3) or "0").replace(" ", "").replace("−", "-").replace("–", "-")
+                )
+                expected = int(dice.group(1)) * (int(dice.group(2)) + 1) // 2 + modifier
+                if expected == int(value):
+                    return f"{value} {following}"
         balance = value.count("(") - value.count(")")
         if balance <= 0:
             return value
