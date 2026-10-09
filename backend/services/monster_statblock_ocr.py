@@ -302,7 +302,8 @@ def _multiline_speed_value(text: str) -> str:
                 return ""
             neighbor = lines[continuation_start].strip()
             if not re.match(
-                r"^(?:\d{1,3}|(?:camminare|nuotare|volare|scalare|scavare)\s+\d{1,3})\s*(?:m|metri|ft|feet)\b",
+                r"^(?:\d{1,3}|(?:camminare|nuotare|volare|scalare|scavare)"
+                r"\s+\d{1,3})\s*(?:m|metri|ft|feet)\b",
                 neighbor,
                 flags=re.IGNORECASE,
             ):
