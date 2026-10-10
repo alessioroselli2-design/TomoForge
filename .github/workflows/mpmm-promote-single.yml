@@ -28,8 +28,8 @@ jobs:
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_BUCKET: tomoforge-manuals
-      EXPECTED_PENDING_FINGERPRINT: 0f60d9bf7973012638ce48c698851f45c7b3a205091232c0eadc8f9f2eb55349
-      EXPECTED_VERIFIED_FINGERPRINT: b4984b9199b8aefc5eca879f6a09f1158761483a92da2a674dbeb395ca117ce4
+      EXPECTED_PENDING_FINGERPRINT: 131a32577e755de80539bb13f05641025555c98fc22fd7421dcf4e23a3899e94
+      EXPECTED_VERIFIED_FINGERPRINT: 2ebdc53e9c163d3f4cfe84e37f0d483f3d518abffc12a1508c21ed6aba0bd95a
 
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
           test -f .github/mpmm-promote-single.txt
           actual="$(tr -d '[:space:]' < .github/mpmm-promote-single.txt)"
           IFS=':' read -r token fingerprint record_id <<< "$actual"
-          test "$token" = "VERIFY_MPMM_PENDING_8"
+          test "$token" = "VERIFY_MPMM_PENDING_7"
           test "$fingerprint" = "$EXPECTED_PENDING_FINGERPRINT"
           [[ "$record_id" =~ ^ref_[0-9a-f]{32}$ ]]
           echo "record_id=$record_id" >> "$GITHUB_OUTPUT"
@@ -71,7 +71,7 @@ jobs:
             --batch-size 25 \
             --execute \
             --execute-record-id "$RECORD_ID" \
-            --confirm VERIFY_MPMM_PENDING_8 \
+            --confirm VERIFY_MPMM_PENDING_7 \
             | tee /tmp/mpmm-promote-single.log
           status=${PIPESTATUS[0]}
           set -e
@@ -95,15 +95,15 @@ jobs:
           report = json.loads(lines[marker + 1])
 
           assert report["dry_run"] is False
-          assert report["initial_pending"] == 8
-          assert report["initial_verified"] == 187
-          assert report["initial_global_verified"] == 236
+          assert report["initial_pending"] == 7
+          assert report["initial_verified"] == 188
+          assert report["initial_global_verified"] == 237
           assert report["targets"] == 1
           assert report["repairable"] == 1
           assert report["blocked"] == 0
           assert report["updates_performed"] == 1
-          assert report["final_pending"] == 7
-          assert report["final_verified"] == 188
+          assert report["final_pending"] == 6
+          assert report["final_verified"] == 189
           assert report["protected_verified_fingerprint_sha256"] == os.environ["EXPECTED_VERIFIED_FINGERPRINT"]
           expected_target = hashlib.sha256(os.environ["RECORD_ID"].encode()).hexdigest()
           assert report["target_fingerprint_sha256"] == expected_target
