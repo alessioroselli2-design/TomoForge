@@ -6428,6 +6428,37 @@ def _mago_apprendista_scoped_psms(
     return primary_psm, secondary_psm
 
 
+def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
+    """Restore only a missing observed apostrophe in the sole exact heading.
+
+    Both OCR passes must still independently read a complete and unchanged
+    source core; this helper cannot invent or alter numbers or monster names.
+    """
+    lines = str(text or "").splitlines(keepends=True)
+    positions = [
+        index
+        for index, line in enumerate(lines)
+        if line.strip().casefold() == "warlock dellimmondo"
+    ]
+    if len(positions) != 1:
+        return text
+    index = positions[0]
+    nearby = "".join(lines[index + 1 : index + 14])
+    if not all(
+        re.search(pattern, nearby, re.IGNORECASE)
+        for pattern in (
+            r"Umanoide\\s+Medio",
+            r"Classe\\s+Armatura\\s+13\\s*\\(16\\s+con\\s+armatura\\s+magica\\)",
+            r"Punti\\s+Ferita\\s+78\\s*\\(12d8\\s*\\+\\s*24\\)",
+            r"Velocit[àa]\\s+9\\s*m",
+        )
+    ):
+        return text
+    lines[index] = lines[index].replace("WARLOCK DELLIMMONDO", "WARLOCK DELL'IMMONDO")
+    lines[index] = lines[index].replace("Warlock Dellimmondo", "Warlock Dell'Immondo")
+    return "".join(lines)
+
+
 def _mpmm_segment_anchor_metrics(
     primary: str, comparison: str, target_name: str
 ) -> dict[str, bool]:
@@ -7176,6 +7207,15 @@ def _ocr_source_window(
                         ocr_budget_started_at,
                         phase="segment_comparison",
                     )
+                    if (
+                        name == "Warlock Dell'Immondo"
+                        and source.get("logical_source_id") == "mpmm_2022_it"
+                        and page_number == 69
+                        and target_page_only
+                        and not sparse_full_page
+                    ):
+                        primary = _restore_warlock_fiend_source_apostrophe(primary)
+                        comparison = _restore_warlock_fiend_source_apostrophe(comparison)
                     esploratore_tsv_diagnostics: list[dict[str, bool | int]] = []
                     if (
                         name == "Esploratore Di Bronzo"
