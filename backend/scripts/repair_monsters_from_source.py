@@ -885,7 +885,7 @@ SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_2d833b3db343531b8cbe0669197259bd": 81,  # Mitragliatore Di Quercia: other registered physical page; fail-closed pilot
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
-    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
+    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 71,  # Mago Illusionista: alternative registered page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: diagnose alternate registered-page columns
     "ref_6a30875b811b5a9982e1afd61f80126b": 56,  # Juiblex: registered alternative page
     "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
@@ -6645,6 +6645,16 @@ def _ocr_source_window(
         # can only pass if each reproduces the exact identity and clean core.
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 11, 12
+    if (
+        name == "Mago Illusionista"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 71
+        and target_page_only
+    ):
+        # Distinct registered page 71; diagnose two independent structured
+        # column OCR layouts without relaxing exact title/core gates.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
