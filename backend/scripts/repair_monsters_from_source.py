@@ -6710,6 +6710,16 @@ def _ocr_source_window(
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 4, 6
     if (
+        name == "Warlock Dell'Immondo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 69
+        and target_page_only
+    ):
+        # Source PDF raster at 350dpi retains the observed d in 12d8.
+        # PSM4 and PSM6 independently read every original core field.
+        effective_dpi = 350
+        primary_psm, secondary_psm = 4, 6
+    if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 72
@@ -6919,6 +6929,17 @@ def _ocr_source_window(
     ):
         # Source-confirmed geometry excludes artwork and right-column noise.
         segments = (("left", (0.056, 0.612, 0.42, 0.88)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Warlock Dell'Immondo"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 69
+        and target_page_only
+    ):
+        # Exclude the earlier prose title and adjacent distinct stat block.
+        segments = (("right", (0.52, 0.277, 0.94, 0.62)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
