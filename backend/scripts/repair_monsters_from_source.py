@@ -6511,15 +6511,17 @@ def _restore_warlock_fiend_pdf_title(
     ):
         return observed_ocr
     lines = str(observed_ocr or "").splitlines(keepends=True)
-    headings = [
+    # The PDF's native title is an independent source modality. The OCR
+    # reader must still uniquely observe the adjacent descriptor and raw core.
+    descriptors = [
         index
-        for index, line in enumerate(lines[:10])
-        if "warlock" in line.casefold()
+        for index, line in enumerate(lines[:15])
+        if re.match(r"^\s*['«]?\s*Umanoide\s+Medio\b", line, re.IGNORECASE)
     ]
-    if len(headings) != 1:
+    if len(descriptors) != 1:
         return observed_ocr
-    title_index = headings[0]
-    following = "".join(lines[title_index + 1 : title_index + 14])
+    descriptor_index = descriptors[0]
+    following = "".join(lines[descriptor_index : descriptor_index + 14])
     if not all(
         re.search(pattern, following, re.IGNORECASE)
         for pattern in (
@@ -6530,11 +6532,9 @@ def _restore_warlock_fiend_pdf_title(
         )
     ):
         return observed_ocr
-    original = lines[title_index]
-    lines[title_index] = "WARLOCK DELL'IMMONDO" + original[
-        len(original.rstrip("\r\n")) :
-    ]
-    return "".join(lines)
+    # Strip only the OCR-damaged heading/decorations before the observed
+    # descriptor; retain all OCR-observed core and subsequent lines verbatim.
+    return "WARLOCK DELL'IMMONDO\n" + "".join(lines[descriptor_index:])
 
 
 def _mpmm_segment_anchor_metrics(
