@@ -10829,11 +10829,9 @@ def build_repair_proposal(
         ):
             candidate_speed = str(candidate_attributes.get("velocita") or "").strip()
             original_speed = str(original.get("velocita") or "").strip()
-            if (
-                candidate_speed != original_speed
-                and re.sub(r"\s+", "", candidate_speed)
-                == re.sub(r"\s+", "", original_speed)
-            ):
+            if candidate_speed != original_speed and re.sub(
+                r"\s+", "", candidate_speed
+            ) == re.sub(r"\s+", "", original_speed):
                 candidate_attributes["velocita"] = original_speed
     diagnostics = None
     if legacy.get("id") in {
