@@ -3585,6 +3585,30 @@ def test_mirmidone_bounded_source_gap_rejects_rival_headings():
     ) == rival
 
 
+def test_illusionista_scoped_compact_quality_preserves_exact_anchor_gates():
+    observed = (
+        "MAGO ILLUSIONISTA\n"
+        "Umanoide Medio, neutrale\n"
+        "Classe Armatura 12\n"
+        "Punti Ferita 44 (8d8 + 8)\n"
+        "Velocità 9 m\n"
+        + "annotazione " * 52
+    )
+    agreement = repair._agreement_metrics(observed, observed)
+    assert agreement["quality_pass"] is False
+    assert repair._mago_illusionista_compact_quality(
+        agreement, observed, observed
+    ) is True
+    missing_title = observed.replace("MAGO ILLUSIONISTA", "MAGO DIVINATORE")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, missing_title, observed
+    )
+    missing_hp = observed.replace("Punti Ferita", "Punti Assenti")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, observed, missing_hp
+    )
+
+
 def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
     target = "Mago Divinatore"
     text = (
