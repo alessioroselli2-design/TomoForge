@@ -6592,18 +6592,7 @@ def _ocr_source_window(
         # independently probe structured single-column PSM 4/6 instead.
         # Exact source-title identity and all numeric gates remain mandatory.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 6
-    if (
-        name == "Warlock Dell'Immondo"
-        and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 69
-        and target_page_only
-    ):
-        # Baseline OCR preserved exact title but both HP readings were invalid;
-        # probe independent structured layouts on the registered right column.
-        # Numeric/dice, exact-title, and independent agreement gates are intact.
-        effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 6
+        primary_psm, secondary_psm = 4, 11
     if (
         name == "Ogre Scoccadardi"
         and source.get("logical_source_id") == "mpmm_2022_it"
