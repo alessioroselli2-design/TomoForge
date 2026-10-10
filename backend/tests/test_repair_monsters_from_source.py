@@ -3590,6 +3590,10 @@ def test_warlock_fiend_title_apostrophe_requires_complete_exact_source_core():
     assert repair._restore_warlock_fiend_source_apostrophe(source + source) == (
         source + source
     )
+    one_glyph = source.replace("DELLIMMONDO", "DELLIMMOND0")
+    assert repair._restore_warlock_fiend_source_apostrophe(one_glyph) == expected
+    distant = source.replace("DELLIMMONDO", "DELLOSCURO")
+    assert repair._restore_warlock_fiend_source_apostrophe(distant) == distant
     wrong_hp = source.replace("12d8 + 24", "1248 + 24")
     assert repair._restore_warlock_fiend_source_apostrophe(wrong_hp) == wrong_hp
     wrong_speed = source.replace("Velocità 9 m", "Velocità 12 m")
