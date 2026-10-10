@@ -6592,7 +6592,7 @@ def _ocr_source_window(
         # independently probe structured single-column PSM 4/6 instead.
         # Exact source-title identity and all numeric gates remain mandatory.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 6
+        primary_psm, secondary_psm = 4, 3
     if (
         name == "Ogre Scoccadardi"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -8542,13 +8542,15 @@ def _agreed_target_candidate(
             for page, text in comparison_pages
         ]
     if (
-        target_name == "Shadar-Kai Trafficante Di Anime"
-        and target_page == 41
-        and require_exact_target_identity
+        require_exact_target_identity
+        and (
+            (target_name == "Shadar-Kai Trafficante Di Anime" and target_page == 41)
+            or (target_name == "Mirmidone Elementale Di Fuoco" and target_page == 88)
+        )
     ):
-        # Page 41 independently preserves exactly two adjacent title lines
-        # followed immediately by descriptor and complete structural labels.
-        # Joining the *observed* words restores parser structure, not data.
+        # Source-registered pages: join only independently observed adjacent
+        # title words with immediately adjacent descriptor and CA/HP/speed.
+        # Ambiguous OCR still fails closed; never fabricate source words/data.
         primary_pages = [
             (page, _join_unique_source_wrapped_title(text, target_name))
             if page == target_page
