@@ -3492,6 +3492,26 @@ def test_swarm_descriptor_keeps_independent_core_disagreement_closed(label, valu
     assert caught.value.reason == "no_unique_independent_agreement"
 
 
+def test_mago_divinatore_page70_source_title_is_not_adjacent_evocatore():
+    divinatore = (
+        "MAGO DIVINATORE\nUmanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 12 (15 con armatura magica)\n"
+        "Punti Ferita 90 (20d8)\nVelocità 9 m\n"
+    )
+    evocatore = divinatore.replace("MAGO DIVINATORE", "MAGO EVOCATORE").replace(
+        "90 (20d8)", "58 (13d8)"
+    )
+    true_metrics = repair._mpmm_segment_anchor_metrics(
+        divinatore, divinatore, "Mago Divinatore"
+    )
+    false_metrics = repair._mpmm_segment_anchor_metrics(
+        divinatore, evocatore, "Mago Divinatore"
+    )
+    assert true_metrics["primary_exact_title_unique"] is True
+    assert true_metrics["comparison_exact_title_unique"] is True
+    assert false_metrics["comparison_exact_title_unique"] is False
+
+
 def test_source_column_metrics_report_only_core_presence_and_exact_title():
     title = "Mago Divinatore"
     primary = (
@@ -4188,7 +4208,7 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
     ("ref_51cc5af68a475cb2a7ac137ede8e1cc7", "Mirmidone Elementale Di Fuoco", 88),
     ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon", 12),
     ("ref_95407fdd26ae57e88fc3943545bd5cc4", "Mago Trasmutatore", 74),
-    ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore", 68),
+    ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore", 70),
     ("ref_4ea78cedcefc5ac885f0d93dcffba7ae", "Leviatano", 66),
     ("ref_9b1196c7b5c85057bd4c60098313a271", "Leucrotta", 65),
     ("ref_c41175075be5535ab3cfd37dbbd7e1e1", "Hobgoblin Ombra Di Ferro", 49),
