@@ -8069,14 +8069,22 @@ def _ocr_source_window(
                     if (
                         not agreement["quality_pass"]
                         and not sparse_full_page
-                        and name in {"Mago Illusionista", "Mago Invocatore"}
+                        and name
+                        in {
+                            "Mago Illusionista",
+                            "Mago Invocatore",
+                            "Warlock Dell'Immondo",
+                        }
                         and source.get("logical_source_id") == "mpmm_2022_it"
                         and (
                             (name == "Mago Illusionista" and target_page == 71)
                             or (name == "Mago Invocatore" and target_page == 72)
+                            or (name == "Warlock Dell'Immondo" and target_page == 69)
                         )
                         and target_page_only
-                        and segment_name == "left"
+                        and segment_name == (
+                            "right" if name == "Warlock Dell'Immondo" else "left"
+                        )
                     ):
                         agreement["quality_pass"] = _mago_illusionista_compact_quality(
                             agreement, primary, comparison, target_name=name
