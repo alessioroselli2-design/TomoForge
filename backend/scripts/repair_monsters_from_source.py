@@ -885,6 +885,7 @@ SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_2d833b3db343531b8cbe0669197259bd": 81,  # Mitragliatore Di Quercia: other registered physical page; fail-closed pilot
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_8e2b2fc142ed5cf096d0c41996afd065": 74,  # Yeenoghu: source-verified registered stat block
+    "ref_3986eba313495283bfe6b6f843891add": 70,  # Mago Divinatore: source-verified stat-block page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 71,  # Mago Illusionista: registered stat-block page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: diagnose alternate registered-page columns
@@ -6796,14 +6797,13 @@ def _ocr_source_window(
     if (
         name == "Mago Divinatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 68
+        and target_page == 70
         and target_page_only
     ):
-        # An exact title occurs but the baseline segmentation leaves the
-        # primary stat block incomplete; two independent sparse layouts
-        # can only pass if each reproduces the exact identity and clean core.
+        # Registered page 70 holds the printed original Divinatore block:
+        # 90 (20d8), not the Evocatore's 58 (13d8) on its right column.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Mago Illusionista"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -7046,6 +7046,18 @@ def _ocr_source_window(
         # Include exactly the physical stat-block heading and its core,
         # not the preceding prose or the neighbouring stat-block artwork.
         segments = (("right", (0.525, 0.284, 0.91, 0.49)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Mago Divinatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 70
+        and target_page_only
+    ):
+        # Printed exact title, descriptor, CA, HP/dice and speed exclusively
+        # on the lower-left; exclude the adjacent Evocatore stat block.
+        segments = (("left", (0.06, 0.30, 0.47, 0.925)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
