@@ -7241,7 +7241,9 @@ def _ocr_source_window(
                         and not sparse_full_page
                     ):
                         primary = _restore_warlock_fiend_source_apostrophe(primary)
-                        comparison = _restore_warlock_fiend_source_apostrophe(comparison)
+                        comparison = _restore_warlock_fiend_source_apostrophe(
+                            comparison
+                        )
                     esploratore_tsv_diagnostics: list[dict[str, bool | int]] = []
                     if (
                         name == "Esploratore Di Bronzo"
