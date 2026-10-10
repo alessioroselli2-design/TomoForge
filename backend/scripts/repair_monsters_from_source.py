@@ -6700,8 +6700,10 @@ def _ocr_source_window(
         and target_page == 72
         and target_page_only
     ):
+        # The exact source title and CA/HP/speed appear in the lower-left
+        # stat block; independently read the same registered pixels.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6847,6 +6849,18 @@ def _ocr_source_window(
     ):
         # Source-verified PDF SHA b35e3d0d...; exact stat block below prose.
         segments = (("left", (0.06, 0.43, 0.49, 0.94)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Mago Invocatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 72
+        and target_page_only
+    ):
+        # Source-verified 400-DPI crop: excludes artwork and right-column
+        # action text. Keeps the actual complete title, CA, HP/dice, speed.
+        segments = (("left", (0.06, 0.615, 0.49, 0.93)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
