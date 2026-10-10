@@ -3549,6 +3549,24 @@ def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutatio
     assert repair._join_unique_source_wrapped_title(text, target) == text
 
 
+def test_straziatore_join_requires_unique_source_title_descriptor_and_core():
+    name = "Progenie Stellare Straziatore"
+    source = (
+        "PROGENIE STELLARE\nSTRAZIATORE\n"
+        "Aberrazione Media, generalmente caotica malvagia\n"
+        "Classe Armatura 14\n"
+        "Punti Ferita 71 (13d8 + 13)\n"
+        "Velocità 12 m, scalare 12 m\n"
+    )
+    joined = repair._join_unique_source_wrapped_title(source, name)
+    assert joined.startswith("PROGENIE STELLARE STRAZIATORE\n")
+    assert "Punti Ferita 71 (13d8 + 13)" in joined
+    assert repair._join_unique_source_wrapped_title(source + source, name) == source + source
+    assert repair._join_unique_source_wrapped_title(
+        source.replace("STRAZIATORE", "INTRUSO"), name
+    ) == source.replace("STRAZIATORE", "INTRUSO")
+
+
 def test_mirmidone_wrapped_source_title_joins_without_mutating_core():
     target = "Mirmidone Elementale Di Fuoco"
     source = (
