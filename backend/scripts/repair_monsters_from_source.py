@@ -6677,10 +6677,9 @@ def _ocr_source_window(
         and target_page == 22
         and target_page_only
     ):
-        # Registered page only: probe independent sparse OCR segmentation.
-        # Original exact-name and semantic gates remain mandatory.
+        # Source-locked stat block at lower right, observed in two title rows.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 3, 4
     if (
         name == "Mago Divinatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6877,6 +6876,17 @@ def _ocr_source_window(
     ):
         # Keeps one exact stat block; excludes prose and adjoining actions.
         segments = (("left", (0.06, 0.38, 0.49, 0.92)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Progenie Stellare Straziatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 22
+        and target_page_only
+    ):
+        # Excludes unrelated prose/title in the left column and nearby art.
+        segments = (("right", (0.515, 0.435, 0.91, 0.92)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
@@ -8697,6 +8707,7 @@ def _agreed_target_candidate(
     if require_exact_target_identity and (
         (target_name == "Shadar-Kai Trafficante Di Anime" and target_page == 41)
         or (target_name == "Mirmidone Elementale Di Fuoco" and target_page == 88)
+        or (target_name == "Progenie Stellare Straziatore" and target_page == 22)
     ):
         # Source-registered pages: join only independently observed adjacent
         # title words with immediately adjacent descriptor and CA/HP/speed.
@@ -11307,6 +11318,7 @@ async def _repair_one(
             ("ref_b414135fe8fd5447a6aedfba2a419baa", "Sciame Di Ratti Cranici"),
             ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico"),
             ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch"),
+            ("ref_a365a83a27685357b2d5e669fe65102a", "Progenie Stellare Straziatore"),
             ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo"),
             ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico"),
             ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort"),
