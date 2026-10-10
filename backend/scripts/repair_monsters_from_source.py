@@ -6598,8 +6598,11 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
+        # Source crop retains all core values. Combined Italian/English
+        # tessdata independently recognizes the original 22d10 dice letter.
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 3, 4
+        languages = "ita+eng"
     if (
         name == "Sciame Di Ratti Cranici"
         and source.get("logical_source_id") == "mpmm_2022_it"
