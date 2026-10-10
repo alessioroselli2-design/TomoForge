@@ -6456,7 +6456,8 @@ def _mpmm_segment_anchor_metrics(
 
 
 def _mago_illusionista_compact_quality(
-    agreement: dict[str, Any], primary: str, comparison: str
+    agreement: dict[str, Any], primary: str, comparison: str,
+    *, target_name: str = "Mago Illusionista",
 ) -> bool:
     """Require complete independent anchors for a source-locked compact crop.
 
@@ -6464,7 +6465,7 @@ def _mago_illusionista_compact_quality(
     71st physical page; all semantic, numeric and exact identity gates run
     afterward without changes. No OCR/source numbers are inferred.
     """
-    anchors = _mpmm_segment_anchor_metrics(primary, comparison, "Mago Illusionista")
+    anchors = _mpmm_segment_anchor_metrics(primary, comparison, target_name)
     required = (
         "exact_title_unique",
         "ca_label_seen",
@@ -6711,8 +6712,10 @@ def _ocr_source_window(
         and target_page == 72
         and target_page_only
     ):
+        # Independently observed exact title and complete CA/HP/speed on
+        # the source-only lower-left clip, at separate PSM 4 and 11.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 11
     if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6902,6 +6905,17 @@ def _ocr_source_window(
     ):
         # Exact upper-left stat block; excludes the adjacent actions and art.
         segments = (("left", (0.07, 0.07, 0.49, 0.57)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Mago Invocatore"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 72
+        and target_page_only
+    ):
+        # Source-confirmed geometry excludes artwork and right-column noise.
+        segments = (("left", (0.056, 0.612, 0.42, 0.88)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
@@ -7905,14 +7919,17 @@ def _ocr_source_window(
                     if (
                         not agreement["quality_pass"]
                         and not sparse_full_page
-                        and name == "Mago Illusionista"
+                        and name in {"Mago Illusionista", "Mago Invocatore"}
                         and source.get("logical_source_id") == "mpmm_2022_it"
-                        and target_page == 71
+                        and (
+                            (name == "Mago Illusionista" and target_page == 71)
+                            or (name == "Mago Invocatore" and target_page == 72)
+                        )
                         and target_page_only
                         and segment_name == "left"
                     ):
                         agreement["quality_pass"] = _mago_illusionista_compact_quality(
-                            agreement, primary, comparison
+                            agreement, primary, comparison, target_name=name
                         )
                         agreement["source_locked_compact_quality"] = bool(
                             agreement["quality_pass"]
