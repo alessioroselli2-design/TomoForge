@@ -128,15 +128,15 @@ def test_apply_verified_preserves_provenance_and_records_review_history():
 
 
 def test_sealed_snapshot_counts_distinguish_mpmm_from_global_verified():
-    assert process.EXPECTED_PENDING == 5
-    assert process.EXPECTED_MPMM_VERIFIED == 190
-    assert process.EXPECTED_GLOBAL_VERIFIED == 239
-    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_5"
+    assert process.EXPECTED_PENDING == 4
+    assert process.EXPECTED_MPMM_VERIFIED == 191
+    assert process.EXPECTED_GLOBAL_VERIFIED == 240
+    assert process.CONFIRMATION_TOKEN == "VERIFY_MPMM_PENDING_4"
     assert process.EXPECTED_PENDING_FINGERPRINT == (
-        "b067ecd31f318cff070e138101ddf41053aced6572d85e1efeab0394bc9f4253"
+        "9b0f8dbc57ea3cda1a524b7b8533d53a9cde12f07c495c03d17223b2ea7ead1c"
     )
     assert process.EXPECTED_VERIFIED_FINGERPRINT == (
-        "174657189b6e36e7f7b62d00c456d21483476b9440ecbc0cd446be9191693bfe"
+        "68a53179cfd4f5b187ca2e7bf42f8acd8423202dc13bef6f5e2e9285ca06b223"
     )
 
 
