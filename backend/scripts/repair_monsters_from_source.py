@@ -6749,7 +6749,7 @@ def _ocr_source_window(
         # Source PDF raster at 350dpi retains the observed d in 12d8.
         # PSM4 and PSM6 independently read every original core field.
         effective_dpi = 350
-        primary_psm, secondary_psm = 4, 6
+        primary_psm, secondary_psm = 3, 4
     if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
