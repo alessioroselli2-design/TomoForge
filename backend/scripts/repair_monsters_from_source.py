@@ -6824,10 +6824,10 @@ def _ocr_source_window(
         and target_page == 69
         and target_page_only
     ):
-        # Source PDF raster at 350dpi retains the observed d in 12d8.
-        # PSM4 and PSM6 independently read every original core field.
+        # Source-locked gray 350 DPI clip: PSM 4/11 independently read
+        # the exact standalone title, descriptor and unmodified full core.
         effective_dpi = 350
-        primary_psm, secondary_psm = 3, 4
+        primary_psm, secondary_psm = 4, 11
     if (
         name == "Mago Invocatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -7047,8 +7047,9 @@ def _ocr_source_window(
         and target_page == 69
         and target_page_only
     ):
-        # Exclude the earlier prose title and adjacent distinct stat block.
-        segments = (("right", (0.52, 0.277, 0.94, 0.62)),)
+        # Include exactly the physical stat-block heading and its core,
+        # not the preceding prose or the neighbouring stat-block artwork.
+        segments = (("right", (0.525, 0.284, 0.91, 0.49)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
