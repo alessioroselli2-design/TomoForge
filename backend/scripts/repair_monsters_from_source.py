@@ -6429,20 +6429,45 @@ def _mago_apprendista_scoped_psms(
 
 
 def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
-    """Restore only a missing observed apostrophe in the sole exact heading.
+    """Restore a tightly bounded observed OCR title on a source-locked block.
 
-    Both OCR passes must still independently read a complete and unchanged
-    source core; this helper cannot invent or alter numbers or monster names.
+    Call-site restricts this to the original registered Warlock Fiend PDF page.
+    The title may lose an apostrophe or have at most two damaged letters.
+    Descriptor and all three *unchanged* source core values are required.
     """
     lines = str(text or "").splitlines(keepends=True)
-    positions = [
+    expected = "warlockdellimmondo"
+
+    def edit_distance(left: str, right: str) -> int:
+        if abs(len(left) - len(right)) > 2:
+            return 3
+        previous = list(range(len(right) + 1))
+        for index, char in enumerate(left, 1):
+            current = [index]
+            for column, other in enumerate(right, 1):
+                current.append(
+                    min(
+                        current[-1] + 1,
+                        previous[column] + 1,
+                        previous[column - 1] + (char != other),
+                    )
+                )
+            previous = current
+        return previous[-1]
+
+    matches = [
         index
         for index, line in enumerate(lines)
-        if line.strip().casefold() == "warlock dellimmondo"
+        if (
+            (compact := re.sub(r"[^a-z0-9]", "", line.casefold())).startswith(
+                "warlock"
+            )
+            and edit_distance(compact, expected) <= 2
+        )
     ]
-    if len(positions) != 1:
+    if len(matches) != 1:
         return text
-    index = positions[0]
+    index = matches[0]
     nearby = "".join(lines[index + 1 : index + 14])
     if not all(
         re.search(pattern, nearby, re.IGNORECASE)
@@ -6454,8 +6479,9 @@ def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
         )
     ):
         return text
-    lines[index] = lines[index].replace("WARLOCK DELLIMMONDO", "WARLOCK DELL'IMMONDO")
-    lines[index] = lines[index].replace("Warlock Dellimmondo", "Warlock Dell'Immondo")
+    original = lines[index]
+    trailing_newline = original[len(original.rstrip("\r\n")) :]
+    lines[index] = "WARLOCK DELL'IMMONDO" + trailing_newline
     return "".join(lines)
 
 
