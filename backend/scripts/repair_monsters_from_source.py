@@ -8094,9 +8094,8 @@ def _ocr_source_window(
                             or (name == "Warlock Dell'Immondo" and target_page == 69)
                         )
                         and target_page_only
-                        and segment_name == (
-                            "right" if name == "Warlock Dell'Immondo" else "left"
-                        )
+                        and segment_name
+                        == ("right" if name == "Warlock Dell'Immondo" else "left")
                     ):
                         agreement["quality_pass"] = _mago_illusionista_compact_quality(
                             agreement, primary, comparison, target_name=name
