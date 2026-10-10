@@ -3631,6 +3631,29 @@ def test_mirmidone_bounded_source_gap_rejects_rival_headings():
     ) == rival
 
 
+def test_invocatore_compact_quality_requires_two_independent_exact_headers():
+    observed = (
+        "MAGO INVOCATORE\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 12 (15 con armatura magica)\n"
+        "Punti Ferita 121 (22d8 + 22)\n"
+        "Velocità 9 m\n"
+        + "nota di prova " * 55
+    )
+    agreement = repair._agreement_metrics(observed, observed)
+    assert repair._mago_illusionista_compact_quality(
+        agreement, observed, observed, target_name="Mago Invocatore"
+    ) is True
+    wrong_title = observed.replace("MAGO INVOCATORE", "MAGO DIVINATORE")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, wrong_title, observed, target_name="Mago Invocatore"
+    )
+    missing_core = observed.replace("Punti Ferita", "Valore Oscuro")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, observed, missing_core, target_name="Mago Invocatore"
+    )
+
+
 def test_illusionista_scoped_compact_quality_preserves_exact_anchor_gates():
     observed = (
         "MAGO ILLUSIONISTA\n"
