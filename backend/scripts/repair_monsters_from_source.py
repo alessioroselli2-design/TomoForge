@@ -885,7 +885,7 @@ SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_2d833b3db343531b8cbe0669197259bd": 81,  # Mitragliatore Di Quercia: other registered physical page; fail-closed pilot
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
-    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 68,  # Mago Illusionista: other originally registered page
+    "ref_90b64fd6ac3057ee8ab373bb0be776a8": 71,  # Mago Illusionista: registered stat-block page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: diagnose alternate registered-page columns
     "ref_6a30875b811b5a9982e1afd61f80126b": 56,  # Juiblex: registered alternative page
     "ref_de503e430ad356ec98964fb1a65bd34a": 66,  # Vegepigmeo: registered variant page
@@ -6648,11 +6648,11 @@ def _ocr_source_window(
     if (
         name == "Mago Illusionista"
         and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 68
+        and target_page == 71
         and target_page_only
     ):
-        # Registered stat-block candidate page 68: test column-structured
-        # independent OCR without relaxing exact source identity and core gates.
+        # Registered page 71: the exact stat block is below large artwork.
+        # Crop the source geometry below, not its identity or numeric values.
         effective_dpi = max(effective_dpi, 400)
         primary_psm, secondary_psm = 4, 6
     if (
@@ -6785,6 +6785,19 @@ def _ocr_source_window(
                 "target_segment_unavailable",
                 detail=f"name={name} segment={target_segment}",
             )
+
+    if (
+        not sparse_full_page
+        and name == "Mago Illusionista"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 71
+        and target_page_only
+    ):
+        # Inspected the registered PDF SHA-256 5c60017a...: the complete
+        # title, descriptor, CA, HP/dice and speed are in the lower-left.
+        # Exclude the unrelated illustration and adjacent right-hand actions.
+        segments = (("left", (0.07, 0.61, 0.55, 0.95)),)
+        column_overlap = 0.0
 
     document = fitz.open(pdf_path)
     try:
