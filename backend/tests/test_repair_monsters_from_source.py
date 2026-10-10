@@ -3564,6 +3564,27 @@ def test_mirmidone_wrapped_source_title_joins_without_mutating_core():
     assert repair._join_unique_source_wrapped_title(source + source, target) == source + source
 
 
+def test_mirmidone_bounded_source_gap_rejects_rival_headings():
+    target = "Mirmidone Elementale Di Fuoco"
+    prefix = (
+        "MIRMIDONE ELEMENTALE\nDI FUOCO\n"
+        "Elementale Medio, neutrale\n"
+    )
+    trailing = "Classe Armatura 17\nPunti Ferita 42 (5d10 + 15)\nVelocità 9 m\n"
+    observed = prefix + "annotazione ocr\n" + trailing
+    assert repair._join_unique_source_wrapped_title(observed, target) == observed
+    fixed = repair._join_unique_source_wrapped_title(
+        observed, target, max_core_gap=2
+    )
+    assert fixed.startswith("MIRMIDONE ELEMENTALE DI FUOCO\n")
+    assert "annotazione ocr\n" in fixed
+    assert "Punti Ferita 42 (5d10 + 15)" in fixed
+    rival = prefix + "ALTRO MOSTRO\n" + trailing
+    assert repair._join_unique_source_wrapped_title(
+        rival, target, max_core_gap=2
+    ) == rival
+
+
 def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
     target = "Mago Divinatore"
     text = (
