@@ -6447,10 +6447,10 @@ def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
     if not all(
         re.search(pattern, nearby, re.IGNORECASE)
         for pattern in (
-            r"Umanoide\\s+Medio",
-            r"Classe\\s+Armatura\\s+13\\s*\\(16\\s+con\\s+armatura\\s+magica\\)",
-            r"Punti\\s+Ferita\\s+78\\s*\\(12d8\\s*\\+\\s*24\\)",
-            r"Velocit[àa]\\s+9\\s*m",
+            r"Umanoide\s+Medio",
+            r"Classe\s+Armatura\s+13\s*\(16\s+con\s+armatura\s+magica\)",
+            r"Punti\s+Ferita\s+78\s*\(12d8\s*\+\s*24\)",
+            r"Velocit[àa]\s+9\s*m",
         )
     ):
         return text
