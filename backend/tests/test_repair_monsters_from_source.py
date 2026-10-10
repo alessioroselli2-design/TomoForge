@@ -3549,6 +3549,21 @@ def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutatio
     assert repair._join_unique_source_wrapped_title(text, target) == text
 
 
+def test_mirmidone_wrapped_source_title_joins_without_mutating_core():
+    target = "Mirmidone Elementale Di Fuoco"
+    source = (
+        "MIRMIDONE ELEMENTALE\nDI FUOCO\n"
+        "Elementale Medio, neutrale\n"
+        "Classe Armatura 17\nPunti Ferita 42 (5d10 + 15)\nVelocità 9 m\n"
+    )
+    joined = repair._join_unique_source_wrapped_title(source, target)
+    assert joined.startswith("MIRMIDONE ELEMENTALE DI FUOCO\n")
+    assert "Punti Ferita 42 (5d10 + 15)" in joined
+    assert "Velocità 9 m" in joined
+    assert repair._join_unique_source_wrapped_title(joined, target) == joined
+    assert repair._join_unique_source_wrapped_title(source + source, target) == source + source
+
+
 def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
     target = "Mago Divinatore"
     text = (
