@@ -6588,8 +6588,11 @@ def _ocr_source_window(
         and target_page == 88
         and target_page_only
     ):
+        # Registered page 88 has two candidate blocks in prior sparse OCR;
+        # independently probe structured single-column PSM 4/6 instead.
+        # Exact source-title identity and all numeric gates remain mandatory.
         effective_dpi = max(effective_dpi, 400)
-        secondary_psm = 11
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Ogre Scoccadardi"
         and source.get("logical_source_id") == "mpmm_2022_it"
