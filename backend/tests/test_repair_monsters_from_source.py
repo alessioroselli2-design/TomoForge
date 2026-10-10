@@ -2120,6 +2120,34 @@ def test_build_repair_proposal_replaces_only_core_and_forces_pending_review():
     assert REPAIR_FLAG in proposal["review_flags"]
 
 
+def test_straziatore_whitespace_only_speed_preserves_original_core():
+    legacy = _monster("Progenie Stellare Straziatore", "14", "71 (13d8 + 13)")
+    legacy["id"] = "ref_a365a83a27685357b2d5e669fe65102a"
+    legacy["review_status"] = "pending"
+    legacy["attributes"]["velocita"] = "12 m, scalare 12 m"
+    candidate = {
+        "name": "Progenie Stellare Straziatore",
+        "reference_type": "monster",
+        "source_refs": [
+            {"page": 22, "filename": "Mostri del multiverso 201-294.pdf"}
+        ],
+        "attributes": {
+            "classe_armatura": "14",
+            "punti_ferita": "71 (13d8 + 13)",
+            "velocita": "12 m, scalare 12m",
+            "ocr_independent_agreement": True,
+        },
+    }
+    assert build_repair_proposal(legacy, candidate)["attributes"]["velocita"] == (
+        "12 m, scalare 12 m"
+    )
+    tampered = dict(candidate)
+    tampered["attributes"] = {**candidate["attributes"], "velocita": "12 m, scalare 15m"}
+    assert build_repair_proposal(legacy, tampered)["attributes"]["velocita"] != (
+        "12 m, scalare 12 m"
+    )
+
+
 def test_build_repair_proposal_rejects_still_corrupt_candidate():
     legacy = _monster("Zuggtmoy", "1", "304 (32dl0 + 1 28)")
     candidate = {
