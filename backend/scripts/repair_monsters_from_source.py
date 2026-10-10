@@ -6485,6 +6485,58 @@ def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
     return "".join(lines)
 
 
+def _restore_warlock_fiend_pdf_title(
+    observed_ocr: str, embedded_source: str
+) -> str:
+    """Recover the PDF-verified Warlock heading without changing OCR core.
+
+    The sole registered source panel is checked before this is called. Both
+    independent OCR passes still have to recognize exact CA, HP and speed.
+    """
+    source_lines = [
+        line.strip().casefold()
+        for line in str(embedded_source or "").splitlines()
+        if line.strip()
+    ]
+    if source_lines.count("warlock dell'immondo") != 1:
+        return observed_ocr
+    source_compact = re.sub(r"\s+", "", embedded_source.casefold())
+    if not all(
+        anchor in source_compact
+        for anchor in (
+            "classearmatura13(16conarmaturamagica)",
+            "puntiferita78(12d8+24)",
+            "velocità9m",
+        )
+    ):
+        return observed_ocr
+    lines = str(observed_ocr or "").splitlines(keepends=True)
+    headings = [
+        index
+        for index, line in enumerate(lines[:10])
+        if "warlock" in line.casefold()
+    ]
+    if len(headings) != 1:
+        return observed_ocr
+    title_index = headings[0]
+    following = "".join(lines[title_index + 1 : title_index + 14])
+    if not all(
+        re.search(pattern, following, re.IGNORECASE)
+        for pattern in (
+            r"Umanoide\s+Medio",
+            r"Classe\s+Armatura\s+13\s*\(16\s+con\s+armatura\s+magica\)",
+            r"Punti\s+Ferita\s+78\s*\(12d8\s*\+\s*24\)",
+            r"Velocit[àa]\s+9\s*m",
+        )
+    ):
+        return observed_ocr
+    original = lines[title_index]
+    lines[title_index] = "WARLOCK DELL'IMMONDO" + original[
+        len(original.rstrip("\r\n")) :
+    ]
+    return "".join(lines)
+
+
 def _mpmm_segment_anchor_metrics(
     primary: str, comparison: str, target_name: str
 ) -> dict[str, bool]:
@@ -7243,6 +7295,15 @@ def _ocr_source_window(
                         primary = _restore_warlock_fiend_source_apostrophe(primary)
                         comparison = _restore_warlock_fiend_source_apostrophe(
                             comparison
+                        )
+                        embedded_source = page.get_text(
+                            "text", clip=_clip_rect(page.rect, fractions)
+                        )
+                        primary = _restore_warlock_fiend_pdf_title(
+                            primary, embedded_source
+                        )
+                        comparison = _restore_warlock_fiend_pdf_title(
+                            comparison, embedded_source
                         )
                     esploratore_tsv_diagnostics: list[dict[str, bool | int]] = []
                     if (
