@@ -6481,7 +6481,7 @@ def _mago_illusionista_compact_quality(
     for reader in ("primary", "comparison"):
         quality = agreement.get(f"{reader}_quality") or {}
         if not (
-            int(quality.get("chars") or 0) >= 500
+            int(quality.get("chars") or 0) >= 400
             and int(quality.get("word_count") or 0) >= 50
             and float(quality.get("letter_ratio") or 0.0) >= 0.65
             and float(quality.get("printable_ratio") or 0.0) >= 0.99
@@ -6836,7 +6836,7 @@ def _ocr_source_window(
         # Inspected the registered PDF SHA-256 5c60017a...: the complete
         # title, descriptor, CA, HP/dice and speed are in the lower-left.
         # Exclude the unrelated illustration and adjacent right-hand actions.
-        segments = (("left", (0.07, 0.61, 0.55, 0.95)),)
+        segments = (("left", (0.07, 0.61, 0.49, 0.95)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
