@@ -6622,6 +6622,15 @@ def _ocr_source_window(
     ):
         primary_psm = 6
     if (
+        name == "Terrore Astrale"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 52
+        and target_page_only
+    ):
+        # Source-locked lower-left stat block, independently read at 400 DPI.
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 4, 6
+    if (
         name == "Mirmidone Elementale Di Fuoco"
         and source.get("logical_source_id") == "mpmm_2022_it"
         and target_page == 88
@@ -6857,6 +6866,17 @@ def _ocr_source_window(
     ):
         # Source-bounded fire block; adjacent Earth identity excluded.
         segments = (("left", (0.06, 0.49, 0.47, 0.92)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Terrore Astrale"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 52
+        and target_page_only
+    ):
+        # Keeps one exact stat block; excludes prose and adjoining actions.
+        segments = (("left", (0.06, 0.38, 0.49, 0.92)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
