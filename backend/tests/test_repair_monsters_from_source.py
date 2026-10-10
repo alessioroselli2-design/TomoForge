@@ -3577,6 +3577,32 @@ def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutatio
     assert repair._join_unique_source_wrapped_title(text, target) == text
 
 
+def test_warlock_native_heading_requires_pdf_and_ocr_core_agreement():
+    source = (
+        "WARLOCK DELL'IMMONDO\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 1 3 (16 con armatura magica)\n"
+        "Punti Ferita 78 (12d8 + 24)\nVelocità 9 m\n"
+    )
+    ocr = (
+        "WARLOCK DEL'LIMMONDO\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 13 (16 con armatura magica)\n"
+        "Punti Ferita 78 (12d8 + 24)\nVelocità 9 m\n"
+    )
+    recovered = repair._restore_warlock_fiend_pdf_title(ocr, source)
+    assert recovered.startswith("WARLOCK DELL'IMMONDO\n")
+    assert "Punti Ferita 78 (12d8 + 24)" in recovered
+    wrong_source = source.replace("WARLOCK DELL'IMMONDO", "WARLOCK DEL SIGNORE FATATO")
+    assert repair._restore_warlock_fiend_pdf_title(ocr, wrong_source) == ocr
+    bad_ocr = ocr.replace("12d8 + 24", "1248 + 24")
+    assert repair._restore_warlock_fiend_pdf_title(bad_ocr, source) == bad_ocr
+    bad_source = source.replace("12d8 + 24", "12d8 + 28")
+    assert repair._restore_warlock_fiend_pdf_title(ocr, bad_source) == ocr
+    duplicate = ocr + ocr
+    assert repair._restore_warlock_fiend_pdf_title(duplicate, source) == duplicate
+
+
 def test_warlock_fiend_title_apostrophe_requires_complete_exact_source_core():
     source = (
         "WARLOCK DELLIMMONDO\n"
