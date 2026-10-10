@@ -8098,7 +8098,9 @@ def _canonicalize_mago_apprendista_hp_label(page_text: str) -> str:
     return "\n".join(repaired) + ("\n" if page_text.endswith("\n") else "")
 
 
-def _join_unique_source_wrapped_title(text: str, target_name: str) -> str:
+def _join_unique_source_wrapped_title(
+    text: str, target_name: str, *, max_core_gap: int = 0
+) -> str:
     """Join existing adjacent OCR title lines only for one exact stat-block heading.
 
     Never invent title words or touch source numeric lines. Multiple matches or
@@ -8118,6 +8120,32 @@ def _join_unique_source_wrapped_title(text: str, target_name: str) -> str:
     nonblank_indices = [index for index, row in enumerate(rows) if row.strip()]
     meaningful = [rows[index] for index in nonblank_indices]
     expected = normalize_reference_name(target_name)
+    # Only source-observed title words are joined. A scoped layout can allow
+    # a short non-heading OCR line between the descriptor and CA, but must
+    # reject any intervening rival title, descriptor or core anchor.
+    def has_bounded_complete_core(index: int) -> bool:
+        for core in range(
+            index + 3,
+            min(len(meaningful), index + 4 + max_core_gap),
+        ):
+            if not _core_anchor(meaningful[core]):
+                continue
+            gap = meaningful[index + 3 : core]
+            if any(
+                _core_anchor(row)
+                or _line_is_descriptor(row)
+                or _line_is_title_candidate(row)
+                for row in gap
+            ):
+                continue
+            if _has_any_marker_near(meaningful, core, ("Punti Ferita",), 6) and (
+                _has_any_marker_near(
+                    meaningful, core, ("Velocità", "Velocita"), 8
+                )
+            ):
+                return True
+        return False
+
     positions = [
         index
         for index in range(max(0, len(meaningful) - 3))
@@ -8126,9 +8154,7 @@ def _join_unique_source_wrapped_title(text: str, target_name: str) -> str:
         and _line_is_title_candidate(meaningful[index])
         and _line_is_title_candidate(meaningful[index + 1])
         and _line_is_descriptor(meaningful[index + 2])
-        and _core_anchor(meaningful[index + 3])
-        and _has_any_marker_near(meaningful, index + 3, ("Punti Ferita",), 6)
-        and _has_any_marker_near(meaningful, index + 3, ("Velocità", "Velocita"), 8)
+        and has_bounded_complete_core(index)
     ]
     if len(positions) != 1:
         return text
@@ -8552,13 +8578,31 @@ def _agreed_target_candidate(
         # title words with immediately adjacent descriptor and CA/HP/speed.
         # Ambiguous OCR still fails closed; never fabricate source words/data.
         primary_pages = [
-            (page, _join_unique_source_wrapped_title(text, target_name))
+            (
+                page,
+                _join_unique_source_wrapped_title(
+                    text,
+                    target_name,
+                    max_core_gap=(
+                        2 if target_name == "Mirmidone Elementale Di Fuoco" else 0
+                    ),
+                ),
+            )
             if page == target_page
             else (page, text)
             for page, text in primary_pages
         ]
         comparison_pages = [
-            (page, _join_unique_source_wrapped_title(text, target_name))
+            (
+                page,
+                _join_unique_source_wrapped_title(
+                    text,
+                    target_name,
+                    max_core_gap=(
+                        2 if target_name == "Mirmidone Elementale Di Fuoco" else 0
+                    ),
+                ),
+            )
             if page == target_page
             else (page, text)
             for page, text in comparison_pages
