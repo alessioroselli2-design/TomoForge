@@ -8120,6 +8120,7 @@ def _join_unique_source_wrapped_title(
     nonblank_indices = [index for index, row in enumerate(rows) if row.strip()]
     meaningful = [rows[index] for index in nonblank_indices]
     expected = normalize_reference_name(target_name)
+
     # Only source-observed title words are joined. A scoped layout can allow
     # a short non-heading OCR line between the descriptor and CA, but must
     # reject any intervening rival title, descriptor or core anchor.
@@ -8139,9 +8140,7 @@ def _join_unique_source_wrapped_title(
             ):
                 continue
             if _has_any_marker_near(meaningful, core, ("Punti Ferita",), 6) and (
-                _has_any_marker_near(
-                    meaningful, core, ("Velocità", "Velocita"), 8
-                )
+                _has_any_marker_near(meaningful, core, ("Velocità", "Velocita"), 8)
             ):
                 return True
         return False
@@ -8567,12 +8566,9 @@ def _agreed_target_candidate(
             (page, _isolate_bheur_title_rule(text) if page == target_page else text)
             for page, text in comparison_pages
         ]
-    if (
-        require_exact_target_identity
-        and (
-            (target_name == "Shadar-Kai Trafficante Di Anime" and target_page == 41)
-            or (target_name == "Mirmidone Elementale Di Fuoco" and target_page == 88)
-        )
+    if require_exact_target_identity and (
+        (target_name == "Shadar-Kai Trafficante Di Anime" and target_page == 41)
+        or (target_name == "Mirmidone Elementale Di Fuoco" and target_page == 88)
     ):
         # Source-registered pages: join only independently observed adjacent
         # title words with immediately adjacent descriptor and CA/HP/speed.
