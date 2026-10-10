@@ -2,13 +2,6 @@ name: Full Player's Handbook 31 dry-run
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - develop
-    paths:
-      - backend/scripts/repair_monsters_from_source.py
-      - .github/workflows/source-guided-global-dry-run.yml
-      - .github/source-guided-global-dry-run-request.txt
   push:
     branches:
       - develop

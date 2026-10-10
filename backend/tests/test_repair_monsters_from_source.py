@@ -6,9 +6,12 @@ from datetime import datetime
 from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import fitz
 import pytest
+from scripts import repair_monsters_from_source as repair
+
 
 from scripts.repair_monsters_from_source import (
     BIGBY19_TARGETS,
@@ -68,9 +71,11 @@ from scripts.repair_monsters_from_source import (
     _remove_isolated_foreground_noise,
     _remaining_global_ocr_budget,
     _repair_numeric_dice_separator_confusion,
+    _hp_micro_ocr_psm,
     _micro_ocr_hit_points_line,
     _micro_target_line_matches,
     _otsu_inverted_samples,
+    _ocr_budget_seconds,
     _phb_quality_pre_otsu_clip,
     _phb_sparse_uses_quality_pre_otsu,
     _phb_sparse_comparison_uses_adaptive_source,
@@ -78,8 +83,11 @@ from scripts.repair_monsters_from_source import (
     _restore_cavallo_sparse_title_from_anchor,
     _sample_variance,
     _should_retry_dynamic_layout,
+    _should_retry_exact_identity_sparse,
     _sparse_anchor_crop_fractions,
     _sparse_anchor_matches,
+    _sparse_anchor_psms,
+    _source_guided_sparse_ocr_psms,
     _verified_core_agreement,
     build_repair_proposal,
     resolve_source,
@@ -462,6 +470,81 @@ def test_target_page_plus_one_requires_multi_token_clean_agreement():
     assert _candidate_matches_target(candidate, "Progenie Stellare Hulk", 19) is False
 
 
+def test_ki_rin_source_confirmed_candidate_fails_closed_on_drift():
+    expected = {
+        "classe_armatura": "20 (armatura naturale)",
+        "punti_ferita": "153 (18d10 + 54)",
+        "velocita": "18 m, volare 36 m (fluttuare)",
+    }
+    primary = {
+        "name": "Ki-Rin",
+        "normalized_name": repair.normalize_reference_name("Ki-Rin"),
+        "start_page": 57,
+        "attributes": dict(expected),
+        "source_refs": [{"page": 57}],
+    }
+    comparison = {
+        **primary,
+        "attributes": {
+            **expected,
+            "classe_armatura": "20 (armatura naturali)",
+            "velocita": "18 m, volare 36 m (fluttuare) i",
+        },
+    }
+    gates = {
+        "primary_gate_clean": True,
+        "comparison_gate_clean": True,
+        "ca_semantic_match": True,
+        "speed_semantic_match": True,
+        "ca_residual_single_edit": True,
+        "speed_residual_single_edit": True,
+        "speed_extra_short_suffix": True,
+        "both_from_same_page": True,
+        "ca_primary_reviewed_exact": True,
+        "hp_primary_reviewed_exact": True,
+        "hp_comparison_reviewed_exact": True,
+        "speed_primary_reviewed_exact": True,
+        "ca_deterministic_match": False,
+        "speed_deterministic_match": False,
+    }
+    confirmed = repair._ki_rin_source_confirmed_candidate(
+        primary, comparison, 57, gates
+    )
+    assert confirmed is not None
+    assert confirmed["attributes"] == expected
+
+    for key in (
+        "ca_semantic_match",
+        "speed_extra_short_suffix",
+        "hp_comparison_reviewed_exact",
+        "primary_gate_clean",
+        "ca_primary_reviewed_exact",
+    ):
+        invalid = dict(gates)
+        invalid[key] = False
+        assert (
+            repair._ki_rin_source_confirmed_candidate(
+                primary, comparison, 57, invalid
+            )
+            is None
+        )
+
+    invalid_primary = {**primary, "normalized_name": "other monster"}
+    assert (
+        repair._ki_rin_source_confirmed_candidate(
+            invalid_primary, comparison, 57, gates
+        )
+        is None
+    )
+    invalid_page = {**comparison, "start_page": 59}
+    assert (
+        repair._ki_rin_source_confirmed_candidate(
+            primary, invalid_page, 57, gates
+        )
+        is None
+    )
+
+
 def test_zero_agreement_reports_candidate_counts_and_divergent_core_fields():
     primary = [
         {
@@ -741,6 +824,155 @@ def test_hp_micro_ocr_skips_when_unique_local_hp_is_already_valid(tmp_path, caps
     assert result == page_text
     run.assert_not_called()
     assert "HP_MICRO_OCR_SKIPPED_VALID_LOCAL" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["none", "existing_hp", "duplicate_ca", "duplicate_speed", "invalid_hp"],
+)
+def test_drow_missing_hp_reconstruction_requires_unique_local_core(mutation):
+    text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 20 (3d8 + 6)\n"
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Velocità 9 m\n"
+    )
+    value = "30 (4d10 + 8)"
+    if mutation == "existing_hp":
+        text = text.replace(
+            "Velocità 9 m",
+            "Punti Ferita 30 (4d10 + 8)\nVelocità 9 m",
+        )
+    elif mutation == "duplicate_ca":
+        text = text.replace(
+            "Velocità 9 m",
+            "Classe Armatura 16\nVelocità 9 m",
+        )
+    elif mutation == "duplicate_speed":
+        text += "Velocità 12 m\n"
+    elif mutation == "invalid_hp":
+        value = "30 (4d99 + 8)"
+
+    result = repair._reconstruct_drow_missing_hp_line(
+        text,
+        "Drow Inquisitore",
+        value,
+    )
+    if mutation == "none":
+        assert result == text.replace(
+            "Velocità 9 m",
+            "Punti Ferita 30 (4d10 + 8)\nVelocità 9 m",
+        )
+        assert "ALTRO MOSTRO\nPunti Ferita 20 (3d8 + 6)" in result
+    else:
+        assert result is None
+
+
+@pytest.mark.parametrize(
+    ("filler_count", "accepted"),
+    [(11, True), (12, False)],
+)
+def test_drow_missing_hp_reconstruction_keeps_twelve_line_core_gap_bounded(
+    filler_count,
+    accepted,
+):
+    text = (
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        + "".join(f"riga filler {index}\n" for index in range(filler_count))
+        + "Velocità 9 m\n"
+    )
+    result = repair._reconstruct_drow_missing_hp_line(
+        text,
+        "Drow Inquisitore",
+        "30 (4d10 + 8)",
+    )
+    if accepted:
+        assert result is not None
+        assert "Punti Ferita 30 (4d10 + 8)\nVelocità 9 m" in result
+    else:
+        assert result is None
+
+
+def test_drow_missing_hp_reconstruction_normalizes_speed_label_accent():
+    text = (
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Velocitá 9 m\n"
+    )
+    result = repair._reconstruct_drow_missing_hp_line(
+        text,
+        "Drow Inquisitore",
+        "30 (4d10 + 8)",
+    )
+    assert result is not None
+    assert "Punti Ferita 30 (4d10 + 8)\nVelocitá 9 m" in result
+
+
+def test_drow_micro_ocr_reconstructs_only_tsv_anchored_missing_local_hp(tmp_path):
+    image_path = tmp_path / "drow.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 900, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+
+    page_text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 20 (3d8 + 6)\n"
+        "DROW INQUISITORE\n"
+        "Umanoide Medio (Elfo), neutrale malvagio\n"
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Velocità 9 m\n"
+        + "".join(f"riga filler {index}\n" for index in range(15))
+        + "ALTRO MOSTRO DUE\n"
+        "Punti Ferita 40 (6d10 + 7)\n"
+    )
+    rows = [
+        (20, ["DROW", "INQUISITORE"]),
+        (45, ["Umanoide", "Medio", "(Elfo)"]),
+        (70, ["Classe", "Armatura", "15"]),
+        (95, ["Punti", "Ferita", "30", "(4d10", "+", "8)"]),
+        (120, ["Velocità", "9", "m"]),
+        (210, ["Punti", "Ferita", "20", "(3d8", "+", "6)"]),
+        (300, ["Punti", "Ferita", "40", "(6d10", "+", "7)"]),
+    ]
+    header = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
+        "left\ttop\twidth\theight\tconf\ttext\n"
+    )
+    tsv = header + "".join(
+        f"5\t1\t{block}\t1\t1\t{word}\t{20 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+        for block, (top, words) in enumerate(rows, 1)
+        for word, value in enumerate(words, 1)
+    )
+
+    def source_reading(command, *args, **kwargs):
+        return tsv if "tsv" in command else "30 (4d10 + 8)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    assert "DROW INQUISITORE" in result
+    assert (
+        "Classe Armatura 15 (cuoio borchiato)\n"
+        "Punti Ferita 30 (4d10 + 8)\n"
+        "Velocità 9 m"
+    ) in result
+    assert "Punti Ferita 20 (3d8 + 6)" in result
+    assert "Punti Ferita 40 (6d10 + 7)" in result
 
 
 def test_micro_target_line_matches_bounded_title_ocr_error():
@@ -1616,6 +1848,23 @@ def test_non_two_column_source_keeps_full_page_settings():
     ) == (220, 6, 4)
 
 
+def test_mpmm_sparse_identity_retry_is_scoped_to_allowlisted_exact_identity_failure():
+    drow_id = "ref_fae2af9678e6572cb755708aab5c393d"
+    warlock_id = "ref_583cbd071aec5dc58748c4b27e4005b5"
+    duergar_id = "ref_8def8c405c2452a4a10ff597fd89fdc8"
+    fenice_id = "ref_744cb23cb7f95be7b5d7521316ce8e78"
+    other_id = "ref_a6f22b9706e058a8bd3f4dcbbd24c985"
+    exact_failure = RepairBlocked("no_unique_exact_target_identity")
+    core_failure = RepairBlocked("no_unique_independent_agreement")
+
+    assert _should_retry_exact_identity_sparse(exact_failure, drow_id) is True
+    assert _should_retry_exact_identity_sparse(core_failure, drow_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, warlock_id) is True
+    assert _should_retry_exact_identity_sparse(exact_failure, duergar_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, fenice_id) is False
+    assert _should_retry_exact_identity_sparse(exact_failure, other_id) is False
+
+
 def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
     source = {"logical_source_id": "mpmm_2022_it"}
     missing = RepairBlocked(
@@ -1641,6 +1890,95 @@ def test_dynamic_layout_retry_requires_missing_identity_in_two_column_source():
     )
 
 
+def test_hp_micro_ocr_psm_is_source_scoped():
+    assert _hp_micro_ocr_psm("Warlock Del Grande Antico", 3) == 7
+    assert _hp_micro_ocr_psm("Brontosauro", 4) == 6
+    assert _hp_micro_ocr_psm("Brontosauro", 3) == 7
+    assert _hp_micro_ocr_psm("Juiblex", 3) == 7
+
+
+def test_drow_sparse_ocr_keeps_two_independent_source_scoped_layouts():
+    assert _source_guided_sparse_ocr_psms("Drow Inquisitore", 4, 12) == (4, 12)
+    assert _source_guided_sparse_ocr_psms("Warlock Del Grande Antico", 3, 4) == (
+        3,
+        11,
+    )
+    assert _source_guided_sparse_ocr_psms("Juiblex", 3, 6) == (3, 6)
+
+
+def test_mpmm_warlock_sparse_anchor_uses_observed_layout_modes_only():
+    assert _sparse_anchor_psms("Warlock Del Grande Antico") == (11, 3, 4)
+    assert _sparse_anchor_psms("Unrelated Monster") == (11,)
+    assert _source_guided_sparse_ocr_psms(
+        "Warlock Del Grande Antico",
+        3,
+        4,
+    ) == (3, 11)
+
+
+def test_martellatore_uses_exact_title_compatible_fallback_only():
+    assert (
+        "Duergar Martellatore"
+        in repair.SOURCE_GUIDED_EXACT_TITLE_COMPATIBLE_FALLBACK_NAMES
+    )
+
+
+def test_mago_apprendista_hp_label_correction_preserves_value():
+    text = "MAGO APPRENDISTA\nPunti-Ferita 13 (3d8)\nVelocità 9 m\n"
+    result = repair._canonicalize_mago_apprendista_hp_label(text)
+    assert result == "MAGO APPRENDISTA\nPunti Ferita 13 (3d8)\nVelocità 9 m\n"
+
+
+def test_mago_apprendista_hp_label_correction_rejects_ambiguity():
+    text = "Punti-Ferita 13 (3d8)\nPunti-Ferita 40 (9d8)\n"
+    assert repair._canonicalize_mago_apprendista_hp_label(text) == text
+    untouched = "Punti Ferita 13 (3d8)\n"
+    assert repair._canonicalize_mago_apprendista_hp_label(untouched) == untouched
+
+
+def test_mago_apprendista_right_segment_is_source_scoped():
+    assert repair.TARGET_SEGMENT_BY_NAME["Mago Apprendista"] == "right"
+    assert repair.TARGET_SEGMENT_BY_NAME["Warlock Dell'Immondo"] == "right"
+    assert repair.TARGET_SEGMENT_BY_NAME["Duergar Martellatore"] == "left"
+
+
+def test_mago_apprendista_alternate_psms_are_source_page_scoped():
+    setting = repair._mago_apprendista_scoped_psms
+    assert setting("Mago Apprendista", "mpmm_2022_it", 69, True, 3, 4) == (11, 4)
+    assert setting("Mago Apprendista", "mpmm_2022_it", 68, True, 3, 4) == (3, 4)
+    assert setting("Mago Apprendista", "other", 69, True, 3, 4) == (3, 4)
+    assert setting("Mago Apprendista", "mpmm_2022_it", 69, False, 3, 4) == (3, 4)
+    assert setting("Mago Invocatore", "mpmm_2022_it", 69, True, 3, 4) == (3, 4)
+
+
+def test_mago_apprendista_registered_page_69_column_probe_is_scoped():
+    identifier = "ref_e14604cbec0a5306918cca5f4e74d639"
+    assert repair.SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID[identifier] == 69
+    assert repair.TARGET_SEGMENT_BY_NAME["Mago Apprendista"] == "right"
+    assert "Mago Apprendista" not in repair.SOURCE_GUIDED_GEOMETRY_ONLY_IDENTITY_FALLBACK_NAMES
+
+
+def test_mpmm_warlock_exact_identity_failure_triggers_sparse_retry_only():
+    identifier = "ref_583cbd071aec5dc58748c4b27e4005b5"
+    assert repair._should_retry_exact_identity_sparse(
+        RepairBlocked("no_unique_exact_target_identity"),
+        identifier,
+    )
+    assert not repair._should_retry_exact_identity_sparse(
+        RepairBlocked("no_unique_exact_target_identity"),
+        "ref_8def8c405c2452a4a10ff597fd89fdc8",
+    )
+    assert not repair._should_retry_exact_identity_sparse(
+        RepairBlocked("no_unique_independent_agreement"),
+        identifier,
+    )
+    assert _sparse_anchor_psms("Drow Inquisitore") == (11, 4, 12)
+    assert _sparse_anchor_psms("Duergar Martellatore") == (11, 4, 6)
+    assert _sparse_anchor_psms("Fenice") == (11, 4)
+    assert _sparse_anchor_psms("Juiblex") == (11, 3)
+    assert _sparse_anchor_psms("Danzatore Dell'Ombra") == (11,)
+
+
 def test_sparse_page_anchor_requires_title_like_identity():
     assert _sparse_anchor_matches("RAK   TULKHESH", "Rak Tulkhesh")
     assert _sparse_anchor_matches("RAK   TULKHESH X", "Rak Tulkhesh")
@@ -1654,6 +1992,45 @@ def test_sparse_page_anchor_requires_title_like_identity():
     assert not _sparse_anchor_matches(
         "Il Rak Tulkhesh attacca",
         "Rak Tulkhesh",
+    )
+
+
+def test_duergar_martellatore_wrapped_sparse_anchor_requires_adjacent_alignment():
+    grouped = {
+        ("1", "1", "1", "1"): [
+            {
+                "page_num": "1",
+                "left": "20",
+                "top": "100",
+                "width": "90",
+                "height": "14",
+                "text": "DUERGAR",
+            }
+        ],
+        ("1", "1", "1", "2"): [
+            {
+                "page_num": "1",
+                "left": "22",
+                "top": "118",
+                "width": "160",
+                "height": "14",
+                "text": "MARTELLATORE",
+            }
+        ],
+    }
+    matches = repair._sparse_wrapped_title_candidates(
+        grouped,
+        "Duergar Martellatore",
+    )
+    assert len(matches) == 1
+
+    grouped[("1", "1", "1", "2")][0]["top"] = "220"
+    assert (
+        repair._sparse_wrapped_title_candidates(
+            grouped,
+            "Duergar Martellatore",
+        )
+        == []
     )
 
 
@@ -1741,6 +2118,34 @@ def test_build_repair_proposal_replaces_only_core_and_forces_pending_review():
     assert "legacy_note" in proposal["review_flags"]
     assert OCR_REVIEW_FLAG in proposal["review_flags"]
     assert REPAIR_FLAG in proposal["review_flags"]
+
+
+def test_straziatore_whitespace_only_speed_preserves_original_core():
+    legacy = _monster("Progenie Stellare Straziatore", "14", "71 (13d8 + 13)")
+    legacy["id"] = "ref_a365a83a27685357b2d5e669fe65102a"
+    legacy["review_status"] = "pending"
+    legacy["attributes"]["velocita"] = "12 m, scalare 12 m"
+    candidate = {
+        "name": "Progenie Stellare Straziatore",
+        "reference_type": "monster",
+        "source_refs": [
+            {"page": 22, "filename": "Mostri del multiverso 201-294.pdf"}
+        ],
+        "attributes": {
+            "classe_armatura": "14",
+            "punti_ferita": "71 (13d8 + 13)",
+            "velocita": "12 m, scalare 12m",
+            "ocr_independent_agreement": True,
+        },
+    }
+    assert build_repair_proposal(legacy, candidate)["attributes"]["velocita"] == (
+        "12 m, scalare 12 m"
+    )
+    tampered = dict(candidate)
+    tampered["attributes"] = {**candidate["attributes"], "velocita": "12 m, scalare 15m"}
+    assert build_repair_proposal(legacy, tampered)["attributes"]["velocita"] != (
+        "12 m, scalare 12 m"
+    )
 
 
 def test_build_repair_proposal_rejects_still_corrupt_candidate():
@@ -2226,6 +2631,35 @@ def test_sparse_anchor_crop_recenters_unique_right_column_target(tmp_path):
     assert "tsv" in command
 
 
+def test_warlock_sparse_anchor_crop_keeps_full_page_width_below_unique_title(tmp_path):
+    image_path = tmp_path / "page.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        "5\t1\t1\t1\t1\t1\t620\t180\t110\t30\t95\tWARLOCK\n"
+        "5\t1\t1\t1\t1\t2\t740\t180\t55\t30\t95\tDEL\n"
+        "5\t1\t1\t1\t1\t3\t805\t180\t95\t30\t95\tGRANDE\n"
+        "5\t1\t1\t1\t1\t4\t910\t180\t80\t30\t95\tANTICO\n"
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        crop = _sparse_anchor_crop_fractions(
+            image_path,
+            "ita",
+            "Warlock Del Grande Antico",
+        )
+
+    assert crop is not None
+    assert crop[0] == 0.0
+    assert crop[2] == 1.0
+    assert 0.0 <= crop[1] < 0.2
+    assert crop[3] == 1.0
+
+
 def test_sparse_anchor_crop_can_use_distinct_psm12(tmp_path):
     image_path = tmp_path / "page.png"
     image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
@@ -2252,11 +2686,47 @@ def test_sparse_anchor_crop_can_use_distinct_psm12(tmp_path):
     assert command[psm_index + 1] == "12"
 
 
+def test_mpmm_extended_ocr_budget_is_limited_to_timed_out_residuals():
+    extended = {
+        "ref_2d833b3db343531b8cbe0669197259bd",
+        "ref_6b0e1564d7325987a342097cebb39316",
+        "ref_a6b5749652855247a3266f61817441fa",
+    }
+    for record_id in extended:
+        assert _ocr_budget_seconds(record_id, "batch_mpmm_pending_131") == 150.0
+
+    # Other MPMM records remain bounded to the ordinary 60-second batch budget
+    # even when they have a larger allowance for non-MPMM targeted workflows.
+    assert (
+        _ocr_budget_seconds(
+            "ref_fae2af9678e6572cb755708aab5c393d",
+            "batch_mpmm_pending_131",
+        )
+        == 60.0
+    )
+    assert (
+        _ocr_budget_seconds(
+            "ref_fae2af9678e6572cb755708aab5c393d",
+            "other_target_set",
+        )
+        == 150.0
+    )
+
+
 def test_phb_residual_retry_sets_keep_rana_and_bounded_budgets():
     assert "ref_66cc59680c4e58fa93a99656f8a07887" in (
         PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
     )
-    assert OCR_GLOBAL_TIMEOUT_BY_RECORD_ID == {
+    assert all(0 < budget <= 150.0 for budget in OCR_GLOBAL_TIMEOUT_BY_RECORD_ID.values())
+    phb_ids = {
+        "ref_85a4eadb862758fbb682e93ab19f1065",
+        "ref_f28940a5239a54f696cb524805e29cc2",
+        "ref_38273488414b57489e9d7e57a6c0a360",
+        "ref_87ee4ffeff7c5b7bb65e12def234a3be",
+        "ref_019562bded0b320ac918f4b2514c65e4",
+        "ref_0626a11ef12ec092e8c13f94d1b03cd8",
+    }
+    assert {record_id: OCR_GLOBAL_TIMEOUT_BY_RECORD_ID[record_id] for record_id in phb_ids} == {
         "ref_85a4eadb862758fbb682e93ab19f1065": 150.0,
         "ref_f28940a5239a54f696cb524805e29cc2": 150.0,
         "ref_38273488414b57489e9d7e57a6c0a360": 150.0,
@@ -2372,3 +2842,3184 @@ def test_target_agreement_is_symmetric_when_only_comparison_keeps_target_name():
     assert candidate["name"] == "Rak Tulkhesh"
     assert candidate["attributes"]["ocr_independent_agreement"] is True
     assert candidate["attributes"]["ocr_core_only_same_page_agreement"] is True
+
+
+@pytest.mark.parametrize(
+    ("extra_block", "missing_speed", "expected_anchor"),
+    [(False, False, True), (True, False, False), (False, True, False)],
+)
+def test_adrosauro_duplicate_titles_require_one_ordered_local_statblock(
+    tmp_path, extra_block, missing_speed, expected_anchor
+):
+    image_path = tmp_path / "adrosauro.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 1000, 1200), False)
+    image.clear_with(255)
+    image.save(image_path)
+    lines = [(100, "ADROSAURO"), (600, "ADROSAURO")]
+    for title_top in ([100, 600] if extra_block else [600]):
+        lines.extend(
+            [
+                (title_top + 60, "Bestia Grande (Dinosauro), senza allineamento"),
+                (title_top + 120, "Classe Armatura 11"),
+                (title_top + 180, "Punti Ferita 19 (3d10 + 3)"),
+            ]
+        )
+        if not missing_speed:
+            lines.append((title_top + 240, "Velocità 12 m"))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{index}\t1\t1\t1\t80\t{top}\t220\t30\t95\t{text}\n"
+            for index, (top, text) in enumerate(lines, 1)
+        )
+    )
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess([], 0, stdout=tsv, stderr=""),
+    ):
+        crop = _sparse_anchor_crop_fractions(image_path, "ita", "Adrosauro")
+    if expected_anchor:
+        assert crop is not None
+        assert crop[0] == 0.0
+        assert crop[2] == 0.5
+        assert 0.45 < crop[1] < 0.55
+    else:
+        assert crop is None
+
+
+@pytest.mark.parametrize(
+    ("mutation", "accepted"),
+    [("none", True), ("duplicate_hp", False), ("missing_eye", False), ("wrong_ca", False)],
+)
+def test_arciere_action_identity_restore_requires_unique_local_evidence(mutation, accepted):
+    from scripts.repair_monsters_from_source import _restore_arciere_title_from_local_actions
+
+    text = (
+        "OCR title debris\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 16 (cuoio borchiato)\n"
+        "Punti Ferita 75 (10d8 + 30)\n"
+        "Velocità 9 m\n"
+        "AZIONI\n"
+        "Multiattacco. L'arciere effettua attacchi.\n"
+        "AZIONI BONUS\n"
+        "Occhio dell'arciere. Test sintetico.\n"
+    )
+    if mutation == "duplicate_hp":
+        text += "Punti Ferita 75 (10d8 + 30)\n"
+    elif mutation == "missing_eye":
+        text = text.replace("Occhio dell'arciere. Test sintetico.\n", "")
+    elif mutation == "wrong_ca":
+        text = text.replace("Armatura 16", "Armatura 17")
+    result = _restore_arciere_title_from_local_actions(text, "Arciere")
+    if accepted:
+        assert result.replace("ARCIERE\n", "", 1) == text
+        assert result.index("ARCIERE") < result.index("Umanoide")
+    else:
+        assert result == text
+    assert _restore_arciere_title_from_local_actions(text, "Babau") == text
+
+
+@pytest.mark.parametrize("missing_identity", [False, True])
+def test_bael_title_restore_preserves_unresolved_dice(missing_identity):
+    from scripts.repair_monsters_from_source import _restore_bael_title_from_local_actions
+
+    text = (
+        "OCR debris\n"
+        "Immondo Grande (Diavolo), legale malvagio\n"
+        "Classe Armatura 18 (piastre)\n"
+        "Punti Ferita 189 (18410 + 90)\n"
+        "Velocità 9 m\n"
+        "Resistenza leggendaria. Se Bael fallisce, test.\n"
+        "Multiattacco. Bael effettua attacchi.\n"
+    )
+    if missing_identity:
+        text = text.replace("Resistenza leggendaria. Se Bael fallisce, test.\n", "")
+    result = _restore_bael_title_from_local_actions(text, "Bael")
+    if missing_identity:
+        assert result == text
+    else:
+        assert result.replace("BAEL\n", "", 1) == text
+        assert "18410" in result
+
+
+@pytest.mark.parametrize("duplicate_hp", [False, True])
+def test_bael_micro_ocr_uses_unique_ordered_core_row(tmp_path, duplicate_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "bael.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "BAEL\n"
+        "Immondo Grande (Diavolo), legale malvagio\n"
+        "Classe Armatura 18 (piastre)\n"
+        "Punti Ferita 189 (18410 + 90)\n"
+        "Velocità 9 m\n"
+        "Rigenerazione. Bael recupera 20 punti ferita.\n"
+        "Se Bael inizia con 0 punti ferita, test.\n"
+    )
+    rows = [
+        (30, ["BAEL"]),
+        (60, ["Classe", "Armatura", "18", "(piastre)"]),
+        (90, ["Punti", "Ferita", "189", "(18410", "+", "90)"]),
+        (120, ["Velocità", "9", "m"]),
+        (160, ["Rigenerazione.", "Bael", "recupera", "20", "punti", "ferita."]),
+    ]
+    if duplicate_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "189", "(18410", "+", "90)"]))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+
+    def source_reading(command, *args, **kwargs):
+        return tsv if "tsv" in command else "189 (18d10 + 90)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 3, text, "Bael")
+    if duplicate_hp:
+        assert result == text
+    else:
+        assert result == text.replace("189 (18410 + 90)", "189 (18d10 + 90)")
+
+@pytest.mark.parametrize("mutation", ["none", "missing_type", "duplicate_hp", "missing_trait"])
+def test_bodak_identity_requires_complete_independent_local_evidence(mutation):
+    from scripts.repair_monsters_from_source import _restore_bodak_title_from_local_traits
+
+    text = (
+        "OCR debris\n"
+        ". Non morto Medio, generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 58 (9d8 + 18)\n"
+        "Velocità 9 m\n"
+        "Ipersensibilità al sole. Il bodak subisce danni, test.\n"
+        "Natura insolita. Il bodak non necessita di respirare, test.\n"
+    )
+    if mutation == "missing_type":
+        text = text.replace("Non morto", "on morto")
+    elif mutation == "duplicate_hp":
+        text += "Punti Ferita 58 (9d8 + 18)\n"
+    elif mutation == "missing_trait":
+        text = text.replace(
+            "Natura insolita. Il bodak non necessita di respirare, test.\n", ""
+        )
+    result = _restore_bodak_title_from_local_traits(text, "Bodak")
+    if mutation == "none":
+        assert result.replace("BODAK\n", "", 1) == text.replace(". Non", "Non", 1)
+    else:
+        assert result == text
+    assert _restore_bodak_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "disagreement", "duplicate_geometry"])
+def test_bodak_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
+    from scripts.repair_monsters_from_source import _micro_ocr_bodak_descriptor
+
+    image_path = tmp_path / "bodak.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    descriptor = "Non morto Medio, generalmente caotico malvagio"
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+            for block, top in (
+                [(1, 40), (2, 70)] if mutation == "duplicate_geometry" else [(1, 40)]
+            )
+            for word, value in enumerate(descriptor.split(), 1)
+        )
+    )
+    primary = (
+        ". Non morto Medio, generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 58 (9d8 + 18)\n"
+        "Velocità 9 m\n"
+    )
+    comparison = primary.replace(". Non morto", "on morto").replace("9d8", "948")
+
+    def source_reading(command, *args, **kwargs):
+        if "tsv" in command:
+            return tsv
+        if mutation == "disagreement" and command[command.index("--psm") + 1] == "7":
+            return "on morto Medio, generalmente caotico malvagio"
+        return descriptor
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_bodak_descriptor(image_path, "ita", primary, comparison)
+    if mutation == "none":
+        assert result[0] == primary.replace(". Non morto", "Non morto")
+        assert result[1] == comparison.replace("on morto", "Non morto")
+        assert "948" in result[1]
+    else:
+        assert result == (primary, comparison)
+
+def test_brontosauro_comparison_hp_keeps_independent_geometry_and_numeric_modes(tmp_path):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "brontosauro.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "BRONTOSAURO\n"
+        "Bestia Mastodontica (Dinosauro), senza allineamento\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 121 (9420 + 27)\n"
+        "Velocità 9 m\n"
+    )
+    rows = [
+        (30, ["BRONTOSAURO"]),
+        (60, ["Classe", "Armatura", "15"]),
+        (90, ["Punti", "Ferita", "121", "(9420", "+", "27)"]),
+        (120, ["Velocità", "9", "m"]),
+    ]
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "121 (9d20 + 27)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Brontosauro")
+    assert result == text.replace("9420", "9d20")
+    assert commands[0][commands[0].index("--psm") + 1] == "11"
+    assert all(
+        command[command.index("--psm") + 1] == "6" for command in commands[1:]
+    )
+
+@pytest.mark.parametrize("mutation", ["none", "missing_identity", "duplicate_core", "existing_title"])
+def test_bulezau_title_restore_requires_observed_heading_and_local_trait(mutation):
+    from scripts.repair_monsters_from_source import _restore_bulezau_title_from_local_trait
+
+    text = (
+        "BULEZAU\n"
+        "Test sintetico di prosa introduttiva.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Altra riga sintetica.\n"
+        "Immondo Medio (Demone), generalmente caotico malvagio\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 52 (7d8 + 21)\n"
+        "Velocità 12 m\n"
+        "Presenza putrescente. Una creatura che non sia un\n"
+        "demone inizia il suo turno entro 9 metri dal bulezau, test.\n"
+    )
+    if mutation == "missing_identity":
+        text = text.replace("dal bulezau", "dal demone")
+    elif mutation == "duplicate_core":
+        text += "Classe Armatura 14 (armatura naturale)\n"
+    elif mutation == "existing_title":
+        text = text.replace("Immondo Medio", "BULEZAU\nImmondo Medio")
+    result = _restore_bulezau_title_from_local_trait(text, "Bulezau")
+    if mutation == "none":
+        assert result.replace("BULEZAU\nImmondo", "Immondo", 1) == text
+    else:
+        assert result == text
+    assert _restore_bulezau_title_from_local_trait(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "duplicate_hp", "wrong_type", "non_border_prefix"])
+def test_celeresto_core_prefix_cleanup_is_scoped_and_preserves_values(mutation):
+    from scripts.repair_monsters_from_source import _clean_celeresto_core_prefixes
+
+    text = (
+        "CELERESTO\n"
+        "Folletto Minuscolo, generalmente caotico malvagio\n"
+        "Classe Armatura 16\n"
+        "i Punti Ferita 10 (3d4 + 3)\n"
+        "i Velocità 36 m\n"
+    )
+    if mutation == "duplicate_hp":
+        text += "Punti Ferita 10 (3d4 + 3)\n"
+    elif mutation == "wrong_type":
+        text = text.replace("Folletto", "Bestia")
+    elif mutation == "non_border_prefix":
+        text = text.replace("i Punti", "test Punti")
+    result = _clean_celeresto_core_prefixes(text, "Celeresto")
+    if mutation == "none":
+        assert result == text.replace("i Punti", "Punti").replace("i Velocità", "Velocità")
+    else:
+        assert result == text
+    assert _clean_celeresto_core_prefixes(text, "Babau") == text
+
+@pytest.mark.parametrize("duplicate_target_hp", [False, True])
+@pytest.mark.parametrize("nearby_speed", [False, True])
+def test_delfino_hp_crop_does_not_use_sollazzatore(tmp_path, duplicate_target_hp, nearby_speed):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "delfino.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 700, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "DELFINO\nBestia Media, senza allineamento\n"
+        "Classe Armatura 12 (armatura naturale)\n"
+        "Punti Ferita 11 (248 + 2)\nVelocità 0 m, nuotare 18 m\n"
+        "Apnea. Il delfino può trattenere il respiro, test.\n"
+        "DELFINO SOLLAZZATORE\nFolletto Medio, generalmente caotico buono\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 27 (5d8 + 5)\nVelocità 0 m, nuotare 18 m\n"
+    )
+    rows = [
+        (30, ["DELFINO"]),
+        (60, ["Classe", "Armatura", "12"]),
+        (90, ["Punti", "Ferita", "11", "(248", "+", "2)"]),
+        (120, ["Velocità", "0", "m"]),
+        (160, ["Apnea.", "Il", "delfino", "test."]),
+        (190, ["DELFINO", "SOLLAZZATORE"]),
+        (220, ["Classe", "Armatura", "14"]),
+        (250, ["Punti", "Ferita", "27", "(5d8", "+", "5)"]),
+        (280, ["Velocità", "0", "m"]),
+    ]
+    if not nearby_speed:
+        rows.insert(6, (205, ["Folletto", "Medio,", "caotico", "buono"]))
+    if duplicate_target_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "11", "(248", "+", "2)"]))
+        text = text.replace("Velocità 0 m", "Punti Ferita 11 (248 + 2)\nVelocità 0 m", 1)
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "11 (2d8 + 2)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Delfino")
+    if duplicate_target_hp or nearby_speed:
+        assert result == text
+    else:
+        assert result == text.replace("11 (248 + 2)", "11 (2d8 + 2)")
+        assert "27 (5d8 + 5)" in result
+        assert commands[0][commands[0].index("--psm") + 1] == "11"
+        assert commands[1][commands[1].index("--psm") + 1] == "6"
+
+@pytest.mark.parametrize("mutation", ["none", "missing_trait", "ambiguous_type"])
+def test_delfino_title_identity_ignores_sollazzatore_shared_speed(mutation):
+    from scripts.repair_monsters_from_source import _restore_delfino_title_from_local_traits
+
+    text = (
+        "Dario\nBestia Media, senza allineamento\n"
+        "Classe Armatura 12 (armatura naturale)\n"
+        "Punti Ferita 11 (248 + 2)\nVelocità 0 m, nuotare 18 m\n"
+        "Apnea. Il delfino può trattenere il respiro, test.\n"
+        "Se, prima del colpo, il delfino ha nuotato per metri, test.\n"
+        "DELFINO SOLLAZZATORE\nFolletto Medio, generalmente caotico buono\n"
+        "Classe Armatura 14 (armatura naturale)\n"
+        "Punti Ferita 27 (5d8 + 5)\nVelocità 0 m, nuotare 18 m\n"
+    )
+    if mutation == "missing_trait":
+        text = text.replace("il delfino ha nuotato", "ha nuotato")
+    elif mutation == "ambiguous_type":
+        text += "Bestia Media, senza allineamento\n"
+    result = _restore_delfino_title_from_local_traits(text, "Delfino")
+    if mutation == "none":
+        assert result.replace("DELFINO\nBestia", "Bestia", 1) == text
+        assert "248" in result
+        assert "DELFINO SOLLAZZATORE" in result
+    else:
+        assert result == text
+    assert _restore_delfino_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "sapiente_type", "sapiente_hp", "missing_trait"])
+def test_derro_title_restore_does_not_accept_sapiente(mutation):
+    from scripts.repair_monsters_from_source import _restore_derro_title_from_local_traits
+
+    text = (
+        "DERR\nOCR debris\n"
+        "Aberrazione Piccola, generalmente caotica malvagia\n"
+        "Classe Armatura 13 (armatura di cuoio)\n"
+        "Punti Ferita 13 (3d6 + 3)\nVelocità 9 m\n"
+        "Resistenza alla magia. Il derro dispone di vantaggio, test.\n"
+        "i Sensibilità al sole. Al sole, il derro ha svantaggio, test.\n"
+    )
+    if mutation == "sapiente_type":
+        text = text.replace("Aberrazione Piccola,", "Aberrazione Piccola (Stregone),")
+    elif mutation == "sapiente_hp":
+        text = text.replace("13 (3d6 + 3)", "36 (8d6 + 8)")
+    elif mutation == "missing_trait":
+        text = text.replace("Il derro dispone", "Dispone")
+    result = _restore_derro_title_from_local_traits(text, "Derro")
+    if mutation == "none":
+        assert result.replace("DERRO\nAberrazione", "Aberrazione", 1) == text
+    else:
+        assert result == text
+    assert _restore_derro_title_from_local_traits(text, "Babau") == text
+
+@pytest.mark.parametrize("mutation", ["none", "missing_trait", "duplicate_hp", "wrong_type"])
+def test_divoratore_identity_requires_unique_local_traits(mutation):
+    from scripts.repair_monsters_from_source import _restore_divoratore_title_from_local_traits
+
+    text = (
+        "OCR debris\n"
+        "Non morto Grande, generalmente caotico malvagio\n"
+        "Classe Armatura 16 (armatura naturale)\n"
+        "Punti Ferita 189 (18410 + 90)\nVelocità 9 m\n"
+        "Natura insolita. Un divoratore non necessita di respirare, test.\n"
+        "Multiattacco. Il divoratore effettua attacchi, test.\n"
+    )
+    if mutation == "missing_trait":
+        text = text.replace("Un divoratore", "La creatura")
+    elif mutation == "duplicate_hp":
+        text += "Punti Ferita 189 (18410 + 90)\n"
+    elif mutation == "wrong_type":
+        text = text.replace("Non morto", "Immondo")
+    result = _restore_divoratore_title_from_local_traits(text, "Divoratore")
+    if mutation == "none":
+        assert result.replace("DIVORATORE\n", "", 1) == text
+        assert "18410" in result
+    else:
+        assert result == text
+    assert _restore_divoratore_title_from_local_traits(text, "Babau") == text
+
+
+@pytest.mark.parametrize("duplicate_hp", [False, True])
+def test_divoratore_micro_ocr_uses_unique_core_not_body_hp(tmp_path, duplicate_hp):
+    from scripts.repair_monsters_from_source import _micro_ocr_hit_points_line
+
+    image_path = tmp_path / "divoratore.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 500), False)
+    image.clear_with(255)
+    image.save(image_path)
+    text = (
+        "DIVORATORE\nNon morto Grande, generalmente caotico malvagio\n"
+        "Classe Armatura 16 (armatura naturale)\n"
+        "Punti Ferita 189 (18410 + 90)\nVelocità 9 m\n"
+        "Il divoratore recupera punti ferita, test.\n"
+    )
+    rows = [
+        (30, ["DIVORATORE"]),
+        (60, ["Classe", "Armatura", "16"]),
+        (90, ["Punti", "Ferita", "189", "(18410", "+", "90)"]),
+        (120, ["Velocità", "9", "m"]),
+        (160, ["Il", "divoratore", "recupera", "punti", "ferita."]),
+    ]
+    if duplicate_hp:
+        rows.insert(3, (105, ["Punti", "Ferita", "189", "(18410", "+", "90)"]))
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 45 * word}\t{top}\t40\t15\t95\t{value}\n"
+            for block, (top, words) in enumerate(rows, 1)
+            for word, value in enumerate(words, 1)
+        )
+    )
+    commands = []
+
+    def source_reading(command, *args, **kwargs):
+        commands.append(command)
+        return tsv if "tsv" in command else "189 (18d10 + 90)\n"
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 4, text, "Divoratore")
+    if duplicate_hp:
+        assert result == text
+    else:
+        assert result == text.replace("18410", "18d10")
+        assert commands[0][commands[0].index("--psm") + 1] == "11"
+        assert commands[1][commands[1].index("--psm") + 1] == "6"
+
+@pytest.mark.parametrize("mutation", ["none", "disagreement", "duplicate_geometry"])
+def test_draegloth_descriptor_micro_requires_two_source_reads(tmp_path, mutation):
+    from scripts.repair_monsters_from_source import _micro_ocr_draegloth_descriptor
+
+    image_path = tmp_path / "draegloth.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 300), False)
+    image.clear_with(255)
+    image.save(image_path)
+    descriptor = "Immondo Grande (Demone), generalmente caotico malvagio"
+    tsv = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        + "".join(
+            f"5\t1\t{block}\t1\t1\t{word}\t{10 + 70 * word}\t{top}\t60\t15\t95\t{value}\n"
+            for block, top in (
+                [(1, 40), (2, 70)] if mutation == "duplicate_geometry" else [(1, 40)]
+            )
+            for word, value in enumerate(descriptor.split(), 1)
+        )
+    )
+    primary = (
+        ". Immondo Grande (Demone), generalmente caotico malvagio\n"
+        "Classe Armatura 15 (armatura naturale)\n"
+        "Punti Ferita 123 (13d10 + 52)\n"
+        "Velocità 9 m\n"
+    )
+    comparison = primary.replace(". Immondo", "lmmondo").replace("13d10", "13410")
+
+    def source_reading(command, *args, **kwargs):
+        if "tsv" in command:
+            return tsv
+        if mutation == "disagreement" and command[command.index("--psm") + 1] == "7":
+            return "lmmondo Grande (Demone), generalmente caotico malvagio"
+        return descriptor
+
+    with patch(
+        "scripts.repair_monsters_from_source._run_tesseract_bounded",
+        side_effect=source_reading,
+    ):
+        result = _micro_ocr_draegloth_descriptor(image_path, "ita", primary, comparison)
+    if mutation == "none":
+        assert result[0] == primary.replace(". Immondo", "Immondo")
+        assert result[1] == comparison.replace("lmmondo", "Immondo")
+        assert "13410" in result[1]
+    else:
+        assert result == (primary, comparison)
+
+
+def test_deforme_suffix_cleanup_preserves_source_attributes_and_inputs():
+    attributes = {
+        "classe_armatura": "15 (armatura naturale)",
+        "punti_ferita": "10 (4d6 - 4)",
+        "velocita": "12 m",
+        "synthetic_provenance": "independent primary source",
+    }
+    primary = {
+        "name": "Addolorato Deforme",
+        "normalized_name": "addolorato deforme",
+        "start_page": 46,
+        "source_refs": [{"page": 46}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": "ADDOLORATO DEFORME hi",
+        "normalized_name": "addolorato deforme hi",
+        "attributes": {**attributes, "classe_armatura": "15 (armatura naturale) V"},
+    }
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with patch(
+        "scripts.repair_monsters_from_source.parse_monster_statblocks",
+        side_effect=[[primary], [comparison]],
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
+        )
+    assert candidate["attributes"] == attributes
+    assert json.dumps([primary, comparison], sort_keys=True) == before
+
+
+def test_private_title_order_probe_does_not_accept_reordered_names_or_adjacent_evidence():
+    target = "Synthetic Guard"
+    candidate = {
+        "name": "GUARD SYNTHETIC", "normalized_name": "guard synthetic", "start_page": 7,
+        "source_refs": [{"page": 7}],
+        "attributes": {"classe_armatura": "15", "punti_ferita": "45 (6d10 + 12)", "velocita": "9 m"},
+    }
+    pages = [(7, "GUARD SYNTHETIC\nPRIVATE_SOURCE_SENTINEL\n"), (8, "SYNTHETIC GUARD\n")]
+    counts = repair._identity_source_counts(pages, [candidate], target, 7)
+    assert counts["reversed_title_lines"] == counts["reversed_core_candidates"] == 1
+    assert counts["exact_title_lines"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    with patch.object(repair, "parse_monster_statblocks", side_effect=[[candidate], [candidate]]):
+        with pytest.raises(RepairBlocked) as caught:
+            _agreed_target_candidate(pages, pages, "synthetic.pdf", "it", target, 7, require_exact_target_identity=True)
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+@pytest.mark.parametrize("descriptor,expected", [
+    ("Sciame Enorme di bestie Piccole, neutrale", 1),
+    ("Sciame Medio di aberrazioni Minuscole, legale buono", 1),
+    ("Uno sciame Enorme di bestie Piccole, neutrale", 0),
+    ("Sciame Enorme di oggetti Piccoli, neutrale", 0),
+    ("Sciame di bestie Piccole, neutrale", 0),
+])
+def test_swarm_descriptor_probe_preserves_source_and_reports_strict_structure(descriptor, expected):
+    text = (
+        f"GUARDIANO FITTIZIO\n{descriptor}\n"
+        "Classe Armatura 13\nPunti Ferita 31 (7d6 + 7)\nVelocità 6 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["swarm_descriptor_lines"] == expected
+    assert counts["swarm_descriptor_after_exact_title"] == expected
+    assert counts["descriptor_lines"] == counts["parser_valid_headers"] == expected
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert pages == [(7, text)]
+
+
+@pytest.mark.parametrize("label,value", [
+    ("Classe Armatura 13", "Classe Armatura 14"),
+    ("Punti Ferita 31 (7d6 + 7)", "Punti Ferita 38 (7d6 + 14)"),
+    ("Velocità 6 m", "Velocità 9 m"),
+])
+def test_swarm_descriptor_keeps_independent_core_disagreement_closed(label, value):
+    primary = (
+        "GUARDIANO FITTIZIO\nSciame Enorme di bestie Piccole, neutrale\n"
+        "Classe Armatura 13\nPunti Ferita 31 (7d6 + 7)\nVelocità 6 m\n"
+    )
+    with pytest.raises(RepairBlocked) as caught:
+        _agreed_target_candidate(
+            [(7, primary)], [(7, primary.replace(label, value))],
+            "synthetic.pdf", "it", "Guardiano Fittizio", 7,
+            require_exact_target_identity=True,
+        )
+    assert caught.value.reason == "no_unique_independent_agreement"
+
+
+def test_mago_divinatore_page70_source_title_is_not_adjacent_evocatore():
+    divinatore = (
+        "MAGO DIVINATORE\nUmanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 12 (15 con armatura magica)\n"
+        "Punti Ferita 90 (20d8)\nVelocità 9 m\n"
+    )
+    evocatore = divinatore.replace("MAGO DIVINATORE", "MAGO EVOCATORE").replace(
+        "90 (20d8)", "58 (13d8)"
+    )
+    true_metrics = repair._mpmm_segment_anchor_metrics(
+        divinatore, divinatore, "Mago Divinatore"
+    )
+    false_metrics = repair._mpmm_segment_anchor_metrics(
+        divinatore, evocatore, "Mago Divinatore"
+    )
+    assert true_metrics["primary_exact_title_unique"] is True
+    assert true_metrics["comparison_exact_title_unique"] is True
+    assert false_metrics["comparison_exact_title_unique"] is False
+
+
+def test_source_column_metrics_report_only_core_presence_and_exact_title():
+    title = "Mago Divinatore"
+    primary = (
+        "MAGO DIVINATORE\nUmanoide Medio\n"
+        "Classe Armatura 12\nPunti Ferita 58 (13d8)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    comparison = "MAGO DIVINATORE\nClasse Armatura 12\nPunti Ferita 58 (13d8)\n"
+    result = repair._mpmm_segment_anchor_metrics(primary, comparison, title)
+    assert result["primary_exact_title_unique"] is True
+    assert result["comparison_exact_title_unique"] is True
+    assert result["primary_speed_label_seen"] is True
+    assert result["comparison_speed_label_seen"] is False
+    assert all(isinstance(value, bool) for value in result.values())
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(result)
+
+
+def test_source_column_metrics_reject_title_embedded_in_prose():
+    result = repair._mpmm_segment_anchor_metrics(
+        "Un'altra creatura menziona Mago Divinatore nella storia",
+        "MAGO DIVINATORE\nMAGO DIVINATORE",
+        "Mago Divinatore",
+    )
+    assert result["primary_exact_title_unique"] is False
+    assert result["comparison_exact_title_unique"] is False
+
+
+def test_shadar_kai_wrapped_title_joins_only_existing_source_words():
+    target = "Shadar-Kai Trafficante Di Anime"
+    original = (
+        "SHADAR-KAI TRAFFICANTE\nDI ANIME\n"
+        "Umanoide Medio, neutrale\n"
+        "Classe Armatura 15\n"
+        "Punti Ferita 136 (21d8 + 42)\n"
+        "Velocità 9 m\nPRIVATE_SOURCE_SENTINEL\n"
+    )
+    repaired = repair._join_unique_source_wrapped_title(original, target)
+    assert repaired.startswith(
+        "SHADAR-KAI TRAFFICANTE DI ANIME\nUmanoide Medio, neutrale\n"
+    )
+    assert "Punti Ferita 136 (21d8 + 42)" in repaired
+    assert "Velocità 9 m" in repaired
+    assert "PRIVATE_SOURCE_SENTINEL" in repaired
+    assert repair._join_unique_source_wrapped_title(repaired, target) == repaired
+
+
+def test_shadar_kai_wrapped_title_ignores_blank_ocr_rows_but_preserves_source():
+    target = "Shadar-Kai Trafficante Di Anime"
+    original = (
+        "SHADAR-KAI TRAFFICANTE\n\nDI ANIME\n\n"
+        "Umanoide Medio, neutrale\n\nClasse Armatura 15\n"
+        "Punti Ferita 136 (21d8 + 42)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    repaired = repair._join_unique_source_wrapped_title(original, target)
+    assert repaired.startswith(
+        "SHADAR-KAI TRAFFICANTE DI ANIME\n\n\n"
+        "Umanoide Medio, neutrale\n"
+    )
+    assert repaired.count("SHADAR-KAI TRAFFICANTE DI ANIME") == 1
+    assert "Punti Ferita 136 (21d8 + 42)" in repaired
+    assert "Velocità 9 m" in repaired
+    assert "PRIVATE_SOURCE_SENTINEL" in repaired
+    assert repair._join_unique_source_wrapped_title(repaired, target) == repaired
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "not_adjacent", "no_descriptor", "no_hp"])
+def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutation):
+    target = "Shadar-Kai Trafficante Di Anime"
+    valid = (
+        "SHADAR-KAI TRAFFICANTE\nDI ANIME\n"
+        "Umanoide Medio\nClasse Armatura 15\n"
+        "Punti Ferita 136 (21d8 + 42)\nVelocità 9 m\n"
+    )
+    text = {
+        "duplicate": valid + valid,
+        "not_adjacent": valid.replace(
+            "TRAFFICANTE\nDI ANIME", "TRAFFICANTE\nOTHER TITLE\nDI ANIME"
+        ),
+        "no_descriptor": valid.replace("Umanoide Medio", "Some unrelated prose"),
+        "no_hp": valid.replace("Punti Ferita", "Valore Ferita"),
+    }[mutation]
+    assert repair._join_unique_source_wrapped_title(text, target) == text
+
+
+def test_warlock_native_heading_requires_pdf_and_ocr_core_agreement():
+    source = (
+        "WARLOCK DELL'IMMONDO\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 1 3 (16 con armatura magica)\n"
+        "Punti Ferita 78 (12d8 + 24)\nVelocità 9 m\n"
+    )
+    ocr = (
+        "WARLOCK DEL'LIMMONDO\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 13 (16 con armatura magica)\n"
+        "Punti Ferita 78 (12d8 + 24)\nVelocità 9 m\n"
+    )
+    recovered = repair._restore_warlock_fiend_pdf_title(ocr, source)
+    assert recovered.startswith("WARLOCK DELL'IMMONDO\n")
+    assert "Punti Ferita 78 (12d8 + 24)" in recovered
+    wrong_source = source.replace("WARLOCK DELL'IMMONDO", "WARLOCK DEL SIGNORE FATATO")
+    assert repair._restore_warlock_fiend_pdf_title(ocr, wrong_source) == ocr
+    bad_ocr = ocr.replace("12d8 + 24", "1248 + 24")
+    assert repair._restore_warlock_fiend_pdf_title(bad_ocr, source) == bad_ocr
+    bad_source = source.replace("12d8 + 24", "12d8 + 28")
+    assert repair._restore_warlock_fiend_pdf_title(ocr, bad_source) == ocr
+    duplicate = ocr + ocr
+    assert repair._restore_warlock_fiend_pdf_title(duplicate, source) == duplicate
+
+
+def test_warlock_fiend_title_apostrophe_requires_complete_exact_source_core():
+    source = (
+        "WARLOCK DELLIMMONDO\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 13 (16 con armatura magica)\n"
+        "Punti Ferita 78 (12d8 + 24)\nVelocità 9 m\n"
+    )
+    expected = source.replace("DELLIMMONDO", "DELL'IMMONDO")
+    assert repair._restore_warlock_fiend_source_apostrophe(source) == expected
+    assert repair._restore_warlock_fiend_source_apostrophe(expected) == expected
+    assert repair._restore_warlock_fiend_source_apostrophe(source + source) == (
+        source + source
+    )
+    one_glyph = source.replace("DELLIMMONDO", "DELLIMMOND0")
+    assert repair._restore_warlock_fiend_source_apostrophe(one_glyph) == expected
+    distant = source.replace("DELLIMMONDO", "DELLOSCURO")
+    assert repair._restore_warlock_fiend_source_apostrophe(distant) == distant
+    wrong_hp = source.replace("12d8 + 24", "1248 + 24")
+    assert repair._restore_warlock_fiend_source_apostrophe(wrong_hp) == wrong_hp
+    wrong_speed = source.replace("Velocità 9 m", "Velocità 12 m")
+    assert repair._restore_warlock_fiend_source_apostrophe(wrong_speed) == wrong_speed
+    other_title = source.replace("WARLOCK DELLIMMONDO", "WARLOCK DEL GRANDE ANTICO")
+    assert repair._restore_warlock_fiend_source_apostrophe(other_title) == other_title
+
+
+def test_straziatore_join_requires_unique_source_title_descriptor_and_core():
+    name = "Progenie Stellare Straziatore"
+    source = (
+        "PROGENIE STELLARE\nSTRAZIATORE\n"
+        "Aberrazione Media, generalmente caotica malvagia\n"
+        "Classe Armatura 14\n"
+        "Punti Ferita 71 (13d8 + 13)\n"
+        "Velocità 12 m, scalare 12 m\n"
+    )
+    joined = repair._join_unique_source_wrapped_title(source, name)
+    assert joined.startswith("PROGENIE STELLARE STRAZIATORE\n")
+    assert "Punti Ferita 71 (13d8 + 13)" in joined
+    assert repair._join_unique_source_wrapped_title(source + source, name) == source + source
+    assert repair._join_unique_source_wrapped_title(
+        source.replace("STRAZIATORE", "INTRUSO"), name
+    ) == source.replace("STRAZIATORE", "INTRUSO")
+
+
+def test_mirmidone_wrapped_source_title_joins_without_mutating_core():
+    target = "Mirmidone Elementale Di Fuoco"
+    source = (
+        "MIRMIDONE ELEMENTALE\nDI FUOCO\n"
+        "Elementale Medio, neutrale\n"
+        "Classe Armatura 17\nPunti Ferita 42 (5d10 + 15)\nVelocità 9 m\n"
+    )
+    joined = repair._join_unique_source_wrapped_title(source, target)
+    assert joined.startswith("MIRMIDONE ELEMENTALE DI FUOCO\n")
+    assert "Punti Ferita 42 (5d10 + 15)" in joined
+    assert "Velocità 9 m" in joined
+    assert repair._join_unique_source_wrapped_title(joined, target) == joined
+    assert repair._join_unique_source_wrapped_title(source + source, target) == source + source
+
+
+def test_mirmidone_bounded_source_gap_rejects_rival_headings():
+    target = "Mirmidone Elementale Di Fuoco"
+    prefix = (
+        "MIRMIDONE ELEMENTALE\nDI FUOCO\n"
+        "Elementale Medio, neutrale\n"
+    )
+    trailing = "Classe Armatura 17\nPunti Ferita 42 (5d10 + 15)\nVelocità 9 m\n"
+    observed = prefix + "annotazione ocr\n" + trailing
+    assert repair._join_unique_source_wrapped_title(observed, target) == observed
+    fixed = repair._join_unique_source_wrapped_title(
+        observed, target, max_core_gap=2
+    )
+    assert fixed.startswith("MIRMIDONE ELEMENTALE DI FUOCO\n")
+    assert "annotazione ocr\n" in fixed
+    assert "Punti Ferita 42 (5d10 + 15)" in fixed
+    rival = prefix + "ALTRO MOSTRO\n" + trailing
+    assert repair._join_unique_source_wrapped_title(
+        rival, target, max_core_gap=2
+    ) == rival
+
+
+def test_invocatore_compact_quality_requires_two_independent_exact_headers():
+    observed = (
+        "MAGO INVOCATORE\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 12 (15 con armatura magica)\n"
+        "Punti Ferita 121 (22d8 + 22)\n"
+        "Velocità 9 m\n"
+        + "nota di prova " * 55
+    )
+    agreement = repair._agreement_metrics(observed, observed)
+    assert repair._mago_illusionista_compact_quality(
+        agreement, observed, observed, target_name="Mago Invocatore"
+    ) is True
+    wrong_title = observed.replace("MAGO INVOCATORE", "MAGO DIVINATORE")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, wrong_title, observed, target_name="Mago Invocatore"
+    )
+    missing_core = observed.replace("Punti Ferita", "Valore Oscuro")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, observed, missing_core, target_name="Mago Invocatore"
+    )
+
+
+def test_illusionista_scoped_compact_quality_preserves_exact_anchor_gates():
+    observed = (
+        "MAGO ILLUSIONISTA\n"
+        "Umanoide Medio, neutrale\n"
+        "Classe Armatura 12\n"
+        "Punti Ferita 44 (8d8 + 8)\n"
+        "Velocità 9 m\n"
+        + "annotazione " * 52
+    )
+    agreement = repair._agreement_metrics(observed, observed)
+    assert agreement["quality_pass"] is False
+    assert repair._mago_illusionista_compact_quality(
+        agreement, observed, observed
+    ) is True
+    missing_title = observed.replace("MAGO ILLUSIONISTA", "MAGO DIVINATORE")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, missing_title, observed
+    )
+    missing_hp = observed.replace("Punti Ferita", "Punti Assenti")
+    assert not repair._mago_illusionista_compact_quality(
+        agreement, observed, missing_hp
+    )
+
+
+def test_exact_title_geometry_diagnostics_are_source_private_and_non_mutating():
+    target = "Mago Divinatore"
+    text = (
+        "MAGO DIVINATORE\nPRIVATE_SOURCE_SENTINEL\n"
+        "Umanoide Medio, neutrale\n"
+        "Classe Armatura 12\nPunti Ferita 58 (13d8)\nVelocità 9 m\n"
+    )
+    pages = [(68, text)]
+    counts = repair._identity_source_counts(pages, [], target, 68)
+    assert counts["exact_title_lines"] == 1
+    assert counts["exact_title_adjacent_descriptor"] == 0
+    assert counts["exact_title_near_descriptor"] == 1
+    assert counts["exact_title_descriptor_near_core"] == 1
+    assert counts["exact_title_descriptor_adjacent_core"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert pages == [(68, text)]
+
+
+def test_exact_title_geometry_rejects_unrelated_descriptor_and_core():
+    text = (
+        "MAGO DIVINATORE\nUmanoide Medio, neutrale\n"
+        "MAGO DI UN ALTRO BLOCCO\nClasse Armatura 12\n"
+        "Punti Ferita 58 (13d8)\nVelocità 9 m\n"
+    )
+    pages = [(68, text)]
+    counts = repair._identity_source_counts(pages, [], "Mago Divinatore", 68)
+    # Geometry is diagnostic only; do not create or verify any candidate.
+    assert counts["exact_title_lines"] == 1
+    assert counts["exact_title_adjacent_descriptor"] == 1
+    assert counts["exact_title_descriptor_adjacent_core"] == 0
+    assert pages == [(68, text)]
+
+
+def test_private_structure_probe_identifies_split_descriptor_without_repairing_it():
+    text = (
+        "SYNTHETIC GUARD\nPianta\nPiccola, senza allineamento\n"
+        "Classe Armatura 15\nPunti Ferita 45 (6d10 + 12)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Synthetic Guard", 7)
+    assert counts["core_anchors"] == counts["anchors_with_hp"] == counts["anchors_with_speed"] == 1
+    assert counts["split_descriptor_pairs"] == 1
+    assert counts["split_descriptor_after_exact_title"] == 1
+    assert counts["descriptor_lines"] == counts["valid_headers"] == 0
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert json.dumps(pages) == before
+
+
+@pytest.mark.parametrize("prefix,suffix,expected", [("", "", 1), ("VECCHIO\n", "", 0), ("", "MAGGIORE\n", 0)])
+def test_private_wrapped_title_probe_requires_complete_unextended_core_header(prefix, suffix, expected):
+    text = (
+        prefix + "GUARDIANO\nFITTIZIO\n" + suffix
+        + "Umanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\nPunti Ferita 18 (4d4 + 8)\nVelocità 5 m\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["wrapped_title_pairs"] == 1
+    assert counts["wrapped_title_core_headers"] == expected
+    assert counts["exact_title_lines"] == 0
+    assert json.dumps(pages) == before
+
+
+def test_private_header_probe_preserves_parser_spacing_and_source_text():
+    text = (
+        "GUARDIANO FITTIZIO\nUmanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\n" + "\n" * 7
+        + "Punti Ferita 18 (4d4 + 8)\nVelocità 5 m\nPRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["valid_headers"] == counts["exact_headers"] == 1
+    assert counts["parser_valid_headers"] == counts["parser_exact_headers"] == 0
+    assert json.dumps(pages) == before
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+
+
+def test_private_core_presence_probe_does_not_join_detached_hp_value():
+    text = (
+        "GUARDIANO FITTIZIO\nUmanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\nPunti Ferita\n18 (4d4 + 8)\nVelocità 5 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["parser_exact_headers"] == 1
+    assert counts["parser_armor_fields"] == counts["parser_speed_fields"] == 1
+    assert counts["parser_hp_fields"] == 0
+    assert json.dumps(pages) == before
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+
+
+@pytest.mark.parametrize("suffix,expected", [("i", 1), ("Ù", 1), ("I", 0), ("ii", 0), ("altro", 0)])
+def test_private_title_suffix_probe_never_repairs_or_accepts_identity(suffix, expected):
+    text = (
+        f"GUARDIANO FITTIZIO {suffix}\nUmanoide Medio, senza allineamento\n"
+        "Classe Armatura 13\nPunti Ferita 18 (4d4 + 8)\nVelocità 5 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text), (8, "GUARDIANO FITTIZIO i\n")]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Guardiano Fittizio", 7)
+    assert counts["known_title_suffix_lines"] == expected
+    assert counts["parser_known_title_suffix_headers"] == expected
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+    assert json.dumps(pages) == before
+    with pytest.raises(RepairBlocked) as caught:
+        _agreed_target_candidate(
+            pages, pages, "synthetic.pdf", "it", "Guardiano Fittizio", 7,
+            require_exact_target_identity=True,
+        )
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def test_private_descriptor_vocabulary_probe_never_modifies_source_text():
+    text = (
+        "SYNTHETIC GUARD\nVegetale Piccolo, senza allineamento\n"
+        "Classe Armatura 15\nPunti Ferita 45 (6d10 + 12)\nVelocità 9 m\n"
+        "PRIVATE_SOURCE_SENTINEL\n"
+    )
+    pages = [(7, text)]
+    before = json.dumps(pages)
+    counts = repair._identity_source_counts(pages, [], "Synthetic Guard", 7)
+    assert counts["plant_synonym_descriptor_lines"] == counts["plant_synonym_after_exact_title"] == 1
+    assert counts["descriptor_lines"] == counts["valid_headers"] == 1
+    assert json.dumps(pages) == before
+    assert "PRIVATE_SOURCE_SENTINEL" not in json.dumps(counts)
+
+
+def test_deforme_ambiguous_identity_cannot_inject_expected_core():
+    attributes = {
+        "classe_armatura": "16 (armatura naturale)",
+        "punti_ferita": "14 (4d6)",
+        "velocita": "9 m",
+    }
+    primary = {
+        "name": "Addolorato Deforme",
+        "normalized_name": "addolorato deforme",
+        "start_page": 46,
+        "source_refs": [{"page": 46}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": "ADDOLORATO DEFORME hi",
+        "normalized_name": "addolorato deforme hi",
+        "attributes": {**attributes, "classe_armatura": "16 (armatura naturale) V"},
+    }
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with (
+        patch(
+            "scripts.repair_monsters_from_source.parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch(
+            "scripts.repair_monsters_from_source.agreed_monster_records",
+            return_value=[],
+        ),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Addolorato Deforme", 45
+        )
+    assert caught.value.reason == "no_unique_independent_agreement"
+    assert json.dumps([primary, comparison], sort_keys=True) == before
+
+
+@pytest.mark.parametrize(
+    "record_overrides,logical_source,expected_calls",
+    [
+        ({}, "mpmm_2022_it", 2),
+        ({"id": "ref_25a60967a5b8526fbb235e29d243c019"}, "mpmm_2022_it", 1),
+        ({"name": "Another Monster"}, "mpmm_2022_it", 1),
+        ({"review_status": "verified"}, "mpmm_2022_it", 1),
+        ({}, "another_source", 1),
+    ],
+)
+def test_korred_invalid_agreement_retries_sparse_without_bypassing_hp_gate(
+    record_overrides, logical_source, expected_calls
+):
+    record = {
+        "id": "ref_4b2e9b5984dd506d89caf10b4f15c3fd",
+        "name": "Korred",
+        "review_status": "pending",
+        **record_overrides,
+    }
+    source = {
+        "logical_source_id": logical_source,
+        "physical_filename": "synthetic.pdf",
+        "physical_pages": 100,
+    }
+    candidate = {
+        "name": "Korred",
+        "attributes": {
+            "classe_armatura": "17",
+            "punti_ferita": "unreadable",
+            "velocita": "9 m",
+        },
+    }
+    args = SimpleNamespace(
+        dpi=220, languages="ita", psm=6, comparison_psm=4,
+        target_set="batch_mpmm_pending_131",
+    )
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, {"page": 10})),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(
+            repair, "_ocr_source_window", return_value=([], [], {10: {}})
+        ) as ocr,
+        patch.object(repair, "_agreed_target_candidate", return_value=candidate),
+        pytest.raises(repair.RepairBlocked) as caught,
+    ):
+        asyncio.run(
+            repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args)
+        )
+    assert caught.value.reason == "repaired_candidate_failed_gates"
+    assert "HP_format_error" in caught.value.detail
+    assert ocr.call_count == expected_calls
+    budget = ocr.call_args_list[0].kwargs["ocr_budget_started_at"]
+    assert budget[1] == 60.0
+    if expected_calls == 2:
+        assert ocr.call_args_list[1].kwargs["sparse_full_page"] is True
+        assert ocr.call_args_list[1].kwargs["ocr_budget_started_at"] is budget
+
+
+def test_bheur_corrupted_candidate_reports_evidence_and_still_blocks():
+    candidate = {
+        "name": "Megera Bheur |",
+        "start_page": 84,
+        "source_refs": [{"filename": "synthetic.pdf", "page": 84}],
+        "attributes": {
+            "classe_armatura": "17 (armatura naturale)",
+            "punti_ferita": "91 (14d8 + 28)",
+            "velocita": "9 m",
+        },
+    }
+    with pytest.raises(RepairBlocked) as caught:
+        build_repair_proposal({"id": "ref_f2cee258e0c45f8d96d22bb9f71c9e7a"}, candidate)
+    assert caught.value.reason == "repaired_candidate_corrupted_name"
+    assert caught.value.diagnostics["candidate_name"] == candidate["name"]
+    assert caught.value.diagnostics["candidate_core"] == candidate["attributes"]
+    assert caught.value.diagnostics["candidate_source_refs"] == candidate["source_refs"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "MEGERA | BHEUR\n", "| MEGERA BHEUR altro\n", "|| MEGERA BHEUR\n",
+        "| MEGERA BHEUR\n| MEGERA BHEUR\n",
+    ],
+)
+def test_bheur_rule_isolation_refuses_other_noise_and_duplicate_titles(text):
+    assert repair._isolate_bheur_title_rule(text) == text
+
+
+def test_bheur_rule_isolation_retains_debris_and_all_numeric_source_text():
+    text = "| MEGERA BHEUR\nClasse Armatura 17\nPunti Ferita 91 (14d8 + 28)\n"
+    assert repair._isolate_bheur_title_rule(text) == text.replace(
+        "| MEGERA BHEUR", "|\nMEGERA BHEUR"
+    )
+
+
+@pytest.mark.parametrize("comparison_ca", ["17", "18"])
+def test_bheur_isolated_rule_still_requires_independent_core_agreement(comparison_ca):
+    text = (
+        "| MEGERA BHEUR\nFolletto Medio, caotico malvagio\n"
+        "Classe Armatura 17 (armatura naturale)\nPunti Ferita 91 (14d8 + 28)\n"
+        "Velocità 9 m, volare 15 m\nFor Des Cos Int Sag Car\n"
+        "13 (+1) 16 (+3) 14 (+2) 12 (+1) 13 (+1) 16 (+3)\n"
+        "Sensi scurovisione 18 m\nLinguaggi Comune\nSfida 7\nAzioni\nArtiglio.\n"
+    )
+    before = [(84, text)]
+    comparison = [(84, text.replace("Armatura 17", f"Armatura {comparison_ca}"))]
+    if comparison_ca != "17":
+        with pytest.raises(RepairBlocked):
+            _agreed_target_candidate(
+                before, comparison, "synthetic.pdf", "it", "Megera Bheur", 84,
+                isolate_bheur_title_rule=True,
+            )
+    else:
+        candidate = _agreed_target_candidate(
+            before, comparison, "synthetic.pdf", "it", "Megera Bheur", 84,
+            isolate_bheur_title_rule=True,
+        )
+        assert candidate["name"] == "MEGERA BHEUR"
+        assert candidate["attributes"]["punti_ferita"] == "91 (14d8 + 28)"
+        assert candidate["source_refs"][0]["page"] == 84
+        raw_candidate = _agreed_target_candidate(
+            before, comparison, "synthetic.pdf", "it", "Megera Bheur", 84
+        )
+        with pytest.raises(RepairBlocked, match="repaired_candidate_corrupted_name"):
+            build_repair_proposal(
+                {"id": "ref_f2cee258e0c45f8d96d22bb9f71c9e7a"}, raw_candidate
+            )
+    assert before == [(84, text)]
+
+
+def test_korred_hp_anchor_ignores_narrative_mentions_and_prose_hp():
+    lines = [
+        "KORRED", "Il korred usa i suoi capelli.", "Punti Ferita nella descrizione.",
+        "KORRED", "Folletto Piccolo, caotico neutrale", "Classe Armatura 17",
+        "Punti Ferita 93 (11d6 + 55)", "Velocità 9 m, scavare 9 m",
+        "Il korred recupera Punti Ferita.", "Punti Ferita nella capacità del korred.",
+    ]
+    assert repair._korred_structural_hp_anchors(lines) == ([3], [6])
+
+
+@pytest.mark.parametrize("damage", ["duplicate_hp", "missing_speed", "duplicate_block", "other_title"])
+def test_korred_structural_hp_anchor_fails_closed_on_missing_or_ambiguous_block(damage):
+    lines = ["KORRED", "Folletto Piccolo", "Classe Armatura 17", "Punti Ferita unreadable", "Velocità 9 m"]
+    if damage == "duplicate_hp":
+        lines.insert(4, "Punti Ferita 14 (4d6)")
+    elif damage == "missing_speed":
+        lines.pop()
+    elif damage == "other_title":
+        lines[0] = "ALTRO MOSTRO"
+    else:
+        # Keep independent ambiguous blocks; do not collapse equal HP values.
+        lines = lines + ["Azioni"] * 9 + lines
+        titles, hp = repair._korred_structural_hp_anchors(lines)
+        assert len(titles) == len(hp) == 2
+        return
+    assert repair._korred_structural_hp_anchors(lines) == ([], [])
+
+
+def test_korred_duplicate_ca_anchor_is_not_collapsed():
+    lines = ["KORRED", "Folletto Piccolo", "Classe Armatura 17", "Classe Armatura 18", "Punti Ferita 93 (11d6 + 55)", "Velocità 9 m"]
+    assert repair._korred_structural_hp_anchors(lines) == ([0, 0], [4, 4])
+
+
+def test_korred_micro_crop_replaces_only_unique_structural_hp(tmp_path):
+    lines = [
+        "KORRED", "Il korred usa i capelli.", "Punti Ferita nella descrizione.",
+        "KORRED", "Folletto Piccolo", "Classe Armatura 17",
+        "Punti Ferita unreadable", "Velocità 9 m, scavare 9 m",
+        "Il korred recupera Punti Ferita.", "Punti Ferita nella capacità del korred.",
+    ]
+    image_path = tmp_path / "synthetic-korred.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 900, 400), False)
+    image.clear_with(255)
+    image.save(image_path)
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = [
+        f"5\t1\t1\t1\t{index + 1}\t{word_index + 1}\t{20 + word_index * 90}\t{15 + index * 25}\t80\t12\t95\t{word}"
+        for index, line in enumerate(lines)
+        for word_index, word in enumerate(line.split())
+    ]
+    page_text = "\n".join(lines) + "\n"
+    with patch.object(
+        repair.subprocess, "run", side_effect=[
+            CompletedProcess([], 0, stdout=header + "\n".join(rows) + "\n", stderr=""),
+            CompletedProcess([], 0, stdout="93 (11d6 + 55)\n", stderr=""),
+        ],
+    ):
+        result = _micro_ocr_hit_points_line(image_path, "ita", 3, page_text, "Korred")
+    assert result == page_text.replace("Punti Ferita unreadable", "Punti Ferita 93 (11d6 + 55)")
+
+
+def test_mpmm_core_diagnostics_preserve_failed_agreement_and_exclude_page_text():
+    primary = {
+        "name": "Mostro Prova", "normalized_name": "mostro prova",
+        "start_page": 12, "source_refs": [{"page": 12}],
+        "full_text": "PRIVATE_PAGE_TEXT_MUST_NOT_BE_EMITTED",
+        "attributes": {"classe_armatura": "17", "punti_ferita": "93 (11d6 + 55)", "velocita": "9 m"},
+    }
+    comparison = {**primary, "attributes": {**primary["attributes"], "classe_armatura": "18"}}
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Mostro Prova", 12,
+            include_core_diagnostics=True,
+        )
+    assert caught.value.reason == "no_unique_independent_agreement"
+    diagnostic = caught.value.diagnostics
+    assert diagnostic["primary_core_candidates"][0]["core"] == primary["attributes"]
+    assert diagnostic["comparison_core_candidates"][0]["core"] == comparison["attributes"]
+    assert "PRIVATE_PAGE_TEXT_MUST_NOT_BE_EMITTED" not in json.dumps(diagnostic)
+
+
+@pytest.mark.parametrize("refs", [[44, 45], [44], [44, 45, 45]])
+def test_grung_brado_audit_uses_only_the_unique_registered_variant_page(refs):
+    record = {
+        "id": "ref_dfcfc30092385b9d9facc6af40035fd4", "name": "Grung Brado",
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    before = json.dumps(record, sort_keys=True)
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    if refs == [44, 45]:
+        assert caught.value.reason == "pilot_stop"
+        assert ocr.call_args.args[1] == 45
+        assert ocr.call_args.kwargs["target_page_only"] is True
+        assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    else:
+        assert caught.value.reason == "source_page_override_ref_drift"
+        ocr.assert_not_called()
+    assert json.dumps(record, sort_keys=True) == before
+
+
+@pytest.mark.parametrize("refs", [[65, 66], [65], [65, 66, 66]])
+@pytest.mark.parametrize("identifier,name", [
+    ("ref_de503e430ad356ec98964fb1a65bd34a", "Vegepigmeo"),
+    ("ref_b624eff23c3e543ba8b2c952761eb707", "Vegepigmeo Spinato"),
+])
+def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identifier, name):
+    record = {
+        "id": identifier, "name": name,
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    if refs == [65, 66]:
+        assert caught.value.reason == "pilot_stop"
+        assert ocr.call_args.args[1] == 66
+        assert ocr.call_args.kwargs["target_page_only"] is True
+        assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    else:
+        assert caught.value.reason == "source_page_override_ref_drift"
+        ocr.assert_not_called()
+
+
+@pytest.mark.parametrize("identifier,name,page", [
+    ("ref_1e187bb2bbc257439e399104067bf326", "Shadar-Kai Trafficante Di Anime", 41),
+    ("ref_43a10fe5cecc50f9a2112cbea5b5c839", "Sciame Di Larve Putride", 34),
+    ("ref_b414135fe8fd5447a6aedfba2a419baa", "Sciame Di Ratti Cranici", 28),
+    ("ref_2ea09533213a54178032bc4c5b0b952d", "Oblex Antico", 6),
+    ("ref_e52cbc4cbea0558097bc4b0eb43a74d4", "Ogre Scoccadardi", 8),
+    ("ref_4b7c7f783b7b5a0bb8f5200c452df52e", "Nebbia Vampirica", 98),
+    ("ref_b962ff6f4fc85b15878fa47915ebf83c", "Terrore Astrale", 52),
+    ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo", 69),
+    ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico", 68),
+    ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort", 71),
+    ("ref_ef1a5c6b4a9b5b809ccba61565f49a36", "Xvart", 71),
+    ("ref_51cc5af68a475cb2a7ac137ede8e1cc7", "Mirmidone Elementale Di Fuoco", 88),
+    ("ref_10a974bfc32a521c8d9a8db1aab0123d", "Orthon", 12),
+    ("ref_95407fdd26ae57e88fc3943545bd5cc4", "Mago Trasmutatore", 74),
+    ("ref_3986eba313495283bfe6b6f843891add", "Mago Divinatore", 70),
+    ("ref_4ea78cedcefc5ac885f0d93dcffba7ae", "Leviatano", 66),
+    ("ref_9b1196c7b5c85057bd4c60098313a271", "Leucrotta", 65),
+    ("ref_c41175075be5535ab3cfd37dbbd7e1e1", "Hobgoblin Ombra Di Ferro", 49),
+    ("ref_fae2af9678e6572cb755708aab5c393d", "Drow Inquisitore", 4),
+    ("ref_a8c5d07ab39252f8a22f4744181983df", "Duergar Despota", 9),
+    ("ref_a6f22b9706e058a8bd3f4dcbbd24c985", "Danzatore Dell'Ombra", 40),
+    ("ref_09eb88310e015ab6aa41d9dc35874f48", "Grung Guerriero D'Élite", 45),
+    ("ref_25a60967a5b8526fbb235e29d243c019", "Capo Vegepigmeo", 65),
+    ("ref_e4ce5aac88725918a98e4f1dacc8cd1a", "Githyanki Kith'Rak", 36),
+])
+def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, name, page):
+    record = {
+        "id": identifier, "name": name,
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page}],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    before = json.dumps(record, sort_keys=True)
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    assert caught.value.reason == "pilot_stop"
+    assert ocr.call_args.args[1] == page
+    assert ocr.call_args.kwargs["target_page_only"] is True
+    assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    assert json.dumps(record, sort_keys=True) == before
+
+
+@pytest.mark.parametrize("identifier,name,page,refs", [
+    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 74, [73, 74]),
+    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 74, [73]),
+    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 74, [73, 74, 74]),
+    ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89, 90]),
+    ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89]),
+    ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89, 90, 90]),
+    ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 71, [68, 71]),
+    ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 71, [68]),
+    ("ref_90b64fd6ac3057ee8ab373bb0be776a8", "Mago Illusionista", 71, [68, 71, 71]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68]),
+    ("ref_f0919b1e8ef955a19953d273054accaf", "Mago Invocatore", 72, [68, 72, 72]),
+])
+def test_mage_requires_one_original_registered_selected_page(identifier, name, page, refs):
+    record = {
+        "id": identifier, "name": name,
+        "review_status": "pending",
+        "source_refs": [{"filename": "synthetic.pdf", "page": page} for page in refs],
+    }
+    source = {"physical_filename": "synthetic.pdf", "physical_pages": 100, "logical_source_id": "mpmm_2022_it"}
+    args = SimpleNamespace(dpi=220, languages="ita", psm=6, comparison_psm=4, target_set="batch_mpmm_pending_131")
+    before = json.dumps(record, sort_keys=True)
+    with (
+        patch.object(repair, "resolve_source", return_value=(source, record["source_refs"][0])),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(repair, "_ocr_source_window", side_effect=RepairBlocked("pilot_stop")) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(repair._repair_one(None, record, [], repair.SourcePdfCache("", False), args))
+    if refs.count(page) == 1:
+        assert caught.value.reason == "pilot_stop"
+        assert ocr.call_args.args[1] == page
+        assert ocr.call_args.kwargs["target_page_only"] is True
+        assert ocr.call_args.kwargs["ocr_budget_started_at"][1] == 60.0
+    else:
+        assert caught.value.reason == "source_page_override_ref_drift"
+        ocr.assert_not_called()
+    assert json.dumps(record, sort_keys=True) == before
+
+
+def _esploratore_status_only_quality(*, psm12_target=True):
+    def diagnostic(psm, target):
+        return {
+            "psm": psm,
+            "target_unique": target,
+            "target_left_half": target,
+            "ca_unique": False,
+            "hp_unique": False,
+        }
+
+    return {
+        79: {
+            "segments": {
+                "full": {
+                    "esploratore_tsv_diagnostics": [
+                        diagnostic(11, True),
+                        diagnostic(12, psm12_target),
+                    ]
+                }
+            }
+        }
+    }
+
+
+def _esploratore_status_only_record():
+    return {
+        "id": "ref_aadff2eb6eff59af9caddb92deee6614",
+        "name": "Esploratore Di Bronzo",
+        "reference_type": "monster",
+        "review_status": "pending",
+        "review_flags": [OCR_REVIEW_FLAG, REPAIR_FLAG],
+        "canonical_id": None,
+        "attributes": {
+            "classe_armatura": "13",
+            "punti_ferita": "36 (8d8)",
+            "velocita": "9 m, scavare 9 m",
+        },
+        "source_refs": [
+            {
+                "page": 79,
+                "logical_source_id": "mpmm_2022_it",
+                "filename": "Mostri del multiverso 101-200.pdf",
+            },
+            {
+                "page": 81,
+                "logical_source_id": "mpmm_2022_it",
+                "filename": "Mostri del multiverso 101-200.pdf",
+            },
+        ],
+    }
+
+
+def test_esploratore_source_reviewed_status_only_requires_no_core_change():
+    record = _esploratore_status_only_record()
+    source = {
+        "logical_source_id": "mpmm_2022_it",
+        "physical_filename": "Mostri del multiverso 101-200.pdf",
+    }
+    candidate = repair._mpmm_source_reviewed_status_only_candidate(
+        record,
+        source,
+        79,
+        _esploratore_status_only_quality(),
+        RepairBlocked("no_unique_exact_target_identity"),
+    )
+
+    assert candidate is not None
+    assert candidate["source_reviewed_status_only"] is True
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == {
+        field: record["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    }
+    proposal = build_repair_proposal(record, candidate)
+    assert {
+        field: proposal["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == {
+        field: record["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    }
+
+
+def test_esploratore_source_reviewed_status_only_blocks_db_core_drift():
+    record = _esploratore_status_only_record()
+    record["attributes"]["classe_armatura"] = "14"
+    source = {
+        "logical_source_id": "mpmm_2022_it",
+        "physical_filename": "Mostri del multiverso 101-200.pdf",
+    }
+
+    with pytest.raises(RepairBlocked) as caught:
+        repair._mpmm_source_reviewed_status_only_candidate(
+            record,
+            source,
+            79,
+            _esploratore_status_only_quality(),
+            RepairBlocked("no_unique_exact_target_identity"),
+        )
+
+    assert caught.value.reason == "source_reviewed_core_db_drift"
+
+
+def test_esploratore_source_reviewed_status_only_requires_two_identity_psms():
+    record = _esploratore_status_only_record()
+    source = {
+        "logical_source_id": "mpmm_2022_it",
+        "physical_filename": "Mostri del multiverso 101-200.pdf",
+    }
+
+    with pytest.raises(RepairBlocked) as caught:
+        repair._mpmm_source_reviewed_status_only_candidate(
+            record,
+            source,
+            79,
+            _esploratore_status_only_quality(psm12_target=False),
+            RepairBlocked("no_unique_exact_target_identity"),
+        )
+
+    assert caught.value.reason == "source_reviewed_status_only_evidence_missing"
+
+
+def test_esploratore_uses_resolved_page_79_target_only():
+    identifier = "ref_aadff2eb6eff59af9caddb92deee6614"
+    record = {
+        "id": identifier,
+        "name": "Esploratore Di Bronzo",
+        "review_status": "pending",
+        "source_refs": [
+            {"filename": "synthetic.pdf", "page": 79},
+            {"filename": "synthetic.pdf", "page": 81},
+        ],
+    }
+    source = {
+        "physical_filename": "synthetic.pdf",
+        "physical_pages": 100,
+        "logical_source_id": "mpmm_2022_it",
+    }
+    args = SimpleNamespace(
+        dpi=220,
+        languages="ita",
+        psm=6,
+        comparison_psm=4,
+        target_set="batch_mpmm_pending_131",
+    )
+    assert identifier not in repair.SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID
+    with (
+        patch.object(
+            repair,
+            "resolve_source",
+            return_value=(source, record["source_refs"][0]),
+        ),
+        patch.object(repair.SourcePdfCache, "get", return_value=Path("synthetic.pdf")),
+        patch.object(
+            repair,
+            "_esploratore_registered_core_probe",
+            return_value={
+                "registered_page_ref_unique": True,
+                "primary_any_core_match": False,
+                "comparison_any_core_match": False,
+                "primary_unique_core_match": False,
+                "comparison_unique_core_match": False,
+                "independent_core_match_agreement": False,
+            },
+        ),
+        patch.object(
+            repair,
+            "_ocr_source_window",
+            side_effect=RepairBlocked("pilot_stop"),
+        ) as ocr,
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        asyncio.run(
+            repair._repair_one(
+                None,
+                record,
+                [],
+                repair.SourcePdfCache("", False),
+                args,
+            )
+        )
+
+    assert caught.value.reason == "pilot_stop"
+    assert ocr.call_args.args[1] == 79
+    assert ocr.call_args.kwargs["target_page_only"] is True
+    assert identifier in repair.SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
+
+
+@pytest.mark.parametrize("suffix", ["Ù", "i"])
+def test_kithrak_isolation_preserves_numeric_text_and_raw_glyph(suffix):
+    text = f"GITHYANKI KITH'RAK {suffix}\nClasse Armatura 18 (piastre) (\nPunti Ferita 180 (24d8 + 72)\nVelocità 9 m 3\n"
+    assert repair._isolate_kithrak_title_debris(text) == text.replace(
+        f"GITHYANKI KITH'RAK {suffix}", f"{suffix}\nGITHYANKI KITH'RAK"
+    )
+
+
+@pytest.mark.parametrize("title", [
+    "GITHYANKI KITH'RAK altro", "GITHYANKI KITH'RAK ii",
+    "GITHYANKI KITH'RAK I", "GITHYANKI KITH'RAK Ù\nGITHYANKI KITH'RAK i",
+])
+def test_kithrak_isolation_rejects_unobserved_or_duplicate_titles(title):
+    assert repair._isolate_kithrak_title_debris(title) == title
+
+
+@pytest.mark.parametrize("comparison_ca", ["18", "19"])
+def test_kithrak_isolated_title_keeps_independent_numeric_gate(comparison_ca):
+    text = (
+        "GITHYANKI KITH'RAK Ù\nUmanoide Medio, legale malvagio\n"
+        "Classe Armatura 18 (piastre)\nPunti Ferita 180 (24d8 + 72)\n"
+        "Velocità 9 m\nFor Des Cos Int Sag Car\n"
+        "18 (+4) 16 (+3) 16 (+3) 16 (+3) 15 (+2) 17 (+3)\n"
+        "Sensi percezione passiva 12\nLinguaggi Gith\nSfida 12\nAzioni\nSpada.\n"
+    )
+    primary = [(36, text)]
+    comparison = [(36, text.replace("RAK Ù", "RAK i").replace("Armatura 18", f"Armatura {comparison_ca}"))]
+    if comparison_ca == "18":
+        candidate = _agreed_target_candidate(
+            primary, comparison, "synthetic.pdf", "it", "Githyanki Kith'Rak", 36,
+            isolate_kithrak_title_debris=True,
+        )
+        assert candidate["name"] == "GITHYANKI KITH'RAK"
+        assert candidate["attributes"]["punti_ferita"] == "180 (24d8 + 72)"
+    else:
+        with pytest.raises(RepairBlocked):
+            _agreed_target_candidate(
+                primary, comparison, "synthetic.pdf", "it", "Githyanki Kith'Rak", 36,
+                isolate_kithrak_title_debris=True,
+            )
+    assert primary == [(36, text)]
+
+
+@pytest.mark.parametrize("ca,speed", [
+    ("18 (piastre) (", "9 m"), ("18 (piastre)", "9 m 3"),
+    ("18 (piastre) (", "9 m 3"),
+])
+def test_pending_kithrak_agreed_core_debris_still_blocks(ca, speed):
+    legacy = {
+        "id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a", "name": "Githyanki Kith'Rak",
+        "review_status": "pending", "review_flags": ["ocr_da_verificare", "source_guided_repair"],
+        "attributes": {},
+    }
+    candidate = {
+        "name": legacy["name"], "start_page": 36, "source_refs": [{"page": 36}],
+        "attributes": {"classe_armatura": ca, "punti_ferita": "180 (24d8 + 72)", "velocita": speed},
+    }
+    before = json.dumps([legacy, candidate], sort_keys=True)
+    with pytest.raises(RepairBlocked) as caught:
+        build_repair_proposal(legacy, candidate)
+    assert caught.value.reason == "repaired_candidate_core_debris"
+    assert json.dumps([legacy, candidate], sort_keys=True) == before
+
+
+def test_pending_kithrak_clean_core_gate_does_not_assume_expected_values():
+    legacy = {
+        "id": "ref_e4ce5aac88725918a98e4f1dacc8cd1a", "name": "Githyanki Kith'Rak",
+        "review_status": "pending", "review_flags": ["ocr_da_verificare", "source_guided_repair"],
+        "attributes": {},
+    }
+    candidate = {
+        "name": legacy["name"], "start_page": 36, "source_refs": [{"page": 36}],
+        "attributes": {"classe_armatura": "17 (armatura naturale)", "punti_ferita": "93 (11d6 + 55)", "velocita": "12 m"},
+    }
+    assert build_repair_proposal(legacy, candidate)["attributes"] == candidate["attributes"]
+
+
+def _mpmm_compatible_identity_candidate(name_suffix="i", *, ca="15 (cuoio borchiato)"):
+    return {
+        "name": f"DANZATORE DELL'OMBRA {name_suffix}",
+        "normalized_name": f"danzatore dell ombra {name_suffix}",
+        "start_page": 40,
+        "source_refs": [{"page": 40}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "71 (13d8 + 13)",
+            "velocita": "9 m",
+        },
+    }
+
+
+def test_mpmm_exact_title_compatible_fallback_keeps_independent_core_gate():
+    primary = _mpmm_compatible_identity_candidate("i")
+    comparison = _mpmm_compatible_identity_candidate("l")
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(
+            repair,
+            "_identity_source_counts",
+            side_effect=[{"exact_title_lines": 1}, {"exact_title_lines": 1}],
+        ),
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Danzatore Dell'Ombra", 40,
+            require_exact_target_identity=True,
+        )
+    assert candidate["name"] == "Danzatore Dell'Ombra"
+    assert candidate["normalized_name"] == repair.normalize_reference_name(
+        "Danzatore Dell'Ombra"
+    )
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+    assert candidate["attributes"]["ocr_independent_agreement"] is True
+    assert candidate["attributes"]["ocr_clean_deterministic_core_agreement"] is True
+
+
+@pytest.mark.parametrize("mutation", ["missing_title", "core_disagreement", "duplicate"])
+def test_mpmm_exact_title_compatible_fallback_fails_closed(mutation):
+    primary = _mpmm_compatible_identity_candidate("i")
+    comparison = _mpmm_compatible_identity_candidate("l")
+    primary_records = [primary]
+    comparison_records = [comparison]
+    if mutation == "core_disagreement":
+        comparison = _mpmm_compatible_identity_candidate("l", ca="16")
+        comparison_records = [comparison]
+    elif mutation == "duplicate":
+        primary_records = [primary, _mpmm_compatible_identity_candidate("ii")]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        first_name = str((records[0] if records else {}).get("name") or "")
+        if mutation == "missing_title" and first_name.endswith(" l"):
+            return {"exact_title_lines": 0}
+        return {"exact_title_lines": 1}
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Danzatore Dell'Ombra", 40,
+            require_exact_target_identity=True,
+        )
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def _mpmm_geometry_only_candidate(name: str, *, ca: str = "15"):
+    return {
+        "name": name,
+        "normalized_name": repair.normalize_reference_name(name),
+        "start_page": 40,
+        "source_refs": [{"page": 40}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "71 (13d8 + 13)",
+            "velocita": "9 m",
+        },
+    }
+
+
+def _mpmm_geometry_identity_counts(records, *, structural=True):
+    return {
+        "exact_title_lines": 0,
+        "candidates_on_page": len(records),
+        "parser_valid_headers": 1 if structural else 0,
+        "core_anchors": 1 if structural else 0,
+        "anchors_with_descriptor": 1 if structural else 0,
+        "anchors_with_hp": 1 if structural else 0,
+        "anchors_with_speed": 1 if structural else 0,
+        "parser_armor_fields": 1 if structural else 0,
+        "parser_hp_fields": 1 if structural else 0,
+        "parser_speed_fields": 1 if structural else 0,
+    }
+
+
+def test_mpmm_geometry_only_identity_fallback_requires_two_clean_unique_blocks():
+    primary = _mpmm_geometry_only_candidate("OMBRA DANZANTE")
+    comparison = _mpmm_geometry_only_candidate("DANZATORE OMBRA")
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_geometry_identity_counts(records)
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            "Danzatore Dell'Ombra",
+            40,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == "Danzatore Dell'Ombra"
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["core_disagreement", "duplicate", "missing_structure", "wrong_page"],
+)
+def test_mpmm_geometry_only_identity_fallback_fails_closed(mutation):
+    primary = _mpmm_geometry_only_candidate("OMBRA DANZANTE")
+    comparison = _mpmm_geometry_only_candidate("DANZATORE OMBRA")
+    primary_records = [primary]
+    comparison_records = [comparison]
+    structural = True
+
+    if mutation == "core_disagreement":
+        comparison_records = [
+            _mpmm_geometry_only_candidate("DANZATORE OMBRA", ca="16")
+        ]
+    elif mutation == "duplicate":
+        primary_records = [
+            primary,
+            _mpmm_geometry_only_candidate("ALTRA OMBRA"),
+        ]
+    elif mutation == "missing_structure":
+        structural = False
+    elif mutation == "wrong_page":
+        primary_records = [{**primary, "start_page": 39}]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_geometry_identity_counts(records, structural=structural)
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            "Danzatore Dell'Ombra",
+            40,
+            require_exact_target_identity=True,
+        )
+
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def _mpmm_one_side_exact_candidate(*, exact: bool, ca: str = "18"):
+    name = "FENICE" if exact else "FENICE i"
+    return {
+        "name": name,
+        "normalized_name": repair.normalize_reference_name(name),
+        "start_page": 23,
+        "source_refs": [{"page": 23}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": "175 (10d20 + 70)",
+            "velocita": "6 m, volare 36 m",
+        },
+    }
+
+
+def _mpmm_one_side_identity_counts(records, *, structural=True, title_count=1):
+    exact = any(
+        candidate.get("normalized_name") == repair.normalize_reference_name("Fenice")
+        for candidate in records
+    )
+    return {
+        "exact_title_lines": 2 if exact else title_count,
+        "parser_valid_headers": 1 if structural else 0,
+        "anchors_with_descriptor": 1 if structural else 0,
+        "anchors_with_hp": 1 if structural else 0,
+        "anchors_with_speed": 1 if structural else 0,
+    }
+
+
+def test_mpmm_one_side_exact_compatible_fallback_requires_structural_core_agreement():
+    primary = _mpmm_one_side_exact_candidate(exact=False)
+    comparison = _mpmm_one_side_exact_candidate(exact=True)
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_one_side_identity_counts(records)
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Fenice", 23,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == "Fenice"
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+
+
+def test_duergar_guardia_one_side_exact_fallback_keeps_core_gates():
+    target = "Duergar Guardia Di Pietra"
+    attributes = {
+        "classe_armatura": "18",
+        "punti_ferita": "44 (8d8 + 8)",
+        "velocita": "7,5 m",
+    }
+    primary = {
+        "name": target.upper(),
+        "normalized_name": repair.normalize_reference_name(target),
+        "start_page": 10,
+        "source_refs": [{"page": 10}],
+        "attributes": attributes,
+    }
+    comparison = {
+        **primary,
+        "name": target.upper() + " i",
+        "normalized_name": repair.normalize_reference_name(target + " i"),
+        "attributes": dict(attributes),
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name") == repair.normalize_reference_name(target)
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 2 if exact else 1,
+            "parser_valid_headers": 1,
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+            "candidates_on_page": 1,
+        }
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            target,
+            10,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == target
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == attributes
+
+
+@pytest.mark.parametrize("mutation", ["none", "title_missing", "core_changed", "two_blocks", "one_bad_hp", "bad_hp_and_bad_peer"])
+def test_hobgoblin_page_singleton_fallback_requires_two_clean_source_matches(mutation):
+    target = "Hobgoblin Ombra Di Ferro"
+    core = {
+        "classe_armatura": "15 (difesa senza armatura)",
+        "punti_ferita": "32 (5d8 + 10)",
+        "velocita": "12 m",
+    }
+    candidate = {
+        "name": "HOBGOBLIN OMBRA DI FERRO OCR",
+        "normalized_name": "hobgoblin ombra di ferro ocr",
+        "start_page": 49,
+        "source_refs": [{"page": 49}],
+        "attributes": dict(core),
+    }
+    primary = [candidate]
+    comparison = [dict(candidate)]
+    if mutation == "core_changed":
+        comparison[0]["attributes"] = {**core, "punti_ferita": "37 (5d8 + 15)"}
+    if mutation in {"one_bad_hp", "bad_hp_and_bad_peer"}:
+        primary[0]["attributes"] = {**core, "punti_ferita": "3 2 (5 8 10)"}
+    if mutation == "bad_hp_and_bad_peer":
+        comparison[0]["attributes"] = {**core, "punti_ferita": "40 (5d8 + 18)"}
+    if mutation == "two_blocks":
+        primary.append({**candidate, "name": "OTHER"})
+
+    def counts(_pages, records, _name, _page):
+        return {
+            "exact_title_lines": 0 if mutation == "title_missing" else 1,
+            "parser_valid_headers": len(records),
+            "candidates_on_page": len(records),
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+        }
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=counts),
+    ):
+        if mutation in {"none", "one_bad_hp"}:
+            result = _agreed_target_candidate(
+                [], [], "source.pdf", "it", target, 49,
+                require_exact_target_identity=True,
+            )
+            assert result["attributes"]["punti_ferita"] == core["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked) as blocked:
+                _agreed_target_candidate(
+                    [], [], "source.pdf", "it", target, 49,
+                    require_exact_target_identity=True,
+                )
+            assert blocked.value.reason == "no_unique_exact_target_identity"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["none", "wrong_hp", "missing_title", "two_blocks", "bad_hp", "wrong_pdf"],
+)
+def test_warlock_fiend_singleton_identity_requires_independent_clean_source(mutation):
+    target = "Warlock Dell'Immondo"
+    core = {
+        "classe_armatura": "13 (16 con armatura magica)",
+        "punti_ferita": "78 (12d8 + 24)",
+        "velocita": "9 m",
+    }
+    record = {
+        "name": "OCR NARRATIVE TITLE",
+        "normalized_name": "ocr narrative title",
+        "start_page": 69,
+        "source_refs": [{"page": 69}],
+        "attributes": dict(core),
+    }
+    primary = [dict(record)]
+    comparison = [dict(record)]
+    if mutation == "wrong_hp":
+        comparison[0]["attributes"] = {**core, "punti_ferita": "87 (14d8 + 24)"}
+    if mutation == "bad_hp":
+        primary[0]["attributes"] = {**core, "punti_ferita": "7 8 (12d8 + 24)"}
+    if mutation == "two_blocks":
+        primary.append({**record, "name": "UNRELATED"})
+    filename = (
+        "wrong source.pdf" if mutation == "wrong_pdf"
+        else "Mostri del multiverso 201-294.pdf"
+    )
+
+    def structure(_pages, records, _name, _page):
+        return {
+            "exact_title_lines": 0 if mutation == "missing_title" else 1,
+            "parser_valid_headers": len(records),
+            "candidates_on_page": len(records),
+            "anchors_with_descriptor": len(records),
+            "anchors_with_hp": len(records),
+            "anchors_with_speed": len(records),
+        }
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]),
+        patch.object(repair, "_candidate_matches_target", return_value=False),
+        patch.object(repair, "_identity_source_counts", side_effect=structure),
+    ):
+        if mutation == "none":
+            candidate = _agreed_target_candidate(
+                [], [], filename, "it", target, 69,
+                require_exact_target_identity=True,
+            )
+            assert candidate["name"] == target
+            assert candidate["attributes"]["punti_ferita"] == core["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked) as blocked:
+                _agreed_target_candidate(
+                    [], [], filename, "it", target, 69,
+                    require_exact_target_identity=True,
+                )
+            assert blocked.value.reason == "no_unique_exact_target_identity"
+
+
+@pytest.mark.parametrize("mutation", ["none", "wrong_exact_ca", "not_two_extra_tokens"])
+def test_juiblex_reviewed_peer_core_alignment_is_fail_closed(mutation):
+    clean = {
+        "classe_armatura": "18 (armatura naturale)",
+        "punti_ferita": "350 (28d12 + 168)",
+        "velocita": "9 m, scalare 9 m",
+    }
+    primary = dict(clean)
+    comparison = {
+        **clean,
+        "classe_armatura": "18 armatura naturale OCR",
+        "velocita": "9 m, scalare 9 m OCR extra",
+    }
+    if mutation == "wrong_exact_ca":
+        primary["classe_armatura"] = "19 (armatura naturale)"
+
+    semantic = {
+        f"{field}_semantic_match": True
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    }
+    speed = {
+        "velocita_residual_extra_alpha_tokens_exactly_2": (
+            mutation != "not_two_extra_tokens"
+        ),
+        "velocita_residual_duplicate_ambiguous": False,
+        "velocita_residual_extra_alpha_tokens_3_or_more": False,
+    }
+    with (
+        patch.object(repair, "semantic_core_field_matches", return_value=semantic),
+        patch.object(repair, "speed_multi_extra_token_profile", return_value=speed),
+    ):
+        result = repair._align_juiblex_reviewed_peer_core(
+            primary, comparison, primary_exact=True
+        )
+    if mutation == "none":
+        assert result is not None
+        assert result[0] == clean
+        assert result[1]["classe_armatura"] == clean["classe_armatura"]
+        assert result[1]["velocita"] == clean["velocita"]
+        assert result[1]["punti_ferita"] == clean["punti_ferita"]
+    else:
+        assert result is None
+
+
+def test_duergar_guardia_repairs_hp_and_short_speed_suffix_together():
+    target = "Duergar Guardia Di Pietra"
+    clean = {
+        "classe_armatura": "18",
+        "punti_ferita": "44 (8d8 + 8)",
+        "velocita": "7,5 m",
+    }
+    primary = {
+        "name": target.upper(),
+        "normalized_name": repair.normalize_reference_name(target),
+        "start_page": 10,
+        "source_refs": [{"page": 10}],
+        "attributes": dict(clean),
+    }
+    comparison = {
+        **primary,
+        "name": target.upper() + " i",
+        "normalized_name": repair.normalize_reference_name(target + " i"),
+        "attributes": {
+            **clean,
+            "punti_ferita": "4 4 (8d8 + 8)",
+            "velocita": "7,5 m i",
+        },
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name") == repair.normalize_reference_name(target)
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 2 if exact else 1,
+            "parser_valid_headers": 1,
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+            "candidates_on_page": 1,
+        }
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            target,
+            10,
+            require_exact_target_identity=True,
+        )
+
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == clean
+
+
+def test_hp_digit_skeleton_peer_repair_requires_exact_digits():
+    peer = "33 (6d8 + 6)"
+    assert repair._repair_hp_digit_skeleton_to_peer("3 3 (6 8 6)", peer) == peer
+    assert repair._repair_hp_digit_skeleton_to_peer("3 4 (6 8 6)", peer) is None
+    assert repair._repair_hp_digit_skeleton_to_peer("33 (6d8 + 6)", peer) is None
+
+
+def test_duergar_martellatore_repairs_separator_loss_hp_and_short_speed_suffix():
+    target = "Duergar Martellatore"
+    clean = {
+        "classe_armatura": "17 (armatura naturale)",
+        "punti_ferita": "33 (6d8 + 6)",
+        "velocita": "6 m",
+    }
+    primary = {
+        "name": target.upper() + " i",
+        "normalized_name": repair.normalize_reference_name(target + " i"),
+        "start_page": 8,
+        "source_refs": [{"page": 8}],
+        "attributes": dict(clean),
+    }
+    comparison = {
+        **primary,
+        "name": target.upper(),
+        "normalized_name": repair.normalize_reference_name(target),
+        "attributes": {
+            **clean,
+            "punti_ferita": "3 3 (6 8 6)",
+            "velocita": "6 m i",
+        },
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name") == repair.normalize_reference_name(target)
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 2 if exact else 1,
+            "parser_valid_headers": 2,
+            "anchors_with_descriptor": 2,
+            "anchors_with_hp": 2,
+            "anchors_with_speed": 2,
+            "candidates_on_page": 2,
+        }
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [],
+            [],
+            "synthetic.pdf",
+            "it",
+            target,
+            8,
+            require_exact_target_identity=True,
+        )
+
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == clean
+
+
+@pytest.mark.parametrize(
+    "comparison_hp,accepted",
+    [
+        ("4 4 (8d8 + 8)", True),
+        ("4 5 (8d8 + 8)", False),
+    ],
+)
+def test_duergar_guardia_one_side_hp_repair_requires_exact_math_gated_peer(
+    comparison_hp,
+    accepted,
+):
+    target = "Duergar Guardia Di Pietra"
+    attributes = {
+        "classe_armatura": "18",
+        "punti_ferita": "44 (8d8 + 8)",
+        "velocita": "7,5 m",
+    }
+    primary = {
+        "name": target.upper(),
+        "normalized_name": repair.normalize_reference_name(target),
+        "start_page": 10,
+        "source_refs": [{"page": 10}],
+        "attributes": dict(attributes),
+    }
+    comparison = {
+        **primary,
+        "name": target.upper() + " i",
+        "normalized_name": repair.normalize_reference_name(target + " i"),
+        "attributes": {**attributes, "punti_ferita": comparison_hp},
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name") == repair.normalize_reference_name(target)
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 2 if exact else 1,
+            "parser_valid_headers": 1,
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+            "candidates_on_page": 1,
+        }
+
+    context = (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    )
+    with context[0], context[1], context[2]:
+        if accepted:
+            candidate = _agreed_target_candidate(
+                [],
+                [],
+                "synthetic.pdf",
+                "it",
+                target,
+                10,
+                require_exact_target_identity=True,
+            )
+            assert candidate["attributes"]["punti_ferita"] == attributes["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked) as caught:
+                _agreed_target_candidate(
+                    [],
+                    [],
+                    "synthetic.pdf",
+                    "it",
+                    target,
+                    10,
+                    require_exact_target_identity=True,
+                )
+            assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing_title", "missing_structure", "core_disagreement", "duplicate_compatible"],
+)
+def test_mpmm_one_side_exact_compatible_fallback_fails_closed(mutation):
+    primary = _mpmm_one_side_exact_candidate(exact=False)
+    comparison = _mpmm_one_side_exact_candidate(exact=True)
+    primary_records = [primary]
+    comparison_records = [comparison]
+    if mutation == "core_disagreement":
+        comparison_records = [_mpmm_one_side_exact_candidate(exact=True, ca="19")]
+    elif mutation == "duplicate_compatible":
+        primary_records = [
+            primary,
+            {
+                **primary,
+                "name": "FENICE ii",
+                "normalized_name": repair.normalize_reference_name("FENICE ii"),
+            },
+        ]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        is_nonexact = not any(
+            candidate.get("normalized_name") == repair.normalize_reference_name("Fenice")
+            for candidate in records
+        )
+        return _mpmm_one_side_identity_counts(
+            records,
+            structural=not (mutation == "missing_structure" and is_nonexact),
+            title_count=0 if mutation == "missing_title" and is_nonexact else 1,
+        )
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Fenice", 23,
+            require_exact_target_identity=True,
+        )
+
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def _mpmm_anchored_juiblex_candidate(
+    *,
+    exact: bool,
+    ca: str = "18",
+    hp: str = "350 (28d12 + 168)",
+):
+    name = "JUIBLEX" if exact else "JUIBLEX i"
+    return {
+        "name": name,
+        "normalized_name": repair.normalize_reference_name(name),
+        "start_page": 56,
+        "source_refs": [{"page": 56}],
+        "attributes": {
+            "classe_armatura": ca,
+            "punti_ferita": hp,
+            "velocita": "9 m, scalare 9 m",
+        },
+    }
+
+
+def _mpmm_anchored_juiblex_counts(records, *, structural=True):
+    exact = any(
+        candidate.get("normalized_name") == repair.normalize_reference_name("Juiblex")
+        for candidate in records
+    )
+    return {
+        "exact_title_lines": 1 if exact else 0,
+        "parser_valid_headers": 1 if structural else 0,
+        "parser_exact_headers": 1 if exact and structural else 0,
+        "anchors_with_descriptor": 1 if structural else 0,
+        "anchors_with_hp": 1 if structural else 0,
+        "anchors_with_speed": 1 if structural else 0,
+        "candidates_on_page": 1 if structural else 0,
+    }
+
+
+def test_mpmm_anchor_backed_one_side_fallback_requires_unique_anchor_and_core_agreement():
+    primary = _mpmm_anchored_juiblex_candidate(exact=True)
+    comparison = _mpmm_anchored_juiblex_candidate(
+        exact=False,
+        hp="350 (28dl2 + 1 68)",
+    )
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        return _mpmm_anchored_juiblex_counts(records)
+
+    with (
+        patch.object(repair, "parse_monster_statblocks", side_effect=[[primary], [comparison]]),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+    ):
+        candidate = _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Juiblex", 56,
+            source_anchor_verified=True,
+            require_exact_target_identity=True,
+        )
+
+    assert candidate["name"] == "Juiblex"
+    assert {
+        field: candidate["attributes"][field]
+        for field in ("classe_armatura", "punti_ferita", "velocita")
+    } == primary["attributes"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing_anchor",
+        "missing_structure",
+        "core_disagreement",
+        "duplicate_compatible",
+        "hp_unrepairable",
+    ],
+)
+def test_mpmm_anchor_backed_one_side_fallback_fails_closed(mutation):
+    primary = _mpmm_anchored_juiblex_candidate(exact=True)
+    comparison = _mpmm_anchored_juiblex_candidate(exact=False)
+    primary_records = [primary]
+    comparison_records = [comparison]
+    if mutation == "core_disagreement":
+        comparison_records = [_mpmm_anchored_juiblex_candidate(exact=False, ca="19")]
+    elif mutation == "hp_unrepairable":
+        comparison_records = [
+            _mpmm_anchored_juiblex_candidate(
+                exact=False,
+                hp="350 (28dl3 + 1 68)",
+            )
+        ]
+    elif mutation == "duplicate_compatible":
+        comparison_records = [
+            comparison,
+            {
+                **comparison,
+                "name": "JUIBLEX ii",
+                "normalized_name": repair.normalize_reference_name("JUIBLEX ii"),
+            },
+        ]
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        is_nonexact = not any(
+            candidate.get("normalized_name") == repair.normalize_reference_name("Juiblex")
+            for candidate in records
+        )
+        return _mpmm_anchored_juiblex_counts(
+            records,
+            structural=not (mutation == "missing_structure" and is_nonexact),
+        )
+
+    with (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[primary_records, comparison_records],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(repair, "_identity_source_counts", side_effect=identity_counts),
+        pytest.raises(RepairBlocked) as caught,
+    ):
+        _agreed_target_candidate(
+            [], [], "synthetic.pdf", "it", "Juiblex", 56,
+            source_anchor_verified=mutation != "missing_anchor",
+            require_exact_target_identity=True,
+        )
+
+    assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def test_hp_leading_prefix_peer_repair_accepts_only_exact_clean_peer():
+    contaminated = "3 50 (28d12 + 1 68) 2d8 + 4"
+    peer = "350 (28d12 + 168)"
+    assert repair._repair_hp_leading_prefix_to_peer(contaminated, peer) == peer
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            contaminated,
+            "351 (28d12 + 169)",
+        )
+        is None
+    )
+
+
+def test_hp_leading_prefix_peer_repair_accepts_only_known_ocr_digit_confusions():
+    peer = "350 (28d12 + 168)"
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            "35O (28dI2 + l68) 2d8 + 4",
+            peer,
+        )
+        == peer
+    )
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            "359 (28d12 + 168) 2d8 + 4",
+            peer,
+        )
+        is None
+    )
+
+
+def test_hp_leading_prefix_peer_repair_rejects_incomplete_leading_expression():
+    assert (
+        repair._repair_hp_leading_prefix_to_peer(
+            "350 (28d12 + 168 2d8 + 4",
+            "350 (28d12 + 168)",
+        )
+        is None
+    )
+
+
+def test_hp_letter_digit_spacing_confusion_reports_sanitized_rejection_gate():
+    diagnostics = {}
+    assert (
+        repair._repair_hp_letter_digit_spacing_confusion(
+            "350 (28dl2 + 168) 3",
+            diagnostics=diagnostics,
+        )
+        is None
+    )
+    assert diagnostics == {
+        "prefix_numericish": True,
+        "inner_chars_allowed": True,
+        "single_d_separator": True,
+        "single_modifier_sign": True,
+        "suffix_present": True,
+        "suffix_has_numeric_syntax": True,
+        "shape_match": True,
+        "trailing_present": True,
+        "trailing_has_numeric_syntax": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("350 (28dl2 + 1 68)", "350 (28d12 + 168)"),
+        ("3 50 (28d12 + 168)", "350 (28d12 + 168)"),
+        ("3 51 (28d12 + 168)", None),
+        ("350 (28dI2 + 1 68)", "350 (28d12 + 168)"),
+        ("350 (28d12 + l68)", "350 (28d12 + 168)"),
+        ("350 (28d12 + I68)", "350 (28d12 + 168)"),
+        ("304 (2Id12 + 168)", "304 (21d12 + 168)"),
+        ("350 (28dl2 + 168) x", "350 (28d12 + 168)"),
+        ("350 (28dl2 + 168) ·", "350 (28d12 + 168)"),
+        ("35O (28dL2 + l68)", "350 (28d12 + 168)"),
+        ("35o (28d12 + I68)", "350 (28d12 + 168)"),
+        ("351 (28dL2 + l68)", None),
+        ("350 (28dl2 + 168) 3", None),
+        ("350 (28dl2 + 168) d", None),
+        ("350 (28dl2 + 168) +", None),
+        ("350 (28d12 + 168)", None),
+        ("350 (28dl3 + 1 68)", None),
+        ("351 (28dl2 + 1 68)", None),
+    ],
+)
+def test_hp_letter_digit_spacing_confusion_is_math_gated(raw, expected):
+    assert repair._repair_hp_letter_digit_spacing_confusion(raw) == expected
+
+
+@pytest.mark.parametrize("target", ["Oscuride", "Oscuride Anziano"])
+@pytest.mark.parametrize("mutation", ["none", "ca_disagreement", "duplicate", "missing_exact"])
+def test_oscuride_exact_identity_separates_variant_without_bypassing_core(mutation, target):
+    base = {
+        "name": "OSCURIDE", "normalized_name": "oscuride", "start_page": 13,
+        "source_refs": [{"page": 13}],
+        "attributes": {"classe_armatura": "14 (armatura di cuoio)", "punti_ferita": "13 (3d6 + 3)", "velocita": "9 m"},
+    }
+    variant = {
+        **base, "name": "OSCURIDE ANZIANO", "normalized_name": "oscuride anziano",
+        "attributes": {"classe_armatura": "15 (armatura di cuoio borchiato)", "punti_ferita": "27 (5d8 + 5)", "velocita": "9 m"},
+    }
+    primary = [base, variant]
+    comparison = [base, variant]
+    selected = base if target == "Oscuride" else variant
+    other = variant if target == "Oscuride" else base
+    if mutation == "ca_disagreement":
+        comparison = [{**selected, "attributes": {**selected["attributes"], "classe_armatura": "16"}}, other]
+    elif mutation == "duplicate":
+        primary = [selected, selected, other]
+    elif mutation == "missing_exact":
+        comparison = [other]
+    before = json.dumps([primary, comparison], sort_keys=True)
+    with patch.object(repair, "parse_monster_statblocks", side_effect=[primary, comparison]):
+        if mutation == "none":
+            candidate = _agreed_target_candidate(
+                [], [], "synthetic.pdf", "it", target, 13,
+                require_exact_target_identity=True,
+            )
+            assert candidate["name"] == selected["name"]
+            assert candidate["attributes"]["punti_ferita"] == selected["attributes"]["punti_ferita"]
+        else:
+            with pytest.raises(RepairBlocked):
+                _agreed_target_candidate(
+                    [], [], "synthetic.pdf", "it", target, 13,
+                    require_exact_target_identity=True,
+                )
+    assert json.dumps([primary, comparison], sort_keys=True) == before
+
+@pytest.mark.parametrize(
+    "comparison_speed,expected",
+    [
+        ("7.5 m", "7,5 m"),
+        ("7x5 m", None),
+    ],
+)
+def test_duergar_speed_non_alphanumeric_repair_uses_exact_peer_only(
+    comparison_speed,
+    expected,
+):
+    primary = {"velocita": "7,5 m"}
+    comparison = {"velocita": comparison_speed}
+    assert (
+        repair._repair_speed_non_alphanumeric_to_exact_peer(
+            primary,
+            comparison,
+            exact_on_left=True,
+        )
+        == expected
+    )
+
+
+def test_duergar_guardia_core_label_repair_preserves_values_exactly():
+    text = (
+        "DUERGAR GUARDIA DI PIETRA\n"
+        "Umanoide Medio (Nano), legale malvagio\n"
+        "Classe Armatura 18\n"
+        "Punti Fèrita 44 (8d8 + 8)\n"
+        "Velocitá 7,5 m\n"
+    )
+
+    result = repair._canonicalize_duergar_guardia_core_labels(text)
+
+    assert "Punti Ferita 44 (8d8 + 8)" in result
+    assert "Velocità 7,5 m" in result
+    assert "44 (8d8 + 8)" in result
+    assert "7,5 m" in result
+
+
+def test_duergar_guardia_core_label_repair_fails_closed_on_duplicate_label():
+    text = (
+        "Punti Fèrita 44 (8d8 + 8)\n"
+        "Punti Fèrita 45 (8d8 + 9)\n"
+        "Velocitá 7,5 m\n"
+    )
+    assert repair._canonicalize_duergar_guardia_core_labels(text) == text
+
+
+@pytest.mark.parametrize("suffix", ["Ù", "i"])
+def test_drow_title_debris_isolates_one_observed_suffix_without_numeric_changes(suffix):
+    text = (
+        f"DROW INQUISITORE {suffix}\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m\n"
+    )
+
+    result = repair._isolate_drow_title_debris(text)
+
+    assert result == text.replace(
+        f"DROW INQUISITORE {suffix}",
+        f"{suffix}\nDROW INQUISITORE",
+    )
+    assert "Punti Ferita 110 (13d8 + 52)" in result
+
+
+def test_drow_title_debris_accepts_normalized_exact_ocr_prefix():
+    text = (
+        "DROW-INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m\n"
+    )
+
+    result = repair._isolate_drow_title_debris(text)
+
+    assert result == text.replace(
+        "DROW-INQUISITORE i",
+        "i\nDROW-INQUISITORE",
+    )
+    assert "Punti Ferita 110 (13d8 + 52)" in result
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "DROW INQUISITORE altro",
+        "DROW INQUISITORE ii",
+        "DROW INQUISITORE Ù\nDROW INQUISITORE i",
+    ],
+)
+def test_drow_title_debris_rejects_unobserved_or_duplicate_suffixes(title):
+    assert repair._isolate_drow_title_debris(title) == title
+
+
+@pytest.mark.parametrize("source_anchor_verified", [True, False])
+@pytest.mark.parametrize("comparison_speed", ["9 m", "9 m i"])
+def test_drow_anchored_one_side_fallback_requires_sparse_source_anchor(
+    source_anchor_verified,
+    comparison_speed,
+):
+    primary = {
+        "name": "DROW INQUISITORE",
+        "normalized_name": repair.normalize_reference_name("Drow Inquisitore"),
+        "start_page": 4,
+        "source_refs": [{"page": 4}],
+        "attributes": {
+            "classe_armatura": "16",
+            "punti_ferita": "110 (13d8 + 52)",
+            "velocita": "9 m",
+        },
+    }
+    comparison = {
+        **primary,
+        "name": "DROW INQUISITORE i",
+        "normalized_name": repair.normalize_reference_name("Drow Inquisitore i"),
+        "attributes": {
+            **primary["attributes"],
+            "velocita": comparison_speed,
+        },
+    }
+
+    def identity_counts(_pages, records, _target_name, _target_page):
+        exact = any(
+            candidate.get("normalized_name")
+            == repair.normalize_reference_name("Drow Inquisitore")
+            for candidate in records
+        )
+        return {
+            "exact_title_lines": 1 if exact else 0,
+            "parser_valid_headers": 1,
+            "parser_exact_headers": 1 if exact else 0,
+            "anchors_with_descriptor": 1,
+            "anchors_with_hp": 1,
+            "anchors_with_speed": 1,
+            "candidates_on_page": 1,
+        }
+
+    context = (
+        patch.object(
+            repair,
+            "parse_monster_statblocks",
+            side_effect=[[primary], [comparison]],
+        ),
+        patch.object(repair, "_candidate_matches_target", return_value=True),
+        patch.object(
+            repair,
+            "_identity_source_counts",
+            side_effect=identity_counts,
+        ),
+    )
+    with context[0], context[1], context[2]:
+        if source_anchor_verified:
+            candidate = _agreed_target_candidate(
+                [],
+                [],
+                "synthetic.pdf",
+                "it",
+                "Drow Inquisitore",
+                4,
+                source_anchor_verified=True,
+                require_exact_target_identity=True,
+            )
+            assert candidate["name"] == "Drow Inquisitore"
+            assert {
+                field: candidate["attributes"][field]
+                for field in ("classe_armatura", "punti_ferita", "velocita")
+            } == primary["attributes"]
+            assert candidate["attributes"]["ocr_independent_agreement"] is True
+            assert (
+                candidate["attributes"]["ocr_clean_deterministic_core_agreement"]
+                is True
+            )
+        else:
+            with pytest.raises(RepairBlocked) as caught:
+                _agreed_target_candidate(
+                    [],
+                    [],
+                    "synthetic.pdf",
+                    "it",
+                    "Drow Inquisitore",
+                    4,
+                    source_anchor_verified=False,
+                    require_exact_target_identity=True,
+                )
+            assert caught.value.reason == "no_unique_exact_target_identity"
+
+
+def _drow_hp_tsv(
+    *,
+    duplicate_target=False,
+    filler_lines=0,
+    omit_local_hp_label=False,
+):
+    header = (
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\t"
+        "left\ttop\twidth\theight\tconf\ttext\n"
+    )
+    rows = [
+        "5\t1\t1\t1\t1\t1\t20\t20\t45\t12\t95\tPunti",
+        "5\t1\t1\t1\t1\t2\t72\t20\t50\t12\t95\tFerita",
+        "5\t1\t2\t1\t1\t1\t20\t45\t45\t12\t95\tPunti",
+        "5\t1\t2\t1\t1\t2\t72\t45\t50\t12\t95\tFerita",
+        "5\t1\t3\t1\t1\t1\t20\t100\t70\t14\t95\tDROW",
+        "5\t1\t3\t1\t1\t2\t95\t100\t100\t14\t95\tINQUISITORE",
+        "5\t1\t3\t1\t1\t3\t200\t100\t10\t14\t90\ti",
+        "5\t1\t3\t1\t2\t1\t20\t120\t80\t12\t95\tUmanoide",
+        "5\t1\t3\t1\t3\t1\t20\t140\t55\t12\t95\tClasse",
+        "5\t1\t3\t1\t3\t2\t80\t140\t70\t12\t95\tArmatura",
+        "5\t1\t3\t1\t3\t3\t160\t140\t20\t12\t95\t16",
+    ]
+    if not omit_local_hp_label:
+        rows.extend(
+            [
+                "5\t1\t3\t1\t4\t1\t20\t160\t45\t12\t95\tPunti",
+                "5\t1\t3\t1\t4\t2\t72\t160\t50\t12\t95\tFerita",
+            ]
+        )
+    for offset in range(filler_lines):
+        line_number = 5 + offset
+        top = 180 + offset * 20
+        rows.append(
+            f"5\t1\t3\t1\t{line_number}\t1\t20\t{top}\t70\t12\t95\triempitivo"
+        )
+    speed_line = 5 + filler_lines
+    speed_top = 180 + filler_lines * 20
+    rows.extend(
+        [
+            f"5\t1\t3\t1\t{speed_line}\t1\t20\t{speed_top}\t55\t12\t95\tVelocità",
+            f"5\t1\t3\t1\t{speed_line}\t2\t80\t{speed_top}\t20\t12\t95\t9",
+        ]
+    )
+    if duplicate_target:
+        rows.extend(
+            [
+                "5\t1\t4\t1\t1\t1\t20\t210\t70\t14\t95\tDROW",
+                "5\t1\t4\t1\t1\t2\t95\t210\t100\t14\t95\tINQUISITORE",
+            ]
+        )
+    return header + "\n".join(rows) + "\n"
+
+
+def test_drow_hp_micro_reconstructs_only_unique_local_missing_hp(tmp_path, capsys):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 12 (3d6 + 2)\n"
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=_drow_hp_tsv(), stderr=""),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+        )
+
+    assert "ALTRO MOSTRO\nPunti Ferita 12 (3d6 + 2)" in result
+    assert (
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m"
+    ) in result
+    assert "MPMM_DROW_STRUCTURAL_HP_ANCHOR" in capsys.readouterr().out
+
+
+
+def test_drow_sparse_micro_reconstructs_when_hp_label_is_missing_from_ocr_text(
+    tmp_path,
+):
+    image_path = tmp_path / "drow-sparse.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess([], 0, stdout=_drow_hp_tsv(), stderr=""),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    assert (
+        "Classe Armatura 16\n"
+        "Punti Ferita 110 (13d8 + 52)\n"
+        "Velocità 9 m"
+    ) in result
+
+
+@pytest.mark.parametrize(
+    ("filler_lines", "accepted"),
+    [(10, True), (11, False)],
+)
+def test_drow_sparse_tsv_core_gap_is_bounded_to_twelve_lines(
+    tmp_path,
+    filler_lines,
+    accepted,
+):
+    image_path = tmp_path / "drow-tsv-bound.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 520), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(filler_lines=filler_lines),
+            stderr="",
+        ),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    if accepted:
+        assert "Punti Ferita 110 (13d8 + 52)" in result
+    else:
+        assert result == page_text
+
+
+def test_drow_sparse_micro_uses_unique_ca_speed_band_when_hp_label_is_missing(
+    tmp_path,
+    capsys,
+):
+    image_path = tmp_path / "drow-missing-label.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+    responses = [
+        CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(omit_local_hp_label=True),
+            stderr="",
+        ),
+        CompletedProcess([], 0, stdout="110 (13d8 + 52)\n", stderr=""),
+    ]
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        side_effect=responses,
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=True,
+        )
+
+    assert "Punti Ferita 110 (13d8 + 52)" in result
+    assert "MPMM_DROW_GEOMETRIC_HP_BAND" in capsys.readouterr().out
+
+
+def test_drow_missing_hp_label_geometry_fails_closed_without_single_target_anchor(
+    tmp_path,
+    capsys,
+):
+    image_path = tmp_path / "drow-no-single-target.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(omit_local_hp_label=True),
+            stderr="",
+        ),
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+            single_target_geometry=False,
+        )
+
+    assert result == page_text
+    assert "MPMM_DROW_GEOMETRIC_HP_BAND" not in capsys.readouterr().out
+
+
+def test_drow_hp_micro_fails_closed_on_ambiguous_local_tsv_structure(
+    tmp_path,
+    capsys,
+):
+    image_path = tmp_path / "column.png"
+    image = fitz.Pixmap(fitz.csGRAY, fitz.IRect(0, 0, 600, 320), False)
+    image.clear_with(255)
+    image.save(image_path)
+    page_text = (
+        "ALTRO MOSTRO\n"
+        "Punti Ferita 12 (3d6 + 2)\n"
+        "DROW INQUISITORE i\n"
+        "Umanoide Medio, neutrale malvagio\n"
+        "Classe Armatura 16\n"
+        "Velocità 9 m\n"
+    )
+
+    with patch(
+        "scripts.repair_monsters_from_source.subprocess.run",
+        return_value=CompletedProcess(
+            [],
+            0,
+            stdout=_drow_hp_tsv(duplicate_target=True),
+            stderr="",
+        ),
+    ):
+        result = _micro_ocr_hit_points_line(
+            image_path,
+            "ita",
+            4,
+            page_text,
+            "Drow Inquisitore",
+        )
+
+    assert result == page_text
+    assert "drow_structural_hp_anchor_ambiguous" in capsys.readouterr().out
+

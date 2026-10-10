@@ -60,6 +60,7 @@ _CREATURE_TYPE_WORDS = (
     "non morto",
     "non-morto",
     "pianta",
+    "vegetale",
     "umanoide",
     "aberration",
     "beast",
@@ -147,9 +148,23 @@ def _normalize_monster_name(value: str) -> str:
     return normalize_reference_name(value)
 
 
+def _line_is_italian_swarm_descriptor(line: str) -> bool:
+    """Inspect explicit swarm grammar; never join or rewrite source lines."""
+    value = _norm(line)
+    return len(value) <= 180 and bool(
+        re.fullmatch(
+            r"sciame (?:minuscol[oa]|piccol[oa]|medi[oa]|grande|enorme|mastodontic[oa]) "
+            r"di (?:bestie|aberrazioni) (?:minuscol[ie]|piccol[ie])"
+            r"(?: (?:(?:generalmente )?(?:legale|neutrale|caotico) "
+            r"(?:buono|neutrale|malvagio)|neutrale|senza allineamento|qualsiasi allineamento))?",
+            value,
+        )
+    )
+
+
 def _line_is_descriptor(line: str) -> bool:
     value = _norm(line)
-    return (
+    return _line_is_italian_swarm_descriptor(line) or (
         any(re.search(rf"\b{re.escape(size)}\b", value) for size in _SIZE_WORDS)
         and any(
             re.search(rf"\b{re.escape(creature_type)}\b", value)
@@ -157,6 +172,7 @@ def _line_is_descriptor(line: str) -> bool:
         )
         and len(value) <= 180
     )
+
 
 def _line_is_title_candidate(line: str) -> bool:
     raw = clean_text(line or "").strip(" .:;,—–-")
@@ -264,6 +280,18 @@ def _first_match(patterns: Iterable[str], text: str) -> str:
     return ""
 
 
+def _numeric_value_after_normalized_label(line: str, label: str) -> str:
+    """Return unchanged numeric suffix only after an exact normalized core label.
+
+    OCR may put punctuation between label words or use an apostrophe in place
+    of an accent. Normalizing the label *only* must not repair numeric values.
+    """
+    first_digit = re.search(r"\d", line)
+    if first_digit is None or _norm(line[: first_digit.start()]) != label:
+        return ""
+    return clean_text(line[first_digit.start() :]).strip(" .;,")
+
+
 def _multiline_speed_value(text: str) -> str:
     """Join only a clearly wrapped speed value with unbalanced parentheses."""
     lines = [clean_text(line or "") for line in (text or "").splitlines()]
@@ -273,15 +301,42 @@ def _multiline_speed_value(text: str) -> str:
             line,
             flags=re.IGNORECASE,
         )
-        if match is None:
-            continue
-        value = match.group(1).strip(" .;,")
+        if match is None or match.group(1).lstrip().startswith(("'", "’")):
+            # A stray OCR apostrophe after Velocita must not become part of
+            # the value. Require the whole source prefix to normalize to the
+            # exact field label, then retain the original numeric suffix.
+            # Fail closed unless that suffix starts with a metric unit.
+            value = _numeric_value_after_normalized_label(line, "velocita")
+            if not re.match(
+                r"^\d{1,3}\s*(?:m|metri|ft|feet)\b",
+                value,
+                flags=re.IGNORECASE,
+            ):
+                continue
+        else:
+            value = match.group(1).strip(" .;,")
+        continuation_start = index + 1
         if not value:
-            return ""
+            # On some column OCR layouts the speed label is a standalone line.
+            # Read only the *immediately adjacent* line and only when it
+            # begins with an explicit distance unit; never skip other labels
+            # or borrow a number from a neighboring structural field.
+            if continuation_start >= len(lines):
+                return ""
+            neighbor = lines[continuation_start].strip()
+            if not re.match(
+                r"^(?:\d{1,3}|(?:camminare|nuotare|volare|scalare|scavare)"
+                r"\s+\d{1,3})\s*(?:m|metri|ft|feet)\b",
+                neighbor,
+                flags=re.IGNORECASE,
+            ):
+                return ""
+            value = neighbor.strip(" .;,")
+            continuation_start += 1
         balance = value.count("(") - value.count(")")
         if balance <= 0:
             return value
-        for following in lines[index + 1 : index + 4]:
+        for following in lines[continuation_start : continuation_start + 3]:
             normalized = _norm(following)
             if not following.strip():
                 continue
@@ -305,10 +360,35 @@ def _multiline_hit_points_value(text: str) -> str:
             flags=re.IGNORECASE,
         )
         if match is None:
-            continue
-        value = match.group(1).strip(" .;,")
+            value = _numeric_value_after_normalized_label(line, "punti ferita")
+            if not re.match(r"^\d{1,4}\b", value):
+                continue
+        else:
+            value = match.group(1).strip(" .;,")
         if not value:
             return ""
+        if re.fullmatch(r"\d{1,4}", value) and index + 1 < len(lines):
+            # Two-column OCR can wrap an entire dice expression onto the
+            # *immediately adjacent* line. Only join source-observed dice
+            # when its average mathematically matches the source HP value.
+            # Never borrow from subsequent stat blocks or invent a modifier.
+            following = lines[index + 1].strip()
+            dice = re.fullmatch(
+                r"\(\s*(\d{1,3})d(4|6|8|10|12|20)"
+                r"\s*([+\-−–]\s*\d{1,4})?\s*\)",
+                following,
+                flags=re.IGNORECASE,
+            )
+            if dice:
+                modifier = int(
+                    (dice.group(3) or "0")
+                    .replace(" ", "")
+                    .replace("−", "-")
+                    .replace("–", "-")
+                )
+                expected = int(dice.group(1)) * (int(dice.group(2)) + 1) // 2 + modifier
+                if expected == int(value):
+                    return f"{value} {following}"
         balance = value.count("(") - value.count(")")
         if balance <= 0:
             return value

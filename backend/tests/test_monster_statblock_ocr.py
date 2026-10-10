@@ -56,6 +56,58 @@ def test_parses_one_complete_monster_and_keeps_review_gate():
     ]
 
 
+def test_italian_plant_descriptor_is_recognized_without_changing_core_text():
+    text = _goblin_text(title="SYNTHETIC GUARD").replace(
+        "Piccolo umanoide (goblinoide), neutrale malvagio",
+        "Vegetale Piccolo, senza allineamento",
+    )
+    records = parse_monster_statblocks([(7, text)], "synthetic.pdf")
+    assert len(records) == 1
+    assert records[0]["name"] == "SYNTHETIC GUARD"
+    assert records[0]["attributes"]["descrittore_creatura"] == "Vegetale Piccolo, senza allineamento"
+    assert records[0]["attributes"]["punti_ferita"] == "7 (2d6)"
+    assert records[0]["attributes"]["classe_armatura"] == "15 (armatura di cuoio, scudo)"
+    assert records[0]["attributes"]["velocita"] == "9 m"
+    assert "ocr_da_verificare" in records[0]["review_flags"]
+    for invalid in (
+        text.replace("Vegetale Piccolo", "Vegetale"),
+        text.replace("Punti Ferita", "Unknown Label"),
+        text.replace("Velocità", "Unknown Label"),
+    ):
+        assert parse_monster_statblocks([(7, invalid)], "synthetic.pdf") == []
+
+
+def test_explicit_italian_swarm_descriptor_preserves_identity_core_and_review():
+    original_descriptor = "Piccolo umanoide (goblinoide), neutrale malvagio"
+    for descriptor in (
+        "Sciame Enorme di bestie Piccole, neutrale",
+        "Sciame Medio di aberrazioni Minuscole, legale buono",
+    ):
+        text = _goblin_text(title="GUARDIANO FITTIZIO").replace(original_descriptor, descriptor)
+        records = parse_monster_statblocks([(7, text)], "synthetic.pdf")
+        assert len(records) == 1
+        record = records[0]
+        assert record["name"] == "GUARDIANO FITTIZIO"
+        assert record["attributes"]["descrittore_creatura"] == descriptor
+        assert record["attributes"]["classe_armatura"] == "15 (armatura di cuoio, scudo)"
+        assert record["attributes"]["punti_ferita"] == "7 (2d6)"
+        assert record["attributes"]["velocita"] == "9 m"
+        assert record["source_refs"][0]["page"] == 7
+        assert "ocr_da_verificare" in record["review_flags"]
+        for invalid in (text.replace("Punti Ferita", "Unknown Label"), text.replace("Velocità", "Unknown Label")):
+            assert parse_monster_statblocks([(7, invalid)], "synthetic.pdf") == []
+    for descriptor in (
+        "Uno sciame Enorme di bestie Piccole, neutrale",
+        "Sciame Enorme di oggetti Piccoli, neutrale",
+        "Sciame di bestie Piccole, neutrale",
+        "Sciame Enorme di bestie, neutrale",
+        "Sciame Enorme di bestie Piccole e altro testo",
+        "Sciame Enorme di bestie Piccole, sconosciuto",
+    ):
+        text = _goblin_text(title="GUARDIANO FITTIZIO").replace(original_descriptor, descriptor)
+        assert parse_monster_statblocks([(7, text)], "synthetic.pdf") == []
+
+
 def test_hit_points_wrap_with_open_parenthesis_is_joined_conservatively():
     text = """RANA
 Minuscola bestia, senza allineamento
@@ -73,6 +125,35 @@ FOR DES COS INT SAG CAR
     assert records[0]["attributes"]["punti_ferita"] == "1 (1d4 - 1)"
 
 
+def test_hp_dice_on_immediately_next_line_requires_mathematical_agreement():
+    source = _goblin_text()
+    cases = (
+        ("7\n(2d6)", "7 (2d6)"),
+        ("78\n(12d8 + 24)", "78 (12d8 + 24)"),
+        ("297\n(17d20 + 119)", "297 (17d20 + 119)"),
+    )
+    for observed, expected in cases:
+        text = source.replace("Punti Ferita 7 (2d6)", f"Punti Ferita {observed}")
+        records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+        assert len(records) == 1
+        assert records[0]["attributes"]["punti_ferita"] == expected
+
+
+def test_hp_dice_line_rejects_incoherent_or_nonadjacent_values():
+    original = _goblin_text()
+    for observed in (
+        "78\n(12d8 + 23)",   # incorrect dice average
+        "78\nNarrative text\n(12d8 + 24)",  # unrelated intervening text
+        "78\nVelocità 9 m\n(12d8 + 24)",  # never cross structural fields
+        "78\n(12d8 + 24) later text",  # unrelated trailing content
+        "78\n(12d9 + 18)",  # unsupported die size
+    ):
+        text = original.replace("Punti Ferita 7 (2d6)", f"Punti Ferita {observed}")
+        records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+        assert len(records) == 1
+        assert records[0]["attributes"]["punti_ferita"] == "78"
+
+
 def test_hit_points_wrap_does_not_cross_structural_field():
     text = """RANA
 Minuscola bestia, senza allineamento
@@ -87,6 +168,49 @@ FOR DES COS INT SAG CAR
 
     assert len(records) == 1
     assert records[0]["attributes"]["punti_ferita"] == "1 (1d4"
+
+
+def test_speed_label_on_own_line_reads_only_adjacent_metric_value():
+    text = _goblin_text().replace("Velocità 9 m", "Velocità\n9 m (volare 12 m)")
+    records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["velocita"] == "9 m (volare 12 m)"
+    assert "ocr_da_verificare" in records[0]["review_flags"]
+
+
+def test_standalone_speed_label_rejects_structural_or_unrelated_following_line():
+    for replacement in (
+        "Velocità\nFOR DES COS INT SAG CAR",
+        "Velocità\nRaggio 9 m",
+        "Velocità\n9 punti",
+        "Velocità\n",
+    ):
+        text = _goblin_text().replace("Velocità 9 m", replacement)
+        assert parse_monster_statblocks([(166, text)], "manuale.pdf") == []
+
+
+def test_exact_normalized_ocr_labels_keep_original_hp_and_speed_values():
+    # Hyphen and apostrophe are OCR separators, not evidence for new values.
+    text = _goblin_text().replace(
+        "Punti Ferita 7 (2d6)", "Punti-Ferita: 7 (2d6)"
+    ).replace("Velocità 9 m", "Velocita' 9 m")
+    records = parse_monster_statblocks([(166, text)], "manuale.pdf")
+
+    assert len(records) == 1
+    assert records[0]["attributes"]["punti_ferita"] == "7 (2d6)"
+    assert records[0]["attributes"]["velocita"] == "9 m"
+    assert "ocr_da_verificare" in records[0]["review_flags"]
+
+
+def test_normalized_ocr_label_never_borrows_unrelated_numeric_text():
+    for invalid in (
+        "Velocita' 9 danni",
+        "Velocita' rumore 9 m",
+        "Velocita' 9",
+    ):
+        text = _goblin_text().replace("Velocità 9 m", invalid)
+        assert parse_monster_statblocks([(166, text)], "manuale.pdf") == []
 
 
 def test_speed_wrap_with_open_parenthesis_is_joined_conservatively():
