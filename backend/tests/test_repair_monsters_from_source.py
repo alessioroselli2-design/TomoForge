@@ -4061,7 +4061,6 @@ def test_vegepigmeo_variant_requires_one_registered_stat_block_page(refs, identi
     ("ref_e52cbc4cbea0558097bc4b0eb43a74d4", "Ogre Scoccadardi", 8),
     ("ref_4b7c7f783b7b5a0bb8f5200c452df52e", "Nebbia Vampirica", 98),
     ("ref_b962ff6f4fc85b15878fa47915ebf83c", "Terrore Astrale", 52),
-    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 73),
     ("ref_be2228ae9b615c7da3734fa7395b016d", "Warlock Dell'Immondo", 69),
     ("ref_583cbd071aec5dc58748c4b27e4005b5", "Warlock Del Grande Antico", 68),
     ("ref_a039088ef69452beaaedb512ab702231", "Xvart Warlock Di Raxivort", 71),
@@ -4104,6 +4103,9 @@ def test_pending_variant_audit_excludes_unregistered_neighbor_pages(identifier, 
 
 
 @pytest.mark.parametrize("identifier,name,page,refs", [
+    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 74, [73, 74]),
+    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 74, [73]),
+    ("ref_8e2b2fc142ed5cf096d0c41996afd065", "Yeenoghu", 74, [73, 74, 74]),
     ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89, 90]),
     ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89]),
     ("ref_7b7dfa362c875ee09468b31a64c96a5a", "Moloch", 90, [89, 90, 90]),

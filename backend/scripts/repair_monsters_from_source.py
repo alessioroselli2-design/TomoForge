@@ -884,6 +884,7 @@ MPMM_EXTENDED_OCR_BUDGET_IDS = frozenset(
 SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID = {
     "ref_2d833b3db343531b8cbe0669197259bd": 81,  # Mitragliatore Di Quercia: other registered physical page; fail-closed pilot
     "ref_7b7dfa362c875ee09468b31a64c96a5a": 90,  # Moloch: originally registered alternative page
+    "ref_8e2b2fc142ed5cf096d0c41996afd065": 74,  # Yeenoghu: source-verified registered stat block
     "ref_f0919b1e8ef955a19953d273054accaf": 72,  # Mago Invocatore: registered alternative page
     "ref_90b64fd6ac3057ee8ab373bb0be776a8": 71,  # Mago Illusionista: registered stat-block page
     "ref_e14604cbec0a5306918cca5f4e74d639": 69,  # Mago Apprendista: diagnose alternate registered-page columns
@@ -957,7 +958,7 @@ SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS = {
     "ref_e52cbc4cbea0558097bc4b0eb43a74d4",  # Ogre Scoccadardi: sole registered page 8
     "ref_4b7c7f783b7b5a0bb8f5200c452df52e",  # Nebbia Vampirica: sole registered page 98
     "ref_b962ff6f4fc85b15878fa47915ebf83c",  # Terrore Astrale: sole registered page 52
-    "ref_8e2b2fc142ed5cf096d0c41996afd065",  # Yeenoghu: stat-block page 73 is registered
+    "ref_8e2b2fc142ed5cf096d0c41996afd065",  # Yeenoghu: stat-block page 74 is registered
     "ref_a365a83a27685357b2d5e669fe65102a",  # Progenie Stellare Straziatore: registered page 22
     "ref_7b7dfa362c875ee09468b31a64c96a5a",  # Moloch: selected registered page 90
     "ref_be2228ae9b615c7da3734fa7395b016d",  # Warlock Dell'Immondo: sole registered page 69
@@ -6655,13 +6656,13 @@ def _ocr_source_window(
     if (
         name == "Yeenoghu"
         and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 73
+        and target_page == 74
         and target_page_only
     ):
-        # Re-read unique registered stat block at higher DPI independently;
-        # the baseline pair disagreed on AC despite matching HP and speed.
+        # The registered stat block is in the lower-left of physical page 74.
+        # Isolate that source geometry; independent exact-title/core gates stay.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 11, 12
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Progenie Stellare Straziatore"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6835,6 +6836,17 @@ def _ocr_source_window(
         # title, descriptor, CA, HP/dice and speed are in the lower-left.
         # Exclude the unrelated illustration and adjacent right-hand actions.
         segments = (("left", (0.07, 0.61, 0.49, 0.95)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Yeenoghu"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 74
+        and target_page_only
+    ):
+        # Source-verified PDF SHA b35e3d0d...; exact stat block below prose.
+        segments = (("left", (0.06, 0.43, 0.49, 0.94)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
