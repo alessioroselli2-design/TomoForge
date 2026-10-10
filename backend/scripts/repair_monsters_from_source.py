@@ -6598,7 +6598,8 @@ def _ocr_source_window(
         and target_page == 90
         and target_page_only
     ):
-        secondary_psm = 12
+        effective_dpi = max(effective_dpi, 400)
+        primary_psm, secondary_psm = 3, 4
     if (
         name == "Sciame Di Ratti Cranici"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6887,6 +6888,17 @@ def _ocr_source_window(
     ):
         # Excludes unrelated prose/title in the left column and nearby art.
         segments = (("right", (0.515, 0.435, 0.91, 0.92)),)
+        column_overlap = 0.0
+
+    if (
+        not sparse_full_page
+        and name == "Moloch"
+        and source.get("logical_source_id") == "mpmm_2022_it"
+        and target_page == 90
+        and target_page_only
+    ):
+        # Exact upper-left stat block; excludes the adjacent actions and art.
+        segments = (("left", (0.07, 0.07, 0.49, 0.57)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
