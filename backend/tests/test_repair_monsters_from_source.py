@@ -3577,6 +3577,27 @@ def test_shadar_kai_wrapped_title_rejects_ambiguous_or_incomplete_source(mutatio
     assert repair._join_unique_source_wrapped_title(text, target) == text
 
 
+def test_warlock_fiend_title_apostrophe_requires_complete_exact_source_core():
+    source = (
+        "WARLOCK DELLIMMONDO\n"
+        "Umanoide Medio, qualsiasi allineamento\n"
+        "Classe Armatura 13 (16 con armatura magica)\n"
+        "Punti Ferita 78 (12d8 + 24)\nVelocità 9 m\n"
+    )
+    expected = source.replace("DELLIMMONDO", "DELL'IMMONDO")
+    assert repair._restore_warlock_fiend_source_apostrophe(source) == expected
+    assert repair._restore_warlock_fiend_source_apostrophe(expected) == expected
+    assert repair._restore_warlock_fiend_source_apostrophe(source + source) == (
+        source + source
+    )
+    wrong_hp = source.replace("12d8 + 24", "1248 + 24")
+    assert repair._restore_warlock_fiend_source_apostrophe(wrong_hp) == wrong_hp
+    wrong_speed = source.replace("Velocità 9 m", "Velocità 12 m")
+    assert repair._restore_warlock_fiend_source_apostrophe(wrong_speed) == wrong_speed
+    other_title = source.replace("WARLOCK DELLIMMONDO", "WARLOCK DEL GRANDE ANTICO")
+    assert repair._restore_warlock_fiend_source_apostrophe(other_title) == other_title
+
+
 def test_straziatore_join_requires_unique_source_title_descriptor_and_core():
     name = "Progenie Stellare Straziatore"
     source = (
