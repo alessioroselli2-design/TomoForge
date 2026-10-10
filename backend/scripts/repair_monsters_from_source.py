@@ -6627,11 +6627,10 @@ def _ocr_source_window(
         and target_page == 88
         and target_page_only
     ):
-        # Registered page 88 has two candidate blocks in prior sparse OCR;
-        # independently probe structured single-column PSM 4/6 instead.
-        # Exact source-title identity and all numeric gates remain mandatory.
+        # Original fire stat block is in the lower-left of physical page 88.
+        # Independent full-field title/core gates remain mandatory.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 11
+        primary_psm, secondary_psm = 4, 6
     if (
         name == "Ogre Scoccadardi"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6700,10 +6699,8 @@ def _ocr_source_window(
         and target_page == 72
         and target_page_only
     ):
-        # The exact source title and CA/HP/speed appear in the lower-left
-        # stat block; independently read the same registered pixels.
         effective_dpi = max(effective_dpi, 400)
-        primary_psm, secondary_psm = 4, 6
+        primary_psm, secondary_psm = 11, 12
     if (
         name == "Githyanki Kith'Rak"
         and source.get("logical_source_id") == "mpmm_2022_it"
@@ -6853,14 +6850,13 @@ def _ocr_source_window(
 
     if (
         not sparse_full_page
-        and name == "Mago Invocatore"
+        and name == "Mirmidone Elementale Di Fuoco"
         and source.get("logical_source_id") == "mpmm_2022_it"
-        and target_page == 72
+        and target_page == 88
         and target_page_only
     ):
-        # Source-verified 400-DPI crop: excludes artwork and right-column
-        # action text. Keeps the actual complete title, CA, HP/dice, speed.
-        segments = (("left", (0.06, 0.615, 0.49, 0.93)),)
+        # Source-bounded fire block; adjacent Earth identity excluded.
+        segments = (("left", (0.06, 0.49, 0.47, 0.92)),)
         column_overlap = 0.0
 
     document = fitz.open(pdf_path)
