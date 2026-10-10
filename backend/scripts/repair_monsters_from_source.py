@@ -6463,9 +6463,7 @@ def _mago_illusionista_compact_quality(
     71st physical page; all semantic, numeric and exact identity gates run
     afterward without changes. No OCR/source numbers are inferred.
     """
-    anchors = _mpmm_segment_anchor_metrics(
-        primary, comparison, "Mago Illusionista"
-    )
+    anchors = _mpmm_segment_anchor_metrics(primary, comparison, "Mago Illusionista")
     required = (
         "exact_title_unique",
         "ca_label_seen",
@@ -7846,10 +7844,8 @@ def _ocr_source_window(
                         and target_page_only
                         and segment_name == "left"
                     ):
-                        agreement["quality_pass"] = (
-                            _mago_illusionista_compact_quality(
-                                agreement, primary, comparison
-                            )
+                        agreement["quality_pass"] = _mago_illusionista_compact_quality(
+                            agreement, primary, comparison
                         )
                         agreement["source_locked_compact_quality"] = bool(
                             agreement["quality_pass"]
@@ -7924,14 +7920,16 @@ def _ocr_source_window(
             quality_diagnostics["segments"][segment_name] = {
                 "quality_pass": agreement.get("quality_pass") is True,
                 "sparse_anchor_found": agreement.get("sparse_anchor_found") is True,
-                "primary_exact_title_unique": agreement.get("primary_exact_title_unique") is True,
-                "comparison_exact_title_unique": agreement.get("comparison_exact_title_unique") is True,
-                "primary_ca_label_seen": agreement.get("primary_ca_label_seen") is True,
-                "comparison_ca_label_seen": agreement.get("comparison_ca_label_seen") is True,
-                "primary_hp_label_seen": agreement.get("primary_hp_label_seen") is True,
-                "comparison_hp_label_seen": agreement.get("comparison_hp_label_seen") is True,
-                "primary_speed_label_seen": agreement.get("primary_speed_label_seen") is True,
-                "comparison_speed_label_seen": agreement.get("comparison_speed_label_seen") is True,
+                **{
+                    f"{reader}_{field}": agreement.get(f"{reader}_{field}") is True
+                    for reader in ("primary", "comparison")
+                    for field in (
+                        "exact_title_unique",
+                        "ca_label_seen",
+                        "hp_label_seen",
+                        "speed_label_seen",
+                    )
+                },
                 "primary_chars_ok": int(primary_quality.get("chars") or 0) >= 500,
                 "comparison_chars_ok": int(comparison_quality.get("chars") or 0) >= 500,
                 "primary_letter_ratio_ok": float(
