@@ -6456,8 +6456,11 @@ def _mpmm_segment_anchor_metrics(
 
 
 def _mago_illusionista_compact_quality(
-    agreement: dict[str, Any], primary: str, comparison: str,
-    *, target_name: str = "Mago Illusionista",
+    agreement: dict[str, Any],
+    primary: str,
+    comparison: str,
+    *,
+    target_name: str = "Mago Illusionista",
 ) -> bool:
     """Require complete independent anchors for a source-locked compact crop.
 
