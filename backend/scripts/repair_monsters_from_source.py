@@ -6459,9 +6459,7 @@ def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
         index
         for index, line in enumerate(lines)
         if (
-            (compact := re.sub(r"[^a-z0-9]", "", line.casefold())).startswith(
-                "warlock"
-            )
+            (compact := re.sub(r"[^a-z0-9]", "", line.casefold())).startswith("warlock")
             and edit_distance(compact, expected) <= 2
         )
     ]
@@ -6485,9 +6483,7 @@ def _restore_warlock_fiend_source_apostrophe(text: str) -> str:
     return "".join(lines)
 
 
-def _restore_warlock_fiend_pdf_title(
-    observed_ocr: str, embedded_source: str
-) -> str:
+def _restore_warlock_fiend_pdf_title(observed_ocr: str, embedded_source: str) -> str:
     """Recover the PDF-verified Warlock heading without changing OCR core.
 
     The sole registered source panel is checked before this is called. Both
