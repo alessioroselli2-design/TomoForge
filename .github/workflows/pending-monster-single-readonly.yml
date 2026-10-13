@@ -151,6 +151,7 @@ jobs:
               deterministic_core_agreement = False
               deterministic_speed_agreement = False
               speed_whitespace_only = False
+              hp_whitespace_only = False
               speed_cosmetic_punctuation_only = False
               try:
                   # The private OCR/manual output stays only inside this worker.
@@ -176,6 +177,13 @@ jobs:
                               set(raw_changed)
                               & {"classe_armatura", "punti_ferita", "velocita"}
                           )
+                          old_hp = old_attributes.get("punti_ferita")
+                          new_hp = new_attributes.get("punti_ferita")
+                          if isinstance(old_hp, str) and isinstance(new_hp, str):
+                              hp_whitespace_only = bool(
+                                  old_hp != new_hp
+                                  and "".join(old_hp.split()) == "".join(new_hp.split())
+                              )
                           old_speed = old_attributes.get("velocita")
                           new_speed = new_attributes.get("velocita")
                           if isinstance(old_speed, str) and isinstance(new_speed, str):
@@ -217,6 +225,18 @@ jobs:
                               # as an acceptance gate.
                               status = "repairable_status_only_whitespace"
                               reason = "speed_whitespace_only_source_agreement"
+                          elif (
+                              set(old_attributes) == set(new_attributes)
+                              and raw_changed == ["punti_ferita"]
+                              and hp_whitespace_only
+                              and isinstance(old_hp, str)
+                              and isinstance(new_hp, str)
+                          ):
+                              # Only whitespace is removable, never digits, dice,
+                              # operators or punctuation; original PF are preserved.
+                              # Deterministic diagnostic normalization is not an acceptance gate.
+                              status = "repairable_status_only_whitespace"
+                              reason = "hp_whitespace_only_source_agreement"
                           else:
                               status = "review_required"
                               reason = "attribute_change_required"
@@ -284,6 +304,7 @@ jobs:
                   "deterministic_core_agreement": deterministic_core_agreement,
                   "deterministic_speed_agreement": deterministic_speed_agreement,
                   "speed_whitespace_only": speed_whitespace_only,
+                  "hp_whitespace_only": hp_whitespace_only,
                   "speed_cosmetic_punctuation_only": speed_cosmetic_punctuation_only,
                   "record_snapshot_unchanged": unchanged,
               }
@@ -350,6 +371,7 @@ jobs:
                       for key in (
                           "attributes_unchanged", "core_fields_unchanged",
                           "deterministic_core_agreement", "speed_whitespace_only",
+                          "hp_whitespace_only",
                           "record_snapshot_unchanged",
                       ):
                           if type(report.get(key)) is bool:
