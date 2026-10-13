@@ -1,14 +1,10 @@
-name: Full Player's Handbook 31 dry-run
+# Historical read-only PHB audit. As of 2026-10-13 all 31 source records
+# are verified. Keep manual dispatch for diagnostic use, but do not run this
+# already-completed pending repair on every develop push.
+name: Historical Player's Handbook 31 dry-run (manual only)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - develop
-    paths:
-      - backend/scripts/repair_monsters_from_source.py
-      - .github/workflows/source-guided-global-dry-run.yml
-      - .github/source-guided-global-dry-run-request.txt
 
 permissions:
   contents: read
