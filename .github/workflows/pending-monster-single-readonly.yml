@@ -162,7 +162,7 @@ jobs:
                                   old_speed != new_speed
                                   and "".join(old_speed.split()) == "".join(new_speed.split())
                               )
-                              cosmetic = r"[\\s.,;:()]+"
+                              cosmetic = r"[\s.,;:()]+"
                               old_compact = re.sub(cosmetic, "", old_speed).casefold()
                               new_compact = re.sub(cosmetic, "", new_speed).casefold()
                               speed_cosmetic_punctuation_only = bool(
