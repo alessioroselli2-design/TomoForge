@@ -3369,10 +3369,7 @@ def _restore_arciere_title_from_local_actions(page_text: str, target_name: str) 
         + json.dumps(
             {
                 "name": target_name,
-                "identity_evidence": [
-                    page_text.splitlines()[multiattack[0]],
-                    page_text.splitlines()[eye[0]],
-                ],
+                "identity_evidence_count": 2,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -3438,10 +3435,7 @@ def _restore_bael_title_from_local_actions(page_text: str, target_name: str) -> 
         + json.dumps(
             {
                 "name": target_name,
-                "identity_evidence": [
-                    page_text.splitlines()[resistance[0]],
-                    page_text.splitlines()[actions[0]],
-                ],
+                "identity_evidence_count": 2,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -3741,10 +3735,7 @@ def _restore_divoratore_title_from_local_traits(
         + json.dumps(
             {
                 "name": target_name,
-                "identity_evidence": [
-                    page_text.splitlines()[unusual[0]],
-                    page_text.splitlines()[multiattack[0]],
-                ],
+                "identity_evidence_count": 2,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -3809,10 +3800,7 @@ def _restore_derro_title_from_local_traits(page_text: str, target_name: str) -> 
         + json.dumps(
             {
                 "name": target_name,
-                "identity_evidence": [
-                    page_text.splitlines()[resistance[0]],
-                    page_text.splitlines()[sunlight[0]],
-                ],
+                "identity_evidence_count": 2,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -3882,10 +3870,7 @@ def _restore_delfino_title_from_local_traits(page_text: str, target_name: str) -
         + json.dumps(
             {
                 "name": target_name,
-                "identity_evidence": [
-                    page_text.splitlines()[apnea[0]],
-                    page_text.splitlines()[charge[0]],
-                ],
+                "identity_evidence_count": 2,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -4003,8 +3988,8 @@ def _restore_bulezau_title_from_local_trait(page_text: str, target_name: str) ->
         + json.dumps(
             {
                 "name": target_name,
-                "title_evidence": page_text.splitlines()[titles[0]],
-                "identity_evidence": page_text.splitlines()[reference[0]],
+                "title_evidence_count": 1,
+                "identity_evidence_count": 1,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -4071,10 +4056,7 @@ def _restore_bodak_title_from_local_traits(page_text: str, target_name: str) -> 
         + json.dumps(
             {
                 "name": target_name,
-                "identity_evidence": [
-                    page_text.splitlines()[sunlight[0]],
-                    page_text.splitlines()[unusual[0]],
-                ],
+                "identity_evidence_count": 2,
                 "numeric_values_modified": False,
             },
             ensure_ascii=False,
@@ -11674,27 +11656,6 @@ async def _repair_one(
                 sort_keys=True,
             )
         )
-        if (
-            str(record.get("name") or "") in {"Addolorato Affamato", "Adrosauro"}
-            and overlap == 0.02
-        ):
-            print(
-                "MPMM_ADDOLORATO_AFFAMATO_DYNAMIC_TEXT "
-                + json.dumps(
-                    {
-                        "primary": [
-                            {"page": page, "text": text[:5000]}
-                            for page, text in primary_pages
-                        ],
-                        "comparison": [
-                            {"page": page, "text": text[:5000]}
-                            for page, text in comparison_pages
-                        ],
-                    },
-                    ensure_ascii=False,
-                    sort_keys=True,
-                )
-            )
         try:
             agreement_started_at = time.monotonic()
             candidate = _agreed_target_candidate(
@@ -11903,44 +11864,6 @@ async def _repair_one(
                 .get("sparse-full", {})
             ).get("sparse_anchor_found")
         )
-        if str(record.get("name") or "") in {"Addolorato Smarrito", "Adrosauro"}:
-            print(
-                "MPMM_ADDOLORATO_SMARRITO_SPARSE_TEXT "
-                + json.dumps(
-                    {
-                        "primary": [
-                            {"page": page, "text": text[:5000]}
-                            for page, text in primary_pages
-                        ],
-                        "comparison": [
-                            {"page": page, "text": text[:5000]}
-                            for page, text in comparison_pages
-                        ],
-                        "anchor_verified": sparse_anchor_verified,
-                    },
-                    ensure_ascii=False,
-                    sort_keys=True,
-                )
-            )
-        if str(record.get("name") or "") == "Addolorato Affamato":
-            print(
-                "MPMM_ADDOLORATO_AFFAMATO_SPARSE_TEXT "
-                + json.dumps(
-                    {
-                        "primary": [
-                            {"page": page, "text": text[:5000]}
-                            for page, text in primary_pages
-                        ],
-                        "comparison": [
-                            {"page": page, "text": text[:5000]}
-                            for page, text in comparison_pages
-                        ],
-                        "anchor_verified": sparse_anchor_verified,
-                    },
-                    ensure_ascii=False,
-                    sort_keys=True,
-                )
-            )
         candidate = _agreed_target_candidate(
             primary_pages,
             comparison_pages,
