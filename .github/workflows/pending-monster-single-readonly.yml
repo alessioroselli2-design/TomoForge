@@ -126,7 +126,16 @@ jobs:
                   target_set="bigby_single_pending_readonly",
                   pdf_root="",
                   allow_r2_download=True,
-                  dpi=220,
+                  dpi=(
+                      360
+                      if (
+                          TARGET_ID == "ref_be4830300bfe50f09331951afaf26eb6"
+                          and SOURCE_ID == "bgg_2023_it"
+                          and TARGET_PAGE == 134
+                          and TARGET_NAME == "Schermagliatore Fensir"
+                      )
+                      else 220
+                  ),
                   languages="ita",
                   psm=6,
                   comparison_psm=4,
@@ -135,6 +144,7 @@ jobs:
               status = "blocked"
               reason = "unknown"
               semantic_gate_flags = []
+              failed_quality_checks = []
               attributes_unchanged = False
               changed_attribute_fields = []
               core_fields_unchanged = False
@@ -212,6 +222,29 @@ jobs:
                               reason = "attribute_change_required"
                       except repair.RepairBlocked as exc:
                           candidate = str(exc.reason or "")
+                          if candidate == "target_page_quality_fail":
+                              diag = exc.diagnostics or {}
+                              sections = (diag.get("target_page_quality") or {}).get("segments") or {}
+                              safe_keys = {
+                                  "quality_pass", "sparse_anchor_found",
+                                  "primary_exact_title_unique", "comparison_exact_title_unique",
+                                  "primary_ca_label_seen", "comparison_ca_label_seen",
+                                  "primary_hp_label_seen", "comparison_hp_label_seen",
+                                  "primary_speed_label_seen", "comparison_speed_label_seen",
+                                  "primary_chars_ok", "comparison_chars_ok",
+                                  "primary_letter_ratio_ok", "comparison_letter_ratio_ok",
+                                  "primary_printable_ratio_ok", "comparison_printable_ratio_ok",
+                                  "primary_word_count_ok", "comparison_word_count_ok",
+                                  "token_dice_ok", "unique_jaccard_ok", "length_ratio_ok",
+                              }
+                              failed_quality_checks = sorted({
+                                  f"{segment}:{key}"
+                                  for segment, checks in sections.items()
+                                  if segment in {"left", "right", "full", "sparse-full"}
+                                  and isinstance(checks, dict)
+                                  for key, value in checks.items()
+                                  if key in safe_keys and value is False
+                              })[:24]
                           if candidate == "repaired_candidate_failed_gates":
                               allowed = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
                               semantic_gate_flags = sorted({
@@ -244,6 +277,7 @@ jobs:
                   "status": status,
                   "reason": reason,
                   "semantic_gate_flags": semantic_gate_flags,
+                  "failed_quality_checks": failed_quality_checks,
                   "attributes_unchanged": attributes_unchanged,
                   "changed_attribute_fields": changed_attribute_fields,
                   "core_fields_unchanged": core_fields_unchanged,
@@ -326,6 +360,29 @@ jobs:
                           fields["semantic_gate_flags"] = [
                               gate for gate in safe_gates if gate in valid_gates
                           ][:3]
+                      raw_quality = report.get("failed_quality_checks")
+                      if isinstance(raw_quality, list):
+                          allowed_quality = {
+                              "quality_pass", "sparse_anchor_found",
+                              "primary_exact_title_unique", "comparison_exact_title_unique",
+                              "primary_ca_label_seen", "comparison_ca_label_seen",
+                              "primary_hp_label_seen", "comparison_hp_label_seen",
+                              "primary_speed_label_seen", "comparison_speed_label_seen",
+                              "primary_chars_ok", "comparison_chars_ok",
+                              "primary_letter_ratio_ok", "comparison_letter_ratio_ok",
+                              "primary_printable_ratio_ok", "comparison_printable_ratio_ok",
+                              "primary_word_count_ok", "comparison_word_count_ok",
+                              "token_dice_ok", "unique_jaccard_ok", "length_ratio_ok",
+                          }
+                          allowlisted = {
+                              f"{seg}:{key}"
+                              for seg in ("left", "right", "full", "sparse-full")
+                              for key in allowed_quality
+                          }
+                          fields["failed_quality_checks"] = [
+                              item for item in raw_quality
+                              if isinstance(item, str) and item in allowlisted
+                          ][:24]
                       changed = report.get("changed_attribute_fields")
                       if isinstance(changed, list):
                           valid = {"classe_armatura", "punti_ferita", "velocita", "other_field"}
