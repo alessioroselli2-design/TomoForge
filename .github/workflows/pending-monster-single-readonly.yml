@@ -166,16 +166,9 @@ jobs:
                           if attributes_unchanged:
                               status = "repairable_status_only"
                               reason = "all_gates_pass"
-                          elif (
-                              old_attributes.keys() == new_attributes.keys()
-                              and set(raw_changed).issubset(
-                                  {"classe_armatura", "punti_ferita", "velocita"}
-                              )
-                              and deterministic_core_agreement
-                          ):
-                              status = "repairable_equivalent_core"
-                              reason = "core_deterministic_equivalence"
                           else:
+                              # Deterministic matching is diagnostic-only;
+                              # it must never approve a changed core value.
                               status = "review_required"
                               reason = "attribute_change_required"
                       except repair.RepairBlocked as exc:
