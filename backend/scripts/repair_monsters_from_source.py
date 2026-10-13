@@ -831,6 +831,7 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_815c9a5b017658a3859b977a0cfd6f35": 150.0,  # Bigby Troll Ibrido p186 isolated OCR retry
     "ref_be4830300bfe50f09331951afaf26eb6": 150.0,  # Fensir: one sparse HP source retry
     "ref_ac1a0de0ddba58219b21b506119cd1f6": 150.0,  # Gatto Ghignante: bounded isolated Bigby retry
     "ref_7a26728f8410582ba70ddc7b44f5d4df": 150.0,  # Ettin Ceremorfo: single-record Bigby retry
