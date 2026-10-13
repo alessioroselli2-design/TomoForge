@@ -1,0 +1,177 @@
+# Read-only single-target audit. No execute mode, no canonical writes.
+name: Bigby Altisauro source OCR pilot
+
+on:
+  push:
+    branches:
+      - audit/bigby-altisauro-20261013
+    paths:
+      - .github/workflows/bigby-altisauro-readonly.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-bigby-altisauro-readonly
+  cancel-in-progress: false
+
+jobs:
+  altisauro-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Italian OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Single pending source-guided audit - strictly read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/bigby-altisauro-FINAL_REPORT.json
+          import argparse
+          import asyncio
+          from contextlib import redirect_stderr, redirect_stdout
+          import io
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from scripts import repair_monsters_from_source as repair
+          from scripts.process_mpmm_pending import (
+              _record_snapshot_sha256,
+              _verified_proposal,
+          )
+
+          TARGET_ID = "ref_c106f9a6c3115dbf8578f832b04e3a3a"
+          SOURCE_ID = "bgg_2023_it"
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("Database not configured")
+              collection = db.private_reference_records
+              original = await collection.find_one({"id": TARGET_ID})
+              if not isinstance(original, dict):
+                  raise RuntimeError("Target missing")
+              refs = original.get("source_refs") or []
+              if not (
+                  original.get("reference_type") == "monster"
+                  and original.get("name") == "Altisauro"
+                  and original.get("review_status") == "pending"
+                  and len(refs) == 1
+                  and refs[0].get("logical_source_id") == SOURCE_ID
+                  and refs[0].get("page") == 128
+                  and refs[0].get("source_status") == "active"
+              ):
+                  raise RuntimeError("Sealed source identity/status drift")
+              before_sha = _record_snapshot_sha256(original)
+              source_rows = await repair._fetch_all(
+                  db.private_reference_sources, {"source_status": "active"}
+              )
+              args = argparse.Namespace(
+                  execute=False,
+                  target_set="bigby_single_pending_readonly",
+                  pdf_root="",
+                  allow_r2_download=True,
+                  dpi=220,
+                  languages="ita",
+                  psm=6,
+                  comparison_psm=4,
+              )
+              cache = repair.SourcePdfCache("", True)
+              status = "blocked"
+              reason = "unknown"
+              attributes_unchanged = False
+              try:
+                  # The private OCR/manual output stays only inside this worker.
+                  with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                      try:
+                          result = await repair._repair_one(
+                              collection, original, source_rows, cache, args
+                          )
+                          proposal = _verified_proposal(result)
+                          attributes_unchanged = (
+                              proposal.get("attributes") == original.get("attributes")
+                          )
+                          if attributes_unchanged:
+                              status = "repairable_status_only"
+                              reason = "all_gates_pass"
+                          else:
+                              status = "review_required"
+                              reason = "attribute_change_required"
+                      except repair.RepairBlocked as exc:
+                          candidate = str(exc.reason or "")
+                          reason = (
+                              candidate
+                              if re.fullmatch(r"[a-z][a-z0-9_]{0,79}", candidate)
+                              else "source_gate_blocked"
+                          )
+                      except Exception:
+                          reason = "audit_exception"
+              finally:
+                  cache.close()
+              current = await collection.find_one({"id": TARGET_ID})
+              unchanged = (
+                  isinstance(current, dict)
+                  and _record_snapshot_sha256(current) == before_sha
+              )
+              if not unchanged:
+                  raise RuntimeError("Read-only record snapshot drift detected")
+              return {
+                  "target": "Altisauro",
+                  "record_id": TARGET_ID,
+                  "source_id": SOURCE_ID,
+                  "source_page": 128,
+                  "dry_run": True,
+                  "updates_performed": 0,
+                  "status": status,
+                  "reason": reason,
+                  "attributes_unchanged": attributes_unchanged,
+                  "record_snapshot_unchanged": unchanged,
+              }
+
+          try:
+              result = asyncio.run(audit())
+          except Exception:
+              result = {
+                  "target": "Altisauro",
+                  "dry_run": True,
+                  "updates_performed": 0,
+                  "status": "blocked",
+                  "reason": "audit_preflight_or_snapshot_failure",
+              }
+          print("FINAL_REPORT")
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish safe single-record report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bigby-altisauro-FINAL_REPORT
+          path: /tmp/bigby-altisauro-FINAL_REPORT.json
+          if-no-files-found: warn
+          retention-days: 7
