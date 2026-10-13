@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - 'audit/pending-monster-*'
+      - 'audit/bigby-batch*'
     paths:
       - .github/workflows/pending-monster-single-readonly.yml
       - .github/pending-monster-audit-request.json
