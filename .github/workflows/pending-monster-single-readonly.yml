@@ -181,9 +181,22 @@ jobs:
                           if attributes_unchanged:
                               status = "repairable_status_only"
                               reason = "all_gates_pass"
+                          elif (
+                              set(old_attributes) == set(new_attributes)
+                              and raw_changed == ["velocita"]
+                              and speed_whitespace_only
+                              and isinstance(old_speed, str)
+                              and isinstance(new_speed, str)
+                          ):
+                              # Strict character-for-character equality after
+                              # removing whitespace only: no digits, units,
+                              # punctuation or other meaningful source text
+                              # may differ. Preserve original attributes.
+                              # The diagnostic-only normalization is NOT used
+                              # as an acceptance gate.
+                              status = "repairable_status_only_whitespace"
+                              reason = "speed_whitespace_only_source_agreement"
                           else:
-                              # Deterministic matching is diagnostic-only;
-                              # it must never approve a changed core value.
                               status = "review_required"
                               reason = "attribute_change_required"
                       except repair.RepairBlocked as exc:
