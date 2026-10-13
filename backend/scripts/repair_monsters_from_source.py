@@ -719,6 +719,11 @@ PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS = frozenset(
     }
 )
 
+# Source-guided Bigby HP recovery: never synthesize numbers from the legacy row.
+BIGBY_HP_SPARSE_RETRY_IDS = frozenset(
+    {"ref_be4830300bfe50f09331951afaf26eb6"}  # Schermagliatore Fensir
+)
+
 EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_COUNT = 12
 EXPECTED_PLAYERS_HANDBOOK_BLOCKED12_IDS_MD5 = "30b288a628863e6a4bb5ba64020deca5"
 PLAYERS_HANDBOOK_BLOCKED12_IDS = frozenset(
@@ -826,6 +831,7 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_be4830300bfe50f09331951afaf26eb6": 150.0,  # Fensir: one sparse HP source retry
     "ref_ac1a0de0ddba58219b21b506119cd1f6": 150.0,  # Gatto Ghignante: bounded isolated Bigby retry
     "ref_7a26728f8410582ba70ddc7b44f5d4df": 150.0,  # Ettin Ceremorfo: single-record Bigby retry
     "ref_abaf4a8fe2395260991a96729a200351": 150.0,  # Cacciatore Di Baphomet: isolated Bigby source retry
@@ -1571,6 +1577,19 @@ def _hp_micro_ocr_psm(name: str, parent_psm: int) -> int:
     if name in {"Brontosauro", "Delfino", "Divoratore"} and parent_psm == 4:
         return 6
     return 7
+
+
+def _bigby_hp_sparse_retry_eligible(
+    record: dict[str, Any], source: dict[str, Any], physical_page: int
+) -> bool:
+    """Allow a sparse alternative OCR only for an exact pending Bigby source target."""
+    return bool(
+        record.get("id") in BIGBY_HP_SPARSE_RETRY_IDS
+        and record.get("name") == "Schermagliatore Fensir"
+        and record.get("review_status") == "pending"
+        and source.get("logical_source_id") == "bgg_2023_it"
+        and physical_page == 134
+    )
 
 
 def _ocr_budget_seconds(record_id: str, target_set: str) -> float:
@@ -11689,6 +11708,7 @@ async def _repair_one(
             )
             if (
                 record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
+                or _bigby_hp_sparse_retry_eligible(record, source, physical_page)
                 or (
                     record_id == "ref_4b2e9b5984dd506d89caf10b4f15c3fd"
                     and record.get("name") == "Korred"
@@ -11698,12 +11718,15 @@ async def _repair_one(
             ) and HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
                 candidate.get("attributes") or {}
             ):
+                retry_label = (
+                    "PHB_HP_SPARSE_RETRY "
+                    if record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
+                    else "BIGBY_HP_SPARSE_RETRY "
+                    if _bigby_hp_sparse_retry_eligible(record, source, physical_page)
+                    else "MPMM_HP_SPARSE_RETRY "
+                )
                 print(
-                    (
-                        "PHB_HP_SPARSE_RETRY "
-                        if record_id in PLAYERS_HANDBOOK_HP_SPARSE_RETRY_IDS
-                        else "MPMM_HP_SPARSE_RETRY "
-                    )
+                    retry_label
                     + json.dumps(
                         {"name": record.get("name"), "reason": HP_FORMAT_ERROR_FLAG},
                         ensure_ascii=False,
