@@ -122,6 +122,8 @@ jobs:
               status = "blocked"
               reason = "unknown"
               attributes_unchanged = False
+              changed_attribute_fields = []
+              core_fields_unchanged = False
               try:
                   # The private OCR/manual output stays only inside this worker.
                   with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
@@ -130,8 +132,21 @@ jobs:
                               collection, original, source_rows, cache, args
                           )
                           proposal = _verified_proposal(result)
-                          attributes_unchanged = (
-                              proposal.get("attributes") == original.get("attributes")
+                          old_attributes = dict(original.get("attributes") or {})
+                          new_attributes = dict(proposal.get("attributes") or {})
+                          attributes_unchanged = new_attributes == old_attributes
+                          raw_changed = sorted(
+                              key for key in old_attributes.keys() | new_attributes.keys()
+                              if old_attributes.get(key) != new_attributes.get(key)
+                          )
+                          changed_attribute_fields = [
+                              key if re.fullmatch(r"[a-z][a-z0-9_]{0,49}", key)
+                              else "other_field"
+                              for key in raw_changed[:20]
+                          ]
+                          core_fields_unchanged = not bool(
+                              set(raw_changed)
+                              & {"classe_armatura", "punti_ferita", "velocita"}
                           )
                           if attributes_unchanged:
                               status = "repairable_status_only"
@@ -167,6 +182,8 @@ jobs:
                   "status": status,
                   "reason": reason,
                   "attributes_unchanged": attributes_unchanged,
+                  "changed_attribute_fields": changed_attribute_fields,
+                  "core_fields_unchanged": core_fields_unchanged,
                   "record_snapshot_unchanged": unchanged,
               }
 
