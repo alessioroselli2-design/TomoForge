@@ -103,10 +103,17 @@ jobs:
                   original.get("reference_type") == "monster"
                   and original.get("name") == TARGET_NAME
                   and original.get("review_status") == "pending"
-                  and len(refs) == 1
-                  and refs[0].get("logical_source_id") == SOURCE_ID
-                  and refs[0].get("page") == TARGET_PAGE
-                  and refs[0].get("source_status") == "active"
+                  and 1 <= len(refs) <= 8
+                  and all(
+                      isinstance(ref, dict)
+                      and ref.get("logical_source_id") == SOURCE_ID
+                      and ref.get("source_status") == "active"
+                      and ref.get("source_role") == "authority"
+                      for ref in refs
+                  )
+                  and sum(
+                      ref.get("page") == TARGET_PAGE for ref in refs
+                  ) == 1
               ):
                   raise RuntimeError("Sealed source identity/status drift")
               before_sha = _record_snapshot_sha256(original)
