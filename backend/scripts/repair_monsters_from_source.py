@@ -826,6 +826,7 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_ac1a0de0ddba58219b21b506119cd1f6": 150.0,  # Gatto Ghignante: bounded isolated Bigby retry
     "ref_7a26728f8410582ba70ddc7b44f5d4df": 150.0,  # Ettin Ceremorfo: single-record Bigby retry
     "ref_abaf4a8fe2395260991a96729a200351": 150.0,  # Cacciatore Di Baphomet: isolated Bigby source retry
     "ref_1d4ca5e97a5850ba870ee0d9219d2bc9": 150.0,  # Addolorato Smarrito
