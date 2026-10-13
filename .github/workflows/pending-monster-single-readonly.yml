@@ -129,6 +129,8 @@ jobs:
               core_fields_unchanged = False
               deterministic_core_agreement = False
               deterministic_speed_agreement = False
+              speed_whitespace_only = False
+              speed_cosmetic_punctuation_only = False
               try:
                   # The private OCR/manual output stays only inside this worker.
                   with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
@@ -153,6 +155,19 @@ jobs:
                               set(raw_changed)
                               & {"classe_armatura", "punti_ferita", "velocita"}
                           )
+                          old_speed = old_attributes.get("velocita")
+                          new_speed = new_attributes.get("velocita")
+                          if isinstance(old_speed, str) and isinstance(new_speed, str):
+                              speed_whitespace_only = bool(
+                                  old_speed != new_speed
+                                  and "".join(old_speed.split()) == "".join(new_speed.split())
+                              )
+                              cosmetic = r"[\\s.,;:()]+"
+                              old_compact = re.sub(cosmetic, "", old_speed).casefold()
+                              new_compact = re.sub(cosmetic, "", new_speed).casefold()
+                              speed_cosmetic_punctuation_only = bool(
+                                  old_compact and old_compact == new_compact
+                              )
                           matching = deterministic_core_field_matches(
                               old_attributes, new_attributes
                           )
@@ -203,6 +218,8 @@ jobs:
                   "core_fields_unchanged": core_fields_unchanged,
                   "deterministic_core_agreement": deterministic_core_agreement,
                   "deterministic_speed_agreement": deterministic_speed_agreement,
+                  "speed_whitespace_only": speed_whitespace_only,
+                  "speed_cosmetic_punctuation_only": speed_cosmetic_punctuation_only,
                   "record_snapshot_unchanged": unchanged,
               }
 
