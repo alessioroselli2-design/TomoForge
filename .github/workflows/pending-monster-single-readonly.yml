@@ -134,6 +134,7 @@ jobs:
               cache = repair.SourcePdfCache("", True)
               status = "blocked"
               reason = "unknown"
+              semantic_gate_flags = []
               attributes_unchanged = False
               changed_attribute_fields = []
               core_fields_unchanged = False
@@ -211,6 +212,12 @@ jobs:
                               reason = "attribute_change_required"
                       except repair.RepairBlocked as exc:
                           candidate = str(exc.reason or "")
+                          if candidate == "repaired_candidate_failed_gates":
+                              allowed = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
+                              semantic_gate_flags = sorted({
+                                  flag.strip() for flag in str(exc.detail or "").split(",")
+                                  if flag.strip() in allowed
+                              })
                           reason = (
                               candidate
                               if re.fullmatch(r"[a-z][a-z0-9_]{0,79}", candidate)
@@ -236,6 +243,7 @@ jobs:
                   "updates_performed": 0,
                   "status": status,
                   "reason": reason,
+                  "semantic_gate_flags": semantic_gate_flags,
                   "attributes_unchanged": attributes_unchanged,
                   "changed_attribute_fields": changed_attribute_fields,
                   "core_fields_unchanged": core_fields_unchanged,
@@ -312,6 +320,12 @@ jobs:
                       ):
                           if type(report.get(key)) is bool:
                               fields[key] = report[key]
+                      safe_gates = report.get("semantic_gate_flags")
+                      if isinstance(safe_gates, list):
+                          valid_gates = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
+                          fields["semantic_gate_flags"] = [
+                              gate for gate in safe_gates if gate in valid_gates
+                          ][:3]
                       changed = report.get("changed_attribute_fields")
                       if isinstance(changed, list):
                           valid = {"classe_armatura", "punti_ferita", "velocita", "other_field"}
