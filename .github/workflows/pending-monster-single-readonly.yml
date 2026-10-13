@@ -67,6 +67,9 @@ jobs:
               _record_snapshot_sha256,
               _verified_proposal,
           )
+          from services.monster_semantic_diagnostics import (
+              deterministic_core_field_matches,
+          )
 
           request = json.loads(
               Path(".github/pending-monster-audit-request.json").read_text(
@@ -124,6 +127,8 @@ jobs:
               attributes_unchanged = False
               changed_attribute_fields = []
               core_fields_unchanged = False
+              deterministic_core_agreement = False
+              deterministic_speed_agreement = False
               try:
                   # The private OCR/manual output stays only inside this worker.
                   with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
@@ -148,9 +153,28 @@ jobs:
                               set(raw_changed)
                               & {"classe_armatura", "punti_ferita", "velocita"}
                           )
+                          matching = deterministic_core_field_matches(
+                              old_attributes, new_attributes
+                          )
+                          deterministic_core_agreement = all(
+                              matching.get(f"{field}_deterministic_match", False)
+                              for field in ("classe_armatura", "punti_ferita", "velocita")
+                          )
+                          deterministic_speed_agreement = bool(
+                              matching.get("velocita_deterministic_match", False)
+                          )
                           if attributes_unchanged:
                               status = "repairable_status_only"
                               reason = "all_gates_pass"
+                          elif (
+                              old_attributes.keys() == new_attributes.keys()
+                              and set(raw_changed).issubset(
+                                  {"classe_armatura", "punti_ferita", "velocita"}
+                              )
+                              and deterministic_core_agreement
+                          ):
+                              status = "repairable_equivalent_core"
+                              reason = "core_deterministic_equivalence"
                           else:
                               status = "review_required"
                               reason = "attribute_change_required"
@@ -184,6 +208,8 @@ jobs:
                   "attributes_unchanged": attributes_unchanged,
                   "changed_attribute_fields": changed_attribute_fields,
                   "core_fields_unchanged": core_fields_unchanged,
+                  "deterministic_core_agreement": deterministic_core_agreement,
+                  "deterministic_speed_agreement": deterministic_speed_agreement,
                   "record_snapshot_unchanged": unchanged,
               }
 
