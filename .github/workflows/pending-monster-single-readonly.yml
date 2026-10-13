@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: tomoforge-pending-monster-single-readonly-${{ github.ref }}
@@ -258,3 +259,68 @@ jobs:
           path: /tmp/pending-monster-single-FINAL_REPORT.json
           if-no-files-found: warn
           retention-days: 7
+
+      # Only the restricted FINAL_REPORT fields are posted, never source OCR text.
+      - name: Post privacy-safe verdict to audit PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/pending-monster-audit-comment.md
+          import json
+          import re
+          from pathlib import Path
+          request = json.loads(
+              Path(".github/pending-monster-audit-request.json").read_text(encoding="utf-8")
+          )
+          path = Path("/tmp/pending-monster-single-FINAL_REPORT.json")
+          status = "blocked"
+          reason = "report_missing"
+          fields = {}
+          if path.exists():
+              lines = path.read_text(encoding="utf-8").splitlines()
+              try:
+                  i = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+                  report = json.loads(lines[i + 1])
+                  allowed_statuses = {
+                      "blocked", "review_required", "repairable_status_only",
+                      "repairable_status_only_whitespace",
+                  }
+                  if (
+                      report.get("dry_run") is True
+                      and report.get("updates_performed") == 0
+                      and report.get("status") in allowed_statuses
+                  ):
+                      status = report["status"]
+                      candidate = str(report.get("reason", "unknown"))
+                      reason = candidate if re.fullmatch(r"[a-z][a-z0-9_]{0,79}", candidate) else "invalid_reason"
+                      for key in (
+                          "attributes_unchanged", "core_fields_unchanged",
+                          "deterministic_core_agreement", "speed_whitespace_only",
+                          "record_snapshot_unchanged",
+                      ):
+                          if type(report.get(key)) is bool:
+                              fields[key] = report[key]
+                      changed = report.get("changed_attribute_fields")
+                      if isinstance(changed, list):
+                          valid = {"classe_armatura", "punti_ferita", "velocita", "other_field"}
+                          fields["changed_attribute_fields"] = [
+                              field for field in changed if field in valid
+                          ][:20]
+                  else:
+                      reason = "invalid_or_unsafe_report"
+              except (ValueError, IndexError, KeyError, TypeError):
+                  reason = "invalid_report"
+          print("### Single-record privacy-safe OCR verdict")
+          print(f"Target: `{request['name']}`")
+          print(f"Status: `{status}` | Reason: `{reason}`")
+          print("Dry run only: **no database writes by this workflow**.")
+          for key, value in fields.items():
+              print(f"- `{key}`: `{value}`")
+          PY
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body-file /tmp/pending-monster-audit-comment.md
+          fi
