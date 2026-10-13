@@ -9,6 +9,7 @@ on:
     paths:
       - .github/workflows/pending-monster-single-readonly.yml
       - .github/pending-monster-audit-request.json
+      - backend/scripts/repair_monsters_from_source.py
   workflow_dispatch:
 
 permissions:
