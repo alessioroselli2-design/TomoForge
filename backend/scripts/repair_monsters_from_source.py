@@ -817,6 +817,7 @@ PLAYERS_HANDBOOK_AMBIGUOUS2_IDS = frozenset(
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "mpmm_2022_it",  # Mordenkainen Presenta: Mostri del Multiverso
     "bgg_2023_it",  # Bigby Presenta: La Gloria dei Giganti
+    "erlw_2019_it",  # EXPERIMENT: two-column geometry pilot only; keep fail-closed
     "phb_2014_it",  # Manuale del Giocatore, appendice mostri a due colonne
 }
 TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
