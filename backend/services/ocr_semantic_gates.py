@@ -31,6 +31,16 @@ _DYNAMIC_ARTIFICER_HP_RE = re.compile(
     r"(?:\[?d8\]?)",
     re.IGNORECASE,
 )
+# The officially published Homunculus Servant formula scales with artificer level
+# and uses d4 Hit Dice; require the entire literal source syntax, never "l" for "1".
+_DYNAMIC_HOMUNCULUS_HP_RE = re.compile(
+    r"^\s*1\s*\+\s*il\s+modificatore\s+di\s+intelligenza\s+dell['’]artefice\s*"
+    r"\+\s*il\s+livello\s+da\s+artefice\s+del\s+personaggio\s*"
+    r"\(l['’]omuncolo\s+ha\s+un\s+numero\s+di\s+dadi\s+vita\s+\[d4\]\s+"
+    r"pari\s+al\s+livello\s+da\s+artefice\s+del\s+personaggio\)\s*$",
+    re.IGNORECASE,
+)
+
 _DYNAMIC_DRUID_HP_RE = re.compile(
     r"^\s*\d+\s*\+\s*cinque\s+volte\s+il\s+livello\s+da\s+druido\b",
     re.IGNORECASE,
@@ -163,6 +173,7 @@ def monster_semantic_numeric_flags(attributes: dict[str, Any] | None) -> set[str
         mathematically_coherent = average == expected_average
     dynamic_companion_hp = bool(
         _DYNAMIC_ARTIFICER_HP_RE.search(hp_text)
+        or _DYNAMIC_HOMUNCULUS_HP_RE.fullmatch(hp_text)
         or _DYNAMIC_DRUID_HP_RE.search(hp_text)
     )
     if (

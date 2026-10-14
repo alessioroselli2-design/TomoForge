@@ -181,3 +181,22 @@ def test_non_monster_ocr_records_still_start_pending():
 
     assert gated["review_status"] == "pending"
     assert gated["review_flags"] == [OCR_REVIEW_FLAG]
+
+def test_official_homunculus_d4_dynamic_hp_is_recognized_but_ocr_corruption_fails():
+    valid = (
+        "1 + il modificatore di Intelligenza dell'artefice + il livello "
+        "da artefice del personaggio (l'omuncolo ha un numero di Dadi Vita "
+        "[d4] pari al livello da artefice del personaggio)"
+    )
+    assert HP_FORMAT_ERROR_FLAG not in monster_semantic_numeric_flags(
+        _monster("13", valid)["attributes"]
+    )
+    for corrupted in (
+        "l" + valid[1:],
+        valid.replace("[d4]", "[dl4]"),
+        valid.replace("1 + il", "9 + il"),
+        valid.replace("livello da artefice del personaggio)", "livello da druido)"),
+    ):
+        assert HP_FORMAT_ERROR_FLAG in monster_semantic_numeric_flags(
+            _monster("13", corrupted)["attributes"]
+        )
