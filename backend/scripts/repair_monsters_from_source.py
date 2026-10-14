@@ -817,7 +817,6 @@ PLAYERS_HANDBOOK_AMBIGUOUS2_IDS = frozenset(
 TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "mpmm_2022_it",  # Mordenkainen Presenta: Mostri del Multiverso
     "bgg_2023_it",  # Bigby Presenta: La Gloria dei Giganti
-    "erlw_2019_it",  # EXPERIMENT: two-column geometry pilot only; keep fail-closed
     "phb_2014_it",  # Manuale del Giocatore, appendice mostri a due colonne
 }
 TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
@@ -2791,6 +2790,13 @@ def resolve_source(
 
 def _layout_profile(source: dict[str, Any]) -> str:
     logical_source_id = str(source.get("logical_source_id") or "").strip()
+    if (
+        logical_source_id == "erlw_2019_it"
+        and source.get("_audit_only_eberron_two_column") is True
+    ):
+        # In-memory selector set exclusively for sealed read-only audit targets.
+        # Do not change Eberron geometry for --all or --execute processing.
+        return "two_column_vertical"
     if logical_source_id in TWO_COLUMN_LOGICAL_SOURCE_IDS:
         return "two_column_vertical"
     return "full_page"
@@ -11508,6 +11514,22 @@ async def _repair_one(
         active_sources,
     )
     record_id = str(record.get("id") or "")
+    eberron_two_column_pilot_ids = {
+        "ref_70901222165b54fe8e2827d5a3968998",  # Quori Hashalaq
+        "ref_71d6b052b2ca53ccb5bf794557c07c0d",  # Forgiato Soldato
+        "ref_fd2857143c3b521c9204fc3032cf1d73",  # Dyrrn
+        "ref_20727b47fb7e5dc0b5e97867d8cdb6bc",  # Consigliere Imperituro
+    }
+    if (
+        record_id in eberron_two_column_pilot_ids
+        and str(source.get("logical_source_id") or "") == "erlw_2019_it"
+        and record.get("review_status") == "pending"
+        and args.execute is False
+        and args.target_set == "bigby_single_pending_readonly"
+    ):
+        # This flag exists only on the local resolved-source copy for the
+        # explicitly selected pilot record. No shared source/DB mutation.
+        source = {**source, "_audit_only_eberron_two_column": True}
     page_override = SOURCE_GUIDED_TARGET_PAGE_BY_RECORD_ID.get(record_id)
     if page_override is not None:
         matching_refs = [
