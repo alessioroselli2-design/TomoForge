@@ -2835,26 +2835,6 @@ def _layout_ocr_settings(
     return dpi, psm, comparison_psm
 
 
-def _bigby_troll_ibrido_scoped_psms(
-    source: dict[str, Any],
-    name: str,
-    target_page: int,
-    primary_psm: int,
-    comparison_psm: int,
-) -> tuple[int, int]:
-    """Try separate OCR layouts for the exact registered Bigby p186 target.
-
-    No identity, numeric, or independent-agreement acceptance gate is changed.
-    """
-    if (
-        name == "Troll Ibrido"
-        and source.get("logical_source_id") == "bgg_2023_it"
-        and target_page == 186
-    ):
-        return 4, 6
-    return primary_psm, comparison_psm
-
-
 def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
     if name in {"Cinghiale", "Falco", "Rana"}:
@@ -6675,9 +6655,6 @@ def _ocr_source_window(
         dpi=dpi,
         psm=psm,
         comparison_psm=comparison_psm,
-    )
-    primary_psm, secondary_psm = _bigby_troll_ibrido_scoped_psms(
-        source, name, target_page, primary_psm, secondary_psm
     )
     primary_psm, secondary_psm = _mago_apprendista_scoped_psms(
         name,

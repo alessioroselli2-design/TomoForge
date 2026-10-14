@@ -135,7 +135,7 @@ jobs:
                           and TARGET_NAME == "Schermagliatore Fensir"
                       )
                       else (
-                          320
+                          360
                           if (
                               TARGET_ID == "ref_815c9a5b017658a3859b977a0cfd6f35"
                               and SOURCE_ID == "bgg_2023_it"
