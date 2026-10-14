@@ -150,7 +150,16 @@ jobs:
                                   and TARGET_PAGE == 141
                                   and TARGET_NAME == "Gatto Ghignante"
                               )
-                              else 220
+                              else (
+                                      360
+                                      if (
+                                          TARGET_ID == "ref_7a26728f8410582ba70ddc7b44f5d4df"
+                                          and SOURCE_ID == "bgg_2023_it"
+                                          and TARGET_PAGE == 131
+                                          and TARGET_NAME == "Ettin Ceremorfo"
+                                      )
+                                      else 220
+                                  )
                           )
                       )
                   ),
