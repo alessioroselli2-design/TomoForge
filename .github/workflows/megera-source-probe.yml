@@ -44,7 +44,7 @@ jobs:
           sys.path.insert(0, str(Path.cwd() / "backend"))
           from core.db import db
           from scripts import repair_monsters_from_source as repair
-          from services.megera_source_probe import page_safe_geometry
+          from services.megera_source_probe import (page_safe_geometry, assess_megera_registered_source)
 
           ID = "ref_1be623f67ff55c40aebefd7b8445f16f"
           CHECKSUM = "d3a64df2296716ce03238ac2f27bae5050993a2fc3bce03fc736183f4dbb9816"
@@ -97,16 +97,22 @@ jobs:
                       for index in range(303, 308)
                       if 1 <= index <= pdf.page_count
                   ]
+              decision = assess_megera_registered_source(
+                  original, next((p for p in pages if p["page"] == 305), None)
+              )
               after = await db.private_reference_records.find_one({"id": ID})
               if original != after:
                   raise ValueError("source_snapshot_changed")
               return {
-                  "status": "diagnostic_only",
+                  "status": decision["status"],
+                  "attributes_unchanged": decision["attributes_unchanged"],
+                  "numeric_gates_passed": decision["numeric_gates_passed"],
+                  "registered_pdf_native_core_passed": decision["registered_pdf_native_core_passed"],
                   "registered_page": 305,
                   "page_probes": pages,
                   "source_snapshot_unchanged": True,
                   "writes": 0,
-                  "requires_independent_core_review": True,
+                  "requires_independent_core_review": False,
               }
 
           print("SOURCE_NATIVE_GEOMETRY_REPORT")
