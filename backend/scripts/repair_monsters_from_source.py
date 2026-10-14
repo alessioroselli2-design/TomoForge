@@ -2851,8 +2851,29 @@ def _bigby_cacciatore_scoped_psms(
         and source.get("logical_source_id") == "bgg_2023_it"
         and target_page == 124
     ):
-        return 11, 12
+        return 3, 4
     return primary_psm, comparison_psm
+
+
+def _bigby_cacciatore_source_crop(
+    source: dict[str, Any],
+    name: str,
+    target_page: int,
+    target_page_only: bool,
+) -> tuple[str, tuple[float, float, float, float]] | None:
+    """Use native-PDF title location (x=.521,y=.279) solely for page 124.
+
+    Geometry only. Both independent OCR passes and all original acceptance
+    gates remain in place; no text or source numbers are supplied.
+    """
+    if (
+        target_page_only
+        and name == "Cacciatore Di Baphomet"
+        and source.get("logical_source_id") == "bgg_2023_it"
+        and target_page == 124
+    ):
+        return ("right", (0.50, 0.255, 0.965, 0.93))
+    return None
 
 
 def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
@@ -6957,6 +6978,13 @@ def _ocr_source_window(
         if sparse_full_page
         else _layout_segments(source, overlap_fraction=column_overlap)
     )
+    if not sparse_full_page:
+        scoped_crop = _bigby_cacciatore_source_crop(
+            source, name, target_page, target_page_only
+        )
+        if scoped_crop is not None:
+            segments = (scoped_crop,)
+            column_overlap = 0.0
     if not sparse_full_page and name == "Esploratore Di Bronzo" and target_page_only:
         segments = (("full", (0.0, 0.0, 1.0, 1.0)),)
         column_overlap = 0.0
@@ -11624,6 +11652,12 @@ async def _repair_one(
         record_id in SOURCE_GUIDED_TARGET_PAGE_ONLY_IDS
         or str(source.get("logical_source_id") or "").strip()
         in TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS
+        or (
+            record_id == "ref_abaf4a8fe2395260991a96729a200351"
+            and record.get("name") == "Cacciatore Di Baphomet"
+            and source.get("logical_source_id") == "bgg_2023_it"
+            and int(source_ref.get("page") or 0) == 124
+        )
     )
 
     # One monotonic budget covers every OCR layout/overlap/full-spectrum
