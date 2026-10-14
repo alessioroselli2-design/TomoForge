@@ -1,0 +1,5 @@
+# Tagliafuoco — registered Bigby source adjudication
+
+Original Italian Bigby p183 (bgg_2023_it), record ref_7195ffa044df51859e9850723d172587, checksum 467c8cbaffb78c27b8b48d8484ee80efaf2125a76a7ec74039a527991cef6cd1. The original OCR has split digit artifacts (1 5, 1 75, 14dl 2), preserved byte-for-byte. Operational stats: CA15 damaged plate, PF175 (14d12+84), speed12m.
+
+Independent original English Firegaunt, Bigby Presents: Glory of the Giants p137, AC15 damaged plate, HP175 (14d12+84), speed40ft. References https://www.scribd.com/document/856205736/Bigby-Presents-Glory-of-the-Giants and https://dnd.huijiwiki.com/wiki/%E6%80%AA%E7%89%A9/BGG/Firegaunt . CON23 bonus +6 times14=84; floor(14*6.5)+84=175. Normal dual OCR PR437 disagreed about speed rendering and remains blocked; this is a separate immutable bilingual original-source review, not an OCR pass. No writing in audit; only exact record/provenance, original HP gates, green CI+Vercel and PR merge can permit guarded DB status-only update with review history.
