@@ -2,7 +2,17 @@
 
 from types import SimpleNamespace
 
-from services.megera_source_probe import compact_word, page_safe_geometry
+import pytest
+
+from services.megera_source_probe import (
+    ATTRIBUTES,
+    RAW_SHA256,
+    RECORD_ID,
+    SOURCE_CHECKSUM,
+    assess_megera_registered_source,
+    compact_word,
+    page_safe_geometry,
+)
 
 
 def test_unicode_normalization_and_punctuation():
@@ -36,14 +46,6 @@ def test_privacy_safe_line_metadata_only():
     assert "Ferita" not in str(result)
 
 
-from services.megera_source_probe import (
-    ATTRIBUTES,
-    RAW_SHA256,
-    RECORD_ID,
-    SOURCE_CHECKSUM,
-    assess_megera_registered_source,
-)
-
 
 def _record():
     # Exact sealed full_text fingerprint is verified against live database.
@@ -74,7 +76,6 @@ def _record():
 
 def test_unregistered_full_text_blocks_status_review():
     assert len(RAW_SHA256) == 64
-    import pytest
     with pytest.raises(ValueError, match="registered_record_or_text_drift"):
         assess_megera_registered_source(_record(), {"page": 305, "words": 600, "lines": []})
 

@@ -6,9 +6,12 @@ This is NOT a verification or authorization to modify review status.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 from typing import Any
+
+from services.ocr_semantic_gates import monster_semantic_numeric_flags
 
 
 def compact_word(value: Any) -> str:
@@ -64,10 +67,6 @@ def page_safe_geometry(page: Any, page_number: int) -> dict[str, Any]:
 
 # The original Italian prose stored in full_text does not include the statblock;
 # verify the authenticated registered PDF page natively before any promotion.
-import hashlib
-
-from services.ocr_semantic_gates import monster_semantic_numeric_flags
-
 RECORD_ID = "ref_1be623f67ff55c40aebefd7b8445f16f"
 SOURCE_CHECKSUM = "d3a64df2296716ce03238ac2f27bae5050993a2fc3bce03fc736183f4dbb9816"
 RAW_SHA256 = "b6b504f1ce8be0d72188f4a2c9357f488da726b8eca69626f37ccfee6f577a0f"
