@@ -831,6 +831,10 @@ HIT_POINTS_FALLBACK_CONTRAST = 1.2
 HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS = 15.0
 OCR_GLOBAL_TIMEOUT_SECONDS = 60.0
 OCR_GLOBAL_TIMEOUT_BY_RECORD_ID = {
+    "ref_4e249fc0d86753919cbb7bec5b96b661": 150.0,  # Rampollo Di Grolantor p170-171
+    "ref_7bc4d1c262b355668531f7e2331550f4": 150.0,  # Rampollo Di Memnor p172-173
+    "ref_f0ebcfa60b9256a8afa871cfd9d0bbb8": 150.0,  # Rampollo Di Skoraeus p174-175
+    "ref_4dc0cbc8340d5958bf4d85756ef9027c": 150.0,  # Rampollo Di Stronmaus p177
     "ref_f1d7b2c1ee66563587537988b9399a29": 150.0,  # Nuvola Spettrale p168 source-only OCR retry
     "ref_815c9a5b017658a3859b977a0cfd6f35": 150.0,  # Bigby Troll Ibrido p186 isolated OCR retry
     "ref_be4830300bfe50f09331951afaf26eb6": 150.0,  # Fensir: one sparse HP source retry
