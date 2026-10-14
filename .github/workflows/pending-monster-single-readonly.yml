@@ -158,7 +158,16 @@ jobs:
                                           and TARGET_PAGE == 131
                                           and TARGET_NAME == "Ettin Ceremorfo"
                                       )
-                                      else 220
+                                      else (
+                                          360
+                                          if (
+                                              TARGET_ID == "ref_7195ffa044df51859e9850723d172587"
+                                              and SOURCE_ID == "bgg_2023_it"
+                                              and TARGET_PAGE == 183
+                                              and TARGET_NAME == "Tagliafuoco"
+                                          )
+                                          else 220
+                                      )
                                   )
                           )
                       )
