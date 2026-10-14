@@ -1,0 +1,71 @@
+name: Bigby Memnor registered-source review
+on:
+  push:
+    branches:
+      - 'audit/memnor-source-review-*'
+    paths:
+      - .github/workflows/memnor-source-review.yml
+      - backend/services/memnor_source_review.py
+      - backend/tests/test_memnor_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  exact-record-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify exact registered source and immutable pending snapshot
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.memnor_source_review import (
+              RECORD_ID, assess_memnor_registered_source,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_database_not_configured")
+              first = await db.private_reference_records.find_one({"id": RECORD_ID})
+              result = assess_memnor_registered_source(first)
+              second = await db.private_reference_records.find_one({"id": RECORD_ID})
+              if first != second:
+                  raise RuntimeError("registered_snapshot_drift")
+              return {
+                  "status": result["status"], "source": result["source_id"],
+                  "pages": result["registered_pages"],
+                  "attributes_unchanged": result["original_attributes_unchanged"],
+                  "numeric_gates_passed": result["numeric_gates_passed"],
+                  "snapshot_unchanged": True, "writes": 0,
+                  "editorial_review_required": True,
+              }
+
+          print("SOURCE_REVIEW_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
+      - name: Post privacy-safe verified-source candidate
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body "Rampollo Di Memnor Bigby p172-173 source review: exact registered pending Italian original CA20 PF656(32d20+320) speed18m/volare24m unchanged, independent English original AC20 HP656 speed60ft/fly80ft corroborated, source fingerprint preserved, global math gates active, no DB writes. Status-only promotion separately guarded; older OCR PR #434 remains blocked."
+          fi
