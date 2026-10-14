@@ -1,0 +1,8 @@
+# Bigby IT Chiamaburrasche — registered-source exact review
+
+- Original registered Italian authority: `bgg_2023_it`, PDF `760692359-D-D-5e-ITA-Bigby-Presenta-La-Gloria-Dei-Giganti.pdf`, physical page **154**, exact record `ref_e075432f79145e36a484fb6ce88eb62a`, original checksum `411c45449c2b747462e5fa62b10a032a1d9672248d0c5a5b77b85ff2678fce17`.
+- Exact immutable Italian statblock excerpt: Gigante Enorme (stregone), qualsiasi allineamento; CA17 natural armor, PF310 with OCR-split `27d l 2 + 1 35`, speeds 15m, fly15m hover, swim15m. Stored operational attributes already `17 (armatura naturale)`, `310 (27d12 + 135)`, `15 m, volare 15 m (fluttuare), nuotare 15 m`. Keep raw text unchanged.
+- The corresponding *Bigby Presents: Glory of the Giants* English original `Storm Giant Tempest Caller` p **182** says Huge Giant (Sorcerer), AC17 (natural armor), HP310 (27d12+135), Speed 50ft, fly50ft hover, swim50ft. Original-book mirror https://anyflip.com/fmtsi/jmxv/basic/151-192 ; corroboration https://onyx5e.com/en/bestiary/storm-giant-tempest-caller/ .
+- Dice floor(27×6.5)+135=310, Con20 (+5) × 27=135. Original Italian 2014 metric conversion 50ft→15m for each movement.
+- Previous dual OCR PR #429 failed HP formatting and timed out, and is **not** a positive OCR verdict. This distinct registered-source adjudication does not bypass HP/math gate or rewrite source. Exact pending record, source name/role/page, full-text, checksum and all original attributes are required.
+- Status-only Supabase promotion with review history is permitted only after a positive read-only source audit, green backend+frontend CI and Vercel, and squash merge.
