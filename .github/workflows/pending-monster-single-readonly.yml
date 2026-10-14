@@ -134,7 +134,16 @@ jobs:
                           and TARGET_PAGE == 134
                           and TARGET_NAME == "Schermagliatore Fensir"
                       )
-                      else 220
+                      else (
+                          320
+                          if (
+                              TARGET_ID == "ref_815c9a5b017658a3859b977a0cfd6f35"
+                              and SOURCE_ID == "bgg_2023_it"
+                              and TARGET_PAGE == 186
+                              and TARGET_NAME == "Troll Ibrido"
+                          )
+                          else 220
+                      )
                   ),
                   languages="ita",
                   psm=6,
