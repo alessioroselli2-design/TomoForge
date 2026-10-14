@@ -9,3 +9,14 @@ def test_cacciatore_specific_ocr_budget_does_not_affect_other_monsters():
     assert repair._ocr_budget_seconds(cacciatore, "bigby_single_pending_readonly") == 150.0
     assert repair._ocr_budget_seconds(other, "bigby_single_pending_readonly") == 60.0
     assert repair.HIT_POINTS_MICRO_OCR_TIMEOUT_SECONDS == 15.0
+
+
+def test_cacciatore_alternate_ocr_modes_are_source_locked():
+    select = repair._bigby_cacciatore_scoped_psms
+    source = {"logical_source_id": "bgg_2023_it"}
+    assert select(source, "Cacciatore Di Baphomet", 124, 3, 4) == (11, 12)
+    assert select(source, "Cacciatore Di Baphomet", 125, 3, 4) == (3, 4)
+    assert select(source, "Cacciatore Di Baphomet", 123, 3, 4) == (3, 4)
+    assert select(source, "Cacciatore", 124, 3, 4) == (3, 4)
+    other_source = {"logical_source_id": "erlw_2019_it"}
+    assert select(other_source, "Cacciatore Di Baphomet", 124, 3, 4) == (3, 4)

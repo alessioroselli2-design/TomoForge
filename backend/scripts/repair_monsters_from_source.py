@@ -2835,6 +2835,26 @@ def _layout_ocr_settings(
     return dpi, psm, comparison_psm
 
 
+def _bigby_cacciatore_scoped_psms(
+    source: dict[str, Any],
+    name: str,
+    target_page: int,
+    primary_psm: int,
+    comparison_psm: int,
+) -> tuple[int, int]:
+    """Test sparse title-reading layouts only on registered Bigby p124.
+
+    This changes recognition modes, never identity or numeric acceptance gates.
+    """
+    if (
+        name == "Cacciatore Di Baphomet"
+        and source.get("logical_source_id") == "bgg_2023_it"
+        and target_page == 124
+    ):
+        return 11, 12
+    return primary_psm, comparison_psm
+
+
 def _phb_sparse_comparison_psm(name: str, default_psm: int) -> int:
     """Use one distinct layout mode for the geometry-bound PHB comparison OCR."""
     if name in {"Cinghiale", "Falco", "Rana"}:
@@ -6655,6 +6675,9 @@ def _ocr_source_window(
         dpi=dpi,
         psm=psm,
         comparison_psm=comparison_psm,
+    )
+    primary_psm, secondary_psm = _bigby_cacciatore_scoped_psms(
+        source, name, target_page, primary_psm, secondary_psm
     )
     primary_psm, secondary_psm = _mago_apprendista_scoped_psms(
         name,
