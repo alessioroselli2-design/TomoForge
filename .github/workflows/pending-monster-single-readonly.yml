@@ -158,7 +158,16 @@ jobs:
                                           and TARGET_PAGE == 131
                                           and TARGET_NAME == "Ettin Ceremorfo"
                                       )
-                                      else 220
+                                      else (
+                                              360
+                                              if (
+                                                  TARGET_ID == "ref_7bc4d1c262b355668531f7e2331550f4"
+                                                  and SOURCE_ID == "bgg_2023_it"
+                                                  and TARGET_PAGE == 172
+                                                  and TARGET_NAME == "Rampollo Di Memnor"
+                                              )
+                                              else 220
+                                          )
                                   )
                           )
                       )
