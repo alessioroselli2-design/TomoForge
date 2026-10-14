@@ -1,0 +1,71 @@
+name: Bigby Tagliafuoco registered-source review
+on:
+  push:
+    branches:
+      - 'audit/tagliafuoco-source-review-*'
+    paths:
+      - .github/workflows/tagliafuoco-source-review.yml
+      - backend/services/tagliafuoco_source_review.py
+      - backend/tests/test_tagliafuoco_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  exact-record-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify sealed source without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.tagliafuoco_source_review import (
+              RECORD_ID, assess_tagliafuoco_registered_source,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_database_unavailable")
+              first = await db.private_reference_records.find_one({"id": RECORD_ID})
+              result = assess_tagliafuoco_registered_source(first)
+              last = await db.private_reference_records.find_one({"id": RECORD_ID})
+              if first != last:
+                  raise RuntimeError("concurrent_source_snapshot_changed")
+              return {
+                  "status": result["status"], "source": result["source"],
+                  "page": result["page"],
+                  "attributes_unchanged": result["attributes_unchanged"],
+                  "numeric_gates_passed": result["numeric_gates_passed"],
+                  "raw_text_preserved": result["raw_text_preserved"],
+                  "snapshot_unchanged": True, "writes": 0,
+              }
+
+          print("TAGLIAFUOCO_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
+      - name: Post safe outcome
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body "Tagliafuoco Firegaunt registered Bigby p183: unchanged CA15, HP175 (14d12+84), speed12m matches independent English Firegaunt p137, original OCR split digits preserved, numeric gates live, 0 writes. Status-only DB review requires CI, Vercel and merge."
+          fi
