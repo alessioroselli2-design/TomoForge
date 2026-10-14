@@ -134,7 +134,52 @@ jobs:
                           and TARGET_PAGE == 134
                           and TARGET_NAME == "Schermagliatore Fensir"
                       )
-                      else 220
+                      else (
+                          360
+                          if (
+                              TARGET_ID == "ref_815c9a5b017658a3859b977a0cfd6f35"
+                              and SOURCE_ID == "bgg_2023_it"
+                              and TARGET_PAGE == 186
+                              and TARGET_NAME == "Troll Ibrido"
+                          )
+                          else (
+                              360
+                              if (
+                                  TARGET_ID == "ref_ac1a0de0ddba58219b21b506119cd1f6"
+                                  and SOURCE_ID == "bgg_2023_it"
+                                  and TARGET_PAGE == 141
+                                  and TARGET_NAME == "Gatto Ghignante"
+                              )
+                              else (
+                                      360
+                                      if (
+                                          TARGET_ID == "ref_7a26728f8410582ba70ddc7b44f5d4df"
+                                          and SOURCE_ID == "bgg_2023_it"
+                                          and TARGET_PAGE == 131
+                                          and TARGET_NAME == "Ettin Ceremorfo"
+                                      )
+                                      else (
+                                                  360
+                                                  if (
+                                                      TARGET_ID == "ref_4dc0cbc8340d5958bf4d85756ef9027c"
+                                                      and SOURCE_ID == "bgg_2023_it"
+                                                      and TARGET_PAGE == 177
+                                                      and TARGET_NAME == "Rampollo Di Stronmaus"
+                                                  )
+                                                  else (
+                                                          360
+                                                          if (
+                                                              TARGET_ID == "ref_4e249fc0d86753919cbb7bec5b96b661"
+                                                              and SOURCE_ID == "bgg_2023_it"
+                                                              and TARGET_PAGE == 170
+                                                              and TARGET_NAME == "Rampollo Di Grolantor"
+                                                          )
+                                                          else 220
+                                                      )
+                                              )
+                                  )
+                          )
+                      )
                   ),
                   languages="ita",
                   psm=6,
