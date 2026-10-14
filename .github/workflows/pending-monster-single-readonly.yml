@@ -145,6 +145,7 @@ jobs:
               reason = "unknown"
               semantic_gate_flags = []
               failed_quality_checks = []
+              independent_agreement_diagnostics = {}
               attributes_unchanged = False
               changed_attribute_fields = []
               core_fields_unchanged = False
@@ -265,6 +266,31 @@ jobs:
                                   for key, value in checks.items()
                                   if key in safe_keys and value is False
                               })[:24]
+                          if candidate == "no_unique_independent_agreement":
+                              # Counts and allowlisted field labels only. Never expose
+                              # candidate text, manual/OCR excerpts, or actual values.
+                              diagnostics = exc.diagnostics or {}
+                              safe_counts = {}
+                              for key in (
+                                  "primary_name_candidates",
+                                  "comparison_name_candidates",
+                                  "primary_target_candidates",
+                                  "comparison_target_candidates",
+                                  "exact_name_match_count",
+                                  "containment_match_count",
+                              ):
+                                  value = diagnostics.get(key)
+                                  if type(value) is int and 0 <= value <= 500:
+                                      safe_counts[key] = value
+                              divergent = diagnostics.get("divergent_core_fields")
+                              independent_agreement_diagnostics = {
+                                  **safe_counts,
+                                  "divergent_core_fields": sorted(
+                                      set(divergent) & {
+                                          "classe_armatura", "punti_ferita", "velocita"
+                                      }
+                                  ) if isinstance(divergent, list) else [],
+                              }
                           if candidate == "repaired_candidate_failed_gates":
                               allowed = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
                               semantic_gate_flags = sorted({
@@ -298,6 +324,7 @@ jobs:
                   "reason": reason,
                   "semantic_gate_flags": semantic_gate_flags,
                   "failed_quality_checks": failed_quality_checks,
+                  "independent_agreement_diagnostics": independent_agreement_diagnostics,
                   "attributes_unchanged": attributes_unchanged,
                   "changed_attribute_fields": changed_attribute_fields,
                   "core_fields_unchanged": core_fields_unchanged,
@@ -405,6 +432,27 @@ jobs:
                               item for item in raw_quality
                               if isinstance(item, str) and item in allowlisted
                           ][:24]
+                      independent = report.get("independent_agreement_diagnostics")
+                      if isinstance(independent, dict):
+                          for key in (
+                              "primary_name_candidates",
+                              "comparison_name_candidates",
+                              "primary_target_candidates",
+                              "comparison_target_candidates",
+                              "exact_name_match_count",
+                              "containment_match_count",
+                          ):
+                              count = independent.get(key)
+                              if type(count) is int and 0 <= count <= 500:
+                                  fields[key] = count
+                          divergent = independent.get("divergent_core_fields")
+                          if isinstance(divergent, list):
+                              allowed = {
+                                  "classe_armatura", "punti_ferita", "velocita"
+                              }
+                              fields["divergent_core_fields"] = sorted(
+                                  set(item for item in divergent if item in allowed)
+                              )[:3]
                       changed = report.get("changed_attribute_fields")
                       if isinstance(changed, list):
                           valid = {"classe_armatura", "punti_ferita", "velocita", "other_field"}
