@@ -150,7 +150,16 @@ jobs:
                                   and TARGET_PAGE == 141
                                   and TARGET_NAME == "Gatto Ghignante"
                               )
-                              else 220
+                              else (
+                                  360
+                                  if (
+                                      TARGET_ID == "ref_abaf4a8fe2395260991a96729a200351"
+                                      and SOURCE_ID == "bgg_2023_it"
+                                      and TARGET_PAGE == 124
+                                      and TARGET_NAME == "Cacciatore Di Baphomet"
+                                  )
+                                  else 220
+                              )
                           )
                       )
                   ),
@@ -159,6 +168,59 @@ jobs:
                   comparison_psm=4,
               )
               cache = repair.SourcePdfCache("", True)
+              # Diagnostic only: native PDF coordinates and title-label booleans,
+              # never original text, monster values, OCR excerpts or page images.
+              source_layout_probe = {}
+              if (
+                  TARGET_ID == "ref_abaf4a8fe2395260991a96729a200351"
+                  and SOURCE_ID == "bgg_2023_it"
+                  and TARGET_PAGE == 124
+                  and TARGET_NAME == "Cacciatore Di Baphomet"
+              ):
+                  try:
+                      import fitz
+                      import unicodedata
+                      def normalized_word(value):
+                          folded = unicodedata.normalize("NFKD", str(value)).casefold()
+                          return re.sub(r"[^a-z0-9]", "", folded)
+                      source, source_ref = repair.resolve_source(original, source_rows)
+                      if int(source_ref["page"]) != TARGET_PAGE:
+                          raise ValueError("source page changed")
+                      with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                          source_pdf = cache.get(source)
+                      with fitz.open(source_pdf) as document:
+                          pages = []
+                          for physical_page in range(max(1, TARGET_PAGE - 2), min(document.page_count, TARGET_PAGE + 2) + 1):
+                              page = document[physical_page - 1]
+                              words = page.get_text("words", sort=True)
+                              by_line = {}
+                              for word in words:
+                                  line_key = (int(word[5]), int(word[6]))
+                                  by_line.setdefault(line_key, []).append(word)
+                              lines = []
+                              for line_words in by_line.values():
+                                  combined = [normalized_word(word[4]) for word in line_words]
+                                  has_c = "cacciatore" in combined
+                                  has_b = "baphomet" in combined
+                                  if has_c or has_b:
+                                      x = min(float(word[0]) for word in line_words)
+                                      y = min(float(word[1]) for word in line_words)
+                                      lines.append({
+                                          "has_cacciatore": has_c,
+                                          "has_baphomet": has_b,
+                                          "x": round(x / page.rect.width, 3),
+                                          "y": round(y / page.rect.height, 3),
+                                      })
+                              pages.append({
+                                  "page": physical_page,
+                                  "word_count": len(words),
+                                  "cacciatore_word_count": sum(normalized_word(word[4]) == "cacciatore" for word in words),
+                                  "baphomet_word_count": sum(normalized_word(word[4]) == "baphomet" for word in words),
+                                  "matched_lines": lines[:12],
+                              })
+                          source_layout_probe = {"available": True, "pages": pages}
+                  except Exception:
+                      source_layout_probe = {"available": False}
               status = "blocked"
               reason = "unknown"
               semantic_gate_flags = []
@@ -352,6 +414,7 @@ jobs:
                   "hp_whitespace_only": hp_whitespace_only,
                   "speed_cosmetic_punctuation_only": speed_cosmetic_punctuation_only,
                   "record_snapshot_unchanged": unchanged,
+                  "source_layout_probe": source_layout_probe,
               }
 
           try:
