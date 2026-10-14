@@ -1,0 +1,114 @@
+name: Eberron Megera native-source geometry probe
+on:
+  push:
+    branches:
+      - 'audit/megera-source-probe-*'
+    paths:
+      - .github/workflows/megera-source-probe.yml
+      - backend/services/megera_source_probe.py
+      - backend/tests/test_megera_source_probe.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-pdf-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned parser and R2 dependencies
+        run: python -m pip install -r backend/requirements.txt boto3
+      - name: Sealed source-native page geometry (no writes and no source text output)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import hashlib
+          import json
+          import sys
+          from contextlib import redirect_stderr, redirect_stdout
+          import io
+          from pathlib import Path
+          import fitz
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from scripts import repair_monsters_from_source as repair
+          from services.megera_source_probe import page_safe_geometry
+
+          ID = "ref_1be623f67ff55c40aebefd7b8445f16f"
+          CHECKSUM = "d3a64df2296716ce03238ac2f27bae5050993a2fc3bce03fc736183f4dbb9816"
+          ATTRS = {
+              "classe_armatura": "17 (armatura naturale)",
+              "punti_ferita": "82 (15d8 + 15)",
+              "velocita": "9 m",
+          }
+
+          async def audit():
+              if not db.configured:
+                  raise ValueError("db_not_configured")
+              original = await db.private_reference_records.find_one({"id": ID})
+              if not isinstance(original, dict) or not all([
+                  original.get("id") == ID,
+                  original.get("name") == "Megera Crepuscolare",
+                  original.get("reference_type") == "monster",
+                  original.get("review_status") == "pending",
+                  original.get("canonical_id") is None,
+                  original.get("source_text_checksum") == CHECKSUM,
+                  original.get("review_flags") == ["ocr_da_verificare", "source_guided_repair"],
+                  original.get("attributes") == ATTRS,
+              ]):
+                  raise ValueError("sealed_source_snapshot_drift")
+              refs = original.get("source_refs")
+              if not isinstance(refs, list) or len(refs) != 1:
+                  raise ValueError("source_ref_count_drift")
+              ref = refs[0]
+              if not isinstance(ref, dict) or not all([
+                  ref.get("page") == 305,
+                  ref.get("logical_page") == 305,
+                  ref.get("logical_source_id") == "erlw_2019_it",
+                  ref.get("source_role") == "authority",
+                  ref.get("source_status") == "active",
+                  ref.get("filename") == "618795464-Eberron.pdf",
+              ]):
+                  raise ValueError("authority_drift")
+              sources = await repair._fetch_all(
+                  db.private_reference_sources, {"source_status": "active"}
+              )
+              source, selected = repair.resolve_source(original, sources)
+              if selected != ref:
+                  raise ValueError("resolved_registered_source_drift")
+              cache = repair.SourcePdfCache("", True)
+              with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                  pdf_path = cache.get(source)
+              with fitz.open(pdf_path) as pdf:
+                  pages = [
+                      page_safe_geometry(pdf[index - 1], index)
+                      for index in range(303, 308)
+                      if 1 <= index <= pdf.page_count
+                  ]
+              after = await db.private_reference_records.find_one({"id": ID})
+              if original != after:
+                  raise ValueError("source_snapshot_changed")
+              return {
+                  "status": "diagnostic_only",
+                  "registered_page": 305,
+                  "page_probes": pages,
+                  "source_snapshot_unchanged": True,
+                  "writes": 0,
+                  "requires_independent_core_review": True,
+              }
+
+          print("SOURCE_NATIVE_GEOMETRY_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
