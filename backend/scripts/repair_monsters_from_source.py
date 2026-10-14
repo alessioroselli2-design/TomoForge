@@ -819,6 +819,27 @@ TWO_COLUMN_LOGICAL_SOURCE_IDS = {
     "bgg_2023_it",  # Bigby Presenta: La Gloria dei Giganti
     "phb_2014_it",  # Manuale del Giocatore, appendice mostri a due colonne
 }
+EBERRON_TWO_COLUMN_READONLY_PILOT_IDS = frozenset({
+    "ref_70901222165b54fe8e2827d5a3968998",  # Quori Hashalaq
+    "ref_71d6b052b2ca53ccb5bf794557c07c0d",  # Forgiato Soldato
+    "ref_fd2857143c3b521c9204fc3032cf1d73",  # Dyrrn
+    "ref_20727b47fb7e5dc0b5e97867d8cdb6bc",  # Consigliere Imperituro
+})
+
+
+def _eberron_two_column_audit_eligible(
+    record: dict[str, Any], source: dict[str, Any], args: argparse.Namespace
+) -> bool:
+    """Isolate experimental geometry to registered pending, read-only pilots."""
+    return (
+        str(record.get("id") or "") in EBERRON_TWO_COLUMN_READONLY_PILOT_IDS
+        and str(source.get("logical_source_id") or "") == "erlw_2019_it"
+        and record.get("review_status") == "pending"
+        and getattr(args, "execute", None) is False
+        and getattr(args, "target_set", None) == "bigby_single_pending_readonly"
+    )
+
+
 TARGET_PAGE_ONLY_LOGICAL_SOURCE_IDS = {
     "phb_2014_it",
 }
@@ -11514,19 +11535,7 @@ async def _repair_one(
         active_sources,
     )
     record_id = str(record.get("id") or "")
-    eberron_two_column_pilot_ids = {
-        "ref_70901222165b54fe8e2827d5a3968998",  # Quori Hashalaq
-        "ref_71d6b052b2ca53ccb5bf794557c07c0d",  # Forgiato Soldato
-        "ref_fd2857143c3b521c9204fc3032cf1d73",  # Dyrrn
-        "ref_20727b47fb7e5dc0b5e97867d8cdb6bc",  # Consigliere Imperituro
-    }
-    if (
-        record_id in eberron_two_column_pilot_ids
-        and str(source.get("logical_source_id") or "") == "erlw_2019_it"
-        and record.get("review_status") == "pending"
-        and args.execute is False
-        and args.target_set == "bigby_single_pending_readonly"
-    ):
+    if _eberron_two_column_audit_eligible(record, source, args):
         # This flag exists only on the local resolved-source copy for the
         # explicitly selected pilot record. No shared source/DB mutation.
         source = {**source, "_audit_only_eberron_two_column": True}
