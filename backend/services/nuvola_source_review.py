@@ -52,8 +52,8 @@ def assess_nuvola_registered_source(record: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("authority_page_or_file_drift")
     if monster_semantic_numeric_flags(ATTRIBUTES):
         raise ValueError("global_numeric_gate_failed")
-    # Independently corroborated English Spectral Cloud, Bigby original p137:
-    # AC15 damaged plate, HP175 (18d12+84), 40ft speed (12m).
+    # Independently corroborated English Spectral Cloud, Bigby original p176:
+    # AC11, HP189 (18d12+72), speed 0 ft, fly40 ft hover (12m).
     if 18 * 4 != 72 or (18 * (12 + 1)) // 2 + 72 != 189:
         raise ValueError("hit_dice_math_failed")
     return {

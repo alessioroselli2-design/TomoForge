@@ -67,5 +67,5 @@ jobs:
         run: |
           pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
           if [ -n "$pr" ]; then
-            gh pr comment "$pr" --body "Nuvola Spettrale Spectral Cloud registered Bigby p168: unchanged CA15, HP175 (18d12+84), speed12m matches independent English Spectral Cloud p137, original OCR split digits preserved, numeric gates live, 0 writes. Status-only DB review requires CI, Vercel and merge."
+            gh pr comment "$pr" --body "Nuvola Spettrale Spectral Cloud registered Bigby p168: unchanged CA11, HP189 (18d12+72), speed0m/fly12m hover matches independent English Spectral Cloud p176, original OCR split digits preserved, numeric gates live, 0 writes. Status-only DB review requires CI, Vercel and merge."
           fi
