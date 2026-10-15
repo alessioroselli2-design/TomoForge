@@ -1,0 +1,64 @@
+name: Tasha wildfire spirit creature exact source review
+on:
+  push:
+    branches:
+      - 'audit/tasha-wildfire-spirit-standalone-statblock-*'
+    paths:
+      - .github/workflows/tasha-wildfire-spirit-source-review.yml
+      - backend/services/tasha_wildfire_spirit_source_review.py
+      - backend/tests/test_tasha_wildfire_spirit_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit original feature and absence of duplicate monster without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.tasha_wildfire_spirit_source_review import (
+              ID,FEATURE_ID,NAME,SOURCE_ID,audit_wildfire_statblock,
+          )
+
+          async def check():
+              if not db.configured:
+                  raise RuntimeError("source_database_unavailable")
+              original=await db.private_reference_records.find_one({"id":FEATURE_ID})
+              new=await db.private_reference_records.find_one({"id":ID})
+              duplicate=await db.private_reference_records.find_one({
+                  "user_id":"user_fabf28726a20",
+                  "reference_type":"monster",
+                  "normalized_name":NAME.casefold(),
+              })
+              catalog=await db.private_reference_sources.find_one({
+                  "logical_source_id":SOURCE_ID,
+              })
+              verdict=audit_wildfire_statblock(new,duplicate,original,catalog)
+              again=await db.private_reference_records.find_one({"id":FEATURE_ID})
+              if original!=again:
+                  raise RuntimeError("class_feature_modified_during_audit")
+              verdict["source_snapshot_unchanged"]=True
+              return verdict
+
+          print("TASHA_WILDFIRE_SPIRIT_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(check()),sort_keys=True))
+          PY
