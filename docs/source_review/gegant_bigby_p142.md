@@ -1,0 +1,10 @@
+# Gegant — Bigby Italian registered-source review
+
+- Registered record: `ref_7a30c2cd8ab25a578d7d6f02b0877061`; Italian *Bigby Presenta: La Gloria dei Giganti*, page 142, source `bgg_2023_it`.
+- Exact recorded SHA256 source checksum: `f7dab83b6e1f56c1547cd805bbed080837f8b4637b06c269ea235b9421cd5b75`.
+- Original Italian OCR states `Punti Ferita 325 (2l d20 + 1 05)`, with CA17 natural armor, speed15m, burrow15m, fly24m. The OCR remains **unchanged**; operational values were already `325 (21d20 + 105)`.
+- Independent original English **Gigant** (*Bigby Presents: Glory of the Giants*, page 154) is a Gargantuan **monstrosity**, not a generic giant. Armor Class 17 (natural armor), Hit Points 325 (21d20 +105), speed50ft, burrow50ft, fly80ft independently corroborate the existing Italian operational values. Mathematical check: CON21 grants +5, 21×5=105; floor(21×10.5)+105 = 325.
+- External corroboration references: https://www.aidedd.org/dnd/monstres.php?vo=gigant and https://onyx5e.com/en/bestiary/gigant/ . Keep the registered Italian name `Gegant` untouched instead of replacing it with the ambiguous term `Gigante`.
+- Old OCR PR #428 remains separate and inconclusive: do **not** treat its unresolved independent OCR as evidence of passage.
+- Fail-closed source verifier demands exact identity, source file/page, status, raw source text, original attributes, operational attributes, all review flags/corrections, checksum, and sole active licensed authority. Global numeric semantic gates remain enforced.
+- No writes or canonicalization in tests or source inspection. Database status-only promotion, if independently justified, requires successful live read-only audit, backend/frontend CI, Vercel, squash merge into `develop`, then a separate exact-snapshot guarded transaction preserving source/operational fields and inserting review history.
