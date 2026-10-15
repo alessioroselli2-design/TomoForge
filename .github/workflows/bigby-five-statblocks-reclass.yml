@@ -1,0 +1,66 @@
+name: Bigby five original-source protected reclassification audits
+on:
+  push:
+    branches:
+      - 'audit/bigby-five-statblocks-reclass-*'
+    paths:
+      - .github/workflows/bigby-five-statblocks-reclass.yml
+      - backend/services/bigby_five_reclass_review.py
+      - backend/tests/test_bigby_five_reclass_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  each-target-source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Five distinct sealed live read-only source reviews
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.bigby_five_reclass_review import (
+              TARGETS, assess_bigby_registered_other,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("registered_source_database_unavailable")
+              results = []
+              for record_id in TARGETS:
+                  before = await db.private_reference_records.find_one({"id": record_id})
+                  verdict = assess_bigby_registered_other(before, record_id)
+                  after = await db.private_reference_records.find_one({"id": record_id})
+                  if before != after:
+                      raise RuntimeError("source_record_changed_during_review")
+                  results.append({
+                      "id": record_id, "name": verdict["name"],
+                      "status": verdict["status"],
+                      "narrative_page": verdict["narrative_page"],
+                      "statblock_page": verdict["statblock_page"],
+                      "attributes": verdict["proposed_attributes"],
+                      "snapshot_unchanged": True, "writes": 0,
+                  })
+              if len(results) != len(TARGETS):
+                  raise RuntimeError("missing_independent_review")
+              return results
+
+          print("BIGBY_FIVE_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
