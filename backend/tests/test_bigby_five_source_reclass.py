@@ -102,7 +102,7 @@ def test_exact_review_corrections_and_single_authority(sealed_record):
     row["review_corrections"] = {"_changed": True}
     with pytest.raises(ValueError):
         assess_bigby_reclassification(name, row)
-    _, row = sealed_record
+    row["review_corrections"] = deepcopy(SPECS[name]["corrections"])
     row["source_refs"].append(deepcopy(row["source_refs"][0]))
     with pytest.raises(ValueError):
         assess_bigby_reclassification(name, row)
