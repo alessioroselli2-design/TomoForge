@@ -1,0 +1,55 @@
+name: Bigby Fomorian Nobile sealed registered source
+on:
+  push:
+    branches:
+      - 'audit/bigby-fomorian-nobile-reclass-*'
+    paths:
+      - .github/workflows/bigby-fomorian-nobile-source-review.yml
+      - backend/services/fomorian_nobile_source_review.py
+      - backend/tests/test_fomorian_nobile_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  single-source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit only original Fomorian Nobile, never write
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.fomorian_nobile_source_review import (
+              RECORD_ID, assess_fomorian_nobile,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_database_unavailable")
+              before = await db.private_reference_records.find_one({"id": RECORD_ID})
+              outcome = assess_fomorian_nobile(before)
+              after = await db.private_reference_records.find_one({"id": RECORD_ID})
+              if before != after:
+                  raise RuntimeError("concurrent_original_source_drift")
+              outcome["snapshot_unchanged"] = True
+              return outcome
+
+          print("FOMORIAN_NOBILE_SOURCE_REVIEW")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
