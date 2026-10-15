@@ -47,7 +47,7 @@ TARGETS = {
         "id": "ref_6a85d321c3a25bfba7d633377b0fccf0",
         "page": 314, "stat_page": 315,
         "status": "verified", "corrections": {},
-        "checksum": "77ee5df17eab19b26f2e8cda25814e61c9c1c82f691d94ea7486",
+        "checksum": "77ee5df17eab19b26f2e8cda25814e61c9c1c82f5531ddb3c82f691d94ea7486",
         "hash": "0841402170e004d2b0b7fd3370cb116a4ea423a50c4c2848ab1f857c60a45dec",
         "attributes": {"classe_armatura": "22 (armatura naturale)", "punti_ferita": "475 (50d10 + 200)", "velocita": "12 m, volare 12 m (fluttuare)"},
         "dice": (475, 50, 10, 200),
