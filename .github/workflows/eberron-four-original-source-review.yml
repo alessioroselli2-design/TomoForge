@@ -1,0 +1,64 @@
+name: Eberron four existing other-type monster source reviews
+on:
+  push:
+    branches:
+      - 'audit/eberron-four-misclassified-statblocks-*'
+    paths:
+      - .github/workflows/eberron-four-original-source-review.yml
+      - backend/services/eberron_four_reclass_review.py
+      - backend/tests/test_eberron_four_reclass_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-records-no-write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit each registered monster source in read-only mode
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.eberron_four_reclass_review import (
+              SPECS, assess_original_eberron_monster,
+          )
+
+          async def run():
+              if not db.configured:
+                  raise RuntimeError("registered_source_database_unavailable")
+              outcome = []
+              for name, spec in SPECS.items():
+                  before = await db.private_reference_records.find_one({"id": spec["id"]})
+                  review = assess_original_eberron_monster(name, before)
+                  after = await db.private_reference_records.find_one({"id": spec["id"]})
+                  if before != after:
+                      raise RuntimeError("registered_source_changed_during_audit")
+                  outcome.append({
+                      "name": name, "status": review["status"],
+                      "narrative_page": review["original_narrative_page"],
+                      "statblock_page": review["named_statblock_page"],
+                      "attributes": review["proposed_attributes"],
+                      "snapshot_unchanged": True, "writes": 0,
+                  })
+              if len(outcome) != len(SPECS):
+                  raise RuntimeError("not_all_record_reviews_completed")
+              return outcome
+          print("EBERRON_FOUR_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(run()), sort_keys=True))
+          PY
