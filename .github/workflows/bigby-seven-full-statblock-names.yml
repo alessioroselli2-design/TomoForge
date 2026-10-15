@@ -1,0 +1,65 @@
+name: Bigby seven full original statblock names
+on:
+  push:
+    branches:
+      - 'audit/bigby-seven-source-name-fixes-*'
+    paths:
+      - '.github/workflows/bigby-seven-full-statblock-names.yml'
+      - 'backend/services/bigby_seven_full_statblock_names.py'
+      - 'backend/tests/test_bigby_seven_full_statblock_names.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-original-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Seven exact registered records, no writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.bigby_seven_full_statblock_names import (
+              TARGETS, source_locked_name_review,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("db_unavailable")
+              results = []
+              for previous, spec in TARGETS.items():
+                  row = await db.private_reference_records.find_one({"id": spec[0]})
+                  verdict = source_locked_name_review(row, previous)
+                  collision = await db.private_reference_records.find_one({
+                      "user_id": "user_fabf28726a20",
+                      "source_key": "760692359-D-D-5e-ITA-Bigby-Presenta-La-Gloria-Dei-Giganti.pdf",
+                      "normalized_name": spec[2].casefold(),
+                  })
+                  if collision:
+                      raise RuntimeError("target_name_already_exists")
+                  same = await db.private_reference_records.find_one({"id": spec[0]})
+                  if same != row:
+                      raise RuntimeError("source_changed_mid_audit")
+                  verdict["snapshot_unchanged"] = True
+                  results.append(verdict)
+              return results
+
+          print("BIGBY_SEVEN_FULL_NAMES_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
