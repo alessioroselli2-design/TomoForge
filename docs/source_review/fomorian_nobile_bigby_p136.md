@@ -1,0 +1,7 @@
+# Bigby p136 — Fomorian Nobile registered-source reclassification
+
+- Existing record `ref_ad2c8d2b58fd5cf3b4bff319b3784bbb` is `reference_type=other` and `needs_review`, not a missing monster row. Do not create a duplicate. Exact registered licensed Italian `bgg_2023_it` PDF page 136 / printed page 135.
+- Original same-name boxed statblock on Italian page confirms **Gigante Enorme (mago)**, **CA14 (17 con armatura magica)**, **PF253 (22d12+110)** and **velocità 9m**. The Fomorian Nobile's CON20 gives +5; floor(22×6.5)+22×5 =253. Neighboring *Viandante Firbolg* on that page must not be mixed with the Fomorian numeric fields.
+- Verification evidence: direct visual inspection of original PDF page 136 and distinct native PDF text extraction. Original text-layer OCR renders the dice glyph as `22dl2`, visually `22d12`. Global numerical gates pass unchanged.
+- Existing prose `full_text/source_full_text` SHA256 `7afecc4202d7ed9ac9e3d5b94a39251f9cd9884ffdbe980835ab10b5c241f133`; original registered checksum `cf7c6436ee76fd35deb4059bace6b121d60ae4458e341d021e356b2cf23fdb5d`. Raw narrative, source attributes `{}`, provenance, source key and original ID are immutable.
+- Source audit is fail-closed and read-only. After source audit, backend/frontend CI, and Vercel green and squash merge into develop, separate exact-record Supabase CAS may set `reference_type=monster`, operational CA/PF/speed, and `review_status=verified` with append-only review history. No PDF text, raw source, or licensed images committed.
