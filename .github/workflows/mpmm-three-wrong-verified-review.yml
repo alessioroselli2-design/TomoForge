@@ -1,0 +1,55 @@
+name: MPMM verified-but-wrong source reassessment
+on:
+  push:
+    branches:
+      - 'audit/mpmm-three-verified-misattribution-fix-*'
+    paths:
+      - .github/workflows/mpmm-three-wrong-verified-review.yml
+      - backend/services/mpmm_three_wrong_verified_stats_review.py
+      - backend/tests/test_mpmm_three_wrong_verified_stats_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-no-write-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Strict exact snapshot of three previously verified records
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.mpmm_three_wrong_verified_stats_review import TARGETS, review_misattributed_stats
+
+          async def inspect():
+              if not db.configured:
+                  raise RuntimeError("source_database_unavailable")
+              results = []
+              for name, spec in TARGETS.items():
+                  original = await db.private_reference_records.find_one({"id": spec["id"]})
+                  verdict = review_misattributed_stats(name, original)
+                  again = await db.private_reference_records.find_one({"id": spec["id"]})
+                  if original != again:
+                      raise RuntimeError("source_drift_during_audit")
+                  verdict["snapshot_unchanged"] = True
+                  results.append(verdict)
+              return results
+
+          print("MPMM_THREE_WRONG_VERIFIED_FINAL_REPORT")
+          print(json.dumps(asyncio.run(inspect()), sort_keys=True))
+          PY
