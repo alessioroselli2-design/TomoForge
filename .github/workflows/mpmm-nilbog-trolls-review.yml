@@ -1,0 +1,56 @@
+name: MPMM Nilbog and trolls original-source review
+on:
+  push:
+    branches:
+      - 'audit/mpmm-nilbog-trolls-source-*'
+    paths:
+      - .github/workflows/mpmm-nilbog-trolls-review.yml
+      - backend/services/mpmm_nilbog_trolls_source_review.py
+      - backend/tests/test_mpmm_nilbog_trolls_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-source-no-write-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit three independent registered rows, zero writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.mpmm_nilbog_trolls_source_review import TARGETS, inspect_existing_creature
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_db_unavailable")
+              outcomes = []
+              for name, spec in TARGETS.items():
+                  before = await db.private_reference_records.find_one({"id": spec["id"]})
+                  verdict = inspect_existing_creature(name, before)
+                  after = await db.private_reference_records.find_one({"id": spec["id"]})
+                  if before != after:
+                      raise RuntimeError("source_changed_during_audit")
+                  verdict["snapshot_unchanged"] = True
+                  outcomes.append(verdict)
+              return outcomes
+
+          print("MPMM_NILBOG_TROLLS_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
