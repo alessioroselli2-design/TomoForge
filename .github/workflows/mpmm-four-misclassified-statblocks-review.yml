@@ -1,0 +1,61 @@
+name: MPMM Somiero Tanarukk Terrore Venator source audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-somiero-tanarukk-terrore-venator-*'
+    paths:
+      - .github/workflows/mpmm-four-misclassified-statblocks-review.yml
+      - backend/services/mpmm_four_misclassified_statblocks_review.py
+      - backend/tests/test_mpmm_four_misclassified_statblocks_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sealed-original-source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit four exact original records and no duplicate monster, zero writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_four_misclassified_statblocks_review import TARGETS,OWNER,SOURCE,review_named_statblock
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_database_missing")
+              decisions=[]
+              for name,spec in TARGETS.items():
+                  original=await db.private_reference_records.find_one({"id":spec["id"]})
+                  result=review_named_statblock(name,original)
+                  collision=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":SOURCE,
+                      "reference_type":"monster","normalized_name":name.casefold()
+                  })
+                  if collision is not None:
+                      raise RuntimeError("already_existing_same_named_monster")
+                  again=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if original!=again:
+                      raise RuntimeError("source_changed_during_readonly_review")
+                  result["snapshot_unchanged"]=True
+                  decisions.append(result)
+              return decisions
+
+          print("MPMM_FOUR_MISCLASSIFIED_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY
