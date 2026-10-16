@@ -1,0 +1,63 @@
+name: MPMM Kyuss Ranhemoth Segugio Yeth source audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-kyuss-ranhemoth-yeth-*'
+    paths:
+      - .github/workflows/mpmm-kyuss-ranhemoth-yeth-review.yml
+      - backend/services/mpmm_kyuss_ranhemoth_yeth_review.py
+      - backend/tests/test_mpmm_kyuss_ranhemoth_yeth_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only-exact-originals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Check three independent original statblocks without database writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_kyuss_ranhemoth_yeth_review import (
+              TARGETS,OWNER,SOURCE,review_monster_source,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("original_database_unavailable")
+              results=[]
+              for name,spec in TARGETS.items():
+                  before=await db.private_reference_records.find_one({"id":spec["id"]})
+                  decision=review_monster_source(name,before)
+                  colliding=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":SOURCE,
+                      "reference_type":"monster","normalized_name":name.casefold(),
+                  })
+                  if colliding is not None:
+                      raise RuntimeError("verified_monster_duplicate_already_exists")
+                  again=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if before!=again:
+                      raise RuntimeError("original_source_changed_during_audit")
+                  decision["snapshot_unchanged"]=True
+                  results.append(decision)
+              return results
+
+          print("MPMM_KYUSS_RANHEMOTH_YETH_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY
