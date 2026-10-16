@@ -1,0 +1,61 @@
+name: MPMM two Ogre original named-statblock review
+on:
+  push:
+    branches:
+      - 'audit/mpmm-two-ogres-source-*'
+    paths:
+      - .github/workflows/mpmm-two-ogres-source-review.yml
+      - backend/services/mpmm_two_ogres_source_review.py
+      - backend/tests/test_mpmm_two_ogres_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readonly-source-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify source rows and new names without writing
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_two_ogres_source_review import TARGETS, SOURCE, OWNER, inspect_ogre
+
+          async def run():
+              if not db.configured:
+                  raise RuntimeError("database_unavailable")
+              outcome=[]
+              for name, spec in TARGETS.items():
+                  before=await db.private_reference_records.find_one({"id":spec["id"]})
+                  proposal=inspect_ogre(name,before)
+                  collision=await db.private_reference_records.find_one({
+                     "user_id":OWNER,"source_key":SOURCE,
+                     "normalized_name":name.casefold()
+                  })
+                  if collision is not None:
+                      raise RuntimeError("target_ogre_name_already_exists")
+                  after=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if before!=after:
+                      raise RuntimeError("source_changed_during_audit")
+                  proposal["snapshot_unchanged"]=True
+                  outcome.append(proposal)
+              return outcome
+
+          print("MPMM_TWO_OGRES_FINAL_REPORT")
+          print(json.dumps(asyncio.run(run()),sort_keys=True))
+          PY
