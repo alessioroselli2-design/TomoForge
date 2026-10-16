@@ -1,0 +1,63 @@
+name: MPMM seven original complete monster source reviews
+on:
+  push:
+    branches:
+      - 'audit/mpmm-seven-complete-statblocks-*'
+    paths:
+      - .github/workflows/mpmm-seven-original-source-review.yml
+      - backend/services/mpmm_seven_extra_source_review.py
+      - backend/tests/test_mpmm_seven_extra_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-original-live-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit exact original source rows and duplicate absence with no writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_seven_extra_source_review import (
+              TARGETS,OWNER,part_filename,source_audit,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("registered_source_database_unavailable")
+              output=[]
+              for name,spec in TARGETS.items():
+                  original=await db.private_reference_records.find_one({"id":spec["id"]})
+                  verdict=source_audit(name,original)
+                  duplicate=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":part_filename(spec["part"]),
+                      "reference_type":"monster","normalized_name":name.casefold(),
+                  })
+                  if duplicate is not None:
+                      raise RuntimeError("monster_duplicate_already_registered")
+                  after=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if original!=after:
+                      raise RuntimeError("original_source_mutated_during_readonly_audit")
+                  verdict["source_snapshot_unchanged"]=True
+                  output.append(verdict)
+              return output
+
+          print("MPMM_SEVEN_LIVE_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY
