@@ -140,11 +140,27 @@ def test_valid_but_different_armor_class_fails_source_parity(monkeypatch,name):
 def test_excerpt_must_include_its_own_heading(monkeypatch):
     specs=deepcopy(TARGETS)
     specs["Alkilith"]["source_excerpt"]=specs["Alkilith"]["source_excerpt"].replace("Alkilith. ","",1)
+    # Keep the hash valid, so this must exercise structural heading association.
+    specs["Alkilith"]["excerpt_sha256"]=hashlib.sha256(
+        specs["Alkilith"]["source_excerpt"].encode()).hexdigest()
     monkeypatch.setattr(m,"TARGETS",specs)
-    with pytest.raises(ValueError,match="manual_original_visual_excerpt_modified"):
+    with pytest.raises(ValueError,match="source_heading_or_statblock_boundary_missing"):
         audit_new_creature("Alkilith",None,None,catalog())
 
 
 def test_bardo_existing_monster_collision_rejected():
     with pytest.raises(ValueError,match="same_source_bard_monster_collision"):
         audit_bard(bard(),{"name":"Bardo","reference_type":"monster"})
+
+
+def test_review_results_cannot_mutate_sealed_source_state(monkeypatch):
+    before=deepcopy(m.TARGETS["Alkilith"]["attrs"])
+    first=audit_new_creature("Alkilith",None,None,catalog())
+    first["attributes"]["injected"]="false proof"
+    assert m.TARGETS["Alkilith"]["attrs"]==before
+    assert "injected" not in audit_new_creature("Alkilith",None,None,catalog())["attributes"]
+    monkeypatch.setattr(m,"BARD_SHA",hashlib.sha256(BARD_TEST_RAW.encode()).hexdigest())
+    b=audit_bard(bard(),None)
+    b["attributes"]["injected"]="false proof"
+    assert "injected" not in BARD_ATTRIBUTES
+    assert "injected" not in audit_bard(bard(),None)["attributes"]
