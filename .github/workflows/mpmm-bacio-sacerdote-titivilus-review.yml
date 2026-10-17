@@ -1,0 +1,63 @@
+name: MPMM Bacio Sacerdote Titivilus original-source review
+on:
+  push:
+    branches:
+      - 'audit/mpmm-bacio-sacerdote-titivilus-*'
+    paths:
+      - .github/workflows/mpmm-bacio-sacerdote-titivilus-review.yml
+      - backend/services/mpmm_bacio_sacerdote_titivilus_review.py
+      - backend/tests/test_mpmm_bacio_sacerdote_titivilus_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readonly-three-creatures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit original other records and same-source duplication without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_bacio_sacerdote_titivilus_review import (
+              TARGETS,OWNER,audit_creature,
+          )
+
+          async def run():
+              if not db.configured:
+                  raise RuntimeError("source_database_unavailable")
+              results=[]
+              for name,spec in TARGETS.items():
+                  before=await db.private_reference_records.find_one({"id":spec["id"]})
+                  verdict=audit_creature(name,before)
+                  duplicate=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":spec["file"],
+                      "reference_type":"monster","normalized_name":name.casefold(),
+                  })
+                  if duplicate is not None:
+                      raise RuntimeError("same_book_existing_monster_collision")
+                  after=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if before!=after:
+                      raise RuntimeError("registered_source_changed_during_audit")
+                  verdict["snapshot_unchanged"]=True
+                  results.append(verdict)
+              return results
+
+          print("MPMM_BACIO_SACERDOTE_TITIVILUS_FINAL_REPORT")
+          print(json.dumps(asyncio.run(run()),sort_keys=True))
+          PY
