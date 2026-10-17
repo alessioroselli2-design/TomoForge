@@ -56,6 +56,6 @@ def audit_leuko_source(existing_id:dict[str,Any]|None,existing_name:dict[str,Any
     return {
        "status":"eligible_new_manual_visual_creature",
        "id":ID,"name":NAME,"source_page":PAGE,
-       "attributes":ATTRS,"automatic_ocr_not_claimed":True,
+       "attributes":dict(ATTRS),"automatic_ocr_not_claimed":True,
        "original_catalog_preserved":True,"writes":0,
     }
