@@ -7,7 +7,7 @@ import pytest
 import services.mpmm_final_three_source_review as m
 from services.mpmm_final_three_source_review import (
     OWNER, SOURCE, TARGETS, BARD_ID, BARD_CHECKSUM,
-    BARD_ATTRIBUTES, authority, audit_bard, audit_catalog, audit_new_creature,
+    BARD_ATTRIBUTES, authority, audit_bard, audit_new_creature,
 )
 
 BARD_TEST_RAW = "Synthetic Bard original narrative for independent tests. " * 5
