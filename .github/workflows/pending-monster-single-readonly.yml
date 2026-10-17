@@ -166,7 +166,16 @@ jobs:
                                                       and TARGET_PAGE == 177
                                                       and TARGET_NAME == "Rampollo Di Stronmaus"
                                                   )
-                                                  else 220
+                                                  else (
+                                                                      360
+                                                                      if (
+                                                                          TARGET_ID == "ref_ab2cf767c3f25e00a1e4720ef6c01d44"
+                                                                          and SOURCE_ID == "erlw_2019_it"
+                                                                          and TARGET_PAGE == 317
+                                                                          and TARGET_NAME == "Assassino Tarkanan"
+                                                                      )
+                                                                      else 220
+                                                                  )
                                               )
                                   )
                           )
