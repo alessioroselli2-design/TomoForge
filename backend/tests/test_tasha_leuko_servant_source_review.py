@@ -1,7 +1,6 @@
 """Source-specific non-write tests for Tasha Leuk-O construct monster."""
 from copy import deepcopy
 import pytest
-import services.tasha_leuko_servant_source_review as mod
 from services.tasha_leuko_servant_source_review import (
     ID, NAME, ATTRS, SOURCE, CATALOG_FILE, SOURCE_ID,
     audit_leuko_source,
