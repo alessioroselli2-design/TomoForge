@@ -14,9 +14,10 @@ ID="ref_7e3e59d442377464d2d5d1a92a45cbe8"
 SOURCE="Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf"
 CATALOG_FILE="Calderone-Omnicomprensivo-di-TASHA.pdf"
 SOURCE_ID="tce_2020_it"
+PHYSICAL_SHA256="3265347cd656a82ce6401ad79962b2dbbda6156a5866c488473211fb89e2f71e"
 PAGE=131
-EXCERPT="Costrutto Enorme. Classe Armatura 22 (armatura naturale). Punti Ferita 310 (27d12 + 135). Velocità 18 m."
-EXCERPT_SHA="64b11217724339154d33016189ee4bba1dd7986793c0fa96731a6d9ea937d70a"
+EXCERPT="Servitore Possente di Leuk-O. Costrutto Enorme. Classe Armatura 22 (armatura naturale). Punti Ferita 310 (27d12 + 135). Velocità 18 m."
+EXCERPT_SHA="ceaeaf42fb123af79369b0b7326383df9dadce480f58593d64d95eec70c59d70"
 ATTRS={"classe_armatura":"22 (armatura naturale)","punti_ferita":"310 (27d12 + 135)","velocita":"18 m"}
 
 def audit_leuko_source(existing_id:dict[str,Any]|None,existing_name:dict[str,Any]|None,catalog:dict[str,Any]|None)->dict[str,Any]:
@@ -26,7 +27,8 @@ def audit_leuko_source(existing_id:dict[str,Any]|None,existing_name:dict[str,Any
         raise ValueError("original_source_catalog_unavailable")
     expected={
         "logical_source_id":SOURCE_ID,"physical_filename":CATALOG_FILE,
-        "physical_pages":194,"source_role":"authority",
+        "physical_pages":194,"physical_sha256":PHYSICAL_SHA256,
+        "source_role":"authority",
         "source_status":"active","authority_class":"licensed_translation",
     }
     if any(catalog.get(k)!=v for k,v in expected.items()):
@@ -36,6 +38,17 @@ def audit_leuko_source(existing_id:dict[str,Any]|None,existing_name:dict[str,Any
         raise ValueError("new_id_source_determinism_failed")
     if hashlib.sha256(EXCERPT.encode()).hexdigest()!=EXCERPT_SHA:
         raise ValueError("source_visual_excerpt_sha256_drift")
+    # Preserve the manually inspected heading/core fields as one sealed box.
+    # A plausible but different AC/HP/speed must not pass the global sanity gate.
+    if not EXCERPT.startswith("Servitore Possente di Leuk-O. Costrutto Enorme. "):
+        raise ValueError("original_heading_not_bound_to_core_fields")
+    exact_fields = (
+        f"Classe Armatura {ATTRS['classe_armatura']}.",
+        f"Punti Ferita {ATTRS['punti_ferita']}.",
+        f"Velocità {ATTRS['velocita']}."
+    )
+    if not all(fragment in EXCERPT for fragment in exact_fields):
+        raise ValueError("source_core_fields_disagree_with_sealed_excerpt")
     if monster_identity_sanity_flags(NAME) or monster_semantic_numeric_flags(ATTRS):
         raise ValueError("global_numeric_or_identity_gate_failed")
     if (27*(12+1))//2+135!=310:
