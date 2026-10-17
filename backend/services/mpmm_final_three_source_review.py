@@ -90,7 +90,7 @@ def audit_new_creature(name: str, existing_id: dict[str,Any] | None,
     return {
       "status":"eligible_new_source_named_monster",
       "name":name,"id":t["id"],"page":t["page"],
-      "attributes":t["attrs"],"manual_visual_transcription":True,
+      "attributes":dict(t["attrs"]),"manual_visual_transcription":True,
       "automatic_OCR_not_claimed":True,"writes":0,
     }
 
@@ -124,4 +124,4 @@ def audit_bard(original: dict[str,Any] | None,
         raise ValueError("Bardo_source_HP_math_failed")
     return {"status":"eligible_bard_NPC_reclassification","name":"Bardo","id":BARD_ID,
             "original_classification_preserved_in_history":True,
-            "attributes":BARD_ATTRIBUTES,"writes":0}
+            "attributes":dict(BARD_ATTRIBUTES),"writes":0}
