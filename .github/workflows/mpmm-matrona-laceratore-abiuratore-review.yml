@@ -1,0 +1,63 @@
+name: MPMM Matrona Laceratore Abiuratore source audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-matrona-laceratore-abiuratore-*'
+    paths:
+      - .github/workflows/mpmm-matrona-laceratore-abiuratore-review.yml
+      - backend/services/mpmm_matrona_laceratore_abiuratore_review.py
+      - backend/tests/test_mpmm_matrona_laceratore_abiuratore_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit independent source boxes and no duplicate records without writing
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_matrona_laceratore_abiuratore_review import (
+              TARGETS,OWNER,SOURCE,inspect_named_original,
+          )
+
+          async def check():
+              if not db.configured:
+                  raise RuntimeError("database_unavailable")
+              decisions=[]
+              for name,spec in TARGETS.items():
+                  original=await db.private_reference_records.find_one({"id":spec["id"]})
+                  verdict=inspect_named_original(name,original)
+                  duplicate=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":SOURCE,
+                      "reference_type":"monster","normalized_name":name.casefold(),
+                  })
+                  if duplicate is not None:
+                      raise RuntimeError("existing_monster_duplicate")
+                  again=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if original!=again:
+                      raise RuntimeError("original_source_modified_during_readonly_audit")
+                  verdict["snapshot_unchanged"]=True
+                  decisions.append(verdict)
+              return decisions
+
+          print("MPMM_MATRONA_LACERATORE_ABIURATORE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(check()),sort_keys=True))
+          PY
