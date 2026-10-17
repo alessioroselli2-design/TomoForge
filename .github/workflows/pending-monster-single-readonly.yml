@@ -166,7 +166,16 @@ jobs:
                                                       and TARGET_PAGE == 177
                                                       and TARGET_NAME == "Rampollo Di Stronmaus"
                                                   )
-                                                  else 220
+                                                  else (
+                                                      360
+                                                      if (
+                                                          TARGET_ID == "ref_f1d7b2c1ee66563587537988b9399a29"
+                                                          and SOURCE_ID == "bgg_2023_it"
+                                                          and TARGET_PAGE == 168
+                                                          and TARGET_NAME == "Nuvola Spettrale"
+                                                      )
+                                                      else 220
+                                                  )
                                               )
                                   )
                           )
