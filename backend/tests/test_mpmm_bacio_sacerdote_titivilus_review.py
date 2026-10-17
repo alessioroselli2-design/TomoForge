@@ -4,7 +4,7 @@ import hashlib
 import pytest
 import services.mpmm_bacio_sacerdote_titivilus_review as m
 from services.mpmm_bacio_sacerdote_titivilus_review import (
-    OWNER, TITLE, TARGETS, registered_ref, audit_creature,
+    OWNER, TARGETS, registered_ref, audit_creature,
 )
 from services.ocr_semantic_gates import monster_semantic_numeric_flags
 
