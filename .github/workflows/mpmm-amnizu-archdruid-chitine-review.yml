@@ -1,0 +1,63 @@
+name: MPMM Amnizu Arcidruido Chitinide source audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-amnizu-archdruid-chitine-*'
+    paths:
+      - .github/workflows/mpmm-amnizu-archdruid-chitine-review.yml
+      - backend/services/mpmm_amnizu_archdruid_chitine_review.py
+      - backend/tests/test_mpmm_amnizu_archdruid_chitine_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readonly-registered-monsters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Strict source and no-monster-duplicate audit with zero writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_amnizu_archdruid_chitine_review import (
+              TARGETS,OWNER,SOURCE,check_independent_statblock,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("database_source_unavailable")
+              results=[]
+              for name,spec in TARGETS.items():
+                  before=await db.private_reference_records.find_one({"id":spec["id"]})
+                  result=check_independent_statblock(name,before)
+                  collision=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":SOURCE,
+                      "reference_type":"monster","normalized_name":name.casefold(),
+                  })
+                  if collision is not None:
+                      raise RuntimeError("existing_monster_duplicate")
+                  after=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if after!=before:
+                      raise RuntimeError("source_changed_during_readonly_audit")
+                  result["snapshot_unchanged"]=True
+                  results.append(result)
+              return results
+
+          print("MPMM_AMNIZU_ARCHDRUID_CHITINIDE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY
