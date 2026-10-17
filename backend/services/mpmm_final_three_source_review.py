@@ -15,6 +15,7 @@ from services.ocr_semantic_gates import monster_identity_sanity_flags, monster_s
 OWNER = "user_fabf28726a20"
 SOURCE = "Mostri del multi verso 1-100.pdf"
 LOGICAL = "mpmm_2022_it"
+PHYSICAL_SHA256 = "27cedd1d17c25d0338ff8b17849c58738ab63a2504f31efbd1fe097f785f09b4"
 BARD_ID = "ref_23f704804c1059e4becdde28c0b01061"
 BARD_SHA = "95239fe4c61d282d82e10a69edc784b3419e2883075fc6fef633c071b72a6111"
 BARD_CHECKSUM = "05e4578077a78782da4259ea1ed8bc563e17055a98ffb609f741eacfc02f016b"
@@ -22,15 +23,15 @@ BARD_CHECKSUM = "05e4578077a78782da4259ea1ed8bc563e17055a98ffb609f741eacfc02f016
 TARGETS = {
     "Alkilith": {
         "id":"ref_9ac0f7f7d27ecb4fe52b952b8a22650f", "page":51,
-        "source_excerpt":"Immondo Medio (demone), generalmente caotico malvagio. Classe Armatura 17 (armatura naturale). Punti Ferita 168 (16d8 + 96). Velocità 12 m, scalare 12 m.",
-        "excerpt_sha256":"b163841502bf6395765514458013d743caff1e28df4a07c024d734a5eb963bce",
+        "source_excerpt":"Alkilith. Immondo Medio (demone), generalmente caotico malvagio. Classe Armatura 17 (armatura naturale). Punti Ferita 168 (16d8 + 96). Velocità 12 m, scalare 12 m.",
+        "excerpt_sha256":"b1261d7423728d6019ea1203c51f061a870b3849e7bcb572a2010d40d2b05b26",
         "attrs":{"classe_armatura":"17 (armatura naturale)","punti_ferita":"168 (16d8 + 96)","velocita":"12 m, scalare 12 m"},
         "dice":(168,16,8,96),
     },
     "Derro Sapiente": {
         "id":"ref_16f2969009bd295552e09d79480cbe34", "page":94,
-        "source_excerpt":"Aberrazione Piccola (stregone), generalmente caotica malvagia. Classe Armatura 13 (armatura di cuoio). Punti Ferita 36 (8d6 + 8). Velocità 9 m.",
-        "excerpt_sha256":"db2e83636885a777938aff5de9e939f06f5a2fc5e0fbc15e25aaf8c07c2b0d44",
+        "source_excerpt":"Derro Sapiente. Aberrazione Piccola (stregone), generalmente caotica malvagia. Classe Armatura 13 (armatura di cuoio). Punti Ferita 36 (8d6 + 8). Velocità 9 m.",
+        "excerpt_sha256":"71478fa362ab55660ae2105c2d602c59d60aec1f4b9ecd8880c0bf09de210bd9",
         "attrs":{"classe_armatura":"13 (armatura di cuoio)","punti_ferita":"36 (8d6 + 8)","velocita":"9 m"},
         "dice":(36,8,6,8),
     },
@@ -50,7 +51,8 @@ def authority(page: int) -> dict[str, Any]:
 
 def audit_catalog(catalog: dict[str,Any] | None) -> None:
     required={"logical_source_id":LOGICAL,"physical_filename":SOURCE,
-        "physical_pages":100,"source_status":"active",
+        "physical_pages":100,"physical_sha256":PHYSICAL_SHA256,
+        "source_status":"active",
         "authority_class":"licensed_translation","source_role":"authority"}
     if not isinstance(catalog,dict) or any(catalog.get(k)!=v for k,v in required.items()):
         raise ValueError("registered_Italian_original_source_mismatch")
@@ -70,6 +72,16 @@ def audit_new_creature(name: str, existing_id: dict[str,Any] | None,
         raise ValueError("deterministic_identity_drift")
     if hashlib.sha256(t["source_excerpt"].encode()).hexdigest()!=t["excerpt_sha256"]:
         raise ValueError("manual_original_visual_excerpt_modified")
+    # Bind heading and every accepted field to one inspected, sealed box.
+    if not t["source_excerpt"].startswith(name + ". "):
+        raise ValueError("source_heading_or_statblock_boundary_missing")
+    fragments=(
+        f"Classe Armatura {t['attrs']['classe_armatura']}.",
+        f"Punti Ferita {t['attrs']['punti_ferita']}.",
+        f"Velocità {t['attrs']['velocita']}."
+    )
+    if not all(fragment in t["source_excerpt"] for fragment in fragments):
+        raise ValueError("source_core_fields_disagree_with_sealed_excerpt")
     hp,n,faces,bonus=t["dice"]
     if n*(faces+1)//2+bonus!=hp:
         raise ValueError("original_hit_dice_math_failed")
@@ -83,9 +95,12 @@ def audit_new_creature(name: str, existing_id: dict[str,Any] | None,
     }
 
 
-def audit_bard(original: dict[str,Any] | None) -> dict[str,Any]:
+def audit_bard(original: dict[str,Any] | None,
+               existing_monster: dict[str,Any] | None) -> dict[str,Any]:
     if not isinstance(original,dict):
         raise ValueError("original_Bardo_record_absent")
+    if existing_monster is not None:
+        raise ValueError("same_source_bard_monster_collision")
     required={
         "id":BARD_ID,"user_id":OWNER,"name":"Bardo",
         "source_name":"Bardo","normalized_name":"bardo",
