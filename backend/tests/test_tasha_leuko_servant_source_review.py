@@ -69,3 +69,13 @@ def test_unbound_heading_fails_closed(monkeypatch):
         "Servitore Possente di Leuk-O. ","",1))
     with pytest.raises(ValueError,match="source_visual_excerpt_sha256_drift"):
         audit_leuko_source(None,None,catalog())
+
+
+def test_returned_attributes_do_not_mutate_sealed_source():
+    original=deepcopy(ATTRS)
+    first=audit_leuko_source(None,None,catalog())
+    first["attributes"]["injected"]="unverified value"
+    assert ATTRS==original
+    second=audit_leuko_source(None,None,catalog())
+    assert second["attributes"]==original
+    assert "injected" not in second["attributes"]
