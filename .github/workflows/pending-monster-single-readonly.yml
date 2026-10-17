@@ -166,7 +166,16 @@ jobs:
                                                       and TARGET_PAGE == 177
                                                       and TARGET_NAME == "Rampollo Di Stronmaus"
                                                   )
-                                                  else 220
+                                                  else (
+                                                              360
+                                                              if (
+                                                                  TARGET_ID == "ref_7a30c2cd8ab25a578d7d6f02b0877061"
+                                                                  and SOURCE_ID == "bgg_2023_it"
+                                                                  and TARGET_PAGE == 142
+                                                                  and TARGET_NAME == "Gegant"
+                                                              )
+                                                              else 220
+                                                          )
                                               )
                                   )
                           )
