@@ -48,7 +48,7 @@ def test_plausible_mutated_data_rejected(monkeypatch,change):
     if change=="abilities":
         original[name][change]["for"]=1
     elif change=="size":
-        original[name][change]="Grande"
+        original[name][change]="Medio"
     else:
         original[name][change]+="0"
     monkeypatch.setattr(mm,"MONSTERS",original)
