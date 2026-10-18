@@ -174,6 +174,8 @@ def audit(name: str, source: dict[str, Any] | None,
     digest = hashlib.sha256(summary.encode("utf-8")).hexdigest()
     if digest != d["digest"]:
         raise ValueError("statblock_source_fields_modified")
+    if not d["kind"].startswith(d["type"]) or f" {d['size']}" not in d["kind"]:
+        raise ValueError("statblock_source_fields_modified")
     attrs = {
         "classe_armatura": d["ac"], "punti_ferita": d["hp"],
         "velocita": d["speed"], "grado_sfida": d["gs"],
