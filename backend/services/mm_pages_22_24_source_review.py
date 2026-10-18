@@ -20,8 +20,8 @@ SOURCE_FILE = "847921086-Manuale-Dei-Mostri-5e.pdf"
 SOURCE_SHA = "b33eb72e5eb78fe3e3dcbde5315f5b9afbe42e4a457a518cc93f7766979a381c"
 SOURCE_PAGES = 353
 DICE = re.compile(r"([0-9]+) [(]([0-9]+)d([0-9]+)(?: [+] ([0-9]+))?[)]$")
-MONSTERS = [
-  {
+MONSTERS = {
+  "Azer": {
     "name": "Azer",
     "id": "ref_6081a1f5ee2a740c571c7a87fd76b9a9",
     "page": 22,
@@ -43,7 +43,7 @@ MONSTERS = [
     },
     "excerpt_sha": "63791b0ef87dde843180260d3d45f1b38ad68c4f28060de0c2674a67a2617168"
   },
-  {
+  "Banshee": {
     "name": "Banshee",
     "id": "ref_cd74316b8cc5c101960bc16b9922cc5a",
     "page": 23,
@@ -65,7 +65,7 @@ MONSTERS = [
     },
     "excerpt_sha": "8ddc1cd3d1afd3df447102fbaf622b9b0e4a247aa023525c854040102ddcf24c"
   },
-  {
+  "Basilisco": {
     "name": "Basilisco",
     "id": "ref_f6c339e03f90d86ba242e86f41cbe958",
     "page": 24,
@@ -87,7 +87,7 @@ MONSTERS = [
     },
     "excerpt_sha": "7ac049dafa6e4bd14b868e2b1f2c2a4e31edd44217a7fbb92a09fc167f70f32c"
   }
-]
+}
 
 
 def source_excerpt(name: str, spec: dict[str, Any]) -> str:
