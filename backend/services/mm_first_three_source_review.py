@@ -68,7 +68,7 @@ ANGELS: dict[str, dict[str, Any]] = {
     },
 }
 
-_HP_DICE = re.compile(r"(\\d+) \\((\\d+)d(\\d+) \\+ (\\d+)\\)\\Z")
+_HP_DICE = re.compile(r"([0-9]+) [(]([0-9]+)d([0-9]+) [+] ([0-9]+)[)]$")
 
 
 def _excerpt(name: str, attrs: dict[str, Any]) -> str:
