@@ -21,7 +21,12 @@ def catalog():
 
 @pytest.mark.parametrize(
     ("name", "page", "hp", "gs"),
-    [["Drago D’Argento Antico",100,"385 (22d20 + 154)","22"],["Drago D’Argento Adulto",101,"207 (18d12 + 90)","15"],["Drago D’Argento Giovane",101,"136 (16d10 + 48)","8"],["Drago D’Argento Cucciolo",101,"38 (7d8 + 7)","2"]],
+    [
+        ("Drago D’Argento Antico", 104, "487 (25d20 + 225)", "23"),
+        ("Drago D’Argento Adulto", 105, "243 (18d12 + 126)", "16"),
+        ("Drago D’Argento Giovane", 106, "168 (16d10 + 80)", "9"),
+        ("Drago D’Argento Cucciolo", 106, "45 (6d8 + 18)", "2"),
+    ],
 )
 def test_source_exact_age_block(name, page, hp, gs):
     result = mm.audit(name, catalog())
@@ -57,10 +62,10 @@ def test_uncatalogued_pdf_is_rejected():
 @pytest.mark.parametrize(
     ("name", "field", "wrong"),
     [
-        ("Drago D’Argento Antico", 104, "487 (25d20 + 225)", "23"),
-        ("Drago D’Argento Adulto", 105, "243 (18d12 + 126)", "16"),
-        ("Drago D’Argento Giovane", 106, "168 (16d10 + 80)", "9"),
-        ("Drago D’Argento Cucciolo", 106, "45 (6d8 + 18)", "2"),
+        ("Drago D’Argento Antico", "hp", "488 (25d20 + 226)"),
+        ("Drago D’Argento Adulto", "gs", "17"),
+        ("Drago D’Argento Giovane", "size", "Enorme"),
+        ("Drago D’Argento Cucciolo", "speed", "12 m"),
     ],
 )
 def test_source_modified_values_fail(monkeypatch, name, field, wrong):
