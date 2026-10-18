@@ -91,7 +91,7 @@ _INPUT:dict[str,list[Any]]={
         ]
     ]
 }
-SOURCE_FIELDS={name:(*data[:9],tuple(data[9])) for name,data in _INPUT.items()}
+SOURCE_FIELDS={name:(*data[:8],tuple(data[8])) for name,data in _INPUT.items()}
 MONSTERS={
  name:dict(page=v[0],type=v[1],size=v[2],align=v[3],ac=v[4],
            hp=v[5],speed=v[6],gs=v[7],abilities=dict(zip(
