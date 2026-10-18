@@ -13,6 +13,8 @@ from reference_library import (
     reference_to_card_payload,
 )
 
+from services.source_resolved_ocr_queue import is_source_resolved_ocr_fragment
+
 from core.auth import get_current_user, require_premium
 from core.db import get_db, SupabaseDatabase
 from schemas.library import (
@@ -188,7 +190,10 @@ async def search_private_library(
         ]
     if review_only:
         records = [
-            record for record in records if reference_review_state(record) == "review"
+            record
+            for record in records
+            if reference_review_state(record) == "review"
+            and not is_source_resolved_ocr_fragment(record)
         ]
     records = search_reference_records(
         records,
