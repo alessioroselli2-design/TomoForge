@@ -34,7 +34,7 @@ def native_page_signals(text: str) -> dict[str, int | bool]:
     words = (text or "").casefold()
     markers = sum(marker in words for marker in _MARKERS)
     ability_count = sum(
-        bool(re.search(rf"(?<!\\w){abbr}(?!\\w)", words)) for abbr in _ABILITY
+        bool(re.search(rf"(?<!\w){abbr}(?!\w)", words)) for abbr in _ABILITY
     )
     return {
         "native_text_chars": len(text or ""),
