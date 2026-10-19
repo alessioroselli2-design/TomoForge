@@ -73,3 +73,18 @@ def test_defensive_copy():
     item=mm.audit("Sciame di Corvi",catalog())
     item["attributes"]["caratteristiche"]["for"]="99"
     assert mm.audit("Sciame di Corvi",catalog())["attributes"]["caratteristiche"]["for"]=="6"
+
+
+def test_swarms_are_boxed_monsters_but_variants_are_not_extra_records():
+    swarm_names = {
+        "Sciame di Corvi", "Sciame di Insetti", "Sciame di Pipistrelli",
+        "Sciame di Quipper", "Sciame di Serpenti Velenosi", "Sciame di Topi",
+    }
+    assert swarm_names.issubset(mm.MONSTERS)
+    assert sum(mm.MONSTERS[name]["page"] == 335 for name in swarm_names) == 2
+    assert sum(mm.MONSTERS[name]["page"] == 336 for name in swarm_names) == 3
+    assert mm.MONSTERS["Sciame di Topi"]["page"] == 337
+    assert len({mm.audit(name, catalog())["id"] for name in swarm_names}) == len(swarm_names)
+    for name in ("Topo Gigante Contagioso", "Sciame di Ragni"):
+        with pytest.raises(ValueError, match="not_a_source_statblock"):
+            mm.audit(name, catalog())
