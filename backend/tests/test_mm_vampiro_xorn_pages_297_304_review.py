@@ -68,3 +68,16 @@ def test_source_pages_are_exhaustive_and_provenance_is_recorded():
     assert all(mm.audit(name, catalog())["source_text_checksum"] for name in mm.MONSTERS)
     assert all(mm.audit(name, catalog())["status"] == "source_checked_essential_statistics_only" for name in mm.MONSTERS)
     assert len(mm.SHA256) == 64
+
+
+def test_variant_and_action_tamper_fails_closed():
+    original = deepcopy(mm.MONSTERS["Vampiro"])
+    try:
+        mm.MONSTERS["Vampiro"]["variants"].append("Inventato GS 99")
+        with pytest.raises(ValueError, match="source_fields_changed"):
+            mm.audit("Vampiro", catalog())
+    finally:
+        mm.MONSTERS["Vampiro"] = original
+    wraith = mm.audit("Wraith", catalog())
+    assert "Creare Spettro" in wraith["attributes"]["azioni_nomi_da_completare"]
+    assert not wraith["attributes"]["azioni_leggendarie_nomi_da_completare"]
