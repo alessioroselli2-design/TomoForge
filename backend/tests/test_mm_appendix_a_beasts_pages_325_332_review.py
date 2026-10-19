@@ -64,3 +64,16 @@ def test_source_collision_mutation_defensive_copy():
     r=mm.audit("Gorilla",catalog())
     r["attributes"]["caratteristiche"]["for"]="0"
     assert mm.audit("Gorilla",catalog())["attributes"]["caratteristiche"]["for"]=="16"
+
+
+def test_exhaustive_cross_manual_collision_protection():
+    assert mm.PHB_OVERLAPS == frozenset({
+        "Gufo", "Leone", "Lupo", "Lupo Feroce", "Mastino", "Mulo",
+        "Orso Bruno", "Orso Nero", "Pantera", "Pipistrello", "Ragno Gigante",
+    })
+    assert set(mm.MONSTERS).isdisjoint(mm.PHB_OVERLAPS)
+    assert len([x for x in mm.MONSTERS.values() if x["page"] == 325]) == 4
+    assert len([x for x in mm.MONSTERS.values() if x["page"] == 326]) == 3
+    for n in mm.PHB_OVERLAPS:
+        with pytest.raises(ValueError, match="existing_phb_monster_needs_full_comparison"):
+            mm.audit(n, catalog())
