@@ -23,6 +23,9 @@ def test_complete_physical_pages_through_back_cover():
     assert data[318] == ("Aquila Gigante", "Avvoltoio", "Avvoltoio Gigante", "Babbuino")
     assert "Arcimago" in data[342]
     assert "Veterano" in data[350]
+    assert data[325] == ("Gorilla", "Gorilla Gigante", "Granchio", "Granchio Gigante", "Gufo")
+    assert data[326] == ("Gufo Gigante", "Iena", "Iena Gigante", "Leone")
+    assert sum(len(values) for values in data.values()) == 128
     assert mm.WRITES == 0 and mm.COMPLETE_STATISTICS_VERIFIED is False
 
 
