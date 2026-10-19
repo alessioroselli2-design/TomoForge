@@ -37,3 +37,21 @@ def test_reject_nonindependent_or_missing_numeric():
     record["attributes"]["velocita"] = "9 m"
     record["start_page"] = 999
     assert d.metadata_candidate(record) is None
+
+
+def test_invalid_hit_dice_is_blocked():
+    assert d.hit_dice_coherent("27 (5d8 + 5)") is True
+    assert d.hit_dice_coherent("7 (248 - 2)") is False
+    assert d.hit_dice_coherent("9 (2d8)") is True
+    assert d.hit_dice_coherent("10 (2d8)") is False
+    src = {
+        "name": "Apprendista",
+        "start_page": 201,
+        "review_flags": ["ocr_independent_agreement"],
+        "attributes": {
+            "classe_armatura": "10",
+            "punti_ferita": "7 (248 - 2)",
+            "velocita": "9 m",
+        },
+    }
+    assert d.metadata_candidate(src) is None
