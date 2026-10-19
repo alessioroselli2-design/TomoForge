@@ -1,0 +1,60 @@
+name: Van Richten registered R2 source preflight (read only)
+
+on:
+  push:
+    branches:
+      - audit/vrgr-r2-source-preflight-20261020
+    paths:
+      - backend/scripts/vrgr_r2_source_preflight.py
+      - backend/tests/test_vrgr_r2_source_preflight.py
+      - .github/workflows/vrgr-r2-source-preflight.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-vrgr-source-preflight
+  cancel-in-progress: false
+
+jobs:
+  vrgr-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install read-only R2 and local PDF tools
+        run: |
+          python -m pip install boto3 PyMuPDF
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+      - name: Confirm entire original 257-page PDF without copying source text
+        run: |
+          python backend/scripts/vrgr_r2_source_preflight.py \
+            --output /tmp/vrgr-source-preflight.json
+      - name: Bounded 12-page OCR quality probe, zero DB writes
+        run: |
+          timeout 1200s python backend/scripts/pilot_local_ocr_from_r2.py \
+            --filename "667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf" \
+            --expected-sha256 "7d8e6479f592df1630fc3abb02d3612a1d8514b3faff8d558288005185980209" \
+            --start-page 201 \
+            --page-count 12 \
+            --output-dir /tmp/vrgr-ocr-quality
+      - name: Upload only aggregate metrics (no scans or text)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: van-richten-provenance-and-ocr-quality
+          path: |
+            /tmp/vrgr-source-preflight.json
+            /tmp/vrgr-ocr-quality/report.json
+          if-no-files-found: warn
+          retention-days: 3
