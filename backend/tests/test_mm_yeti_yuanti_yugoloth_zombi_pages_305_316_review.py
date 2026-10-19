@@ -59,3 +59,27 @@ def test_mutation_and_defensive_copy():
         mm.MONSTERS["Ultroloth"]=old
     a=mm.audit("Yeti",catalog());a["attributes"]["caratteristiche"]["for"]="0"
     assert mm.audit("Yeti",catalog())["attributes"]["caratteristiche"]["for"]=="18"
+
+
+def test_cross_source_zombie_identity_is_preserved():
+    overlap = mm.CROSS_SOURCE_OVERLAP
+    assert overlap["name"] == "Zombi"
+    assert overlap["physical_page"] == 316
+    assert overlap["existing_page"] == 311
+    assert overlap["existing_source"].startswith("Manuale_del_giocatore")
+    assert overlap["common_core"] == {
+        "classe_armatura": "8",
+        "punti_ferita": "22 (3d8 + 9)",
+        "velocita": "6 m",
+    }
+    assert "Zombi" not in mm.MONSTERS
+
+
+def test_merged_yuanti_types_remain_one_monster():
+    item = mm.audit("Yuan-Ti Nefasto", catalog())
+    headings = item["attributes"]["azioni_nomi_da_completare"]
+    assert len(headings) == 3
+    assert all(heading.startswith(f"Tipo {n}:") for n, heading in enumerate(headings, 1))
+    for name in ("Yuan-Ti Nefasto Tipo 1", "Yuan-Ti Nefasto Tipo 2"):
+        with pytest.raises(ValueError, match="not_a_statblock"):
+            mm.audit(name, catalog())
