@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -32,6 +33,21 @@ from services.monster_statblock_ocr import (
 
 WRITES = 0
 FIELDS = ("classe_armatura", "punti_ferita", "velocita")
+HP_DICE_PATTERN = re.compile(r"^(\\d+)\\s*\\((\\d+)d(\\d+)(?:\\s*([+-])\\s*(\\d+))?\\)$")
+
+
+def hit_dice_coherent(value: str) -> bool:
+    """Reject OCR-mangled dice and mathematically inconsistent HP."""
+    match = HP_DICE_PATTERN.fullmatch(value.strip())
+    if not match:
+        return False
+    average, count, sides, sign, bonus = match.groups()
+    n, die = int(count), int(sides)
+    if n < 1 or n > 100 or die not in {4, 6, 8, 10, 12, 20}:
+        return False
+    modifier = int(bonus or 0) * (-1 if sign == "-" else 1)
+    return int(average) == (n * (die + 1)) // 2 + modifier
+
 
 
 def metadata_candidate(record: dict) -> dict | None:
@@ -46,6 +62,7 @@ def metadata_candidate(record: dict) -> dict | None:
         or page < 1
         or page > EXPECTED_PAGES
         or not all(isinstance(attrs.get(k), str) and 0 < len(attrs[k]) <= 140 for k in FIELDS)
+        or not hit_dice_coherent(attrs.get("punti_ferita") or "")
         or "ocr_independent_agreement" not in set(record.get("review_flags") or [])
     ):
         return None
@@ -120,6 +137,13 @@ def main() -> int:
         counts[key] = counts.get(key, 0) + 1
     unique = [item for item in supported if counts[item["name"].casefold()] == 1]
     unique.sort(key=lambda item: (item["physical_page"], item["name"].casefold()))
+    numeric_gate_blocked = [
+        {"name": str(record.get("name") or "")[:80], "page": record.get("start_page")}
+        for record in agreed
+        if not hit_dice_coherent(
+            str((record.get("attributes") or {}).get("punti_ferita") or "")
+        )
+    ]
     summary = {
         "logical_source_id": SOURCE_ID,
         "source_sha256_matched": True,
@@ -133,6 +157,7 @@ def main() -> int:
         "independently_agreed_candidates": len(agreed),
         "unique_minimal_candidates": len(unique),
         "excluded_ambiguous_duplicates": len(supported) - len(unique),
+        "blocked_invalid_hit_dice": numeric_gate_blocked,
         "candidates_for_manual_review": unique,
         "status": "source_ocr_candidate_only_not_verified_not_importable",
         "database_writes": WRITES,
