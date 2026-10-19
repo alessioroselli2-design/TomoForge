@@ -48,3 +48,13 @@ def test_defensive_copy():
     copy = mm.inventory(catalog())
     copy[342] = ("Inventato",)
     assert mm.inventory(catalog())[342] == ("Accolito", "Arcimago")
+
+
+def test_adjacent_page_attribution_cannot_double_count_creatures():
+    pages = mm.inventory(catalog())
+    left, right = pages[317], pages[318]
+    assert len(left) == 4 and len(right) == 4
+    assert len(set(left + right)) == 8
+    assert set(left).isdisjoint(right)
+    assert left[-2:] == ("Alce Gigante", "Aquila")
+    assert right[0] == "Aquila Gigante"
