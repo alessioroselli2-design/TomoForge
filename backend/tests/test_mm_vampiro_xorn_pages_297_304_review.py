@@ -60,3 +60,11 @@ def test_mutated_fields_and_defensive_copy():
     item=mm.audit("Verme Purpureo",catalog())
     item["attributes"]["caratteristiche"]["for"]="0"
     assert mm.audit("Verme Purpureo",catalog())["attributes"]["caratteristiche"]["for"]=="28"
+
+
+def test_source_pages_are_exhaustive_and_provenance_is_recorded():
+    # These are eight individually boxed physical-page statblocks, not lore or variants.
+    assert sorted(mm.audit(name, catalog())["physical_page"] for name in mm.MONSTERS) == list(range(297, 305))
+    assert all(mm.audit(name, catalog())["source_text_checksum"] for name in mm.MONSTERS)
+    assert all(mm.audit(name, catalog())["status"] == "source_checked_essential_statistics_only" for name in mm.MONSTERS)
+    assert len(mm.SHA256) == 64
