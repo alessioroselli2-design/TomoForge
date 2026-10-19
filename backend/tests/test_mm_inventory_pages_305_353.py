@@ -19,7 +19,9 @@ def test_complete_physical_pages_through_back_cover():
     assert not data[351] and not data[352] and not data[353]
     assert all(not data[p] for p in (307, 311, 312, 315))
     assert data[316] == ("Zombi", "Zombi Ogre", "Zombi Beholder")
-    assert "Alce" in data[317] and "Arcimago" in data[342]
+    assert data[317] == ("Albero Risvegliato", "Alce", "Alce Gigante", "Aquila")
+    assert data[318] == ("Aquila Gigante", "Avvoltoio", "Avvoltoio Gigante", "Babbuino")
+    assert "Arcimago" in data[342]
     assert "Veterano" in data[350]
     assert mm.WRITES == 0 and mm.COMPLETE_STATISTICS_VERIFIED is False
 
@@ -46,3 +48,13 @@ def test_defensive_copy():
     copy = mm.inventory(catalog())
     copy[342] = ("Inventato",)
     assert mm.inventory(catalog())[342] == ("Accolito", "Arcimago")
+
+
+def test_adjacent_page_attribution_cannot_double_count_creatures():
+    pages = mm.inventory(catalog())
+    left, right = pages[317], pages[318]
+    assert len(left) == 4 and len(right) == 4
+    assert len(set(left + right)) == 8
+    assert set(left).isdisjoint(right)
+    assert left[-2:] == ("Alce Gigante", "Aquila")
+    assert right[0] == "Aquila Gigante"
