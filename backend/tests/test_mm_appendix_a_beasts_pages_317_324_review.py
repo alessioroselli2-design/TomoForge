@@ -73,3 +73,16 @@ def test_defensive_copy():
     x=mm.audit("Cane Intermittente",catalog())
     x["attributes"]["caratteristiche"]["for"]="0"
     assert mm.audit("Cane Intermittente",catalog())["attributes"]["caratteristiche"]["for"]=="12"
+
+
+def test_omitted_phb_beasts_have_no_clone_in_new_source():
+    assert mm.EXISTING_CROSS_SOURCE_NAMES == frozenset({
+        "Aquila Gigante", "Cavallo da Galoppo", "Cavallo da Guerra",
+        "Cinghiale", "Coccodrillo", "Corvo", "Falco", "Gatto",
+    })
+    assert set(mm.MONSTERS).isdisjoint(mm.EXISTING_CROSS_SOURCE_NAMES)
+    assert mm.audit("Alce Gigante", catalog())["physical_page"] == 317
+    assert mm.audit("Avvoltoio Gigante", catalog())["physical_page"] == 318
+    for name in mm.EXISTING_CROSS_SOURCE_NAMES:
+        with pytest.raises(ValueError, match="existing_phb_monster_requires_full_comparison"):
+            mm.audit(name, catalog())
