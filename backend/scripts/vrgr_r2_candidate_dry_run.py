@@ -33,7 +33,7 @@ from services.monster_statblock_ocr import (
 
 WRITES = 0
 FIELDS = ("classe_armatura", "punti_ferita", "velocita")
-HP_DICE_PATTERN = re.compile(r"^(\\d+)\\s*\\((\\d+)d(\\d+)(?:\\s*([+-])\\s*(\\d+))?\\)$")
+HP_DICE_PATTERN = re.compile(r"^(\d+)\s*\((\d+)d(\d+)(?:\s*([+-])\s*(\d+))?\)$")
 
 
 def hit_dice_coherent(value: str) -> bool:
