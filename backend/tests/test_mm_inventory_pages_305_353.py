@@ -19,7 +19,9 @@ def test_complete_physical_pages_through_back_cover():
     assert not data[351] and not data[352] and not data[353]
     assert all(not data[p] for p in (307, 311, 312, 315))
     assert data[316] == ("Zombi", "Zombi Ogre", "Zombi Beholder")
-    assert "Alce" in data[317] and "Arcimago" in data[342]
+    assert data[317] == ("Albero Risvegliato", "Alce", "Alce Gigante", "Aquila")
+    assert data[318] == ("Aquila Gigante", "Avvoltoio", "Avvoltoio Gigante", "Babbuino")
+    assert "Arcimago" in data[342]
     assert "Veterano" in data[350]
     assert mm.WRITES == 0 and mm.COMPLETE_STATISTICS_VERIFIED is False
 
