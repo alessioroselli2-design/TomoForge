@@ -7,6 +7,8 @@ on:
     paths:
       - backend/scripts/vrgr_r2_source_preflight.py
       - backend/tests/test_vrgr_r2_source_preflight.py
+      - backend/scripts/vrgr_r2_candidate_dry_run.py
+      - backend/tests/test_vrgr_r2_candidate_dry_run.py
       - .github/workflows/vrgr-r2-source-preflight.yml
 
 permissions:
@@ -48,6 +50,12 @@ jobs:
             --start-page 201 \
             --page-count 12 \
             --output-dir /tmp/vrgr-ocr-quality
+      - name: Identify only independently agreed candidate identities, never insert
+        run: |
+          timeout 1200s python backend/scripts/vrgr_r2_candidate_dry_run.py \
+            --start-page 201 \
+            --page-count 12 \
+            --output /tmp/vrgr-candidates.json
       - name: Upload only aggregate metrics (no scans or text)
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,5 +64,6 @@ jobs:
           path: |
             /tmp/vrgr-source-preflight.json
             /tmp/vrgr-ocr-quality/report.json
+            /tmp/vrgr-candidates.json
           if-no-files-found: warn
           retention-days: 3
