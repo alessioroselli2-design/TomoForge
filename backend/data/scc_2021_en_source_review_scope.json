@@ -1,0 +1,21 @@
+{
+  "authority": {
+    "logical_source_id": "scc_2021_en",
+    "physical_pages": 226,
+    "physical_sha256": "8f417ad08a68004869e141b1ab85e5659b95792250c8b82ddf70cb191f7c2063",
+    "physical_filename": "779447314-Toaz-info-Strixhaven-a-Curriculum-of-Chaos-Dampd-5e-Pr-Ddb9ac0faaf75f03b8889d75914d10c4.pdf",
+    "language": "en"
+  },
+  "audit": {
+    "count_total": 45,
+    "chapter7_index_total": 44,
+    "outside_index_name": "Scufflecup Teacup",
+    "outside_index_page": 159,
+    "all_core_source_verified": true,
+    "hit_dice_checked": 45,
+    "integral_traits_actions_spells_verified": false,
+    "translation_verified": false,
+    "database_writes": 0,
+    "original_pdf_not_committed": true
+  }
+}
