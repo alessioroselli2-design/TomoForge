@@ -1,0 +1,139 @@
+{
+  "authority": {
+    "logical_source_id": "tortle_2017_en",
+    "title": "The Tortle Package",
+    "filename": "368524312-The-Tortle-Package.pdf",
+    "physical_pdf_pages": 28,
+    "sha256": "3dea9cd685343b1d90207b2b79f4a963cb3131f30e67f23d10795ace8f9f1a44",
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "pdf_pages_visually_screened": 28,
+    "statblocks_with_six_scores": 5,
+    "new_candidates": 3,
+    "existing_translated_aliases": 2,
+    "arithmetic_hp_dice_verified": 5,
+    "database_writes": 0,
+    "core_only": true,
+    "actions_traits_spells_complete": false,
+    "source_private_pdf_not_committed": true,
+    "marine_decapus_note": "Marine Decapus is a variant of Decapus described in text on PDF p22 (swim 30 ft.; underwater breathing only); not a second independent statblock, preserve variant without duplicate.",
+    "aliases": {
+      "Tortle": "Tortuga",
+      "Tortle Druid": "Tortuga Druido"
+    }
+  },
+  "statblocks": [
+    {
+      "name": "Decapus",
+      "physical_pdf_page": 21,
+      "armor_class": 14,
+      "hit_points": "75 (10d10 + 20)",
+      "speed": "15 ft., climb 30 ft.",
+      "size": "Large",
+      "creature_type": "Monstrosity",
+      "ability_scores": {
+        "for": 15,
+        "des": 14,
+        "cos": 14,
+        "int": 4,
+        "sag": 10,
+        "car": 7
+      },
+      "challenge_rating": "4",
+      "import_decision": "candidate_new",
+      "existing_italian_name": null,
+      "source_review": "original_pdf_page_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Geonid",
+      "physical_pdf_page": 22,
+      "armor_class": 17,
+      "hit_points": "26 (4d6 + 12)",
+      "speed": "30 ft.",
+      "size": "Small",
+      "creature_type": "Elemental",
+      "ability_scores": {
+        "for": 12,
+        "des": 10,
+        "cos": 16,
+        "int": 9,
+        "sag": 14,
+        "car": 11
+      },
+      "challenge_rating": "1/4",
+      "import_decision": "candidate_new",
+      "existing_italian_name": null,
+      "source_review": "original_pdf_page_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Topi",
+      "physical_pdf_page": 22,
+      "armor_class": 13,
+      "hit_points": "13 (3d6 + 3)",
+      "speed": "30 ft.",
+      "size": "Small",
+      "creature_type": "Undead",
+      "ability_scores": {
+        "for": 7,
+        "des": 15,
+        "cos": 12,
+        "int": 6,
+        "sag": 10,
+        "car": 5
+      },
+      "challenge_rating": "1/2",
+      "import_decision": "candidate_new",
+      "existing_italian_name": null,
+      "source_review": "original_pdf_page_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Tortle",
+      "physical_pdf_page": 23,
+      "armor_class": 17,
+      "hit_points": "22 (4d8 + 4)",
+      "speed": "30 ft.",
+      "size": "Medium",
+      "creature_type": "Humanoid (tortle)",
+      "ability_scores": {
+        "for": 15,
+        "des": 10,
+        "cos": 12,
+        "int": 11,
+        "sag": 13,
+        "car": 12
+      },
+      "challenge_rating": "1/4",
+      "import_decision": "link_existing_identity",
+      "existing_italian_name": "Tortuga",
+      "source_review": "original_pdf_page_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Tortle Druid",
+      "physical_pdf_page": 23,
+      "armor_class": 17,
+      "hit_points": "33 (6d8 + 6)",
+      "speed": "30 ft.",
+      "size": "Medium",
+      "creature_type": "Humanoid (tortle)",
+      "ability_scores": {
+        "for": 14,
+        "des": 10,
+        "cos": 12,
+        "int": 11,
+        "sag": 15,
+        "car": 12
+      },
+      "challenge_rating": "2",
+      "import_decision": "link_existing_identity",
+      "existing_italian_name": "Tortuga Druido",
+      "source_review": "original_pdf_page_visual",
+      "completeness": "statistiche_essenziali"
+    }
+  ]
+}
