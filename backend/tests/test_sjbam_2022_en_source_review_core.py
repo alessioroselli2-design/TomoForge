@@ -7,7 +7,6 @@ from pathlib import Path
 
 DOC = Path(__file__).resolve().parents[1] / "data" / "sjbam_2022_en_source_review_core.json"
 SHA = "24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e"
-DICE = re.compile(r"^(\\d+) \\(\\d+d(4|6|8|10|12|20)(?: [+-] \\d+)?\\)$")
 ABILITIES = {"for", "des", "cos", "int", "sag", "car"}
 
 
@@ -37,11 +36,11 @@ def test_all_72_core_fields_and_hit_dice_arithmetic():
         assert r["size"] in {"Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"}
         assert r["creature_type"]
         assert isinstance(r["armor_class"], int) and 1 <= r["armor_class"] <= 30
-        assert re.search(r"\\d+ ft\\.", r["speed"])
+        assert re.search(r"\d+ ft\.", r["speed"])
         assert set(r["ability_scores"]) == ABILITIES
         assert all(1 <= x <= 30 for x in r["ability_scores"].values())
-        assert re.fullmatch(r"(?:0|[1-9]\\d*)(?:/[1-9]\\d*)?", r["challenge_rating"])
-        m = re.fullmatch(r"(\\d+) \\(\\d+)d(4|6|8|10|12|20)(?: ([+-]) (\\d+))?\\)", r["hit_points"])
+        assert re.fullmatch(r"(?:0|[1-9]\d*)(?:/[1-9]\d*)?", r["challenge_rating"])
+        m = re.fullmatch(r"(\d+) \(\d+)d(4|6|8|10|12|20)(?: ([+-]) (\d+))?\)", r["hit_points"])
         assert m is not None, r["name"]
         hp, count, sides, sign, bonus = m.groups()
         expected = math.floor(int(count) * (int(sides) + 1) / 2)
