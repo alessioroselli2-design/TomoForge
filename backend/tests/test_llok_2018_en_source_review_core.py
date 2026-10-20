@@ -32,7 +32,7 @@ def test_all_38_core_fields_match_source_math():
         assert 38 <= x["physical_pdf_page"] <= 53
         assert x["completeness"] == "statistiche_essenziali"
         assert x["source_review"] == "original_pdf_text_and_visual"
-        assert x["armor_class"] and x["speed"]
+        assert x["armor_class"] and x["speed"] and x["size_and_type"]
         assert set(x["ability_scores"]) == ABILITIES
         assert all(isinstance(v, int) and 1 <= v <= 30 for v in x["ability_scores"].values())
         assert re.fullmatch(r"(?:0|[1-9]\d*)(?:/[1-9]\d*)?", x["challenge_rating"])

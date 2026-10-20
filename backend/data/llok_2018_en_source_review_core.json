@@ -45,7 +45,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Capo dei Banditi"
+      "existing_canonical_name": "Capo dei Banditi",
+      "size_and_type": "Medium humanoid (any race), any non-lawful alignment"
     },
     {
       "name": "Berserker",
@@ -65,7 +66,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Berserker"
+      "existing_canonical_name": "Berserker",
+      "size_and_type": "Medium humanoid (any race), any chaotic alignment"
     },
     {
       "name": "Bone Devil",
@@ -85,7 +87,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Diavolo D'Ossa"
+      "existing_canonical_name": "Diavolo D'Ossa",
+      "size_and_type": "Large fiend (devil), lawful evil"
     },
     {
       "name": "Brain in a Jar",
@@ -107,7 +110,8 @@
       "import_decision": "link_existing_identity",
       "existing_canonical_name": "Cervello in Barattolo",
       "cross_source_variant": true,
-      "source_specific_hp_and_cr": true
+      "source_specific_hp_and_cr": true,
+      "size_and_type": "Medium undead, any alignment"
     },
     {
       "name": "Clockwork Kraken",
@@ -127,7 +131,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "candidate_new",
-      "existing_canonical_name": null
+      "existing_canonical_name": null,
+      "size_and_type": "Large construct, unaligned"
     },
     {
       "name": "Commoner",
@@ -147,7 +152,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Popolano"
+      "existing_canonical_name": "Popolano",
+      "size_and_type": "Medium humanoid (any race), any alignment"
     },
     {
       "name": "Cultist",
@@ -167,7 +173,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Cultista"
+      "existing_canonical_name": "Cultista",
+      "size_and_type": "Medium humanoid (any race), any non-good alignment"
     },
     {
       "name": "Cult Fanatic",
@@ -187,7 +194,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Cultista Fanatico"
+      "existing_canonical_name": "Cultista Fanatico",
+      "size_and_type": "Medium humanoid (any race), any non-good alignment"
     },
     {
       "name": "Evoker",
@@ -209,7 +217,8 @@
       "import_decision": "link_existing_identity",
       "existing_canonical_name": "Mago Invocatore",
       "cross_source_variant": true,
-      "source_specific_hp_and_cr": true
+      "source_specific_hp_and_cr": true,
+      "size_and_type": "Medium humanoid (any race), any alignment"
     },
     {
       "name": "Froghemoth",
@@ -229,7 +238,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "candidate_new",
-      "existing_canonical_name": null
+      "existing_canonical_name": null,
+      "size_and_type": "Huge monstrosity, unaligned"
     },
     {
       "name": "Galeb Duhr",
@@ -249,7 +259,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Galeb Duhr"
+      "existing_canonical_name": "Galeb Duhr",
+      "size_and_type": "Medium elemental, neutral"
     },
     {
       "name": "Garret Levistusson",
@@ -269,7 +280,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "candidate_new",
-      "existing_canonical_name": null
+      "existing_canonical_name": null,
+      "size_and_type": "Medium humanoid (tiefling), chaotic neutral"
     },
     {
       "name": "Gelatinous Cube",
@@ -289,7 +301,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Cubo Gelatinoso"
+      "existing_canonical_name": "Cubo Gelatinoso",
+      "size_and_type": "Large ooze, unaligned"
     },
     {
       "name": "Gibbering Mouther",
@@ -309,7 +322,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Fauce Gorgogliante"
+      "existing_canonical_name": "Fauce Gorgogliante",
+      "size_and_type": "Medium aberration, neutral"
     },
     {
       "name": "Gynosphinx",
@@ -329,7 +343,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Ginosfinge"
+      "existing_canonical_name": "Ginosfinge",
+      "size_and_type": "Large monstrosity, lawful neutral"
     },
     {
       "name": "Kenku",
@@ -349,7 +364,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Kenku"
+      "existing_canonical_name": "Kenku",
+      "size_and_type": "Medium humanoid (kenku), chaotic neutral"
     },
     {
       "name": "Martial Arts Adept",
@@ -369,7 +385,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Adepto Di Arti Marziali"
+      "existing_canonical_name": "Adepto Di Arti Marziali",
+      "size_and_type": "Medium humanoid (any race), any alignment"
     },
     {
       "name": "Mary Greymalkin",
@@ -389,7 +406,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "candidate_new",
-      "existing_canonical_name": null
+      "existing_canonical_name": null,
+      "size_and_type": "Medium humanoid (eladrin), neutral"
     },
     {
       "name": "Medusa",
@@ -409,7 +427,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Medusa"
+      "existing_canonical_name": "Medusa",
+      "size_and_type": "Medium monstrosity, lawful evil"
     },
     {
       "name": "Merrenoloth",
@@ -429,7 +448,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Merrenoloth"
+      "existing_canonical_name": "Merrenoloth",
+      "size_and_type": "Medium fiend (yugoloth), neutral evil"
     },
     {
       "name": "Monodrone",
@@ -449,7 +469,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Monodrone"
+      "existing_canonical_name": "Monodrone",
+      "size_and_type": "Medium construct, lawful neutral"
     },
     {
       "name": "Mind Flayer Arcanist",
@@ -469,7 +490,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "candidate_new",
-      "existing_canonical_name": null
+      "existing_canonical_name": null,
+      "size_and_type": "Medium aberration, lawful evil"
     },
     {
       "name": "Ooze-Folk",
@@ -489,7 +511,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "candidate_new",
-      "existing_canonical_name": null
+      "existing_canonical_name": null,
+      "size_and_type": "Medium ooze, unaligned"
     },
     {
       "name": "Quasit",
@@ -509,7 +532,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Quasit"
+      "existing_canonical_name": "Quasit",
+      "size_and_type": "Tiny fiend (demon, shapechanger), chaotic evil"
     },
     {
       "name": "Quickling",
@@ -529,7 +553,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Celeresto"
+      "existing_canonical_name": "Celeresto",
+      "size_and_type": "Tiny fey, chaotic evil"
     },
     {
       "name": "Skeleton",
@@ -549,7 +574,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Scheletro"
+      "existing_canonical_name": "Scheletro",
+      "size_and_type": "Medium undead, lawful evil"
     },
     {
       "name": "Sprite",
@@ -569,7 +595,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Spiritello"
+      "existing_canonical_name": "Spiritello",
+      "size_and_type": "Tiny fey, neutral good"
     },
     {
       "name": "Steam Mephit",
@@ -589,7 +616,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Mephit del Vapore"
+      "existing_canonical_name": "Mephit del Vapore",
+      "size_and_type": "Small elemental, neutral evil"
     },
     {
       "name": "Stone Golem",
@@ -609,7 +637,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Golem Di Pietra"
+      "existing_canonical_name": "Golem Di Pietra",
+      "size_and_type": "Large construct, unaligned"
     },
     {
       "name": "Stirge",
@@ -629,7 +658,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Uccello Stigeo"
+      "existing_canonical_name": "Uccello Stigeo",
+      "size_and_type": "Tiny beast, unaligned"
     },
     {
       "name": "Swarm of Bats",
@@ -649,7 +679,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Sciame di Pipistrelli"
+      "existing_canonical_name": "Sciame di Pipistrelli",
+      "size_and_type": "Medium swarm of Tiny beasts, unaligned"
     },
     {
       "name": "Thug",
@@ -669,7 +700,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Malvivente"
+      "existing_canonical_name": "Malvivente",
+      "size_and_type": "Medium humanoid (any race), any non-good alignment"
     },
     {
       "name": "Treant",
@@ -689,7 +721,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Treant"
+      "existing_canonical_name": "Treant",
+      "size_and_type": "Huge plant, chaotic good"
     },
     {
       "name": "Umber Hulk",
@@ -709,7 +742,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Umber Hulk"
+      "existing_canonical_name": "Umber Hulk",
+      "size_and_type": "Large monstrosity, chaotic evil"
     },
     {
       "name": "Vampire",
@@ -729,7 +763,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Vampiro"
+      "existing_canonical_name": "Vampiro",
+      "size_and_type": "Medium undead (shapechanger), lawful evil"
     },
     {
       "name": "Vampire Spawn",
@@ -749,7 +784,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Progenie Vampirica"
+      "existing_canonical_name": "Progenie Vampirica",
+      "size_and_type": "Medium undead, neutral evil"
     },
     {
       "name": "Wraith",
@@ -769,7 +805,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Wraith"
+      "existing_canonical_name": "Wraith",
+      "size_and_type": "Medium undead, neutral evil"
     },
     {
       "name": "Xorn",
@@ -789,7 +826,8 @@
       "source_review": "original_pdf_text_and_visual",
       "completeness": "statistiche_essenziali",
       "import_decision": "link_existing_identity",
-      "existing_canonical_name": "Xorn"
+      "existing_canonical_name": "Xorn",
+      "size_and_type": "Medium elemental, neutral"
     }
   ]
 }
