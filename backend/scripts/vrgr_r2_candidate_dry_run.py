@@ -50,6 +50,11 @@ def hit_dice_coherent(value: str) -> bool:
 
 
 
+def numeric_hp_tokens(value: str) -> str:
+    """Diagnostic only: strip prose and keep a bounded numeric dice signature."""
+    return " ".join(re.findall(r"\\d+|[dD()+-]", (value or "")[:140]))[:100]
+
+
 def metadata_candidate(record: dict) -> dict | None:
     """Emit minimal, bounded review-only facts; no OCR prose."""
     name = str(record.get("name") or "").strip()
@@ -138,7 +143,15 @@ def main() -> int:
     unique = [item for item in supported if counts[item["name"].casefold()] == 1]
     unique.sort(key=lambda item: (item["physical_page"], item["name"].casefold()))
     numeric_gate_blocked = [
-        {"name": str(record.get("name") or "")[:80], "page": record.get("start_page")}
+        {
+            "name": str(record.get("name") or "")[:80],
+            "page": record.get("start_page"),
+            # Only digits/dice operators. Never leak raw OCR or licensed text.
+            "numeric_hp_tokens": numeric_hp_tokens(
+                str((record.get("attributes") or {}).get("punti_ferita") or "")
+            ),
+            "reason": "noncanonical_hit_dice_or_incoherent_average",
+        }
         for record in agreed
         if not hit_dice_coherent(
             str((record.get("attributes") or {}).get("punti_ferita") or "")
