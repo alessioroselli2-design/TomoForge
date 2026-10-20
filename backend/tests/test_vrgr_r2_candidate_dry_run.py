@@ -55,3 +55,11 @@ def test_invalid_hit_dice_is_blocked():
         },
     }
     assert d.metadata_candidate(src) is None
+
+
+def test_numeric_only_diagnostic_does_not_leak_source_prose():
+    signature = d.numeric_hp_tokens("7 (248 - 2) PRIVATE TEXT copyright")
+    assert signature == "7 ( 248 - 2 )"
+    assert "PRIVATE" not in signature and "copyright" not in signature
+    assert d.numeric_hp_tokens("7 (2d8 - 2)") == "7 ( 2 d 8 - 2 )"
+    assert d.hit_dice_coherent("7 (248 - 2)") is False
