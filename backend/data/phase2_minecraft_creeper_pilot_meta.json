@@ -1,0 +1,33 @@
+{
+  "schema_version": "phase2-localization-pilot-v1",
+  "purpose": "metadata-only dry-run; no translated proprietary statblock text in GitHub",
+  "mode": "dry_run",
+  "supabase_writes": 0,
+  "source": {
+    "logical_source_id": "mc_v3_minecraft_2023_en",
+    "physical_sha256": "b7fb95c7519fb0936bb2cb37cfb6a5493134c86e0dc31196a4c62a67887e8ada",
+    "physical_pdf_page": 30
+  },
+  "pilot": {
+    "record_id": "ref_4b4acc08abae1c6c51f54d1d91f4edd0",
+    "source_name_en": "Creeper",
+    "name_it": "Creeper",
+    "name_basis": "official_it",
+    "name_evidence": "https://www.minecraft.net/it-it/article/minecraft-mobs",
+    "confirmed_no_name_collision": true,
+    "source_trait_count": 5,
+    "source_action_count": 0,
+    "italian_description": "private draft, not committed",
+    "translated_rules": "private draft, not committed",
+    "translation_status": "draft",
+    "translation_review_status": "pending",
+    "original_mechanics_must_remain_unchanged": true
+  },
+  "dry_run": {
+    "records_examined": 1,
+    "passed": 1,
+    "blocked": 0,
+    "writes": 0
+  },
+  "next_steps": "After CI and independent review, consider a source-locked append-only update strategy in a separate approved batch; do not use this metadata file as proof of canonical translation."
+}
