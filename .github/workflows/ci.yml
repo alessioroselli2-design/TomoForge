@@ -21,7 +21,6 @@ jobs:
     # Only nonfunctional placeholders: tests mock remote providers and databases.
     # No real production secrets are exposed to untrusted pull request code.
     env:
-      MOCK_DATA: "true"
       SUPABASE_URL: "https://example.supabase.co"
       SUPABASE_SERVICE_ROLE_KEY: "ci-placeholder-not-a-real-supabase-key"
       SUPABASE_ANON_KEY: "ci-placeholder-not-a-real-supabase-anon-key"
