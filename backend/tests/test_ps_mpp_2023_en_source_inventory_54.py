@@ -33,8 +33,10 @@ def test_visual_core_review_only():
         for row in doc["index"]
         if row["core_review_status"] == "source_core_reviewed"
     }
-    assert len(cores) == doc["audit"]["independent_core_fields_visually_verified"] == 31
+    assert len(cores) == doc["audit"]["independent_core_fields_visually_verified"] == 53
     assert {r["name"] for r in cores} == reviewed_names
+    assert not any(r["core_review_status"] == "index_only" for r in doc["index"])
+    assert {r["name"] for r in doc["index"]} == reviewed_names | {"Mercykiller Bloodhound"}
     assert {"Equinal Guardinal", "Musteval Guardinal", "Darkweaver"} <= {r["name"] for r in cores}
     for row in cores:
         assert row["physical_pdf_page"] == next(r["physical_pdf_page"] for r in doc["index"] if r["name"] == row["name"])
@@ -48,3 +50,19 @@ def test_visual_core_review_only():
         average = math.floor(int(count) * (int(die) + 1) / 2)
         average += int(bonus or 0) * (-1 if sign == "-" else 1)
         assert average == int(hp), row["name"]
+
+
+def test_source_publisher_math_conflict_is_not_canonical():
+    doc = json.loads(DATA.read_text(encoding="utf-8"))
+    conflicts = doc["source_conflicts"]
+    assert len(conflicts) == doc["audit"]["source_statblocks_with_hp_dice_conflict"] == 1
+    case = conflicts[0]
+    assert case["name"] == "Mercykiller Bloodhound"
+    assert case["physical_pdf_page"] == 257
+    assert case["source_hit_points"] == "104 (16d8 + 48)"
+    assert case["printed_hit_points"] == 104
+    assert case["expected_dice_average"] == 120
+    assert case["status"] == "source_math_conflict_pending_authoritative_resolution"
+    assert "Mercykiller Bloodhound" not in {r["name"] for r in doc["reviewed_core_statblocks"]}
+    assert not doc["audit"]["english_italian_cross_language_dedup_checked"]
+    assert doc["audit"]["database_writes_in_manifest"] == 0
