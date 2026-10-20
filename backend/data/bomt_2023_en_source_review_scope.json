@@ -1,0 +1,36 @@
+{
+  "authority": {
+    "logical_source_id": "bomt_2023_en",
+    "title": "The Book of Many Things",
+    "physical_filename": "1016064385-The-Book-of-Many-Things-Unknown-Z-library-sk-1lib-sk-Z-lib-sk.pdf",
+    "physical_sha256": "6dd24843c9766ad10d3a6098afb90de0680bf285efc0f73b9fa281085b946146",
+    "physical_pdf_pages": 195,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "full_document_pages_reviewed": 195,
+    "index_pdf_page": 176,
+    "indexed_monster_statblocks": 35,
+    "outside_index_name": "Deck Defender",
+    "outside_index_pdf_page": 73,
+    "total_statblocks": 36,
+    "fixed_core_verified": 35,
+    "dynamic_core_formula_preserved": 1,
+    "mean_hp_hit_dice_consistent": 35,
+    "source_page_pin_count": 36,
+    "all_six_ability_scores": 36,
+    "exact_normalized_name_collisions": 0,
+    "already_imported_at_preflight": 0,
+    "database_writes_before_ci": 0,
+    "full_actions_traits_spells_verified": false,
+    "translation_status": "processing",
+    "original_pdf_ocr_text_not_committed": true,
+    "import_gate": "One PR develop, full CI + Vercel success, guarded Supabase source SHA/collision preflight, append-only audit, independent readback",
+    "notes": [
+      "Deck Defender is a level-scaled construct with HP 5 + five times level and one d8 Hit Die per level; CR not specified (not zero), no invented static HP.",
+      "Other named statblocks are within the 35-entry Monster table in the book and have fixed core values.",
+      "Names remain in source English pending Italian translation; mechanical core only, not full statblocks."
+    ]
+  }
+}
