@@ -419,14 +419,31 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
     return translated, ""
 
 
-async def private_reference_records(user_id: str, *, db=None) -> list[dict]:
-    """Load a user's non-spell manual facts only; the source PDFs stay local."""
+async def private_reference_records(
+    user_id: str, *, db=None, reference_types: set[str] | None = None
+) -> list[dict]:
+    """Return the owner's references without silent PostgREST result truncation.
+
+    The Data API can cap each response independently of the requested limit;
+    paginate in small, consistently ordered chunks until the final page.
+    """
     _db = db if db is not None else _singleton_db
     collection = getattr(_db, "private_reference_records", None)
     if collection is None:
         return []
+    query = {"user_id": user_id}
+    if reference_types:
+        query["reference_type"] = {"$in": sorted(reference_types)}
+    page_size = 500
+    records: list[dict] = []
     try:
-        return await collection.find({"user_id": user_id}).to_list(8000)
+        while True:
+            page = await collection.find(query).sort("id", 1).to_list(
+                page_size, offset=len(records)
+            )
+            records.extend(page)
+            if len(page) < page_size:
+                return records
     except Exception as exc:
         if "private_reference_records" in str(exc):
             logger.warning("Private reference catalogue schema is not available yet")

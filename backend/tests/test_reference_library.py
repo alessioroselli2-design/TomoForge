@@ -725,8 +725,27 @@ class MemoryReferences:
         return next((row.copy() for row in self.rows if all(row.get(key) == value for key, value in query.items())), None)
 
     def find(self, query):
-        rows = [row.copy() for row in self.rows if all(row.get(key) == value for key, value in query.items())]
-        return SimpleNamespace(to_list=lambda limit: asyncio.sleep(0, result=rows[:limit]))
+        rows = [
+            row.copy()
+            for row in self.rows
+            if server.MemoryCollection.matches(row, query)
+        ]
+
+        class Cursor:
+            def __init__(self, records):
+                self.records = records
+
+            def sort(self, field, direction):
+                self.records.sort(
+                    key=lambda record: record.get(field, ""),
+                    reverse=direction < 0,
+                )
+                return self
+
+            async def to_list(self, limit, offset=0):
+                return self.records[offset : offset + limit]
+
+        return Cursor(rows)
 
 
 class MutableMemoryReferences(MemoryReferences):
@@ -2426,7 +2445,7 @@ def test_rate_limited_batch_retries_each_record_individually_and_saves_successes
     barbaro = make_reference("Bárbaro", reference_type="class")
     ladron = make_reference("Ladrón", reference_type="class")
     barbaro_id = barbaro["id"]
-    ladron_id = ladron["id"]
+    # The second record's ID is checked through the original reference.
 
     # The batch (2 records) is rate-limited; individual retries: Bárbaro succeeds,
     # Ladrón is still rate-limited.  Use an ordered iterator so the mock is

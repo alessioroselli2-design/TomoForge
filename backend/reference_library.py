@@ -1175,6 +1175,15 @@ def reference_to_card_payload(record: dict) -> dict:
             **attributes,
         }
     elif card_type == "monster":
+        # Imported monster cores can keep the six ability scores nested.
+        # Return flat ability fields expected by the card editor; never mutate
+        # the original imported source.
+        scores = attributes.get("caratteristiche")
+        if isinstance(scores, dict):
+            for key in ("for", "des", "cos", "int", "sag", "car"):
+                if attributes.get(key) in (None, "") and scores.get(key) is not None:
+                    attributes[key] = scores[key]
+            attributes.pop("caratteristiche", None)
         attributes = {
             "classe_armatura": attributes.get("classe_armatura", ""),
             "punti_ferita": attributes.get("punti_ferita", ""),
