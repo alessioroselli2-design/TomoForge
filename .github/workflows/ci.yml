@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hotfix-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — Ruff + pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install backend dependencies
+        run: uv sync --frozen
+      - name: Identify changed Python files
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git diff --name-only -z "$BASE_SHA" "$HEAD_SHA" -- '*.py' > /tmp/python-files
+          else
+            git ls-files -z '*.py' > /tmp/python-files
+          fi
+      - name: Ruff lint changed files
+        run: xargs -0 -r uv run ruff check < /tmp/python-files
+      - name: Run complete backend test suite
+        working-directory: backend
+        run: uv run pytest
+
+  frontend:
+    name: Frontend — test + production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - name: Install Yarn 1.22.22
+        run: npm install --global yarn@1.22.22
+      - name: Install frontend dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run frontend tests
+        env:
+          CI: "true"
+        run: yarn test --watchAll=false --passWithNoTests
+      - name: Build frontend
+        env:
+          CI: "true"
+        run: yarn build
