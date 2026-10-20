@@ -13,7 +13,14 @@ def isolate_automatic_preload_startup(monkeypatch):
     import server
     import services.preload as preload
 
-    async def skip_remote_preload():
+    original_resume = preload.resume_manual_preload_workers
+
+    async def skip_remote_preload(*, db=None):
+        # Lifespan invokes recovery without an injected DB: do not connect
+        # to a remote database during CI. Recovery unit tests pass their own
+        # in-memory db and must exercise the original implementation.
+        if db is not None:
+            return await original_resume(db=db)
         return None
 
     monkeypatch.setattr(preload, "resume_manual_preload_workers", skip_remote_preload)
