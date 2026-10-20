@@ -15,7 +15,7 @@
       200
     ],
     "statblocks_indexed": 54,
-    "independent_core_fields_visually_verified": 11,
+    "independent_core_fields_visually_verified": 19,
     "existing_english_exact_name_matches": 0,
     "english_italian_cross_language_dedup_checked": false,
     "full_traits_actions_spells_complete": false,
@@ -82,49 +82,49 @@
       "name": "Farastu Demodand",
       "printed_page": 26,
       "physical_pdf_page": 223,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Kelubar Demodand",
       "printed_page": 27,
       "physical_pdf_page": 224,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Shator Demodand",
       "printed_page": 28,
       "physical_pdf_page": 225,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Eater of Knowledge",
       "printed_page": 29,
       "physical_pdf_page": 226,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Githzerai Futurist",
       "printed_page": 30,
       "physical_pdf_page": 227,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Githzerai Traveler",
       "printed_page": 31,
       "physical_pdf_page": 228,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Githzerai Uniter",
       "printed_page": 31,
       "physical_pdf_page": 228,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Avoral Guardinal",
       "printed_page": 32,
       "physical_pdf_page": 229,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Equinal Guardinal",
@@ -536,6 +536,142 @@
       },
       "challenge_rating": "10",
       "size_and_type": "Medium aberration, typically chaotic evil"
+    },
+    {
+      "name": "Farastu Demodand",
+      "physical_pdf_page": 223,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "195 (26d8 + 78)",
+      "speed": "40 ft., climb 40 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 13,
+        "cos": 16,
+        "int": 8,
+        "sag": 12,
+        "car": 16
+      },
+      "challenge_rating": "11",
+      "size_and_type": "Medium fiend, typically neutral evil"
+    },
+    {
+      "name": "Kelubar Demodand",
+      "physical_pdf_page": 224,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "187 (22d8 + 88)",
+      "speed": "30 ft., fly 60 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 13,
+        "cos": 18,
+        "int": 14,
+        "sag": 15,
+        "car": 18
+      },
+      "challenge_rating": "13",
+      "size_and_type": "Medium fiend, typically neutral evil"
+    },
+    {
+      "name": "Shator Demodand",
+      "physical_pdf_page": 225,
+      "armor_class": "19 (natural armor)",
+      "hit_points": "195 (23d10 + 69)",
+      "speed": "30 ft., fly 60 ft.",
+      "ability_scores": {
+        "for": 24,
+        "des": 15,
+        "cos": 17,
+        "int": 21,
+        "sag": 16,
+        "car": 20
+      },
+      "challenge_rating": "16",
+      "size_and_type": "Large fiend, typically neutral evil"
+    },
+    {
+      "name": "Eater of Knowledge",
+      "physical_pdf_page": 226,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "102 (12d10 + 36)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 10,
+        "cos": 17,
+        "int": 18,
+        "sag": 16,
+        "car": 15
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Large aberration, typically neutral evil"
+    },
+    {
+      "name": "Githzerai Futurist",
+      "physical_pdf_page": 227,
+      "armor_class": "16 (Psychic Defense)",
+      "hit_points": "149 (23d8 + 46)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 17,
+        "cos": 15,
+        "int": 17,
+        "sag": 17,
+        "car": 13
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Medium aberration (gith), any alignment"
+    },
+    {
+      "name": "Githzerai Traveler",
+      "physical_pdf_page": 228,
+      "armor_class": "15 (Psychic Defense)",
+      "hit_points": "44 (8d8 + 8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 15,
+        "cos": 12,
+        "int": 14,
+        "sag": 16,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Medium aberration (gith), any alignment"
+    },
+    {
+      "name": "Githzerai Uniter",
+      "physical_pdf_page": 228,
+      "armor_class": "16 (Psychic Defense)",
+      "hit_points": "123 (19d8 + 38)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 17,
+        "cos": 15,
+        "int": 15,
+        "sag": 17,
+        "car": 16
+      },
+      "challenge_rating": "7",
+      "size_and_type": "Medium aberration (gith), any alignment"
+    },
+    {
+      "name": "Avoral Guardinal",
+      "physical_pdf_page": 229,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "172 (23d8 + 69)",
+      "speed": "30 ft., fly 50 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 19,
+        "cos": 17,
+        "int": 16,
+        "sag": 16,
+        "car": 18
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Medium celestial, typically neutral good"
     }
   ]
 }
