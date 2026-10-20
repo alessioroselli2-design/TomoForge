@@ -1,0 +1,37 @@
+name	page	armor_class	hit_points	speed	for	des	cos	int	sag	car	challenge_rating	size_and_type
+Ambitious Assassin	46	16 (studded leather)	91 (14d8 + 28)	40 ft., climb 40 ft.	10	18	15	18	14	16	5	Small or Medium Humanoid, Typically Neutral Evil
+Enchanting Infiltrator	47	18 (Veiled Presence)	156 (24d8 + 48)	40 ft.	10	20	15	20	16	18	11	Small or Medium Fey, Typically Neutral Evil
+Otherworldly Corrupter	48	19 (natural armor)	217 (29d8 + 87)	40 ft., climb 40 ft.	12	22	16	22	18	20	17	Small or Medium Aberration, Typically Chaotic Evil
+Veiled Presence	49	20 (natural armor)	300 (40d8 + 120)	40 ft., fly 80 ft. (hover)	14	24	16	24	20	22	21	Small or Medium Celestial, Typically Lawful Evil
+Deck Defender	73	16 (natural armor)	5 + five times your level (number of d8 Hit Dice equal to level)	30 ft.	16	16	14	3	10	1	—	Medium Construct, Unaligned
+Solar Bastion Knight	76	20 (plate armor, shield)	150 (20d8 + 60)	30 ft.	18	10	17	15	16	17	9	Medium Humanoid (Paladin), Typically Neutral Good
+Sir Jared	81	20 (plate armor, shield)	90 (12d8 + 36)	30 ft.	18	12	17	13	14	17	5	Medium Humanoid, Neutral Good
+Boss Augustus	83	13	150 (20d8 + 60)	30 ft.; 40 ft. in wolf or hybrid form	18	16	17	14	15	12	9	Medium Monstrosity, Neutral
+Boss Delour	84	14	110 (20d6 + 40)	25 ft.; 30 ft. in rat or hybrid form	12	18	15	17	14	16	9	Small Monstrosity, Lawful Evil
+Aspirant of the Comet	92	11	27 (5d8 + 5)	30 ft.	13	12	12	11	10	13	1/2	Medium Humanoid, Any Alignment
+Hierophant of the Comet	93	15 (breastplate)	153 (18d8 + 72)	30 ft.	12	13	18	15	17	20	11	Medium Humanoid (Warlock), Typically Chaotic Evil
+Initiate of the Comet	94	12	75 (10d8 + 30)	30 ft.	12	14	16	11	13	17	4	Medium Humanoid (Warlock), Any Alignment
+Oddlewin	112	13 (leather armor)	21 (6d6)	30 ft.	8	14	10	10	16	15	2	Small Fey (Goblinoid), Chaotic Neutral
+Pazrodine	114	20 (natural armor)	330 (20d20 + 120)	40 ft., fly 80 ft.	22	18	23	20	22	26	21	Gargantuan Dragon (Moonstone), Lawful Neutral
+Gremorly's Ghost	123	12	82 (15d8 + 15)	0 ft., fly 40 ft. (hover)	7	14	12	18	12	17	9	Medium Undead, Neutral Evil
+Minotaur Archaeologist	127	11 (natural armor)	18 (4d8)	30 ft.	12	10	11	13	12	10	1/4	Medium Humanoid, Any Alignment
+Minotaur Infiltrator	128	13 (natural armor)	52 (8d8 + 16)	40 ft.	18	11	14	8	16	10	2	Medium Humanoid, Typically Chaotic Evil
+Brusipha	128	14 (natural armor)	90 (12d8 + 36)	40 ft.	18	11	16	12	16	16	3	Medium Humanoid (Minotaur, Warlock), Chaotic Evil
+Breath Drinker	155	18 (natural armor)	157 (21d8 + 63)	0 ft., fly 60 ft. (hover)	5	18	16	11	15	20	14	Medium Aberration, Typically Chaotic Evil
+Grim Champion of Bloodshed	162	18 (plate armor)	280 (33d8 + 132)	40 ft.	23	12	18	10	17	21	20	Medium Undead, Chaotic Evil
+Grim Champion of Desolation	163	18 (studded leather armor)	416 (49d8 + 196)	30 ft.	22	23	18	12	20	19	25	Medium Undead, Lawful Evil
+Grim Champion of Pestilence	164	14 (17 with Mage Armor)	120 (16d8 + 48)	40 ft.	10	18	16	17	15	21	15	Medium Undead, Neutral Evil
+Harrow Hound	165	15 (natural armor)	45 (6d8 + 18)	40 ft.	16	19	16	8	15	13	3	Medium Undead, Typically Chaotic Evil
+Aurnozci	168	16 (natural armor)	370 (20d20 + 160)	50 ft., burrow 30 ft.	27	20	26	6	21	19	22	Gargantuan Fiend (Demon), Chaotic Evil
+Hulgaz	170	17 (natural armor)	190 (20d10 + 80)	30 ft., fly 30 ft. (hover)	17	10	18	14	15	20	14	Large Fiend (Devil), Lawful Evil
+Malaxxix	174	17 (natural armor)	312 (25d12 + 150)	40 ft., fly 60 ft.	23	16	22	22	20	18	18	Huge Fiend (Yugoloth), Neutral Evil
+Fate Hag	177	14 (natural armor)	71 (13d8 + 13)	30 ft.	12	14	13	12	18	15	4	Medium Fey, Typically Neutral
+Harrow Hawk	178	13	25 (10d4)	10 ft., fly 60 ft.	5	16	10	2	14	7	1	Tiny Undead, Unaligned
+Hierophant Medusa	180	17 (natural armor)	237 (25d10 + 100)	40 ft., climb 40 ft., swim 40 ft.	22	20	18	15	23	22	17	Large Monstrosity, Any Alignment
+Living Portent	181	15 (natural armor)	65 (10d8 + 20)	30 ft., fly 30 ft. (hover)	14	16	14	14	16	15	3	Small or Medium Celestial, Typically Lawful Neutral
+Riffler	182	15 (natural armor)	90 (20d6 + 20)	30 ft., burrow 20 ft.	8	16	12	11	15	17	5	Small Fey, Typically Chaotic Neutral
+Ruin Spider	183	16 (natural armor)	105 (14d10 + 28)	40 ft., climb 40 ft.	16	18	14	2	13	4	5	Large Monstrosity, Unaligned
+Talon Beast	184	14 (natural armor)	114 (12d10 + 48)	40 ft.	22	14	19	5	12	5	7	Large Monstrosity, Unaligned
+Werevulture	185	12	75 (10d8 + 30)	30 ft. humanoid; 10 ft., fly 60 ft. vulture; 30 ft., fly 60 ft. hybrid	16	14	17	11	13	8	4	Medium Fiend, Typically Chaotic Evil
+Asteria	189	18 (breastplate, shield)	195 (26d8 + 78)	30 ft., fly 30 ft. (Winged Boots)	12	21	17	15	11	20	18	Medium Humanoid (Human, Paladin), Chaotic Good
+Euryale	190	17 (natural armor)	297 (35d8 + 140)	30 ft. medusa; 50 ft., climb 50 ft. serpent	21	16	18	12	20	15	18	Medium Monstrosity (Druid, Medusa), Neutral Good
