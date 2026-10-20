@@ -135,7 +135,12 @@ async def search_private_library(
         raise HTTPException(status_code=400, detail="Tipo di contenuto non valido")
     if source_filename and source_filename not in _lib_svc.available_reference_manuals():
         raise HTTPException(status_code=400, detail="Manuale non disponibile nella biblioteca privata")
-    records = await private_reference_records(user.user_id, db=db)
+    # Search only the requested monsters rather than the entire manual archive.
+    records = await private_reference_records(
+        user.user_id,
+        db=db,
+        reference_types={"monster"} if requested_types == {"monster"} else None,
+    )
     if requested_types:
         records = [record for record in records if record.get("reference_type") in requested_types]
     if source_filename:
