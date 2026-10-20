@@ -23,6 +23,53 @@ from translation_integrity import translation_verification_is_current
 
 logger = logging.getLogger("tomeforge")
 
+# Official D&D metric convention: 5 feet = 1.5 metres (not raw 0.3048 m/ft).
+# This is a *display-only* transformation, never an OCR/source correction.
+_MONSTER_SPEED_FEET = re.compile(
+    r"(?<![\w.])(\d+)\s*(?:ft\.?|feet)(?![A-Za-z])", flags=re.IGNORECASE
+)
+_MONSTER_SPEED_MODES = (
+    ("fly", "volare"),
+    ("swim", "nuotare"),
+    ("climb", "scalare"),
+    ("burrow", "scavare"),
+)
+
+
+def metric_monster_speed(value: object) -> object:
+    """Render source feet as D&D metres without changing original source data.
+
+    Unsupported/ambiguous distances fail closed rather than being rounded.
+    Already metric entries are unchanged; multiple travel modes are preserved.
+    """
+    if not isinstance(value, str):
+        return value
+    matches = list(_MONSTER_SPEED_FEET.finditer(value))
+    if not matches:
+        return value
+    if any(int(match.group(1)) % 5 for match in matches):
+        return value
+
+    def replace_feet(match: re.Match[str]) -> str:
+        # Half-metre units avoid floating point rounding/format errors.
+        half_metres = int(match.group(1)) * 3 // 5
+        whole, half = divmod(half_metres, 2)
+        return f"{whole}{',5' if half else ''} m"
+
+    translated = _MONSTER_SPEED_FEET.sub(replace_feet, value)
+    for english, italian in _MONSTER_SPEED_MODES:
+        translated = re.sub(
+            rf"\b{english}(?=\s+\d+(?:,5)?\s+m\b)",
+            italian,
+            translated,
+            flags=re.IGNORECASE,
+        )
+    translated = re.sub(
+        r"\(hover\)", "(fluttuare)", translated, flags=re.IGNORECASE
+    )
+    return translated
+
+
 
 REFERENCE_TYPES = (
     "class",
@@ -1852,6 +1899,9 @@ def reference_to_card_payload(record: dict) -> dict:
                 if attributes.get(key) in (None, "") and scores.get(key) is not None:
                     attributes[key] = scores[key]
             attributes.pop("caratteristiche", None)
+        # Convert feet only in the card response. Italian printed speeds and
+        # canonical source_attributes are intentionally not rewritten.
+        attributes["velocita"] = metric_monster_speed(attributes.get("velocita", ""))
         attributes = {
             "classe_armatura": attributes.get("classe_armatura", ""),
             "punti_ferita": attributes.get("punti_ferita", ""),
