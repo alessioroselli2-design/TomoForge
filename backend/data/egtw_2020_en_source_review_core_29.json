@@ -1,0 +1,577 @@
+{
+  "authority": {
+    "logical_source_id": "egtw_2020_en",
+    "title": "Explorer's Guide to Wildemount",
+    "filename": "469650052-Explorer-s-Guide-to-Wildemount-pdf.pdf",
+    "sha256": "15b34ddd1b33832fe2169821974d3a8d2de8470679ec49225e7e8669f029ce76",
+    "physical_pdf_pages": 307,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "original_pdf_pages_screened": 307,
+    "independent_monster_and_npc_statblocks": 29,
+    "excluded_vehicle_count": 1,
+    "excluded_vehicle_name": "Stahlmaster",
+    "hit_point_dice_arithmetic_verified": 29,
+    "all_six_ability_scores_verified": 29,
+    "source_visual_recovery": "Core Spawn Crawler CHA 6 from PDF p287; Bol'bara type conditional p262",
+    "original_pdf_ocr_not_committed": true,
+    "full_traits_actions_spells_complete": false,
+    "translation_complete": false,
+    "database_writes": 0
+  },
+  "statblocks": [
+    {
+      "name": "Sken Zabriss",
+      "physical_pdf_page": 222,
+      "armor_class": "16 (breastplate, shield)",
+      "hit_points": "45 (7d8 + 14)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 11,
+        "cos": 15,
+        "int": 13,
+        "sag": 10,
+        "car": 12
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Medium humanoid (goliath), lawful evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Kobold Underling",
+      "physical_pdf_page": 222,
+      "armor_class": "13",
+      "hit_points": "7 (3d6 - 3)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 7,
+        "des": 16,
+        "cos": 9,
+        "int": 8,
+        "sag": 9,
+        "car": 8
+      },
+      "challenge_rating": "1/8",
+      "size_and_type": "Small humanoid (kobold), lawful evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Yinra Emberwind",
+      "physical_pdf_page": 224,
+      "armor_class": "15 (studded leather)",
+      "hit_points": "16 (3d8 + 3)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 16,
+        "cos": 12,
+        "int": 14,
+        "sag": 13,
+        "car": 11
+      },
+      "challenge_rating": "1/2",
+      "size_and_type": "Medium humanoid (elf), neutral good",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Bol'bara",
+      "physical_pdf_page": 262,
+      "armor_class": "13 (leather armor), 15 with mage armor",
+      "hit_points": "40 (9d6 + 9)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 14,
+        "cos": 12,
+        "int": 10,
+        "sag": 13,
+        "car": 14
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Small humanoid (goblinoid), chaotic good (chaotic evil when fully possessed)",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Vox Seeker",
+      "physical_pdf_page": 271,
+      "armor_class": "14 (natural armor)",
+      "hit_points": "7 (2d4 + 2)",
+      "speed": "20 ft., climb 20 ft.",
+      "ability_scores": {
+        "for": 2,
+        "des": 10,
+        "cos": 12,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "1/8",
+      "size_and_type": "Tiny construct, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Guardian Wolf",
+      "physical_pdf_page": 273,
+      "armor_class": "14 (natural armor)",
+      "hit_points": "66 (7d12 + 21)",
+      "speed": "60 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 14,
+        "cos": 16,
+        "int": 5,
+        "sag": 12,
+        "car": 8
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Huge monstrosity, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Aeorian Absorber",
+      "physical_pdf_page": 284,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "171 (18d10 + 72)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 21,
+        "des": 18,
+        "cos": 18,
+        "int": 6,
+        "sag": 14,
+        "car": 8
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Large monstrosity, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Aeorian Nullifier",
+      "physical_pdf_page": 284,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "180 (19d10 + 76)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 14,
+        "cos": 18,
+        "int": 7,
+        "sag": 14,
+        "car": 18
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Large monstrosity, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Aeorian Reverser",
+      "physical_pdf_page": 285,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "133 (14d10 + 56)",
+      "speed": "40 ft., climb 40 ft.",
+      "ability_scores": {
+        "for": 21,
+        "des": 16,
+        "cos": 18,
+        "int": 6,
+        "sag": 14,
+        "car": 8
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Large monstrosity, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Blood Hunter",
+      "physical_pdf_page": 285,
+      "armor_class": "16 (half plate)",
+      "hit_points": "65 (10d8 + 20)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 15,
+        "int": 9,
+        "sag": 16,
+        "car": 11
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Medium humanoid (any race), any alignment",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Core Spawn Crawler",
+      "physical_pdf_page": 287,
+      "armor_class": "12",
+      "hit_points": "21 (6d6)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 7,
+        "des": 14,
+        "cos": 10,
+        "int": 9,
+        "sag": 12,
+        "car": 6
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Small aberration, chaotic evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Core Spawn Emissary",
+      "physical_pdf_page": 287,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "102 (12d8 + 48)",
+      "speed": "40 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 17,
+        "des": 15,
+        "cos": 18,
+        "int": 8,
+        "sag": 13,
+        "car": 6
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Medium aberration, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Core Spawn Seer",
+      "physical_pdf_page": 287,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "153 (18d8 + 72)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 12,
+        "cos": 18,
+        "int": 22,
+        "sag": 19,
+        "car": 16
+      },
+      "challenge_rating": "13",
+      "size_and_type": "Medium aberration, chaotic evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Core Spawn Worm",
+      "physical_pdf_page": 288,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "279 (18d20 + 90)",
+      "speed": "60 ft., burrow 40 ft.",
+      "ability_scores": {
+        "for": 26,
+        "des": 5,
+        "cos": 20,
+        "int": 6,
+        "sag": 8,
+        "car": 4
+      },
+      "challenge_rating": "15",
+      "size_and_type": "Gargantuan aberration, chaotic evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Frost Giant Zombie",
+      "physical_pdf_page": 289,
+      "armor_class": "15 (patchwork armor)",
+      "hit_points": "138 (12d12 + 60)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 23,
+        "des": 6,
+        "cos": 21,
+        "int": 3,
+        "sag": 6,
+        "car": 5
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Huge undead, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Frost Worm",
+      "physical_pdf_page": 290,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "264 (16d20 + 96)",
+      "speed": "40 ft., burrow 30 ft.",
+      "ability_scores": {
+        "for": 28,
+        "des": 8,
+        "cos": 22,
+        "int": 1,
+        "sag": 5,
+        "car": 5
+      },
+      "challenge_rating": "17",
+      "size_and_type": "Gargantuan monstrosity, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Gearkeeper Construct",
+      "physical_pdf_page": 291,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "161 (17d10 + 68)",
+      "speed": "60 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 16,
+        "cos": 18,
+        "int": 3,
+        "sag": 11,
+        "car": 1
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Large construct, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Gloomstalker",
+      "physical_pdf_page": 292,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "90 (12d10 + 24)",
+      "speed": "40 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 16,
+        "cos": 14,
+        "int": 5,
+        "sag": 17,
+        "car": 14
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Large monstrosity, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Horizonback Tortoise",
+      "physical_pdf_page": 293,
+      "armor_class": "17 (natural armor), 22 while in its shell",
+      "hit_points": "227 (13d20 + 91)",
+      "speed": "20 ft.",
+      "ability_scores": {
+        "for": 28,
+        "des": 3,
+        "cos": 25,
+        "int": 4,
+        "sag": 10,
+        "car": 5
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Gargantuan monstrosity, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Husk Zombie",
+      "physical_pdf_page": 294,
+      "armor_class": "10",
+      "hit_points": "37 (5d8 + 15)",
+      "speed": "35 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 16,
+        "int": 3,
+        "sag": 6,
+        "car": 5
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Medium undead, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Merrow Shallowpriest",
+      "physical_pdf_page": 295,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "75 (10d10 + 20)",
+      "speed": "10 ft., swim 40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 15,
+        "int": 11,
+        "sag": 16,
+        "car": 9
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Large monstrosity, chaotic evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Moorbounder",
+      "physical_pdf_page": 296,
+      "armor_class": "13 (natural armor)",
+      "hit_points": "30 (4d10 + 8)",
+      "speed": "70 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 14,
+        "int": 2,
+        "sag": 13,
+        "car": 5
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Large beast, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Bristled Moorbounder",
+      "physical_pdf_page": 296,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "52 (7d10 + 14)",
+      "speed": "70 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 14,
+        "int": 2,
+        "sag": 13,
+        "car": 5
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Large beast, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Nergaliid",
+      "physical_pdf_page": 297,
+      "armor_class": "12 (natural armor)",
+      "hit_points": "42 (4d10 + 20)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 20,
+        "int": 12,
+        "sag": 10,
+        "car": 12
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Large fiend (devil), lawful evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Sahuagin Warlock of Uk'otoa",
+      "physical_pdf_page": 298,
+      "armor_class": "14 (natural armor)",
+      "hit_points": "22 (5d8)",
+      "speed": "30 ft., swim 40 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 10,
+        "cos": 11,
+        "int": 8,
+        "sag": 8,
+        "car": 16
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Medium humanoid (sahuagin), neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Sea Fury",
+      "physical_pdf_page": 300,
+      "armor_class": "14 (natural armor)",
+      "hit_points": "105 (14d8 + 42)",
+      "speed": "30 ft., swim 50 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 15,
+        "cos": 16,
+        "int": 12,
+        "sag": 12,
+        "car": 18
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Medium fey, chaotic evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Shadowghast",
+      "physical_pdf_page": 300,
+      "armor_class": "15",
+      "hit_points": "49 (9d8 + 9)",
+      "speed": "35 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 20,
+        "cos": 12,
+        "int": 12,
+        "sag": 11,
+        "car": 8
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Medium undead, chaotic evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Swavain Basilisk",
+      "physical_pdf_page": 301,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "85 (10d12 + 20)",
+      "speed": "15 ft., swim 40 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 16,
+        "cos": 15,
+        "int": 2,
+        "sag": 8,
+        "car": 7
+      },
+      "challenge_rating": "7",
+      "size_and_type": "Huge monstrosity, unaligned",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Udaak",
+      "physical_pdf_page": 302,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "165 (10d20 + 60)",
+      "speed": "50 ft.",
+      "ability_scores": {
+        "for": 26,
+        "des": 14,
+        "cos": 22,
+        "int": 3,
+        "sag": 11,
+        "car": 10
+      },
+      "challenge_rating": "16",
+      "size_and_type": "Gargantuan fiend, neutral evil",
+      "source_review": "original_pdf_text_and_targeted_visual",
+      "completeness": "statistiche_essenziali"
+    }
+  ]
+}
