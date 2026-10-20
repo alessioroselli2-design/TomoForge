@@ -1844,6 +1844,14 @@ def reference_to_card_payload(record: dict) -> dict:
             **attributes,
         }
     elif card_type == "monster":
+        # Verified imports may keep ability scores in a nested structure.
+        # Flatten only the card response; preserve the source record intact.
+        scores = attributes.get("caratteristiche")
+        if isinstance(scores, dict):
+            for key in ("for", "des", "cos", "int", "sag", "car"):
+                if attributes.get(key) in (None, "") and scores.get(key) is not None:
+                    attributes[key] = scores[key]
+            attributes.pop("caratteristiche", None)
         attributes = {
             "classe_armatura": attributes.get("classe_armatura", ""),
             "punti_ferita": attributes.get("punti_ferita", ""),
