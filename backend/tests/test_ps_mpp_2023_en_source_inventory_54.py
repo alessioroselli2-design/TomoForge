@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 DATA = Path(__file__).resolve().parents[1] / "data" / "ps_mpp_2023_en_source_inventory_54.json"
-DICE = re.compile(r"^(\\d+) \\((\\d+)d(4|6|8|10|12|20)(?: ([+-]) (\\d+))?\\)$")
+DICE = re.compile(r"^(\d+) \((\d+)d(4|6|8|10|12|20)(?: ([+-]) (\d+))?\)$")
 SCORES = {"for", "des", "cos", "int", "sag", "car"}
 
 
