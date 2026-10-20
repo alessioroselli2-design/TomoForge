@@ -853,11 +853,24 @@ class MemoryReferences:
         rows = [
             row.copy()
             for row in self.rows
-            if all(row.get(key) == value for key, value in query.items())
+            if server.MemoryCollection.matches(row, query)
         ]
-        return SimpleNamespace(
-            to_list=lambda limit: asyncio.sleep(0, result=rows[:limit])
-        )
+
+        class Cursor:
+            def __init__(self, records):
+                self.records = records
+
+            def sort(self, field, direction):
+                self.records.sort(
+                    key=lambda record: record.get(field, ""),
+                    reverse=direction < 0,
+                )
+                return self
+
+            async def to_list(self, limit, offset=0):
+                return self.records[offset : offset + limit]
+
+        return Cursor(rows)
 
 
 class MutableMemoryReferences(MemoryReferences):
