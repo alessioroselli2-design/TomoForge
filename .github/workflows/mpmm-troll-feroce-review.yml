@@ -1,0 +1,53 @@
+name: MPMM Troll Feroce exact boxed statblock audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-troll-feroce-creature-*'
+    paths:
+      - .github/workflows/mpmm-troll-feroce-review.yml
+      - backend/services/mpmm_troll_feroce_source_review.py
+      - backend/tests/test_mpmm_troll_feroce_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  registered-source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify one original and unchanged source row, no writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_troll_feroce_source_review import ID, inspect_troll_feroce
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("db_source_unavailable")
+              before = await db.private_reference_records.find_one({"id": ID})
+              report = inspect_troll_feroce(before)
+              after = await db.private_reference_records.find_one({"id": ID})
+              if before != after:
+                  raise RuntimeError("original_source_changed_during_audit")
+              report["snapshot_unchanged"] = True
+              return report
+
+          print("MPMM_TROLL_FEROCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY

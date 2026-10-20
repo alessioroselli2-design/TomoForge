@@ -1,0 +1,443 @@
+{
+  "authority": {
+    "logical_source_id": "scc_2021_en",
+    "title": "Strixhaven: A Curriculum of Chaos",
+    "filename": "779447314-Toaz-info-Strixhaven-a-Curriculum-of-Chaos-Dampd-5e-Pr-Ddb9ac0faaf75f03b8889d75914d10c4.pdf",
+    "sha256": "8f417ad08a68004869e141b1ab85e5659b95792250c8b82ddf70cb191f7c2063",
+    "physical_pdf_pages": 226,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "original_source_index_pdf_page": 183,
+    "bestiary_statblocks": 44,
+    "extra_outside_index_pdf_p159": 1,
+    "census_45": 45,
+    "previous_exact_name_hits": 0,
+    "already_source_linked": 0,
+    "core_statblocks_all_verified": false,
+    "original_pdf_or_ocr_text_published": false,
+    "database_writes": 0,
+    "notes": "Inventory of all creatures from original Strixhaven Creatures table plus Scufflecup Teacup on p159; 44 indexed creatures must be checked page-by-page for CA/HP/hit-dice/speed/six scores before writes. Do NOT open merge PR or import as verified based solely on index."
+  },
+  "entries": [
+    {
+      "name": "Archaic",
+      "creature_type": "Celestial",
+      "challenge_rating": "18",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Art Elemental Mascot",
+      "creature_type": "Elemental",
+      "challenge_rating": "1/4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Beledros Witherbloom",
+      "creature_type": "Dragon",
+      "challenge_rating": "24",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Brackish Trudge",
+      "creature_type": "Plant",
+      "challenge_rating": "3",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Cogwork Archivist",
+      "creature_type": "Construct",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Daemogoth",
+      "creature_type": "Fiend",
+      "challenge_rating": "10",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Daemogoth Titan",
+      "creature_type": "Fiend",
+      "challenge_rating": "16",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "First-Year Student",
+      "creature_type": "Humanoid",
+      "challenge_rating": "1/2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Fractal Mascot",
+      "creature_type": "Construct",
+      "challenge_rating": "1/4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Galazeth Prismari",
+      "creature_type": "Dragon",
+      "challenge_rating": "23",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Groff",
+      "creature_type": "Plant",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Inkling Mascot",
+      "creature_type": "Ooze",
+      "challenge_rating": "1/4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Lorehold Apprentice",
+      "creature_type": "Humanoid",
+      "challenge_rating": "2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Lorehold Pledgemage",
+      "creature_type": "Humanoid",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Lorehold Prof. of Chaos",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Lorehold Prof. of Order",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Mage Hunter",
+      "creature_type": "Monstrosity",
+      "challenge_rating": "5",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Oracle of Strixhaven",
+      "creature_type": "Humanoid",
+      "challenge_rating": "15",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Oriq Blood Mage",
+      "creature_type": "Humanoid",
+      "challenge_rating": "9",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Oriq Recruiter",
+      "creature_type": "Humanoid",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Pest Mascot",
+      "creature_type": "Monstrosity",
+      "challenge_rating": "1/4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Prismari Apprentice",
+      "creature_type": "Humanoid",
+      "challenge_rating": "2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Prismari Pledgemage",
+      "creature_type": "Humanoid",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Prismari Prof. of Expression",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Prismari Prof. of Perfection",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Quandrix Apprentice",
+      "creature_type": "Humanoid",
+      "challenge_rating": "2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Quandrix Pledgemage",
+      "creature_type": "Humanoid",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Quandrix Prof. of Substance",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Quandrix Prof. of Theory",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Relic Sloth",
+      "creature_type": "Beast",
+      "challenge_rating": "2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Ruin Grinder",
+      "creature_type": "Construct",
+      "challenge_rating": "5",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Shadrix Silverquill",
+      "creature_type": "Dragon",
+      "challenge_rating": "22",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Silverquill Apprentice",
+      "creature_type": "Humanoid",
+      "challenge_rating": "2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Silverquill Pledgemage",
+      "creature_type": "Humanoid",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Silverquill Prof. of Radiance",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Silverquill Prof. of Shadow",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Spirit Statue Mascot",
+      "creature_type": "Construct",
+      "challenge_rating": "1/4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Strixhaven Campus Guide",
+      "creature_type": "Construct",
+      "challenge_rating": "1",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Tanazir Quandrix",
+      "creature_type": "Dragon",
+      "challenge_rating": "24",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Velomachus Lorehold",
+      "creature_type": "Dragon",
+      "challenge_rating": "25",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Witherbloom Apprentice",
+      "creature_type": "Humanoid",
+      "challenge_rating": "2",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Witherbloom Pledgemage",
+      "creature_type": "Humanoid",
+      "challenge_rating": "4",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Witherbloom Prof. of Decay",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Witherbloom Prof. of Growth",
+      "creature_type": "Humanoid",
+      "challenge_rating": "7",
+      "physical_pdf_page": null,
+      "census_index_page": 183,
+      "review_stage": "index_confirmed_core_pending",
+      "completeness": "inventory_only"
+    },
+    {
+      "name": "Scufflecup Teacup",
+      "creature_type": "Construct",
+      "challenge_rating": "0",
+      "physical_pdf_page": 159,
+      "census_index_page": null,
+      "review_stage": "outside_index_visual_core_sample",
+      "completeness": "inventory_only",
+      "source_inspected_core": {
+        "armor_class": 12,
+        "hit_points": "5 (2d4)",
+        "speed": "20 ft.",
+        "ability_scores": {
+          "for": 4,
+          "des": 14,
+          "cos": 10,
+          "int": 3,
+          "sag": 3,
+          "car": 1
+        }
+      }
+    }
+  ]
+}

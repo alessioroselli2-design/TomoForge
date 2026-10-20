@@ -1,0 +1,61 @@
+name: MPMM original full giant title source audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-two-truncated-giants-*'
+    paths:
+      - .github/workflows/mpmm-truncated-giants-source-review.yml
+      - backend/services/mpmm_truncated_giants_source_review.py
+      - backend/tests/test_mpmm_truncated_giants_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readonly-full-title-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Audit original giant prose and missing full names without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_truncated_giants_source_review import TARGETS,OWNER,inspect_giant
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("original_source_db_unavailable")
+              reports=[]
+              for name,spec in TARGETS.items():
+                  before=await db.private_reference_records.find_one({"id":spec["id"]})
+                  verdict=inspect_giant(name,before)
+                  duplicate=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":spec["file"],
+                      "normalized_name":name.casefold(),
+                  })
+                  if duplicate is not None:
+                      raise RuntimeError("complete_giant_title_already_exists")
+                  after=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if before!=after:
+                      raise RuntimeError("source_changed_during_audit")
+                  verdict["source_snapshot_unchanged"]=True
+                  reports.append(verdict)
+              return reports
+
+          print("MPMM_FULL_GIANT_TITLES_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY

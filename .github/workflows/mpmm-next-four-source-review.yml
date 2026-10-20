@@ -1,0 +1,56 @@
+name: MPMM next four sealed source reviews
+on:
+  push:
+    branches:
+      - 'audit/mpmm-next-four-encounter-sources-*'
+    paths:
+      - .github/workflows/mpmm-next-four-source-review.yml
+      - backend/services/mpmm_next_four_source_review.py
+      - backend/tests/test_mpmm_next_four_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  immutable-original-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify four existing source snapshots without writing
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_next_four_source_review import TARGETS,audit_mpmm_encounter
+
+          async def verify():
+              if not db.configured:
+                  raise RuntimeError("source_db_not_available")
+              verdicts=[]
+              for name,spec in TARGETS.items():
+                  original=await db.private_reference_records.find_one({"id":spec["id"]})
+                  verdict=audit_mpmm_encounter(name,original)
+                  check=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if original!=check:
+                      raise RuntimeError("source_changed_during_audit")
+                  verdict["snapshot_unchanged"]=True
+                  verdicts.append(verdict)
+              return verdicts
+
+          print("MPMM_NEXT_FOUR_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(verify()),sort_keys=True))
+          PY

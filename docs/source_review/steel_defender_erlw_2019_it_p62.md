@@ -1,0 +1,10 @@
+# Eberron IT p62 — Difensore D'Acciaio (Steel Defender)
+
+## Exact sealed record and independent publishers' evidence
+- Record `ref_07e14d22e5895eb88362784f61f4066e`; monster, registered source `erlw_2019_it` p62, checksum `0ac58c4625c04093295a323217b07fa4f3964bf8660c2b91648e5282c31321f5`.
+- Registered Italian source text: CA 15 naturale, PF `2 + modificatore Intelligenza dell'artefice + cinque volte il livello da artefice`; uses a number of d8 Hit Dice equal to character artificer level; speed 12 m.
+- The **official Wizards of the Coast source errata** explicitly replaces the Steel Defender stat block with AC 15 natural, **HP 2 + Intelligence modifier + five times artificer level**, Hit Dice d8 per artificer level, speed **40 ft. (12 m)**. WotC publisher PDF: https://media.wizards.com/2020/dnd/downloads/ERftLW-Errata.pdf ; official compendium https://www.dndbeyond.com/sources/dnd/sae/eberron-rising-from-the-last-war .
+- These are **level-dependent HP**, and should NOT be rejected for lacking a fixed dice average. The existing `monster_semantic_numeric_flags` already accepts this formula. We neither add a bypass nor change that global gate.
+- The previous two-mode OCR run #38505957368 returns `blocked/repaired_candidate_failed_gates (HP_format_error)` because its *new OCR candidate* misrenders the source formula. That correctly blocks OCR-based mutation. It does NOT disprove the unchanged DB attributes that agree with registered Italian text and official publisher errata.
+- A distinct, exact-ID/source/page/checksum/attributes sealed review checks the actual registered source text, all original attributes, the unchanged DB snapshot, current numeric gates and official publisher's independent formula. It is fail-closed and read-only. A subsequent status-only promotion requires CI and Vercel green and a guarded SQL UPDATE+history, with all attributes exactly retained.
+- Do not merge the old blocked OCR PR #419; it can be closed as superseded only after source-review promotion and independent database recount.

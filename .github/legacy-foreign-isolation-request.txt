@@ -1,0 +1,4 @@
+legacy foreign-source isolation approved 2026-09-18
+canonical_base=9e3fb8da68622c7d3e48d9635978f06924425521
+target_count=29
+target_ids_md5=223ab533a712d0871982a7451da551ea

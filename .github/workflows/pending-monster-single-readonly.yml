@@ -1,0 +1,512 @@
+# Reusable read-only single-pending audit; request file is the sole target selector.
+# No execute mode, no canonical writes, and no private OCR text is logged.
+name: Pending monster single source OCR pilot
+
+on:
+  push:
+    branches:
+      - 'audit/pending-monster-*'
+      - 'audit/bigby-batch*'
+    paths:
+      - .github/workflows/pending-monster-single-readonly.yml
+      - .github/pending-monster-audit-request.json
+      - backend/scripts/repair_monsters_from_source.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: tomoforge-pending-monster-single-readonly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  one-pending-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Italian OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Single pending source-guided audit - strictly read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/pending-monster-single-FINAL_REPORT.json
+          import argparse
+          import asyncio
+          from contextlib import redirect_stderr, redirect_stdout
+          import io
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from scripts import repair_monsters_from_source as repair
+          from scripts.process_mpmm_pending import (
+              _record_snapshot_sha256,
+              _verified_proposal,
+          )
+          from services.monster_semantic_diagnostics import (
+              deterministic_core_field_matches,
+          )
+
+          request = json.loads(
+              Path(".github/pending-monster-audit-request.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          TARGET_ID = str(request["record_id"])
+          TARGET_NAME = str(request["name"])
+          SOURCE_ID = str(request["source_id"])
+          TARGET_PAGE = int(request["page"])
+          if not (
+              re.fullmatch(r"ref_[0-9a-f]{32}", TARGET_ID)
+              and re.fullmatch(r"[a-z][a-z0-9_]{2,79}", SOURCE_ID)
+              and 1 <= TARGET_PAGE <= 2000
+              and 1 <= len(TARGET_NAME) <= 120
+              and all(ch not in TARGET_NAME for ch in "\r\n<>")
+          ):
+              raise RuntimeError("Malformed sealed audit request")
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("Database not configured")
+              collection = db.private_reference_records
+              original = await collection.find_one({"id": TARGET_ID})
+              if not isinstance(original, dict):
+                  raise RuntimeError("Target missing")
+              refs = original.get("source_refs") or []
+              if not (
+                  original.get("reference_type") == "monster"
+                  and original.get("name") == TARGET_NAME
+                  and original.get("review_status") == "pending"
+                  and 1 <= len(refs) <= 8
+                  and all(
+                      isinstance(ref, dict)
+                      and ref.get("logical_source_id") == SOURCE_ID
+                      and ref.get("source_status") == "active"
+                      and ref.get("source_role") == "authority"
+                      for ref in refs
+                  )
+                  and sum(
+                      ref.get("page") == TARGET_PAGE for ref in refs
+                  ) == 1
+              ):
+                  raise RuntimeError("Sealed source identity/status drift")
+              before_sha = _record_snapshot_sha256(original)
+              source_rows = await repair._fetch_all(
+                  db.private_reference_sources, {"source_status": "active"}
+              )
+              args = argparse.Namespace(
+                  execute=False,
+                  target_set="bigby_single_pending_readonly",
+                  pdf_root="",
+                  allow_r2_download=True,
+                  dpi=(
+                      360
+                      if (
+                          TARGET_ID == "ref_be4830300bfe50f09331951afaf26eb6"
+                          and SOURCE_ID == "bgg_2023_it"
+                          and TARGET_PAGE == 134
+                          and TARGET_NAME == "Schermagliatore Fensir"
+                      )
+                      else (
+                          360
+                          if (
+                              TARGET_ID == "ref_815c9a5b017658a3859b977a0cfd6f35"
+                              and SOURCE_ID == "bgg_2023_it"
+                              and TARGET_PAGE == 186
+                              and TARGET_NAME == "Troll Ibrido"
+                          )
+                          else (
+                              360
+                              if (
+                                  TARGET_ID == "ref_ac1a0de0ddba58219b21b506119cd1f6"
+                                  and SOURCE_ID == "bgg_2023_it"
+                                  and TARGET_PAGE == 141
+                                  and TARGET_NAME == "Gatto Ghignante"
+                              )
+                              else (
+                                      360
+                                      if (
+                                          TARGET_ID == "ref_7a26728f8410582ba70ddc7b44f5d4df"
+                                          and SOURCE_ID == "bgg_2023_it"
+                                          and TARGET_PAGE == 131
+                                          and TARGET_NAME == "Ettin Ceremorfo"
+                                      )
+                                      else (
+                                                  360
+                                                  if (
+                                                      TARGET_ID == "ref_4dc0cbc8340d5958bf4d85756ef9027c"
+                                                      and SOURCE_ID == "bgg_2023_it"
+                                                      and TARGET_PAGE == 177
+                                                      and TARGET_NAME == "Rampollo Di Stronmaus"
+                                                  )
+                                                  else 220
+                                              )
+                                  )
+                          )
+                      )
+                  ),
+                  languages="ita",
+                  psm=6,
+                  comparison_psm=4,
+              )
+              cache = repair.SourcePdfCache("", True)
+              status = "blocked"
+              reason = "unknown"
+              semantic_gate_flags = []
+              failed_quality_checks = []
+              independent_agreement_diagnostics = {}
+              attributes_unchanged = False
+              changed_attribute_fields = []
+              core_fields_unchanged = False
+              deterministic_core_agreement = False
+              deterministic_speed_agreement = False
+              speed_whitespace_only = False
+              hp_whitespace_only = False
+              speed_cosmetic_punctuation_only = False
+              try:
+                  # The private OCR/manual output stays only inside this worker.
+                  with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                      try:
+                          result = await repair._repair_one(
+                              collection, original, source_rows, cache, args
+                          )
+                          proposal = _verified_proposal(result)
+                          old_attributes = dict(original.get("attributes") or {})
+                          new_attributes = dict(proposal.get("attributes") or {})
+                          attributes_unchanged = new_attributes == old_attributes
+                          raw_changed = sorted(
+                              key for key in old_attributes.keys() | new_attributes.keys()
+                              if old_attributes.get(key) != new_attributes.get(key)
+                          )
+                          changed_attribute_fields = [
+                              key if re.fullmatch(r"[a-z][a-z0-9_]{0,49}", key)
+                              else "other_field"
+                              for key in raw_changed[:20]
+                          ]
+                          core_fields_unchanged = not bool(
+                              set(raw_changed)
+                              & {"classe_armatura", "punti_ferita", "velocita"}
+                          )
+                          old_hp = old_attributes.get("punti_ferita")
+                          new_hp = new_attributes.get("punti_ferita")
+                          if isinstance(old_hp, str) and isinstance(new_hp, str):
+                              hp_whitespace_only = bool(
+                                  old_hp != new_hp
+                                  and "".join(old_hp.split()) == "".join(new_hp.split())
+                              )
+                          old_speed = old_attributes.get("velocita")
+                          new_speed = new_attributes.get("velocita")
+                          if isinstance(old_speed, str) and isinstance(new_speed, str):
+                              speed_whitespace_only = bool(
+                                  old_speed != new_speed
+                                  and "".join(old_speed.split()) == "".join(new_speed.split())
+                              )
+                              cosmetic = r"[\s.,;:()]+"
+                              old_compact = re.sub(cosmetic, "", old_speed).casefold()
+                              new_compact = re.sub(cosmetic, "", new_speed).casefold()
+                              speed_cosmetic_punctuation_only = bool(
+                                  old_compact and old_compact == new_compact
+                              )
+                          matching = deterministic_core_field_matches(
+                              old_attributes, new_attributes
+                          )
+                          deterministic_core_agreement = all(
+                              matching.get(f"{field}_deterministic_match", False)
+                              for field in ("classe_armatura", "punti_ferita", "velocita")
+                          )
+                          deterministic_speed_agreement = bool(
+                              matching.get("velocita_deterministic_match", False)
+                          )
+                          if attributes_unchanged:
+                              status = "repairable_status_only"
+                              reason = "all_gates_pass"
+                          elif (
+                              set(old_attributes) == set(new_attributes)
+                              and raw_changed == ["velocita"]
+                              and speed_whitespace_only
+                              and isinstance(old_speed, str)
+                              and isinstance(new_speed, str)
+                          ):
+                              # Strict character-for-character equality after
+                              # removing whitespace only: no digits, units,
+                              # punctuation or other meaningful source text
+                              # may differ. Preserve original attributes.
+                              # The diagnostic-only normalization is NOT used
+                              # as an acceptance gate.
+                              status = "repairable_status_only_whitespace"
+                              reason = "speed_whitespace_only_source_agreement"
+                          elif (
+                              set(old_attributes) == set(new_attributes)
+                              and raw_changed == ["punti_ferita"]
+                              and hp_whitespace_only
+                              and isinstance(old_hp, str)
+                              and isinstance(new_hp, str)
+                          ):
+                              # Only whitespace is removable, never digits, dice,
+                              # operators or punctuation; original PF are preserved.
+                              # Deterministic diagnostic normalization is not an acceptance gate.
+                              status = "repairable_status_only_whitespace"
+                              reason = "hp_whitespace_only_source_agreement"
+                          else:
+                              status = "review_required"
+                              reason = "attribute_change_required"
+                      except repair.RepairBlocked as exc:
+                          candidate = str(exc.reason or "")
+                          if candidate == "target_page_quality_fail":
+                              diag = exc.diagnostics or {}
+                              sections = (diag.get("target_page_quality") or {}).get("segments") or {}
+                              safe_keys = {
+                                  "quality_pass", "sparse_anchor_found",
+                                  "primary_exact_title_unique", "comparison_exact_title_unique",
+                                  "primary_ca_label_seen", "comparison_ca_label_seen",
+                                  "primary_hp_label_seen", "comparison_hp_label_seen",
+                                  "primary_speed_label_seen", "comparison_speed_label_seen",
+                                  "primary_chars_ok", "comparison_chars_ok",
+                                  "primary_letter_ratio_ok", "comparison_letter_ratio_ok",
+                                  "primary_printable_ratio_ok", "comparison_printable_ratio_ok",
+                                  "primary_word_count_ok", "comparison_word_count_ok",
+                                  "token_dice_ok", "unique_jaccard_ok", "length_ratio_ok",
+                              }
+                              failed_quality_checks = sorted({
+                                  f"{segment}:{key}"
+                                  for segment, checks in sections.items()
+                                  if segment in {"left", "right", "full", "sparse-full"}
+                                  and isinstance(checks, dict)
+                                  for key, value in checks.items()
+                                  if key in safe_keys and value is False
+                              })[:24]
+                          if candidate == "no_unique_independent_agreement":
+                              # Counts and allowlisted field labels only. Never expose
+                              # candidate text, manual/OCR excerpts, or actual values.
+                              diagnostics = exc.diagnostics or {}
+                              safe_counts = {}
+                              for key in (
+                                  "primary_name_candidates",
+                                  "comparison_name_candidates",
+                                  "primary_target_candidates",
+                                  "comparison_target_candidates",
+                                  "exact_name_match_count",
+                                  "containment_match_count",
+                              ):
+                                  value = diagnostics.get(key)
+                                  if type(value) is int and 0 <= value <= 500:
+                                      safe_counts[key] = value
+                              divergent = diagnostics.get("divergent_core_fields")
+                              independent_agreement_diagnostics = {
+                                  **safe_counts,
+                                  "divergent_core_fields": sorted(
+                                      set(divergent) & {
+                                          "classe_armatura", "punti_ferita", "velocita"
+                                      }
+                                  ) if isinstance(divergent, list) else [],
+                              }
+                          if candidate == "repaired_candidate_failed_gates":
+                              allowed = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
+                              semantic_gate_flags = sorted({
+                                  flag.strip() for flag in str(exc.detail or "").split(",")
+                                  if flag.strip() in allowed
+                              })
+                          reason = (
+                              candidate
+                              if re.fullmatch(r"[a-z][a-z0-9_]{0,79}", candidate)
+                              else "source_gate_blocked"
+                          )
+                      except Exception:
+                          reason = "audit_exception"
+              finally:
+                  cache.close()
+              current = await collection.find_one({"id": TARGET_ID})
+              unchanged = (
+                  isinstance(current, dict)
+                  and _record_snapshot_sha256(current) == before_sha
+              )
+              if not unchanged:
+                  raise RuntimeError("Read-only record snapshot drift detected")
+              return {
+                  "target": TARGET_NAME,
+                  "record_id": TARGET_ID,
+                  "source_id": SOURCE_ID,
+                  "source_page": TARGET_PAGE,
+                  "dry_run": True,
+                  "updates_performed": 0,
+                  "status": status,
+                  "reason": reason,
+                  "semantic_gate_flags": semantic_gate_flags,
+                  "failed_quality_checks": failed_quality_checks,
+                  "independent_agreement_diagnostics": independent_agreement_diagnostics,
+                  "attributes_unchanged": attributes_unchanged,
+                  "changed_attribute_fields": changed_attribute_fields,
+                  "core_fields_unchanged": core_fields_unchanged,
+                  "deterministic_core_agreement": deterministic_core_agreement,
+                  "deterministic_speed_agreement": deterministic_speed_agreement,
+                  "speed_whitespace_only": speed_whitespace_only,
+                  "hp_whitespace_only": hp_whitespace_only,
+                  "speed_cosmetic_punctuation_only": speed_cosmetic_punctuation_only,
+                  "record_snapshot_unchanged": unchanged,
+              }
+
+          try:
+              result = asyncio.run(audit())
+          except Exception:
+              result = {
+                  "target": TARGET_NAME,
+                  "dry_run": True,
+                  "updates_performed": 0,
+                  "status": "blocked",
+                  "reason": "audit_preflight_or_snapshot_failure",
+              }
+          print("FINAL_REPORT")
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish safe single-record report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pending-monster-single-FINAL_REPORT
+          path: /tmp/pending-monster-single-FINAL_REPORT.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      # Only the restricted FINAL_REPORT fields are posted, never source OCR text.
+      - name: Post privacy-safe verdict to audit PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/pending-monster-audit-comment.md
+          import json
+          import re
+          from pathlib import Path
+          request = json.loads(
+              Path(".github/pending-monster-audit-request.json").read_text(encoding="utf-8")
+          )
+          path = Path("/tmp/pending-monster-single-FINAL_REPORT.json")
+          status = "blocked"
+          reason = "report_missing"
+          fields = {}
+          if path.exists():
+              lines = path.read_text(encoding="utf-8").splitlines()
+              try:
+                  i = max(i for i, line in enumerate(lines) if line == "FINAL_REPORT")
+                  report = json.loads(lines[i + 1])
+                  allowed_statuses = {
+                      "blocked", "review_required", "repairable_status_only",
+                      "repairable_status_only_whitespace",
+                  }
+                  if (
+                      report.get("dry_run") is True
+                      and report.get("updates_performed") == 0
+                      and report.get("status") in allowed_statuses
+                  ):
+                      status = report["status"]
+                      candidate = str(report.get("reason", "unknown"))
+                      reason = candidate if re.fullmatch(r"[a-z][a-z0-9_]{0,79}", candidate) else "invalid_reason"
+                      for key in (
+                          "attributes_unchanged", "core_fields_unchanged",
+                          "deterministic_core_agreement", "speed_whitespace_only",
+                          "hp_whitespace_only",
+                          "record_snapshot_unchanged",
+                      ):
+                          if type(report.get(key)) is bool:
+                              fields[key] = report[key]
+                      safe_gates = report.get("semantic_gate_flags")
+                      if isinstance(safe_gates, list):
+                          valid_gates = {"CA_format_error", "CA_out_of_bounds", "HP_format_error"}
+                          fields["semantic_gate_flags"] = [
+                              gate for gate in safe_gates if gate in valid_gates
+                          ][:3]
+                      raw_quality = report.get("failed_quality_checks")
+                      if isinstance(raw_quality, list):
+                          allowed_quality = {
+                              "quality_pass", "sparse_anchor_found",
+                              "primary_exact_title_unique", "comparison_exact_title_unique",
+                              "primary_ca_label_seen", "comparison_ca_label_seen",
+                              "primary_hp_label_seen", "comparison_hp_label_seen",
+                              "primary_speed_label_seen", "comparison_speed_label_seen",
+                              "primary_chars_ok", "comparison_chars_ok",
+                              "primary_letter_ratio_ok", "comparison_letter_ratio_ok",
+                              "primary_printable_ratio_ok", "comparison_printable_ratio_ok",
+                              "primary_word_count_ok", "comparison_word_count_ok",
+                              "token_dice_ok", "unique_jaccard_ok", "length_ratio_ok",
+                          }
+                          allowlisted = {
+                              f"{seg}:{key}"
+                              for seg in ("left", "right", "full", "sparse-full")
+                              for key in allowed_quality
+                          }
+                          fields["failed_quality_checks"] = [
+                              item for item in raw_quality
+                              if isinstance(item, str) and item in allowlisted
+                          ][:24]
+                      independent = report.get("independent_agreement_diagnostics")
+                      if isinstance(independent, dict):
+                          for key in (
+                              "primary_name_candidates",
+                              "comparison_name_candidates",
+                              "primary_target_candidates",
+                              "comparison_target_candidates",
+                              "exact_name_match_count",
+                              "containment_match_count",
+                          ):
+                              count = independent.get(key)
+                              if type(count) is int and 0 <= count <= 500:
+                                  fields[key] = count
+                          divergent = independent.get("divergent_core_fields")
+                          if isinstance(divergent, list):
+                              allowed = {
+                                  "classe_armatura", "punti_ferita", "velocita"
+                              }
+                              fields["divergent_core_fields"] = sorted(
+                                  set(item for item in divergent if item in allowed)
+                              )[:3]
+                      changed = report.get("changed_attribute_fields")
+                      if isinstance(changed, list):
+                          valid = {"classe_armatura", "punti_ferita", "velocita", "other_field"}
+                          fields["changed_attribute_fields"] = [
+                              field for field in changed if field in valid
+                          ][:20]
+                  else:
+                      reason = "invalid_or_unsafe_report"
+              except (ValueError, IndexError, KeyError, TypeError):
+                  reason = "invalid_report"
+          print("### Single-record privacy-safe OCR verdict")
+          print(f"Target: `{request['name']}`")
+          print(f"Status: `{status}` | Reason: `{reason}`")
+          print("Dry run only: **no database writes by this workflow**.")
+          for key, value in fields.items():
+              print(f"- `{key}`: `{value}`")
+          PY
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body-file /tmp/pending-monster-audit-comment.md
+          fi

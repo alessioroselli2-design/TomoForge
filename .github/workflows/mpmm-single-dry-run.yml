@@ -1,0 +1,74 @@
+name: Focused MPMM single dry-run
+
+on:
+  push:
+    branches:
+      - codex/mpmm-1-100-audit-20260930
+    paths:
+      - backend/scripts/audit_mpmm_1_100.py
+      - backend/scripts/repair_monsters_from_source.py
+      - .github/mpmm-focus-name.txt
+      - .github/workflows/mpmm-single-dry-run.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-mpmm-single-dry-run
+  cancel-in-progress: true
+
+jobs:
+  mpmm-single-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OCR and backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt boto3
+
+      - name: Run focused MPMM target
+        run: |
+          set -o pipefail
+          target="$(tr -d '\r\n' < .github/mpmm-focus-name.txt)"
+          test -n "$target"
+          python backend/scripts/audit_mpmm_1_100.py \
+            --allow-r2-download \
+            --name "$target" \
+            | tee /tmp/mpmm-single-dry-run.log
+
+      - name: Assert read-only focused invariant
+        run: |
+          grep -q '"dry_run": true' /tmp/mpmm-single-dry-run.log
+          grep -q '"targets": 1' /tmp/mpmm-single-dry-run.log
+          grep -q '"updates_performed": 0' /tmp/mpmm-single-dry-run.log
+
+      - name: Upload focused report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpmm-single-FINAL_REPORT
+          path: /tmp/mpmm-single-dry-run.log
+          if-no-files-found: error
+          retention-days: 3

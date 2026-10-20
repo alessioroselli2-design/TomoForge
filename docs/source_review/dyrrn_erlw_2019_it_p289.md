@@ -1,0 +1,6 @@
+# Dyrrn — Eberron registered-source adjudication
+
+- One pending record `ref_fd2857143c3b521c9204fc3032cf1d73`, two active Italian authority page refs 289 and 291 in `618795464-Eberron.pdf`, logical source `erlw_2019_it`, checksum `432f6cefc13a63c9553728e00d95cc10cba4996a723f95e986ec652442a10906`.
+- Immutable stored Italian source text records CA21 natural armor, PF325 `(3ld8 + 186)` with letter `l` misread instead of `1`, speed 12m fly12m hover. All original text and provenance preserved unchanged. Correct operational attribute is `325 (31d8 + 186)`; base math floor(31*4.5)+186=325 and 31 CON (+6) bonuses =186.
+- The actual English `Dyrrn` in *Eberron: Rising from the Last War*, pp.288–289, gives AC21 natural armor, HP325 (31d8 +186), speed 40ft and fly40ft (hover), see https://online.anyflip.com/tqblu/xfac/files/basic-html/page289.html and corroboration https://onyx5e.com/en/bestiary/dyrrn/ .
+- The older ordinary OCR pipeline is inconclusive for this record and may not be treated as a pass. This distinct read-only exact-source adjudication requires original raw text, unchanged source checksum, exactly two active matching authority refs, unchanged fields, full original HP math gate, and green backend/frontend CI + Vercel before PR merge and a separate guarded status-only DB change with review history.

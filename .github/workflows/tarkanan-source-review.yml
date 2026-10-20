@@ -1,0 +1,74 @@
+name: Eberron Tarkanan source-only audit
+on:
+  push:
+    branches:
+      - 'audit/tarkanan-source-review-*'
+    paths:
+      - .github/workflows/tarkanan-source-review.yml
+      - backend/services/tarkanan_source_review.py
+      - backend/tests/test_tarkanan_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  exact-record-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify registered source and live pending snapshot without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.tarkanan_source_review import (
+              RECORD_ID,
+              assess_tarkanan_registered_source,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_database_not_configured")
+              first = await db.private_reference_records.find_one({"id": RECORD_ID})
+              result = assess_tarkanan_registered_source(first)
+              last = await db.private_reference_records.find_one({"id": RECORD_ID})
+              if first != last:
+                  raise RuntimeError("registered_source_snapshot_changed")
+              return {
+                  "status": result["status"],
+                  "source": result["source_id"],
+                  "pages": result["registered_pages"],
+                  "attributes_unchanged": result["original_attributes_unchanged"],
+                  "numeric_gates_passed": result["numeric_gates_passed"],
+                  "snapshot_unchanged": True,
+                  "writes": 0,
+                  "editorial_review_required": True,
+              }
+
+          print("SOURCE_REVIEW_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
+      - name: Post privacy-safe reviewed-source outcome
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body "Assassino Tarkanan exact Eberron p317-318 live source-only read-only audit passed: original registered Italian core matches English edition, all attributes unchanged, original HP math gate passed and source fingerprint intact. No database writes; independent guarded status-only adjudication required. The older ordinary OCR comparison PR #410 remains blocked."
+          fi

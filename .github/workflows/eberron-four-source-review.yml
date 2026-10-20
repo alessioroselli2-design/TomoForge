@@ -1,0 +1,58 @@
+name: Eberron four source-locked original statblocks audit
+on:
+  push:
+    branches:
+      - 'audit/eberron-four-source-reclass-*'
+    paths:
+      - .github/workflows/eberron-four-source-review.yml
+      - backend/services/eberron_four_source_reclass.py
+      - backend/tests/test_eberron_four_source_reclass.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-exact-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend locked dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Check four immutable original source records without writing
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.eberron_four_source_reclass import (
+              TARGETS, assess_eberron_reclass,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("database_unavailable")
+              reports = []
+              for name, spec in TARGETS.items():
+                  before = await db.private_reference_records.find_one({"id": spec["id"]})
+                  status = assess_eberron_reclass(name, before)
+                  after = await db.private_reference_records.find_one({"id": spec["id"]})
+                  if before != after:
+                      raise RuntimeError("source_drift_while_auditing_" + name)
+                  status["snapshot_unchanged"] = True
+                  reports.append(status)
+              return reports
+
+          print("EBERRON_FOUR_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY

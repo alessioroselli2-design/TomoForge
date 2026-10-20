@@ -1,0 +1,47 @@
+{
+  "recorded_date": "2026-09-11",
+  "classification": "bounded_local_ocr_quality_evidence",
+  "decision": "PILOT_PASS_REVIEW_REQUIRED_BEFORE_IMPORT",
+  "source": {
+    "filename": "847921086-Manuale-Dei-Mostri-5e.pdf",
+    "r2_key": "847921086-Manuale-Dei-Mostri-5e.pdf",
+    "size_bytes": 291937991,
+    "expected_sha256": "b33eb72e5eb78fe3e3dcbde5315f5b9afbe42e4a457a518cc93f7766979a381c",
+    "actual_sha256": "b33eb72e5eb78fe3e3dcbde5315f5b9afbe42e4a457a518cc93f7766979a381c",
+    "sha256_verified": true
+  },
+  "pilot": {
+    "page_start": 12,
+    "page_end": 23,
+    "pages_requested": 12,
+    "pages_processed": 12,
+    "quality_passed": 12,
+    "dpi": 220,
+    "languages": "ita+eng",
+    "primary_psm": 6,
+    "comparison_psm": 4,
+    "native_text_chars": 0,
+    "primary_ocr_words": 7303,
+    "mean_token_dice": 0.9061,
+    "min_token_dice": {
+      "value": 0.8655,
+      "page": 19
+    },
+    "max_token_dice": {
+      "value": 0.9794,
+      "page": 20
+    }
+  },
+  "provenance": {
+    "workflow_run_id": 34582021340,
+    "artifact_id": 10192081282,
+    "base_commit": "12e597e78221ac3fcbac32696995ea5afba9959f"
+  },
+  "authorization": {
+    "supabase_write": false,
+    "canonicalization": false,
+    "paid_api": false,
+    "mass_ocr": false,
+    "import_requires_review": true
+  }
+}

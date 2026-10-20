@@ -1,0 +1,77 @@
+# Read-only registered Italian source + official WotC errata adjudication.
+name: Eberron Steel Defender source review
+on:
+  push:
+    branches:
+      - 'audit/steel-defender-source-review-*'
+    paths:
+      - .github/workflows/steel-defender-source-review.yml
+      - backend/services/steel_defender_source_review.py
+      - backend/tests/test_steel_defender_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  steel-defender-single-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend pinned requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Read and validate exact registered source, without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+
+          from core.db import db
+          from services.steel_defender_source_review import (
+              RECORD_ID,
+              assess_steel_defender_source_review,
+          )
+
+          async def run():
+              if not db.configured:
+                  raise RuntimeError("missing_source_database")
+              row_before = await db.private_reference_records.find_one({"id": RECORD_ID})
+              verdict = assess_steel_defender_source_review(row_before)
+              row_after = await db.private_reference_records.find_one({"id": RECORD_ID})
+              if row_before != row_after:
+                  raise RuntimeError("snapshot_changed_during_readonly_review")
+              # Published report omits private source text and all user identifiers.
+              return {
+                  "status": verdict["status"],
+                  "source_id": verdict["source_id"],
+                  "page": verdict["page"],
+                  "attributes_unchanged": verdict["attributes_unchanged"],
+                  "numeric_gates_active_and_passed": verdict["numeric_gates_active_and_passed"],
+                  "source_snapshot_unchanged": True,
+                  "database_writes": 0,
+                  "requires_explicit_source_adjudication": True,
+              }
+
+          print("SOURCE_REVIEW_FINAL_REPORT")
+          print(json.dumps(asyncio.run(run()), sort_keys=True))
+          PY
+      - name: Comment safe read-only verdict
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body "Steel Defender source-only audit passed: publisher errata and registered Italian p62 agree on CA 15, level-scaled HP, speed 12 m. Numeric gates active, attributes unchanged, exactly one sealed pending record, zero database writes. Eligibility for separate guarded status-only review; not a claim that the original OCR reread passed."
+          fi

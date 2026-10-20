@@ -1,0 +1,80 @@
+# Target-sealed editorial discrepancy audit: no DB writes, no OCR gate exceptions.
+name: Morfico Eberron editorial discrepancy audit
+on:
+  push:
+    branches:
+      - 'audit/morfico-editorial-adjudication-*'
+    paths:
+      - .github/workflows/morfico-editorial-single-readonly.yml
+      - backend/services/source_editorial_adjudications.py
+      - backend/tests/test_morfico_editorial_adjudication.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  morfico-editorial-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify locked live original and arithmetic (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.source_editorial_adjudications import (
+              RECORD_ID,
+              assess_morfico_editorial_discrepancy,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("database_not_configured")
+              before = await db.private_reference_records.find_one({"id": RECORD_ID})
+              result = assess_morfico_editorial_discrepancy(before)
+              after = await db.private_reference_records.find_one({"id": RECORD_ID})
+              if before != after:
+                  raise RuntimeError("concurrent_source_snapshot_drift")
+              # No private source contents or owner identifiers in public output.
+              return {
+                  "record": "Morfico",
+                  "status": result["status"],
+                  "source_id": result["source_id"],
+                  "page": result["physical_page"],
+                  "math_gate_active_and_passed": result["math_gate_active_and_passed"],
+                  "source_snapshot_unchanged": True,
+                  "database_writes": 0,
+                  "requires_explicit_editorial_review": True,
+              }
+
+          print("EDITORIAL_AUDIT_JSON")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY
+      - name: Post safe positive editorial verdict to PR
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pr="$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --body "Morfico source discrepancy audit: exact registered Italian source snapshot and numeric gates checked in read-only mode. Printed +8 is preserved as original source evidence; original English +6 is the corrected operational candidate. **Eligible for explicit editorial review, not automatic OCR verified.** No database writes."
+          fi

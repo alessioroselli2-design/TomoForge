@@ -1,0 +1,68 @@
+name: Eberron Valenar steed protected source audit
+on:
+  push:
+    branches:
+      - 'audit/eberron-valenar-steed-new-source-*'
+    paths:
+      - '.github/workflows/eberron-valenar-steed-source-review.yml'
+      - 'backend/services/eberron_valenar_steed_source_review.py'
+      - 'backend/tests/test_eberron_valenar_steed_source_review.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend requirements
+        run: python -m pip install -r backend/requirements.txt
+      - name: Inspect source catalogue and duplicate absence, read-only
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "backend"))
+          from core.db import db
+          from services.eberron_valenar_steed_source_review import (
+              ID, NAME, SOURCE, SOURCE_ID, validate_valenar_source,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("source_db_not_configured")
+              metadata = await db.private_reference_sources.find_one(
+                  {"logical_source_id": SOURCE_ID, "physical_filename": SOURCE}
+              )
+              existing = await db.private_reference_records.find_one({"id": ID})
+              by_name = await db.private_reference_records.find_one(
+                  {"user_id": "user_fabf28726a20",
+                   "normalized_name": NAME.casefold()}
+              )
+              verdict = validate_valenar_source(
+                  existing, [by_name] if by_name else [], metadata
+              )
+              again = await db.private_reference_records.find_one({"id": ID})
+              by_name_again = await db.private_reference_records.find_one(
+                  {"user_id": "user_fabf28726a20",
+                   "normalized_name": NAME.casefold()}
+              )
+              if again is not None or by_name_again is not None:
+                  raise RuntimeError("new_candidate_created_during_audit")
+              verdict["snapshot_unchanged"] = True
+              return verdict
+
+          print("VALENAR_STEED_SOURCE_REPORT")
+          print(json.dumps(asyncio.run(audit()), sort_keys=True))
+          PY

@@ -31,6 +31,7 @@ class ReferenceImportResult(BaseModel):
 
 class ManualPreloadInput(BaseModel):
     """Automatic preload intent; legacy consent fields remain API-compatible."""
+
     filename: Optional[str] = None
     enable_translation: bool = False
     enable_ocr: bool = False
@@ -52,3 +53,19 @@ class ReferenceReviewInput(BaseModel):
     description: Optional[str] = Field(default=None, max_length=12000)
     full_text: Optional[str] = Field(default=None, max_length=120000)
     attributes: Optional[dict[str, Any]] = None
+
+
+class CanonicalizationRunInput(BaseModel):
+    user_id: Optional[str] = None
+    batch_size: int = Field(default=5, ge=1, le=25)
+    ruleset: Literal["2014"] = "2014"
+
+
+class TranslationRetryRunInput(BaseModel):
+    user_id: Optional[str] = None
+    batch_size: int = Field(default=5, ge=1, le=25)
+
+
+class TranslationVerificationRunInput(BaseModel):
+    user_id: Optional[str] = None
+    batch_size: int = Field(default=5, ge=1, le=25)

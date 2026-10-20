@@ -1,0 +1,65 @@
+name: Van Richten bounded monster survey, read-only
+
+on:
+  push:
+    branches:
+      - audit/vrgr-monster-windows-177-257-20261020
+    paths:
+      - backend/scripts/vrgr_r2_window_plan.py
+      - backend/tests/test_vrgr_r2_window_plan.py
+      - .github/workflows/vrgr-r2-window-survey.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-vrgr-r2-survey-177-257
+  cancel-in-progress: false
+
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only local OCR dependencies
+        run: |
+          python -m pip install boto3 PyMuPDF
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+      - name: Six independent OCR windows (maximum 12 pages each, zero DB writes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/vrgr-windows
+          for pair in "177:12:188" "189:12:200" "213:12:224" "225:12:236" "237:12:248" "249:9:257"; do
+            IFS=: read -r start count end <<< "$pair"
+            echo "VRGR_WINDOW_BEGIN start=$start end=$end count=$count"
+            timeout 1200s python backend/scripts/vrgr_r2_candidate_dry_run.py \
+              --start-page "$start" --page-count "$count" \
+              --output "/tmp/vrgr-windows/vrgr-$start-$end.json"
+          done
+      - name: Gate source identity, windows, deduplication and privacy of outputs
+        run: |
+          python backend/scripts/vrgr_r2_window_plan.py \
+            --input-dir /tmp/vrgr-windows \
+            --output /tmp/vrgr-window-survey.json
+      - name: Persist only minimal candidate metadata (not scans or OCR prose)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrgr-bounded-review-only-survey
+          path: |
+            /tmp/vrgr-window-survey.json
+            /tmp/vrgr-windows/vrgr-*.json
+          if-no-files-found: warn
+          retention-days: 3

@@ -1,0 +1,63 @@
+"""Source-census gates, not automated promotion to verified."""
+from copy import deepcopy
+import pytest
+from services import mm_inventory_pages_305_353 as mm
+
+
+def catalog():
+    return {
+        "logical_source_id": mm.SOURCE_ID, "physical_filename": mm.FILENAME,
+        "physical_sha256": mm.SHA256, "physical_pages": 353,
+        "source_status": "active", "source_role": "authority",
+        "authority_class": "licensed_translation", "text_mode": "vision_required",
+    }
+
+
+def test_complete_physical_pages_through_back_cover():
+    data = mm.inventory(catalog())
+    assert sorted(data) == list(range(305, 354))
+    assert not data[351] and not data[352] and not data[353]
+    assert all(not data[p] for p in (307, 311, 312, 315))
+    assert data[316] == ("Zombi", "Zombi Ogre", "Zombi Beholder")
+    assert data[317] == ("Albero Risvegliato", "Alce", "Alce Gigante", "Aquila")
+    assert data[318] == ("Aquila Gigante", "Avvoltoio", "Avvoltoio Gigante", "Babbuino")
+    assert "Arcimago" in data[342]
+    assert "Veterano" in data[350]
+    assert data[325] == ("Gorilla", "Gorilla Gigante", "Granchio", "Granchio Gigante", "Gufo")
+    assert data[326] == ("Gufo Gigante", "Iena", "Iena Gigante", "Leone")
+    assert sum(len(values) for values in data.values()) == 128
+    assert mm.WRITES == 0 and mm.COMPLETE_STATISTICS_VERIFIED is False
+
+
+def test_source_wrong_sha_fails_closed():
+    c = catalog()
+    c["physical_sha256"] = "different"
+    with pytest.raises(ValueError, match="original_source_mismatch"):
+        mm.inventory(c)
+
+
+def test_no_mutated_source_or_duplicate():
+    original = deepcopy(mm.SOURCE_PAGE_NAMES)
+    try:
+        mm.SOURCE_PAGE_NAMES[317] = ("Alce", "Alce")
+        with pytest.raises(ValueError, match="census_modified"):
+            mm.inventory(catalog())
+    finally:
+        mm.SOURCE_PAGE_NAMES.clear()
+        mm.SOURCE_PAGE_NAMES.update(original)
+
+
+def test_defensive_copy():
+    copy = mm.inventory(catalog())
+    copy[342] = ("Inventato",)
+    assert mm.inventory(catalog())[342] == ("Accolito", "Arcimago")
+
+
+def test_adjacent_page_attribution_cannot_double_count_creatures():
+    pages = mm.inventory(catalog())
+    left, right = pages[317], pages[318]
+    assert len(left) == 4 and len(right) == 4
+    assert len(set(left + right)) == 8
+    assert set(left).isdisjoint(right)
+    assert left[-2:] == ("Alce Gigante", "Aquila")
+    assert right[0] == "Aquila Gigante"

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-11T04:28:27Z",
+  "mode": "read_only_vision_preflight",
+  "source": {
+    "registry_id": "src_0847f19535744206f49a028b",
+    "logical_source_id": "tortle_2017_en",
+    "title": "The Tortle Package",
+    "physical_filename": "368524312-The-Tortle-Package.pdf",
+    "physical_sha256": "3dea9cd685343b1d90207b2b79f4a963cb3131f30e67f23d10795ace8f9f1a44",
+    "physical_pages": 28,
+    "language": "en",
+    "ruleset": "2014",
+    "source_role": "authority",
+    "source_status": "active",
+    "import_state": "catalogued",
+    "text_mode": "vision_required",
+    "imported_record_count": 0
+  },
+  "sample": {
+    "pages": [2, 3, 4],
+    "native_text_quality": "corrupted",
+    "native_text_evidence": [
+      "repeated control-character-like separators",
+      "systematic substitution/cipher-like glyph corruption",
+      "mixed readable and unreadable spans"
+    ],
+    "page_render_legibility": "legible",
+    "visual_heading_checks": {
+      "2": ["Introduction", "The Snout of Omgar", "Using This Supplement", "Adventure Hooks"],
+      "3": ["Tortle", "Life of a Tortle", "Beliefs", "Adventurers at Heart", "Tortle Names"],
+      "4": ["Tortle Traits", "Tortle Guides"]
+    }
+  },
+  "gate": {
+    "classification": "VISION_REVIEW_REQUIRED",
+    "route": "VISION_OCR_PILOT_REVIEW",
+    "native_parser_allowed": false,
+    "automatic_import_allowed": false,
+    "canonicalization_allowed": false
+  },
+  "persistence": {
+    "pdf_or_page_images_persisted": false,
+    "structured_records_written": 0,
+    "supabase_writes": 0
+  },
+  "recommended_next_step": "Run one small resumable vision/OCR batch against the same source while keeping output review-only and preserving page provenance before any structured import."
+}

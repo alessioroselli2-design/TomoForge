@@ -1,0 +1,56 @@
+{
+  "kind": "mm_local_ocr_parser_diagnostics_audit",
+  "recorded_at": "2026-09-12",
+  "source_branch": "ai-canonical-library",
+  "source_commit": "4b65d6333150713bd40f4471ed78b44e531b1d1c",
+  "workflow_run_id": 34651890259,
+  "artifact": {
+    "name": "mm-local-ocr-parser-pilot",
+    "artifact_id": 10284173046,
+    "sha256": "d1a932b85859e83fefcedcb43ae2e1b6a71522ed7b75a9711e7f49e8eac265ec"
+  },
+  "scope": {
+    "start_page": 12,
+    "end_page": 23,
+    "pages_requested": 12,
+    "pages_read": 12
+  },
+  "ocr_quality": {
+    "pages_evaluated": 12,
+    "pages_passed": 12,
+    "pages_needing_ocr": []
+  },
+  "parser": {
+    "records_detected": 35,
+    "record_types": {
+      "monster": 1,
+      "other": 9,
+      "weapon": 25
+    },
+    "records_flagged_for_review": 35,
+    "records_with_ocr_review_flag": 35,
+    "source_pages_represented": 11
+  },
+  "monster_diagnostics": {
+    "primary_candidates": 2,
+    "comparison_candidates": 3,
+    "independently_agreed": 0,
+    "primary_with_same_start_page_candidate": 2,
+    "primary_with_same_name_candidate": 1,
+    "primary_with_exact_key_candidate": 1,
+    "primary_with_exact_key_and_core_match": 0
+  },
+  "interpretation": {
+    "page_alignment_is_current_blocker": false,
+    "name_extraction_or_normalization_needs_investigation": true,
+    "core_field_agreement_needs_investigation": true,
+    "safe_next_focus": "Keep page matching and review gates unchanged; isolate name and core-field disagreement before changing parser acceptance logic."
+  },
+  "safety": {
+    "contains_private_ocr_text": false,
+    "writes_supabase": false,
+    "allows_live_import": false,
+    "allows_canonicalization": false,
+    "review_gate_preserved": true
+  }
+}

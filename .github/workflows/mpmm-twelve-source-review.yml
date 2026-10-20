@@ -1,0 +1,64 @@
+name: MPMM twelve original named monster source reviews
+on:
+  push:
+    branches:
+      - 'audit/mpmm-twelve-boxed-statblocks-*'
+    paths:
+      - .github/workflows/mpmm-twelve-source-review.yml
+      - backend/services/mpmm_twelve_source_review.py
+      - backend/tests/test_mpmm_twelve_source_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  no-write-exact-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify twelve independent original records without writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_twelve_source_review import (
+              TARGETS,OWNER,FILE,audit_existing_monster,
+          )
+
+          async def verify():
+              if not db.configured:
+                  raise RuntimeError("source_database_unavailable")
+              results=[]
+              for name,t in TARGETS.items():
+                  row=await db.private_reference_records.find_one({"id":t["id"]})
+                  report=audit_existing_monster(name,row)
+                  collision=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":FILE,
+                      "reference_type":"monster",
+                      "normalized_name":t["normalized"],
+                  })
+                  if collision is not None:
+                      raise RuntimeError("another_existing_monster_same_name")
+                  again=await db.private_reference_records.find_one({"id":t["id"]})
+                  if row!=again:
+                      raise RuntimeError("original_source_mutated_during_audit")
+                  report["source_snapshot_unchanged"]=True
+                  results.append(report)
+              return results
+
+          print("MPMM_TWELVE_ORIGINAL_SOURCE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(verify()),sort_keys=True))
+          PY

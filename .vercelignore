@@ -1,0 +1,3 @@
+# Generated analysis artifacts are not required at runtime.
+# Keep them in GitHub for provenance/review, but exclude them from Vercel uploads.
+.agents/outputs/

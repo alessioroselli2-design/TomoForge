@@ -1,0 +1,785 @@
+{
+  "authority": {
+    "logical_source_id": "vrgr_2021_it",
+    "filename": "667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf",
+    "sha256": "7d8e6479f592df1630fc3abb02d3612a1d8514b3faff8d558288005185980209",
+    "physical_pages": 257
+  },
+  "audit": {
+    "bestiary_index_page": 225,
+    "bestiary_index_statblocks": 32,
+    "outside_index_page": 201,
+    "outside_index_statblocks": 4,
+    "previously_imported": [
+      "Apprendista"
+    ],
+    "new_source_review_candidates": 35,
+    "database_writes": 0,
+    "original_manual_is_complete": false,
+    "actions_and_traits_complete": false
+  },
+  "collision_notes": [
+    "All 32 bestiary names absent as exact monster names in the 800-record Supabase snapshot; repeat preflight immediately before insert.",
+    "Spia shares its display name with Manuale dei Mostri Spia but differs: MM CA12/PF27 (6d8)/GS1 vs Van Richten CA13/PF9 (2d6 + 2)/GS—. Preserve as separate disambiguated variant.",
+    "Apprendista already imported from p201; do not reimport.",
+    "No source text, images, or OCR dumps included."
+  ],
+  "statblocks": [
+    {
+      "name": "Squartatore Implacabile",
+      "page": 226,
+      "type": "Immondo",
+      "size": "Medio",
+      "armor_class": "15 (armatura naturale)",
+      "hit_points": "84 (13d8 + 26)",
+      "speed": "12 m",
+      "ability_scores": {
+        "for": 12,
+        "des": 18,
+        "cos": 14,
+        "int": 14,
+        "sag": 15,
+        "car": 16
+      },
+      "challenge_rating": "8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Colosso Implacabile",
+      "page": 227,
+      "type": "Immondo",
+      "size": "Grande",
+      "armor_class": "17 (armatura naturale)",
+      "hit_points": "161 (14d10 + 84)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 22,
+        "des": 12,
+        "cos": 22,
+        "int": 8,
+        "sag": 15,
+        "car": 16
+      },
+      "challenge_rating": "12",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Carognetta",
+      "page": 228,
+      "type": "Costrutto",
+      "size": "Piccolo",
+      "armor_class": "15 (armatura naturale)",
+      "hit_points": "27 (6d6 + 6)",
+      "speed": "7,5 m",
+      "ability_scores": {
+        "for": 10,
+        "des": 15,
+        "cos": 12,
+        "int": 8,
+        "sag": 14,
+        "car": 14
+      },
+      "challenge_rating": "1",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Cervello in Barattolo",
+      "page": 229,
+      "type": "Non morto",
+      "size": "Piccolo",
+      "armor_class": "11 (armatura naturale)",
+      "hit_points": "55 (10d6 + 20)",
+      "speed": "0 m, volare 3 m (fluttuare)",
+      "ability_scores": {
+        "for": 1,
+        "des": 3,
+        "cos": 15,
+        "int": 19,
+        "sag": 10,
+        "car": 15
+      },
+      "challenge_rating": "3",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Corvo Mannaro",
+      "page": 230,
+      "type": "Umanoide",
+      "size": "Medio",
+      "armor_class": "12",
+      "hit_points": "31 (7d8)",
+      "speed": "9 m forma umanoide; 3 m, volare 15 m forma corvo; 9 m, volare 15 m ibrida",
+      "ability_scores": {
+        "for": 10,
+        "des": 15,
+        "cos": 11,
+        "int": 13,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Divoratore di Menti Vampirico",
+      "page": 231,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "15 (armatura naturale)",
+      "hit_points": "85 (10d8 + 40)",
+      "speed": "9 m, scalare 9 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 18,
+        "cos": 18,
+        "int": 5,
+        "sag": 15,
+        "car": 18
+      },
+      "challenge_rating": "5",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dullahan",
+      "page": 232,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "16 (corazza)",
+      "hit_points": "135 (18d8 + 54)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 16,
+        "int": 11,
+        "sag": 15,
+        "car": 16
+      },
+      "challenge_rating": "10",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Eco dello Sterminio",
+      "page": 233,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "12",
+      "hit_points": "85 (19d8)",
+      "speed": "0 m, volare 12 m (fluttuare)",
+      "ability_scores": {
+        "for": 8,
+        "des": 14,
+        "cos": 10,
+        "int": 10,
+        "sag": 12,
+        "car": 18
+      },
+      "challenge_rating": "6",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Emissario della Progenie Stellare Minore",
+      "page": 235,
+      "type": "Aberrazione",
+      "size": "Media",
+      "armor_class": "19 (armatura naturale)",
+      "hit_points": "241 (21d8 + 147)",
+      "speed": "12 m, volare 12 m (fluttuare)",
+      "ability_scores": {
+        "for": 21,
+        "des": 18,
+        "cos": 24,
+        "int": 25,
+        "sag": 20,
+        "car": 23
+      },
+      "challenge_rating": "19",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Emissario della Progenie Stellare Maggiore",
+      "page": 235,
+      "type": "Aberrazione",
+      "size": "Enorme",
+      "armor_class": "15 (armatura naturale)",
+      "hit_points": "290 (20d12 + 160)",
+      "speed": "12 m, volare 12 m (fluttuare)",
+      "ability_scores": {
+        "for": 24,
+        "des": 13,
+        "cos": 26,
+        "int": 27,
+        "sag": 22,
+        "car": 25
+      },
+      "challenge_rating": "21",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Gremishka",
+      "page": 236,
+      "type": "Mostruosità",
+      "size": "Minuscola",
+      "armor_class": "12",
+      "hit_points": "10 (4d4)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 6,
+        "des": 14,
+        "cos": 10,
+        "int": 12,
+        "sag": 11,
+        "car": 4
+      },
+      "challenge_rating": "1/8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Orda di Gremishka",
+      "page": 236,
+      "type": "Orda di mostruosità",
+      "size": "Media di Minuscole",
+      "armor_class": "12",
+      "hit_points": "24 (7d6)",
+      "speed": "7,5 m",
+      "ability_scores": {
+        "for": 12,
+        "des": 14,
+        "cos": 10,
+        "int": 12,
+        "sag": 14,
+        "car": 4
+      },
+      "challenge_rating": "2",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Inquisitore del Fuoco Mentale",
+      "page": 237,
+      "type": "Umanoide",
+      "size": "Medio",
+      "armor_class": "16 (corazza)",
+      "hit_points": "77 (14d8 + 14)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 10,
+        "des": 14,
+        "cos": 12,
+        "int": 17,
+        "sag": 16,
+        "car": 19
+      },
+      "challenge_rating": "8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Inquisitore del Tomo",
+      "page": 238,
+      "type": "Umanoide",
+      "size": "Medio",
+      "armor_class": "11 (14 con armatura magica)",
+      "hit_points": "77 (14d8 + 14)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 10,
+        "des": 12,
+        "cos": 12,
+        "int": 19,
+        "sag": 16,
+        "car": 15
+      },
+      "challenge_rating": "8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Inquisitore della Spada",
+      "page": 238,
+      "type": "Umanoide",
+      "size": "Medio",
+      "armor_class": "16 (corazza)",
+      "hit_points": "91 (14d8 + 28)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 12,
+        "des": 14,
+        "cos": 14,
+        "int": 15,
+        "sag": 18,
+        "car": 16
+      },
+      "challenge_rating": "8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Jiangshi",
+      "page": 239,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "16 (armatura naturale)",
+      "hit_points": "119 (14d8 + 56)",
+      "speed": "6 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 3,
+        "cos": 18,
+        "int": 17,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "9",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Loup Garou",
+      "page": 240,
+      "type": "Mostruosità",
+      "size": "Media (Mutaforma)",
+      "armor_class": "16 (armatura naturale)",
+      "hit_points": "170 (20d8 + 80)",
+      "speed": "9 m; 12 m ibrida; 15 m lupo feroce",
+      "ability_scores": {
+        "for": 18,
+        "des": 18,
+        "cos": 18,
+        "int": 14,
+        "sag": 16,
+        "car": 16
+      },
+      "challenge_rating": "13",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Necricoro",
+      "page": 241,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "12",
+      "hit_points": "67 (9d8 + 27)",
+      "speed": "6 m, scalare 6 m",
+      "ability_scores": {
+        "for": 8,
+        "des": 15,
+        "cos": 17,
+        "int": 17,
+        "sag": 13,
+        "car": 10
+      },
+      "challenge_rating": "7",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Necrobiota",
+      "page": 242,
+      "type": "Mostruosità",
+      "size": "Minuscola",
+      "armor_class": "14 (armatura naturale)",
+      "hit_points": "35 (10d4 + 10)",
+      "speed": "9 m, scavare 9 m",
+      "ability_scores": {
+        "for": 6,
+        "des": 16,
+        "cos": 12,
+        "int": 2,
+        "sag": 13,
+        "car": 6
+      },
+      "challenge_rating": "3",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Nosferatu",
+      "page": 243,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "17 (armatura naturale)",
+      "hit_points": "85 (9d8 + 45)",
+      "speed": "12 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 18,
+        "cos": 21,
+        "int": 6,
+        "sag": 17,
+        "car": 14
+      },
+      "challenge_rating": "8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Orrore Indicibile",
+      "page": 244,
+      "type": "Mostruosità",
+      "size": "Enorme",
+      "armor_class": "15 (armatura naturale); 17 solo armatura aberrante",
+      "hit_points": "95 (10d10 + 40)",
+      "speed": "12 m",
+      "ability_scores": {
+        "for": 21,
+        "des": 13,
+        "cos": 19,
+        "int": 3,
+        "sag": 14,
+        "car": 17
+      },
+      "challenge_rating": "8",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Baccellaio",
+      "page": 246,
+      "type": "Pianta",
+      "size": "Media",
+      "armor_class": "10",
+      "hit_points": "26 (4d8 + 8)",
+      "speed": "6 m",
+      "ability_scores": {
+        "for": 15,
+        "des": 11,
+        "cos": 14,
+        "int": 10,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Pianta Afferracorpi",
+      "page": 246,
+      "type": "Pianta",
+      "size": "Enorme",
+      "armor_class": "16 (armatura naturale)",
+      "hit_points": "92 (8d12 + 40)",
+      "speed": "3 m, scalare 3 m, nuotare 3 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 8,
+        "cos": 20,
+        "int": 14,
+        "sag": 14,
+        "car": 18
+      },
+      "challenge_rating": "7",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Sacerdote di Osybus",
+      "page": 249,
+      "type": "Umanoide",
+      "size": "Medio",
+      "armor_class": "14 (armatura naturale)",
+      "hit_points": "60 (8d8 + 24)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 10,
+        "des": 14,
+        "cos": 16,
+        "int": 18,
+        "sag": 17,
+        "car": 11
+      },
+      "challenge_rating": "6",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Sciame di Parassiti",
+      "page": 250,
+      "type": "Sciame di bestie",
+      "size": "Medio di Minuscole",
+      "armor_class": "11",
+      "hit_points": "22 (5d8)",
+      "speed": "6 m, nuotare 6 m",
+      "ability_scores": {
+        "for": 3,
+        "des": 12,
+        "cos": 10,
+        "int": 1,
+        "sag": 7,
+        "car": 1
+      },
+      "challenge_rating": "2",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Sciame di Scarabei",
+      "page": 250,
+      "type": "Sciame di bestie",
+      "size": "Medio di Minuscole",
+      "armor_class": "13 (armatura naturale)",
+      "hit_points": "27 (5d8 + 5)",
+      "speed": "9 m, scavare 9 m, scalare 9 m",
+      "ability_scores": {
+        "for": 3,
+        "des": 14,
+        "cos": 13,
+        "int": 1,
+        "sag": 12,
+        "car": 1
+      },
+      "challenge_rating": "3",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Senzaossa",
+      "page": 251,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "12",
+      "hit_points": "26 (4d8 + 8)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 15,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "1",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Strigoi",
+      "page": 252,
+      "type": "Mostruosità",
+      "size": "Media",
+      "armor_class": "16 (armatura naturale)",
+      "hit_points": "52 (7d8 + 21)",
+      "speed": "9 m, volare 12 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 14,
+        "cos": 16,
+        "int": 11,
+        "sag": 17,
+        "car": 10
+      },
+      "challenge_rating": "4",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Testa della Morte",
+      "page": 253,
+      "type": "Non morto",
+      "size": "Minuscolo",
+      "armor_class": "16 (armatura naturale)",
+      "hit_points": "17 (5d4 + 5)",
+      "speed": "0 m, volare 9 m (fluttuare)",
+      "ability_scores": {
+        "for": 8,
+        "des": 13,
+        "cos": 12,
+        "int": 5,
+        "sag": 14,
+        "car": 3
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Orda di Membra Zombi",
+      "page": 254,
+      "type": "Orda di non morti",
+      "size": "Media di Minuscoli",
+      "armor_class": "10",
+      "hit_points": "22 (5d8)",
+      "speed": "9 m, scalare 9 m",
+      "ability_scores": {
+        "for": 14,
+        "des": 10,
+        "cos": 10,
+        "int": 3,
+        "sag": 8,
+        "car": 5
+      },
+      "challenge_rating": "1",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Ammasso di Zombi",
+      "page": 255,
+      "type": "Non morto",
+      "size": "Enorme",
+      "armor_class": "12 (armatura naturale)",
+      "hit_points": "104 (11d12 + 33)",
+      "speed": "12 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 10,
+        "cos": 16,
+        "int": 3,
+        "sag": 8,
+        "car": 10
+      },
+      "challenge_rating": "6",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Appestato",
+      "page": 255,
+      "type": "Non morto",
+      "size": "Medio",
+      "armor_class": "10",
+      "hit_points": "78 (12d8 + 24)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 15,
+        "int": 3,
+        "sag": 5,
+        "car": 5
+      },
+      "challenge_rating": "4",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Apprendista",
+      "page": 201,
+      "type": "Umanoide",
+      "size": "Media",
+      "armor_class": "10",
+      "hit_points": "7 (2d8 - 2)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 8,
+        "des": 10,
+        "cos": 9,
+        "int": 13,
+        "sag": 11,
+        "car": 12
+      },
+      "challenge_rating": "—",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "already_imported_core_verified",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Discepolo",
+      "page": 201,
+      "type": "Umanoide",
+      "size": "Media",
+      "armor_class": "11 (scudo)",
+      "hit_points": "9 (2d8)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 12,
+        "des": 9,
+        "cos": 10,
+        "int": 11,
+        "sag": 13,
+        "car": 9
+      },
+      "challenge_rating": "—",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Scudiero",
+      "page": 201,
+      "type": "Umanoide",
+      "size": "Media",
+      "armor_class": "12 (scudo)",
+      "hit_points": "11 (2d8 + 2)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 13,
+        "des": 10,
+        "cos": 12,
+        "int": 8,
+        "sag": 11,
+        "car": 9
+      },
+      "challenge_rating": "—",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Spia",
+      "page": 201,
+      "type": "Umanoide",
+      "size": "Piccola",
+      "armor_class": "13 (scudo)",
+      "hit_points": "9 (2d6 + 2)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 8,
+        "des": 13,
+        "cos": 12,
+        "int": 11,
+        "sag": 12,
+        "car": 9
+      },
+      "challenge_rating": "—",
+      "source_review": "original_scanned_page_visual",
+      "review_status": "reviewed_candidate_not_imported",
+      "completeness": "statistiche_essenziali"
+    }
+  ]
+}

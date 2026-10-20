@@ -1,0 +1,63 @@
+name: MPMM two mage original source audit
+on:
+  push:
+    branches:
+      - 'audit/mpmm-evocatore-necromante-*'
+    paths:
+      - .github/workflows/mpmm-evocatore-necromante-review.yml
+      - backend/services/mpmm_evocatore_necromante_review.py
+      - backend/tests/test_mpmm_evocatore_necromante_review.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  locked-original-source-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify both registered source rows and no duplicates, zero writes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()/"backend"))
+          from core.db import db
+          from services.mpmm_evocatore_necromante_review import (
+              OWNER,SOURCE,TARGETS,verify_named_boxed_mage,
+          )
+
+          async def audit():
+              if not db.configured:
+                  raise RuntimeError("database_unavailable")
+              verdicts=[]
+              for name,spec in TARGETS.items():
+                  before=await db.private_reference_records.find_one({"id":spec["id"]})
+                  report=verify_named_boxed_mage(name,before)
+                  duplicate=await db.private_reference_records.find_one({
+                      "user_id":OWNER,"source_key":SOURCE,
+                      "reference_type":"monster","normalized_name":name.casefold(),
+                  })
+                  if duplicate is not None:
+                      raise RuntimeError("duplicate_monster_source")
+                  after=await db.private_reference_records.find_one({"id":spec["id"]})
+                  if before!=after:
+                      raise RuntimeError("source_changed_during_audit")
+                  report["snapshot_unchanged"]=True
+                  verdicts.append(report)
+              return verdicts
+
+          print("MPMM_MAGE_EVOCATORE_NECROMANTE_FINAL_REPORT")
+          print(json.dumps(asyncio.run(audit()),sort_keys=True))
+          PY
