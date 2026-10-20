@@ -1,0 +1,388 @@
+{
+  "authority": {
+    "logical_source_id": "ps_mpp_2023_en",
+    "title": "Morte's Planar Parade",
+    "filename": "762692978-D-D-5e-Planescape-Adventure-in-the-Multiverse.pdf",
+    "sha256": "61392d7a3ab2241dce67b1027c4830e0b3e9431d224f5a1619c6f5257bd427b1",
+    "physical_pdf_pages": 262,
+    "physical_page_start": 197,
+    "physical_page_end": 262,
+    "ruleset": "2014",
+    "language": "en"
+  },
+  "audit": {
+    "source_statblock_index_pages": [
+      200
+    ],
+    "statblocks_indexed": 54,
+    "independent_core_fields_visually_verified": 2,
+    "existing_english_exact_name_matches": 0,
+    "english_italian_cross_language_dedup_checked": false,
+    "full_traits_actions_spells_complete": false,
+    "italian_translation_complete": false,
+    "database_writes_in_manifest": 0,
+    "note": "Index-only candidates are not canonical. The two core rows were independently read from the visual statblock boxes on physical PDF p230, with dice arithmetic checked. Never import unverified index-only entries as monsters."
+  },
+  "index": [
+    {
+      "name": "Hound Archon",
+      "printed_page": 16,
+      "physical_pdf_page": 213,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Lantern Archon",
+      "printed_page": 17,
+      "physical_pdf_page": 214,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Warden Archon",
+      "printed_page": 18,
+      "physical_pdf_page": 215,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Baernaloth",
+      "printed_page": 20,
+      "physical_pdf_page": 217,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Bariaur Wanderer",
+      "printed_page": 21,
+      "physical_pdf_page": 218,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Cranium Rat Squeaker",
+      "printed_page": 22,
+      "physical_pdf_page": 219,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Cranium Rat Squeaker Swarm",
+      "printed_page": 22,
+      "physical_pdf_page": 219,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Dabus",
+      "printed_page": 23,
+      "physical_pdf_page": 220,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Darkweaver",
+      "printed_page": 25,
+      "physical_pdf_page": 222,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Farastu Demodand",
+      "printed_page": 26,
+      "physical_pdf_page": 223,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Kelubar Demodand",
+      "printed_page": 27,
+      "physical_pdf_page": 224,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Shator Demodand",
+      "printed_page": 28,
+      "physical_pdf_page": 225,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Eater of Knowledge",
+      "printed_page": 29,
+      "physical_pdf_page": 226,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Githzerai Futurist",
+      "printed_page": 30,
+      "physical_pdf_page": 227,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Githzerai Traveler",
+      "printed_page": 31,
+      "physical_pdf_page": 228,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Githzerai Uniter",
+      "printed_page": 31,
+      "physical_pdf_page": 228,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Avoral Guardinal",
+      "printed_page": 32,
+      "physical_pdf_page": 229,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Equinal Guardinal",
+      "printed_page": 33,
+      "physical_pdf_page": 230,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Musteval Guardinal",
+      "printed_page": 33,
+      "physical_pdf_page": 230,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Kolyarut",
+      "printed_page": 34,
+      "physical_pdf_page": 231,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Maelephant",
+      "printed_page": 35,
+      "physical_pdf_page": 232,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Decaton Modron",
+      "printed_page": 36,
+      "physical_pdf_page": 233,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Hexton Modron",
+      "printed_page": 37,
+      "physical_pdf_page": 234,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Nonaton Modron",
+      "printed_page": 38,
+      "physical_pdf_page": 235,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Octon Modron",
+      "printed_page": 40,
+      "physical_pdf_page": 237,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Septon Modron",
+      "printed_page": 40,
+      "physical_pdf_page": 237,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Planar Incarnate",
+      "printed_page": 41,
+      "physical_pdf_page": 238,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Razorvine Blight",
+      "printed_page": 42,
+      "physical_pdf_page": 239,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Aurumach Rilmani",
+      "printed_page": 43,
+      "physical_pdf_page": 240,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Cuprilach Rilmani",
+      "printed_page": 44,
+      "physical_pdf_page": 241,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Ferrumach Rilmani",
+      "printed_page": 44,
+      "physical_pdf_page": 241,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Shemeshka",
+      "printed_page": 46,
+      "physical_pdf_page": 243,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Sunfly",
+      "printed_page": 47,
+      "physical_pdf_page": 244,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Swarm of Sunflies",
+      "printed_page": 47,
+      "physical_pdf_page": 244,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Ancient Time Dragon",
+      "printed_page": 48,
+      "physical_pdf_page": 245,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Adult Time Dragon",
+      "printed_page": 50,
+      "physical_pdf_page": 247,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Time Dragon Wyrmling",
+      "printed_page": 51,
+      "physical_pdf_page": 248,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Young Time Dragon",
+      "printed_page": 51,
+      "physical_pdf_page": 248,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Vargouille Reflection",
+      "printed_page": 52,
+      "physical_pdf_page": 249,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Athar Null",
+      "printed_page": 53,
+      "physical_pdf_page": 250,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Bleak Cabal Void Soother",
+      "printed_page": 54,
+      "physical_pdf_page": 251,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Doomguard Doom Lord",
+      "printed_page": 54,
+      "physical_pdf_page": 251,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Doomguard Rot Blade",
+      "printed_page": 56,
+      "physical_pdf_page": 253,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Fated Shaker",
+      "printed_page": 56,
+      "physical_pdf_page": 253,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Fraternity of Order Law Bender",
+      "printed_page": 57,
+      "physical_pdf_page": 254,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Hands of Havoc Fire Starter",
+      "printed_page": 58,
+      "physical_pdf_page": 255,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Harmonium Captain",
+      "printed_page": 58,
+      "physical_pdf_page": 255,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Harmonium Peacekeeper",
+      "printed_page": 59,
+      "physical_pdf_page": 256,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Heralds of Dust Remnant",
+      "printed_page": 59,
+      "physical_pdf_page": 256,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Mercykiller Bloodhound",
+      "printed_page": 60,
+      "physical_pdf_page": 257,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Mind's Eye Matter Smith",
+      "printed_page": 60,
+      "physical_pdf_page": 257,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Society of Sensation Muse",
+      "printed_page": 61,
+      "physical_pdf_page": 258,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Transcendent Order Conduit",
+      "printed_page": 62,
+      "physical_pdf_page": 259,
+      "core_review_status": "index_only"
+    },
+    {
+      "name": "Transcendent Order Instinct",
+      "printed_page": 62,
+      "physical_pdf_page": 259,
+      "core_review_status": "index_only"
+    }
+  ],
+  "reviewed_core_statblocks": [
+    {
+      "name": "Equinal Guardinal",
+      "physical_pdf_page": 230,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "93 (11d10 + 33)",
+      "speed": "50 ft.",
+      "ability_scores": {
+        "for": 23,
+        "des": 16,
+        "cos": 17,
+        "int": 15,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Large celestial, typically neutral good"
+    },
+    {
+      "name": "Musteval Guardinal",
+      "physical_pdf_page": 230,
+      "armor_class": "13",
+      "hit_points": "38 (11d6)",
+      "speed": "35 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 16,
+        "cos": 11,
+        "int": 14,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "size_and_type": "Small celestial, typically neutral good"
+    }
+  ]
+}
