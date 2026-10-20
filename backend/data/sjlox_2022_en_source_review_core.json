@@ -1,0 +1,45 @@
+{
+  "authority": {
+    "logical_source_id": "sjlox_2022_en",
+    "title": "Light of Xaryxis",
+    "filename": "647833920-D-D-5ªE-Light-of-Xaryxis.pdf",
+    "sha256": "5eeed29e1cf55adad7ae984a947c5ba6f5a2854e254a6a2b9988e6ffb4d54421",
+    "physical_pdf_pages": 66,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "all_pdf_pages_visually_screened": 66,
+    "autonomous_statblocks": 1,
+    "new_creatures": 1,
+    "canonical_exact_name_collisions": 0,
+    "db_writes": 0,
+    "full_traits_actions_spells_verified": false,
+    "other_monster_mentions_use_references_to_external_bestiaries": true,
+    "source_pdf_or_raw_ocr_in_public_repo": false,
+    "notes": "Astral Blight p11 is an independent Medium plant with complete statblock, unlike encounter references and spaceship damage statistics. All six abilities, AC, HP dice, speed, CR visually confirmed."
+  },
+  "statblocks": [
+    {
+      "name": "Astral Blight",
+      "physical_pdf_page": 11,
+      "size_and_type": "Medium plant, unaligned",
+      "armor_class": 12,
+      "hit_points": "26 (4d8 + 8)",
+      "speed": "10 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 8,
+        "cos": 14,
+        "int": 6,
+        "sag": 10,
+        "car": 3
+      },
+      "challenge_rating": "1",
+      "source_review": "original_pdf_visual",
+      "completeness": "statistiche_essenziali",
+      "source_statblock": "autonomous_creature",
+      "import_decision": "candidate_new"
+    }
+  ]
+}
