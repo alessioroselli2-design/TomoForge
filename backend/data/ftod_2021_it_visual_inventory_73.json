@@ -1,0 +1,552 @@
+{
+  "authority": {
+    "logical_source_id": "ftod_2021_it",
+    "filename": "950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf",
+    "sha256": "f844e50d4c69ba2989bd7e221bbe70038e0a56f25cc3eada1825933ce0d4547a",
+    "physical_pdf_pages": 227,
+    "index_physical_page": 225
+  },
+  "audit": {
+    "candidates_from_index": 70,
+    "candidates_outside_index": 3,
+    "total_candidates": 73,
+    "visually_inspected_pdf_pages": 227,
+    "preflight_source_count": 1,
+    "preflight_exact_name_matches": 0,
+    "database_writes": 0,
+    "core_stats_complete": false,
+    "integral_statblocks_complete": false,
+    "translation_required": false,
+    "source_pdf_ocr_in_repo": false,
+    "notes": "Index plus statblocks elsewhere (companion, summon, item). Do not import or mark complete until all six abilities, AC, HP/hit dice, speed, and CR are source-checked; dynamic formulas must be preserved, not flattened. Exact-name preflight alone does not rule out translated aliases."
+  },
+  "index": [
+    {
+      "name": "Scarabeo del tesoro",
+      "challenge_rating": "1/8",
+      "physical_pdf_page": 216,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Fringuello metallico",
+      "challenge_rating": "1/4",
+      "physical_pdf_page": 219,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Fante draconico",
+      "challenge_rating": "1/2",
+      "physical_pdf_page": 169,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago delle profondità cucciolo",
+      "challenge_rating": "1",
+      "physical_pdf_page": 178,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Cucciolo di cacciatore di uova",
+      "challenge_rating": "2",
+      "physical_pdf_page": 161,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago della lunopietra cucciolo",
+      "challenge_rating": "2",
+      "physical_pdf_page": 175,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di cristallo cucciolo",
+      "challenge_rating": "2",
+      "physical_pdf_page": 185,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di smeraldo cucciolo",
+      "challenge_rating": "2",
+      "physical_pdf_page": 188,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di topazio cucciolo",
+      "challenge_rating": "2",
+      "physical_pdf_page": 193,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dragonnel",
+      "challenge_rating": "2",
+      "physical_pdf_page": 203,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Mago draconico",
+      "challenge_rating": "2",
+      "physical_pdf_page": 170,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Portavoce del drago",
+      "challenge_rating": "2",
+      "physical_pdf_page": 218,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Sciame di scarabei del tesoro",
+      "challenge_rating": "2",
+      "physical_pdf_page": 216,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di zaffiro cucciolo",
+      "challenge_rating": "3",
+      "physical_pdf_page": 196,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Infiltrato draconico",
+      "challenge_rating": "3",
+      "physical_pdf_page": 170,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Innestatore draconico",
+      "challenge_rating": "3",
+      "physical_pdf_page": 210,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Prescelto del drago",
+      "challenge_rating": "3",
+      "physical_pdf_page": 218,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di ametista cucciolo",
+      "challenge_rating": "4",
+      "physical_pdf_page": 181,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Pacificatore metallico",
+      "challenge_rating": "4",
+      "physical_pdf_page": 219,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Terrore draconico",
+      "challenge_rating": "4",
+      "physical_pdf_page": 172,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Testuggine dragona cucciolo",
+      "challenge_rating": "4",
+      "physical_pdf_page": 224,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Beato del drago",
+      "challenge_rating": "5",
+      "physical_pdf_page": 217,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Cacciatore di gemme",
+      "challenge_rating": "5",
+      "physical_pdf_page": 160,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Cacciatore di uova adulto",
+      "challenge_rating": "5",
+      "physical_pdf_page": 161,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago delle profondità giovane",
+      "challenge_rating": "5",
+      "physical_pdf_page": 177,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di cristallo giovane",
+      "challenge_rating": "5",
+      "physical_pdf_page": 185,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Melma dragoematica",
+      "challenge_rating": "5",
+      "physical_pdf_page": 212,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Abominio draconico",
+      "challenge_rating": "6",
+      "physical_pdf_page": 211,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dragonide di Sardior",
+      "challenge_rating": "6",
+      "physical_pdf_page": 163,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Soffio animato",
+      "challenge_rating": "6",
+      "physical_pdf_page": 222,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Stratega draconico",
+      "challenge_rating": "6",
+      "physical_pdf_page": 171,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di topazio giovane",
+      "challenge_rating": "7",
+      "physical_pdf_page": 193,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dragoleone",
+      "challenge_rating": "7",
+      "physical_pdf_page": 202,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dragonide di Tiamat",
+      "challenge_rating": "7",
+      "physical_pdf_page": 163,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago della lunopietra giovane",
+      "challenge_rating": "8",
+      "physical_pdf_page": 174,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di smeraldo giovane",
+      "challenge_rating": "8",
+      "physical_pdf_page": 188,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dragocchio",
+      "challenge_rating": "8",
+      "physical_pdf_page": 201,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dragonide di Bahamut",
+      "challenge_rating": "8",
+      "physical_pdf_page": 162,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Mimic del tesoro",
+      "challenge_rating": "8",
+      "physical_pdf_page": 213,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Serpente marino giovane",
+      "challenge_rating": "8",
+      "physical_pdf_page": 221,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di ametista giovane",
+      "challenge_rating": "9",
+      "physical_pdf_page": 180,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di zaffiro giovane",
+      "challenge_rating": "9",
+      "physical_pdf_page": 196,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Testuggine dragona giovane",
+      "challenge_rating": "10",
+      "physical_pdf_page": 224,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Dracoidra",
+      "challenge_rating": "11",
+      "physical_pdf_page": 168,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago delle profondità adulto",
+      "challenge_rating": "11",
+      "physical_pdf_page": 177,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Golem dragosso",
+      "challenge_rating": "11",
+      "physical_pdf_page": 204,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di cristallo adulto",
+      "challenge_rating": "12",
+      "physical_pdf_page": 184,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di topazio adulto",
+      "challenge_rating": "13",
+      "physical_pdf_page": 191,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di smeraldo adulto",
+      "challenge_rating": "14",
+      "physical_pdf_page": 187,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Serpente marino antico",
+      "challenge_rating": "14",
+      "physical_pdf_page": 221,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago della lunopietra adulto",
+      "challenge_rating": "15",
+      "physical_pdf_page": 174,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di zaffiro adulto",
+      "challenge_rating": "15",
+      "physical_pdf_page": 195,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di ametista adulto",
+      "challenge_rating": "16",
+      "physical_pdf_page": 180,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago fantasma",
+      "challenge_rating": "17",
+      "physical_pdf_page": 200,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Reliquia draconica",
+      "challenge_rating": "17",
+      "physical_pdf_page": 215,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago cavo",
+      "challenge_rating": "18",
+      "physical_pdf_page": 198,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago delle profondità antico",
+      "challenge_rating": "18",
+      "physical_pdf_page": 176,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di cristallo antico",
+      "challenge_rating": "19",
+      "physical_pdf_page": 183,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di topazio antico",
+      "challenge_rating": "20",
+      "physical_pdf_page": 190,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago della lunopietra antico",
+      "challenge_rating": "21",
+      "physical_pdf_page": 173,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di smeraldo antico",
+      "challenge_rating": "21",
+      "physical_pdf_page": 186,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago cervello antico",
+      "challenge_rating": "22",
+      "physical_pdf_page": 199,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di zaffiro antico",
+      "challenge_rating": "22",
+      "physical_pdf_page": 194,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Drago di ametista antico",
+      "challenge_rating": "23",
+      "physical_pdf_page": 179,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Testuggine dragona antica",
+      "challenge_rating": "24",
+      "physical_pdf_page": 223,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Grande dragone gemma",
+      "challenge_rating": "26",
+      "physical_pdf_page": 207,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Grande dragone cromatico",
+      "challenge_rating": "27",
+      "physical_pdf_page": 205,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Grande dragone metallico",
+      "challenge_rating": "28",
+      "physical_pdf_page": 209,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Creazione di Bahamut",
+      "challenge_rating": "30",
+      "physical_pdf_page": 165,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Creazione di Tiamat",
+      "challenge_rating": "30",
+      "physical_pdf_page": 166,
+      "source_status": "index_and_visual_page_corroborated",
+      "completeness": "inventory_only_core_pending"
+    },
+    {
+      "name": "Compagno Drago",
+      "challenge_rating": "—",
+      "physical_pdf_page": 16,
+      "source_status": "outside_bestiary_visual_review",
+      "completeness": "inventory_only_core_pending",
+      "dynamic_stats": true
+    },
+    {
+      "name": "Spirito Draconico",
+      "challenge_rating": "—",
+      "physical_pdf_page": 21,
+      "source_status": "outside_bestiary_visual_review",
+      "completeness": "inventory_only_core_pending",
+      "dynamic_stats": true
+    },
+    {
+      "name": "Canarino Gigante",
+      "challenge_rating": "1/2",
+      "physical_pdf_page": 25,
+      "source_status": "outside_bestiary_visual_review",
+      "completeness": "inventory_only_core_pending",
+      "dynamic_stats": false,
+      "visual_verified_core": {
+        "armor_class": 12,
+        "hit_points": "26 (4d10 + 4)",
+        "speed": "9 m, volare 18 m",
+        "ability_scores": {
+          "for": 10,
+          "des": 14,
+          "cos": 12,
+          "int": 2,
+          "sag": 10,
+          "car": 6
+        }
+      }
+    }
+  ]
+}
