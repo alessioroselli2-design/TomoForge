@@ -52,7 +52,7 @@ def hit_dice_coherent(value: str) -> bool:
 
 def numeric_hp_tokens(value: str) -> str:
     """Diagnostic only: strip prose and keep a bounded numeric dice signature."""
-    return " ".join(re.findall(r"\\d+|[dD()+-]", (value or "")[:140]))[:100]
+    return " ".join(re.findall(r"\d+|[dD()+-]", (value or "")[:140]))[:100]
 
 
 def metadata_candidate(record: dict) -> dict | None:
