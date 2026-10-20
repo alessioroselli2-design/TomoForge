@@ -15,7 +15,7 @@
       200
     ],
     "statblocks_indexed": 54,
-    "independent_core_fields_visually_verified": 19,
+    "independent_core_fields_visually_verified": 31,
     "existing_english_exact_name_matches": 0,
     "english_italian_cross_language_dedup_checked": false,
     "full_traits_actions_spells_complete": false,
@@ -142,73 +142,73 @@
       "name": "Kolyarut",
       "printed_page": 34,
       "physical_pdf_page": 231,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Maelephant",
       "printed_page": 35,
       "physical_pdf_page": 232,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Decaton Modron",
       "printed_page": 36,
       "physical_pdf_page": 233,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Hexton Modron",
       "printed_page": 37,
       "physical_pdf_page": 234,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Nonaton Modron",
       "printed_page": 38,
       "physical_pdf_page": 235,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Octon Modron",
       "printed_page": 40,
       "physical_pdf_page": 237,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Septon Modron",
       "printed_page": 40,
       "physical_pdf_page": 237,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Planar Incarnate",
       "printed_page": 41,
       "physical_pdf_page": 238,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Razorvine Blight",
       "printed_page": 42,
       "physical_pdf_page": 239,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Aurumach Rilmani",
       "printed_page": 43,
       "physical_pdf_page": 240,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Cuprilach Rilmani",
       "printed_page": 44,
       "physical_pdf_page": 241,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Ferrumach Rilmani",
       "printed_page": 44,
       "physical_pdf_page": 241,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Shemeshka",
@@ -672,6 +672,210 @@
       },
       "challenge_rating": "9",
       "size_and_type": "Medium celestial, typically neutral good"
+    },
+    {
+      "name": "Kolyarut",
+      "physical_pdf_page": 231,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "297 (35d8 + 140)",
+      "speed": "50 ft., fly 35 ft. (hover)",
+      "ability_scores": {
+        "for": 25,
+        "des": 12,
+        "cos": 19,
+        "int": 25,
+        "sag": 22,
+        "car": 18
+      },
+      "challenge_rating": "20",
+      "size_and_type": "Medium construct (inevitable), typically lawful neutral"
+    },
+    {
+      "name": "Maelephant",
+      "physical_pdf_page": 232,
+      "armor_class": "15 (half plate armor)",
+      "hit_points": "161 (17d10 + 68)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 10,
+        "cos": 18,
+        "int": 10,
+        "sag": 16,
+        "car": 12
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Large fiend, typically lawful evil"
+    },
+    {
+      "name": "Decaton Modron",
+      "physical_pdf_page": 233,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "144 (17d10 + 51)",
+      "speed": "30 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 16,
+        "int": 15,
+        "sag": 15,
+        "car": 11
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Hexton Modron",
+      "physical_pdf_page": 234,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "209 (22d12 + 66)",
+      "speed": "40 ft., fly 40 ft. (hover)",
+      "ability_scores": {
+        "for": 19,
+        "des": 16,
+        "cos": 17,
+        "int": 19,
+        "sag": 17,
+        "car": 15
+      },
+      "challenge_rating": "13",
+      "size_and_type": "Huge construct, typically lawful neutral"
+    },
+    {
+      "name": "Nonaton Modron",
+      "physical_pdf_page": 235,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "161 (19d10 + 57)",
+      "speed": "30 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 18,
+        "des": 13,
+        "cos": 16,
+        "int": 16,
+        "sag": 16,
+        "car": 13
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Octon Modron",
+      "physical_pdf_page": 237,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "187 (22d10 + 66)",
+      "speed": "30 ft., fly 30 ft. (hover), swim 30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 17,
+        "int": 17,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "11",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Septon Modron",
+      "physical_pdf_page": 237,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "204 (24d10 + 72)",
+      "speed": "30 ft., fly 30 ft. (hover), swim 30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 15,
+        "cos": 17,
+        "int": 18,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Planar Incarnate",
+      "physical_pdf_page": 238,
+      "armor_class": "20 (natural armor)",
+      "hit_points": "333 (18d20 + 144)",
+      "speed": "40 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 27,
+        "des": 10,
+        "cos": 26,
+        "int": 15,
+        "sag": 20,
+        "car": 20
+      },
+      "challenge_rating": "22",
+      "size_and_type": "Gargantuan celestial or fiend, any alignment"
+    },
+    {
+      "name": "Razorvine Blight",
+      "physical_pdf_page": 239,
+      "armor_class": "12",
+      "hit_points": "27 (5d8 + 5)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 15,
+        "cos": 13,
+        "int": 5,
+        "sag": 10,
+        "car": 3
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Medium plant, typically neutral evil"
+    },
+    {
+      "name": "Aurumach Rilmani",
+      "physical_pdf_page": 240,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "285 (30d10 + 120)",
+      "speed": "0 ft., fly 40 ft. (hover)",
+      "ability_scores": {
+        "for": 20,
+        "des": 21,
+        "cos": 18,
+        "int": 21,
+        "sag": 18,
+        "car": 16
+      },
+      "challenge_rating": "17",
+      "size_and_type": "Large celestial, typically neutral"
+    },
+    {
+      "name": "Cuprilach Rilmani",
+      "physical_pdf_page": 241,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "202 (27d8 + 81)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 20,
+        "cos": 16,
+        "int": 16,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Medium celestial, typically neutral"
+    },
+    {
+      "name": "Ferrumach Rilmani",
+      "physical_pdf_page": 241,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "136 (16d8 + 64)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 14,
+        "cos": 18,
+        "int": 15,
+        "sag": 14,
+        "car": 10
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Medium celestial, typically neutral"
     }
   ]
 }
