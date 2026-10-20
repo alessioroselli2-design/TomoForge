@@ -33,7 +33,7 @@ def test_visual_core_review_only():
         for row in doc["index"]
         if row["core_review_status"] == "source_core_reviewed"
     }
-    assert len(cores) == doc["audit"]["independent_core_fields_visually_verified"] == 11
+    assert len(cores) == doc["audit"]["independent_core_fields_visually_verified"] == 19
     assert {r["name"] for r in cores} == reviewed_names
     assert {"Equinal Guardinal", "Musteval Guardinal", "Darkweaver"} <= {r["name"] for r in cores}
     for row in cores:
