@@ -1,0 +1,795 @@
+{
+  "authority": {
+    "logical_source_id": "llok_2018_en",
+    "title": "Lost Laboratory of Kwalish",
+    "filename": "409663816-Lost-Laboratory-of-Kwalish-pdf.pdf",
+    "sha256": "3afc9e88420a930666f6995834ae06a3e3dc587cb8a3b437aa15c9adb8423602",
+    "physical_pdf_pages": 62,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "original_pdf_pages_reviewed": 62,
+    "appendix_statblock_pages": "38–53",
+    "total_statblocks": 38,
+    "new_candidates": 6,
+    "existing_identities": 32,
+    "database_writes": 0,
+    "hit_die_mean_verified": 38,
+    "all_six_abilities_reviewed": 38,
+    "integral_actions_traits_spells_complete": false,
+    "english_names_not_yet_translated": true,
+    "original_pdf_or_raw_ocr_committed": false,
+    "conflict_policy": "fail_closed",
+    "special_variants": [
+      "Brain in a Jar => Cervello in Barattolo (Kwalish HP58/CR6; Van Richten HP55/CR3; preserve both source-specific versions)",
+      "Evoker => Mago Invocatore (Kwalish HP66; MPMM HP121; preserve both source-specific versions)"
+    ]
+  },
+  "statblocks": [
+    {
+      "name": "Bandit Captain",
+      "physical_pdf_page": 38,
+      "armor_class": "15 (studded leather)",
+      "hit_points": "65 (10d8 + 20)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 16,
+        "cos": 14,
+        "int": 14,
+        "sag": 11,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Capo dei Banditi"
+    },
+    {
+      "name": "Berserker",
+      "physical_pdf_page": 38,
+      "armor_class": "13 (hide armor)",
+      "hit_points": "67 (9d8 + 27)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 12,
+        "cos": 17,
+        "int": 9,
+        "sag": 11,
+        "car": 9
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Berserker"
+    },
+    {
+      "name": "Bone Devil",
+      "physical_pdf_page": 38,
+      "armor_class": "19 (natural armor)",
+      "hit_points": "142 (15d10 + 60)",
+      "speed": "40 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 16,
+        "cos": 18,
+        "int": 13,
+        "sag": 14,
+        "car": 16
+      },
+      "challenge_rating": "9",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Diavolo D'Ossa"
+    },
+    {
+      "name": "Brain in a Jar",
+      "physical_pdf_page": 39,
+      "armor_class": "11 (natural armor)",
+      "hit_points": "58 (9d8 + 18)",
+      "speed": "0 ft.",
+      "ability_scores": {
+        "for": 1,
+        "des": 1,
+        "cos": 15,
+        "int": 19,
+        "sag": 10,
+        "car": 15
+      },
+      "challenge_rating": "6",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Cervello in Barattolo",
+      "cross_source_variant": true,
+      "source_specific_hp_and_cr": true
+    },
+    {
+      "name": "Clockwork Kraken",
+      "physical_pdf_page": 39,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "142 (15d10 + 60)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 12,
+        "cos": 18,
+        "int": 3,
+        "sag": 11,
+        "car": 1
+      },
+      "challenge_rating": "10",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "candidate_new",
+      "existing_canonical_name": null
+    },
+    {
+      "name": "Commoner",
+      "physical_pdf_page": 39,
+      "armor_class": "10",
+      "hit_points": "4 (1d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 10,
+        "cos": 10,
+        "int": 10,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "0",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Popolano"
+    },
+    {
+      "name": "Cultist",
+      "physical_pdf_page": 40,
+      "armor_class": "12 (leather armor)",
+      "hit_points": "9 (2d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 12,
+        "cos": 10,
+        "int": 10,
+        "sag": 11,
+        "car": 10
+      },
+      "challenge_rating": "1/8",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Cultista"
+    },
+    {
+      "name": "Cult Fanatic",
+      "physical_pdf_page": 40,
+      "armor_class": "13 (leather armor)",
+      "hit_points": "33 (6d8 + 6)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 14,
+        "cos": 12,
+        "int": 10,
+        "sag": 13,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Cultista Fanatico"
+    },
+    {
+      "name": "Evoker",
+      "physical_pdf_page": 40,
+      "armor_class": "12 (15 with mage armor)",
+      "hit_points": "66 (12d8 + 12)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 9,
+        "des": 14,
+        "cos": 12,
+        "int": 17,
+        "sag": 12,
+        "car": 11
+      },
+      "challenge_rating": "9",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Mago Invocatore",
+      "cross_source_variant": true,
+      "source_specific_hp_and_cr": true
+    },
+    {
+      "name": "Froghemoth",
+      "physical_pdf_page": 41,
+      "armor_class": "14 (natural armor)",
+      "hit_points": "184 (16d12 + 80)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 23,
+        "des": 13,
+        "cos": 20,
+        "int": 2,
+        "sag": 12,
+        "car": 5
+      },
+      "challenge_rating": "10",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "candidate_new",
+      "existing_canonical_name": null
+    },
+    {
+      "name": "Galeb Duhr",
+      "physical_pdf_page": 41,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "85 (9d8 + 45)",
+      "speed": "15 ft. (30 ft. when rolling, 60 ft. rolling downhill)",
+      "ability_scores": {
+        "for": 20,
+        "des": 14,
+        "cos": 20,
+        "int": 11,
+        "sag": 12,
+        "car": 11
+      },
+      "challenge_rating": "6",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Galeb Duhr"
+    },
+    {
+      "name": "Garret Levistusson",
+      "physical_pdf_page": 42,
+      "armor_class": "14 (studded leather)",
+      "hit_points": "44 (8d8 + 8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 14,
+        "cos": 12,
+        "int": 11,
+        "sag": 12,
+        "car": 17
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "candidate_new",
+      "existing_canonical_name": null
+    },
+    {
+      "name": "Gelatinous Cube",
+      "physical_pdf_page": 42,
+      "armor_class": "6",
+      "hit_points": "84 (8d10 + 40)",
+      "speed": "15 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 3,
+        "cos": 20,
+        "int": 1,
+        "sag": 6,
+        "car": 1
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Cubo Gelatinoso"
+    },
+    {
+      "name": "Gibbering Mouther",
+      "physical_pdf_page": 43,
+      "armor_class": "9",
+      "hit_points": "67 (9d8 + 27)",
+      "speed": "10 ft., swim 10 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 8,
+        "cos": 16,
+        "int": 3,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Fauce Gorgogliante"
+    },
+    {
+      "name": "Gynosphinx",
+      "physical_pdf_page": 43,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "136 (16d10 + 48)",
+      "speed": "40 ft., fly 60 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 15,
+        "cos": 16,
+        "int": 18,
+        "sag": 18,
+        "car": 18
+      },
+      "challenge_rating": "11",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Ginosfinge"
+    },
+    {
+      "name": "Kenku",
+      "physical_pdf_page": 44,
+      "armor_class": "13",
+      "hit_points": "13 (3d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 16,
+        "cos": 10,
+        "int": 11,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "1/4",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Kenku"
+    },
+    {
+      "name": "Martial Arts Adept",
+      "physical_pdf_page": 44,
+      "armor_class": "16",
+      "hit_points": "60 (11d8 + 11)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 17,
+        "cos": 13,
+        "int": 11,
+        "sag": 16,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Adepto Di Arti Marziali"
+    },
+    {
+      "name": "Mary Greymalkin",
+      "physical_pdf_page": 44,
+      "armor_class": "14 (bracers of defense, ring of protection)",
+      "hit_points": "45 (7d8 + 14)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 12,
+        "cos": 10,
+        "int": 14,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "candidate_new",
+      "existing_canonical_name": null
+    },
+    {
+      "name": "Medusa",
+      "physical_pdf_page": 45,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "127 (17d8 + 51)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 15,
+        "cos": 16,
+        "int": 12,
+        "sag": 13,
+        "car": 15
+      },
+      "challenge_rating": "6",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Medusa"
+    },
+    {
+      "name": "Merrenoloth",
+      "physical_pdf_page": 45,
+      "armor_class": "13",
+      "hit_points": "40 (9d8)",
+      "speed": "30 ft., swim 40 ft.",
+      "ability_scores": {
+        "for": 8,
+        "des": 17,
+        "cos": 10,
+        "int": 17,
+        "sag": 14,
+        "car": 11
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Merrenoloth"
+    },
+    {
+      "name": "Monodrone",
+      "physical_pdf_page": 46,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "5 (1d8 + 1)",
+      "speed": "30 ft., fly 30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 13,
+        "cos": 12,
+        "int": 4,
+        "sag": 10,
+        "car": 5
+      },
+      "challenge_rating": "1/8",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Monodrone"
+    },
+    {
+      "name": "Mind Flayer Arcanist",
+      "physical_pdf_page": 46,
+      "armor_class": "15 (breastplate)",
+      "hit_points": "71 (13d8 + 13)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 12,
+        "cos": 12,
+        "int": 19,
+        "sag": 17,
+        "car": 17
+      },
+      "challenge_rating": "8",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "candidate_new",
+      "existing_canonical_name": null
+    },
+    {
+      "name": "Ooze-Folk",
+      "physical_pdf_page": 47,
+      "armor_class": "10 (natural armor)",
+      "hit_points": "19 (2d8 + 10)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 3,
+        "cos": 20,
+        "int": 1,
+        "sag": 6,
+        "car": 1
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "candidate_new",
+      "existing_canonical_name": null
+    },
+    {
+      "name": "Quasit",
+      "physical_pdf_page": 47,
+      "armor_class": "13",
+      "hit_points": "7 (3d4)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 5,
+        "des": 17,
+        "cos": 10,
+        "int": 7,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "1",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Quasit"
+    },
+    {
+      "name": "Quickling",
+      "physical_pdf_page": 47,
+      "armor_class": "16",
+      "hit_points": "10 (3d4 + 3)",
+      "speed": "120 ft.",
+      "ability_scores": {
+        "for": 4,
+        "des": 23,
+        "cos": 13,
+        "int": 10,
+        "sag": 12,
+        "car": 7
+      },
+      "challenge_rating": "1",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Celeresto"
+    },
+    {
+      "name": "Skeleton",
+      "physical_pdf_page": 48,
+      "armor_class": "13 (armor scraps)",
+      "hit_points": "13 (2d8 + 4)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 14,
+        "cos": 15,
+        "int": 6,
+        "sag": 8,
+        "car": 5
+      },
+      "challenge_rating": "1/4",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Scheletro"
+    },
+    {
+      "name": "Sprite",
+      "physical_pdf_page": 48,
+      "armor_class": "15 (leather armor)",
+      "hit_points": "2 (1d4)",
+      "speed": "10 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 3,
+        "des": 18,
+        "cos": 10,
+        "int": 14,
+        "sag": 13,
+        "car": 11
+      },
+      "challenge_rating": "1/4",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Spiritello"
+    },
+    {
+      "name": "Steam Mephit",
+      "physical_pdf_page": 48,
+      "armor_class": "10",
+      "hit_points": "21 (6d6)",
+      "speed": "30 ft., fly 30 ft.",
+      "ability_scores": {
+        "for": 5,
+        "des": 11,
+        "cos": 10,
+        "int": 11,
+        "sag": 10,
+        "car": 12
+      },
+      "challenge_rating": "1/4",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Mephit del Vapore"
+    },
+    {
+      "name": "Stone Golem",
+      "physical_pdf_page": 49,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "178 (17d10 + 85)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 9,
+        "cos": 20,
+        "int": 3,
+        "sag": 11,
+        "car": 1
+      },
+      "challenge_rating": "10",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Golem Di Pietra"
+    },
+    {
+      "name": "Stirge",
+      "physical_pdf_page": 49,
+      "armor_class": "14 (natural armor)",
+      "hit_points": "2 (1d4)",
+      "speed": "10 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 4,
+        "des": 16,
+        "cos": 11,
+        "int": 2,
+        "sag": 8,
+        "car": 6
+      },
+      "challenge_rating": "1/8",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Uccello Stigeo"
+    },
+    {
+      "name": "Swarm of Bats",
+      "physical_pdf_page": 49,
+      "armor_class": "12",
+      "hit_points": "22 (5d8)",
+      "speed": "0 ft., fly 30 ft.",
+      "ability_scores": {
+        "for": 5,
+        "des": 15,
+        "cos": 10,
+        "int": 2,
+        "sag": 12,
+        "car": 4
+      },
+      "challenge_rating": "1/4",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Sciame di Pipistrelli"
+    },
+    {
+      "name": "Thug",
+      "physical_pdf_page": 50,
+      "armor_class": "11 (leather armor)",
+      "hit_points": "32 (5d8 + 10)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 11,
+        "cos": 14,
+        "int": 10,
+        "sag": 10,
+        "car": 11
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Malvivente"
+    },
+    {
+      "name": "Treant",
+      "physical_pdf_page": 50,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "138 (12d12 + 60)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 23,
+        "des": 8,
+        "cos": 21,
+        "int": 12,
+        "sag": 16,
+        "car": 12
+      },
+      "challenge_rating": "9",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Treant"
+    },
+    {
+      "name": "Umber Hulk",
+      "physical_pdf_page": 50,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "93 (11d10 + 33)",
+      "speed": "30 ft., burrow 20 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 13,
+        "cos": 16,
+        "int": 9,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "5",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Umber Hulk"
+    },
+    {
+      "name": "Vampire",
+      "physical_pdf_page": 51,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "144 (17d8 + 68)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 18,
+        "cos": 18,
+        "int": 17,
+        "sag": 15,
+        "car": 18
+      },
+      "challenge_rating": "13",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Vampiro"
+    },
+    {
+      "name": "Vampire Spawn",
+      "physical_pdf_page": 52,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "82 (11d8 + 33)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 16,
+        "cos": 16,
+        "int": 11,
+        "sag": 10,
+        "car": 12
+      },
+      "challenge_rating": "5",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Progenie Vampirica"
+    },
+    {
+      "name": "Wraith",
+      "physical_pdf_page": 52,
+      "armor_class": "13",
+      "hit_points": "67 (9d8 + 27)",
+      "speed": "0 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 6,
+        "des": 16,
+        "cos": 16,
+        "int": 12,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "5",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Wraith"
+    },
+    {
+      "name": "Xorn",
+      "physical_pdf_page": 53,
+      "armor_class": "19 (natural armor)",
+      "hit_points": "73 (7d8 + 42)",
+      "speed": "20 ft., burrow 20 ft.",
+      "ability_scores": {
+        "for": 17,
+        "des": 10,
+        "cos": 22,
+        "int": 11,
+        "sag": 10,
+        "car": 11
+      },
+      "challenge_rating": "5",
+      "source_review": "original_pdf_text_and_visual",
+      "completeness": "statistiche_essenziali",
+      "import_decision": "link_existing_identity",
+      "existing_canonical_name": "Xorn"
+    }
+  ]
+}
