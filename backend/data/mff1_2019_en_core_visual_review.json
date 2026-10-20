@@ -1,0 +1,425 @@
+{
+  "authority": {
+    "logical_source_id": "mff1_2019_en",
+    "title": "Mordenkainen’s Fiendish Folio Volume 1",
+    "filename": "1064688926-9-D-D-5e-Mordenkainen-s-Fiendish-Folio-Vol-1.pdf",
+    "sha256": "e84ea509258d5d96dbb5d5253accc694f658b1985d66257a1be913b54faeec4a",
+    "physical_pdf_pages": 22,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "bestiary_index_pdf_page": 3,
+    "total_distinct_statblocks": 18,
+    "source_reviewed_core": 18,
+    "existing_exact_names_at_preflight": 0,
+    "database_writes": 0,
+    "integral_actions_complete": false,
+    "no_source_pdf_or_ocr_uploaded": true,
+    "manual_inventory_pages": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      17,
+      17,
+      18,
+      18,
+      20,
+      21,
+      22
+    ]
+  },
+  "collision_policy": {
+    "compare_by": "identity+source+statblock, not HP alone",
+    "cross_language_duplicates": "require further provenance check before DB writes",
+    "reimport_same_source": "blocked"
+  },
+  "statblocks": [
+    {
+      "name": "Assassin Bug",
+      "physical_pdf_page": 5,
+      "size": "Medium",
+      "creature_type": "monstrosity",
+      "armor_class": "14 (natural armor)",
+      "hit_points": "55 (10d8 + 10)",
+      "speed": "10 ft., fly 50 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 14,
+        "cos": 13,
+        "int": 4,
+        "sag": 12,
+        "car": 6
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Blindheim",
+      "physical_pdf_page": 6,
+      "size": "Medium",
+      "creature_type": "humanoid (blindheim)",
+      "armor_class": "14 (natural armor)",
+      "hit_points": "26 (4d8 + 8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 16,
+        "cos": 15,
+        "int": 8,
+        "sag": 10,
+        "car": 9
+      },
+      "challenge_rating": "2",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Crab Folk",
+      "physical_pdf_page": 7,
+      "size": "Large",
+      "creature_type": "giant",
+      "armor_class": "16 (natural armor)",
+      "hit_points": "68 (8d10 + 24)",
+      "speed": "40 ft., swim 40 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 10,
+        "cos": 17,
+        "int": 7,
+        "sag": 9,
+        "car": 9
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dire Corby",
+      "physical_pdf_page": 8,
+      "size": "Medium",
+      "creature_type": "humanoid (dire corby)",
+      "armor_class": "13 (natural armor)",
+      "hit_points": "16 (3d8 + 3)",
+      "speed": "40 ft., climb 40 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 14,
+        "cos": 13,
+        "int": 6,
+        "sag": 8,
+        "car": 7
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Eye of Fear and Flame",
+      "physical_pdf_page": 9,
+      "size": "Medium",
+      "creature_type": "undead",
+      "armor_class": "15 (natural armor)",
+      "hit_points": "136 (16d8 + 64)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 18,
+        "int": 18,
+        "sag": 17,
+        "car": 18
+      },
+      "challenge_rating": "9",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Forlarren",
+      "physical_pdf_page": 10,
+      "size": "Medium",
+      "creature_type": "fey",
+      "armor_class": "16 (natural armor)",
+      "hit_points": "45 (6d8 + 18)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 16,
+        "cos": 17,
+        "int": 12,
+        "sag": 11,
+        "car": 18
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Fog Giant",
+      "physical_pdf_page": 11,
+      "size": "Huge",
+      "creature_type": "giant",
+      "armor_class": "16 (chain mail)",
+      "hit_points": "200 (16d12 + 96)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 27,
+        "des": 10,
+        "cos": 22,
+        "int": 12,
+        "sag": 16,
+        "car": 16
+      },
+      "challenge_rating": "11",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Jermlaine",
+      "physical_pdf_page": 12,
+      "size": "Tiny",
+      "creature_type": "humanoid (jermlaine)",
+      "armor_class": "11",
+      "hit_points": "3 (1d4 + 1)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 4,
+        "des": 12,
+        "cos": 13,
+        "int": 10,
+        "sag": 11,
+        "car": 7
+      },
+      "challenge_rating": "1/8",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Khargra",
+      "physical_pdf_page": 13,
+      "size": "Small",
+      "creature_type": "elemental",
+      "armor_class": "20 (natural armor)",
+      "hit_points": "11 (2d6 + 4)",
+      "speed": "5 ft., fly 30 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 10,
+        "cos": 14,
+        "int": 5,
+        "sag": 11,
+        "car": 6
+      },
+      "challenge_rating": "1/8",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Killmoulis",
+      "physical_pdf_page": 14,
+      "size": "Tiny",
+      "creature_type": "fey",
+      "armor_class": "14",
+      "hit_points": "7 (2d4 + 2)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 4,
+        "des": 19,
+        "cos": 13,
+        "int": 12,
+        "sag": 14,
+        "car": 13
+      },
+      "challenge_rating": "0",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Mite",
+      "physical_pdf_page": 15,
+      "size": "Small",
+      "creature_type": "fey",
+      "armor_class": "12",
+      "hit_points": "7 (2d6)",
+      "speed": "30 ft., burrow 10 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 7,
+        "des": 14,
+        "cos": 11,
+        "int": 10,
+        "sag": 8,
+        "car": 13
+      },
+      "challenge_rating": "1/4",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Needle Spawn",
+      "physical_pdf_page": 17,
+      "size": "Medium",
+      "creature_type": "plant",
+      "armor_class": "13",
+      "hit_points": "16 (3d8 + 3)",
+      "speed": "30 ft., climb 20 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 17,
+        "cos": 12,
+        "int": 6,
+        "sag": 13,
+        "car": 6
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Needle Lord",
+      "physical_pdf_page": 17,
+      "size": "Large",
+      "creature_type": "plant",
+      "armor_class": "15 (natural armor)",
+      "hit_points": "45 (6d10 + 12)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 11,
+        "cos": 14,
+        "int": 11,
+        "sag": 15,
+        "car": 12
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Norker",
+      "physical_pdf_page": 18,
+      "size": "Small",
+      "creature_type": "humanoid (goblinoid)",
+      "armor_class": "17 (natural armor)",
+      "hit_points": "16 (3d8 + 3)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 10,
+        "cos": 13,
+        "int": 8,
+        "sag": 8,
+        "car": 7
+      },
+      "challenge_rating": "1/2",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Norker War Leader",
+      "physical_pdf_page": 18,
+      "size": "Small",
+      "creature_type": "humanoid (goblinoid)",
+      "armor_class": "17 (natural armor)",
+      "hit_points": "39 (6d8 + 12)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 15,
+        "int": 12,
+        "sag": 11,
+        "car": 13
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Screaming Devilkin",
+      "physical_pdf_page": 20,
+      "size": "Small",
+      "creature_type": "fey",
+      "armor_class": "17 (natural armor)",
+      "hit_points": "18 (4d6 + 4)",
+      "speed": "0 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 4,
+        "des": 16,
+        "cos": 13,
+        "int": 5,
+        "sag": 8,
+        "car": 11
+      },
+      "challenge_rating": "1",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Ygorl, Lord of Entropy",
+      "physical_pdf_page": 21,
+      "size": "Large",
+      "creature_type": "aberration",
+      "armor_class": "20 (natural armor)",
+      "hit_points": "325 (26d10 + 182)",
+      "speed": "40 ft., climb 40 ft., swim 40 ft.",
+      "ability_scores": {
+        "for": 24,
+        "des": 18,
+        "cos": 24,
+        "int": 20,
+        "sag": 16,
+        "car": 26
+      },
+      "challenge_rating": "23",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Xill",
+      "physical_pdf_page": 22,
+      "size": "Medium",
+      "creature_type": "monstrosity",
+      "armor_class": "16 (natural armor)",
+      "hit_points": "33 (6d8 + 6)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 18,
+        "cos": 13,
+        "int": 11,
+        "sag": 14,
+        "car": 9
+      },
+      "challenge_rating": "3",
+      "source_review": "original_pdf_page_visual",
+      "review_status": "source_reviewed_not_imported",
+      "completeness": "statistiche_essenziali"
+    }
+  ]
+}
