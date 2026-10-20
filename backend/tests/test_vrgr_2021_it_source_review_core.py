@@ -6,9 +6,15 @@ import json
 import re
 from pathlib import Path
 
-SOURCE = (\n    Path(__file__).resolve().parents[1]\n    / "data"\n    / "vrgr_2021_it_source_review_core.json"\n)
+SOURCE = (
+    Path(__file__).resolve().parents[1]
+    / "data"
+    / "vrgr_2021_it_source_review_core.json"
+)
 SHA = "7d8e6479f592df1630fc3abb02d3612a1d8514b3faff8d558288005185980209"
-HIT_DICE = re.compile(\n    r"^(\d+)\s*\((\d+)d(\d+)(?:\s*([+-])\s*(\d+))?\)$"\n)
+HIT_DICE = re.compile(
+    r"^(\d+)\s*\((\d+)d(\d+)(?:\s*([+-])\s*(\d+))?\)$"
+)
 ABILITIES = {"for", "des", "cos", "int", "sag", "car"}
 
 
@@ -27,7 +33,10 @@ def test_source_review_manifest_has_36_distinct_blocks_and_correct_scope():
     assert len(blocks) == 36
     assert len({x["name"].casefold() for x in blocks}) == 36
     assert sum(x["page"] == 201 for x in blocks) == 4
-    assert (\n        sum(x["review_status"] == "already_imported_core_verified" for x in blocks)\n        == 1\n    )
+    assert (
+        sum(x["review_status"] == "already_imported_core_verified" for x in blocks)
+        == 1
+    )
 
 
 def test_every_source_visual_block_has_coherent_exact_core_stats():
@@ -45,7 +54,10 @@ def test_every_source_visual_block_has_coherent_exact_core_stats():
         assert int(die) in {4, 6, 8, 10, 12, 20}
         offset = int(modifier or 0) * (-1 if sign == "-" else 1)
         assert int(hp) == (int(count) * (int(die) + 1)) // 2 + offset
-        if record["page"] == 201:\n            assert record["challenge_rating"] == "—"\n        else:\n            assert record["challenge_rating"] != "—"
+        if record["page"] == 201:
+            assert record["challenge_rating"] == "—"
+        else:
+            assert record["challenge_rating"] != "—"
 
 
 def test_duplicate_spia_is_a_distinct_variant_not_merge_by_name():
@@ -54,4 +66,7 @@ def test_duplicate_spia_is_a_distinct_variant_not_merge_by_name():
     assert block["page"] == 201
     assert block["hit_points"] == "9 (2d6 + 2)"
     assert block["challenge_rating"] == "—"
-    assert any(\n        "Spia" in note and "differs" in note.lower()\n        for note in doc["collision_notes"]\n    )
+    assert any(
+        "Spia" in note and "differs" in note.lower()
+        for note in doc["collision_notes"]
+    )
