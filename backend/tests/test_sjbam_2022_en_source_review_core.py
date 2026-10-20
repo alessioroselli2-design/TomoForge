@@ -40,7 +40,7 @@ def test_all_72_core_fields_and_hit_dice_arithmetic():
         assert set(r["ability_scores"]) == ABILITIES
         assert all(1 <= x <= 30 for x in r["ability_scores"].values())
         assert re.fullmatch(r"(?:0|[1-9]\d*)(?:/[1-9]\d*)?", r["challenge_rating"])
-        m = re.fullmatch(r"(\d+) \(\d+)d(4|6|8|10|12|20)(?: ([+-]) (\d+))?\)", r["hit_points"])
+        m = re.fullmatch(r"(\d+) \((\d+)d(4|6|8|10|12|20)(?: ([+-]) (\d+))?\)", r["hit_points"])
         assert m is not None, r["name"]
         hp, count, sides, sign, bonus = m.groups()
         expected = math.floor(int(count) * (int(sides) + 1) / 2)
