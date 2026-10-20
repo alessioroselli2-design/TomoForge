@@ -1,0 +1,1352 @@
+{
+  "authority": {
+    "logical_source_id": "ftod_2021_it",
+    "source_title": "Il Tesoro dei Draghi di Fizban",
+    "filename": "950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf",
+    "sha256": "f844e50d4c69ba2989bd7e221bbe70038e0a56f25cc3eada1825933ce0d4547a",
+    "physical_pdf_pages": 227,
+    "language": "it",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "bestiary_statblocks": 70,
+    "outside_bestiary_statblocks": 3,
+    "total_candidates": 73,
+    "source_reviewed_core": 73,
+    "source_review_only": true,
+    "db_writes": 0,
+    "integral_actions_traits_spells_complete": false,
+    "source_pdf_or_raw_ocr_in_repo": false,
+    "ocr_window_size_max": 12,
+    "original_pdf_pages_visually_reviewed": 227,
+    "exact_name_collisions_at_prior_preflight": 0,
+    "corrected_page_refs": [
+      "Creazione di Bahamut:165",
+      "Grande dragone gemma:207",
+      "Grande dragone metallico:209",
+      "Reliquia draconica:215"
+    ],
+    "notes": "Verifica visuale dei campi essenziali, HP/DV controllati; 2 creature con formule variabili non hanno GS statico. Import solo dopo CI e preflight aggiornato."
+  },
+  "statblocks": [
+    {
+      "name": "Cacciatore di gemme",
+      "physical_pdf_page": 160,
+      "armor_class": 17,
+      "hit_points": "67 (9d10 + 18)",
+      "speed": "12 m, scalare 12 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 15,
+        "cos": 14,
+        "int": 15,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Cucciolo di cacciatore di uova",
+      "physical_pdf_page": 161,
+      "armor_class": 14,
+      "hit_points": "28 (8d4 + 8)",
+      "speed": "9 m, scavare 3 m, scalare 9 m",
+      "ability_scores": {
+        "for": 8,
+        "des": 17,
+        "cos": 13,
+        "int": 1,
+        "sag": 10,
+        "car": 5
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Cacciatore di uova adulto",
+      "physical_pdf_page": 161,
+      "armor_class": 16,
+      "hit_points": "52 (8d6 + 24)",
+      "speed": "12 m, scalare 12 m",
+      "ability_scores": {
+        "for": 14,
+        "des": 20,
+        "cos": 16,
+        "int": 3,
+        "sag": 13,
+        "car": 5
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dragonide di Bahamut",
+      "physical_pdf_page": 162,
+      "armor_class": 18,
+      "hit_points": "93 (11d8 + 44)",
+      "speed": "9 m, volare 9 m",
+      "ability_scores": {
+        "for": 19,
+        "des": 13,
+        "cos": 18,
+        "int": 12,
+        "sag": 14,
+        "car": 17
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dragonide di Sardior",
+      "physical_pdf_page": 163,
+      "armor_class": 17,
+      "hit_points": "75 (10d8 + 30)",
+      "speed": "9 m, volare 9 m (fluttuare)",
+      "ability_scores": {
+        "for": 14,
+        "des": 16,
+        "cos": 17,
+        "int": 18,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dragonide di Tiamat",
+      "physical_pdf_page": 163,
+      "armor_class": 18,
+      "hit_points": "85 (10d8 + 40)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 11,
+        "cos": 18,
+        "int": 10,
+        "sag": 12,
+        "car": 16
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Creazione di Bahamut",
+      "physical_pdf_page": 165,
+      "armor_class": 23,
+      "hit_points": "585 (30d20 + 270)",
+      "speed": "18 m, nuotare 18 m, scavare 18 m, volare 36 m",
+      "ability_scores": {
+        "for": 30,
+        "des": 18,
+        "cos": 29,
+        "int": 25,
+        "sag": 28,
+        "car": 30
+      },
+      "challenge_rating": "30",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Creazione di Tiamat",
+      "physical_pdf_page": 166,
+      "armor_class": 23,
+      "hit_points": "574 (28d20 + 280)",
+      "speed": "18 m, nuotare 18 m, scavare 18 m, volare 36 m",
+      "ability_scores": {
+        "for": 30,
+        "des": 14,
+        "cos": 30,
+        "int": 21,
+        "sag": 20,
+        "car": 26
+      },
+      "challenge_rating": "30",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dracoidra",
+      "physical_pdf_page": 168,
+      "armor_class": 17,
+      "hit_points": "218 (19d12 + 95)",
+      "speed": "9 m, nuotare 9 m, volare 9 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 12,
+        "cos": 20,
+        "int": 6,
+        "sag": 12,
+        "car": 12
+      },
+      "challenge_rating": "11",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Fante draconico",
+      "physical_pdf_page": 169,
+      "armor_class": 14,
+      "hit_points": "22 (4d8 + 4)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 13,
+        "des": 11,
+        "cos": 13,
+        "int": 8,
+        "sag": 8,
+        "car": 10
+      },
+      "challenge_rating": "1/2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Infiltrato draconico",
+      "physical_pdf_page": 170,
+      "armor_class": 15,
+      "hit_points": "39 (6d8 + 12)",
+      "speed": "12 m, scalare 9 m",
+      "ability_scores": {
+        "for": 11,
+        "des": 17,
+        "cos": 14,
+        "int": 9,
+        "sag": 13,
+        "car": 11
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Mago draconico",
+      "physical_pdf_page": 170,
+      "armor_class": 15,
+      "hit_points": "40 (9d8)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 14,
+        "des": 10,
+        "cos": 11,
+        "int": 11,
+        "sag": 10,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Stratega draconico",
+      "physical_pdf_page": 171,
+      "armor_class": 17,
+      "hit_points": "67 (9d8 + 27)",
+      "speed": "10,5 m",
+      "ability_scores": {
+        "for": 13,
+        "des": 14,
+        "cos": 16,
+        "int": 15,
+        "sag": 11,
+        "car": 17
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Terrore draconico",
+      "physical_pdf_page": 172,
+      "armor_class": 16,
+      "hit_points": "57 (6d10 + 24)",
+      "speed": "9 m, volare 18 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 10,
+        "cos": 18,
+        "int": 10,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago della lunopietra antico",
+      "physical_pdf_page": 173,
+      "armor_class": 20,
+      "hit_points": "330 (20d20 + 120)",
+      "speed": "12 m, volare 24 m",
+      "ability_scores": {
+        "for": 22,
+        "des": 18,
+        "cos": 23,
+        "int": 20,
+        "sag": 22,
+        "car": 26
+      },
+      "challenge_rating": "21",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago della lunopietra adulto",
+      "physical_pdf_page": 174,
+      "armor_class": 19,
+      "hit_points": "195 (17d12 + 85)",
+      "speed": "12 m, volare 24 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 18,
+        "cos": 20,
+        "int": 22,
+        "sag": 20,
+        "car": 23
+      },
+      "challenge_rating": "15",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago della lunopietra giovane",
+      "physical_pdf_page": 174,
+      "armor_class": 18,
+      "hit_points": "144 (17d10 + 51)",
+      "speed": "12 m, volare 24 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 16,
+        "cos": 17,
+        "int": 18,
+        "sag": 17,
+        "car": 19
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago della lunopietra cucciolo",
+      "physical_pdf_page": 175,
+      "armor_class": 17,
+      "hit_points": "39 (6d8 + 12)",
+      "speed": "9 m, volare 18 m",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 14,
+        "int": 16,
+        "sag": 14,
+        "car": 17
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago delle profondità antico",
+      "physical_pdf_page": 176,
+      "armor_class": 20,
+      "hit_points": "201 (13d20 + 65)",
+      "speed": "12 m, nuotare 12 m, scavare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 23,
+        "des": 16,
+        "cos": 20,
+        "int": 19,
+        "sag": 18,
+        "car": 21
+      },
+      "challenge_rating": "18",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago delle profondità adulto",
+      "physical_pdf_page": 177,
+      "armor_class": 17,
+      "hit_points": "147 (14d12 + 56)",
+      "speed": "12 m, nuotare 12 m, scavare 9 m, volare 24 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 14,
+        "cos": 18,
+        "int": 16,
+        "sag": 16,
+        "car": 18
+      },
+      "challenge_rating": "11",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago delle profondità giovane",
+      "physical_pdf_page": 177,
+      "armor_class": 16,
+      "hit_points": "93 (11d10 + 33)",
+      "speed": "12 m, nuotare 12 m, scavare 6 m, volare 24 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 13,
+        "cos": 16,
+        "int": 12,
+        "sag": 14,
+        "car": 16
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago delle profondità cucciolo",
+      "physical_pdf_page": 178,
+      "armor_class": 15,
+      "hit_points": "27 (5d8 + 5)",
+      "speed": "9 m, nuotare 9 m, scavare 4,5 m, volare 18 m",
+      "ability_scores": {
+        "for": 14,
+        "des": 11,
+        "cos": 12,
+        "int": 11,
+        "sag": 12,
+        "car": 13
+      },
+      "challenge_rating": "1",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di ametista antico",
+      "physical_pdf_page": 179,
+      "armor_class": 20,
+      "hit_points": "444 (24d20 + 192)",
+      "speed": "12 m, nuotare 12 m, volare 24 m (fluttuare)",
+      "ability_scores": {
+        "for": 26,
+        "des": 14,
+        "cos": 27,
+        "int": 26,
+        "sag": 19,
+        "car": 23
+      },
+      "challenge_rating": "23",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di ametista adulto",
+      "physical_pdf_page": 180,
+      "armor_class": 19,
+      "hit_points": "229 (17d12 + 119)",
+      "speed": "12 m, nuotare 12 m, volare 24 m (fluttuare)",
+      "ability_scores": {
+        "for": 25,
+        "des": 14,
+        "cos": 25,
+        "int": 20,
+        "sag": 17,
+        "car": 21
+      },
+      "challenge_rating": "16",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di ametista giovane",
+      "physical_pdf_page": 180,
+      "armor_class": 18,
+      "hit_points": "168 (16d10 + 80)",
+      "speed": "12 m, nuotare 12 m, volare 24 m (fluttuare)",
+      "ability_scores": {
+        "for": 21,
+        "des": 12,
+        "cos": 21,
+        "int": 18,
+        "sag": 15,
+        "car": 19
+      },
+      "challenge_rating": "9",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di ametista cucciolo",
+      "physical_pdf_page": 181,
+      "armor_class": 17,
+      "hit_points": "75 (10d8 + 30)",
+      "speed": "9 m, nuotare 9 m, volare 18 m (fluttuare)",
+      "ability_scores": {
+        "for": 19,
+        "des": 10,
+        "cos": 17,
+        "int": 16,
+        "sag": 13,
+        "car": 17
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di cristallo antico",
+      "physical_pdf_page": 183,
+      "armor_class": 20,
+      "hit_points": "222 (12d20 + 96)",
+      "speed": "12 m, scalare 12 m, scavare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 25,
+        "des": 12,
+        "cos": 26,
+        "int": 20,
+        "sag": 16,
+        "car": 21
+      },
+      "challenge_rating": "19",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di cristallo adulto",
+      "physical_pdf_page": 184,
+      "armor_class": 16,
+      "hit_points": "172 (15d12 + 75)",
+      "speed": "12 m, scalare 12 m, scavare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 21,
+        "des": 12,
+        "cos": 21,
+        "int": 18,
+        "sag": 15,
+        "car": 19
+      },
+      "challenge_rating": "12",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di cristallo giovane",
+      "physical_pdf_page": 185,
+      "armor_class": 15,
+      "hit_points": "95 (10d10 + 40)",
+      "speed": "12 m, scalare 12 m, scavare 6 m, volare 24 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 12,
+        "cos": 18,
+        "int": 16,
+        "sag": 14,
+        "car": 17
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di cristallo cucciolo",
+      "physical_pdf_page": 185,
+      "armor_class": 14,
+      "hit_points": "32 (5d8 + 10)",
+      "speed": "9 m, scalare 9 m, scavare 4,5 m, volare 18 m",
+      "ability_scores": {
+        "for": 14,
+        "des": 12,
+        "cos": 14,
+        "int": 14,
+        "sag": 13,
+        "car": 15
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di smeraldo antico",
+      "physical_pdf_page": 186,
+      "armor_class": 20,
+      "hit_points": "332 (19d20 + 133)",
+      "speed": "12 m, scavare 9 m, volare 24 m",
+      "ability_scores": {
+        "for": 25,
+        "des": 12,
+        "cos": 25,
+        "int": 20,
+        "sag": 18,
+        "car": 20
+      },
+      "challenge_rating": "21",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di smeraldo adulto",
+      "physical_pdf_page": 187,
+      "armor_class": 18,
+      "hit_points": "207 (18d12 + 90)",
+      "speed": "12 m, scavare 9 m, volare 24 m",
+      "ability_scores": {
+        "for": 23,
+        "des": 12,
+        "cos": 21,
+        "int": 18,
+        "sag": 16,
+        "car": 18
+      },
+      "challenge_rating": "14",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di smeraldo giovane",
+      "physical_pdf_page": 188,
+      "armor_class": 17,
+      "hit_points": "142 (15d10 + 60)",
+      "speed": "12 m, scavare 9 m, volare 18 m",
+      "ability_scores": {
+        "for": 21,
+        "des": 12,
+        "cos": 19,
+        "int": 16,
+        "sag": 14,
+        "car": 16
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di smeraldo cucciolo",
+      "physical_pdf_page": 188,
+      "armor_class": 16,
+      "hit_points": "39 (6d8 + 12)",
+      "speed": "9 m, scavare 6 m, volare 18 m",
+      "ability_scores": {
+        "for": 15,
+        "des": 12,
+        "cos": 15,
+        "int": 14,
+        "sag": 12,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di topazio antico",
+      "physical_pdf_page": 190,
+      "armor_class": 20,
+      "hit_points": "280 (17d20 + 102)",
+      "speed": "12 m, nuotare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 23,
+        "des": 12,
+        "cos": 23,
+        "int": 20,
+        "sag": 19,
+        "car": 20
+      },
+      "challenge_rating": "20",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di topazio adulto",
+      "physical_pdf_page": 191,
+      "armor_class": 18,
+      "hit_points": "210 (20d12 + 80)",
+      "speed": "12 m, nuotare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 19,
+        "des": 12,
+        "cos": 19,
+        "int": 18,
+        "sag": 17,
+        "car": 18
+      },
+      "challenge_rating": "13",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di topazio giovane",
+      "physical_pdf_page": 193,
+      "armor_class": 17,
+      "hit_points": "127 (17d10 + 34)",
+      "speed": "12 m, nuotare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 12,
+        "cos": 15,
+        "int": 16,
+        "sag": 15,
+        "car": 16
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di topazio cucciolo",
+      "physical_pdf_page": 193,
+      "armor_class": 16,
+      "hit_points": "33 (6d8 + 6)",
+      "speed": "9 m, nuotare 9 m, volare 18 m",
+      "ability_scores": {
+        "for": 15,
+        "des": 12,
+        "cos": 13,
+        "int": 14,
+        "sag": 13,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di zaffiro antico",
+      "physical_pdf_page": 194,
+      "armor_class": 20,
+      "hit_points": "370 (20d20 + 160)",
+      "speed": "12 m, scalare 12 m, scavare 12 m, volare 24 m",
+      "ability_scores": {
+        "for": 27,
+        "des": 14,
+        "cos": 27,
+        "int": 21,
+        "sag": 19,
+        "car": 20
+      },
+      "challenge_rating": "22",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di zaffiro adulto",
+      "physical_pdf_page": 195,
+      "armor_class": 18,
+      "hit_points": "225 (18d12 + 108)",
+      "speed": "12 m, scalare 12 m, scavare 9 m, volare 24 m",
+      "ability_scores": {
+        "for": 23,
+        "des": 14,
+        "cos": 22,
+        "int": 18,
+        "sag": 17,
+        "car": 18
+      },
+      "challenge_rating": "15",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di zaffiro giovane",
+      "physical_pdf_page": 196,
+      "armor_class": 17,
+      "hit_points": "157 (15d10 + 75)",
+      "speed": "12 m, scalare 12 m, scavare 6 m, volare 24 m",
+      "ability_scores": {
+        "for": 21,
+        "des": 14,
+        "cos": 20,
+        "int": 16,
+        "sag": 15,
+        "car": 16
+      },
+      "challenge_rating": "9",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago di zaffiro cucciolo",
+      "physical_pdf_page": 196,
+      "armor_class": 16,
+      "hit_points": "45 (6d8 + 18)",
+      "speed": "9 m, scalare 9 m, scavare 4,5 m, volare 18 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 14,
+        "cos": 16,
+        "int": 14,
+        "sag": 13,
+        "car": 14
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago cavo",
+      "physical_pdf_page": 198,
+      "armor_class": 19,
+      "hit_points": "241 (21d12 + 105)",
+      "speed": "12 m, volare 24 m",
+      "ability_scores": {
+        "for": 23,
+        "des": 12,
+        "cos": 21,
+        "int": 16,
+        "sag": 13,
+        "car": 21
+      },
+      "challenge_rating": "18",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago cervello antico",
+      "physical_pdf_page": 199,
+      "armor_class": 17,
+      "hit_points": "350 (20d20 + 140)",
+      "speed": "12 m, volare 24 m (fluttuare)",
+      "ability_scores": {
+        "for": 27,
+        "des": 13,
+        "cos": 25,
+        "int": 21,
+        "sag": 19,
+        "car": 24
+      },
+      "challenge_rating": "22",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Drago fantasma",
+      "physical_pdf_page": 200,
+      "armor_class": 10,
+      "hit_points": "324 (24d12 + 168)",
+      "speed": "12 m, volare 24 m (fluttuare)",
+      "ability_scores": {
+        "for": 20,
+        "des": 10,
+        "cos": 25,
+        "int": 16,
+        "sag": 15,
+        "car": 19
+      },
+      "challenge_rating": "17",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dragocchio",
+      "physical_pdf_page": 201,
+      "armor_class": 16,
+      "hit_points": "119 (14d10 + 42)",
+      "speed": "0 m, volare 9 m (fluttuare)",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 16,
+        "int": 14,
+        "sag": 14,
+        "car": 16
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dragoleone",
+      "physical_pdf_page": 202,
+      "armor_class": 16,
+      "hit_points": "119 (14d10 + 42)",
+      "speed": "12 m, volare 18 m",
+      "ability_scores": {
+        "for": 19,
+        "des": 15,
+        "cos": 17,
+        "int": 6,
+        "sag": 12,
+        "car": 12
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dragonnel",
+      "physical_pdf_page": 203,
+      "armor_class": 13,
+      "hit_points": "58 (9d10 + 9)",
+      "speed": "9 m, volare 18 m",
+      "ability_scores": {
+        "for": 16,
+        "des": 15,
+        "cos": 12,
+        "int": 8,
+        "sag": 13,
+        "car": 10
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Golem dragosso",
+      "physical_pdf_page": 204,
+      "armor_class": 17,
+      "hit_points": "161 (19d10 + 57)",
+      "speed": "12 m",
+      "ability_scores": {
+        "for": 20,
+        "des": 10,
+        "cos": 17,
+        "int": 3,
+        "sag": 11,
+        "car": 10
+      },
+      "challenge_rating": "11",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Grande dragone cromatico",
+      "physical_pdf_page": 205,
+      "armor_class": 22,
+      "hit_points": "533 (26d20 + 260)",
+      "speed": "18 m, nuotare 18 m, scavare 18 m, volare 36 m",
+      "ability_scores": {
+        "for": 30,
+        "des": 14,
+        "cos": 30,
+        "int": 21,
+        "sag": 20,
+        "car": 26
+      },
+      "challenge_rating": "27",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Grande dragone gemma",
+      "physical_pdf_page": 207,
+      "armor_class": 21,
+      "hit_points": "507 (26d20 + 234)",
+      "speed": "18 m, nuotare 18 m, scavare 18 m, volare 36 m (fluttuare)",
+      "ability_scores": {
+        "for": 28,
+        "des": 14,
+        "cos": 29,
+        "int": 30,
+        "sag": 24,
+        "car": 25
+      },
+      "challenge_rating": "26",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Grande dragone metallico",
+      "physical_pdf_page": 209,
+      "armor_class": 22,
+      "hit_points": "565 (29d20 + 261)",
+      "speed": "18 m, nuotare 18 m, scavare 18 m, volare 36 m",
+      "ability_scores": {
+        "for": 30,
+        "des": 16,
+        "cos": 29,
+        "int": 21,
+        "sag": 22,
+        "car": 30
+      },
+      "challenge_rating": "28",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Innestatore draconico",
+      "physical_pdf_page": 210,
+      "armor_class": 14,
+      "hit_points": "52 (7d10 + 14)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 16,
+        "des": 11,
+        "cos": 14,
+        "int": 10,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Abominio draconico",
+      "physical_pdf_page": 211,
+      "armor_class": 15,
+      "hit_points": "66 (7d12 + 21)",
+      "speed": "9 m, volare 12 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 17,
+        "int": 5,
+        "sag": 12,
+        "car": 6
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Melma dragoematica",
+      "physical_pdf_page": 212,
+      "armor_class": 14,
+      "hit_points": "68 (8d10 + 24)",
+      "speed": "6 m, scalare 6 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 6,
+        "cos": 17,
+        "int": 2,
+        "sag": 12,
+        "car": 10
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Mimic del tesoro",
+      "physical_pdf_page": 213,
+      "armor_class": 14,
+      "hit_points": "123 (13d12 + 39)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 21,
+        "des": 12,
+        "cos": 17,
+        "int": 10,
+        "sag": 16,
+        "car": 10
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Reliquia draconica",
+      "physical_pdf_page": 215,
+      "armor_class": 17,
+      "hit_points": "168 (16d12 + 64)",
+      "speed": "0 m, volare 24 m (fluttuare)",
+      "ability_scores": {
+        "for": 1,
+        "des": 12,
+        "cos": 18,
+        "int": 22,
+        "sag": 18,
+        "car": 22
+      },
+      "challenge_rating": "17",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Scarabeo del tesoro",
+      "physical_pdf_page": 216,
+      "armor_class": 14,
+      "hit_points": "7 (3d4)",
+      "speed": "6 m, scavare 6 m, volare 6 m",
+      "ability_scores": {
+        "for": 4,
+        "des": 16,
+        "cos": 11,
+        "int": 3,
+        "sag": 8,
+        "car": 6
+      },
+      "challenge_rating": "1/8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Sciame di scarabei del tesoro",
+      "physical_pdf_page": 216,
+      "armor_class": 14,
+      "hit_points": "31 (7d8)",
+      "speed": "6 m, scavare 6 m, volare 6 m",
+      "ability_scores": {
+        "for": 6,
+        "des": 16,
+        "cos": 11,
+        "int": 3,
+        "sag": 8,
+        "car": 6
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Beato del drago",
+      "physical_pdf_page": 217,
+      "armor_class": 14,
+      "hit_points": "75 (10d8 + 30)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 12,
+        "des": 10,
+        "cos": 16,
+        "int": 14,
+        "sag": 17,
+        "car": 10
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Portavoce del drago",
+      "physical_pdf_page": 218,
+      "armor_class": 13,
+      "hit_points": "36 (8d6 + 8)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 10,
+        "des": 14,
+        "cos": 12,
+        "int": 13,
+        "sag": 11,
+        "car": 17
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Prescelto del drago",
+      "physical_pdf_page": 218,
+      "armor_class": 17,
+      "hit_points": "45 (7d8 + 14)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 18,
+        "des": 18,
+        "cos": 14,
+        "int": 10,
+        "sag": 13,
+        "car": 14
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Fringuello metallico",
+      "physical_pdf_page": 219,
+      "armor_class": 14,
+      "hit_points": "14 (4d4 + 4)",
+      "speed": "12 m, volare 18 m",
+      "ability_scores": {
+        "for": 4,
+        "des": 15,
+        "cos": 12,
+        "int": 9,
+        "sag": 10,
+        "car": 12
+      },
+      "challenge_rating": "1/4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Pacificatore metallico",
+      "physical_pdf_page": 219,
+      "armor_class": 17,
+      "hit_points": "68 (8d8 + 32)",
+      "speed": "9 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 10,
+        "cos": 18,
+        "int": 14,
+        "sag": 12,
+        "car": 11
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Serpente marino antico",
+      "physical_pdf_page": 221,
+      "armor_class": 17,
+      "hit_points": "170 (11d20 + 55)",
+      "speed": "6 m, nuotare 18 m",
+      "ability_scores": {
+        "for": 24,
+        "des": 15,
+        "cos": 20,
+        "int": 13,
+        "sag": 16,
+        "car": 12
+      },
+      "challenge_rating": "14",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Serpente marino giovane",
+      "physical_pdf_page": 221,
+      "armor_class": 16,
+      "hit_points": "123 (13d12 + 39)",
+      "speed": "3 m, nuotare 12 m",
+      "ability_scores": {
+        "for": 19,
+        "des": 12,
+        "cos": 17,
+        "int": 11,
+        "sag": 13,
+        "car": 10
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Soffio animato",
+      "physical_pdf_page": 222,
+      "armor_class": 15,
+      "hit_points": "95 (10d10 + 40)",
+      "speed": "9 m, volare 9 m (fluttuare)",
+      "ability_scores": {
+        "for": 19,
+        "des": 11,
+        "cos": 18,
+        "int": 6,
+        "sag": 10,
+        "car": 5
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali",
+      "conditional_ac_note": "CA 17 nella sola forma fredda, CA 15 negli altri casi."
+    },
+    {
+      "name": "Testuggine dragona antica",
+      "physical_pdf_page": 223,
+      "armor_class": 22,
+      "hit_points": "409 (21d20 + 189)",
+      "speed": "9 m, nuotare 18 m",
+      "ability_scores": {
+        "for": 28,
+        "des": 12,
+        "cos": 29,
+        "int": 14,
+        "sag": 19,
+        "car": 15
+      },
+      "challenge_rating": "24",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Testuggine dragona giovane",
+      "physical_pdf_page": 224,
+      "armor_class": 19,
+      "hit_points": "178 (17d12 + 68)",
+      "speed": "6 m, nuotare 12 m",
+      "ability_scores": {
+        "for": 21,
+        "des": 10,
+        "cos": 19,
+        "int": 10,
+        "sag": 12,
+        "car": 12
+      },
+      "challenge_rating": "10",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Testuggine dragona cucciolo",
+      "physical_pdf_page": 224,
+      "armor_class": 18,
+      "hit_points": "90 (12d10 + 24)",
+      "speed": "6 m, nuotare 9 m",
+      "ability_scores": {
+        "for": 17,
+        "des": 10,
+        "cos": 15,
+        "int": 8,
+        "sag": 10,
+        "car": 10
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Compagno Drago",
+      "physical_pdf_page": 16,
+      "armor_class": "14 + bonus di competenza del ranger",
+      "hit_points": "5 + 5 × livello da ranger",
+      "speed": "12 m",
+      "ability_scores": {
+        "for": 16,
+        "des": 12,
+        "cos": 15,
+        "int": 8,
+        "sag": 14,
+        "car": 8
+      },
+      "challenge_rating": "—",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali",
+      "dynamic_core": true,
+      "hit_dice_variable": "1d10 per livello da ranger (numero variabile)"
+    },
+    {
+      "name": "Spirito Draconico",
+      "physical_pdf_page": 21,
+      "armor_class": "14 + livello dell’incantesimo",
+      "hit_points": "50 + 10 × (livello dell’incantesimo − 5)",
+      "speed": "9 m, nuotare 9 m, volare 18 m",
+      "ability_scores": {
+        "for": 19,
+        "des": 14,
+        "cos": 17,
+        "int": 10,
+        "sag": 14,
+        "car": 14
+      },
+      "challenge_rating": "—",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali",
+      "dynamic_core": true,
+      "hit_dice_variable": "1d10 per livello dell’incantesimo (numero variabile)"
+    },
+    {
+      "name": "Canarino Gigante",
+      "physical_pdf_page": 25,
+      "armor_class": 12,
+      "hit_points": "26 (4d10 + 4)",
+      "speed": "9 m, volare 18 m",
+      "ability_scores": {
+        "for": 10,
+        "des": 14,
+        "cos": 12,
+        "int": 2,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "1/2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    }
+  ]
+}
