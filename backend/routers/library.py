@@ -172,7 +172,13 @@ async def search_private_library(
         raise HTTPException(
             status_code=400, detail="Manuale non disponibile nella biblioteca privata"
         )
-    records = await private_reference_records(user.user_id, db=db)
+    # Monster searches need only actual monster rows; avoid loading the entire
+    # owner's reference catalogue on each search keystroke.
+    records = await private_reference_records(
+        user.user_id,
+        db=db,
+        reference_types={"monster"} if requested_types == {"monster"} else None,
+    )
     if requested_types:
         records = [
             record
