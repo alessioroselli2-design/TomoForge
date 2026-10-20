@@ -1,0 +1,1471 @@
+{
+  "authority": {
+    "logical_source_id": "sjbam_2022_en",
+    "title": "Boo's Astral Menagerie",
+    "filename": "645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf",
+    "sha256": "24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e",
+    "physical_pdf_pages": 66,
+    "language": "en",
+    "ruleset": "2014"
+  },
+  "audit": {
+    "index_page": 5,
+    "total_index_statblocks": 72,
+    "source_reviewed_core": 72,
+    "hp_dice_math_checked": 72,
+    "all_six_ability_scores_visually_checked": 72,
+    "ocr_max_window_pages": 12,
+    "database_writes": 0,
+    "complete_statblock_actions_traits_spells": false,
+    "english_original_names_preserved": true,
+    "translation_pending": true,
+    "original_pdf_or_raw_ocr_in_repo": false,
+    "preflight_exact_name_collisions": 0,
+    "notes": "Mechanical statblock core verified using original PDF illustrations, crop-by-crop visual review, bounded Tesseract OCR and HP/hit dice arithmetic. No source copyrighted text beyond short mechanical facts; no full actions, traits, spells, lore."
+  },
+  "statblocks": [
+    {
+      "name": "Chwinga astronaut",
+      "physical_pdf_page": 17,
+      "creature_type": "Elemental",
+      "size": "Tiny",
+      "armor_class": 15,
+      "hit_points": "7 (3d4)",
+      "speed": "20 ft., climb 20 ft., swim 20 ft.",
+      "ability_scores": {
+        "for": 1,
+        "des": 20,
+        "cos": 10,
+        "int": 14,
+        "sag": 16,
+        "car": 16
+      },
+      "challenge_rating": "0",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Dohwar",
+      "physical_pdf_page": 19,
+      "creature_type": "Fey",
+      "size": "Small",
+      "armor_class": 11,
+      "hit_points": "10 (3d6)",
+      "speed": "20 ft., swim 20 ft.",
+      "ability_scores": {
+        "for": 5,
+        "des": 12,
+        "cos": 11,
+        "int": 11,
+        "sag": 14,
+        "car": 13
+      },
+      "challenge_rating": "0",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Space guppy",
+      "physical_pdf_page": 55,
+      "creature_type": "Beast",
+      "size": "Small",
+      "armor_class": 13,
+      "hit_points": "3 (1d6)",
+      "speed": "0 ft., fly 30 ft.",
+      "ability_scores": {
+        "for": 3,
+        "des": 16,
+        "cos": 10,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "0",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Space mollymawk",
+      "physical_pdf_page": 57,
+      "creature_type": "Beast",
+      "size": "Small",
+      "armor_class": 12,
+      "hit_points": "3 (1d6)",
+      "speed": "10 ft., fly 50 ft.",
+      "ability_scores": {
+        "for": 6,
+        "des": 14,
+        "cos": 11,
+        "int": 3,
+        "sag": 12,
+        "car": 3
+      },
+      "challenge_rating": "0",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Hadozee shipmate",
+      "physical_pdf_page": 29,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 12,
+      "hit_points": "9 (2d8)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 14,
+        "cos": 11,
+        "int": 10,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "1/8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Giant space hamster",
+      "physical_pdf_page": 56,
+      "creature_type": "Beast",
+      "size": "Large",
+      "armor_class": 11,
+      "hit_points": "22 (4d10)",
+      "speed": "30 ft., burrow 10 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 12,
+        "cos": 10,
+        "int": 2,
+        "sag": 12,
+        "car": 4
+      },
+      "challenge_rating": "1/4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Gray scavver",
+      "physical_pdf_page": 49,
+      "creature_type": "Monstrosity",
+      "size": "Medium",
+      "armor_class": 12,
+      "hit_points": "19 (3d8 + 6)",
+      "speed": "0 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 13,
+        "cos": 15,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "1/4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Plasmoid explorer",
+      "physical_pdf_page": 43,
+      "creature_type": "Ooze",
+      "size": "Medium",
+      "armor_class": 11,
+      "hit_points": "16 (3d8 + 3)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 12,
+        "cos": 12,
+        "int": 10,
+        "sag": 14,
+        "car": 10
+      },
+      "challenge_rating": "1/4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Space hamster",
+      "physical_pdf_page": 56,
+      "creature_type": "Monstrosity",
+      "size": "Tiny",
+      "armor_class": 15,
+      "hit_points": "10 (4d4)",
+      "speed": "20 ft., burrow 5 ft.",
+      "ability_scores": {
+        "for": 1,
+        "des": 20,
+        "cos": 10,
+        "int": 6,
+        "sag": 12,
+        "car": 6
+      },
+      "challenge_rating": "1/4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Space swine",
+      "physical_pdf_page": 57,
+      "creature_type": "Beast",
+      "size": "Medium",
+      "armor_class": 11,
+      "hit_points": "22 (4d8 + 4)",
+      "speed": "40 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 12,
+        "cos": 12,
+        "int": 4,
+        "sag": 10,
+        "car": 3
+      },
+      "challenge_rating": "1/4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali",
+      "armor_class_qualifier": "16 with half-plate barding; base AC 11"
+    },
+    {
+      "name": "Hadozee warrior",
+      "physical_pdf_page": 29,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "16 (3d8 + 3)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 16,
+        "cos": 13,
+        "int": 10,
+        "sag": 13,
+        "car": 12
+      },
+      "challenge_rating": "1/2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Space eel",
+      "physical_pdf_page": 55,
+      "creature_type": "Beast",
+      "size": "Small",
+      "armor_class": 14,
+      "hit_points": "7 (2d6)",
+      "speed": "10 ft., fly 30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 18,
+        "cos": 11,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "1/2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Ssurran poisoner",
+      "physical_pdf_page": 58,
+      "creature_type": "Monstrosity",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "22 (4d8 + 4)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 12,
+        "cos": 13,
+        "int": 12,
+        "sag": 12,
+        "car": 7
+      },
+      "challenge_rating": "1/2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Jammer leech",
+      "physical_pdf_page": 30,
+      "creature_type": "Plant",
+      "size": "Tiny",
+      "armor_class": 12,
+      "hit_points": "27 (5d4 + 15)",
+      "speed": "10 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 1,
+        "cos": 16,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "1",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Psurlon ringer",
+      "physical_pdf_page": 45,
+      "creature_type": "Aberration",
+      "size": "Medium",
+      "armor_class": 13,
+      "hit_points": "31 (7d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 11,
+        "cos": 10,
+        "int": 17,
+        "sag": 11,
+        "car": 7
+      },
+      "challenge_rating": "1",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Aartuk priest",
+      "physical_pdf_page": 9,
+      "creature_type": "Plant",
+      "size": "Medium",
+      "armor_class": 14,
+      "hit_points": "52 (8d8 + 16)",
+      "speed": "20 ft., climb 20 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 10,
+        "cos": 14,
+        "int": 13,
+        "sag": 16,
+        "car": 10
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Aartuk warrior",
+      "physical_pdf_page": 9,
+      "creature_type": "Plant",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "38 (7d8 + 7)",
+      "speed": "20 ft., climb 20 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 12,
+        "cos": 13,
+        "int": 10,
+        "sag": 13,
+        "car": 10
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Autognome",
+      "physical_pdf_page": 14,
+      "creature_type": "Construct",
+      "size": "Small",
+      "armor_class": 16,
+      "hit_points": "39 (6d6 + 18)",
+      "speed": "20 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 6,
+        "cos": 16,
+        "int": 4,
+        "sag": 11,
+        "car": 6
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Hadozee explorer",
+      "physical_pdf_page": 28,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "49 (9d8 + 9)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 17,
+        "cos": 13,
+        "int": 13,
+        "sag": 17,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Lunar dragon wyrmling",
+      "physical_pdf_page": 35,
+      "creature_type": "Dragon",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "37 (5d8 + 15)",
+      "speed": "40 ft., burrow 10 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 12,
+        "cos": 16,
+        "int": 6,
+        "sag": 10,
+        "car": 9
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Psurlon",
+      "physical_pdf_page": 44,
+      "creature_type": "Aberration",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "45 (7d8 + 14)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 14,
+        "cos": 14,
+        "int": 17,
+        "sag": 11,
+        "car": 7
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Space clown",
+      "physical_pdf_page": 54,
+      "creature_type": "Fiend",
+      "size": "Medium",
+      "armor_class": 13,
+      "hit_points": "58 (9d8 + 18)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 16,
+        "cos": 14,
+        "int": 11,
+        "sag": 11,
+        "car": 16
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Thri-kreen hunter",
+      "physical_pdf_page": 61,
+      "creature_type": "Monstrosity",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "60 (11d8 + 11)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 16,
+        "cos": 13,
+        "int": 10,
+        "sag": 14,
+        "car": 9
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Vampirate",
+      "physical_pdf_page": 62,
+      "creature_type": "Undead",
+      "size": "Medium",
+      "armor_class": 14,
+      "hit_points": "42 (5d8 + 20)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 14,
+        "cos": 18,
+        "int": 10,
+        "sag": 11,
+        "car": 12
+      },
+      "challenge_rating": "2",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Aartuk elder",
+      "physical_pdf_page": 8,
+      "creature_type": "Plant",
+      "size": "Large",
+      "armor_class": 16,
+      "hit_points": "75 (10d10 + 20)",
+      "speed": "20 ft., climb 20 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 10,
+        "cos": 15,
+        "int": 12,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Astral elf warrior",
+      "physical_pdf_page": 13,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "58 (13d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 15,
+        "cos": 10,
+        "int": 16,
+        "sag": 16,
+        "car": 15
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Giff shipmate",
+      "physical_pdf_page": 24,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 12,
+      "hit_points": "75 (10d8 + 30)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 17,
+        "int": 11,
+        "sag": 12,
+        "car": 12
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Githyanki buccaneer",
+      "physical_pdf_page": 27,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "58 (9d8 + 18)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 14,
+        "int": 16,
+        "sag": 13,
+        "car": 13
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Neogi hatchling swarm",
+      "physical_pdf_page": 40,
+      "creature_type": "Aberration",
+      "size": "Medium",
+      "armor_class": 11,
+      "hit_points": "52 (8d8 + 16)",
+      "speed": "20 ft., climb 20 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 13,
+        "cos": 14,
+        "int": 6,
+        "sag": 10,
+        "car": 9
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Neogi pirate",
+      "physical_pdf_page": 41,
+      "creature_type": "Aberration",
+      "size": "Small",
+      "armor_class": 16,
+      "hit_points": "33 (6d6 + 12)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 6,
+        "des": 15,
+        "cos": 14,
+        "int": 13,
+        "sag": 12,
+        "car": 15
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Plasmoid warrior",
+      "physical_pdf_page": 43,
+      "creature_type": "Ooze",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "71 (11d8 + 22)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 14,
+        "int": 10,
+        "sag": 11,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Solar dragon wyrmling",
+      "physical_pdf_page": 53,
+      "creature_type": "Dragon",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "51 (6d8 + 24)",
+      "speed": "20 ft., fly 40 ft. (hover)",
+      "ability_scores": {
+        "for": 16,
+        "des": 15,
+        "cos": 18,
+        "int": 11,
+        "sag": 12,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Ssurran defiler",
+      "physical_pdf_page": 58,
+      "creature_type": "Monstrosity",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "52 (7d8 + 21)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 12,
+        "cos": 16,
+        "int": 15,
+        "sag": 15,
+        "car": 7
+      },
+      "challenge_rating": "3",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali",
+      "armor_class_qualifier": "AC includes natural armor and Intellect Fortress (conditional)"
+    },
+    {
+      "name": "Astral elf star priest",
+      "physical_pdf_page": 13,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 13,
+      "hit_points": "63 (14d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 11,
+        "cos": 10,
+        "int": 16,
+        "sag": 20,
+        "car": 17
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Brown scavver",
+      "physical_pdf_page": 49,
+      "creature_type": "Monstrosity",
+      "size": "Large",
+      "armor_class": 13,
+      "hit_points": "51 (6d10 + 18)",
+      "speed": "0 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 15,
+        "cos": 17,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Gaj",
+      "physical_pdf_page": 23,
+      "creature_type": "Aberration",
+      "size": "Large",
+      "armor_class": 16,
+      "hit_points": "75 (10d10 + 20)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 15,
+        "int": 12,
+        "sag": 15,
+        "car": 7
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Neh-thalggu",
+      "physical_pdf_page": 39,
+      "creature_type": "Aberration",
+      "size": "Large",
+      "armor_class": 14,
+      "hit_points": "95 (10d10 + 40)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 8,
+        "cos": 18,
+        "int": 12,
+        "sag": 11,
+        "car": 7
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Neogi void hunter",
+      "physical_pdf_page": 41,
+      "creature_type": "Aberration",
+      "size": "Medium",
+      "armor_class": 14,
+      "hit_points": "58 (9d8 + 18)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 6,
+        "des": 16,
+        "cos": 14,
+        "int": 16,
+        "sag": 12,
+        "car": 18
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Plasmoid boss",
+      "physical_pdf_page": 42,
+      "creature_type": "Ooze",
+      "size": "Large",
+      "armor_class": 11,
+      "hit_points": "82 (11d10 + 22)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 14,
+        "int": 14,
+        "sag": 13,
+        "car": 15
+      },
+      "challenge_rating": "4",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Astral elf honor guard",
+      "physical_pdf_page": 12,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 17,
+      "hit_points": "93 (17d8 + 17)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 15,
+        "cos": 12,
+        "int": 17,
+        "sag": 16,
+        "car": 16
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Feyr",
+      "physical_pdf_page": 22,
+      "creature_type": "Aberration",
+      "size": "Large",
+      "armor_class": 16,
+      "hit_points": "88 (16d10)",
+      "speed": "0 ft., fly 50 ft. (hover)",
+      "ability_scores": {
+        "for": 16,
+        "des": 16,
+        "cos": 11,
+        "int": 14,
+        "sag": 14,
+        "car": 11
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Mercane",
+      "physical_pdf_page": 37,
+      "creature_type": "Giant",
+      "size": "Large",
+      "armor_class": 13,
+      "hit_points": "75 (10d10 + 20)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 15,
+        "int": 18,
+        "sag": 16,
+        "car": 15
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Murder comet",
+      "physical_pdf_page": 38,
+      "creature_type": "Elemental",
+      "size": "Medium",
+      "armor_class": 19,
+      "hit_points": "66 (7d8 + 35)",
+      "speed": "0 ft., fly 120 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 15,
+        "cos": 20,
+        "int": 6,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Night scavver",
+      "physical_pdf_page": 49,
+      "creature_type": "Monstrosity",
+      "size": "Huge",
+      "armor_class": 14,
+      "hit_points": "114 (12d12 + 36)",
+      "speed": "0 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 15,
+        "cos": 17,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Starlight apparition",
+      "physical_pdf_page": 59,
+      "creature_type": "Celestial",
+      "size": "Medium",
+      "armor_class": 10,
+      "hit_points": "72 (16d8)",
+      "speed": "0 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 1,
+        "des": 11,
+        "cos": 10,
+        "int": 18,
+        "sag": 16,
+        "car": 16
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Thri-kreen mystic",
+      "physical_pdf_page": 61,
+      "creature_type": "Monstrosity",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "99 (18d8 + 18)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 15,
+        "cos": 13,
+        "int": 12,
+        "sag": 16,
+        "car": 10
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Vampirate mage",
+      "physical_pdf_page": 63,
+      "creature_type": "Undead",
+      "size": "Medium",
+      "armor_class": 14,
+      "hit_points": "68 (8d8 + 32)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 14,
+        "cos": 18,
+        "int": 13,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "5",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "B’rogh",
+      "physical_pdf_page": 16,
+      "creature_type": "Giant",
+      "size": "Huge",
+      "armor_class": 14,
+      "hit_points": "92 (8d12 + 40)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 21,
+        "des": 14,
+        "cos": 21,
+        "int": 5,
+        "sag": 10,
+        "car": 7
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Giff shock trooper",
+      "physical_pdf_page": 25,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 18,
+      "hit_points": "93 (11d8 + 44)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 14,
+        "cos": 18,
+        "int": 11,
+        "sag": 12,
+        "car": 13
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Psurlon leader",
+      "physical_pdf_page": 45,
+      "creature_type": "Aberration",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "127 (17d8 + 51)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 16,
+        "int": 20,
+        "sag": 11,
+        "car": 7
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Vampirate captain",
+      "physical_pdf_page": 63,
+      "creature_type": "Undead",
+      "size": "Medium",
+      "armor_class": 15,
+      "hit_points": "85 (10d8 + 40)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 15,
+        "des": 16,
+        "cos": 18,
+        "int": 12,
+        "sag": 13,
+        "car": 16
+      },
+      "challenge_rating": "6",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Astral elf commander",
+      "physical_pdf_page": 12,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 17,
+      "hit_points": "143 (26d8 + 26)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 15,
+        "cos": 13,
+        "int": 18,
+        "sag": 18,
+        "car": 18
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Githyanki star seer",
+      "physical_pdf_page": 27,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 13,
+      "hit_points": "110 (17d8 + 34)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 11,
+        "cos": 14,
+        "int": 19,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Kindori",
+      "physical_pdf_page": 31,
+      "creature_type": "Celestial",
+      "size": "Gargantuan",
+      "armor_class": 11,
+      "hit_points": "202 (15d20 + 45)",
+      "speed": "0 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 25,
+        "des": 7,
+        "cos": 17,
+        "int": 6,
+        "sag": 14,
+        "car": 7
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Thri-kreen gladiator",
+      "physical_pdf_page": 60,
+      "creature_type": "Monstrosity",
+      "size": "Medium",
+      "armor_class": 17,
+      "hit_points": "142 (19d8 + 57)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 18,
+        "cos": 16,
+        "int": 10,
+        "sag": 15,
+        "car": 11
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Young lunar dragon",
+      "physical_pdf_page": 35,
+      "creature_type": "Dragon",
+      "size": "Large",
+      "armor_class": 16,
+      "hit_points": "123 (13d10 + 52)",
+      "speed": "40 ft., burrow 20 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 12,
+        "cos": 18,
+        "int": 8,
+        "sag": 10,
+        "car": 13
+      },
+      "challenge_rating": "7",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Astral elf aristocrat",
+      "physical_pdf_page": 11,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 16,
+      "hit_points": "103 (23d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 11,
+        "des": 14,
+        "cos": 10,
+        "int": 21,
+        "sag": 18,
+        "car": 18
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Reigar",
+      "physical_pdf_page": 47,
+      "creature_type": "Celestial",
+      "size": "Medium",
+      "armor_class": 19,
+      "hit_points": "82 (15d8 + 15)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 15,
+        "cos": 12,
+        "int": 19,
+        "sag": 16,
+        "car": 24
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Young solar dragon",
+      "physical_pdf_page": 53,
+      "creature_type": "Dragon",
+      "size": "Large",
+      "armor_class": 16,
+      "hit_points": "147 (14d10 + 70)",
+      "speed": "20 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 20,
+        "des": 15,
+        "cos": 20,
+        "int": 13,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "8",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Braxat",
+      "physical_pdf_page": 15,
+      "creature_type": "Giant",
+      "size": "Huge",
+      "armor_class": 18,
+      "hit_points": "162 (13d12 + 78)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 26,
+        "des": 8,
+        "cos": 22,
+        "int": 14,
+        "sag": 13,
+        "car": 7
+      },
+      "challenge_rating": "9",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali",
+      "armor_class_qualifier": "AC includes natural armor and Intellect Fortress (conditional)"
+    },
+    {
+      "name": "Githyanki xenomancer",
+      "physical_pdf_page": 27,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 14,
+      "hit_points": "157 (21d8 + 63)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 18,
+        "cos": 17,
+        "int": 15,
+        "sag": 18,
+        "car": 13
+      },
+      "challenge_rating": "9",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Eye monger",
+      "physical_pdf_page": 21,
+      "creature_type": "Aberration",
+      "size": "Large",
+      "armor_class": 17,
+      "hit_points": "149 (13d10 + 78)",
+      "speed": "0 ft., fly 20 ft. (hover)",
+      "ability_scores": {
+        "for": 21,
+        "des": 6,
+        "cos": 23,
+        "int": 7,
+        "sag": 13,
+        "car": 7
+      },
+      "challenge_rating": "10",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Giff warlord",
+      "physical_pdf_page": 25,
+      "creature_type": "Humanoid",
+      "size": "Medium",
+      "armor_class": 17,
+      "hit_points": "178 (21d8 + 84)",
+      "speed": "30 ft., swim 30 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 15,
+        "cos": 18,
+        "int": 14,
+        "sag": 14,
+        "car": 18
+      },
+      "challenge_rating": "10",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Megapede",
+      "physical_pdf_page": 36,
+      "creature_type": "Monstrosity",
+      "size": "Gargantuan",
+      "armor_class": 15,
+      "hit_points": "175 (13d20 + 39)",
+      "speed": "40 ft., climb 40 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 10,
+        "cos": 17,
+        "int": 1,
+        "sag": 10,
+        "car": 3
+      },
+      "challenge_rating": "11",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Void scavver",
+      "physical_pdf_page": 49,
+      "creature_type": "Monstrosity",
+      "size": "Huge",
+      "armor_class": 15,
+      "hit_points": "157 (15d12 + 60)",
+      "speed": "0 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 16,
+        "cos": 19,
+        "int": 4,
+        "sag": 13,
+        "car": 5
+      },
+      "challenge_rating": "11",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Esthetic",
+      "physical_pdf_page": 20,
+      "creature_type": "Aberration",
+      "size": "Gargantuan",
+      "armor_class": 14,
+      "hit_points": "217 (14d20 + 70)",
+      "speed": "0 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 24,
+        "des": 8,
+        "cos": 20,
+        "int": 1,
+        "sag": 10,
+        "car": 1
+      },
+      "challenge_rating": "12",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Adult lunar dragon",
+      "physical_pdf_page": 34,
+      "creature_type": "Dragon",
+      "size": "Huge",
+      "armor_class": 17,
+      "hit_points": "172 (15d12 + 75)",
+      "speed": "40 ft., burrow 20 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 23,
+        "des": 12,
+        "cos": 20,
+        "int": 10,
+        "sag": 13,
+        "car": 15
+      },
+      "challenge_rating": "13",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Adult solar dragon",
+      "physical_pdf_page": 52,
+      "creature_type": "Dragon",
+      "size": "Huge",
+      "armor_class": 17,
+      "hit_points": "200 (16d12 + 96)",
+      "speed": "30 ft., fly 90 ft. (hover)",
+      "ability_scores": {
+        "for": 24,
+        "des": 15,
+        "cos": 22,
+        "int": 15,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "14",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Zodar",
+      "physical_pdf_page": 64,
+      "creature_type": "Aberration",
+      "size": "Medium",
+      "armor_class": 20,
+      "hit_points": "200 (16d8 + 128)",
+      "speed": "30 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 30,
+        "des": 10,
+        "cos": 26,
+        "int": 12,
+        "sag": 15,
+        "car": 18
+      },
+      "challenge_rating": "16",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Cosmic horror",
+      "physical_pdf_page": 18,
+      "creature_type": "Aberration",
+      "size": "Gargantuan",
+      "armor_class": 15,
+      "hit_points": "280 (16d20 + 112)",
+      "speed": "50 ft., fly 100 ft.",
+      "ability_scores": {
+        "for": 27,
+        "des": 10,
+        "cos": 25,
+        "int": 24,
+        "sag": 15,
+        "car": 24
+      },
+      "challenge_rating": "18",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Ancient lunar dragon",
+      "physical_pdf_page": 32,
+      "creature_type": "Dragon",
+      "size": "Gargantuan",
+      "armor_class": 18,
+      "hit_points": "297 (17d20 + 119)",
+      "speed": "40 ft., burrow 20 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 27,
+        "des": 12,
+        "cos": 24,
+        "int": 12,
+        "sag": 15,
+        "car": 17
+      },
+      "challenge_rating": "19",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    },
+    {
+      "name": "Ancient solar dragon",
+      "physical_pdf_page": 50,
+      "creature_type": "Dragon",
+      "size": "Gargantuan",
+      "armor_class": 18,
+      "hit_points": "333 (18d20 + 144)",
+      "speed": "30 ft., fly 120 ft. (hover)",
+      "ability_scores": {
+        "for": 28,
+        "des": 15,
+        "cos": 26,
+        "int": 17,
+        "sag": 18,
+        "car": 16
+      },
+      "challenge_rating": "20",
+      "review_status": "source_core_verified_not_imported",
+      "completeness": "statistiche_essenziali"
+    }
+  ]
+}
