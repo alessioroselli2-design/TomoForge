@@ -15,7 +15,7 @@
       200
     ],
     "statblocks_indexed": 54,
-    "independent_core_fields_visually_verified": 2,
+    "independent_core_fields_visually_verified": 11,
     "existing_english_exact_name_matches": 0,
     "english_italian_cross_language_dedup_checked": false,
     "full_traits_actions_spells_complete": false,
@@ -28,55 +28,55 @@
       "name": "Hound Archon",
       "printed_page": 16,
       "physical_pdf_page": 213,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Lantern Archon",
       "printed_page": 17,
       "physical_pdf_page": 214,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Warden Archon",
       "printed_page": 18,
       "physical_pdf_page": 215,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Baernaloth",
       "printed_page": 20,
       "physical_pdf_page": 217,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Bariaur Wanderer",
       "printed_page": 21,
       "physical_pdf_page": 218,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Cranium Rat Squeaker",
       "printed_page": 22,
       "physical_pdf_page": 219,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Cranium Rat Squeaker Swarm",
       "printed_page": 22,
       "physical_pdf_page": 219,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Dabus",
       "printed_page": 23,
       "physical_pdf_page": 220,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Darkweaver",
       "printed_page": 25,
       "physical_pdf_page": 222,
-      "core_review_status": "index_only"
+      "core_review_status": "source_core_reviewed"
     },
     {
       "name": "Farastu Demodand",
@@ -383,6 +383,159 @@
       },
       "challenge_rating": "2",
       "size_and_type": "Small celestial, typically neutral good"
+    },
+    {
+      "name": "Hound Archon",
+      "physical_pdf_page": 213,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "65 (10d8 + 20)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 15,
+        "int": 11,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Medium celestial, typically lawful good"
+    },
+    {
+      "name": "Lantern Archon",
+      "physical_pdf_page": 214,
+      "armor_class": "13",
+      "hit_points": "22 (5d6 + 5)",
+      "speed": "0 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 1,
+        "des": 16,
+        "cos": 12,
+        "int": 6,
+        "sag": 12,
+        "car": 13
+      },
+      "challenge_rating": "2",
+      "size_and_type": "Small celestial, typically lawful good"
+    },
+    {
+      "name": "Warden Archon",
+      "physical_pdf_page": 215,
+      "armor_class": "18 (plate armor)",
+      "hit_points": "136 (16d10 + 48)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 10,
+        "cos": 17,
+        "int": 15,
+        "sag": 18,
+        "car": 18
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Large celestial, typically lawful good"
+    },
+    {
+      "name": "Baernaloth",
+      "physical_pdf_page": 217,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "256 (27d10 + 108)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 14,
+        "cos": 18,
+        "int": 22,
+        "sag": 16,
+        "car": 21
+      },
+      "challenge_rating": "17",
+      "size_and_type": "Large fiend (yugoloth), typically neutral evil"
+    },
+    {
+      "name": "Bariaur Wanderer",
+      "physical_pdf_page": 218,
+      "armor_class": "14 (studded leather)",
+      "hit_points": "71 (11d8 + 22)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 15,
+        "int": 11,
+        "sag": 15,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Medium celestial, typically chaotic good"
+    },
+    {
+      "name": "Cranium Rat Squeaker",
+      "physical_pdf_page": 219,
+      "armor_class": "12",
+      "hit_points": "2 (1d4)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 2,
+        "des": 14,
+        "cos": 10,
+        "int": 4,
+        "sag": 11,
+        "car": 8
+      },
+      "challenge_rating": "0",
+      "size_and_type": "Tiny aberration, unaligned"
+    },
+    {
+      "name": "Cranium Rat Squeaker Swarm",
+      "physical_pdf_page": 219,
+      "armor_class": "12",
+      "hit_points": "76 (17d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 9,
+        "des": 14,
+        "cos": 10,
+        "int": 15,
+        "sag": 11,
+        "car": 14
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Medium swarm of Tiny aberrations, typically neutral"
+    },
+    {
+      "name": "Dabus",
+      "physical_pdf_page": 220,
+      "armor_class": "12",
+      "hit_points": "44 (8d8 + 8)",
+      "speed": "20 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 8,
+        "des": 14,
+        "cos": 12,
+        "int": 16,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "size_and_type": "Medium celestial, typically lawful neutral"
+    },
+    {
+      "name": "Darkweaver",
+      "physical_pdf_page": 222,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "149 (23d8 + 46)",
+      "speed": "50 ft., climb 50 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 17,
+        "cos": 14,
+        "int": 17,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Medium aberration, typically chaotic evil"
     }
   ]
 }
