@@ -1,0 +1,477 @@
+{
+  "authority": {
+    "physical_filename": "762692978-D-D-5e-Planescape-Adventure-in-the-Multiverse.pdf",
+    "physical_pages": 262,
+    "physical_sha256": "61392d7a3ab2241dce67b1027c4830e0b3e9431d224f5a1619c6f5257bd427b1",
+    "source_role": "authority",
+    "source_status": "active",
+    "logical_source_ids": [
+      "ps_sigil_2023_en",
+      "ps_tofw_2023_en",
+      "ps_mpp_2023_en"
+    ],
+    "language": "en"
+  },
+  "audit": {
+    "statblock_cr_index_pdf_page": 202,
+    "statblock_cr_index_count": 53,
+    "morte_outside_index_pdf_page": 109,
+    "morte_outside_index_count": 1,
+    "provisional_independent_statblocks": 54,
+    "morte_original_core_checked": true,
+    "all_other_core_stats_checked": false,
+    "other_outside_index_statblocks_exhaustively_excluded": false,
+    "three_logical_sources_share_one_pdf": true,
+    "exact_name_collisions_at_readonly_preflight": 0,
+    "db_writes": 0,
+    "original_pdf_or_ocr_committed": false,
+    "actions_traits_spells_verified": false,
+    "notes": "This is an inventory checkpoint, NOT a basis for import or review_status=verified. Index includes Faction Agents, so do not count them again separately. Need visually check all 53 index statblocks' AC/HP/dice/ability scores and look for more independent blocks outside index. Morte in adventure part PDF109 is not in 53-entry Morte's Planar Parade index."
+  },
+  "entries": [
+    {
+      "name": "Cranium Rat Squeaker",
+      "challenge_rating_index": "0",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Sunfly",
+      "challenge_rating_index": "0",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Swarm of Sunflies",
+      "challenge_rating_index": "1",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Vargouille Reflection",
+      "challenge_rating_index": "1",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Dabus",
+      "challenge_rating_index": "2",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Lantern Archon",
+      "challenge_rating_index": "2",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Musteval Guardinal",
+      "challenge_rating_index": "2",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Bariaur Wanderer",
+      "challenge_rating_index": "3",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Bleak Cabal Void Soother",
+      "challenge_rating_index": "3",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Githzerai Traveler",
+      "challenge_rating_index": "3",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Harmonium Peacekeeper",
+      "challenge_rating_index": "3",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Society of Sensation Muse",
+      "challenge_rating_index": "3",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Transcendent Order Instinct",
+      "challenge_rating_index": "3",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Hands of Havoc Fire Starter",
+      "challenge_rating_index": "4",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Heralds of Dust Remnant",
+      "challenge_rating_index": "4",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Hound Archon",
+      "challenge_rating_index": "4",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Mind's Eye Matter Smith",
+      "challenge_rating_index": "4",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Athar Null",
+      "challenge_rating_index": "5",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Cranium Rat Squeaker Swarm",
+      "challenge_rating_index": "5",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Fated Shaker",
+      "challenge_rating_index": "5",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Time Dragon Wyrmling",
+      "challenge_rating_index": "5",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Doomguard Rot Blade",
+      "challenge_rating_index": "6",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Eater of Knowledge",
+      "challenge_rating_index": "6",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Equinal Guardinal",
+      "challenge_rating_index": "6",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Githzerai Uniter",
+      "challenge_rating_index": "7",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Mercykiller Bloodhound",
+      "challenge_rating_index": "7",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Decaton Modron",
+      "challenge_rating_index": "8",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Harmonium Captain",
+      "challenge_rating_index": "8",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Transcendent Order Conduit",
+      "challenge_rating_index": "8",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Warden Archon",
+      "challenge_rating_index": "8",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Avoral Guardinal",
+      "challenge_rating_index": "9",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Ferrumach Rilmani",
+      "challenge_rating_index": "9",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Fraternity of Order Law Bender",
+      "challenge_rating_index": "9",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Githzerai Futurist",
+      "challenge_rating_index": "9",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Darkweaver",
+      "challenge_rating_index": "10",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Maelephant",
+      "challenge_rating_index": "10",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Nonaton Modron",
+      "challenge_rating_index": "10",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Farastu Demodand",
+      "challenge_rating_index": "11",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Octon Modron",
+      "challenge_rating_index": "11",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Young Time Dragon",
+      "challenge_rating_index": "11",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Cuprilach Rilmani",
+      "challenge_rating_index": "12",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Doomguard Doom Lord",
+      "challenge_rating_index": "12",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Septon Modron",
+      "challenge_rating_index": "12",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Hexton Modron",
+      "challenge_rating_index": "13",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Kelubar Demodand",
+      "challenge_rating_index": "13",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Shemeshka",
+      "challenge_rating_index": "14",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Shator Demodand",
+      "challenge_rating_index": "16",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Aurumach Rilmani",
+      "challenge_rating_index": "17",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Baernaloth",
+      "challenge_rating_index": "17",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Adult Time Dragon",
+      "challenge_rating_index": "18",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Kolyarut",
+      "challenge_rating_index": "20",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Planar Incarnate",
+      "challenge_rating_index": "22",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Ancient Time Dragon",
+      "challenge_rating_index": "26",
+      "logical_source_id": "ps_mpp_2023_en",
+      "physical_pdf_page": null,
+      "review_phase": "index_census_not_source_verified",
+      "source_part": "Morte's Planar Parade"
+    },
+    {
+      "name": "Morte",
+      "challenge_rating_index": "1/4",
+      "logical_source_id": "ps_tofw_2023_en",
+      "physical_pdf_page": 109,
+      "review_phase": "individual_core_source_checked",
+      "source_part": "Turn of Fortune's Wheel",
+      "size_and_type": "Tiny Undead, Chaotic Good",
+      "armor_class": "13",
+      "hit_points": "22 (4d4 + 12)",
+      "speed": "0 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 10,
+        "des": 16,
+        "cos": 16,
+        "int": 13,
+        "sag": 10,
+        "car": 12
+      }
+    }
+  ]
+}
