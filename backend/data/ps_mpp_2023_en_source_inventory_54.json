@@ -1,0 +1,1270 @@
+{
+  "authority": {
+    "logical_source_id": "ps_mpp_2023_en",
+    "title": "Morte's Planar Parade",
+    "filename": "762692978-D-D-5e-Planescape-Adventure-in-the-Multiverse.pdf",
+    "sha256": "61392d7a3ab2241dce67b1027c4830e0b3e9431d224f5a1619c6f5257bd427b1",
+    "physical_pdf_pages": 262,
+    "physical_page_start": 197,
+    "physical_page_end": 262,
+    "ruleset": "2014",
+    "language": "en"
+  },
+  "audit": {
+    "source_statblock_index_pages": [
+      200
+    ],
+    "statblocks_indexed": 54,
+    "independent_core_fields_visually_verified": 53,
+    "existing_english_exact_name_matches": 0,
+    "english_italian_cross_language_dedup_checked": false,
+    "full_traits_actions_spells_complete": false,
+    "italian_translation_complete": false,
+    "database_writes_in_manifest": 0,
+    "note": "All 54 indexed source statblocks visually inspected. 53 have independently checked mathematical core fields; Mercykiller Bloodhound printed HP conflicts with its own printed Hit Dice and remains quarantined with both source values intact. Index and source-core only: actions/traits, Italian translation, cross-language dedup and database import are separate unresolved steps. No source bytes, OCR dumps, or canonical database writes.",
+    "source_statblocks_with_hp_dice_conflict": 1,
+    "statblock_pages_inspected": 54
+  },
+  "index": [
+    {
+      "name": "Hound Archon",
+      "printed_page": 16,
+      "physical_pdf_page": 213,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Lantern Archon",
+      "printed_page": 17,
+      "physical_pdf_page": 214,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Warden Archon",
+      "printed_page": 18,
+      "physical_pdf_page": 215,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Baernaloth",
+      "printed_page": 20,
+      "physical_pdf_page": 217,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Bariaur Wanderer",
+      "printed_page": 21,
+      "physical_pdf_page": 218,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Cranium Rat Squeaker",
+      "printed_page": 22,
+      "physical_pdf_page": 219,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Cranium Rat Squeaker Swarm",
+      "printed_page": 22,
+      "physical_pdf_page": 219,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Dabus",
+      "printed_page": 23,
+      "physical_pdf_page": 220,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Darkweaver",
+      "printed_page": 25,
+      "physical_pdf_page": 222,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Farastu Demodand",
+      "printed_page": 26,
+      "physical_pdf_page": 223,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Kelubar Demodand",
+      "printed_page": 27,
+      "physical_pdf_page": 224,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Shator Demodand",
+      "printed_page": 28,
+      "physical_pdf_page": 225,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Eater of Knowledge",
+      "printed_page": 29,
+      "physical_pdf_page": 226,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Githzerai Futurist",
+      "printed_page": 30,
+      "physical_pdf_page": 227,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Githzerai Traveler",
+      "printed_page": 31,
+      "physical_pdf_page": 228,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Githzerai Uniter",
+      "printed_page": 31,
+      "physical_pdf_page": 228,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Avoral Guardinal",
+      "printed_page": 32,
+      "physical_pdf_page": 229,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Equinal Guardinal",
+      "printed_page": 33,
+      "physical_pdf_page": 230,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Musteval Guardinal",
+      "printed_page": 33,
+      "physical_pdf_page": 230,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Kolyarut",
+      "printed_page": 34,
+      "physical_pdf_page": 231,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Maelephant",
+      "printed_page": 35,
+      "physical_pdf_page": 232,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Decaton Modron",
+      "printed_page": 36,
+      "physical_pdf_page": 233,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Hexton Modron",
+      "printed_page": 37,
+      "physical_pdf_page": 234,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Nonaton Modron",
+      "printed_page": 38,
+      "physical_pdf_page": 235,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Octon Modron",
+      "printed_page": 40,
+      "physical_pdf_page": 237,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Septon Modron",
+      "printed_page": 40,
+      "physical_pdf_page": 237,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Planar Incarnate",
+      "printed_page": 41,
+      "physical_pdf_page": 238,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Razorvine Blight",
+      "printed_page": 42,
+      "physical_pdf_page": 239,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Aurumach Rilmani",
+      "printed_page": 43,
+      "physical_pdf_page": 240,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Cuprilach Rilmani",
+      "printed_page": 44,
+      "physical_pdf_page": 241,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Ferrumach Rilmani",
+      "printed_page": 44,
+      "physical_pdf_page": 241,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Shemeshka",
+      "printed_page": 46,
+      "physical_pdf_page": 243,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Sunfly",
+      "printed_page": 47,
+      "physical_pdf_page": 244,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Swarm of Sunflies",
+      "printed_page": 47,
+      "physical_pdf_page": 244,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Ancient Time Dragon",
+      "printed_page": 48,
+      "physical_pdf_page": 245,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Adult Time Dragon",
+      "printed_page": 50,
+      "physical_pdf_page": 247,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Time Dragon Wyrmling",
+      "printed_page": 51,
+      "physical_pdf_page": 248,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Young Time Dragon",
+      "printed_page": 51,
+      "physical_pdf_page": 248,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Vargouille Reflection",
+      "printed_page": 52,
+      "physical_pdf_page": 249,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Athar Null",
+      "printed_page": 53,
+      "physical_pdf_page": 250,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Bleak Cabal Void Soother",
+      "printed_page": 54,
+      "physical_pdf_page": 251,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Doomguard Doom Lord",
+      "printed_page": 54,
+      "physical_pdf_page": 251,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Doomguard Rot Blade",
+      "printed_page": 56,
+      "physical_pdf_page": 253,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Fated Shaker",
+      "printed_page": 56,
+      "physical_pdf_page": 253,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Fraternity of Order Law Bender",
+      "printed_page": 57,
+      "physical_pdf_page": 254,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Hands of Havoc Fire Starter",
+      "printed_page": 58,
+      "physical_pdf_page": 255,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Harmonium Captain",
+      "printed_page": 58,
+      "physical_pdf_page": 255,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Harmonium Peacekeeper",
+      "printed_page": 59,
+      "physical_pdf_page": 256,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Heralds of Dust Remnant",
+      "printed_page": 59,
+      "physical_pdf_page": 256,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Mercykiller Bloodhound",
+      "printed_page": 60,
+      "physical_pdf_page": 257,
+      "core_review_status": "source_hp_dice_conflict"
+    },
+    {
+      "name": "Mind's Eye Matter Smith",
+      "printed_page": 60,
+      "physical_pdf_page": 257,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Society of Sensation Muse",
+      "printed_page": 61,
+      "physical_pdf_page": 258,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Transcendent Order Conduit",
+      "printed_page": 62,
+      "physical_pdf_page": 259,
+      "core_review_status": "source_core_reviewed"
+    },
+    {
+      "name": "Transcendent Order Instinct",
+      "printed_page": 62,
+      "physical_pdf_page": 259,
+      "core_review_status": "source_core_reviewed"
+    }
+  ],
+  "reviewed_core_statblocks": [
+    {
+      "name": "Equinal Guardinal",
+      "physical_pdf_page": 230,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "93 (11d10 + 33)",
+      "speed": "50 ft.",
+      "ability_scores": {
+        "for": 23,
+        "des": 16,
+        "cos": 17,
+        "int": 15,
+        "sag": 14,
+        "car": 12
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Large celestial, typically neutral good"
+    },
+    {
+      "name": "Musteval Guardinal",
+      "physical_pdf_page": 230,
+      "armor_class": "13",
+      "hit_points": "38 (11d6)",
+      "speed": "35 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 16,
+        "cos": 11,
+        "int": 14,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "size_and_type": "Small celestial, typically neutral good"
+    },
+    {
+      "name": "Hound Archon",
+      "physical_pdf_page": 213,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "65 (10d8 + 20)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 15,
+        "int": 11,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Medium celestial, typically lawful good"
+    },
+    {
+      "name": "Lantern Archon",
+      "physical_pdf_page": 214,
+      "armor_class": "13",
+      "hit_points": "22 (5d6 + 5)",
+      "speed": "0 ft., fly 60 ft. (hover)",
+      "ability_scores": {
+        "for": 1,
+        "des": 16,
+        "cos": 12,
+        "int": 6,
+        "sag": 12,
+        "car": 13
+      },
+      "challenge_rating": "2",
+      "size_and_type": "Small celestial, typically lawful good"
+    },
+    {
+      "name": "Warden Archon",
+      "physical_pdf_page": 215,
+      "armor_class": "18 (plate armor)",
+      "hit_points": "136 (16d10 + 48)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 10,
+        "cos": 17,
+        "int": 15,
+        "sag": 18,
+        "car": 18
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Large celestial, typically lawful good"
+    },
+    {
+      "name": "Baernaloth",
+      "physical_pdf_page": 217,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "256 (27d10 + 108)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 14,
+        "cos": 18,
+        "int": 22,
+        "sag": 16,
+        "car": 21
+      },
+      "challenge_rating": "17",
+      "size_and_type": "Large fiend (yugoloth), typically neutral evil"
+    },
+    {
+      "name": "Bariaur Wanderer",
+      "physical_pdf_page": 218,
+      "armor_class": "14 (studded leather)",
+      "hit_points": "71 (11d8 + 22)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 15,
+        "int": 11,
+        "sag": 15,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Medium celestial, typically chaotic good"
+    },
+    {
+      "name": "Cranium Rat Squeaker",
+      "physical_pdf_page": 219,
+      "armor_class": "12",
+      "hit_points": "2 (1d4)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 2,
+        "des": 14,
+        "cos": 10,
+        "int": 4,
+        "sag": 11,
+        "car": 8
+      },
+      "challenge_rating": "0",
+      "size_and_type": "Tiny aberration, unaligned"
+    },
+    {
+      "name": "Cranium Rat Squeaker Swarm",
+      "physical_pdf_page": 219,
+      "armor_class": "12",
+      "hit_points": "76 (17d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 9,
+        "des": 14,
+        "cos": 10,
+        "int": 15,
+        "sag": 11,
+        "car": 14
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Medium swarm of Tiny aberrations, typically neutral"
+    },
+    {
+      "name": "Dabus",
+      "physical_pdf_page": 220,
+      "armor_class": "12",
+      "hit_points": "44 (8d8 + 8)",
+      "speed": "20 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 8,
+        "des": 14,
+        "cos": 12,
+        "int": 16,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "2",
+      "size_and_type": "Medium celestial, typically lawful neutral"
+    },
+    {
+      "name": "Darkweaver",
+      "physical_pdf_page": 222,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "149 (23d8 + 46)",
+      "speed": "50 ft., climb 50 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 17,
+        "cos": 14,
+        "int": 17,
+        "sag": 14,
+        "car": 15
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Medium aberration, typically chaotic evil"
+    },
+    {
+      "name": "Farastu Demodand",
+      "physical_pdf_page": 223,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "195 (26d8 + 78)",
+      "speed": "40 ft., climb 40 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 13,
+        "cos": 16,
+        "int": 8,
+        "sag": 12,
+        "car": 16
+      },
+      "challenge_rating": "11",
+      "size_and_type": "Medium fiend, typically neutral evil"
+    },
+    {
+      "name": "Kelubar Demodand",
+      "physical_pdf_page": 224,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "187 (22d8 + 88)",
+      "speed": "30 ft., fly 60 ft.",
+      "ability_scores": {
+        "for": 22,
+        "des": 13,
+        "cos": 18,
+        "int": 14,
+        "sag": 15,
+        "car": 18
+      },
+      "challenge_rating": "13",
+      "size_and_type": "Medium fiend, typically neutral evil"
+    },
+    {
+      "name": "Shator Demodand",
+      "physical_pdf_page": 225,
+      "armor_class": "19 (natural armor)",
+      "hit_points": "195 (23d10 + 69)",
+      "speed": "30 ft., fly 60 ft.",
+      "ability_scores": {
+        "for": 24,
+        "des": 15,
+        "cos": 17,
+        "int": 21,
+        "sag": 16,
+        "car": 20
+      },
+      "challenge_rating": "16",
+      "size_and_type": "Large fiend, typically neutral evil"
+    },
+    {
+      "name": "Eater of Knowledge",
+      "physical_pdf_page": 226,
+      "armor_class": "15 (natural armor)",
+      "hit_points": "102 (12d10 + 36)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 10,
+        "cos": 17,
+        "int": 18,
+        "sag": 16,
+        "car": 15
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Large aberration, typically neutral evil"
+    },
+    {
+      "name": "Githzerai Futurist",
+      "physical_pdf_page": 227,
+      "armor_class": "16 (Psychic Defense)",
+      "hit_points": "149 (23d8 + 46)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 14,
+        "des": 17,
+        "cos": 15,
+        "int": 17,
+        "sag": 17,
+        "car": 13
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Medium aberration (gith), any alignment"
+    },
+    {
+      "name": "Githzerai Traveler",
+      "physical_pdf_page": 228,
+      "armor_class": "15 (Psychic Defense)",
+      "hit_points": "44 (8d8 + 8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 15,
+        "cos": 12,
+        "int": 14,
+        "sag": 16,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Medium aberration (gith), any alignment"
+    },
+    {
+      "name": "Githzerai Uniter",
+      "physical_pdf_page": 228,
+      "armor_class": "16 (Psychic Defense)",
+      "hit_points": "123 (19d8 + 38)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 13,
+        "des": 17,
+        "cos": 15,
+        "int": 15,
+        "sag": 17,
+        "car": 16
+      },
+      "challenge_rating": "7",
+      "size_and_type": "Medium aberration (gith), any alignment"
+    },
+    {
+      "name": "Avoral Guardinal",
+      "physical_pdf_page": 229,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "172 (23d8 + 69)",
+      "speed": "30 ft., fly 50 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 19,
+        "cos": 17,
+        "int": 16,
+        "sag": 16,
+        "car": 18
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Medium celestial, typically neutral good"
+    },
+    {
+      "name": "Kolyarut",
+      "physical_pdf_page": 231,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "297 (35d8 + 140)",
+      "speed": "50 ft., fly 35 ft. (hover)",
+      "ability_scores": {
+        "for": 25,
+        "des": 12,
+        "cos": 19,
+        "int": 25,
+        "sag": 22,
+        "car": 18
+      },
+      "challenge_rating": "20",
+      "size_and_type": "Medium construct (inevitable), typically lawful neutral"
+    },
+    {
+      "name": "Maelephant",
+      "physical_pdf_page": 232,
+      "armor_class": "15 (half plate armor)",
+      "hit_points": "161 (17d10 + 68)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 10,
+        "cos": 18,
+        "int": 10,
+        "sag": 16,
+        "car": 12
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Large fiend, typically lawful evil"
+    },
+    {
+      "name": "Decaton Modron",
+      "physical_pdf_page": 233,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "144 (17d10 + 51)",
+      "speed": "30 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 16,
+        "int": 15,
+        "sag": 15,
+        "car": 11
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Hexton Modron",
+      "physical_pdf_page": 234,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "209 (22d12 + 66)",
+      "speed": "40 ft., fly 40 ft. (hover)",
+      "ability_scores": {
+        "for": 19,
+        "des": 16,
+        "cos": 17,
+        "int": 19,
+        "sag": 17,
+        "car": 15
+      },
+      "challenge_rating": "13",
+      "size_and_type": "Huge construct, typically lawful neutral"
+    },
+    {
+      "name": "Nonaton Modron",
+      "physical_pdf_page": 235,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "161 (19d10 + 57)",
+      "speed": "30 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 18,
+        "des": 13,
+        "cos": 16,
+        "int": 16,
+        "sag": 16,
+        "car": 13
+      },
+      "challenge_rating": "10",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Octon Modron",
+      "physical_pdf_page": 237,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "187 (22d10 + 66)",
+      "speed": "30 ft., fly 30 ft. (hover), swim 30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 14,
+        "cos": 17,
+        "int": 17,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "11",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Septon Modron",
+      "physical_pdf_page": 237,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "204 (24d10 + 72)",
+      "speed": "30 ft., fly 30 ft. (hover), swim 30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 15,
+        "cos": 17,
+        "int": 18,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Large construct, typically lawful neutral"
+    },
+    {
+      "name": "Planar Incarnate",
+      "physical_pdf_page": 238,
+      "armor_class": "20 (natural armor)",
+      "hit_points": "333 (18d20 + 144)",
+      "speed": "40 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 27,
+        "des": 10,
+        "cos": 26,
+        "int": 15,
+        "sag": 20,
+        "car": 20
+      },
+      "challenge_rating": "22",
+      "size_and_type": "Gargantuan celestial or fiend, any alignment"
+    },
+    {
+      "name": "Razorvine Blight",
+      "physical_pdf_page": 239,
+      "armor_class": "12",
+      "hit_points": "27 (5d8 + 5)",
+      "speed": "30 ft., climb 30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 15,
+        "cos": 13,
+        "int": 5,
+        "sag": 10,
+        "car": 3
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Medium plant, typically neutral evil"
+    },
+    {
+      "name": "Aurumach Rilmani",
+      "physical_pdf_page": 240,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "285 (30d10 + 120)",
+      "speed": "0 ft., fly 40 ft. (hover)",
+      "ability_scores": {
+        "for": 20,
+        "des": 21,
+        "cos": 18,
+        "int": 21,
+        "sag": 18,
+        "car": 16
+      },
+      "challenge_rating": "17",
+      "size_and_type": "Large celestial, typically neutral"
+    },
+    {
+      "name": "Cuprilach Rilmani",
+      "physical_pdf_page": 241,
+      "armor_class": "16 (natural armor)",
+      "hit_points": "202 (27d8 + 81)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 20,
+        "cos": 16,
+        "int": 16,
+        "sag": 15,
+        "car": 14
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Medium celestial, typically neutral"
+    },
+    {
+      "name": "Ferrumach Rilmani",
+      "physical_pdf_page": 241,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "136 (16d8 + 64)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 14,
+        "cos": 18,
+        "int": 15,
+        "sag": 14,
+        "car": 10
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Medium celestial, typically neutral"
+    },
+    {
+      "name": "Shemeshka",
+      "physical_pdf_page": 243,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "162 (25d8 + 50)",
+      "speed": "30 ft., fly 30 ft. (hover)",
+      "ability_scores": {
+        "for": 20,
+        "des": 14,
+        "cos": 14,
+        "int": 21,
+        "sag": 16,
+        "car": 18
+      },
+      "challenge_rating": "14",
+      "size_and_type": "Medium fiend (yugoloth), neutral evil"
+    },
+    {
+      "name": "Sunfly",
+      "physical_pdf_page": 244,
+      "armor_class": "13",
+      "hit_points": "2 (1d4)",
+      "speed": "10 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 4,
+        "des": 17,
+        "cos": 10,
+        "int": 4,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "0",
+      "size_and_type": "Tiny celestial, typically chaotic good"
+    },
+    {
+      "name": "Swarm of Sunflies",
+      "physical_pdf_page": 244,
+      "armor_class": "13",
+      "hit_points": "22 (5d8)",
+      "speed": "10 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 6,
+        "des": 17,
+        "cos": 10,
+        "int": 4,
+        "sag": 10,
+        "car": 6
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Medium swarm of Tiny celestials, typically chaotic good"
+    },
+    {
+      "name": "Ancient Time Dragon",
+      "physical_pdf_page": 245,
+      "armor_class": "22 (natural armor)",
+      "hit_points": "536 (29d20 + 232)",
+      "speed": "40 ft., climb 40 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 28,
+        "des": 14,
+        "cos": 26,
+        "int": 27,
+        "sag": 18,
+        "car": 23
+      },
+      "challenge_rating": "26",
+      "size_and_type": "Gargantuan dragon, typically neutral"
+    },
+    {
+      "name": "Adult Time Dragon",
+      "physical_pdf_page": 247,
+      "armor_class": "19 (natural armor)",
+      "hit_points": "250 (20d12 + 120)",
+      "speed": "40 ft., climb 40 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 25,
+        "des": 14,
+        "cos": 23,
+        "int": 23,
+        "sag": 16,
+        "car": 20
+      },
+      "challenge_rating": "18",
+      "size_and_type": "Huge dragon, typically neutral"
+    },
+    {
+      "name": "Young Time Dragon",
+      "physical_pdf_page": 248,
+      "armor_class": "18 (natural armor)",
+      "hit_points": "210 (20d10 + 100)",
+      "speed": "40 ft., climb 40 ft., fly 80 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 12,
+        "cos": 20,
+        "int": 20,
+        "sag": 15,
+        "car": 17
+      },
+      "challenge_rating": "11",
+      "size_and_type": "Large dragon, typically neutral"
+    },
+    {
+      "name": "Time Dragon Wyrmling",
+      "physical_pdf_page": 248,
+      "armor_class": "17 (natural armor)",
+      "hit_points": "75 (10d8 + 30)",
+      "speed": "30 ft., climb 30 ft., fly 60 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 10,
+        "cos": 17,
+        "int": 17,
+        "sag": 13,
+        "car": 17
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Medium dragon, typically neutral"
+    },
+    {
+      "name": "Vargouille Reflection",
+      "physical_pdf_page": 249,
+      "armor_class": "12",
+      "hit_points": "22 (5d4 + 10)",
+      "speed": "5 ft., fly 40 ft.",
+      "ability_scores": {
+        "for": 6,
+        "des": 15,
+        "cos": 14,
+        "int": 6,
+        "sag": 10,
+        "car": 2
+      },
+      "challenge_rating": "1",
+      "size_and_type": "Tiny fiend, typically chaotic evil"
+    },
+    {
+      "name": "Athar Null",
+      "physical_pdf_page": 250,
+      "armor_class": "14 (leather armor)",
+      "hit_points": "84 (13d8 + 26)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 12,
+        "des": 16,
+        "cos": 14,
+        "int": 15,
+        "sag": 14,
+        "car": 10
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Bleak Cabal Void Soother",
+      "physical_pdf_page": 251,
+      "armor_class": "16 (breastplate)",
+      "hit_points": "55 (10d8 + 10)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 12,
+        "int": 12,
+        "sag": 15,
+        "car": 10
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Doomguard Doom Lord",
+      "physical_pdf_page": 251,
+      "armor_class": "18 (plate armor)",
+      "hit_points": "202 (27d8 + 81)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 20,
+        "des": 12,
+        "cos": 16,
+        "int": 15,
+        "sag": 14,
+        "car": 18
+      },
+      "challenge_rating": "12",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Doomguard Rot Blade",
+      "physical_pdf_page": 253,
+      "armor_class": "18 (plate armor)",
+      "hit_points": "97 (13d8 + 39)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 18,
+        "des": 12,
+        "cos": 16,
+        "int": 12,
+        "sag": 10,
+        "car": 15
+      },
+      "challenge_rating": "6",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Fated Shaker",
+      "physical_pdf_page": 253,
+      "armor_class": "13 (16 with mage armor)",
+      "hit_points": "76 (17d8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 16,
+        "cos": 10,
+        "int": 15,
+        "sag": 16,
+        "car": 15
+      },
+      "challenge_rating": "5",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Fraternity of Order Law Bender",
+      "physical_pdf_page": 254,
+      "armor_class": "12 (15 with mage armor)",
+      "hit_points": "137 (25d8 + 25)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 8,
+        "des": 15,
+        "cos": 12,
+        "int": 19,
+        "sag": 16,
+        "car": 14
+      },
+      "challenge_rating": "9",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Hands of Havoc Fire Starter",
+      "physical_pdf_page": 255,
+      "armor_class": "16 (breastplate)",
+      "hit_points": "65 (10d8 + 20)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 14,
+        "cos": 14,
+        "int": 10,
+        "sag": 16,
+        "car": 11
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Harmonium Captain",
+      "physical_pdf_page": 255,
+      "armor_class": "20 (plate armor and shield)",
+      "hit_points": "110 (17d8 + 34)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 19,
+        "des": 10,
+        "cos": 14,
+        "int": 12,
+        "sag": 16,
+        "car": 16
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Harmonium Peacekeeper",
+      "physical_pdf_page": 256,
+      "armor_class": "18 (plate armor)",
+      "hit_points": "45 (7d8 + 14)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 16,
+        "des": 10,
+        "cos": 14,
+        "int": 12,
+        "sag": 14,
+        "car": 11
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Heralds of Dust Remnant",
+      "physical_pdf_page": 256,
+      "armor_class": "12 (15 with mage armor)",
+      "hit_points": "45 (7d8 + 14)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 8,
+        "des": 14,
+        "cos": 15,
+        "int": 17,
+        "sag": 14,
+        "car": 11
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Mind's Eye Matter Smith",
+      "physical_pdf_page": 257,
+      "armor_class": "12 (15 with mage armor)",
+      "hit_points": "78 (12d8 + 24)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 14,
+        "cos": 14,
+        "int": 14,
+        "sag": 14,
+        "car": 16
+      },
+      "challenge_rating": "4",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Society of Sensation Muse",
+      "physical_pdf_page": 258,
+      "armor_class": "14 (leather armor)",
+      "hit_points": "44 (8d8 + 8)",
+      "speed": "30 ft.",
+      "ability_scores": {
+        "for": 8,
+        "des": 16,
+        "cos": 12,
+        "int": 15,
+        "sag": 14,
+        "car": 17
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Transcendent Order Conduit",
+      "physical_pdf_page": 259,
+      "armor_class": "18 (Unarmored Defense)",
+      "hit_points": "97 (15d8 + 30)",
+      "speed": "50 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 19,
+        "cos": 14,
+        "int": 10,
+        "sag": 18,
+        "car": 12
+      },
+      "challenge_rating": "8",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    },
+    {
+      "name": "Transcendent Order Instinct",
+      "physical_pdf_page": 259,
+      "armor_class": "16 (Unarmored Defense)",
+      "hit_points": "49 (9d8 + 9)",
+      "speed": "40 ft.",
+      "ability_scores": {
+        "for": 10,
+        "des": 16,
+        "cos": 12,
+        "int": 10,
+        "sag": 16,
+        "car": 12
+      },
+      "challenge_rating": "3",
+      "size_and_type": "Small or Medium humanoid, any alignment"
+    }
+  ],
+  "source_conflicts": [
+    {
+      "name": "Mercykiller Bloodhound",
+      "physical_pdf_page": 257,
+      "armor_class": "18 (plate armor)",
+      "source_hit_points": "104 (16d8 + 48)",
+      "expected_dice_average": 120,
+      "printed_hit_points": 104,
+      "hit_points_delta": -16,
+      "reason": "Original publisher PDF p257 prints 104 (16d8 + 48) with Constitution 16. The dice average is 120; no authoritative erratum identified. Preserve source conflict, do not modify HP or dice or accept as a canonical mechanically validated core.",
+      "status": "source_math_conflict_pending_authoritative_resolution"
+    }
+  ]
+}
