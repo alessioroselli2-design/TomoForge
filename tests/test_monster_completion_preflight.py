@@ -21,6 +21,7 @@ ATTRS = {
         "for": 10, "des": 11, "cos": 14, "int": 6, "sag": 8, "car": 3,
     }, "sensi": "Scurovisione 18 m", "linguaggi": "Nessuno",
     "grado_sfida": "1/2", "tratti": [], "azioni": [],
+    "reazioni": [], "azioni_leggendarie": [],
 }
 
 
@@ -31,7 +32,8 @@ class CompletionPreflightTests(unittest.TestCase):
 
     def test_multilingual_valid_candidate(self):
         result = preflight(SOURCE, self.candidate(),
-                           source_page_checked=True, independent_review=True)
+                           source_page_checked=True, independent_review=True,
+                           source_sections_checked=True)
         self.assertTrue(result.ready)
         self.assertEqual(len(result.proposed_fingerprint), 64)
 
@@ -44,14 +46,28 @@ class CompletionPreflightTests(unittest.TestCase):
         candidate = self.candidate()
         candidate["source_language"] = "en"
         result = preflight(SOURCE, candidate, source_page_checked=True,
-                           independent_review=True)
+                           independent_review=True, source_sections_checked=True)
         self.assertIn("immutable_source_changed:source_language", result.blockers)
+
+    def test_missing_source_section_blocks_approval(self):
+        candidate = self.candidate()
+        candidate["attributes"].pop("reazioni")
+        result = preflight(SOURCE, candidate, source_page_checked=True,
+                           independent_review=True, source_sections_checked=True)
+        self.assertIn("section_unaccounted_for:reazioni", result.blockers)
+
+    def test_changed_source_reference_blocks_approval(self):
+        candidate = self.candidate()
+        candidate["source_refs"] = [{"filename": "different.pdf", "page": 7}]
+        result = preflight(SOURCE, candidate, source_page_checked=True,
+                           independent_review=True, source_sections_checked=True)
+        self.assertIn("source_provenance_changed", result.blockers)
 
     def test_missing_stat_blocks_approval(self):
         candidate = self.candidate()
         candidate["attributes"].pop("velocita")
         result = preflight(SOURCE, candidate, source_page_checked=True,
-                           independent_review=True)
+                           independent_review=True, source_sections_checked=True)
         self.assertIn("required_field_missing:velocita", result.blockers)
 
 
