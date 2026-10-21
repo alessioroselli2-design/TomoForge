@@ -57,6 +57,10 @@ def preflight(
         problems.append("active_or_unknown_translation_lease")
     if original.get("translation_status") == "processing" and original.get("translation_lease_expires_at", 0):
         problems.append("processing_lease_requires_recheck")
+    if candidate.get("review_status") != original.get("review_status"):
+        problems.append("source_review_status_changed")
+    if candidate.get("translation_review_status") == "ai_verified":
+        problems.append("premature_translation_approval")
     if candidate.get("translation_status") != "translated":
         problems.append("candidate_not_translated")
     for key in ("source_name", "source_description", "source_full_text", "source_attributes", "source_language"):
@@ -79,6 +83,10 @@ def preflight(
             problems.append(f"invalid_section:{key}")
     if not candidate.get("description"):
         problems.append("description_missing")
+    if candidate.get("name") in (None, ""):
+        problems.append("localized_name_missing")
+    if candidate.get("source_language") not in ("it", "en", "fr", "es", "de", "pt"):
+        problems.append("source_language_requires_manual_handling")
     if not original.get("source_refs"):
         problems.append("source_provenance_missing")
     fingerprint = translation_verification_fingerprint(dict(candidate)) if not problems else None
