@@ -84,6 +84,14 @@ class CompletionPreflightTests(unittest.TestCase):
                            independent_review=True, source_sections_checked=True)
         self.assertTrue(result.ready)
 
+    def test_processing_without_lease_snapshot_is_blocked(self):
+        original = {**SOURCE, "translation_status": "processing"}
+        original.pop("translation_lease_id")
+        candidate = {**self.candidate(), "translation_status": "translated"}
+        result = preflight(original, candidate, source_page_checked=True,
+                           independent_review=True, source_sections_checked=True)
+        self.assertIn("processing_lease_state_unknown", result.blockers)
+
     def test_missing_stat_blocks_approval(self):
         candidate = self.candidate()
         candidate["attributes"].pop("velocita")
