@@ -25,13 +25,17 @@ SET name = %(name)s,
     translation_status = 'translated',
     translation_review_status = 'pending',
     translation_review_fingerprint = NULL,
+    translation_review_notes = NULL,
+    translation_review_conflict_fields = '[]'::jsonb,
     translation_review_confidence = NULL,
     translation_review_model = NULL,
     translation_reviewed_at = NULL,
+    translation_error = NULL,
     updated_at = now()
 WHERE id = %(id)s
   AND updated_at IS NOT DISTINCT FROM %(expected_updated_at)s
   AND translation_status IS NOT DISTINCT FROM %(expected_translation_status)s
+  AND translation_review_status IS NOT DISTINCT FROM %(expected_translation_review_status)s
   AND coalesce(translation_lease_id, '') = ''
   AND coalesce(translation_lease_expires_at, 0) = 0
   AND review_status IS NOT DISTINCT FROM %(expected_review_status)s
@@ -59,6 +63,7 @@ def sql_bindings(original: Mapping[str, Any], candidate: Mapping[str, Any]) -> d
         "attributes": json.dumps(candidate.get("attributes") or {}, ensure_ascii=False),
         "expected_updated_at": original.get("updated_at"),
         "expected_translation_status": original.get("translation_status"),
+        "expected_translation_review_status": original.get("translation_review_status"),
         "expected_review_status": original.get("review_status"),
         "expected_source_language": original.get("source_language"),
         "expected_source_name": original.get("source_name"),
