@@ -8,6 +8,28 @@ from monster_completion_atomic_sql import conditional_update_sql, sql_bindings
 
 
 class AtomicSqlTests(unittest.TestCase):
+    def test_review_reset_respects_not_null_schema_defaults(self):
+        # These review columns and translation_error are NOT NULL in Supabase.
+        # The timestamp is the only nullable field in the reset operation.
+        sql = conditional_update_sql()
+        assignments = dict(
+            line.strip().rstrip(",").split(" = ", 1)
+            for line in sql.split("WHERE", 1)[0].splitlines()
+            if " = " in line
+        )
+        expected = {
+            "translation_error": "''",
+            "translation_review_fingerprint": "''",
+            "translation_review_notes": "''",
+            "translation_review_conflict_fields": "'[]'::jsonb",
+            "translation_review_confidence": "0",
+            "translation_review_model": "''",
+            "translation_reviewed_at": "NULL",
+        }
+        for column, default in expected.items():
+            with self.subTest(column=column):
+                self.assertEqual(assignments[column], default)
+
     def test_compare_and_swap_guards(self):
         sql = conditional_update_sql()
         for guard in ("updated_at IS NOT DISTINCT FROM", "source_refs IS NOT DISTINCT FROM",
