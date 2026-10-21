@@ -34,6 +34,7 @@ WHERE id = %(id)s
   AND translation_status IS NOT DISTINCT FROM %(expected_translation_status)s
   AND coalesce(translation_lease_id, '') = ''
   AND coalesce(translation_lease_expires_at, 0) = 0
+  AND review_status IS NOT DISTINCT FROM %(expected_review_status)s
   AND source_language IS NOT DISTINCT FROM %(expected_source_language)s
   AND source_name IS NOT DISTINCT FROM %(expected_source_name)s
   AND source_description IS NOT DISTINCT FROM %(expected_source_description)s
@@ -58,6 +59,7 @@ def sql_bindings(original: Mapping[str, Any], candidate: Mapping[str, Any]) -> d
         "attributes": json.dumps(candidate.get("attributes") or {}, ensure_ascii=False),
         "expected_updated_at": original.get("updated_at"),
         "expected_translation_status": original.get("translation_status"),
+        "expected_review_status": original.get("review_status"),
         "expected_source_language": original.get("source_language"),
         "expected_source_name": original.get("source_name"),
         "expected_source_description": original.get("source_description"),
