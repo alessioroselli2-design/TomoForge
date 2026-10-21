@@ -28,3 +28,14 @@ def test_review_packet_does_not_infer_independence_from_candidate():
     packet = build_review_packet(original, candidate)
     assert packet["independent_review"] is False
     assert packet["approved"] is False
+
+
+def test_structurally_incomplete_packet_not_ready_for_handoff():
+    original = {"id": "monster-3", "source_refs": [{"page": 37}]}
+    candidate = {"id": "monster-3", "name": "Wurm", "translation_status": "translated"}
+    packet = build_review_packet(original, candidate)
+    assert packet["handoff_ready"] is False
+    assert "attributes_missing" in packet["structural_blockers"]
+    assert packet["reviewer_identity"] is None
+    assert packet["review_evidence"] is None
+    assert packet["approved"] is False
