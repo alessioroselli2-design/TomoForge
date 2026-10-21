@@ -28,6 +28,7 @@ ATTRS = {
 class CompletionPreflightTests(unittest.TestCase):
     def candidate(self):
         return {**SOURCE, "name": "Esempio", "description": "Descrizione italiana.",
+                "full_text": "Descrizione italiana.\n\\nStatblock completo di esempio.",
                 "attributes": ATTRS.copy(), "translation_status": "translated"}
 
     def test_multilingual_valid_candidate(self):
