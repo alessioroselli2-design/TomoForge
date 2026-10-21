@@ -51,6 +51,9 @@ def preflight(
         problems.append("record_id_missing")
     if candidate.get("id") != original.get("id"):
         problems.append("record_identity_changed")
+    for identity_key in ("user_id", "reference_type"):
+        if identity_key in original and candidate.get(identity_key) != original.get(identity_key):
+            problems.append(f"immutable_identity_changed:{identity_key}")
     if candidate.get("source_refs") != original.get("source_refs"):
         problems.append("source_provenance_changed")
     if original.get("translation_lease_id"):
@@ -85,8 +88,10 @@ def preflight(
             problems.append(f"section_unaccounted_for:{key}")
         elif not isinstance(attributes[key], list):
             problems.append(f"invalid_section:{key}")
-    if not candidate.get("description"):
+    if not str(candidate.get("description") or "").strip():
         problems.append("description_missing")
+    if not str(candidate.get("full_text") or "").strip():
+        problems.append("full_text_missing")
     if candidate.get("name") in (None, ""):
         problems.append("localized_name_missing")
     if not str(candidate.get("source_language") or "").strip():
