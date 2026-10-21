@@ -33,6 +33,7 @@ def preflight(
     *,
     source_page_checked: bool = False,
     independent_review: bool = False,
+    source_sections_checked: bool = False,
 ) -> Preflight:
     """Inspect one candidate without changing either input.
 
@@ -44,8 +45,14 @@ def preflight(
         problems.append("source_page_not_checked")
     if not independent_review:
         problems.append("independent_review_missing")
+    if not source_sections_checked:
+        problems.append("source_sections_not_checked")
     if not original.get("id"):
         problems.append("record_id_missing")
+    if candidate.get("id") != original.get("id"):
+        problems.append("record_identity_changed")
+    if candidate.get("source_refs") != original.get("source_refs"):
+        problems.append("source_provenance_changed")
     if original.get("translation_lease_id"):
         problems.append("active_or_unknown_translation_lease")
     if original.get("translation_status") == "processing" and original.get("translation_lease_expires_at", 0):
@@ -66,7 +73,9 @@ def preflight(
     if not isinstance(scores, dict) or any(not isinstance(scores.get(k), int) for k in ABILITY_KEYS):
         problems.append("ability_scores_incomplete")
     for key in OPTIONAL_SECTIONS:
-        if key in attributes and not isinstance(attributes[key], list):
+        if key not in attributes:
+            problems.append(f"section_unaccounted_for:{key}")
+        elif not isinstance(attributes[key], list):
             problems.append(f"invalid_section:{key}")
     if not candidate.get("description"):
         problems.append("description_missing")
