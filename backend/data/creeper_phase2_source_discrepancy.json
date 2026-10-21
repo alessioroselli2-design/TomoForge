@@ -1,0 +1,14 @@
+{
+  "schema_version": "creeper-phase2-source-discrepancy-v1",
+  "record_id": "ref_4b4acc08abae1c6c51f54d1d91f4edd0",
+  "source_id": "mc_v3_minecraft_2023_en",
+  "source_sha256": "b7fb95c7519fb0936bb2cb37cfb6a5493134c86e0dc31196a4c62a67887e8ada",
+  "physical_page": 30,
+  "publisher_pdf": "https://www.minecraft.net/content/dam/minecraftnet/games/minecraft/software/Minecraft-Monstrous-Compendium.pdf",
+  "publisher_pdf_explosion_damage_type": "lightning",
+  "current_it_translation_explosion_damage_type": "force",
+  "registered_r2_pdf_explosion_damage_type": "not_rechecked",
+  "decision": "blocked_pending_registered_original_page30_and_publisher_version_adjudication",
+  "translation_review_status": "pending",
+  "writes": 0
+}
