@@ -78,3 +78,16 @@ La prima query di controllo di Ayik Ur ha generato un errore di precedenza degli
 - Rilettura globale Supabase: **1.500 mostri**, **315 `translated`**, **277 `processing`**, **908 `not_required`**, soltanto **5 certificati `translation_review_status=ai_verified`** (Minecraft).
 - Per le 28 schede Dragonlance manca **ancora** una revisione indipendente documentata della fedeltà al PDF e il percorso di certificazione completo con audit, dry-run fail-closed, aggiornamento atomico e readback di approvazione. Il conteggio `translated` non significa `ai_verified`.
 - Nessuna operazione di merge, deploy o modifica di `main`; PDF e traduzioni integrali rimangono esclusivamente nei materiali privati.
+
+
+### Controllo trasversale delle 28 traduzioni — integrazione
+
+Eseguito un confronto in sola lettura tra le 28 bozze italiane della Library privata e i 28 record attualmente salvati nel database, individuati per `source_name` e `logical_source_id`:
+
+- **28/28** valori delle sei caratteristiche coerenti con le bozze.
+- **28/28** punti ferita e relative espressioni di dadi coerenti.
+- **20/28** velocità identiche anche come stringa; le altre 8 differiscono esclusivamente per il separatore `,` / `;` fra tipi di movimento: valori metrici invariati.
+- **21/28** diciture della classe armatura identiche anche come stringa; le altre 7 differiscono per sinonimi italiani di armature o bardatura, mantenendo **identico il valore numerico**.
+- **26/28** schede con gli stessi conteggi delle cinque sezioni; le due divergenze sono rappresentazioni esplicite di opzioni già contenute nei testi delle capacità: `Interrompere Possessione` come ulteriore azione bonus di Caradoc e `Terminare la Trasformazione` per il draconico Sivak. Il confronto dei due testi registrati con le bozze non evidenzia automaticamente capacità autonome mancanti; le sezioni restano da validare con il PDF tramite revisione indipendente.
+
+Non sono state necessarie né effettuate ulteriori modifiche ai 28 record durante questa ispezione. Le **28 schede restano tradotte ma non certificate**, e l'audit di fedeltà alla fonte non va sostituito da questi controlli meccanici.
