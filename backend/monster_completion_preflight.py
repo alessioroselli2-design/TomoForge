@@ -85,8 +85,8 @@ def preflight(
         problems.append("description_missing")
     if candidate.get("name") in (None, ""):
         problems.append("localized_name_missing")
-    if candidate.get("source_language") not in ("it", "en", "fr", "es", "de", "pt"):
-        problems.append("source_language_requires_manual_handling")
+    if not str(candidate.get("source_language") or "").strip():
+        problems.append("source_language_missing")
     if not original.get("source_refs"):
         problems.append("source_provenance_missing")
     fingerprint = translation_verification_fingerprint(dict(candidate)) if not problems else None
