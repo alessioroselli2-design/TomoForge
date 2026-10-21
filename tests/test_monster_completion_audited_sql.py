@@ -60,6 +60,24 @@ class AuditedSqlTests(unittest.TestCase):
         self.assertEqual(payload["audit"]["review_confidence"], 0.98)
         self.assertEqual((self.original, self.candidate, self.audit), before)
 
+    def test_localized_name_derives_stable_key_without_changing_source_key(self):
+        candidate = {**self.candidate, "name": "Spirito d’Acqua Èlite"}
+        audit = {**self.audit, "candidate_fingerprint": translation_verification_fingerprint(candidate)}
+        payload = json.loads(audited_sql_bindings(self.original, candidate, audit)["payload"])
+        self.assertEqual(payload["candidate"]["normalized_name"], "spirito d acqua elite")
+        self.assertEqual(payload["original"]["source_normalized_name"], "synthetic")
+        self.assertNotIn("source_normalized_name", payload["candidate"])
+        self.assertIn("normalized_name = expected.data->'candidate'->>'normalized_name'", audited_update_sql())
+        matching = {**candidate, "normalized_name": "spirito d acqua elite"}
+        self.assertEqual(
+            audited_sql_bindings(self.original, matching, audit),
+            audited_sql_bindings(self.original, candidate, audit),
+        )
+        with self.assertRaisesRegex(ValueError, "normalized_name does not match"):
+            audited_sql_bindings(self.original, {**candidate, "normalized_name": "old english name"}, audit)
+        with self.assertRaisesRegex(ValueError, "immutable source changed"):
+            audited_sql_bindings(self.original, {**candidate, "source_normalized_name": "changed"}, audit)
+
     def test_missing_or_false_audit_evidence_is_rejected(self):
         for key in self.audit:
             with self.subTest(key=key):
@@ -135,6 +153,54 @@ class AuditedSqlTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "registry does not authorize"):
                 audited_sql_bindings(original, candidate, audit)
 
+    def test_official_source_versions_are_accepted_only_as_exact_url_digest_pairs(self):
+        original, candidate, original_audit = self.minecraft_receipt()
+        revised_audit = copy.deepcopy(original_audit)
+        revised_audit["source_url"] = (
+            "https://www.minecraft.net/content/dam/minecraftnet/games/minecraft/"
+            "software/Minecraft-Monstrous-Compendium-revised.pdf"
+        )
+        revised_audit["source_evidence_sha256"] = (
+            "d4d0bbcd0efcc1fd7a714919379f25d8c51987b3ab8c9884c25ea95a6ea85119"
+        )
+        revised_audit["provenance_mapping"]["authoritative_url"] = revised_audit["source_url"]
+        revised_audit["provenance_mapping"]["authoritative_sha256"] = revised_audit["source_evidence_sha256"]
+        for receipt in (original_audit, revised_audit):
+            with self.subTest(accepted=receipt["source_url"]):
+                payload = json.loads(audited_sql_bindings(original, candidate, receipt)["payload"])
+                self.assertEqual(payload["audit"], receipt)
+        for receipt, other in ((original_audit, revised_audit), (revised_audit, original_audit)):
+            crossed = copy.deepcopy(receipt)
+            crossed["source_evidence_sha256"] = other["source_evidence_sha256"]
+            crossed["provenance_mapping"]["authoritative_sha256"] = other["source_evidence_sha256"]
+            with self.subTest(rejected=crossed["source_url"]):
+                with self.assertRaisesRegex(ValueError, "unrecognized authoritative Minecraft evidence"):
+                    audited_sql_bindings(original, candidate, crossed)
+        mismatched_receipt = copy.deepcopy(revised_audit)
+        mismatched_receipt["provenance_mapping"] = original_audit["provenance_mapping"]
+        with self.assertRaisesRegex(ValueError, "provenance mapping identity"):
+            audited_sql_bindings(original, candidate, mismatched_receipt)
+
+    def test_mapped_creeper_page_requires_the_revised_official_source(self):
+        original, candidate, audit = self.minecraft_receipt()
+        for record in (original, candidate):
+            record["source_refs"][0]["page"] = 30
+        audit["source_page"] = 4
+        audit["provenance_mapping"]["original_page"] = 30
+        audit["provenance_mapping"]["authoritative_page"] = 4
+        with self.assertRaisesRegex(ValueError, "Creeper page requires the revised"):
+            audited_sql_bindings(original, candidate, audit)
+        audit["source_url"] = (
+            "https://www.minecraft.net/content/dam/minecraftnet/games/minecraft/"
+            "software/Minecraft-Monstrous-Compendium-revised.pdf"
+        )
+        audit["source_evidence_sha256"] = "d4d0bbcd0efcc1fd7a714919379f25d8c51987b3ab8c9884c25ea95a6ea85119"
+        audit["provenance_mapping"]["authoritative_url"] = audit["source_url"]
+        audit["provenance_mapping"]["authoritative_sha256"] = audit["source_evidence_sha256"]
+        payload = json.loads(audited_sql_bindings(original, candidate, audit)["payload"])
+        self.assertEqual(payload["audit"]["source_page"], 4)
+        self.assertEqual(payload["audit"]["source_evidence_sha256"], audit["source_evidence_sha256"])
+
     def test_nonmonster_and_all_unknown_or_active_leases_are_rejected(self):
         for change in ({"reference_type": "spell"}, {"translation_lease_id": "leased"},
                        {"translation_lease_expires_at": 1}, {"translation_lease_expires_at": None}):
@@ -159,6 +225,21 @@ class AuditedSqlTests(unittest.TestCase):
         for timestamp in ("2026-01-02T00:00:00", "2026-01-02T00:00:00+01:00", "invalid", None):
             with self.subTest(timestamp=timestamp), self.assertRaises(ValueError):
                 audited_sql_bindings(self.original, self.candidate, {**self.audit, "reviewed_at": timestamp})
+
+    def test_delayed_write_retains_review_time_and_uses_database_statement_time(self):
+        payload = json.loads(audited_sql_bindings(self.original, self.candidate, self.audit)["payload"])
+        self.assertEqual(payload["audit"]["reviewed_at"], "2026-01-02T00:00:00Z")
+        assignments = dict(
+            line.strip().rstrip(",").split(" = ", 1)
+            for line in audited_update_sql().split("\nFROM expected", 1)[0].splitlines()
+            if " = " in line
+        )
+        self.assertEqual(
+            assignments["translation_reviewed_at"],
+            "(expected.data->'audit'->>'reviewed_at')::timestamptz",
+        )
+        self.assertEqual(assignments["updated_at"], "statement_timestamp()")
+        self.assertNotEqual(assignments["updated_at"], assignments["translation_reviewed_at"])
 
     def test_evidence_locator_never_accepts_credentials_or_signed_queries(self):
         for url in ("https://user:secret@example.invalid/source.pdf", "https://example.invalid/a?token=secret"):

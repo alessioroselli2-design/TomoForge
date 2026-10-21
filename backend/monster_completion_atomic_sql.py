@@ -92,6 +92,7 @@ WITH input AS (
 )
 UPDATE public.private_reference_records AS target
 SET name = expected.data->'candidate'->>'name',
+    normalized_name = expected.data->'candidate'->>'normalized_name',
     description = expected.data->'candidate'->>'description',
     full_text = expected.data->'candidate'->>'full_text',
     attributes = expected.data->'candidate'->'attributes',
@@ -104,7 +105,7 @@ SET name = expected.data->'candidate'->>'name',
     translation_review_model = expected.data->'audit'->>'reviewer_id',
     translation_reviewed_at = (expected.data->'audit'->>'reviewed_at')::timestamptz,
     translation_error = '',
-    updated_at = (expected.data->'audit'->>'reviewed_at')::timestamptz
+    updated_at = statement_timestamp()
 FROM expected
 WHERE target.id = (expected.snapshot).id
   AND target.reference_type = 'monster'
@@ -134,6 +135,7 @@ def audited_sql_bindings(
     from urllib.parse import urlsplit
 
     from monster_completion_preflight import preflight
+    from reference_library import normalize_reference_name
 
     if original.get("reference_type") != "monster":
         raise ValueError("original is not a monster")
@@ -198,9 +200,17 @@ def audited_sql_bindings(
     for key in ("name", "description", "full_text"):
         if not isinstance(candidate.get(key), str) or not candidate[key].strip():
             raise ValueError(f"localized field missing: {key}")
+    normalized_name = normalize_reference_name(candidate["name"])
+    if not normalized_name:
+        raise ValueError("localized normalized_name missing")
+    if "normalized_name" in candidate and candidate["normalized_name"] != normalized_name:
+        raise ValueError("localized normalized_name does not match localized name")
     payload = {
         "original": dict(original),
-        "candidate": {key: candidate[key] for key in ("name", "description", "full_text", "attributes")},
+        "candidate": {
+            **{key: candidate[key] for key in ("name", "description", "full_text", "attributes")},
+            "normalized_name": normalized_name,
+        },
         "audit": receipt,
     }
     return {"payload": json.dumps(payload, ensure_ascii=False, allow_nan=False, sort_keys=True)}
@@ -217,17 +227,26 @@ def _validate_minecraft_authority_mapping(
     """
     from reference_sources import source_metadata_for_page
 
-    official_url = (
+    revised_pair = (
         "https://www.minecraft.net/content/dam/minecraftnet/games/minecraft/"
-        "software/Minecraft-Monstrous-Compendium.pdf"
+        "software/Minecraft-Monstrous-Compendium-revised.pdf",
+        "d4d0bbcd0efcc1fd7a714919379f25d8c51987b3ab8c9884c25ea95a6ea85119",
     )
-    official_digest = "559802923408bb57ccea250e6806603ee20b1ad4ed28e58c2e1608bf5ba79521"
+    official_pairs = frozenset({
+        (
+            "https://www.minecraft.net/content/dam/minecraftnet/games/minecraft/"
+            "software/Minecraft-Monstrous-Compendium.pdf",
+            "559802923408bb57ccea250e6806603ee20b1ad4ed28e58c2e1608bf5ba79521",
+        ),
+        revised_pair,
+    })
     archived_digest = "b7fb95c7519fb0936bb2cb37cfb6a5493134c86e0dc31196a4c62a67887e8ada"
     mapping = audit.get("provenance_mapping")
     if not isinstance(mapping, dict):
         raise ValueError("source mismatch requires a completed registered provenance mapping")
-    if (audit.get("source_url") != official_url
-            or audit.get("source_evidence_sha256") != official_digest):
+    official_url = audit.get("source_url")
+    official_digest = audit.get("source_evidence_sha256")
+    if (official_url, official_digest) not in official_pairs:
         raise ValueError("unrecognized authoritative Minecraft evidence")
     if (mapping.get("independently_checked") is not True
             or mapping.get("original_digest_from_record_only") is not True
@@ -249,6 +268,8 @@ def _validate_minecraft_authority_mapping(
     if (not isinstance(original_page, int) or isinstance(original_page, bool)
             or not 28 <= original_page <= 33 or audit["source_page"] != original_page - 26):
         raise ValueError("Minecraft authoritative/compilation page mapping is invalid")
+    if original_page == 30 and (official_url, official_digest) != revised_pair:
+        raise ValueError("Creeper page requires the revised official Minecraft evidence")
     if not any(
         ref.get("filename") == expected["original_filename"]
         and ref.get("physical_sha256") == archived_digest
