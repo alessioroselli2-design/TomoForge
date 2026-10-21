@@ -63,6 +63,27 @@ class CompletionPreflightTests(unittest.TestCase):
                            independent_review=True, source_sections_checked=True)
         self.assertIn("source_provenance_changed", result.blockers)
 
+    def test_candidate_cannot_approve_itself(self):
+        candidate = self.candidate()
+        candidate["translation_review_status"] = "ai_verified"
+        result = preflight(SOURCE, candidate, source_page_checked=True,
+                           independent_review=True, source_sections_checked=True)
+        self.assertIn("premature_translation_approval", result.blockers)
+
+    def test_source_review_must_not_change(self):
+        candidate = self.candidate()
+        candidate["review_status"] = "verified"
+        result = preflight(SOURCE, candidate, source_page_checked=True,
+                           independent_review=True, source_sections_checked=True)
+        self.assertIn("source_review_status_changed", result.blockers)
+
+    def test_other_original_language(self):
+        original = {**SOURCE, "source_language": "ja"}
+        candidate = {**self.candidate(), "source_language": "ja"}
+        result = preflight(original, candidate, source_page_checked=True,
+                           independent_review=True, source_sections_checked=True)
+        self.assertTrue(result.ready)
+
     def test_missing_stat_blocks_approval(self):
         candidate = self.candidate()
         candidate["attributes"].pop("velocita")
