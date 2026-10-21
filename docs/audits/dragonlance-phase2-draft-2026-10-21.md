@@ -43,3 +43,38 @@ I lotti mantengono la chiave logica originale separata dal nome mostrato. Prima 
 5. Rileggere ogni record, ricalcolare fingerprint, accertare nessun duplicato e aggiornare i contatori live. Passare al manuale seguente soltanto al superamento dei gate reali.
 
 **Nota:** la PR #598 riguarda un pilota distinto (Minecraft e completamento atomico) e rimane indipendente da questo checkpoint. Questo checkpoint non comporta merge o deploy.
+
+
+## Ripresa operativa dopo il checkpoint — 21 ottobre 2026, 21:53–21:56 UTC
+
+Questo aggiornamento è **successivo** alle dichiarazioni di sola preparazione sopra riportate; non modifica retroattivamente il contenuto del checkpoint originario.
+
+### Censimento live e fonte
+
+- Riscontrati **28/28** record del manuale `dsotdq_2022_en` nel database Supabase di TomoForge: all'inizio della ripresa 22 `translated`, 6 `processing`, nessuno con `translation_review_status=ai_verified`.
+- Recuperati il PDF originale in Library privata e la bozza aggregata dei 28 record. Impronta SHA-256 della fonte `d867631c2344fbc8b1274478f01ad64e2f22989bf340b6b5ed8e001e63ce53a8`, corrispondente alla provenienza registrata.
+- Le sei schede residue sono comprimari di primo livello alle pagine fisiche 212–215, **senza grado di sfida stampato**: il campo resta nullo; velocità convertite in metri. La fonte stampa `Andir Valmakos` e `Ayik Ur`, mentre le chiavi originali di sorgente restano rispettivamente `Andir` e `Ayikur`.
+
+### Aggiornamenti realmente eseguiti e controllati
+
+Le sei righe esistenti sono state aggiornate **individualmente**, senza `INSERT` o eliminazioni. Per ogni scrittura: corrispondenza di ID, provenienza logica, hash PDF e pagina, stato originale `processing/pending`, lease assente, hash MD5 dello snapshot completo, unicità sorgente e assenza di collisione sul nome normalizzato. Modificati esclusivamente nome localizzato, chiave normalizzata, descrizione, testo italiano strutturato, attributi di destinazione, `translation_status`, nota della revisione e `updated_at`. I campi `source_*` sono rimasti invariati. Eseguite nuove `SELECT` per verificare testo, attributi, identificativi, fonte e stato; nessuna certificazione finale automatica.
+
+| Sorgente/identità | Record ID | Esito |
+|---|---|---|
+| Andir → Andir Valmakos | `ref_7502bd584c09436f4d809e98eab7e13f` | una riga aggiornata, readback conforme |
+| Ayikur → Ayik Ur | `ref_9e27048fc42051eed502fe3d9735792b` | una riga aggiornata, readback conforme |
+| Hrigg Roundrook | `ref_a765852bea1f119275068ef6f373647e` | una riga aggiornata, readback conforme |
+| Iriad | `ref_bb69fe51877263b6d77403027a1525ce` | una riga aggiornata, readback conforme |
+| Levna Drakehorn | `ref_f480924ac8990dfe8c43365de4037fe3` | una riga aggiornata, readback conforme |
+| Tem Temble | `ref_bb19cf336e2e4fa11df25194204f8794` | una riga aggiornata, readback conforme |
+
+La prima query di controllo di Ayik Ur ha generato un errore di precedenza degli operatori SQL; la *scrittura era già riuscita*. La query di readback è stata corretta e ha verificato integralmente lo stesso record **prima** di procedere con gli altri quattro.
+
+### Nuova rilettura aggregata e prossimi gate
+
+- **Dragonlance 28/28 `translation_status=translated`**, 0 `processing`, **0/28 `translation_review_status=ai_verified`**.
+- Il gruppo delle sei schede è `translated/pending` con `translation_review_fingerprint` vuoto e nessun lease attivo; tutte con testo esteso e identificativi originali conservati.
+- Nessuna collisione per `source_name` o `normalized_name` all'interno dei 28 record.
+- Rilettura globale Supabase: **1.500 mostri**, **315 `translated`**, **277 `processing`**, **908 `not_required`**, soltanto **5 certificati `translation_review_status=ai_verified`** (Minecraft).
+- Per le 28 schede Dragonlance manca **ancora** una revisione indipendente documentata della fedeltà al PDF e il percorso di certificazione completo con audit, dry-run fail-closed, aggiornamento atomico e readback di approvazione. Il conteggio `translated` non significa `ai_verified`.
+- Nessuna operazione di merge, deploy o modifica di `main`; PDF e traduzioni integrali rimangono esclusivamente nei materiali privati.
