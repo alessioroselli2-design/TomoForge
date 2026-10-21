@@ -30,7 +30,7 @@ SET name = %(name)s,
     translation_review_confidence = NULL,
     translation_review_model = NULL,
     translation_reviewed_at = NULL,
-    translation_error = NULL,
+    translation_error = '',
     updated_at = now()
 WHERE id = %(id)s
   AND updated_at IS NOT DISTINCT FROM %(expected_updated_at)s
