@@ -55,8 +55,12 @@ def preflight(
         problems.append("source_provenance_changed")
     if original.get("translation_lease_id"):
         problems.append("active_or_unknown_translation_lease")
+    if original.get("translation_status") == "processing" and "translation_lease_id" not in original:
+        problems.append("processing_lease_state_unknown")
     if original.get("translation_status") == "processing" and original.get("translation_lease_expires_at", 0):
         problems.append("processing_lease_requires_recheck")
+    if original.get("translation_status") == "processing" and "translation_lease_expires_at" not in original:
+        problems.append("processing_lease_expiry_unknown")
     if candidate.get("review_status") != original.get("review_status"):
         problems.append("source_review_status_changed")
     if candidate.get("translation_review_status") == "ai_verified":
