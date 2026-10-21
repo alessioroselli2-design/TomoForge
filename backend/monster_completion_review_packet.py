@@ -26,6 +26,9 @@ def build_review_packet(original: dict, candidate: dict) -> dict:
         "source_refs": refs,
         "candidate_fingerprint": translation_verification_fingerprint(candidate),
         "candidate_name": candidate.get("name"),
+        "handoff_ready": not any(b for b in check.blockers if b not in {
+            "source_page_not_checked", "source_sections_not_checked",
+            "independent_review_missing"}),
         "source_review_tasks": [
             "Check every original descriptive paragraph against the Italian candidate",
             "Compare every stat value, dice expression, damage type, save DC, and condition",
@@ -39,6 +42,8 @@ def build_review_packet(original: dict, candidate: dict) -> dict:
                          "independent_review_missing"}
         ],
         "reviewer_verdict": None,
+        "reviewer_identity": None,
+        "review_evidence": None,
         "independent_review": False,
         "approved": False,
         "writes_performed": 0,
