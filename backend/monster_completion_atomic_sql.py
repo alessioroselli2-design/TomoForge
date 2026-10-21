@@ -36,6 +36,8 @@ WHERE id = %(id)s
   AND coalesce(translation_lease_expires_at, 0) = 0
   AND source_language IS NOT DISTINCT FROM %(expected_source_language)s
   AND source_name IS NOT DISTINCT FROM %(expected_source_name)s
+  AND source_description IS NOT DISTINCT FROM %(expected_source_description)s
+  AND source_full_text IS NOT DISTINCT FROM %(expected_source_full_text)s
   AND source_attributes IS NOT DISTINCT FROM %(expected_source_attributes)s::jsonb
   AND source_refs IS NOT DISTINCT FROM %(expected_source_refs)s::jsonb
 RETURNING id, updated_at, translation_status, translation_review_status;
@@ -58,6 +60,8 @@ def sql_bindings(original: Mapping[str, Any], candidate: Mapping[str, Any]) -> d
         "expected_translation_status": original.get("translation_status"),
         "expected_source_language": original.get("source_language"),
         "expected_source_name": original.get("source_name"),
+        "expected_source_description": original.get("source_description"),
+        "expected_source_full_text": original.get("source_full_text"),
         "expected_source_attributes": json.dumps(original.get("source_attributes") or {}, ensure_ascii=False),
         "expected_source_refs": json.dumps(original.get("source_refs") or [], ensure_ascii=False),
     }
