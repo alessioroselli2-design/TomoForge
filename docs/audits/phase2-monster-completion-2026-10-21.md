@@ -525,3 +525,25 @@ Esaminata anche la fonte di `Gaj`, PDF p23, ma una successiva richiesta di scrit
 - Durante la prosecuzione risultano `translated/pending` anche p24 `Giff shipmate` → **Marinaio Giff** e p25 `Giff shock trooper` e `Giff warlord`. **Non sovrascritti**: verificato in sola lettura che la scheda del Marinaio Giff riproduce le formule e CD del PDF per moschetto, spada lunga, granata a forza con 1d6 per la disponibilità, Conoscenza delle Armi da Fuoco e Fermo come una Roccia.
 
 **Readback Supabase Boo**: 72 record, 21 `translated`, 51 `processing`, 0 `ai_verified`, 72 ID e 72 nomi normalizzati distinti; 21/21 HP, GS e sei punteggi caratteristiche coincidono con `source_attributes`; 0 ft nel campo velocità. **Globale**: 1500 mostri, 488 `translated`, 104 `processing`, 908 `not_required`, 5 `ai_verified`. Prossimo record da cercare dopo la pagina 25, con priorità all'ordine delle pagine. Non procedere a certificazioni automatiche, merge o deploy; seconda verifica indipendente `pending` su tutte le nuove candidate.
+
+
+
+## Boo's Astral Menagerie — pp14–43, avanzamento traduzione 43/72
+
+Conservato il manuale originale in Biblioteca, `645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf`, SHA-256 `24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e`. Pagine visualizzate direttamente, PDF con text layer non affidabile. Dall'ultimo audit a 8/72, tradotti tramite `UPDATE` condizionali, singola riga restituita per record e zero duplicazioni:
+
+- p14 `Autognome` → **Autognomo** (presso `ref_a7955b4d908b218ce543ada79c52c69a`), incluse 5 uscite dei malfunzionamenti 1d20.
+- p15 `Braxat` → **Braxat**; p16 `B’rogh` → **B’rogh**.
+- p17 `Chwinga astronaut` → **Chwinga Astronauta** con doni opzionali.
+- p18 `Cosmic horror` → **Orrore Cosmico** con 3 opzioni leggendarie.
+- p19 `Dohwar` → **Dohwar**; p20 `Esthetic` → **Estetico**.
+- p21 `Eye monger` → **Mercante Oculare**; p22 `Feyr` → **Feyr**. Queste due schede risultavano già tradotte da altri step al readback, non riscritte.
+- p23 `Gaj` → **Gaj**, già scritto quando UPDATE guardato è stato eseguito; non sovrascritto.
+- p24 `Giff shipmate` → **Marinaio Giff**; p25 `Giff shock trooper` → **Assaltatore Giff**; p25 `Giff warlord` → **Signore della Guerra Giff**.
+- p27 `Githyanki buccaneer` → **Bucaniere Githyanki**, `Githyanki star seer` → **Veggente delle Stelle Githyanki**, `Githyanki xenomancer` → **Xenomante Githyanki**.
+- p28 `Hadozee explorer` → **Esploratore Hadozee**; p29 `Hadozee shipmate` → **Marinaio Hadozee**, `Hadozee warrior` → **Guerriero Hadozee**; incluse planata e reazioni di riduzione danni.
+- p30 `Jammer leech` → **Sanguisuga Spelljammer**, incluse penalità al timone e reazione; p31 `Kindori` → **Kindori**.
+- pp32–35 `Ancient lunar dragon` → **Drago Lunare Antico**, `Adult lunar dragon` → **Drago Lunare Adulto**, `Young lunar dragon` → **Drago Lunare Giovane**, `Lunar dragon wyrmling` → **Cucciolo di Drago Lunare**. Incluse azioni leggendarie ed effetti regionali per antico/adulto. **Anomalia fonte adulta**: attacco Coda +14 nella stampa p34 mentre gli altri attacchi mostrano +11; conservato e marcato `completa_con_anomalia_fonte`, seconda lettura ancora necessaria.
+- p36 `Megapede` → **Megapede**, p37 `Mercane` → **Mercane**, p38 `Murder comet` → **Cometa Assassina** (variante col creatore), p39 `Neh-thalggu` → **Neh-thalggu** (tabella 12 incantesimi secondo numero di cervelli), p40 `Neogi hatchling swarm` → **Sciame di Cuccioli Neogi**, p41 `Neogi pirate` → **Pirata Neogi**, `Neogi void hunter` → **Cacciatore del Vuoto Neogi**, pp42–43 `Plasmoid boss` → **Capo Plasmoide**, `Plasmoid explorer` → **Esploratore Plasmoide**, `Plasmoid warrior` → **Guerriero Plasmoide**.
+
+**Readback verificato**: `sjbam_2022_en` 72 record, 43 `translated`, 29 `processing`, 72 nomi normalizzati e ID unici, 72 `translation_review_status=pending`, 0 `ai_verified`. Sui 43 tradotti 43/43 formule PF, GS e caratteristiche coerenti con importazione, 0 velocità in piedi. Totale globale 1500 mostri, 510 tradotti, 82 processing, 908 `not_required`, 5 `ai_verified` (Minecraft). Prossimo `Psurlon` p44. Gli UPDATE hanno richiesto match di ID, nome originale, fonte, pagina, hash e stato `processing/pending`, `updated_at` preesistente, lease vuoto, nessuna collisione di nome. Questi audit sono strutturali: **non equivalgono a certificazione indipendente di tutte le regole**, per cui resta `pending`. Nessun merge, deploy o cambiamento a `main`.
