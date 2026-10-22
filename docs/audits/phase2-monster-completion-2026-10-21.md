@@ -710,3 +710,23 @@ Checkpoint SQL `ps_mpp_2023_en`: 54 mostri, **29 `translation_review_status=ai_v
 Per `Githzerai Traveler`, un primo update ha incontrato blocco del connettore: nuova SELECT ha accertato `pending`, e un successivo update di sola certificazione vincolato allo snapshot ha restituito `ai_verified` con impronta 64 esadecimali. Non è stata forzata alcuna scheda con `review_status=pending`.
 
 La discrepanza originale `Mercykiller Bloodhound` 104 (16d8+48) rimane esplicitamente esclusa dalle certificazioni finché non è risolta e documentata. Tutte le scritture mantengono intatti il PDF e gli attributi di provenienza. Nessun merge o deploy.
+
+
+## Morte's Planar Parade — seconda passata arrivata a 53/54 (2026-10-22)
+
+**Fonte PDF originale privata** `762692978-D-D-5e-Planescape-Adventure-in-the-Multiverse.pdf`, SHA256 `61392d7a3ab2241dce67b1027c4830e0b3e9431d224f5a1619c6f5257bd427b1`; logical source `ps_mpp_2023_en`. Confrontate graficamente le pagine fisiche 213–259 e le rispettive schede esistenti. Durante la seconda verifica sono state effettuate scritture condizionali per ogni certificazione; il campo `translation_review_fingerprint` è il SHA-256 calcolato sul contenuto normalizzato e ricontrollato dopo la scrittura.
+
+**Errori semantici rilevati e corretti prima di certificare**:
+- `Darkweaver` p222: le azioni di tana **non** possono ripetersi per due round consecutivi, secondo pagina PDF 221. Corretto in `attributes.regole_azioni_tana` e `full_text`.
+- `Septon Modron` p237: la `Rete di Fulmini` origina **dal septon stesso**. Aggiunta la posizione di origine in `attributes.azioni[2]` e nel testo integrale.
+- `Ancient Time Dragon` p245 + `Adult Time Dragon` p247, azioni di tana p248: il `Ritardo Temporale` permette **muoversi oppure compiere un'azione, ma non entrambe**, e vieta reazioni/azioni bonus. Traduzione precedente diceva erroneamente che non si poteva né muovere né agire; corretta e ricontrollata per i due draghi.
+- `Ancient Time Dragon` p245: nel Soffio del Tempo mancava la **resistenza degli altri ai danni inflitti dalla creatura indebolita**; inserita nei due campi della scheda. Questo effetto aggiuntivo **non compare** nello statblock del Drago Adulto p247, quindi non è stato esteso a quest'ultimo.
+- Rifinitura grammaticale conseguente al testo di Ritardo Temporale, allineata fra `attributes` e `full_text`.
+
+**Certificati nella prosecuzione**: Modron Octon, Modron Septon, Planar Incarnate, Razorvine Blight, Aurumach Rilmani (p237–240); Cuprilach e Ferrumach Rilmani (p241), Shemeshka (p243), Sunfly e Swarm of Sunflies (p244); quattro età del Time Dragon (p245–248); Vargouille Reflection (p249), Athar Null (p250), Bleak Cabal Void Soother e Doomguard Doom Lord (p251); Doomguard Rot Blade, Fated Shaker (p253), Fraternity of Order Law Bender (p254), Hands of Havoc Fire Starter e Harmonium Captain (p255), Harmonium Peacekeeper e Heralds of Dust Remnant (p256); Mind's Eye Matter Smith (p257), Society of Sensation Muse (p258), Transcendent Order Conduit e Instinct (p259). `Mercykiller Bloodhound` p257 è una **eccezione fonte**, NON certificato.
+
+**Unica anomalia rimasta, senza manomissione dei dati**: `Mercykiller Bloodhound` ID `ref_b0374024422a1bab0b63412ba9c1b135`: la fonte p257 e molte trascrizioni indipendenti riproducono `Hit Points 104 (16d8 + 48)`; aritmeticamente la media attesa è **120**, non 104. Non abbiamo trovato errata autorevole che stabilisca quale numero correggere. L'ID conserva in `source_attributes.anomalia_punti_ferita` l'eccezione testuale e in `review_flags` `source_hp_dice_average_conflict`; i 104 e la formula di dadi sono lasciati esattamente come stampati; `review_status=pending`, `translation_status=translated`, `translation_review_status=pending`. Non promuoverlo forzatamente a `ai_verified` senza correzione ufficiale/convalida esplicita.
+
+**Audit a campione completo di 54 schede verificato con SELECT + SHA256 ricalcolati**: 54 record, 54 tradotti, 53 `ai_verified`, **53/53 impronte valide**, 54/54 riferimenti PDF SHA corretti, 54/54 PF/locali identici agli HP stampati nelle fonti, 54/54 GS corrispondenti, 54/54 sestine caratteristiche concordanti, 54/54 strutture azioni/tratti/reazioni presenti, zero nomi normalizzati duplicati, zero velocità `ft` residue. Una sola scheda `review_status=pending`: il Mercykiller suddetto.
+
+**Checkpoint globale**: 1501 mostri, 593 tradotti, 908 `not_required`, **129 `ai_verified`**, **464 traduzioni con seconda revisione pending**. Si è rispettata la separazione tra `develop` e `main`; nessun merge/deploy effettuato. Proseguire con i manuali disponibili senza trasformare le eccezioni source-backed in numeri inventati.
