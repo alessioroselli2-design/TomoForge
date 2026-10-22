@@ -493,3 +493,20 @@ Al readback, già **8/72 schede `translated/pending`** nel manuale `sjbam_2022_e
 **Correzione effettiva da seconda lettura indipendente**: scheda `Aartuk priest` `ref_8b1d8cda85854db22cfd36aa018cac78`, PDF p.9, azione bonus `Lingua (Ricarica 6)`. Il testo italiano già salvato riportava **CD di fuga 12**, mentre l'originale del sacerdote riporta **escape DC 11**, a differenza del guerriero che riporta 12. Riparata in modo condizionale **CD 12 → 11** nella struttura `attributes.azioni_bonus[1].descrizione` e in `full_text`, con readback che conferma il nuovo valore. Separatamente aggiornato il nome di incantesimo `revivify` da `rinascita (revivify)` a `rianimare` nella scheda del sacerdote, per coerenza terminologica italiana. Nessuna modifica al campo di provenienza o al `translation_review_status=pending`, poiché il secondo controllo complessivo di tutte le capacità della scheda non è ancora concluso.
 
 **Globale al readback:** 1.500 mostri, 475 `translated`, 117 `processing`, 908 `not_required`, 5 `ai_verified`. Theros resta **49/49 translated/pending**. Dopo Boo restano 53 record `processing` in Morte's Planar Parade, per cui occorre ancora individuare un PDF sorgente accessibile. Nessun merge o deploy, `main` invariato.
+
+
+## Boo's Astral Menagerie, pp.14–21: checkpoint 16/72 (22 ottobre)
+
+Dopo le prime otto schede, otto ulteriori `UPDATE` guarded completati da PDF sorgente privato `645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf`, SHA256 `24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e`, rendering visuale delle pagine, senza OCR e senza nuovi record:
+- p14 Autognome `ref_a7955b4d908b218ce543ada79c52c69a`: tabella completa Malfunzionamenti 1d20 (5 intervalli, inclusi 15–16 testa e 17–20 esplosione);
+- p15 Braxat `ref_bb6ce244a1a45065451f3885ec51ecb9`: CA include Intellect Fortress, Psionic Shield contro attacchi e dardo incantato;
+- p16 B'rogh `ref_fb9918a26afbde3db919aeda108e939d`: 4 attacchi pugno, 2 rocce, squarciamento con CD di fuga 16;
+- p17 Chwinga astronaut → **Chwinga Astronauta** `ref_b1305e5629c979f739f0881ff5eaed3e`: due doni speciali opzionali, rifugio e incantesimi;
+- p18 Cosmic horror → **Orrore Cosmico** `ref_3c73b994a8d5fe437bcb81542d2957e7`: 3 azioni leggendarie, sussurri psichici e attacchi multipli;
+- p19 Dohwar `ref_6435efdcf85f80c75631d41aa4429c4e`: Fusione telepatica, magie e morso;
+- p20 Esthetic → **Estetico** `ref_afcd38fa7410e5a9fb11b130e94b4778`: nave vivente, Urlo Inibitore sui timoni spelljammer con 2d10 giorni/minuti a seconda del tiro, proprietà della nave;
+- p21 Eye monger → **Mercante Oculare** `ref_defa479dd177a812d58be36fea8416c2`: Stomaco Antimagico e Morso con conseguenze dell'essere inghiottiti.
+
+Tutti gli UPDATE hanno restituito un singolo ID già esistente `translated/pending`. Il readback sull'intero manuale segnala **16/72 translated**, **56 processing**, 72 ID unici, 72 nomi normalizzati univoci, 0 `ai_verified`; sui 16 tradotti **16/16 HP, GS, sei caratteristiche e hash PDF coerenti con source_attributes**, 0 velocità residue in piedi. Tutte le nuove schede restano `translation_review_status=pending`: la seconda lettura semantica completa e la certificazione sono operazioni distinte. Per `Aartuk priest` p9 è stata corretta in precedenza una CD di fuga da 12 a 11 sulla base dell'originale.
+
+Global: **1500 mostri, 483 translated, 109 processing, 908 not_required, 5 ai_verified**. Prossima pagina e scheda **Feyr**, p22; una volta completato questo manuale resta `ps_mpp_2023_en` con 53 `processing`. Nessun merge o deploy, `main` separato da `develop`.
