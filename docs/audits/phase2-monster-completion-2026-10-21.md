@@ -653,3 +653,20 @@ Durante un gruppo di quattro certificazioni era stata emessa una firma in esadec
 **Checkpoint globale verificato** dopo il completamento: 1.501 `monster` registrati, 593 tradotti, 908 `not_required`, **51 `ai_verified`** (5 Minecraft, 18 Fiendish Folio, 28 Dragonlance), 542 tradotti pendenti.
 
 Ora prossimo manuale: `mc_v4_eldraine_2023_en`, 25/25 tradotti, 25 pending al passaggio. Fonte PDF privata Eldraine SHA `b7fb95c7519fb0936bb2cb37cfb6a5493134c86e0dc31196a4c62a67887e8ada`. Nessun merge automatico su main.
+
+
+## Monstrous Compendium Vol. 4: Eldraine — 25/25 ai_verified (2026-10-22)
+
+**Fonte privata:** `701858566-RRN5YRR(1).pdf`, pagine fisiche 36–60, SHA-256 del PDF originale `b7fb95c7519fb0936bb2cb37cfb6a5493134c86e0dc31196a4c62a67887e8ada`, logical source `mc_v4_eldraine_2023_en`.
+
+Confronto di seconda passata tra immagini delle 25 pagine originali e le 25 schede già tradotte. Verificati descrizione, CA, PF, GS, caratteristiche, velocità in metri, immunità e vulnerabilità, tratti, azioni, reazioni, azioni bonus, ricariche, danni e tiri salvezza; il confronto è stato distinto dalla prima traduzione. Le 25 certificazioni sono state salvate mediante UPDATE condizionali su row snapshot MD5, provenienza SHA e pagina, lease vuoto, status `translated/pending` e `review_status=verified`, ciascuna con ricevuta JSON contenente pagina, hash fonte e SHA-256 dei contenuti. Per gli ultimi cinque record delle pagine 56–60, ogni UPDATE ha avuto readback diretto positivo, fingerprint ricalcolato e `source_attributes`/`source_refs` immutati.
+
+**Correzione semantica nella seconda passata:** `Knight of Eldraine` / Cavaliere di Eldraine p49, ID `ref_969d8b76b0759a78896c06c4ebf9d611`: eliminata dagli attributi l'abilità inesistente `Percezione +10` (la fonte reca solo `passive Perception 10`). Correzione guardata sulla data `updated_at` e comprovata dalla RETURNING: `attributes ? 'abilita' = false`, `attributes.sensi = 'Percezione passiva 10'`. Il testo integrale non conteneva l'errore.
+
+Confermate prima della certificazione le rettifiche pregresse: Arconte dei Confini, trigger corretto di `Radiosità Accecante`; Guardiano Fatato Supremo, velocità fissata a 3 m (min 1,5 m) e reazione su hit/miss; Incubo Persecutore, viticci 11 (2d10); Segugio delle Streghe, `Ululato Straziante` CD15.
+
+**Readback indipendente conclusivo** da tutti i record Supabase e hash SHA-256 ricalcolato dal contenuto italiano e dagli attributi: **25 record totali, 25 `translated`, 25 `ai_verified`, zero `pending`; 25/25 fingerprint coincidenti; 25/25 SHA provenienza corretti; 25/25 PF, GS, sei caratteristiche corrispondenti; zero nomi normalizzati duplicati; nessuna velocità rimasta in piedi**. Sono state rispettate anche le schede il cui campo `velocita` usa un oggetto JSON di sottocampi invece di una stringa, senza alterarne inutilmente lo schema.
+
+**Checkpoint globale**: 1.501 mostri, 593 `translated`, 908 `not_required`, zero `processing`, **76 `ai_verified`**, 517 traduzioni in attesa di seconda certificazione. Certificati: 5 Minecraft, 18 Fiendish Folio, 28 Dragonlance, 25 Eldraine.
+
+Successivo manuale per seconda passata: *Morte's Planar Parade* (`ps_mpp_2023_en`), 54 tradotti, zero `ai_verified`, con la singola anomalia dei PF stampati `Mercykiller Bloodhound 104 (16d8 + 48)` e dei relativi controlli di provenienza. Nessun merge su `main`, nessun deploy.
