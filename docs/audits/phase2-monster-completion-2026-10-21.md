@@ -443,3 +443,20 @@ Otto ulteriori schede italiane `translated/pending` generate dalla lettura visiv
 - p230 Setessan Hoplite → **Oplita di Setessa** `ref_c9b35222793d8516960c946558d50e3a`, incluso bonus Tattiche di Branco quando l'alleato è entro 1,5 m dall'oplita (non dal bersaglio) e nomi unità.
 
 Readback SQL: **Theros 27/49 `translated`, 22 `processing`, 49/49 ID e nomi normalizzati univoci, 0 `ai_verified`**; dei 27 tradotti **27/27** HP, GS, sei caratteristiche e hash sorgente coerenti con i `source_attributes` importati; **0 ft** nel campo velocità. Globale 1500 mostri, 445 `translated`, 147 `processing`, 908 `not_required`, 5 `ai_verified`. Prossimo `Ironscale Hydra` e `Polukranos`, p232. La seconda verifica indipendente non è stata eseguita su questi record, non segnalarli come certificati.
+
+
+## Theros, pagine 232–240 — checkpoint 37/49 translated
+
+Dieci candidate italiane `translated/pending` aggiunte tramite UPDATE condizionali ai record preesistenti, da PDF `953338587-Mythic-Odysseys-of-Theros.pdf` visualizzato pagina per pagina, hash `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`:
+- p232 Ironscale Hydra → **Idra dalle Scaglie di Ferro** (`ref_7271362f13e614322e676708029d121c`), ricrescita delle teste interrotta da qualsiasi danno da fuoco;
+- p232 Polukranos → **Polukranos, Divoratore del Mondo** (`ref_830a91b291dda38ebd9f2a150d4e528c`), ricrescita interrotta solo da **40 o più danni da fuoco** e 3 azioni leggendarie;
+- p233 Leonin Iconoclast → **Leonin Iconoclasta** (`ref_a363bebf2344e04dac58fd4727c2f1c9`);
+- p234 Nyx-Fleece Ram → **Montone dal Vello di Nyx** (`ref_28598e0c63a83cdfac607594f725fb91`), con intera tabella dei **sei poteri del vello magico**;
+- p236 Alseid → **Alseide** (`ref_96dd8703818a4c623f66258af5a57593`);
+- p236 Lampad → **Lampade** (`ref_7f747e4167d875628b2d047fcae0a7eb`), **anomalia fonte**: Tocco Necrotico riporta **19 (1d10+4)**, incongruenza aritmetica non corretta arbitrariamente;
+- p237 Naiad → **Naiade** (`ref_5e32f9fc27350dfb98708b4de19faf27`);
+- p238 Oread → **Oreiade** (`ref_2054a8e18016c6bf244a80f3c8d83d0e`), **anomalia fonte**: Dardo di Fuoco riporta **15 (1d10)**, matematicamente incompatibile, da risolvere con fonte ufficiale o errata;
+- p239 Oracle → **Oracolo** (`ref_96c29562cee6a4499dd93aa2c1477ed1`);
+- p240 Phylaskia → **Filaschia** (`ref_a6624ad953cbc60cfeb20fc86d452b85`).
+
+Readback SQL **37/49 translated**, 12 `processing`, 0 `ai_verified`. 49 ID, 49 nomi originali e 49 nomi normalizzati univoci. Per i 37 tradotti **37/37** hash fonte, HP, GS e sei caratteristiche coerenti, zero `ft` nelle velocità. Tutte le eccezioni editoriali segnalate rimangono `pending` come le altre schede, nessuna certificazione fittizia. Le 12 restanti sono Returned Drifter, Returned Palamnite, Returned Sentry, Satyr Reveler, Satyr Thornbearer, Triton Shorestalker, Triton Master of Waves, Typhon, Woe Strider, Arasta, Hythonia, Tromokratis. Nessun merge né deploy.
