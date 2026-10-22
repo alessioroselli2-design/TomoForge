@@ -592,3 +592,23 @@ Le 53 schede preesistenti sono ora `translated`, con ultima `Doomguard Rot Blade
 **Database globale dopo l'inserimento nuovo**: 1.501 mostri registrati, 593 `translated`, **0 `processing`**, 908 `not_required`, 5 `translation_review_status='ai_verified'` (Minecraft). **Zero processing non è sinonimo di tutte le schede completamente certificate**. Conservata la separazione `develop`/`main`, nessun merge né deploy.
 
 Non inserire il testo integrale della fonte privata nei documenti pubblici del repository.
+
+
+
+## Fiendish Folio Vol. 1 — 18/18 completamento seconda revisione (2026-10-22)
+
+Fonte effettiva: PDF privato dell'utente `1064688926-9-D-D-5e-Mordenkainen-s-Fiendish-Folio-Vol-1.pdf`, 22 pagine, SHA256 **`e84ea509258d5d96dbb5d5253accc694f658b1985d66257a1be913b54faeec4a`** calcolato sul file materializzato. Logical source `mff1_2019_en`, `source_refs` originale invariato. Catalogo pubblicazione su D&D Beyond: `https://marketplace.dndbeyond.com/expanded-rules-1/SRC-00057`.
+
+La seconda revisione ha consultato le pagine renderizzate del manuale, distinta dalla trascrizione/traduzione della prima passata, controllando statblock completi (azione, tratto, reazione, altre sezioni se previste), dati fonte, conversioni, durata, portate, CD, danni e descrizioni. Sono state **rilevate e corrette due discrepanze reali** prima della certificazione:
+- **Needle Lord**, record `ref_7dc4e48a8e7dbb33522663a06154f784`, pagina PDF 17: in `attributes.immunita_condizioni` mancava la voce italiana **assordato** prevista dal blocco originale `blinded, deafened, exhaustion`. Il valore corretto è `accecato, assordato, indebolimento`.
+- **Xill**, record `ref_015d946d6a61eb0bbb9e0d288b54c2cc`, pagina PDF 22: **Escursione Eterea** era presente soltanto in `tratti`, benché richieda espressamente un'azione bonus. Ricollocata in `azioni_bonus` e nella sezione omonima di `full_text`, lasciandone invariata la meccanica; conservato Pungiglione Avvelenato come tratto.
+
+Per tutte e 18 le schede tradotte: PF, GS, sei caratteristiche e hash fonte **18/18** corrispondenti agli originali; **18/18** formule di dadi dei PF coerenti con il valore medio; 0 velocità ancora in `ft`; 18 `completezza_scheda=completa`; nessun duplicato di `normalized_name` nel manuale. Controlli numerici *non* impiegati in sostituzione della seconda lettura degli effetti speciali.
+
+Il passaggio a `ai_verified` è stato eseguito **solo dopo** seconda verifica della pagina originale e preflight individuale di tutte le sezioni. Ogni conferma contiene una ricevuta strutturata in `translation_review_notes`: `record_id`, pagina, SHA256, revisore, periodo, sezioni esaminate e fingerprint; la scrittura atomica è vincolata a `md5(to_jsonb(record)::text)` dello snapshot completo precedente, stato `translated/pending`, `review_status='verified'`, lease vuoto e provenance SHA/pagina. Nessun cambiamento alle `source_*`. Dopo ciascuna scrittura, una nuova SELECT ha confrontato il fingerprint calcolato da capo e gli attributi di fonte. L'implementazione del fingerprint è stata verificata indipendentemente contro il digest `4f47b113...` del Blaze, certificato in precedenza dal backend.
+
+**Readback definitivo:** `mff1_2019_en` **18 record**, **18 `translation_status=translated` / `translation_review_status=ai_verified`**, **zero pending**, 18 ID e nomi univoci, 18 hash review compilati. La certificazione riguarda le 18 schede presenti nell'inventario della fonte, non un'approvazione generica di eventuali altre edizioni.
+
+**Stato globale dopo questo passaggio:** 1.501 mostri, 593 tradotti, 908 `not_required`, 0 in `processing`, **23 `ai_verified`** (5 Minecraft + 18 Fiendish Folio), **570 tradotti ancora `translation_review_status=pending`**. Nessun merge, deploy o modifica a `main`.
+
+Prossimo manuale sottoposto a revisione approfondita: `dsotdq_2022_en` — *Dragonlance: Shadow of the Dragon Queen* (28 schede tradotte), fonte privata disponibile e SHA da ricontrollare. Conservare separate prove di traduzione e certificazione.
