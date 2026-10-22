@@ -633,3 +633,23 @@ I controlli di batch eseguiti dopo il checkpoint 12/28 hanno prodotto un blocco 
 L'errata ufficiale pubblicata su `https://media.dndbeyond.com/compendium-images/errata/DSotDQ/DSotDQ-errata.pdf` (v1.0, 2022, Appendice C) corregge espressamente `Tem Temble` (pagina stampata 213, fisica del PDF privato 215) da `Sleight of Hand +6` a **`Sleight of Hand +4`**. Il record `ref_bb19cf336e2e4fa11df25194204f8794` conserva attualmente nella traduzione il valore `Rapidità di mano +6`, conforme alla stampa ma **non all'errata**. La prima richiesta di correzione diretta è stata bloccata dal connettore: NON registrare la modifica come eseguita, verificare con SELECT prima di qualsiasi nuova scrittura. Il PDF ufficiale non menziona l'anomalia aritmetica del `Kalaman Soldier`, per cui quella resta indeterminata. Le ulteriori correzioni elencate dall'errata alle tabelle di avanzamento dei comprimari (non alle schede base di livello 1) devono essere gestite separatamente se tali tabelle entreranno nell'app.
 
 Ultima SELECT conteggi confermata: Dragonlance 12/28 `ai_verified`, 16 pending; globale 1.501 mostri, 35 `ai_verified`, 558 schede tradotte pending.
+
+
+## Dragonlance seconda revisione completata — 28/28 ai_verified (2026-10-22)
+
+Origine privata `682072052-5e-DnD-Dragonlance-Shadow-of-the-Dragon-Queen-Mong-IcYPD5.pdf`; SHA256 `d867631c2344fbc8b1274478f01ad64e2f22989bf340b6b5ed8e001e63ce53a8`; `logical_source_id=dsotdq_2022_en`.
+
+**Readback definitivo reale**: 28/28 `translation_status=translated`, 28/28 `translation_review_status=ai_verified`, **28/28 fingerprint SHA256 riprodotti** sul contenuto normalizzato dai record attuali (non solo dalla ricevuta), 28/28 PDF SHA di provenienza corretto, 28/28 PF originali coerenti, 28/28 sei caratteristiche coincidenti con `source_attributes`, 28/28 GS coerenti o correttamente **non applicabili ai 6 comprimari di primo livello**; zero velocità `ft`, zero `normalized_name` duplicati. Le annotazioni di revisione contengono ID, SHA di provenienza, pagina PDF e riferimenti alle capacità controllate. Nessuna duplicazione o modifica delle fonti.
+
+**Casi risolti**:
+- **Kapak Draconian**: prima richiesta connettore bloccata, poi certificazione transazionale riuscita e fingerprint a 64 caratteri verificato su `ref_d1c4d19bbe3ec2cb841a47ef519bb6ae`.
+- **Tem Temble** `ref_bb19cf336e2e4fa11df25194204f8794`, p215: errata ufficiale Wizards `https://media.dndbeyond.com/compendium-images/errata/DSotDQ/DSotDQ-errata.pdf` cambia `Sleight of Hand +6` in `+4`. Correzione applicata **effettivamente** a `attributes.abilita` e `full_text` con UPDATE condizionale, poi `ai_verified`; `source_attributes` e stampa originale invariati.
+- **Kalaman Soldier** `ref_97fef1bb7f4a7730147a3fb4d47472dc`, p204: stampa mostra FOR 13 (+1), attacco +3 e danni longsword **6 (1d8+2) / 7 (1d10+2)**; questi numeri sono anche riportati in trascrizioni esterne concordi e non sono modificati dall'errata ufficiale. Non inferire erroneamente il danno dalla FOR: nella scheda sono conservati come valori espliciti dello statblock e una `nota_fonte` illustra la peculiarità; ricevuta di certificazione con spiegazione, confidence 0.96.
+- **Lohezet** `ref_3777d0895dd027a8365d24de4daf977e`: `Miasma` può essere concluso a scelta senza azione, non termina per morte; rettifica aggiornata e certificata.
+- **Lord Soth** `ref_4fb498e409565537ff476718a27b2055`: `Maresciallo dei Non Morti` comprende non morti *a sua scelta*, non esclusivamente alleati; rettifica aggiornata e certificata.
+
+Durante un gruppo di quattro certificazioni era stata emessa una firma in esadecimale da 512 caratteri anziché i 64 previsti dalla SHA256. **Corretto immediatamente** il campo e la ricevuta nello stesso record, limitando le firme alle prime 64 cifre. **Ricalcolo indipendente post-fix** mediante algoritmo SHA256 testato contro il vettore standard `abc`: tutti e quattro i record hanno la firma corretta, e nell'audit complessivo **28/28 validi**.
+
+**Checkpoint globale verificato** dopo il completamento: 1.501 `monster` registrati, 593 tradotti, 908 `not_required`, **51 `ai_verified`** (5 Minecraft, 18 Fiendish Folio, 28 Dragonlance), 542 tradotti pendenti.
+
+Ora prossimo manuale: `mc_v4_eldraine_2023_en`, 25/25 tradotti, 25 pending al passaggio. Fonte PDF privata Eldraine SHA `b7fb95c7519fb0936bb2cb37cfb6a5493134c86e0dc31196a4c62a67887e8ada`. Nessun merge automatico su main.
