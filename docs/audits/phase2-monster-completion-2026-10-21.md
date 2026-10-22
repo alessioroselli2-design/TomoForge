@@ -410,3 +410,20 @@ La lettura visiva del PDF fonte privato `953338587-Mythic-Odysseys-of-Theros.pdf
 Ogni UPDATE era condizionato da ID, nome originale, logical source, hash PDF, pagina, stato `processing/pending`, timestamp precedente, lease assente e controllo anticollisione; ciascuno ha restituito un singolo ID `translated/pending`. **Readback nuovo stato Theros: 12/49 translated, 37 processing, 0 ai_verified; 49 ID, nomi originali e norm univoci.** Controllati tutti i 12 candidati: **12/12 HP, GS, sei punteggi caratteristiche, SHA coerenti** con i campi fonte importati; 0 velocità in piedi. Globale: 1500 mostri, 430 tradotti, 162 ancora processing, 908 not_required, 5 ai_verified. Restano 37 schede di Theros da trascrivere dalla scansione; la revisione semantica indipendente è separata dalla traduzione, non forzata.
 
 Nessun merge, deploy o modifica a `main`; PR #598 rimane draft verso `develop`.
+
+
+## Theros, pages 219–224, 22 ottobre 2026
+
+Sette nuove candidate italiane importate sui **record preesistenti** con ogni UPDATE condizionato a ID, `source_name`, pagina, SHA, `updated_at`, lease non attivo, `processing/pending` e anti-duplicazione; ciascuno ha restituito un singolo ID.
+
+- p219 Colossus of Akros (`ref_7d34b586d6f9b730a76661e65c5c545d`) → **Colosso di Akros** (crollo distruttivo, assorbimento del fuoco, spada, lancia, Fiamme di Akros).
+- p220 Abhorrent Overlord (`ref_4087a786f6d2fade70211cb88721f731`) → **Signore Abominevole** (avidità dell'oro, incantesimi innati, Tempesta di Corvi).
+- p221 Eater of Hope (`ref_c1490aa057e696f84d84eb984454975e`) → **Divoratore di Speranza** (Soffio di Disperazione e durata della maledizione).
+- p222 Nightmare Shepherd (`ref_e4d18aaf610ce430ba5dcaca92b471fb`) → **Pastore degli Incubi** (aura +5 ai Non morti; evoca 1d6 Ombre **senza Debolezza alla Luce Solare**).
+- p223 Flitterstep Eidolon (`ref_ad5c934b2663923e488c038e0d920afb`) → **Eidolon Passo Guizzante**, incluso teletrasporto in Multiattacco.
+- p223 Ghostblade Eidolon (`ref_15c04a095d4e6a625cd22a799e8ffb6b`) → **Eidolon Lama Spettrale**.
+- p224 Fleecemane Lion (`ref_76f1b0062a391268023a256f216a85c5`) → **Leone dal Vello d'Oro** (2 azioni leggendarie e ruggito).
+
+Originale scansito `953338587-Mythic-Odysseys-of-Theros.pdf`, pagine controllate visivamente, SHA `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`.
+
+Readback Supabase: **Theros 19/49 translated, 30 processing; 49/49 ID e nomi normalizzati distinti; 19/19 HP, GS e 6 caratteristiche coincidono con i `source_attributes` originali; 19/19 SHA coerenti; zero velocità in ft; 19/19 `translation_review_status=pending`**. Global: 1500 mostri, 437 `translated`, 155 `processing`, 908 `not_required`, 5 `ai_verified`. Nessun merge né deploy. Prossimo record `Doomwake Giant`, p225.
