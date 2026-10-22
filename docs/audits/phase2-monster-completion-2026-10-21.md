@@ -460,3 +460,25 @@ Dieci candidate italiane `translated/pending` aggiunte tramite UPDATE condiziona
 - p240 Phylaskia → **Filaschia** (`ref_a6624ad953cbc60cfeb20fc86d452b85`).
 
 Readback SQL **37/49 translated**, 12 `processing`, 0 `ai_verified`. 49 ID, 49 nomi originali e 49 nomi normalizzati univoci. Per i 37 tradotti **37/37** hash fonte, HP, GS e sei caratteristiche coerenti, zero `ft` nelle velocità. Tutte le eccezioni editoriali segnalate rimangono `pending` come le altre schede, nessuna certificazione fittizia. Le 12 restanti sono Returned Drifter, Returned Palamnite, Returned Sentry, Satyr Reveler, Satyr Thornbearer, Triton Shorestalker, Triton Master of Waves, Typhon, Woe Strider, Arasta, Hythonia, Tromokratis. Nessun merge né deploy.
+
+
+## Theros 49/49 — chiusura della traduzione, 22 ottobre 2026
+
+L'ultimo gruppo di dodici candidate già importate, pagine 241–255 del PDF privato `953338587-Mythic-Odysseys-of-Theros.pdf`, SHA256 `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`, è stato completato usando UPDATE guarded su ID, origine, pagina e timestamp preesistenti, con blocco su lease attivo e omonimi:
+
+- p241 Returned Drifter → **Reincarnato Errante** `ref_98f5653044a6916953f50a8c51c299bf`;
+- p242 Returned Palamnite → **Reincarnato Palamnita** `ref_f6198bdbf194a2bb176f1d9eb3316294`, inclusa variante **Kakomantis**;
+- p242 Returned Sentry → **Reincarnato Sentinella** `ref_08183a99917530a976a43732bb88c550`;
+- p243 Satyr Reveler → **Satiro Festaiolo** `ref_6405cd278dd637c0a031ed1f47dc1350`;
+- p244 Satyr Thornbearer → **Satiro Portaspine** `ref_f2a865ed9fbc173b8a948e8984e875bf`;
+- p245 Triton Shorestalker → **Tritone Predatore Costiero** `ref_a327d944a06bb32c5d02d4815f636046`;
+- p246 Triton Master of Waves → **Tritone Maestro delle Onde** `ref_34d7068064faa765243c06b59eedddfe`;
+- p247 Typhon → **Tifone** `ref_582b8918332d5b1bb638db125916b75d`;
+- p248 Woe Strider → **Camminatore del Dolore** `ref_14c02f8852754566701d885d0595aca7`, con cono antimagia;
+- pp249–251 Arasta → **Arasta** `ref_7aa6ace61abf9d22afc9fe323e70fc3c`, tratto mitico Armatura di Ragni (+200 PF recuperati, +100 PF temporanei), tre azioni mitiche, due azioni di tana, due effetti regionali; 66.000 PE come incontro mitico;
+- pp252–254 Hythonia → **Hythonia** `ref_e1cfb9e677fbd2c45232da2d933edb44`, tratto mitico Cambio di Pelle (+199 PF), due azioni mitiche, due azioni di tana, tre effetti regionali; 36.000 PE come incontro mitico;
+- pp255–256 Tromokratis → **Tromokratis** `ref_5c3ba5fe2e46bc15a2ef1b698b382949`, quattro cuori indipendenti CA22, 100 PF ciascuno, due azioni mitiche, 180.000 PE come incontro mitico.
+
+**Readback strutturale finale di Supabase**: `mot_2020_en=49/49 translated`, `0 processing`, `49 pending`, `0 ai_verified`; 49 IDs/nominativi originali/nomi normalizzati univoci; 49/49 formula HP, GS, sei caratteristiche, hash PDF coincidono con source data; 0 velocità in feet, 0 translation lease attive. Alcune anomalie editoriali dell'originale, già segnalate in singole schede, vanno risolte nella **seconda revisione semantica indipendente prima della certificazione**. Questo checkpoint non certifica contenuti semantici al di là della prima traduzione e verifiche strutturali.
+
+**Progetto complessivo al readback finale: 1.500 mostri; 467 translated, 125 processing, 908 not_required; soltanto 5 ai_verified preesistenti (Minecraft).** Gli unici manuali con `processing` rimasti sono `sjbam_2022_en` **72** e `ps_mpp_2023_en` **53**. Nessun merge, deploy, cambio a main o promozione forzata dei record.
