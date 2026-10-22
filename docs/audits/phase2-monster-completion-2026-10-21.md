@@ -670,3 +670,25 @@ Confermate prima della certificazione le rettifiche pregresse: Arconte dei Confi
 **Checkpoint globale**: 1.501 mostri, 593 `translated`, 908 `not_required`, zero `processing`, **76 `ai_verified`**, 517 traduzioni in attesa di seconda certificazione. Certificati: 5 Minecraft, 18 Fiendish Folio, 28 Dragonlance, 25 Eldraine.
 
 Successivo manuale per seconda passata: *Morte's Planar Parade* (`ps_mpp_2023_en`), 54 tradotti, zero `ai_verified`, con la singola anomalia dei PF stampati `Mercykiller Bloodhound 104 (16d8 + 48)` e dei relativi controlli di provenienza. Nessun merge su `main`, nessun deploy.
+
+
+## Morte's Planar Parade — checkpoint seconda revisione 12/54 (2026-10-22)
+
+**Fonte privata** `762692978-D-D-5e-Planescape-Adventure-in-the-Multiverse.pdf` (262 pagine fisiche), SHA256 `61392d7a3ab2241dce67b1027c4830e0b3e9431d224f5a1619c6f5257bd427b1`, logical source `ps_mpp_2023_en`.
+
+Dopo Eldraine 25/25 completato sono state lette le scansioni effettive del PDF di Morte, pagine fisiche **213–225** (incluse pagine introduttive 216 e 221), confrontate singolarmente con attributi e testo in italiano. Certificati i seguenti **12 record** (tutti verificati via UPDATE condizionale e readback, 12/54 `ai_verified`; 42 pending):
+- **Hound Archon**, p213 `ref_2088ec695258e26b73a3df3b35158164`; **Lantern Archon**, p214 `ref_5e8fa3b84e6abfec9b768f2b0a19d08e`; **Warden Archon**, p215 `ref_e0356b3a567d02e2cee2e8281b75c127`.
+- **Baernaloth** p217 `ref_448550fe8862f3132518d3a96b869d8c`: inclusi tre poteri della tana, due effetti regionali, GS nella tana 18 differenziato dal GS17 base e fino a tre reazioni per round.
+- **Bariaur Wanderer** p218 `ref_bf1636d6cdbbc6c67f71113ec9951308`; **Cranium Rat Squeaker** p219 `ref_09256e429b25fd2520c6e7da9f1b143b`; **Cranium Rat Squeaker Swarm** p219 `ref_ad6091062ceb7a9938940aa681c12690`; **Dabus** p220 `ref_797ffcd0e4c87d14e18b430dd0851d3a`.
+- **Darkweaver** p222 `ref_1c81faa5a49cba4d91b36bd7d36cfafc`, pagine 221–222: verificati statblock, tana, due azioni di tana e tabella sei contenuti di bozzolo.
+- **Farastu Demodand** p223 `ref_47ad88e788e4ad7be56af070334c8af8`; **Kelubar Demodand** p224 `ref_c019ed05646a4966b5ec8b95117d0403`; **Shator Demodand** p225 `ref_a997d670eff54bb80f5bd9828338af9d`, controllati effetti persistenti, probabilità di evocazione, immunità e CD.
+
+**Rettifica source-backed, prima della certificazione**: sul `Darkweaver`, la `regole_azioni_tana` italiana dichiarava falsamente `può utilizzare la stessa opzione per due round consecutivi`; il PDF p221 stabilisce invece `can't take the same lair action two rounds in a row`. Un UPDATE SQL protetto da timestamp originale/provenienza/status libero ha modificato gli attributi e `full_text` in **`non può utilizzare la stessa azione di tana per due round consecutivi`**, ricevendo esattamente una riga RETURNING. Solo successivamente il record ha ricevuto `ai_verified`, con SHA256 fingerprint ricalcolato correttamente.
+
+**Interruzione gestita**: l'update o readback dell'Arconte Lanterna ha dato un errore intermittente di connettore; una SELECT successiva mostrava `ai_verified`. Un nuovo prelievo completo del record ha confermato la **corrispondenza esatta del fingerprint SHA256** sulla versione corrente e la ricevuta della stessa pagina, evitando duplicazioni o false riapprovazioni.
+
+Per tutte le certificazioni del blocco, la scrittura richiede MD5 dello snapshot completo, fonte, pagina, SHA, status e lease libero; viene salvata ricevuta JSON con hash, pagina e capacità controllate. Le SELECT post-salvataggio hanno verificato SHA256 di ciascun record e assenza di cambiamenti nei riferimenti alle fonti.
+
+**Nota di inventario importante**: `Mercykiller Bloodhound` p257 è presente come record aggiunto, `ref_b0374024422a1bab0b63412ba9c1b135`, ma rimane `pending` per la discrepanza testuale **104 (16d8 + 48)** rispetto alla media **120**. Non promuovere tale record senza il relativo controllo puntuale e la dichiarazione di discrepanza.
+
+Non sono stati effettuati merge o deploy; `main` invariato. **Prossima pagina da verificare: 226 `Eater of Knowledge`**; successivamente p227–228 i tre githzerai.
