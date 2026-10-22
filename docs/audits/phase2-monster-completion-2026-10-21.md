@@ -547,3 +547,20 @@ Conservato il manuale originale in Biblioteca, `645286721-Spelljammer-Boo-s-Astr
 - p36 `Megapede` → **Megapede**, p37 `Mercane` → **Mercane**, p38 `Murder comet` → **Cometa Assassina** (variante col creatore), p39 `Neh-thalggu` → **Neh-thalggu** (tabella 12 incantesimi secondo numero di cervelli), p40 `Neogi hatchling swarm` → **Sciame di Cuccioli Neogi**, p41 `Neogi pirate` → **Pirata Neogi**, `Neogi void hunter` → **Cacciatore del Vuoto Neogi**, pp42–43 `Plasmoid boss` → **Capo Plasmoide**, `Plasmoid explorer` → **Esploratore Plasmoide**, `Plasmoid warrior` → **Guerriero Plasmoide**.
 
 **Readback verificato**: `sjbam_2022_en` 72 record, 43 `translated`, 29 `processing`, 72 nomi normalizzati e ID unici, 72 `translation_review_status=pending`, 0 `ai_verified`. Sui 43 tradotti 43/43 formule PF, GS e caratteristiche coerenti con importazione, 0 velocità in piedi. Totale globale 1500 mostri, 510 tradotti, 82 processing, 908 `not_required`, 5 `ai_verified` (Minecraft). Prossimo `Psurlon` p44. Gli UPDATE hanno richiesto match di ID, nome originale, fonte, pagina, hash e stato `processing/pending`, `updated_at` preesistente, lease vuoto, nessuna collisione di nome. Questi audit sono strutturali: **non equivalgono a certificazione indipendente di tutte le regole**, per cui resta `pending`. Nessun merge, deploy o cambiamento a `main`.
+
+
+## Boo's Astral Menagerie — 72/72 tradotti, controllo finale 22 ottobre 2026
+
+Dopo il precedente checkpoint 43/72, verificati e tradotti i rimanenti 29 record dei blocchi pp44–64 nel PDF privato `645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf`, logical source `sjbam_2022_en`, SHA `24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e`. Aggiornamenti **solo su ID esistenti**, condizionati da ID/nome originale/logical source/SHA/pagina/updated_at/stato `processing/pending`/lease vuoto/assenza collisioni del normalized_name. Nessuna aggiunta di fonte privata o traduzioni complete a GitHub pubblico.
+
+- p44 `Psurlon`; p45 `Capo Psurlon`, `Psurlon Impostore` (inclusa imitazione).
+- p47 `Reigar` (incluso `talarith`, golem ed evocazione).
+- p49 `Scavver Bruno`, `Scavver Grigio`, `Scavver Notturno`, `Scavver del Vuoto` (varianti di Morso e ingestione).
+- pp50–53 `Drago Solare Antico`, `Drago Solare Adulto`, `Drago Solare Giovane`, `Cucciolo di Drago Solare` (soffio fotonico, leggendarie e qualità del nucleo stellare, dove previste).
+- p54 `Pagliaccio Spaziale` (Pistola a Raggi, Forma Fantasmatica); p55 `Anguilla Spaziale`, `Guppy Spaziale`; p56 `Criceto Spaziale Gigante`, `Criceto Spaziale`.
+- p57 `Mollymawk Spaziale`, `Suino Spaziale` (CA con/senza bardatura); p58 `Ssurran Profanatore`, `Ssurran Avvelenatore`; p59 `Apparizione di Luce Stellare` (Possessione limitata all'Astrale).
+- p60 `Gladiatore Thri-kreen`, p61 `Cacciatore Thri-kreen`, `Mistico Thri-kreen`; p62 `Vampirata`; p63 `Capitano Vampirata`, `Mago Vampirata`; p64 `Zodar` (Desiderio con autodistruzione).
+
+**Readback SQL conclusivo**: 72/72 `translated`; zero `processing`; 72/72 ID, nomi sorgente, nomi italiani normalizzati, hash PDF univoci/coerenti; zero lease; 72/72 PF, GS, sei caratteristiche coincidenti con `source_attributes`; zero `ft` nel campo `velocita`, zero descrizioni `full_text` inferiori a 150 caratteri. Tutte le 72 **translation_review_status=pending**, **0 ai_verified**: il controllo strutturale non dimostra una seconda revisione semantica completa di tutto il manuale e non autorizza la certificazione. Nel riepilogo globale: **1500 record**, `translated=539`, `processing=53`, `not_required=908`, `ai_verified=5`. **L'unica fonte con `processing` rimasta è `ps_mpp_2023_en` (Morte's Planar Parade, 53 schede)**.
+
+PR #598 rimane una bozza verso `develop` e non è stata mergiata; `main` invariato; nessun deploy.
