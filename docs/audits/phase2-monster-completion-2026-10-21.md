@@ -359,3 +359,20 @@ Verifica strutturale dei 56: **56/56 formule HP, 56/56 GS e 56/56 sestine caratt
 La fedeltà locale delle **eccezioni** è confermata dalla fonte, ma le incongruenze editoriali richiedono un criterio di trattamento esplicito; fino ad allora mantenere `pending` e `completa_con_anomalia_fonte`, non modificare numeri tacitamente. **Tutte le 56 schede necessitano comunque della seconda verifica indipendente** prima della certificazione `ai_verified`. Lo stato `translated` non attesta una revisione semantica indipendente di ogni caratteristica o incantesimo.
 
 Conteggio globale Supabase al checkpoint: 1.500 mostri, 391 `translated`, 201 `processing`, 908 `not_required`, solo 5 `ai_verified` (Minecraft). I manuali ancora in `processing` sono `bomt_2023_en` (27), `mot_2020_en` (49), `ps_mpp_2023_en` (53), `sjbam_2022_en` (72). La prossima fase di traduzione è **The Book of Many Things**, i cui primi nove record sono già in `translated/pending`. Nessun merge, deploy o aggiornamento a `main`.
+
+
+## Book of Many Things — 36/36 translated, 22 ottobre 2026
+
+Manutenzione post-interruzione completata in lettura/scrittura condizionale sui **27 record** ancora `processing` del manuale `The Book of Many Things`, identificatore logico `bomt_2023_en`. Originale utente **privato** `1016064385-The-Book-of-Many-Things-Unknown-Z-library-sk-1lib-sk-Z-lib-sk.pdf`, 195 pagine, SHA256 `6dd24843c9766ad10d3a6098afb90de0680bf285efc0f73b9fa281085b946146`. PDF e testi estesi NON inseriti nel repository pubblico.
+
+Un unico ciclo in questo turno ha aggiornato come `translated/pending` i 27 ID esistenti, sulle pagine 92–190 e mantenendo intatti `source_*`, ID, user ID e `translation_review_status=pending`: Aspirante della Cometa, Ierofante della Cometa, Iniziato della Cometa, Oddlewin, Pazrodine, Fantasma di Gremorly, Minotauro Archeologo, Minotauro Infiltrato, Brusipha, Divoratore del Respiro, tre Campioni Tetri (Massacro, Desolazione, Pestilenza), Segugio della Schiera Tetra, Aurnozci, Hulgaz, Malaxxix, Megalera del Destino, Falco della Schiera Tetra, Medusa Ierofante, Presagio Vivente, Riffler, Ragno della Rovina, Bestia dagli Artigli, Avvoltoio Mannaro, Asteria, Euriale. Conservate le abilità, resistenze, azioni, bonus, reazioni, capacità leggendarie e di tana dove presenti; `velocita` metriche.
+
+Tutti i 27 UPDATE erano guardati con ID, `source_name`, logical ID, SHA, pagina fisica, stato `processing/pending`, assenza di lease, `updated_at` atteso e anti-collision check del nome normalizzato. Ognuno ha restituito **esattamente una riga** aggiornata.
+
+Readback SQL sul **manuale intero 36/36**:
+- 36 ID distinti, 36 nomi sorgente distinti, 36 nomi italiani normalizzati distinti, 36 hash origine coerenti, zero lease
+- `translated=36`, `processing=0`, `translation_review_status=pending=36`, `ai_verified=0`
+- 36/36 GS e sei caratteristiche coerenti con `source_attributes`; 35/36 HP testualmente identici, **unica eccezione `Deck Defender` (p.73), formula dinamica `5 + five times your level` tradotta `5 + 5 × il livello` e mantenuta, non fabbricata**
+- zero `ft` nel campo `velocita`, zero descrizioni sotto 160 caratteri o testo completo sotto 650
+
+Questa verifica **strutturale e di coerenza con i dati di importazione non è la seconda lettura indipendente della fonte per tutte e 36 le schede**. Non promuovere a `ai_verified` senza audit semantico completo, traccia della fonte, fingerprint, dry-run e readback atomico. Situazione globale al checkpoint: **1.500 mostri, 418 `translated`, 174 `processing`, 908 `not_required`, 5 `ai_verified`**. I manuali con traduzioni ancora necessarie sono `mot_2020_en` (49), `ps_mpp_2023_en` (53) e `sjbam_2022_en` (72). Nessun merge né deploy; `main` e `develop` restano separati.
