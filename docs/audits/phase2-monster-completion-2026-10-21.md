@@ -612,3 +612,18 @@ Il passaggio a `ai_verified` è stato eseguito **solo dopo** seconda verifica de
 **Stato globale dopo questo passaggio:** 1.501 mostri, 593 tradotti, 908 `not_required`, 0 in `processing`, **23 `ai_verified`** (5 Minecraft + 18 Fiendish Folio), **570 tradotti ancora `translation_review_status=pending`**. Nessun merge, deploy o modifica a `main`.
 
 Prossimo manuale sottoposto a revisione approfondita: `dsotdq_2022_en` — *Dragonlance: Shadow of the Dragon Queen* (28 schede tradotte), fonte privata disponibile e SHA da ricontrollare. Conservare separate prove di traduzione e certificazione.
+
+
+## Dragonlance — seconda passata, 12/28 certificati (2026-10-22)
+
+Fonte PDF privata `682072052-5e-DnD-Dragonlance-Shadow-of-the-Dragon-Queen-Mong-IcYPD5.pdf`, SHA-256 `d867631c2344fbc8b1274478f01ad64e2f22989bf340b6b5ed8e001e63ce53a8`, logical source `dsotdq_2022_en`. Verificate visualmente le pagine fisiche 194–208 dell'appendice *Friends and Foes* e 210–215 dell'appendice *Sidekicks*, confrontando con le schede localizzate su Supabase. Nessuna copia integrale del PDF o delle traduzioni è stata inserita nel repository.
+
+**Certificazioni confermate da lettura Supabase: 12 su 28**, 16 `translation_review_status=pending`. Pagine 194 e 195: Anhkolox e Caradoc; p197 entrambi i Death Dragon; p198 Aurak; p199 Baaz; p200 Bozak; p201 Sivak; p202 Dragon Army Officer e Soldier; p203 Dragon Army Dragonnel e Wasteland Dragonnel. Le certificazioni hanno ricevute di verifica della fonte, impronta SHA-256 del contenuto, aggiornamento condizionale allo snapshot precedente e readback della firma; nei readback completati i campi `source_*` risultano invariati. **Kapak** p200 è rimasto `pending` perché la richiesta di certificazione è stata respinta dai controlli di sicurezza del connettore: non simulare una verifica riuscita.
+
+**Due correzioni di significato effettivamente applicate alla riga e riscontrate nella RETURNING SQL**:
+- `Lohezet`, `ref_3777d0895dd027a8365d24de4daf977e`, p207, azione `Miasma`: errata la condizione italiana "finché Lohezet non muore" al posto dell'originale "until Lohezet ends it early (no action required)". Nuovo testo: può terminare volontariamente la nube senza usare un'azione, oltre a scadenza di 1 minuto o riutilizzo. Modificati sia `attributes.azioni[2].descrizione` sia `full_text`. Stato conservato `translated/pending`.
+- `Lord Soth`, `ref_4fb498e409565537ff476718a27b2055`, p208, tratto `Maresciallo dei Non Morti`: l'originale protegge Soth e gli Undead **da lui scelti**, non solo quelli alleati; nuovo testo "i non morti di sua scelta entro 18 m". Modificati sia `attributes.tratti[2].descrizione` sia `full_text`. Stato conservato `translated/pending`.
+
+**Anomalia fonte identificata, non corretta arbitrariamente**: `Kalaman Soldier` p204, fonte stampata `STR 13 (+1)`, attacco spada lunga `+3` e danno `6 (1d8 + 2)`. Il modificatore indicato nell'espressione di danno `+2` non coincide con il modificatore di FOR `+1`; la scheda locale conserva correttamente i valori stampati e resta in revisione fino a chiarimento della fonte/errata. Questo non autorizza modificare il dato originale.
+
+I controlli di batch eseguiti dopo il checkpoint 12/28 hanno prodotto un blocco di sicurezza lato connettore; nessuna delle successive cinque schede (Istarian Drone, Kansaldi Fire-Eyes, Kender Skirmisher, Lohezet, Lord Soth) è stata dichiarata certificata. Ristabilire l'accesso alle scritture e verificare ogni risultato prima di proseguire. Nessun merge o deploy, `main` invariato.
