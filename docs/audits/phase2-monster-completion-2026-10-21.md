@@ -510,3 +510,10 @@ Dopo le prime otto schede, otto ulteriori `UPDATE` guarded completati da PDF sor
 Tutti gli UPDATE hanno restituito un singolo ID già esistente `translated/pending`. Il readback sull'intero manuale segnala **16/72 translated**, **56 processing**, 72 ID unici, 72 nomi normalizzati univoci, 0 `ai_verified`; sui 16 tradotti **16/16 HP, GS, sei caratteristiche e hash PDF coerenti con source_attributes**, 0 velocità residue in piedi. Tutte le nuove schede restano `translation_review_status=pending`: la seconda lettura semantica completa e la certificazione sono operazioni distinte. Per `Aartuk priest` p9 è stata corretta in precedenza una CD di fuga da 12 a 11 sulla base dell'originale.
 
 Global: **1500 mostri, 483 translated, 109 processing, 908 not_required, 5 ai_verified**. Prossima pagina e scheda **Feyr**, p22; una volta completato questo manuale resta `ps_mpp_2023_en` con 53 `processing`. Nessun merge o deploy, `main` separato da `develop`.
+
+
+## Boo's Astral Menagerie, p22 — checkpoint di interruzione protetto
+
+Il record esistente `Feyr` `ref_6b5686bffec51d79ebea1c9a0b74a560` (p22, fonte SHA256 `24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e`) è stato convertito in italiano come `translated/pending` con UPDATE condizionale a ID, hash, pagina, timestamp iniziale, fonte, lease vuoto e assenza di duplicati; UPDATE ha restituito una sola riga. Completati Morso Terrificante, Tentacolo con presa, Invisibilità e Nutrimento d'Incubo. **Readback Boo: 17/72 translated, 55 processing, 72 ID e normalized_name distinti**.
+
+Esaminata anche la fonte di `Gaj`, PDF p23, ma una successiva richiesta di scrittura è stata bloccata dai controlli del connettore **prima dell'UPDATE**; query in sola lettura conferma `Gaj` ancora `processing`, senza modifiche. **Prossimo record** `Gaj`, p23. Nessuna certificazione aggiuntiva né merge/deploy; i testi privati restano soltanto in Supabase, non su GitHub pubblico.
