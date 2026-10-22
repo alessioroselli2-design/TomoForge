@@ -427,3 +427,19 @@ Sette nuove candidate italiane importate sui **record preesistenti** con ogni UP
 Originale scansito `953338587-Mythic-Odysseys-of-Theros.pdf`, pagine controllate visivamente, SHA `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`.
 
 Readback Supabase: **Theros 19/49 translated, 30 processing; 49/49 ID e nomi normalizzati distinti; 19/19 HP, GS e 6 caratteristiche coincidono con i `source_attributes` originali; 19/19 SHA coerenti; zero velocità in ft; 19/19 `translation_review_status=pending`**. Global: 1500 mostri, 437 `translated`, 155 `processing`, 908 `not_required`, 5 `ai_verified`. Nessun merge né deploy. Prossimo record `Doomwake Giant`, p225.
+
+
+## Theros, pagine 225–230 — avanzamento 27/49
+
+Otto ulteriori schede italiane `translated/pending` generate dalla lettura visiva del PDF ufficiale utente `953338587-Mythic-Odysseys-of-Theros.pdf`, SHA `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`, con UPDATE guarded su ID già esistenti (nessun inserimento e nessuna modifica a `source_*`):
+
+- p225 Doomwake Giant → **Gigante del Risveglio Funesto** `ref_8ab9f4bc75ca53d5566dc50b9594424b`: aura CD18, soffio, danni.
+- p226 Hundred-Handed One → **Centimane** `ref_12bc281a83b0e7a07a2db562c974f689`: più reazioni per round, Deviare Attacco +5 CA.
+- p227 Aphemia → **Aphemia, il Canto Dissonante** `ref_50c513d2afe6fe191462960143212f37`: canti distinti per Umanoidi e Non morti, mantenimento con azione bonus, tiri salvezza e immunità temporanea.
+- p228 Blood-Toll Harpy → **Arpia del Tributo di Sangue** `ref_3b2d9f141b6be50554ed31abafb40ebf`.
+- p228 Hippocamp → **Ippocampo** `ref_a0dce6847dd47c14de650caf35ccc88b`.
+- p229 Akroan Hoplite → **Oplita di Akros** `ref_57f6772ddbb7c14dacad6ff16dc8df25`, incluso Tenere la Linea e tabella nomi unità d8.
+- p230 Meletian Hoplite → **Oplita di Meletis** `ref_c7028a6e3a2e672f21180856f2b9c72d`, inclusi incantesimi di 3° livello e nomi unità. **L'originale definisce la Lancia un attacco "Melee or Ranged" senza fornire la gittata**: l'omissione è segnalata in `attributes.anomalie_fonte` senza inventare metri, resta `pending`.
+- p230 Setessan Hoplite → **Oplita di Setessa** `ref_c9b35222793d8516960c946558d50e3a`, incluso bonus Tattiche di Branco quando l'alleato è entro 1,5 m dall'oplita (non dal bersaglio) e nomi unità.
+
+Readback SQL: **Theros 27/49 `translated`, 22 `processing`, 49/49 ID e nomi normalizzati univoci, 0 `ai_verified`**; dei 27 tradotti **27/27** HP, GS, sei caratteristiche e hash sorgente coerenti con i `source_attributes` importati; **0 ft** nel campo velocità. Globale 1500 mostri, 445 `translated`, 147 `processing`, 908 `not_required`, 5 `ai_verified`. Prossimo `Ironscale Hydra` e `Polukranos`, p232. La seconda verifica indipendente non è stata eseguita su questi record, non segnalarli come certificati.
