@@ -395,3 +395,18 @@ Ogni UPDATE era vincolato da ID, nome originale, fonte, SHA, pagina, timestamp `
 **Readback:** Theros `6/49 translated`, `43 processing`, `0 ai_verified`, 49 nomi normalizzati univoci. Per le sei candidate: HP `6/6`, GS `6/6`, sestine caratteristiche `6/6` e SHA `6/6` coerenti con `source_attributes`; zero velocità ancora in piedi. Nessuna certificazione di seconda revisione è stata simulata. Situazione globale: `1500` mostri, `424 translated`, `168 processing`, `908 not_required`, `5 ai_verified`. Nessun merge né deploy, manuali `main` e `develop` separati.
 
 **Prossima pagina da esaminare visivamente**: 214 e seguenti di Mythic Odysseys of Theros.
+
+
+## Theros, secondo gruppo scansioni 214–218 — 22 ottobre 2026
+
+La lettura visiva del PDF fonte privato `953338587-Mythic-Odysseys-of-Theros.pdf`, SHA256 `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`, è proseguita sulle pagine 214–218. Sei ulteriori record **già esistenti** sono stati aggiornati condizionalmente come `translated/pending`, senza creare duplicati:
+- p214 `ref_412d16d07ef1c70669a15a1c3b4dd86e` Ashen Rider → **Cavaliere delle Ceneri**, inclusa cavalcatura, aura, 3 opzioni leggendarie;
+- p215 `ref_7fb391ead63eb7daefdae87a8450626a` Winged Bull → **Toro Alato**;
+- p215 `ref_176ac9c4861e8223127aff6988dcefc2` Winged Lion → **Leone Alato**;
+- p216 `ref_7f2482b2acf438e676e54f01b6778164` Two-Headed Cerberus → **Cerbero a Due Teste**;
+- p216 `ref_ce0b0d476c8dacb2ddf8753d7056e9af` Underworld Cerberus → **Cerbero del Regno dei Morti**;
+- pp217–218 `ref_9a4388bb4f2f1925ca5506c5a4ccb456` Theran Chimera → **Chimera di Theros**, incluse le **quattro tabelle da 1d4** (`varianti_chimera` con 4 opzioni ciascuna: corpo, testa, coda e soffio).
+
+Ogni UPDATE era condizionato da ID, nome originale, logical source, hash PDF, pagina, stato `processing/pending`, timestamp precedente, lease assente e controllo anticollisione; ciascuno ha restituito un singolo ID `translated/pending`. **Readback nuovo stato Theros: 12/49 translated, 37 processing, 0 ai_verified; 49 ID, nomi originali e norm univoci.** Controllati tutti i 12 candidati: **12/12 HP, GS, sei punteggi caratteristiche, SHA coerenti** con i campi fonte importati; 0 velocità in piedi. Globale: 1500 mostri, 430 tradotti, 162 ancora processing, 908 not_required, 5 ai_verified. Restano 37 schede di Theros da trascrivere dalla scansione; la revisione semantica indipendente è separata dalla traduzione, non forzata.
+
+Nessun merge, deploy o modifica a `main`; PR #598 rimane draft verso `develop`.
