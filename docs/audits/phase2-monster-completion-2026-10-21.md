@@ -376,3 +376,22 @@ Readback SQL sul **manuale intero 36/36**:
 - zero `ft` nel campo `velocita`, zero descrizioni sotto 160 caratteri o testo completo sotto 650
 
 Questa verifica **strutturale e di coerenza con i dati di importazione non è la seconda lettura indipendente della fonte per tutte e 36 le schede**. Non promuovere a `ai_verified` senza audit semantico completo, traccia della fonte, fingerprint, dry-run e readback atomico. Situazione globale al checkpoint: **1.500 mostri, 418 `translated`, 174 `processing`, 908 `not_required`, 5 `ai_verified`**. I manuali con traduzioni ancora necessarie sono `mot_2020_en` (49), `ps_mpp_2023_en` (53) e `sjbam_2022_en` (72). Nessun merge né deploy; `main` e `develop` restano separati.
+
+
+## Mythic Odysseys of Theros — avvio traduzioni dalla scansione, 22 ottobre 2026
+
+Fonte utente: `953338587-Mythic-Odysseys-of-Theros.pdf`, 262 pagine e PDF immagine **senza text layer digitale**, identificatore `mot_2020_en`, SHA256 `0047c3322ca592c5833861a816d4404311c30165ecd4b4e70cc697de30d3a757`. Sono state renderizzate e **lette visivamente** le pagine 209–213. Non sono stati impiegati OCR automatici né create schede da pagine non consultate.
+
+**Sei candidate italiane registrate su sei ID esistenti**:
+- p209 `ref_44d9234311b4f98209cb43c66d89d0a6` — Amphisbaena → **Anfisbena**, con entrambi i morsi e i due capi;
+- p210 `ref_c6ea7f3b25c21834da0af974041d5325` — Anvilwrought Raptor → **Rapace Forgiato sull'Incudine**, variante famiglio;
+- p211 `ref_c3e3117cb0a57bc25d768ed962d1706b` — Bronze Sable → **Zibellino di Bronzo**, falsa apparenza e attacco sorpresa;
+- p212 `ref_07a398c1df82be51adbcaff530463f64` — Burnished Hart → **Cervo Brunito**, carica e corpo incandescente;
+- p212 `ref_b21f68764e8761f887cb8cc3be852ec2` — Gold-Forged Sentinel → **Sentinella Forgiata d'Oro**, Carica e Ritorsione agli Incantesimi;
+- p213 `ref_ea80ec3e876675a6a1aea68cdbe50bae` — Archon of Falling Stars → **Arconte delle Stelle Cadenti**, incantesimi e tre azioni leggendarie.
+
+Ogni UPDATE era vincolato da ID, nome originale, fonte, SHA, pagina, timestamp `2026-10-20 20:19:59.166948+00`, `processing/pending`, lease vuoto e controllo anticollisione; ciascuno ha restituito **una sola riga aggiornata**. Nessuna alterazione di `source_*` o di `ai_verified`.
+
+**Readback:** Theros `6/49 translated`, `43 processing`, `0 ai_verified`, 49 nomi normalizzati univoci. Per le sei candidate: HP `6/6`, GS `6/6`, sestine caratteristiche `6/6` e SHA `6/6` coerenti con `source_attributes`; zero velocità ancora in piedi. Nessuna certificazione di seconda revisione è stata simulata. Situazione globale: `1500` mostri, `424 translated`, `168 processing`, `908 not_required`, `5 ai_verified`. Nessun merge né deploy, manuali `main` e `develop` separati.
+
+**Prossima pagina da esaminare visivamente**: 214 e seguenti di Mythic Odysseys of Theros.
