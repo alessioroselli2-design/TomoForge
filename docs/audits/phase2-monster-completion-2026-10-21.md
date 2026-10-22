@@ -692,3 +692,21 @@ Per tutte le certificazioni del blocco, la scrittura richiede MD5 dello snapshot
 **Nota di inventario importante**: `Mercykiller Bloodhound` p257 è presente come record aggiunto, `ref_b0374024422a1bab0b63412ba9c1b135`, ma rimane `pending` per la discrepanza testuale **104 (16d8 + 48)** rispetto alla media **120**. Non promuovere tale record senza il relativo controllo puntuale e la dichiarazione di discrepanza.
 
 Non sono stati effettuati merge o deploy; `main` invariato. **Prossima pagina da verificare: 226 `Eater of Knowledge`**; successivamente p227–228 i tre githzerai.
+
+
+## Morte's Planar Parade — seconda passata 29/54 (2026-10-22)
+
+Checkpoint SQL `ps_mpp_2023_en`: 54 mostri, **29 `translation_review_status=ai_verified`**, 25 ancora pending. Dopo i 12 certificati alle pagine 213–225 sono stati controllati e certificati i seguenti **17** record:
+- P226 `Eater of Knowledge` (incluse tutte le 11 corrispondenze cervelli/incantesimi).
+- P227 `Githzerai Futurist`; p228 `Githzerai Traveler` e `Githzerai Uniter` (abilità psioniche, usi e condizioni).
+- P229 `Avoral Guardinal`; p230 `Equinal Guardinal`, `Musteval Guardinal` (capacità speciali e combattimento).
+- P231 `Kolyarut` (**Uner​ring Blade colpisce automaticamente**, senza tiro per colpire, 24 danni + effetto); p232 `Maelephant` (Veleno Mentale con soppressione delle competenze); p233 `Decaton Modron`; p234 `Hexton Modron` (tre reazioni per round); p235 `Nonaton Modron`.
+- P237 `Octon Modron` e `Septon Modron`; p238 `Planar Incarnate`; p239 `Razorvine Blight`; p240 `Aurumach Rilmani`.
+
+**Fix fonte Septon**: PDF fisico p237: `Lightning Network` riempie un cubo di lato 30 ft **originating from itself**. La scheda italiana ometteva l'origine; aggiornati con singola scrittura guardata sia `attributes.azioni[2].descrizione` sia `full_text` a `cubo di lato 9 m avente origine nel septon`; esito RETURNING 1 riga. Poi, e solo dopo, certificato.
+
+**Integrità fingerprint — problema scoperto e risolto**: le prime 12 + successive 12 certificazioni di questo gruppo avevano hash standard; nel batch finale di 5 (Octon, Septon, Incarnazione Planare, Razorvine, Aurumach), una versione temporanea del calcolo SHA256 aveva omesso una rotazione nella funzione sigma del word schedule. Il round-trip con il medesimo helper erroneo non era una prova sufficiente. Prima di dare il batch per concluso, **testato contro il vettore noto `SHA256("abc")=ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`** e ricalcolati i 5 fingerprint corretti da `to_jsonb(record)` con una nuova implementazione verificata. UPDATE individuali vincolati allo snapshot MD5 e vecchio fingerprint hanno aggiornato `translation_review_fingerprint` e il campo `candidate_fingerprint` in ricevuta JSON; nuova SELECT e ricalcolo dopo ogni scrittura ha confermato **5/5 SHA256 validi** e **immutati** `source_attributes/source_refs`. Annotazione `fingerprint_repair_note` salvata. Questo non è un cambiamento di regole, solo la correzione della firma.
+ 
+Per `Githzerai Traveler`, un primo update ha incontrato blocco del connettore: nuova SELECT ha accertato `pending`, e un successivo update di sola certificazione vincolato allo snapshot ha restituito `ai_verified` con impronta 64 esadecimali. Non è stata forzata alcuna scheda con `review_status=pending`.
+
+La discrepanza originale `Mercykiller Bloodhound` 104 (16d8+48) rimane esplicitamente esclusa dalle certificazioni finché non è risolta e documentata. Tutte le scritture mantengono intatti il PDF e gli attributi di provenienza. Nessun merge o deploy.
