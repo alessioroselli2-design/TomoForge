@@ -517,3 +517,11 @@ Global: **1500 mostri, 483 translated, 109 processing, 908 not_required, 5 ai_ve
 Il record esistente `Feyr` `ref_6b5686bffec51d79ebea1c9a0b74a560` (p22, fonte SHA256 `24c0025969bbeb09e01fbf7ed7969ce2e21d2926a6f4e5f4b1c566d0597e067e`) è stato convertito in italiano come `translated/pending` con UPDATE condizionale a ID, hash, pagina, timestamp iniziale, fonte, lease vuoto e assenza di duplicati; UPDATE ha restituito una sola riga. Completati Morso Terrificante, Tentacolo con presa, Invisibilità e Nutrimento d'Incubo. **Readback Boo: 17/72 translated, 55 processing, 72 ID e normalized_name distinti**.
 
 Esaminata anche la fonte di `Gaj`, PDF p23, ma una successiva richiesta di scrittura è stata bloccata dai controlli del connettore **prima dell'UPDATE**; query in sola lettura conferma `Gaj` ancora `processing`, senza modifiche. **Prossimo record** `Gaj`, p23. Nessuna certificazione aggiuntiva né merge/deploy; i testi privati restano soltanto in Supabase, non su GitHub pubblico.
+
+
+## Boo's Astral Menagerie pp23–25 — checkpoint 21/72
+
+- PDF p23 `Gaj` (`ref_de1e220d135cde37d713360389901e33`) è stato aggiornato **una volta** con guarded UPDATE `processing/pending → translated/pending`, includendo Mandibole, Antenne Psichiche e Paralizzare (Ricarica 6), dopo un tentativo di scrittura bloccato dai controlli connettore. La successiva esecuzione protetta ha restituito l'ID aggiornato.
+- Durante la prosecuzione risultano `translated/pending` anche p24 `Giff shipmate` → **Marinaio Giff** e p25 `Giff shock trooper` e `Giff warlord`. **Non sovrascritti**: verificato in sola lettura che la scheda del Marinaio Giff riproduce le formule e CD del PDF per moschetto, spada lunga, granata a forza con 1d6 per la disponibilità, Conoscenza delle Armi da Fuoco e Fermo come una Roccia.
+
+**Readback Supabase Boo**: 72 record, 21 `translated`, 51 `processing`, 0 `ai_verified`, 72 ID e 72 nomi normalizzati distinti; 21/21 HP, GS e sei punteggi caratteristiche coincidono con `source_attributes`; 0 ft nel campo velocità. **Globale**: 1500 mostri, 488 `translated`, 104 `processing`, 908 `not_required`, 5 `ai_verified`. Prossimo record da cercare dopo la pagina 25, con priorità all'ordine delle pagine. Non procedere a certificazioni automatiche, merge o deploy; seconda verifica indipendente `pending` su tutte le nuove candidate.
