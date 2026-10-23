@@ -941,3 +941,20 @@ Fonte privata italiana Bigby, pagine PDF 183–188; sei record già esistenti ag
 Readback SELECT separata: sei punteggi, sezioni azioni corrispondenti alla pagina (una sola per Titanoronte), `completezza_scheda=completa`, fingerprint MD5 e assenza lease. **Bigby 61/71 complete strutturalmente, 10 da completare** (rimanenti concentrate alle pagine iniziali 121–128), 0 `ai_verified`. La revisione indipendente resta pending; nessuna promozione artificiosa.
 
 PR #598 draft verso `develop`, `main` invariato, nessun merge né deploy.
+
+
+## Bigby — tredicesimo lotto, 5 schede (23 ottobre 2026)
+
+Ripresi i dieci record iniziali del bestiario Bigby, partendo dalle pagine PDF 121–124. Fonte privata italiana verificata, cinque UPDATE condizionali su record univoci (ID, nome, `updated_at`, provenienza, pagina, CA/PF/velocità, stato pending, lease vuoto); nessun INSERT, `source_*` invariati.
+
+| Nome | Pagina | ID | Azioni | MD5 readback |
+| --- | ---: | --- | ---: | --- |
+| Araldo Delle Tempeste | 121 | `ref_5200eb51f6f555d5a52800dc3cfef0c4` | 6 | `b64847a6b0ce70b1fc0887f6a8e2aae5` |
+| Ariete Gigante | 122 | `ref_b57c76c8ef28556eb88b9865f4d69508` | 2 | `214c2f269df2b33f72df78edfad1fa73` |
+| Barrowghast | 122 | `ref_639e99a1c994528aa948998d12c2df3f` | 3 | `1de612cea81035ee3b368db18bb5bb32` |
+| Bue Gigante | 123 | `ref_0d2e16eea6d25f849250eaccc94cd3b6` | 1 | `4263251a95b35f4258c751ca6d98c7c6` |
+| Cacciatore Di Baphomet | 124 | `ref_abaf4a8fe2395260991a96729a200351` | 5 | `f3a0f3e5541e8fd0d883dd05654b02b6` |
+
+SELECT indipendente: 5/5 completezza `completa`, sei punteggi, azioni coerenti con la fonte, fingerprint identici, `translation_review_status=pending`. **66/71 Bigby complete strutturalmente, 5 mancanti**, nessuna certificazione semantica indipendente falsamente attribuita. PR #598 draft verso `develop`; `main` invariato, nessun merge o deploy.
+
+Ultimo gruppo: Colosso Di Carne, Colosso Runico, Aerosauro, Altisauro, Ceratopo (p125–128).
