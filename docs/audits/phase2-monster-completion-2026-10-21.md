@@ -1579,3 +1579,18 @@ PDF privato originale del Manuale dei Mostri p85 (Drago d'Ombra), p86 testo gene
 | Drago Bianco Cucciolo | 89 | `441e675211b9cc0bc19395c4edb81355` |
 
 Il Drago d'Ombra conserva resistenze condizionate alla luce fioca, sensibilità solare, azione bonus nascondersi e ombre non morte generate dal soffio; antico/adulto bianchi 3 azioni leggendarie ciascuno, differenze di CA/PF/gittate/CD, giovani e cuccioli senza azioni leggendarie. SELECT indipendente: tutti e cinque `completezza_scheda=completa`, sei statistiche, azioni presenti, fingerprint coerenti, nessun cambiamento di certificazione (`pending`). Contatore Supabase **88/390 strutturalmente completi**, **302 incompleti**. Nessuna promozione ad `ai_verified`, PR #598 draft verso `develop` con `main` separato.
+
+
+## Manuale dei Mostri — blu e nero antico, 93/390 (23 ottobre 2026)
+
+PDF privato MM italiano pagine fisiche 91–92 e 94, letto visivamente. Cinque aggiornamenti CAS su record già esistenti (ID/nome/updated_at, source_refs e pagina, AC/PF/velocità preesistenti, lease libero e stati di review), nessun INSERT e nessuna modifica di `source_*`.
+
+| Nome | Pagina | Fingerprint SELECT MD5 |
+| --- | ---: | --- |
+| Drago Blu Antico | 91 | `090be138c577729b5e98603598a774a1` |
+| Drago Blu Adulto | 92 | `e099ee9da63fae0167fea82d0d50519c` |
+| Drago Blu Giovane | 92 | `8077928460a26e691c022234836d091b` |
+| Drago Blu Cucciolo | 92 | `421c786d5c12477b06411bbfacad3ac1` |
+| Drago Nero Antico | 94 | `5e396f9e9cb76470c18435174a5118cf` |
+
+Blue hanno immunità ai danni da fulmine, nero antico ad acido; salvate differenti gittate, danni e CD dei soffi. Drago Blu Antico, Blu Adulto e Nero Antico: 3 opzioni leggendarie ciascuno; giovane e cucciolo: nessuna. SELECT separata conferma 5 `completezza_scheda=completa`, 6 caratteristiche, azioni e checksum coerenti, `translation_review_status=pending` non forzato. **93/390 strutturalmente complete, 297 incomplete**. PR #598 draft verso `develop`, `main` invariata e nessun merge/deploy. Prossimo Drago Nero Adulto pagina 95.
