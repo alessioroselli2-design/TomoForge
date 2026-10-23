@@ -751,3 +751,20 @@ Rilettura live indipendente dalla risposta di UPDATE: 5/5 `completezza_scheda=co
 **Certificazione:** lasciato `translation_status=not_required` (PDF già in italiano) e `translation_review_status=pending` per tutti e cinque. La lettura della fonte e il controllo strutturale **non costituiscono seconda revisione indipendente**: nessun `ai_verified` attribuito, nessun merge o deploy, nessuna modifica al branch `main`.
 
 Lavoro successivo: proseguire dalle pagine 134–136 e completare il secondo controllo su tutti i record Bigby, senza promozioni forzate.
+
+
+## Bigby — secondo lotto, 5 schede (23 ottobre 2026)
+
+Fonte privata esaminata in testo e pagina renderizzata: medesimo PDF Bigby italiano, pagine fisiche 134–137. Cinque UPDATE reali di un solo record ciascuno, con preflight su ID, nome, timestamp, identificativo fonte, pagina, CA/PF/velocità, lease nullo/vuoto e stato di revisione `pending`. Nessun INSERT o modifica ai campi di provenance.
+
+| Nome | ID | Pagine source_refs | Tratti | Azioni | Azioni bonus | MD5 readback |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| Schermagliatore Fensir | `ref_be4830300bfe50f09331951afaf26eb6` | 134 | 2 | 5 | 0 | `e340e5e473083b4b8246719840de09df` |
+| Guardiano Primordiale Firbolg | `ref_a7c685beee0d54a58bfdeeeff671157d` | 135 | 0 | 4 | 1 | `34a0bbb21d022a0e7b5a0dd17c300dae` |
+| Viandante Firbolg | `ref_3e26395650ef5cc5ba0620fb7de02343` | 136 | 0 | 4 | 1 | `b33a717b976e512b51db0c91ccea4cc1` |
+| Fomorian Nobile | `ref_ad2c8d2b58fd5cf3b4bff319b3784bbb` | 136 | 0 | 3 | 1 | `d7729e968448a4e7b7ecc71bab39f72c` |
+| Fomorian Vermeiena Delle Profondità | `ref_03d2241969d05b3fb19604aad4d80439` | 136–137 | 3 | 3 | 0 | `d030069ce491f540657a1731608bb5b6` |
+
+SELECT successiva sul gruppo cumulativo **10/10**: tutti i record con sei punteggi di caratteristica, almeno due azioni, descrizione e testo esteso non vuoti, `completezza_scheda=completa`, fingerprint corrispondente, nessun lease. Censimento corrente Bigby **71 record**, **10 completi strutturalmente**, **71 pending** per la certificazione finale e **0 `ai_verified`**. Distinzione rigorosa: il vecchio `review_status=verified` resta valido ma non certifica l'estrazione completa di fase 2.
+
+Ancora nessuna promozione artificiale, nessun merge, nessun deploy e nessun cambiamento a `main`. Proseguire con gli altri 61 record Bigby, uno alla volta.
