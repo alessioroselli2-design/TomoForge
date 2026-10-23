@@ -1534,3 +1534,18 @@ Cinque statblock dal PDF privato italiano originale, pagine fisiche 74–77, let
 | Erinni | 77 | `e5c805c8af7ea0aa4ddb025dfd635eea` |
 
 Conservate aura di paura e incantesimi innati del Diavolo della Fossa, meccaniche delle catene animate e reazione della maschera, spine limitate e volo sfuggente, pelle uncinata, e per Erinni reazione Parata e variante Corda intralciante (la descrizione di dettaglio della corda rimane referenziata alla Guida del Dungeon Master, **non inventata**). Verifica SELECT separata: 5 schede `completezza_scheda=completa`, sei punteggi, azioni, fingerprint corrispondenti, `translation_review_status=pending` invariato. Totale manuale dal DB **73/390** complete nella struttura, **317** incomplete. `main` isolato, PR draft #598 verso develop, non mergeata.
+
+
+## Manuale dei Mostri — Lemure e primi dinosauri pp 78–80 (23 ottobre 2026), 78/390
+
+PDF originale italiano scansito pp fisiche 78, 79 e 80 letto a immagine. Aggiornati cinque record esistenti con CAS su id, nome, timestamp, fonte `mm_2014_it`/pagina, CA/PF/velocità, status originali e lease vuoto, senza toccare `source_*` né inserire record aggiuntivi. Variazioni solo `attributes`, `description`, `full_text`, `updated_at`; `translation_review_status=pending` invariato.
+
+| Nome | Pagina | Fingerprint MD5 di verifica |
+| --- | ---: | --- |
+| Lemure | 78 | `f851d8e6bf74b8222470715ff51f53b3` |
+| Allosauro | 79 | `daba3c081f410d299eef24e8dc5f5f89` |
+| Anchilosauro | 79 | `ab0fa84e3e62cbfecea8d359e1682d68` |
+| Plesiosauro | 80 | `287c072f9808a236a7d44fcfbab198a4` |
+| Pteranodonte | 80 | `0694851d792b358b5879714dd3601fbf` |
+
+Meccaniche: Ringiovanimento infernale del Lemure, Balzo e morso condizionato dell'Allosauro, Coda dell'Anchilosauro con TS per prono, Trattenere il respiro del Plesiosauro e Volo sfuggente del Pteranodonte. Readback da SELECT separata: cinque schede `completezza_scheda=completa`, sei caratteristiche e almeno un'azione, hash invariati, status revisione `pending`. Contatore live: **78/390 strutturalmente complete, 312 incomplete**, nessuna certificazione semantica indipendente assegnata. PR #598 draft su `develop`, `main` inalterata e nessun merge/deploy. Si prosegue dai record successivi a pagina 80.
