@@ -906,3 +906,20 @@ PDF italiano Bigby consultato per le schede stampate nelle pagine 173–177, con
 Rilettura separata: 5/5 `completezza_scheda=completa`, 6 punteggi, azioni structured, fingerprint attuale coincidente e lease vuoti, stato `pending`. Nota editoriale: il tiro salvezza INT del rampollo di Stronmaus è `+16`; la stampa nel PDF porta un doppio segno `+ +16` che è stato normalizzato senza modificarne il valore.
 
 **Bigby 50/71 completate strutturalmente, 21 mancanti**, `ai_verified` ancora 0 perché non svolto secondo audit semantico indipendente. PR #598 draft verso develop, main invariato, niente merge o deploy. Proseguire p178, Culla del Rampollo del Fuoco.
+
+
+## Bigby — undicesimo lotto, 5 schede (23 ottobre 2026)
+
+Fonte privata Bigby IT, pagine PDF 178–182, inclusi i casi con narrazione sulla prima pagina e blocco statistiche nella pagina successiva. Cinque aggiornamenti condizionali a singolo ID e readback, senza inserimenti né alterazione dei `source_*`.
+
+| Nome | Pagina registrata | ID | Azioni | Fingerprint MD5 riletto |
+| --- | ---: | --- | ---: | --- |
+| Culla Del Rampollo Del Fuoco | 178 | `ref_c4b1e356ca0452f0b1e399e77b64ff50` | 4 | `856e3073970827f60d411a591845fad1` |
+| Rampollo Di Surtur | 178 | `ref_b921e7e721755bbbac1b62bd6d70240b` | 5 | `678f5f791a20524cdcadcac10386db20` |
+| Culla Del Rampollo Del Gelo | 180 | `ref_80b730aef9515102b0207c8e2ec8ce77` | 4 | `1629d4e681ac7fe12787be3c31ce6b4e` |
+| Rampollo Di Thrym | 180 | `ref_1c9f8b60117d5649a6742b1de5e09b52` | 5 | `1ff1e9f9254e5714b1d1220cb52a0e00` |
+| Spirito Delle Tempeste | 182 | `ref_8b550003f8045cc29a5edcfe9a6bce3b` | 4 | `d14f34089b8f2b91bbe4d54d29da7700` |
+
+Per ciascuna riga: preflight su ID/nome, timestamp, fonte pagina, CA/PF/velocità, `review_status=verified`, `translation_review_status=pending`, lease vuoto; solo `description`, `full_text`, `attributes`, `updated_at` cambiano. Rilettura separata: 5/5 `completezza_scheda=completa`, sei abilità numeriche e sezioni coerenti, hash di contenuto corrispondente. **55/71 Bigby complete strutturalmente, 16 ancora da completare**, 0 `ai_verified` in fase 2. La revisione indipendente resta distinta e non viene falsamente attestata.
+
+PR #598 draft verso `develop`; `main` invariato, nessun merge o deploy. Prossimo: p183–188, poi riprendere i record iniziali p121–128; non registrare duplicati.
