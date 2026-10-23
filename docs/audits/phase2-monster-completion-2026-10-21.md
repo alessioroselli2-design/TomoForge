@@ -1799,3 +1799,34 @@ Altre tredici schede preesistenti `mm_2014_it` completate mediante confronto con
 | Lamia | 189 | `4c163a7e75af29c175fa73803fdd187c` |
 
 Snapshot live **190/390** schede strutturalmente complete, **200 incomplete**. `translation_review_status=pending` mantenuto in tutte e 13: nessuna certificazione editoriale indipendente automatica. Una sola PR #598 draft diretta a `develop`, `main` separata, nessun deploy o merge. Prossimi dopo p189: lycantropi a pagina 192.
+
+
+## Manuale dei Mostri — licantropi, megera e Medusa (209/390, 23 ottobre 2026)
+
+Proseguimento sistematico su 19 schede già esistenti, `logical_source_id=mm_2014_it`, confronto visivo con PDF privato originale italiano pagine fisiche 192–213. Un UPDATE SQL per scheda con precondizioni fail-closed su ID/nome/timestamp iniziale/pagina originale/CA-PF-velocità/stato review/assenza di lease. Campi cambiati esclusivamente `attributes`, `description`, `full_text`, `updated_at`. Nessun INSERT, nessuna modifica ai campi `source_*`, nessun merge o deployment.
+
+| Mostro | Pagina PDF | Fingerprint MD5 rilettura |
+| --- | ---: | --- |
+| Cinghiale Mannaro | 192 | `ac4b3a560051f92f3c3454ebde32ca45` |
+| Lupo Mannaro | 193 | `6472fc90e760af91f2be5918ce3049fa` |
+| Orso Mannaro | 193 | `da9ee089a15d55cdc2d4a24ec01701f2` |
+| Tigre Mannara | 194 | `5f7c3d44dc598042b5e99f0dc687bb8d` |
+| Topo Mannaro | 195 | `941a37c5f7c2fa6904979e48987b7143` |
+| Lich | 196 | `861c33a63dc544ce2cb5afbd7bf7a127` |
+| Lucertoloide | 198 | `b7141dcd60bbb65b92a8a49691f5eb4c` |
+| Lucertoloide Sciamano | 199 | `a4badb0aed06608e8ce8bce104968f0c` |
+| Re/Regina Lucertola | 199 | `a90a43abb8538e6bb208fb7216694f42` |
+| Magmin | 200 | `b63fb905d663395d8307b34ddb3f97c2` |
+| Manticora | 203 | `36813f7bc45f4861b2e54b50226967c9` |
+| Manto Assassino | 204 | `dbfc241325d911a4dd50cb9c4b89b814` |
+| Mantoscuro | 205 | `1873e5b9f42ba4e5c955457de4ace72c` |
+| Marinide | 206 | `25e541f7b0a164940990366d6694162c` |
+| Medusa | 207 | `d149ab836e972a0cd71c7a986a1e4984` |
+| Megera Marina | 209 | `b12c4db8f67422e4d892ba301025ee99` |
+| Megera Notturna | 210 | `0e49bd5865c494d0d2bd4882d83a1986` |
+| Megera Verde | 211 | `1d81079538af24a42a318966cd5c1944` |
+| Ameba Paglierina | 213 | `b42197ca12098450a3beadefbc369b37` |
+
+Mantenute meccaniche specifiche: licantropi forma umana/ibrida/bestiale, maledizione e armi; Lich tratti magici/azioni leggendarie/tana da pp 196–197; Manto Assassino gemito e duplicati illusori, Mantoscuro oscurità e avvinghiamento, Medusa pietrificazione condizionata al contatto visivo, megera notte con incubi, Ameba Paglierina la reazione **Scindersi**. Riletture SQL separate su ogni lotto: `completezza_scheda=completa`, tutte con 6 punteggi e azioni; i 19 MD5 coincidono. Per tutte `translation_review_status=pending` resta tale: il completamento strutturale non vale come certificazione editoriale indipendente.
+
+Snapshot del Manuale dei Mostri: **209/390 schede complete nella struttura, 181 ancora incomplete**. La PR #598 è draft verso `develop`; `main` non è stata modificata. Prossimo monster p214 e oltre.
