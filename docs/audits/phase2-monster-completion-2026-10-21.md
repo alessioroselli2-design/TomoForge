@@ -1681,3 +1681,31 @@ Fonte PDF italiano originale p115. Controllo di provenienza: `source_refs[0].pag
 | Drago D’Oro Cucciolo | 115 | `37f5a732095503c31a1e35ad46451a0e` |
 
 Entrambi con 6 caratteristiche, azioni e soffi alternativi Fuoco/Indebolente con rispettive CD e distanze. Confermato `completezza_scheda=completa`, `translation_review_status=pending` invariato; **120/390 strutturalmente complete, 270 incomplete**. Il mantenimento della verità editoriale è separato dalla certificazione indipendente. PR #598 draft verso develop; main e deployment non modificati.
+
+
+## Manuale dei Mostri — pp 120–136, 138/390 (23 ottobre 2026)
+
+Dopo 120/390, lettura diretta delle immagini del PDF italiano originale `847921086-Manuale-Dei-Mostri-5e.pdf` alle pagine fisiche 119–136. Il PDF è scansito e privo di testo estraibile; pertanto controllo visuale dei riquadri prima di ogni UPDATE. È stato riscontrato **slittamento di una pagina** nell'indicizzazione sorgente di 18 record in questo intervallo (e.g. `Driade` salvata con 119 anziché 120, `Elementale Del Fuoco` con 123 anziché 124). La correzione condizionale di `source_refs[0].page/logical_page` è stata effettuata solo sui record con statblock visivamente confermato, preservando gli altri riferimenti sorgente, inclusi quelli a `imr_2019_en` di Elementale Fuoco/Aria e `llok_2018_en` di Fauce Gorgogliante. I dati `source_*` non sono stati modificati. Poi 18 aggiornamenti completi di `attributes`, `description`, `full_text`, `updated_at` in-place, senza INSERT, condizionati da ID, nome, timestamp, fonte, CA/PF/velocità, review e lease vuoto.
+
+| Mostro | Pagina PDF fisica | MD5 SELECT readback |
+| --- | ---: | --- |
+| Driade | 120 | `6448c05d0612a727c2489480e48b83db` |
+| Drider | 121 | `d0920328016f34b6d641a7571caa2b0b` |
+| Duergar | 122 | `269650c0c45bac4f464d857564740bab` |
+| Elementale Del Fuoco | 124 | `fee449f88ead18aea3f69c3b6029d668` |
+| Elementale Dell'Acqua | 124 | `df22784198da946db87c9eb517fe4dbc` |
+| Elementale Dell'Aria | 125 | `a178ad01e39ed947022bc88537ac37be` |
+| Elementale Della Terra | 125 | `341356b19632597955185680d4300e85` |
+| Drow | 128 | `51e99f0f3c4babc736862e25542edbaa` |
+| Drow Combattente Scelto | 128 | `713de8942df5d0b4c42d832bd194d7a2` |
+| Drow Mago | 129 | `0ab8f4e2ac9cbd6b609b0123614e3812` |
+| Drow Sacerdotessa Di Lolth | 129 | `6e61157c1242a13ebf3818abc6a0bd56` |
+| Empireo | 130 | `c7bc93e4d5a6e74a7bd4a4980bf36e1c` |
+| Ettercap | 131 | `ca8cb8566b2c81bf33c87853941e712a` |
+| Ettin | 132 | `a747510d0e72bbbfd5a26b76cc9a7c1e` |
+| Fantasma | 133 | `ee52fed16f83a2568c1a8ba0bbc6725e` |
+| Fatale Dell'Acqua | 134 | `9944bd30ad66fd64ccc8b3e37ddca237` |
+| Fauce Gorgogliante | 135 | `ec3ae2e3dc19876f9d42630271c5fd89` |
+| Flumph | 136 | `958e673e157e5c02caf2cfde66f210a0` |
+
+Tutti i 18 record riletti via SELECT indipendente: `completezza_scheda=completa`, esattamente 6 caratteristiche, almeno una azione, fingerprint concordante, `translation_review_status=pending` invariato. Per i Drow salvati incantesimi, veleni e capacità difensive; per i quattro elementali vulnerabilità, immunità, tratti e le rispettive azioni; per Ettercap variante Garrota, per Empireo e Fantasma poteri speciali. Il completamento è **strutturale**, non un'autocertificazione editoriale. Contatore live **138/390 complete strutturalmente, 252 incomplete**. PR #598 draft su develop, main intatta, nessun merge o deploy.
