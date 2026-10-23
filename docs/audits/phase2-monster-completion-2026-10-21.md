@@ -855,3 +855,20 @@ Fonte privata italiana Bigby, pp. fisiche 158–162; cinque schede completate **
 Rilettura dal database: sei caratteristiche numeriche per record, attributi strutturati, `completezza_scheda=completa`, testo e descrizione presenti, stato `pending`; nessuna certificazione indipendente fabbricata. **Bigby: 35/71 completi strutturalmente; 36 da completare**; 0 `ai_verified`. PR #598 draft verso develop; main non aggiornato, nessun deploy/merge.
 
 Prossima scheda: Hulk Delle Polveri, pagina PDF 163. PDF e testi integrali non caricati nel repository.
+
+
+## Bigby — ottavo lotto, 5 schede (23 ottobre 2026)
+
+Fonte privata originale Bigby, pagine PDF 163–167: cinque nuove schede strutturate nei record Supabase esistenti, tutte con guardie di sicurezza per ID, nome, fonte, pagina, timestamp, CA/PF/velocità, lease vuoto e stato di revisione pending. **Leone Maculato** e **Lince Gigante** hanno una sola azione nella fonte: nessun multiattacco aggiunto artificialmente. Nessun record aggiunto e nessuna modifica ai source_*.
+
+| Mostro | Pagina | ID | Numero azioni | MD5 SELECT |
+| --- | ---: | --- | ---: | --- |
+| Hulk Delle Polveri | 163 | `ref_cf1e57c836ef5625bf5e03c55e0e27fa` | 3 | `8dd937dc8b98c51ecdbd7a5e4c10218e` |
+| Hulk Di Brina | 164 | `ref_1fed72f00be35a5f9d74d9c91707eefd` | 3 | `6bb68788ac3e0eb974fbc4e03df889e8` |
+| Infernale Del Fuoco | 165 | `ref_73e5654442de579c8fbcd8185426b031` | 3 | `dfd42f61bab1516ba076953095cf7d1b` |
+| Leone Maculato | 166 | `ref_bdd8ccb205a75b1dab9fad41f7c64d89` | 1 | `914f6d81497ea31ca491006682fb37c2` |
+| Lince Gigante | 167 | `ref_63424c86d98354efb93e1c6f03edad15` | 1 | `2c9201fdd82d1219b2d9a19a89c8827f` |
+
+Readback reali SELECT: 5/5 struttura `completa`, 6 punteggi, azioni coerenti con sezioni pubblicate e fingerprint corrispondenti; tutti restano `translation_review_status=pending`. Questo audit non sostituisce revisione semantica indipendente e non assegna `ai_verified`.
+
+Bigby **40/71 schede complete nella struttura, 31 ancora da completare**, 0/71 certificate nella nuova fase. PR #598 draft su develop, nessun merge, nessun deploy su main. Proseguire con Nuvola Spettrale p.168.
