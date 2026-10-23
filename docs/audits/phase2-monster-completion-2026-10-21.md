@@ -1751,3 +1751,28 @@ Sono state confrontate visivamente le pagine 149, 150 e 156–158 del PDF origin
 | Gigante Delle Tempeste | 158 | `532be8c7e98d40fc927f47dae29fa379` |
 
 Le meccaniche includono incantesimi innati e getto acquatico del Marid, Ghast/Ghoul con paralisi e fetore differenziati, i quattro giganti elementali/regioni (fuoco, gelo, colline, nuvole) e i giganti delle pietre e delle tempeste. Readback SQL conferma 6 punteggi, azioni e `completezza_scheda=completa` per tutte le 9 schede, fingerprint coincidenti. Snapshot globale Supabase **158/390 strutturalmente complete, 232 incomplete**: il contatore aggregato comprende anche altri aggiornamenti rilevati sui record del manuale; non attribuirli a questi nove UPDATE. La certificazione editoriale/indipendente rimane fase separata. PR #598 draft verso `develop`, `main` isolata, nessun merge/deploy.
+
+
+## Manuale dei Mostri — Gnoll, Goblin, Golem, Grick: 177/390 (23 ottobre 2026)
+
+15 record preesistenti MM `mm_2014_it`, PDF originale italiano verificato visivamente pagine fisiche 164–165, 167, 169–175. 15 UPDATE in-place, ciascuno CAS su ID/nome/timestamp, provenienza pagina, AC/PF/velocità preesistenti, lease assente, `review_status=verified` e `translation_review_status=pending`; nessun inserimento o modifica ai campi `source_*`.
+
+| Nome | PDF p. | Fingerprint readback |
+|---|---:|---|
+| Gnoll | 164 | `0cdabc04561039453f79714f4ee0298c` |
+| Gnoll Signore Del Branco | 164 | `7776eedb618d1a7c20bd47ebbbcda72b` |
+| Gnoll Zanna Di Yeenoghu | 164 | `520a950758f92569a4d9a87a5b556583` |
+| Gnomo Delle Profondità (Svirfneblin) | 165 | `70b83d4fb0b202faf5b931ce0c86c5b5` |
+| Goblin | 167 | `8dab6d07c97a20489d7252b4aeff94ec` |
+| Goblin Capo | 167 | `3c4e04f6dd541081380a89ed06b8f003` |
+| Golem Di Argilla | 169 | `5fa6ef80005ce0aef402f56e8b32f729` |
+| Golem Di Carne | 170 | `3277a01fe9559ba59cae1d7392773a0f` |
+| Golem Di Ferro | 171 | `58d2fa113dce8517069e6da2d7469570` |
+| Golem Di Pietra | 171 | `6eac6b47444ec95ce82a7aa2accd1a74` |
+| Gorgone | 172 | `d8f72edbed2b663aac00429052fae222` |
+| Grell | 173 | `d8c0d9bf9a4c552a88b8b8620aa4de03` |
+| Grick | 174 | `54ae2c3dc7ab52ed95f56bad1173bdfa` |
+| Grick Alfa | 174 | `e96a0cb6888d434a1dcdb9ef25def31c` |
+| Grifone | 175 | `ae7feab64d5b59e0ecac22f45dc262ce` |
+
+Controllo indipendente da Supabase: tutti i 15 record `completezza_scheda=completa`, sei caratteristiche, azioni presenti, fingerprint uguali ai valori riportati; revisione indipendente tuttora `pending`. Goblin Capo mantiene la reazione Sviare attacco; golem mantengono assorbimenti elementali, Berserk e Lentezza; Gorgone conserva soffio pietrificante e carica, Grell tentacoli con avvelenamento, Grick e Grick Alfa attacco Becco condizionato. Snapshot in tempo reale: **177/390 strutturalmente complete, 213 incomplete**. PR #598 resta draft diretta a `develop`, `main` separata, nessun merge/deploy. Continuare dal Grimlock PDF p176.
