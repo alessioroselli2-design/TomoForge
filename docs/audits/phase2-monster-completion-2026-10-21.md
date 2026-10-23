@@ -998,3 +998,15 @@ Aggiornamenti condizionali a singolo ID su `description`, `full_text`, `attribut
 Readback live SELECT: entrambe `completezza_scheda=completa`, sei caratteristiche, azioni e reazioni riprodotte, formule di PF originali, `translation_review_status=pending`, zero lease. **Eberron 12/40 complete strutturalmente, 28 ancora da completare**. Da riprendere al Forgiato Colosso registrato p210; poi capitolo bestiario pp289+. Questi aggiornamenti non sono una nuova certificazione indipendente, niente promotion `ai_verified`.
 
 Le traduzioni e i PDF integrali restano privati, non nel repository. PR #598 sempre draft su develop; main invariato, nessun merge né deploy.
+
+
+## Eberron — due forgiati aggiuntivi (23 ottobre 2026)
+
+Fonte privata Eberron IT, PDF `618795464-Eberron.pdf`, consultate le pagine 210 e 295–296. Il Forgiato Colosso compare nel testo descrittivo di p210 ma il **blocco statistiche originale è a p295**; entrambi i riferimenti sono già nella sua `source_refs` e sono stati controllati senza alterarla. Forgiato Titano ha la scheda a p296. Aggiornati soltanto quattro campi applicativi `description`, `full_text`, `attributes` e `updated_at`, con confronti condizionali ID, nome, timestamp, provenienza, pagine, CA/PF/velocità, status e assenza di lease.
+
+| Mostro | Pagine source_refs | ID | Azioni | Fingerprint MD5 da SELECT |
+| --- | --- | --- | ---: | --- |
+| Forgiato Colosso | 210 e 295 | `ref_03373a8779425d26b29061554bae926a` | 5 | `f4a493c343d1effbb6bac8e5f31b19dc` |
+| Forgiato Titano | 296 | `ref_d378f74d2c6e51868f61aa810e59813e` | 4 | `577048d7e8f3a54bee7fc62f2efa53eb` |
+
+Rilettura: due schede `completezza_scheda=completa`, sei punteggi, fingerprint corrispondenti, lease assenti e revisione `pending`; senza aggiungere duplicati o modificare i `source_*`. Eberron passa a **14/40** complete strutturalmente, **26** da completare. Proseguire con i blocchi mostro registrati dalla pagina 289 e con le restanti voci. Nessuna certificazione artificiale, merge, modifica main o deploy.
