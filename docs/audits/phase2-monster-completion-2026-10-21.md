@@ -1098,3 +1098,20 @@ Fonte Eberron IT originale `618795464-Eberron.pdf`, pagine fisiche 313–316 e 3
 - Sei fingerprint MD5 delle schede finali coincidenti con i readback indipendenti; per ciascuna `completezza_scheda=completa` e sei punteggi.
 
 **Eberron concluso nella completezza strutturale 40/40**. Bigby era già concluso 71/71 nella stessa fase. Continuare con altro manuale dal censimento globale, poi eseguire certificazione indipendente su tutti i record. PR #598 draft verso `develop`; nessun merge/deploy e `main` invariato.
+
+
+## Fizban — primo lotto verificato, 3/73 (23 ottobre 2026)
+
+Ricognizione dopo completamento strutturale di Bigby 71/71 ed Eberron 40/40. **Van Richten:** la Library contiene il PDF originale `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf` **solo per le prime 150 pagine** (PDF censito come 150 pagine, la pagina fisica 150 contiene capitolo 3), mentre le prime voci monster `vrgr_2021_it` iniziano a p201 e procedono fino a p250+. Per non derivare dettagli da OCR o memoria, non sono stati eseguiti UPDATE su Van Richten. Serve la seconda parte del manuale per procedere in sicurezza.
+
+Si è passati al manuale **Il Tesoro dei Draghi di Fizban**: la Library contiene `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf`, anch'esso per ora **150 pagine**; disponibili e leggibili nell'originale tre blocchi di creature alle pp16, 21, 25. Per ognuno la pagina della fonte è stata renderizzata a 190 DPI e confrontata direttamente con i record. Tre UPDATE condizionali ai soli campi `description`, `full_text`, `attributes`, `updated_at`, con guardie ID/nome, timestamp, source_refs e pagina, CA/PF/velocità, stato `verified`, `translation_status=not_required`, `translation_review_status=not_required`, nessun lease e stato strutturale non completo; senza INSERT e `source_*` immutati.
+
+| Nome | Pagina | ID | Azioni | MD5 SELECT |
+| --- | ---: | --- | ---: | --- |
+| Compagno Drago | 16 | `ref_2a1bfe6cbf02008d12fd0335314b2d0d` | 1 | `17e6a7266dfcf26a68fcb646898eeee3` |
+| Spirito Draconico | 21 | `ref_7f19076d0dc459fdde261cab3f536c38` | 3 | `67e27c298411a1918a61cc263135e50d` |
+| Canarino Gigante | 25 | `ref_11e21da9cafa66ac29bb0c1e8ce101f7` | 1 | `e39326dccab5bef458988f95cef699d4` |
+
+Nota: per le prime due schede sono state preservate esplicitamente le **formule dinamiche** di CA, PF, bonus e scaling dell'incantesimo (nessun numero arbitrario). Rilettura SELECT: `completezza_scheda=completa`, sei caratteristiche, sezioni azioni verificate sul PDF originale, lease assente, fingerprint MD5 coincidente; nessuna promozione di certificazione. **Fizban 3/73 complete strutturalmente, 70 da lavorare**; il restante bestiario inizia p160, non disponibile nell'attuale prima metà del PDF. Completare solo dopo aver recuperato la continuazione del manuale o altra fonte privata autorizzata in Library, non inventare contenuti.
+
+PR #598 draft su develop; `main` separato, nessun merge/deploy. Il PDF resta privato, non è stato aggiunto a GitHub.
