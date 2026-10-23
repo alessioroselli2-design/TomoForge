@@ -1275,3 +1275,20 @@ Per il drago antico preservate separatamente `azioni_leggendarie` e `azioni_tana
 **Blocco da risolvere in modo isolato:** il record preesistente `Terrore draconico` p172, ID `ref_5773765ac6c6a123dcf9fde5abe44956`, è rimasto volutamente `completezza_scheda=statistiche_essenziali`: l'azione SQL di aggiornamento è stata bloccata per due volte dai controlli di sicurezza del connettore. Non trattarla come completata, né ripetere ciecamente la stessa chiamata. Non è stata rilevata una discrepanza OCR sul PDF originale. Lo snapshot MD5 invariato è `dc18055eb216a15aad35d0fce318232c`. Il successivo tentativo di SELECT aggregato complesso è stato anch'esso bloccato, ma una lettura SELECT minimale dei sei ID ha avuto successo e ha confermato i cinque fingerprint sopra e lo status incompleto del Terrore.
 
 Snapshot aggregato dopo le scritture: **19/73 complete strutturalmente, 54 incomplete**, `main` invariato e PR #598 draft verso `develop`; nessun merge/deploy. Priorità: isolare il blocco di Terrore draconico prima di certificazioni indipendenti; poi proseguire dal Cucciolo di drago della lunopietra p175.
+
+
+## Fizban — quattro draghi profondità e cucciolo lunopietra, 24/73 (23 ottobre 2026)
+
+Secondo lotto della sessione dopo ricollegamento Supabase. PDF privato integrale Fizban, rendering delle pagine fisiche 175–178 confrontato direttamente con i cinque statblock. Aggiornati cinque record preesistenti con CAS su id, nome, updated_at iniziale, source_refs/pagina, stato della revisione, nessun lease, CA/PF/velocità; solo campi applicativi `attributes`, `description`, `full_text`, `updated_at`; nessun INSERT e nessun `source_*` alterato. Dati di tutti i draghi in metri e denominazioni italiane.
+
+| Nome | Pagina PDF | ID | MD5 SELECT |
+| --- | ---: | --- | --- |
+| Drago della lunopietra cucciolo | 175 | `ref_1e2da15af93b8ef79511325489032e6a` | `f0ce32e6393cdd54be9ef1396c9f9fbe` |
+| Drago delle profondità antico | 176 | `ref_b97b84e26cc30413e83e6fc06df89779` | `e03719d562f159669a6c67d2e97c51ec` |
+| Drago delle profondità adulto | 177 | `ref_f5f6b59fcc5af83aa41b7377255a8749` | `2454435737d50f3f250d6eeafcacbdd0` |
+| Drago delle profondità giovane | 177 | `ref_e030aa942a3753a157f40750b47a76ab` | `1ccd6447bae86fc1a95d8b2fc019c242` |
+| Drago delle profondità cucciolo | 178 | `ref_a1c92eacb9ebdb6161b358dd85232dfe` | `7ab56d41ab2d54167b1404f98285981e` |
+
+Drago delle profondità antico: oltre a sei statistiche e attacchi, salvate separatamente azioni leggendarie (Coda, Spore al comando, Raffica di spore) e tre azioni di tana originali; adulto conserva le sue tre azioni leggendarie; giovane e cucciolo mantengono la progressione separata di danni/CD del soffio. Drago della lunopietra cucciolo: due soffio alternativi con CD12 e distanze corrette.
+
+**Readback distinta SELECT**: ciascuno dei cinque risulta `completezza_scheda=completa`, fingerprint MD5 coincidente. Aggregato successivo: **Fizban 24/73 strutturalmente completi, 49 incompleti**. Nessuna promozione semantica forzata o certificazione indipendente effettuata. Il record Terrore draconico p172 resta ancora incompleto a causa del blocco di sicurezza documentato nella sezione 19/73: deve essere recuperato con processo compatibile prima della chiusura. PR #598 draft verso `develop`; `main` separato; nessun merge/deploy.
