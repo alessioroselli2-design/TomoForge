@@ -1027,3 +1027,20 @@ Fonte privata `618795464-Eberron.pdf`, pagine PDF 289, 291, 293, 297 e 298: cinq
 Rilettura indipendente via SELECT: sei caratteristiche per scheda, sezioni richieste presenti, fingerprint invariati, `completezza_scheda=completa`, lease vuoti e `translation_review_status=pending`. Il record di Dyrrn conserva entrambe le pagine source_refs (289, 291). Snapshot aggregato live: **Eberron 19/40 completi strutturalmente, 21 incompleti, 0 ai_verified** (30 records translation_review_status pending; gli altri dieci non sono certificati per questa fase). La revisione semantica indipendente non è stata assegnata.
 
 PR #598 in draft sul branch `codex/safe-monster-completion-pilot-20261021` verso develop; `main` non toccato e nessun merge/deploy. Prossimi: Soldato Imperituro, Fulmine Vivente, Mani Brucianti Vivente, Nube Mortale Vivente, Ispirato.
+
+
+## Eberron — secondo gruppo della ripresa, 24/40 (23 ottobre 2026)
+
+Fonte PDF Eberron italiano, pagine fisiche 299–302. Quinto gruppo di schede Eberron della fase di ripresa, 5 UPDATE condizionali singoli, soltanto su schede incomplete già presenti. Per ognuna: controllo ID/nome/timestamp, provenienza pagina, CA/PF/velocità, assenza lease e stato pending. Nessun INSERT, nessuna modifica ai `source_*`. Il testo di Soldato Imperituro normalizza il probabile refuso in Multiattacco (il PDF stampa «consigliere» all'interno della scheda del soldato); scelta esplicitata nella scheda.
+
+| Nome | Pagina | ID | Azioni | MD5 SELECT |
+| --- | ---: | --- | ---: | --- |
+| Soldato Imperituro | 299 | `ref_290b25db971c5297882782ecffcaa34f` | 2 | `780899951d4bf31d21f914db278f6625` |
+| Fulmine Vivente | 300 | `ref_0ee44c23b128519f9443af353d92be96` | 3 | `f602b581ee6bb01d0de278072af5f7e9` |
+| Mani Brucianti Vivente | 301 | `ref_2f3827dbf03958cc8d22758f3ba70056` | 2 | `376612af3071d12834ab416ec05c58ee` |
+| Nube Mortale Vivente | 301 | `ref_a2f721b697c85415a3bf86134a5b1f4b` | 3 | `ffe853b215cb58471db25979e8835991` |
+| Ispirato | 302 | `ref_d3c8a93c34a2510d9591b4226734decb` | 3 | `89e9cb89e23b0f993f7d17bcc3c4e0ec` |
+
+Readback separata: 5/5 con `completezza_scheda=completa`, 6 punteggi numerici, sezioni azioni coerenti con i blocchi nel PDF, fingerprint MD5 identici, `translation_review_status=pending`, lease vuoto. Varianti Hashalaq/Kalaraq/Tsucora dell'Ispirato conservate nei campi `varianti`; i tre incantesimi viventi mantengono proprietà e danni differenziati. Bigby già a 71/71 strutturali, Eberron passa a **24/40**, **16 ancora incomplete**, tutte senza certificazione semantica indipendente della seconda fase.
+
+PR #598 ancora draft su develop; nessun merge, deploy o modifica di main. Prossima scheda: Lady Illmarrow p303–304.
