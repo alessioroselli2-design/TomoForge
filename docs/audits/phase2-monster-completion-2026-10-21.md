@@ -768,3 +768,22 @@ Fonte privata esaminata in testo e pagina renderizzata: medesimo PDF Bigby itali
 SELECT successiva sul gruppo cumulativo **10/10**: tutti i record con sei punteggi di caratteristica, almeno due azioni, descrizione e testo esteso non vuoti, `completezza_scheda=completa`, fingerprint corrispondente, nessun lease. Censimento corrente Bigby **71 record**, **10 completi strutturalmente**, **71 pending** per la certificazione finale e **0 `ai_verified`**. Distinzione rigorosa: il vecchio `review_status=verified` resta valido ma non certifica l'estrazione completa di fase 2.
 
 Ancora nessuna promozione artificiale, nessun merge, nessun deploy e nessun cambiamento a `main`. Proseguire con gli altri 61 record Bigby, uno alla volta.
+
+
+## Bigby — terzo lotto, 5 schede (23 ottobre 2026)
+
+Fonte italiana registrata e riletta (testo e immagini di pagina): *Bigby presenta: La Gloria dei Giganti*, pagine fisiche 138–142. Lavorazione sulle righe già esistenti in Supabase: un UPDATE condizionale per ID con guardia di timestamp/snapshot, fonte, pagina, CA/PF/velocità, stato e lease; nessun inserimento, nessuna modifica di `source_*`.
+
+| Nome | ID | Pagina | Tratti | Azioni | Bonus | Reazioni | MD5 dopo rilettura |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Fomorian Warlock Dell'Oscurità | `ref_cfa230c152d457dca1cc75b97035f37c` | 138 | 3 | 5 | 1 | 1 | `8aa22ad3099e398949cae532965d5588` |
+| Furia Di Kostchtchie | `ref_df2773e308da52269e7a546b78263197` | 139 | 2 | 3 | 1 | 0 | `94da47dc57a3f90da23fab2914498b62` |
+| Gargantua | `ref_a2f6d617bb145b07b403e5fd24a2b8fc` | 140 | 1 | 3 | 2 | 2 | `3ad976ad0d176283ebd65946bc193ea4` |
+| Gatto Ghignante | `ref_ac1a0de0ddba58219b21b506119cd1f6` | 141 | 1 | 3 | 2 | 0 | `6193d34cec9c4052742d5d76d4234b70` |
+| Gegant | `ref_7a30c2cd8ab25a578d7d6f02b0877061` | 142 | 1 | 4 | 1 | 0 | `057bf23b0272177ba99f170429daff0b` |
+
+Correzione mirata successiva alla prima scrittura su Gatto Ghignante: chiarito nel riassunto che le 2d12 vibrisse si possono recuperare **quando il gatto viene ucciso**, non quando muore una qualsiasi creatura. L'UPDATE correttivo è stato protetto dal fingerprint precedente; MD5 riportato sopra è quello definitivo.
+
+**Verifica globale dei tre lotti:** 15/15 con sei punteggi delle caratteristiche, sezioni di azioni strutturate e non vuote, `completezza_scheda=completa`, fingerprint ricalcolati direttamente sullo stato live, lease assenti e fonte invariata. Censimento Bigby: **71 record, 15 completi strutturalmente, 56 da lavorare**, 71 ancora `translation_review_status=pending`, 0 certificati `ai_verified`. Il requisito di seconda revisione semantica indipendente è ancora aperto: la completezza strutturale non costituisce attestazione definitiva.
+
+Lavorazione esclusivamente sulla fonte italiana autorizzata; nessuna trascrizione integrale del PDF nel repository. PR #598 sempre draft verso develop, nessun merge, nessun deploy, main invariato. Proseguire dalla Gelatina Da Borsa (PDF p143), senza creare duplicati.
