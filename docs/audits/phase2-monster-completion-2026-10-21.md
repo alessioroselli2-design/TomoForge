@@ -1180,3 +1180,19 @@ La rilettura live Supabase conferma **21/36 schede strutturalmente complete**, n
 **Correzione semantica isolata importante:** sulla scheda già completa `Emissario della Progenie Stellare Maggiore` (ID `ref_63bad3193e3b5170a2762e3ffa798530`, p235), il campo `azioni_leggendarie[2]`, **Nebbia mentale**, diceva che gli incantesimi dell'area `vengono dissipati`. Il PDF originale italiano ingrandito riporta invece testualmente: «Inoltre, ogni incantesimo si scaglia su creature e oggetti a scelta dell'emissario in quell'area». La stampa è linguisticamente ambigua ma **non autorizza ad aggiungere la dissipazione di incantesimi**. Corretto il campo `attributes` e il `full_text` preservando la frase originale, aggiunta una `nota_verifica_azione_leggendaria` in attesa di confronto con originale/errata prima di un eventuale `ai_verified`; `translation_review_status=pending` mantenuto. La correzione è avvenuta con `UPDATE` protetto da timestamp, ID/nome, pagina, lease vuoto, stato e corrispondenza della vecchia stringa e ha restituito fingerprint MD5 `26a5feb235c6215a83ba2f57a7c6c7ce`.
 
 Nessun INSERT, nessuna modifica alle provenienze `source_*`, nessun merge o deploy, `main` invariato. Il precedente hash nella sezione 16/36 è quindi uno snapshot antecedente alla presente correzione: **non va usato per il controllo finale**. Proseguire con le pagine successive e mantenere l'anomalia di fonte aperta fino a chiarimento, senza forzare la certificazione.
+
+
+## Van Richten — quattro schede pp241–245, 25/36 (23 ottobre 2026)
+
+La ripresa ha trovato le pagine 232–240 già aggiornate da una sessione concorrente, con `completezza_scheda=completa`; nessun UPDATE duplicato è stato eseguito su quei record. Nuova rilettura diretta dei JPG delle pp241–245 del PDF italiano privato originale, quattro UPDATE protetti dai preflight (ID/nome, updated_at originale, CA/PF/velocità, source_refs/pagina, stato `verified` storico, revisione semantica pending e lease vuoto). Solo `attributes`, `description`, `full_text`, `updated_at`; zero INSERT e `source_*` intatti.
+
+| Nome | Pagina | ID | Azioni | Varianti | Fingerprint MD5 confermato |
+| --- | ---: | --- | ---: | ---: | --- |
+| Necricoro | 241 | `ref_510922aaaf680fc78165869a3052f6c9` | 4 | 0 | `40b661bbd15437f9669d5eda29fc2794` |
+| Necrobiota | 242 | `ref_6ad2c1b00077a6487bf840e20b8dda1b` | 3 | 0 | `50575d0b950793c0226a9ade2fad7172` |
+| Nosferatu | 243 | `ref_cbe22500c9395ac661aca5bb5f0e46c9` | 4 | 0 | `6128310314b5c8d3f3168425215949d1` |
+| Orrore Indicibile | 244 e tabella 245 | `ref_9f65dfa3475d33961b2ac03252d3d367` | 3 | 12 | `fb08fd1daf9002fb70c001a94e763739` |
+
+Per Orrore Indicibile mantenute le quattro composizioni corporee, quattro sostituzioni dell'esplosione e quattro varianti di arto (12 opzioni), senza assumere che il mostro possieda tutte le varianti contemporaneamente. Rilettura post-scrittura separata: tutte e quattro le righe hanno `completezza_scheda=completa`, 6 caratteristiche, azioni coerenti, fingerprints MD5 identici ai SELECT, lease vuoto, `translation_review_status=pending`. **Van Richten 25/36 strutturalmente completo, 11 schede residue, zero certificazioni fase 2 forzate**. Inoltre è stata documentata sopra una correzione semantica su Nebbia mentale dell'Emissario maggiore, da riesaminare prima di qualsiasi `ai_verified`.
+
+PR #598 draft verso `develop`, `main` invariato, nessun merge e nessun deploy.
