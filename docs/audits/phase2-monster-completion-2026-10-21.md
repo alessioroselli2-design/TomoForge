@@ -1153,3 +1153,21 @@ Fonte originale italiana `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf`, cinqu
 Readback live: cinque completezze `completa`, sei caratteristiche, azioni/bonus/legendarie salvate, MD5 identici a quelli post-update, zero lease e revisione indipendente `pending`. Censimento **Van Richten 10/36 complete strutturalmente, 26 da completare, 0 ai_verified**. Non è stata manipolata alcuna certificazione. Prossima voce: Dullahan p232; non serve altro PDF perché originale completo 257 pp già disponibile.
 
 PR #598 draft verso develop, main invariato, nessun merge o deploy.
+
+
+## Van Richten — pagine 232–236, 16/36 (23 ottobre 2026)
+
+Fonte privata originale `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf` pagine 232–236: sei voci distinte esistenti, aggiornate con UPDATE ottimistico per ID/nome, timestamp sorgente, fonte/pagina, CA/PF/velocità, stato revisione pending e assenza lease. Nessun nuovo record, nessuna modifica a source_refs/source_*, nessuna certificazione forzata. PDF originale renderizzato a 130 DPI e letto direttamente.
+
+| Mostro | Pag. | Azioni | Leggendarie | MD5 SELECT |
+| --- | ---: | ---: | ---: | --- |
+| Dullahan | 232 | 3 | 3 | `c4f62bfba8e797ddb9748d24ff09fa1e` |
+| Eco dello Sterminio | 233 | 2 | 0 | `4a2c9d3aa427016d581fcead7dbbc99a` |
+| Emissario della Progenie Stellare Maggiore | 235 | 4 | 3 | `e7b8838be7cd64214331ad5c4e6a9a7d` |
+| Emissario della Progenie Stellare Minore | 235 | 4 | 3 | `b19bb70f56b52112bfe8240df63fe3d9` |
+| Gremishka | 236 | 1 | 0 | `bb5ad7fb91269449d2827bb8071031b9` |
+| Orda di Gremishka | 236 | 1 | 0 | `a1ce5f10c3133053eec89bae793e0acc` |
+
+Schede con azioni mitiche mantenute distintamente: **Dullahan** `azioni_mitiche`, evocazione delle tre teste e seconda forma. Distinzione fra emissario minore/maggiore mantenuta senza duplicazione e senza confondere i GS. Gremishka singolo/orda su ID diversi. Rilettura SELECT indipendente: 6/6 `completezza_scheda=completa`, sei caratteristiche, sezioni azioni coerenti con le pagine, fingerprint invariati, `lease_free=true`, `translation_review_status=pending`. Censimento live: **Van Richten 16/36 strutturalmente complete, 20 da completare, 0 ai_verified**.
+
+PR draft resta verso `develop`; nessun deploy/merge; `main` intatto.
