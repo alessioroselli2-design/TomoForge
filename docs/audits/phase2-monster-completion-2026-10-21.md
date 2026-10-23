@@ -1732,3 +1732,22 @@ Proseguimento dopo lo stato live 138/390. Le pagine del PDF italiano originale `
 **Particolarità protette:** Boleto Stridente possiede una reazione Stridio ma nessuna azione d'attacco (quindi `azioni=[]` è conforme al manuale); Fomorian possiede maledizione del Malocchio con recupero lungo; Spora Gassosa conserva i dettagli della malattia; Fuoco Fatuo separa azioni da azioni bonus; Fustigatore i tentacoli afferranti; i tre geni hanno ciascuno liste di incantesimi innate e attacchi distinti. Riletture DB dopo le scritture: tutti undici `completezza_scheda=completa`, sei valori di caratteristica, fingerprint coincidenti con tabella, `translation_review_status=pending` invariato.
 
 **Stato globale Supabase Manuale dei Mostri:** `390` record, `149` complete strutturalmente, `241` incomplete, `372` ancora in revisione semantica `pending`. Le differenze tra completezza strutturale e revisione indipendente vanno mantenute esplicite. La PR #598 resta draft verso `develop` e `main` non è stata modificata. Prossimo record dopo i geni: controllare Marid e gli altri statblock successivi nel PDF prima di aggiornare.
+
+
+## Manuale dei Mostri — marid, ghoul, ghast e giganti, snapshot 158/390 (23 ottobre 2026)
+
+Sono state confrontate visivamente le pagine 149, 150 e 156–158 del PDF originale italiano, quindi aggiornati **9 record esistenti** in-place con UPDATE CAS su ID/nome/timestamp/source_refs/pagina/CA/PF/velocità/status/lease. Nessun INSERT o duplicato e nessuna modifica ai `source_*`. La revisione semantica resta `pending`.
+
+| Nome | pagina sorgente PDF | MD5 di conferma SELECT |
+| --- | ---: | --- |
+| Marid | 149 | `ffa118795c221ac4b9ceca07fe0b2701` |
+| Ghast | 150 | `1f2ad9461ead93b26177e7198a70c6b0` |
+| Ghoul | 150 | `741d33820b869e9573be590174afaf95` |
+| Gigante Del Fuoco | 156 | `ec37b275a06fa987f136908816874527` |
+| Gigante Del Gelo | 156 | `d9f94de393e715f70cce3f54c79ac02a` |
+| Gigante Delle Colline | 157 | `434ddc5fe631e306589aba959e60da9d` |
+| Gigante Delle Nuvole | 157 | `365083820673cd7d14ad13e861cf66a3` |
+| Gigante Delle Pietre | 158 | `2a54e2087f4d48144329a6c5931fcc6a` |
+| Gigante Delle Tempeste | 158 | `532be8c7e98d40fc927f47dae29fa379` |
+
+Le meccaniche includono incantesimi innati e getto acquatico del Marid, Ghast/Ghoul con paralisi e fetore differenziati, i quattro giganti elementali/regioni (fuoco, gelo, colline, nuvole) e i giganti delle pietre e delle tempeste. Readback SQL conferma 6 punteggi, azioni e `completezza_scheda=completa` per tutte le 9 schede, fingerprint coincidenti. Snapshot globale Supabase **158/390 strutturalmente complete, 232 incomplete**: il contatore aggregato comprende anche altri aggiornamenti rilevati sui record del manuale; non attribuirli a questi nove UPDATE. La certificazione editoriale/indipendente rimane fase separata. PR #598 draft verso `develop`, `main` isolata, nessun merge/deploy.
