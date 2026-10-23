@@ -1136,3 +1136,20 @@ Ripresa priorità **Guida di Van Richten a Ravenloft**, pagina 201 e 226 origina
 | Squartatore Implacabile | 226 | `ref_d51fe516f2dd25a49222ae748d67fa47` | 2 | 2 | `cbe5b20bd0e7c5d4464f81b6e2e31d28` |
 
 Rilettura via SELECT dopo la scrittura: 5/5 `completezza_scheda=completa`, sei caratteristiche, azioni coerenti con il PDF, fingerprints esatti e lease vuoto, revisione indipendente sempre pending. **Van Richten: 5/36 complete nella struttura, 31 ancora da lavorare.** Primo lotto ripristinato, prossima scheda Colosso Implacabile p227. Bigby 71/71 e Eberron 40/40 già chiusi strutturalmente, Fizban 3/73 avviato. Stato `ai_verified` non assegnato forzatamente. Nessun merge/deploy, PR #598 resta draft verso develop, main separato.
+
+
+## Van Richten — secondo lotto, 10/36 (23 ottobre 2026)
+
+Fonte originale italiana `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf`, cinque pagine 227–231 rese in JPG con Poppler e confrontate visivamente. Cinque UPDATE su singoli record esistenti con guardie preflight: id, nome, timestamp, origine/pagina, CA/PF/velocità, revisione pending, lease assente, completezza non ancora ottenuta. Nessun INSERT, nessuna modifica a source_refs/source_*; per il Cervello in Barattolo sono state mantenute le due referenze incrociate a Lost Laboratory of Kwalish e Infernal Machine Rebuild per evitare duplicazione.
+
+| Nome | Pagina | ID | Azioni | MD5 SELECT separata |
+| --- | ---: | --- | ---: | --- |
+| Colosso Implacabile | 227 | `ref_89b4b10d22fd203cab73873783c1bd3c` | 4 | `ce354c5e6d07bc5d81a3f27eada1e316` |
+| Carognetta | 228 | `ref_b85952bde75b936c8d51e073a1ecce23` | 2 | `2648a32b587b4d6945c638fc254b721c` |
+| Cervello in Barattolo | 229 | `ref_ad498de98c52550d9e19996e6bb2b750` | 3 | `7a868b0ec482faab9723295982784640` |
+| Corvo Mannaro | 230 | `ref_4a50c83f6fb4f9396a17cbba183acbc2` | 5 | `808b74b75086b5711e8dfaf5a70db4cc` |
+| Divoratore di Menti Vampirico | 231 | `ref_eb7f231d9c768901c25c7c2c8146e292` | 4 | `8ab03e651a5317e3977530a8d824268a` |
+
+Readback live: cinque completezze `completa`, sei caratteristiche, azioni/bonus/legendarie salvate, MD5 identici a quelli post-update, zero lease e revisione indipendente `pending`. Censimento **Van Richten 10/36 complete strutturalmente, 26 da completare, 0 ai_verified**. Non è stata manipolata alcuna certificazione. Prossima voce: Dullahan p232; non serve altro PDF perché originale completo 257 pp già disponibile.
+
+PR #598 draft verso develop, main invariato, nessun merge o deploy.
