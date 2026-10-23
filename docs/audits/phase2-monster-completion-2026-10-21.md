@@ -1306,3 +1306,17 @@ Fonte PDF privato originale Il Tesoro dei Draghi di Fizban, pagine fisiche 179, 
 | Drago di ametista cucciolo | 181 | `ref_f5d0a15d980b9577ab970f0824e27dd9` | `cc9b5c2219cfa72f48665f843ce21a71` |
 
 Sul cucciolo effettuata ulteriore correzione puntuale del refuso di digitazione `discol fluttuante` -> `disco fluttuante`, anche in `full_text`, MD5 dopo la correzione riportato sopra. Snapshot SELECT totale: **Fizban 28/73 `completezza_scheda=completa`**, 45 incompleti. Non certificazione semantica forzata; Terrore draconico ancora incompleto e con blocco del connettore documentato. Nessun merge o deploy; branch draft verso develop e main invariata.
+
+
+## Fizban — quattro draghi di cristallo 32/73 (23 ottobre 2026)
+
+Fonte privata originale Fizban, pagine fisiche 183–185; controllo visivo delle pagine complete (inclusa la tabella azioni di tana a p183). UPDATE esistenti soltanto per ID/nome/timestamp con guardie `ftod_2021_it`/pagina, CA/PF/velocità, lease vuoto, status review. Nessun INSERT e nessun cambio `source_*`.
+
+| Nome | Pagine | ID | Fingerprint MD5 verificato |
+| --- | ---: | --- | --- |
+| Drago di cristallo antico | 183 | `ref_151f39709d3246943ae3b1995cef1251` | `f0b6ba416726145ec9c6f24bf548ad0c` |
+| Drago di cristallo adulto | 184 | `ref_4d9ac4f153701eb2360df437354652cb` | `ad7c7b62cb97fc09c6b93723d7fed936` |
+| Drago di cristallo giovane | 185 | `ref_725f313e41a3925fac805fa20509c1c3` | `c5df222a871c583f6958bc60f810748a` |
+| Drago di cristallo cucciolo | 185 | `ref_b0ffe60bae2dbdad3cf50e71de2ff748` | `14f55328c2905c7b0c1abe74ee4e93a2` |
+
+Conservati soffio radioso con PF temporanei, il set di incantesimi di ciascuna età, azioni leggendarie adulto/antico e azioni di tana per antico. Rilettura SELECT indipendente: `completezza_scheda=completa` 4/4, MD5 coincidenti. **Fizban 32/73 complete, 41 ancora incomplete**, non forzato `ai_verified`. PR #598 draft, verso develop, main invariato.
