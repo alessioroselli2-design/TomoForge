@@ -889,3 +889,20 @@ Fonti private Bigby italiano, pagine PDF 168–172. Cinque UPDATE su record già
 Rilettura SELECT separata: tutte le cinque schede hanno sei caratteristiche, azioni complete, `completezza_scheda=completa`, fingerprint MD5 corrispondenti e `translation_review_status=pending`. I dettagli editoriali dei titani (funzionamento delle culle, inghiottimento e vortici) sono stati confrontati con il testo italiano della fonte.
 
 Bigby **45/71 complete strutturalmente, 26 ancora da compilare**. Revisione finale indipendente separata, `ai_verified` non assegnato. PR #598 draft verso `develop`; nessuna modifica di `main`, nessun merge o deploy. Prossimo: Rampollo di Memnor, p.173.
+
+
+## Bigby — decimo lotto, 5 schede (23 ottobre 2026)
+
+PDF italiano Bigby consultato per le schede stampate nelle pagine 173–177, con radice source_refs 172 per Rampollo di Memnor e 174 per Rampollo di Skoraeus. Questi cinque titani/culle **sono record distinti già esistenti**. Per ognuno: verifica identità, CA, PF, velocità e provenienza, guardia di timestamp/lease/stato; UPDATE della descrizione riassuntiva e della scheda strutturata, preservando i source_* e la certificazione pending. Nessun INSERT.
+
+| Mostro | Pagina in source_refs | ID | N. azioni | MD5 dopo rilettura |
+| --- | ---: | --- | ---: | --- |
+| Rampollo Di Memnor | 172 | `ref_7bc4d1c262b355668531f7e2331550f4` | 5 | `e07229754ce1a0f3e96f88ed875f77c0` |
+| Culla Del Rampollo Delle Pietre | 174 | `ref_1535557d71cd52849aba54a8418fbb2e` | 4 | `e16f22b734feaec507d4c4ccfc5c6a8f` |
+| Rampollo Di Skoraeus | 174 | `ref_f0ebcfa60b9256a8afa871cfd9d0bbb8` | 5 | `a61670c6cf57d9de52d41a8b00e850eb` |
+| Culla Del Rampollo Delle Tempeste | 176 | `ref_b0418fbbc1d85eaabb98d5891a4a45ab` | 4 | `2f31d4b7b8ef2ce093bc90156805b77f` |
+| Rampollo Di Stronmaus | 177 | `ref_4dc0cbc8340d5958bf4d85756ef9027c` | 4 | `a6703efbba5a306229f6025cf3780e8d` |
+
+Rilettura separata: 5/5 `completezza_scheda=completa`, 6 punteggi, azioni structured, fingerprint attuale coincidente e lease vuoti, stato `pending`. Nota editoriale: il tiro salvezza INT del rampollo di Stronmaus è `+16`; la stampa nel PDF porta un doppio segno `+ +16` che è stato normalizzato senza modificarne il valore.
+
+**Bigby 50/71 completate strutturalmente, 21 mancanti**, `ai_verified` ancora 0 perché non svolto secondo audit semantico indipendente. PR #598 draft verso develop, main invariato, niente merge o deploy. Proseguire p178, Culla del Rampollo del Fuoco.
