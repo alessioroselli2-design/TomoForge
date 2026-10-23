@@ -1519,3 +1519,18 @@ La Yochlol conserva le forme alternative drow/ragno/nebbia con condizioni d'uso.
 
 ### Correzione mirata sulla regola Ferita infernale — Diavolo Barbuto
 Confronto editoriale della pagina PDF 70: il falcione applica la ferita infernale **solo alle creature diverse da non morti e costrutti**. Rettificata la frase nel record di Diavolo Barbuto, nei campi `attributes.azioni[2].descrizione` e `full_text`, con SQL protetto da ID, name, provenance, timestamp, lease e stato revisione; SELECT readback con risultato testuale corretto e nuovo fingerprint `a3144aa85923090ddc1492b0feb3313b`. L'ID non cambia, nessun duplicato, nessuna certificazione AI automatica.
+
+
+## Manuale dei Mostri — diavoli pp 74–77 (23 ottobre 2026), 73/390
+
+Cinque statblock dal PDF privato italiano originale, pagine fisiche 74–77, letti direttamente dalle immagini. Aggiornati i 5 record preesistenti `mm_2014_it` con UPDATE protetti da ID, nome, `updated_at` originario, pagine fonte, CA/PF/velocità, `review_status=verified`, `translation_status=not_required`, `translation_review_status=pending` e lease nullo. Solo `attributes`, `description`, `full_text`, `updated_at` sono cambiati. Nessun nuovo record, nessun campo `source_*` modificato, nessun merge/deploy.
+
+| Nome | Pagina PDF | Fingerprint MD5 letto da Supabase |
+| --- | ---: | --- |
+| Diavolo Della Fossa | 74 | `d781df1391515fc4ace8e3e60a837de7` |
+| Diavolo Delle Catene | 75 | `b9d8c1aef81ee0b547edbf784c644ff4` |
+| Diavolo Spinato | 76 | `d7e32b6b81f31664038efb7afe60e04b` |
+| Diavolo Uncinato | 76 | `75fbefc75c358f2c2bdeb6cac2178c3e` |
+| Erinni | 77 | `e5c805c8af7ea0aa4ddb025dfd635eea` |
+
+Conservate aura di paura e incantesimi innati del Diavolo della Fossa, meccaniche delle catene animate e reazione della maschera, spine limitate e volo sfuggente, pelle uncinata, e per Erinni reazione Parata e variante Corda intralciante (la descrizione di dettaglio della corda rimane referenziata alla Guida del Dungeon Master, **non inventata**). Verifica SELECT separata: 5 schede `completezza_scheda=completa`, sei punteggi, azioni, fingerprint corrispondenti, `translation_review_status=pending` invariato. Totale manuale dal DB **73/390** complete nella struttura, **317** incomplete. `main` isolato, PR draft #598 verso develop, non mergeata.
