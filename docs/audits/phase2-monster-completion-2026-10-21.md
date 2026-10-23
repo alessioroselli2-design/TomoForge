@@ -1115,3 +1115,24 @@ Si è passati al manuale **Il Tesoro dei Draghi di Fizban**: la Library contiene
 Nota: per le prime due schede sono state preservate esplicitamente le **formule dinamiche** di CA, PF, bonus e scaling dell'incantesimo (nessun numero arbitrario). Rilettura SELECT: `completezza_scheda=completa`, sei caratteristiche, sezioni azioni verificate sul PDF originale, lease assente, fingerprint MD5 coincidente; nessuna promozione di certificazione. **Fizban 3/73 complete strutturalmente, 70 da lavorare**; il restante bestiario inizia p160, non disponibile nell'attuale prima metà del PDF. Completare solo dopo aver recuperato la continuazione del manuale o altra fonte privata autorizzata in Library, non inventare contenuti.
 
 PR #598 draft su develop; `main` separato, nessun merge/deploy. Il PDF resta privato, non è stato aggiunto a GitHub.
+
+
+## Correzione ricognizione PDF e Van Richten 5/36 (23 ottobre 2026)
+
+**CORREZIONE DEL PARAGRAFO PRECEDENTE (non valido per la disponibilità dei manuali):** Il sistema di indicizzazione `files.read` restituiva `num_pages=150`, limite della sua anteprima; non è il numero delle pagine del PDF originale. Dopo aver materializzato i documenti privati in contenitore e interrogato `pdfinfo` sui byte reali, risultano:
+- `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf`: **257 pagine**, incluse tutte le schede dalla 201 in poi;
+- `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf`: **227 pagine**, incluse le schede da p160;
+- `847921086-Manuale-Dei-Mostri-5e.pdf`: **353 pagine**.
+Pertanto le indicazioni precedenti «serve la seconda parte del manuale» erano **errate e sono annullate**. Nessun limite alla fonte privata autorizzata; il completamento può proseguire per ciascun manuale. I tre aggiornamenti a Fizban restano validi.
+
+Ripresa priorità **Guida di Van Richten a Ravenloft**, pagina 201 e 226 originali renderizzate con Poppler in JPG e confrontate visivamente ai dati. Cinque UPDATE condizionali protetti su ID, nome, updated_at preesistente, fonte/pagina, CA/PF/velocità, lease vuoto, `review_status=verified` iniziale e `translation_review_status=pending`. Nessun INSERT, nessun `source_*` modificato.
+
+| Nome | Pagina fonte | ID | Azioni | Azioni leggendarie | MD5 readback |
+| --- | ---: | --- | ---: | ---: | --- |
+| Apprendista | 201 | `ref_54b48d74a137749ce7176b22916f5026` | 3 | 0 | `a5f4d7731d73bef3812d39eedfb2ba27` |
+| Discepolo | 201 | `ref_ce9912fca8e61978bd393d89fd482874` | 2 | 0 | `4fca615f166d5cf43774976e474b5e47` |
+| Scudiero | 201 | `ref_5901937e8351eafc7c61172d7bd3aa9d` | 1 | 0 | `b1796be87f1c59b4a127ced3e71df0e9` |
+| Spia (Van Richten) | 201 | `ref_62e2c6e85dc25026d43833448f00b355` | 1 | 0 | `cc4bc05aa250fc39731231410aeb0e1d` |
+| Squartatore Implacabile | 226 | `ref_d51fe516f2dd25a49222ae748d67fa47` | 2 | 2 | `cbe5b20bd0e7c5d4464f81b6e2e31d28` |
+
+Rilettura via SELECT dopo la scrittura: 5/5 `completezza_scheda=completa`, sei caratteristiche, azioni coerenti con il PDF, fingerprints esatti e lease vuoto, revisione indipendente sempre pending. **Van Richten: 5/36 complete nella struttura, 31 ancora da lavorare.** Primo lotto ripristinato, prossima scheda Colosso Implacabile p227. Bigby 71/71 e Eberron 40/40 già chiusi strutturalmente, Fizban 3/73 avviato. Stato `ai_verified` non assegnato forzatamente. Nessun merge/deploy, PR #598 resta draft verso develop, main separato.
