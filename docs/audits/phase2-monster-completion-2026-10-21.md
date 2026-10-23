@@ -1221,3 +1221,21 @@ Per la Testa della Morte le tre tipologie di testa sono **alternative**; gli att
 **CHECK AGGREGATO LIVE Supabase**: `total=36`, `structurally_complete=36`, `six_scores=36`, `with_actions=36`, `with_description_and_fulltext=36`, `leased=0`, `distinct_ids=36`, `distinct_names=36`, `distinct_normalized_names=36`, `certification_pending=36`, `ai_verified=0`.
 
 **Van Richten strutturalmente 36/36 concluso**; il percorso di seconda revisione semantica, inclusa la voce controversa 'Nebbia mentale' nell'Emissario maggiore, è ancora aperto e non falsamente certificato. Bigby 71/71 ed Eberron 40/40 erano anch'essi già completi strutturalmente. PR #598 draft verso `develop`, `main` stagna, nessun merge/deploy. Prossimo manuale da completare: Il Tesoro dei Draghi di Fizban, attualmente 3/73 strutturali, con PDF privato integro di 227 pagine.
+
+
+## Fizban — secondo lotto, 9/73 (23 ottobre 2026)
+
+Dopo il completamento strutturale di Van Richten (36/36), iniziato il capitolo bestiario di `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf`, pagine fisiche 160–163 (corrispondenti a pp159–162 stampate). Sei righe già presenti sono state completate mediante `UPDATE` condizionali, con guardie ID, nome, timestamp, fonte/pagina, CA/PF/velocità, `translation_review_status=not_required`, `translation_status=not_required`, stato di prima revisione `verified` e lease vuoto. Nessun INSERT, `source_*` invariati.
+
+| Nome | Pag. PDF | ID | Azioni | Fingerprint MD5 readback |
+| --- | ---: | --- | ---: | --- |
+| Cacciatore di gemme | 160 | `ref_e79f9ff2b224b12d184fa7dc09da2d6b` | 2 | `57973ec386eab23550c52c5c7d596d88` |
+| Cacciatore di uova adulto | 161 | `ref_c8f9fd2a9ad14fc7a288268258d2e42b` | 3 | `17824729f8682ffb947c9ec842b7eb36` |
+| Cucciolo di cacciatore di uova | 161 | `ref_9ee3577fe80dfabc20cb66c5204d06b2` | 2 | `c916aeea794c010debbf0c7feb0c6f4a` |
+| Dragonide di Bahamut | 162 | `ref_b3dc3cf429d0db1c6e5f5d9feafaa411` | 4 | `afa75343a1e1eeaff922e6122f61f7cc` |
+| Dragonide di Sardior | 163 | `ref_9fe914213ed5f027dadf9d7461f116a1` | 4 | `7c401ed636328f77073bfc6ad5e24b00` |
+| Dragonide di Tiamat | 163 | `ref_967073429a3987bf02f0e52322274103` | 3 | `4c5a3f967d96900b4e81e754a3dd781e` |
+
+Per Cacciatore di gemme preservati i cinque effetti del Dardo di cristallo in base al drago di origine; per i cacciatori di uova preservati i poteri distinti del cucciolo e dell'adulto; i tre campioni dragonidi hanno separatamente soffio radioso con guarigione, soffio rovente e soffio necrotico. I blocchi originali sono stati verificati visualmente sul PDF italiano. Readback separata Supabase: sei punteggi, azioni, fingerprint coincidono e lease vuoto per tutti; `completezza_scheda=completa` 6/6. Le schede di questo manuale sono `translation_review_status=not_required`: non promuovere artificialmente ad `ai_verified`. **Fizban 9/73 complete nella struttura, 64 da completare**.
+
+Van Richten resta **36/36**, Bigby **71/71**, Eberron **40/40** strutturalmente. Certificazione semantica indipendente ancora separata. PR #598 draft verso `develop`, nessun merge o deploy; `main` invariato. Prossima: Creazione di Bahamut a pagina PDF 165.
