@@ -1348,3 +1348,17 @@ Pagine fisiche originali PDF 190, 191, 192 (tre azioni di tana del topazio antic
 | Drago di topazio cucciolo | 193 | `17b276b65970b1c0a8ee414e6cfa54bb` |
 
 Rilettura SELECT indipendente: quattro `completezza_scheda=completa`, MD5 coincidenti, nessun cambiamento certificazione. Totale Fizban ora **40/73 strutturalmente completati, 33 residui**. PR #598 draft verso develop, main inalterato, niente merge/deploy.
+
+
+## Fizban — draghi di zaffiro 44/73 (23 ottobre 2026)
+
+Riletti visivamente PDF originale pp fisiche 194–197; su p197 verificati i tre effetti della tana dell'antico. Quattro UPDATE a record già esistenti e protetti da ID/nome/timestamp/fonte/pagina/stats originali/lease libero, senza INSERT né modifica provenance.
+
+| Nome | Pagina | MD5 SELECT |
+| --- | ---: | --- |
+| Drago di zaffiro antico | 194 | `0f71171c7abf57da492f158dbcf55a0f` |
+| Drago di zaffiro adulto | 195 | `3ca2a3f12f6c0a5c0833320040e02704` |
+| Drago di zaffiro giovane | 196 | `75e2a22c7ac62451005dad43be95599b` |
+| Drago di zaffiro cucciolo | 196 | `e8b666158886ec97d393ad3c729dca0b` |
+
+Tratti Scavatore e Movimenti del ragno, soffi debilitanti da tuono (incapacitazione), incantesimi psionici e azioni leggendarie distinti per età; antico tre azioni di tana. Verifica SELECT: 4/4 completezza `completa`, hash invariati. Snapshot Fizban **44/73 strutturali complete, 29 incomplete**. PR #598 draft su develop, main stagna, nessun merge/deploy, verifica semantica certificata non attribuita.
