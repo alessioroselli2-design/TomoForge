@@ -1334,3 +1334,17 @@ Pagine fisiche 186–188 del PDF originale italiano renderizzate e verificate. Q
 | Drago di smeraldo cucciolo | 188 | `fb14940f0bc93ada8714ebd1bc7aa150` |
 
 SELECT indipendente: tutti e quattro `completezza_scheda=completa` e hash confermati; **36/73 Fizban**, 37 incomplete. Certificazione semantica separata, PR #598 draft verso develop, main invariato.
+
+
+## Fizban — quattro draghi di topazio 40/73 (23 ottobre 2026)
+
+Pagine fisiche originali PDF 190, 191, 192 (tre azioni di tana del topazio antico) e 193 verificate su rendering. Quattro record preesistenti aggiornati con guardie di source_refs e pagina, id/nome, updated_at, CA/PF/velocità iniziali, revision_status e assenza lease; `source_*` invariati, nessun INSERT. Inclusi l'effetto *indebolita* del soffio necrotico con le sue conseguenze sulle prove e danni basati su Forza, e le azioni leggendarie e di tana per antico, leggendarie per adulto.
+
+| Nome | pagina PDF | Hash MD5 SELECT |
+| --- | ---: | --- |
+| Drago di topazio antico | 190 e tana 192 | `c5df5895b4ce853667413687fbd5f150` |
+| Drago di topazio adulto | 191 | `7fdb69916a7666a8ff95b7589102ed48` |
+| Drago di topazio giovane | 193 | `04b08435155324b59ab2f2d5fcced118` |
+| Drago di topazio cucciolo | 193 | `17b276b65970b1c0a8ee414e6cfa54bb` |
+
+Rilettura SELECT indipendente: quattro `completezza_scheda=completa`, MD5 coincidenti, nessun cambiamento certificazione. Totale Fizban ora **40/73 strutturalmente completati, 33 residui**. PR #598 draft verso develop, main inalterato, niente merge/deploy.
