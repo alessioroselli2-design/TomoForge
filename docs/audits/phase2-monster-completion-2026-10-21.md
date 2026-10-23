@@ -1239,3 +1239,20 @@ Dopo il completamento strutturale di Van Richten (36/36), iniziato il capitolo b
 Per Cacciatore di gemme preservati i cinque effetti del Dardo di cristallo in base al drago di origine; per i cacciatori di uova preservati i poteri distinti del cucciolo e dell'adulto; i tre campioni dragonidi hanno separatamente soffio radioso con guarigione, soffio rovente e soffio necrotico. I blocchi originali sono stati verificati visualmente sul PDF italiano. Readback separata Supabase: sei punteggi, azioni, fingerprint coincidono e lease vuoto per tutti; `completezza_scheda=completa` 6/6. Le schede di questo manuale sono `translation_review_status=not_required`: non promuovere artificialmente ad `ai_verified`. **Fizban 9/73 complete nella struttura, 64 da completare**.
 
 Van Richten resta **36/36**, Bigby **71/71**, Eberron **40/40** strutturalmente. Certificazione semantica indipendente ancora separata. PR #598 draft verso `develop`, nessun merge o deploy; `main` invariato. Prossima: Creazione di Bahamut a pagina PDF 165.
+
+
+## Fizban — terzo lotto, 14/73 (23 ottobre 2026)
+
+Fonte privata originale integrale `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf`, pagine **PDF fisiche 165–170**, consultate mediante render JPG a 2400 px. Cinque schede mostro preesistenti aggiornate da `statistiche_essenziali` a `completezza_scheda=completa`. Scritture condizionali individuali con ID, nome, timestamp preesistente, `review_status=verified`, `translation_status=not_required`, `translation_review_status=not_required`, lease vuoto, source_refs/pagina, CA/PF/velocità iniziali e stato incomplete. Solo `attributes`, `description`, `full_text` e `updated_at`; nessun INSERT o mutazione dei dati `source_*`.
+
+| Nome | Pagina PDF | ID | Azioni | Azioni mitiche | MD5 SELECT |
+| --- | ---: | --- | ---: | ---: | --- |
+| Creazione di Bahamut | 165 | `ref_5dc37ce8a5dc90b571bfaa091f1c8cb0` | 5 | 2 | `e407cacf69f638aa74124224dd62c7b6` |
+| Creazione di Tiamat | 166 | `ref_c4d8774b267f8c17bee754edcbfe2082` | 5 | 2 | `bac2a9347bdb92a2b01634179966b1fc` |
+| Dracoidra | 168 | `ref_be5f4d0b1daa748e678db4b770b3a69d` | 3 | 0 | `0a76a2440b3df042580b984d92d4c95e` |
+| Fante draconico | 169 | `ref_a692d05c1306439fef15c9c0258d9ec4` | 2 | 0 | `1b7888b43f46362ff3075de7152a6701` |
+| Infiltrato draconico | 170 | `ref_aad8a462c9c02913390dca158313238e` | 2 | 0 | `bc04c01876c0e4a12f899005c08bdf40` |
+
+Per Bahamut e Tiamat preservate **due fasi mitiche distinte**, entrambe con 5 azioni ordinarie, 2 leggendarie, 2 mitiche e requisiti di attivazione al raggiungimento di 0 PF. Dracoidra conserva cinque teste, ricrescita condizionata e soffio multielementale. Fante e Infiltrato mantengono la rispettiva morte pietrificante/acida, senza scambiarne le CD.
+
+**Readback SELECT indipendente**: tutti e cinque presentano `completezza_scheda=completa`, 6 valori delle caratteristiche, azioni salvate, MD5 corrispondenti, lease liberi, `translation_review_status=not_required`. Aggregato live **Fizban: 14/73 complete strutturalmente, 59 ancora incomplete**. Nessuna certificazione semantica aggiunta né promozione artificiale. PR #598 draft verso `develop`, `main` intatta, nessun merge/deploy. Prossimo gruppo: Mago draconico (p170), Stratega draconico (p171) e Terrore draconico (p172).
