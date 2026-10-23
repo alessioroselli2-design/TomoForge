@@ -1549,3 +1549,18 @@ PDF originale italiano scansito pp fisiche 78, 79 e 80 letto a immagine. Aggiorn
 | Pteranodonte | 80 | `0694851d792b358b5879714dd3601fbf` |
 
 Meccaniche: Ringiovanimento infernale del Lemure, Balzo e morso condizionato dell'Allosauro, Coda dell'Anchilosauro con TS per prono, Trattenere il respiro del Plesiosauro e Volo sfuggente del Pteranodonte. Readback da SELECT separata: cinque schede `completezza_scheda=completa`, sei caratteristiche e almeno un'azione, hash invariati, status revisione `pending`. Contatore live: **78/390 strutturalmente complete, 312 incomplete**, nessuna certificazione semantica indipendente assegnata. PR #598 draft su `develop`, `main` inalterata e nessun merge/deploy. Si prosegue dai record successivi a pagina 80.
+
+
+## Manuale dei Mostri — dinosauri, divoracervelli, doppelganger e dracolich (23 ottobre 2026), 83/390
+
+PDF italiano privato del Manuale dei Mostri, pp fisiche 80, 81, 82, 83 (testo archetipo Dracolich) e 84 (statblock). Cinque record preesistenti aggiornati individualmente tramite CAS su ID, name, updated_at, provenance `mm_2014_it`/pagina, CA/PF/velocità originali, lease assente e stati review. Nessun INSERT e nessun cambiamento ai campi `source_*`.
+
+| Nome | Pagina | MD5 verificato in SELECT separata |
+| --- | ---: | --- |
+| Tirannosauro | 80 | `fb3d6164acb59a25b0f6cd6edb744837` |
+| Triceratopo | 80 | `3aab641cde963312cb2c16c3bb3f70ef` |
+| Divoracervelli | 81 | `e746759231477f86b4869722281e81d0` |
+| Doppelganger | 82 | `e7be3a01df38ffdc9945e559762ce278` |
+| Dracolich Blu Adulto | 84 | `f041efce8b8652fb1d185ed1016f5f65` |
+
+Verificati Balzo travolgente del Triceratopo e regola di due bersagli distinti del Tirannosauro; per Divoracervelli `Divorare il cervello` e `Ladro di corpi`, per Doppelganger Lettura del pensiero con soglie barriere e sorpresa, per Dracolich resistenze specifiche, soffio, e tre opzioni leggendarie separate. Readback SELECT 5/5 `completezza_scheda=completa`, 6 statistiche, azioni e fingerprint coincidenti, tutti `translation_review_status=pending`. Contatore live **83/390 strutturalmente complete, 307 non complete**. Nessuna certificazione indipendente forzata, PR #598 draft su `develop`; `main` invariato. Prossima fonte p85: Drago d'Ombra Rosso Giovane.
