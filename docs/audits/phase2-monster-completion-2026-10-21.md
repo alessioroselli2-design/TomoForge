@@ -872,3 +872,20 @@ Fonte privata originale Bigby, pagine PDF 163–167: cinque nuove schede struttu
 Readback reali SELECT: 5/5 struttura `completa`, 6 punteggi, azioni coerenti con sezioni pubblicate e fingerprint corrispondenti; tutti restano `translation_review_status=pending`. Questo audit non sostituisce revisione semantica indipendente e non assegna `ai_verified`.
 
 Bigby **40/71 schede complete nella struttura, 31 ancora da completare**, 0/71 certificate nella nuova fase. PR #598 draft su develop, nessun merge, nessun deploy su main. Proseguire con Nuvola Spettrale p.168.
+
+
+## Bigby — nono lotto, 5 schede (23 ottobre 2026)
+
+Fonti private Bigby italiano, pagine PDF 168–172. Cinque UPDATE su record già presenti e univoci con guardie condizionali su ID, nome, stato, timestamp, CA/PF/velocità, fonte/pagina, lease libero. Una delle culle e il rampollo sono schede differenti, entrambe già catalogate: **nessun duplicato**. Fonte `bgg_2023_it` e tutti i `source_*` conservati.
+
+| Mostro | Pagina registrata | ID | Azioni | MD5 riletto |
+| --- | ---: | --- | ---: | --- |
+| Nuvola Spettrale | 168 | `ref_f1d7b2c1ee66563587537988b9399a29` | 3 | `f60f418d11ce711eff185e351f1ad6ad` |
+| Oca Gigante | 169 | `ref_0fc1acf699e659d0987b3ea17514bca6` | 4 | `bf315bf53d39a399851e08e335597eb9` |
+| Culla Del Rampollo Delle Colline | 170 | `ref_c2a7d3e06e52569e851f737c33260f9d` | 5 | `c8c2376563164dd855359f61e4b1ec2c` |
+| Rampollo Di Grolantor | 170 | `ref_4e249fc0d86753919cbb7bec5b96b661` | 5 | `4270fccf3638a769a05d112ddbe1d748` |
+| Culla Del Rampollo Delle Nuvole | 172 | `ref_8e5668fc110b5c0a936d4078ff77b7c1` | 4 | `a62b4283793b38c5c6754946cf117e64` |
+
+Rilettura SELECT separata: tutte le cinque schede hanno sei caratteristiche, azioni complete, `completezza_scheda=completa`, fingerprint MD5 corrispondenti e `translation_review_status=pending`. I dettagli editoriali dei titani (funzionamento delle culle, inghiottimento e vortici) sono stati confrontati con il testo italiano della fonte.
+
+Bigby **45/71 complete strutturalmente, 26 ancora da compilare**. Revisione finale indipendente separata, `ai_verified` non assegnato. PR #598 draft verso `develop`; nessuna modifica di `main`, nessun merge o deploy. Prossimo: Rampollo di Memnor, p.173.
