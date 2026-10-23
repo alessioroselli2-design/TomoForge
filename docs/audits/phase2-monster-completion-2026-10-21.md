@@ -1500,3 +1500,18 @@ Gruppo di cinque schede del Manuale dei Mostri originale italiano, pp 60, 61, 62
 | Vrock | 64 | `0f80ce2c7c0eed5722a2ec8e0d706fcb` |
 
 Conservate le capacità caratteristiche (Fetore, Nube di orrore, Spore, Stridio stordente), le sette azioni d'attacco della Marilith e reazione Parata, con le distinte CD e immunità. Verifiche SELECT separate: 5/5 `completezza_scheda=completa`, 6 punteggi, azioni presenti, MD5 coincidenti, `translation_review_status=pending` inalterato. Stato live del manuale: **63/390 schede complete nella struttura, 327 incomplete**. Prossimo Yochlol p65. La certificazione semantica indipendente resta separata e non completata. PR #598 in draft su develop, main invariato; nessun merge/deploy.
+
+
+## Manuale dei Mostri — demoni e diavoli 68/390 (23 ottobre 2026)
+
+Cinque schede preesistenti completate strutturalmente dal PDF italiano integrale (pagine fisiche 65, 70, 71, 72, 73), con controllo visuale delle azioni, delle condizioni e delle varianti. `UPDATE` soltanto con guardie su ID/nome/timestamp/fonte+pagina/CA/PF/velocità originali, `review_status=verified`, lease vuoto, e `translation_review_status=pending` non modificato. Nessun INSERT, nessuna modifica `source_*`.
+
+| Nome | Pagina PDF | MD5 da rilettura indipendente |
+| --- | ---: | --- |
+| Yochlol | 65 | `ab6946223f78cdcf876bc2f954fcc355` |
+| Diavolo Barbuto | 70 | `ce42c9c5781b9ddba39adebcf513def4` |
+| Diavolo Cornuto | 71 | `5f4271d8f1cbf926dab55d211b850ce4` |
+| Diavolo D'Ossa | 72 | `06b54d9bc817d81afead19f7edf92911` |
+| Diavolo Del Ghiaccio | 73 | `9d3a21b7b1a390bbfcdd003139ac0587` |
+
+La Yochlol conserva le forme alternative drow/ragno/nebbia con condizioni d'uso. Il Diavolo Barbuto e Cornuto conservano le ferite infernali. Diavolo D'Ossa contiene la variante separata con arma su asta, e Diavolo Del Ghiaccio la lancia alternativa e l'effetto complesso del muro di ghiaccio. SELECT distinta conferma cinque status `completezza_scheda=completa`, sei caratteristiche, azioni, hash concordanti, varianti separate, revisione semantica ancora `pending`. **Snapshot Supabase 68/390 strutturalmente complete, 322 incomplete**. PR #598 ancora draft su `develop`, main invariato, nessun merge/deploy. Prossima scheda: Diavolo Della Fossa p74.
