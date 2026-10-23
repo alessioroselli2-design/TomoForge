@@ -1594,3 +1594,18 @@ PDF privato MM italiano pagine fisiche 91–92 e 94, letto visivamente. Cinque a
 | Drago Nero Antico | 94 | `5e396f9e9cb76470c18435174a5118cf` |
 
 Blue hanno immunità ai danni da fulmine, nero antico ad acido; salvate differenti gittate, danni e CD dei soffi. Drago Blu Antico, Blu Adulto e Nero Antico: 3 opzioni leggendarie ciascuno; giovane e cucciolo: nessuna. SELECT separata conferma 5 `completezza_scheda=completa`, 6 caratteristiche, azioni e checksum coerenti, `translation_review_status=pending` non forzato. **93/390 strutturalmente complete, 297 incomplete**. PR #598 draft verso `develop`, `main` invariata e nessun merge/deploy. Prossimo Drago Nero Adulto pagina 95.
+
+
+## Manuale dei Mostri — neri e rossi, 98/390 (23 ottobre 2026)
+
+PDF originale italiano pp fisiche 95, 97, 98. Cinque UPDATE a schede preesistenti in `mm_2014_it`, protetti da CAS su ID/nome/timestamp originale, fonte/pagina, CA/PF/velocità, lease vuoto, stato revisione invariato. Nessun INSERT e nessun cambio a `source_*`.
+
+| Nome | pagina | MD5 letto da SELECT |
+| --- | ---: | --- |
+| Drago Nero Adulto | 95 | `9d4146606186da65e27a229699c0591a` |
+| Drago Nero Giovane | 95 | `83ed52de42c81f5c4e49ff8026cce97a` |
+| Drago Nero Cucciolo | 95 | `ded5e029591ac1447af081e646aaa8ba` |
+| Drago Rosso Antico | 97 | `74a95c5cff7c361291788daa9cfd2005` |
+| Drago Rosso Adulto | 98 | `870d201658032dbfb6edc26fe9424fb9` |
+
+Mantenuti soffi di acido vs fuoco, anfibio neri, CD e dimensioni delle aree indipendenti per età, azioni leggendarie solo su antichi/adulti. Readback SELECT conferma 5/5 `completezza_scheda=completa`, sei punteggi, almeno una azione, checksum invariati, `translation_review_status=pending`. Totale live **98/390**, **292 incompleti strutturali**. Revisione semantica indipendente non certificata. PR #598 draft verso `develop`, main separata, nessun merge/deploy. Prossimi: Drago Rosso Giovane e Cucciolo p98.
