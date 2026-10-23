@@ -730,3 +730,24 @@ La discrepanza originale `Mercykiller Bloodhound` 104 (16d8+48) rimane esplicita
 **Audit a campione completo di 54 schede verificato con SELECT + SHA256 ricalcolati**: 54 record, 54 tradotti, 53 `ai_verified`, **53/53 impronte valide**, 54/54 riferimenti PDF SHA corretti, 54/54 PF/locali identici agli HP stampati nelle fonti, 54/54 GS corrispondenti, 54/54 sestine caratteristiche concordanti, 54/54 strutture azioni/tratti/reazioni presenti, zero nomi normalizzati duplicati, zero velocità `ft` residue. Una sola scheda `review_status=pending`: il Mercykiller suddetto.
 
 **Checkpoint globale**: 1501 mostri, 593 tradotti, 908 `not_required`, **129 `ai_verified`**, **464 traduzioni con seconda revisione pending**. Si è rispettata la separazione tra `develop` e `main`; nessun merge/deploy effettuato. Proseguire con i manuali disponibili senza trasformare le eccezioni source-backed in numeri inventati.
+
+
+## Bigby — completamento strutturale di 5 schede (23 ottobre 2026)
+
+Fonte letta direttamente: PDF italiano privato *Bigby presenta: La Gloria dei Giganti*, file registrato `760692359-D-D-5e-ITA-Bigby-Presenta-La-Gloria-Dei-Giganti.pdf`, pagine fisiche 129–134. Testo e immagini di pagina confrontati; nessun PDF o passaggio esteso da manuale caricato nel repo.
+
+Sono stati eseguiti cinque aggiornamenti **condizionali, singolo ID alla volta**, con guardie su `updated_at`, `reference_type=monster`, `review_status=verified`, origine `bgg_2023_it`, pagina, CA/PF/velocità, stato `pending` e assenza lease. Soltanto `description`, `full_text`, `attributes` e `updated_at` sono cambiati; provenienza e `source_*` non sono stati toccati.
+
+| Pagina PDF | Nome | ID esistente | Tratti | Azioni | Bonus | Reazioni | Fingerprint MD5 rilettura |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| 129 | Regisauro | `ref_198ba771755051078a7a58bc63cdca27` | 1 | 3 | 1 | 0 | `183e0defe42e59faf59539240b680932` |
+| 130 | Eco Di Demogorgon | `ref_2e7ffa9c08ab50628da4dd5424358f07` | 2 | 2 | 1 | 0 | `de6af7482646a50d80e01b20e1e9c914` |
+| 131 | Ettin Ceremorfo | `ref_7a26728f8410582ba70ddc7b44f5d4df` | 1 | 5 | 0 | 0 | `a82531e72eb912a19369cbcc64c65375` |
+| 132 | Fauce Di Yeenoghu | `ref_d151b6f247ea58d08469806c8adfde54` | 1 | 4 | 0 | 1 | `e769d4a3866068f4e0a64d28d906e661` |
+| 134 | Divoratore Fensir | `ref_509eeb5412a053ec9f5f17a1e36f9eb5` | 3 | 3 | 0 | 0 | `16b0e7b272b6bbab0ad0ed5b13adfaa5` |
+
+Rilettura live indipendente dalla risposta di UPDATE: 5/5 `completezza_scheda=completa`, sei punteggi numerici, stesso `logical_source_id` e stessa pagina; tutti i lease vuoti e i cinque fingerprint corrispondenti. Le sezioni non presenti nel PDF sono rese come array vuoti.
+
+**Certificazione:** lasciato `translation_status=not_required` (PDF già in italiano) e `translation_review_status=pending` per tutti e cinque. La lettura della fonte e il controllo strutturale **non costituiscono seconda revisione indipendente**: nessun `ai_verified` attribuito, nessun merge o deploy, nessuna modifica al branch `main`.
+
+Lavoro successivo: proseguire dalle pagine 134–136 e completare il secondo controllo su tutti i record Bigby, senza promozioni forzate.
