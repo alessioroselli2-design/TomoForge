@@ -838,3 +838,20 @@ Consultata fonte privata italiana Bigby, pagine PDF 153–157; pagina 155 contie
 Rilettura separata da scrittura: cinque fingerprint MD5 invariati rispetto alla SELECT post-update, sei caratteristiche numeriche, sezioni azioni complete, `completezza_scheda=completa`, lease vuoti, fonte `bgg_2023_it` intatta; tutti `translation_review_status=pending`. Confronto con fonte italiana, ma **nessuna seconda revisione semantica indipendente certificata**.
 
 Censimento a questo punto Bigby **30/71 schede complete strutturalmente**, **41 da lavorare**, **0 ai_verified**. PR #598 ancora draft verso develop, main invariato e nessun merge/deploy. Si prosegue dalla pagina 158.
+
+
+## Bigby — settimo lotto, 5 schede (23 ottobre 2026)
+
+Fonte privata italiana Bigby, pp. fisiche 158–162; cinque schede completate **senza creare nuove righe**. Gli UPDATE sono passati con guardie su ID, nome, timestamp precedente, fonte/pagina, CA/PF/velocità, lease e stato `pending`. Nessuna modifica `source_*`; niente promozione `ai_verified`. In particolare `Hulk Del Fulmine` ha **una sola azione** nel blocco stampato, `Fulmine ad arco`: non si aggiungono azioni inventate.
+
+| Nome | ID | Pagina | N. azioni | Fingerprint MD5 da SELECT |
+| --- | --- | ---: | ---: | --- |
+| Granchio Delle Tempeste | `ref_9ac0de67090652bdbe5e7fd1e01d00cb` | 158 | 4 | `5eecb31977bc41dea5bd105a9739924a` |
+| Hulk Del Fango | `ref_4096d217129b50cead1eeacc6de2e601` | 159 | 2 | `935139ffed752e4239b21f305f86718b` |
+| Hulk Del Fulmine | `ref_e8d2f4e9169b5013855d3d85fda072c1` | 160 | 1 | `bf7cdab91d9ece6e32533303432d5254` |
+| Hulk Delle Ceneri | `ref_322e2aee59de5989b08a9da022341943` | 161 | 3 | `89dbfc522c86e26d1d68394444f7ede7` |
+| Hulk Delle Nebbie | `ref_bacc8feacb4a594ca438acc3b8f41fab` | 162 | 3 | `fb512a9229192462c4598de96fdf15de` |
+
+Rilettura dal database: sei caratteristiche numeriche per record, attributi strutturati, `completezza_scheda=completa`, testo e descrizione presenti, stato `pending`; nessuna certificazione indipendente fabbricata. **Bigby: 35/71 completi strutturalmente; 36 da completare**; 0 `ai_verified`. PR #598 draft verso develop; main non aggiornato, nessun deploy/merge.
+
+Prossima scheda: Hulk Delle Polveri, pagina PDF 163. PDF e testi integrali non caricati nel repository.
