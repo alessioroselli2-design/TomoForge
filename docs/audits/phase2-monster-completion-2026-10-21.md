@@ -923,3 +923,21 @@ Fonte privata Bigby IT, pagine PDF 178–182, inclusi i casi con narrazione sull
 Per ciascuna riga: preflight su ID/nome, timestamp, fonte pagina, CA/PF/velocità, `review_status=verified`, `translation_review_status=pending`, lease vuoto; solo `description`, `full_text`, `attributes`, `updated_at` cambiano. Rilettura separata: 5/5 `completezza_scheda=completa`, sei abilità numeriche e sezioni coerenti, hash di contenuto corrispondente. **55/71 Bigby complete strutturalmente, 16 ancora da completare**, 0 `ai_verified` in fase 2. La revisione indipendente resta distinta e non viene falsamente attestata.
 
 PR #598 draft verso `develop`; `main` invariato, nessun merge o deploy. Prossimo: p183–188, poi riprendere i record iniziali p121–128; non registrare duplicati.
+
+
+## Bigby — dodicesimo lotto, 6 schede (23 ottobre 2026)
+
+Fonte privata italiana Bigby, pagine PDF 183–188; sei record già esistenti aggiornati senza crearne altri. Ciascuno è stato controllato per ID, nome, timestamp, fonte pagina, AC/PF/velocità, lease e stato `pending`. Le descrizioni e i blocchi statistiche italiani sono stati ricostruiti con tratti e azioni, mantenendo i valori source_* e la provenienza originali.
+
+| Nome | Pagina | ID | Azioni | Fingerprint MD5 |
+| --- | ---: | --- | ---: | --- |
+| Tagliafuoco | 183 | `ref_7195ffa044df51859e9850723d172587` | 3 | `5e60c13ff67d843c01a957c7f13d3ec9` |
+| Titanoronte | 184 | `ref_b2e6b81f4fb45a448ebd0a1c034f28a0` | 1 | `9f780359e3520ad0d0cdd4b75710afc5` |
+| Amalgama Di Troll | 185 | `ref_00b40d34847a50b1aac655cd9ba48371` | 2 | `6495223454fcb3906046eac0b659dd12` |
+| Troll Ibrido | 186 | `ref_815c9a5b017658a3859b977a0cfd6f35` | 3 | `ff989894bb23eaca01c0f005af14fc4a` |
+| Wight Marmoreo | 187 | `ref_f953a667dd2e564fbb178593f39be774` | 4 | `c2606670376275c64628a2696a5b3778` |
+| Zecca Gigante | 188 | `ref_20c706f9b35357f28b9c5ae7a8048232` | 2 | `753143137d425d7bf6f2332c29db8044` |
+
+Readback SELECT separata: sei punteggi, sezioni azioni corrispondenti alla pagina (una sola per Titanoronte), `completezza_scheda=completa`, fingerprint MD5 e assenza lease. **Bigby 61/71 complete strutturalmente, 10 da completare** (rimanenti concentrate alle pagine iniziali 121–128), 0 `ai_verified`. La revisione indipendente resta pending; nessuna promozione artificiosa.
+
+PR #598 draft verso `develop`, `main` invariato, nessun merge né deploy.
