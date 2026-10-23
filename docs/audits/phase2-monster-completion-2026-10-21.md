@@ -1639,3 +1639,18 @@ Dalla scansione PDF originale italiana, pagine fisiche 101 e 104–106, controll
 | Drago D’Argento Cucciolo | 106 | `2a4639e28101387b32222dc4dce042d2` |
 
 I draghi d'argento hanno i due soffi alternativi con CD/gittate distinte per età, immunità al freddo, mutaforma per antico e adulto, azioni leggendarie solo per antico e adulto; antico con azioni di tana separate. SELECT indipendente: 5/5 completezza_scheda=completa, 6 caratteristiche, azioni e MD5 corrispondenti, `translation_review_status=pending` invariato. **108/390 completi strutturalmente, 282 incompleti**. Certificazione semantica indipendente ancora necessaria; PR #598 draft verso `develop`, nessun merge/deploy. Prossima famiglia bronzo p107–109.
+
+
+## Manuale dei Mostri — bronzo e rame antico 113/390 (23 ottobre 2026)
+
+Dal PDF originale italiano, pagine fisiche 107–110, cinque schede preesistenti `mm_2014_it` aggiornate con SQL CAS su ID/nome/timestamp/fonte/pagina/CA/PF/velocità/lease e stati revisione invariati. Nessun INSERT né modifica ai campi source_*.
+
+| Mostro | Pagina PDF | MD5 letto in SELECT |
+| --- | ---: | --- |
+| Drago Di Bronzo Antico | 107 | `9e1dfea14151cfdf228e1cb4746b6fd6` |
+| Drago Di Bronzo Adulto | 108 | `16615b99f1cc45235bdf36fb9a6c3794` |
+| Drago Di Bronzo Giovane | 108 | `21dd2e5be3283e001d60163885ca8427` |
+| Drago Di Bronzo Cucciolo | 109 | `c850faefdbf2161cdbd02a362022ad16` |
+| Drago Di Rame Antico | 110 | `942a0e7e74cd636e667283dab230f5a0` |
+
+Bronzo: soffio fulmine e respingente alternativi, diversi CD/gittate per età, Anfibio e mutaforma soltanto su antico e adulto. Rame Antico: soffio acido e rallentante, mutaforma; antico/adulto con tre opzioni leggendarie distinte. Rilettura indipendente: tutte cinque con sei caratteristiche, azioni e status `completezza_scheda=completa`, checksum coerenti e `translation_review_status=pending` non promosso. Totale live **113/390 strutturalmente complete, 277 incomplete**. PR #598 draft su `develop`, `main` invariata, nessun merge/deploy.
