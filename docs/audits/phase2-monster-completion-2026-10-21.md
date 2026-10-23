@@ -1609,3 +1609,18 @@ PDF originale italiano pp fisiche 95, 97, 98. Cinque UPDATE a schede preesistent
 | Drago Rosso Adulto | 98 | `870d201658032dbfb6edc26fe9424fb9` |
 
 Mantenuti soffi di acido vs fuoco, anfibio neri, CD e dimensioni delle aree indipendenti per età, azioni leggendarie solo su antichi/adulti. Readback SELECT conferma 5/5 `completezza_scheda=completa`, sei punteggi, almeno una azione, checksum invariati, `translation_review_status=pending`. Totale live **98/390**, **292 incompleti strutturali**. Revisione semantica indipendente non certificata. PR #598 draft verso `develop`, main separata, nessun merge/deploy. Prossimi: Drago Rosso Giovane e Cucciolo p98.
+
+
+## Manuale dei Mostri — rossi restanti e draghi verdi 103/390 (23 ottobre 2026)
+
+PDF originale italiano pp98, 100 e 101 (sottoblocchi dei draghi); cinque record già presenti aggiornati con CAS su ID/nome/timestamp/fonte/pagina/CA/PF/velocità/lease/revisione. Nessuna modifica a campi `source_*`, nessun duplicato, nessuna nuova certificazione `ai_verified`.
+
+| Nome | Pagina | MD5 rilettura |
+| --- | ---: | --- |
+| Drago Rosso Giovane | 98 | `d63f1ce3ae85c62a9ad5d8e2f8d87108` |
+| Drago Rosso Cucciolo | 98 | `72ba34f7d25338bd80780877edcae491` |
+| Drago Verde Antico | 100 | `d168298b6349c615f899768e95d7f72e` |
+| Drago Verde Adulto | 101 | `a79ec05d6ce5988214dad8440b4f49e4` |
+| Drago Verde Giovane | 101 | `249a5b0a0e412e24bce906abefa81a0f` |
+
+Distanze in metri e CA in italiano, statistiche e CD separate per età. Draghi verdi: `Anfibio`, veleno e immunità alla condizione avvelenato; adulti/antichi con 3 opzioni leggendarie, giovani/cuccioli senza. SELECT indipendente: 5/5 stato `completezza_scheda=completa`, sei caratteristiche e azioni, checksum coerenti e `translation_review_status=pending` invariato. **103/390 complete strutturalmente, 287 incomplete**. Non equivale a verifica editoriale indipendente. PR #598 draft su `develop`, nessun merge/deploy, `main` invariata. Prossimo record pagina101: Drago Verde Cucciolo.
