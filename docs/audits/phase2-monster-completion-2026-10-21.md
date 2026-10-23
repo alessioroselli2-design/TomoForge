@@ -1320,3 +1320,17 @@ Fonte privata originale Fizban, pagine fisiche 183–185; controllo visivo delle
 | Drago di cristallo cucciolo | 185 | `ref_b0ffe60bae2dbdad3cf50e71de2ff748` | `14f55328c2905c7b0c1abe74ee4e93a2` |
 
 Conservati soffio radioso con PF temporanei, il set di incantesimi di ciascuna età, azioni leggendarie adulto/antico e azioni di tana per antico. Rilettura SELECT indipendente: `completezza_scheda=completa` 4/4, MD5 coincidenti. **Fizban 32/73 complete, 41 ancora incomplete**, non forzato `ai_verified`. PR #598 draft, verso develop, main invariato.
+
+
+## Fizban — draghi di smeraldo 36/73 (23 ottobre 2026)
+
+Pagine fisiche 186–188 del PDF originale italiano renderizzate e verificate. Quattro record esistenti completati con condizioni su ID/nome, timestamp, source_refs/pagina, CA/PF/velocità, lease vuoto e stato di verifica immutato. Salvate capacità illusorie (Distorcere/Deflettere percezione, Scavatore), soffio disorientante con CD diverse e azioni leggendarie per antico e adulto. Nessun INSERT e fonte `source_*` preservata.
+
+| Nome | pagina | MD5 rilettura |
+| --- | ---: | --- |
+| Drago di smeraldo antico | 186 | `c0abc3e3f8a71e619f257de646e2fd7c` |
+| Drago di smeraldo adulto | 187 | `b590a88da2eadfce05a7faa201b47285` |
+| Drago di smeraldo giovane | 188 | `5be30875fb4f23ea69565053e4723ce5` |
+| Drago di smeraldo cucciolo | 188 | `fb14940f0bc93ada8714ebd1bc7aa150` |
+
+SELECT indipendente: tutti e quattro `completezza_scheda=completa` e hash confermati; **36/73 Fizban**, 37 incomplete. Certificazione semantica separata, PR #598 draft verso develop, main invariato.
