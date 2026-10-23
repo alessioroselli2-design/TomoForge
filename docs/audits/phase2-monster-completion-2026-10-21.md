@@ -1830,3 +1830,59 @@ Proseguimento sistematico su 19 schede già esistenti, `logical_source_id=mm_201
 Mantenute meccaniche specifiche: licantropi forma umana/ibrida/bestiale, maledizione e armi; Lich tratti magici/azioni leggendarie/tana da pp 196–197; Manto Assassino gemito e duplicati illusori, Mantoscuro oscurità e avvinghiamento, Medusa pietrificazione condizionata al contatto visivo, megera notte con incubi, Ameba Paglierina la reazione **Scindersi**. Riletture SQL separate su ogni lotto: `completezza_scheda=completa`, tutte con 6 punteggi e azioni; i 19 MD5 coincidono. Per tutte `translation_review_status=pending` resta tale: il completamento strutturale non vale come certificazione editoriale indipendente.
 
 Snapshot del Manuale dei Mostri: **209/390 schede complete nella struttura, 181 ancora incomplete**. La PR #598 è draft verso `develop`; `main` non è stata modificata. Prossimo monster p214 e oltre.
+
+
+## Manuale dei Mostri — melme, mephit, miconidi, modron, naga, orchi (253/390, 23 ottobre 2026)
+
+44 nuovi UPDATE protetti eseguiti direttamente su record preesistenti `mm_2014_it` dopo controllo visivo individuale degli statblock su file originale italiano `847921086-Manuale-Dei-Mostri-5e.pdf`, pagine fisiche 214–250. Ogni UPDATE protetto da precondizioni: ID, nome, timestamp, origine `source_refs` e pagina, CA/PF/velocità, stato `review_status=verified`, `translation_status=not_required`, `translation_review_status=pending`, lease nullo e assenza di `completezza_scheda=completa`. Le scritture aggiornano soltanto `attributes`, `description`, `full_text`, `updated_at`; nessun INSERT, nessuna mutazione a campi `source_*`, nessuna promozione artificiale allo stato `ai_verified`.
+
+| Mostro | Pagina | Stat. | Azioni | Impronta MD5 |
+|---|---:|---:|---:|---|
+| Cubo Gelatinoso | 214 | 6 | 2 | `922911ae713b4a584075d62a29ed463e` |
+| Melma Grigia | 215 | 6 | 1 | `9828528692e9f81284e7d6dee80a5d54` |
+| Protoplasma Nero | 215 | 6 | 1 | `a5b7de1c99d3511ed483d4856235a29e` |
+| Mephit del Fango | 216 | 6 | 2 | `16edb1b167805faa8d2719e7c9e37c1b` |
+| Mephit del Fumo | 216 | 6 | 2 | `711b85c4d1d305edb61b2b740f98e8d1` |
+| Mephit del Ghiaccio | 217 | 6 | 2 | `76cd1e1fb8a1dd07baf40f6b224e46f8` |
+| Mephit del Magma | 217 | 6 | 2 | `ff6d3c2a654617a444e6550db542bf53` |
+| Mephit del Vapore | 218 | 6 | 2 | `7d762eca1f5a219a6041deedd05c689e` |
+| Mephit della Polvere | 218 | 6 | 2 | `35a899bfbf4583a35ff3a8ddd876cf14` |
+| Merrow | 219 | 6 | 4 | `5701fa1ffc8b5d2d59ff15f95d5564a9` |
+| Mezzodrago Rosso Veterano | 220 | 6 | 5 | `6a55a61a6e3230ce78af82eb48f7c4a8` |
+| Miconide Germoglio | 221 | 6 | 2 | `721cde3b2975388c38eb407fd7276f30` |
+| Quaggoth Servitore delle Spore | 221 | 6 | 2 | `69695d6d3d1f7e12dc1cff0f8c92d076` |
+| Miconide Adulto | 223 | 6 | 3 | `cc6e13ac3b468be0337055d666076ee4` |
+| Miconide Sovrano | 223 | 6 | 6 | `3313ca32c9500407c34887258b46264a` |
+| Mimic | 224 | 6 | 2 | `ef051ce9d8d1ecc2dee824cca791161d` |
+| Mind Flayer | 226 | 6 | 3 | `426f64a870d34a5c17fac2391d88110e` |
+| Minotauro | 227 | 6 | 2 | `2a37654b0baa1d2dee8f4f0f4d7b89ea` |
+| Monodrone | 228 | 6 | 2 | `aa845ada0816d3c4008024d2e48843c6` |
+| Duodrone | 229 | 6 | 3 | `91d03aca0b3b39eee05eb69722244805` |
+| Tridrone | 229 | 6 | 3 | `3c292f681494c8a8da6549bc7e2f6e63` |
+| Pentadrone | 230 | 6 | 3 | `33ad93f65da2f8cb5993de11ef3f816e` |
+| Quadrone | 230 | 6 | 3 | `7bbdb9ada8af7f464dcf46adf22074bd` |
+| Mummia | 232 | 6 | 3 | `93b1d64f34903807fa1a46fe6fa01c38` |
+| Signore delle Mummie | 233 | 6 | 3 | `611f0f19f3f1cfd2fc29d50d204d0295` |
+| Naga d'Ossa | 234 | 6 | 1 | `fcdea31e6c4099888dc529b114e90fd2` |
+| Naga Guardiana | 235 | 6 | 2 | `6c946d723d422264fee05dfc30660366` |
+| Naga Spirituale | 235 | 6 | 1 | `df4235208f34438da48c90805069d708` |
+| Nothic | 236 | 6 | 4 | `37a3f5b87f7efa844578f48237c3d8a3` |
+| Armatura Animata | 237 | 6 | 2 | `9650863a3ddf8c00661fc5849256a0bb` |
+| Spada Volante | 238 | 6 | 1 | `5048ec7bbe2932f9754e69e2f8d10e52` |
+| Tappeto Soffocante | 238 | 6 | 1 | `703186bca14eb0870b9163515b7e70c1` |
+| Ogre | 239 | 6 | 2 | `bf55474cf65d842222e0967a17a65bf5` |
+| Mezzogre | 240 | 6 | 2 | `3347bd9b72433cf6b9f57cb142ec4023` |
+| Ombra | 241 | 6 | 1 | `8c56407baec82fbeaa0bca8739cf99cd` |
+| Omuncolo | 242 | 6 | 1 | `0432e9e20f2e1a2fdbbdac37d1f5a6f4` |
+| Oni | 243 | 6 | 4 | `72d7f8f73f6d3520d43a575d07d1f67e` |
+| Orco | 246 | 6 | 2 | `c54258969ea9ae4673183f0151f01c64` |
+| Orco Capotribù Guerriero | 246 | 6 | 4 | `515dc3f56fb8018569a4eeb5fb848a5b` |
+| Orco Occhio di Gruumsh | 247 | 6 | 1 | `c380cbdd1335650faae5ffbeab1f0472` |
+| Orog | 247 | 6 | 3 | `a8430390e709883fcf4bcd4309f102b3` |
+| Orrore Corazzato | 248 | 6 | 2 | `7927cd2bbb118e4488fd45b9b0dd6439` |
+| Orrore Uncinato | 249 | 6 | 2 | `b30bca1364ccabd49ddb2fd263c98df8` |
+| Orsogufo | 250 | 6 | 3 | `50756a684b5c06a374a3c6b604a92d1c` |
+
+La SELECT separata e indipendente conferma 44/44 `completezza_scheda=completa`, sei punteggi delle caratteristiche, almeno una azione strutturata, MD5 e `translation_review_status=pending`. Conservate peculiarità di origine: Cubo Gelatinoso Avviluppare, Protoplasma Nero Scindersi, vulnerabilità e soffi distinti per ogni mephit, Servitore delle Spore separato dai Miconidi, variante arcanista Mind Flayer opzionale, modron distinti, Signore delle Mummie con azioni leggendarie, naga separate, oggetti animati con suscettibilità anti-magia, ombra con risucchio della Forza, Orco Occhio di Gruumsh come sacerdote. Questo è un **controllo strutturale in database** e non la certificazione semantica indipendente, che rimane in attesa.
+
+**Stato live:** 390 mostri Manuale dei Mostri, **253 completi strutturalmente**, **137 incomplete**; **372` translation_review_status=pending`** (comprende anche schede strutturalmente complete); una sola PR #598 draft verso `develop`, `main` separata, nessun merge/deploy. Prossima pagina non completa: 251 e successive.
