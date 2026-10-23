@@ -1074,3 +1074,27 @@ Fonte `618795464-Eberron.pdf`, pagine fisiche 308–312. Cinque UPDATE condizion
 | Il Signore Delle Lame | 312 | `ref_f4b2b8081d51544a922c8652871e617c` | 4 | 4 | `f33629c79ac0e13b28d9a835291c0aad` |
 
 SELECT post-update separata: cinque righe `completezza_scheda=completa`, sei punteggi, fingerprint invariati e nessun lease; tutte `translation_review_status=pending`. **Eberron 34/40 complete nella struttura, sei da completare**. I `source_*` restano intatti; revisione semantica indipendente non effettuata né certificata. PR #598 draft verso develop; main separato, nessun merge/deploy.
+
+
+## Eberron — completamento strutturale 40/40 (23 ottobre 2026)
+
+Fonte Eberron IT originale `618795464-Eberron.pdf`, pagine fisiche 313–316 e 320–321, seis schede finali della fase 2 completate su record già esistenti mediante UPDATE condizionale protetto per ID, nome, timestamp, provenienza (incluse entrambe le pagine per Rak Tulkhesh e Sul Khatesh), CA/PF/velocità, `review_status=verified` originale, `translation_review_status=pending`, lease libero e record ancora incompleto. Nessun INSERT, nessuna alterazione dei `source_*` o delle assegnazioni editor/reviewer.
+
+| Nome | Pagine | ID | Azioni | Leggendarie | MD5 da SELECT |
+| --- | --- | --- | ---: | ---: | --- |
+| Rak Tulkhesh | 313–314 | `ref_2f64f571e368521f9ab39c4d6bd898d3` | 4 | 3 | `0c9b8c4e83548418d1ee1196b4c0d118` |
+| Sul Khatesh | 314–315 | `ref_6a85d321c3a25bfba7d633377b0fccf0` | 5 | 3 | `cdbecdf11023b929ba5db3d6797e7d76` |
+| Non Morto Karrnathi | 316 | `ref_b6af0f71247d5a4a8804486807d83776` | 3 | 0 | `78c2f2f71f9173b6d68cbf14fd458f55` |
+| Forgiato Soldato | 320 | `ref_71d6b052b2ca53ccb5bf794557c07c0d` | 3 | 0 | `4d2ac4b70d065c2732987b656cfe7101` |
+| Kalashtar | 321 | `ref_0c848704d933565f80dd27801abef892` | 2 | 0 | `746ebcb8e169182f272e02696bb51dd4` |
+| Morfico | 321 | `ref_808e61bb52e050a8a7576b0941cfb3b9` | 2 | 0 | `1f7de42cea6df9f635c16d5ecad6b2b3` |
+
+**Morfico: discrepanza fonte CERTA, non OCR**. Verificata pagina 321 visivamente mediante rendering PNG a 170 DPI del PDF originale. L'originale stampa *19 (3d8 + 8)* PF, sebbene la media di 3d8 + 8 non sia 19; il record conteneva precedentemente *19 (3d8 + 6)*, formula matematicamente coerente ma diversa dal testo stampato. Riportata fedelmente la stampa in `attributes.punti_ferita`, conservato il 19 e inserita `attributes.nota_discrepanza_fonte` con descrizione e obbligo di conferma editoriale/errata in revisione semantica indipendente. Non promuovere questo record a `ai_verified` finché tale controllo non sia concluso; neppure gli altri sono promossi senza seconda verifica.
+
+**RILETTURA GLOBALE LIVE Supabase DOPO UPDATE**:
+- `total=40`, `complete=40`, `six_stats=40`, `with_actions=40`, `with_description=40`;
+- `distinct_ids=40`, `distinct_names=40`, `distinct_normalized_names=40`, `leased=0`;
+- `translation_review_status=pending` 30; `ai_verified` 0. Non confondere il campo `review_status=verified` proveniente dalla prima revisione con la certificazione indipendente di fase 2.
+- Sei fingerprint MD5 delle schede finali coincidenti con i readback indipendenti; per ciascuna `completezza_scheda=completa` e sei punteggi.
+
+**Eberron concluso nella completezza strutturale 40/40**. Bigby era già concluso 71/71 nella stessa fase. Continuare con altro manuale dal censimento globale, poi eseguire certificazione indipendente su tutti i record. PR #598 draft verso `develop`; nessun merge/deploy e `main` invariato.
