@@ -804,3 +804,20 @@ Fonte privata italiana letta anche come immagine di pagina, p143–147. Su cinqu
 Rilettura cumulativa dopo tutti e quattro i lotti: **20/20** hanno `completezza_scheda=completa`, sei punteggi, azioni strutturate non vuote, stesso fingerprint ricalcolato da SELECT, lease vuoti. Censimento Bigby: **20/71 complete strutturalmente**, 51 ancora da completare. Il numero di approvazioni `ai_verified` Bigby rimane 0; le 71 traduzioni originali italiane hanno `translation_review_status=pending`. Richiesta ancora la separata revisione semantica indipendente; niente certificazione automatica.
 
 PR #598 sempre draft verso `develop`, `main` invariato, nessun merge/deploy. Prossima pagina di lavoro: 148, Gigante del Gelo Modellaghiaccio. I PDF privati e le traduzioni integrali non entrano nel repository.
+
+
+## Bigby — quinto lotto, 5 schede (23 ottobre 2026)
+
+Fonte privata autorizzata Bigby italiano (`760692359-D-D-5e-ITA-Bigby-Presenta-La-Gloria-Dei-Giganti.pdf`), pagine fisiche 148–152. Ricontrollati testo e immagini delle schede per classi armatura, punti ferita, velocità, sei punteggi, tratti, azioni, reazioni e unità metriche. Cinque UPDATE in database su ID esistenti con protezioni su timestamp, nome, provenienza, pagina, numeri base, lease assente e `translation_review_status=pending`.
+
+| Mostro | ID | Pagina | Tratti | Azioni | Reazioni | Fingerprint MD5 post-rilettura |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Gigante Del Gelo Modellaghiaccio | `ref_a4ca7d65762650dc8e24dcbde06a6342` | 148 | 2 | 4 | 1 | `053a891d84ea8ea7b57fcaac793e0306` |
+| Gigante Delle Colline Valanghivo | `ref_84f117205a46505d890ed8c41874166c` | 149 | 2 | 5 | 1 | `999419c6ed86690d5233a4ff1bf88af2` |
+| Gigante Delle Nuvole Dell'Aria Malvagia | `ref_963fc1ab6c795d8cbbde1c3ea66b8f3c` | 150 | 1 | 4 | 0 | `5039288bd515bb56179cc8cfe7b4adcf` |
+| Gigante Delle Nuvole Giocatore Del Destino | `ref_6faaa21da20450fda325799312cf0817` | 151 | 1 | 4 | 1 | `188cdf54be4b3dc2726af4e06ef1c3f1` |
+| Gigante Delle Pietre Della Terra Malvagia | `ref_6b5c8da8abbf545e9f2ea14f88155b78` | 152 | 0 | 3 | 1 | `9d733c01ab732c83740fe4ea62b40b3a` |
+
+Rilettura SELECT per ciascuno dei cinque ID: sei caratteristiche, azioni valorizzate, fingerprint attuale coincidente, lease assente e `completezza_scheda=completa`. Censimento Bigby **25/71 con completezza strutturale**, **46 da completare**, **0/71 `ai_verified`** nella revisione semantica indipendente. Nessuna nuova scheda, nessun cambiamento ai `source_*` e nessuna promozione di `pending`.
+
+Queste sono candidate complete strutturate e confrontate con la fonte, non una certificazione indipendente. PR #598 draft verso `develop`, branch `main` invariato, nessun merge o deploy. Proseguire dalla pagina 153, Gigante delle Pietre Linguarupestre.
