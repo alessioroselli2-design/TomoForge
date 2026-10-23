@@ -1411,3 +1411,20 @@ Stato iniziale della ripresa: `66/73` complete, `7` incomplete. Fonte PDF italia
 **Nota editoriale chiarita:** nel PDF originale, pagina fisica 223, azione *Coda* della Testuggine dragona antica, la media è stampata come `11 (2d10 + 9)`; aritmeticamente il risultato medio dei dadi è `20`. Preservati i dadi ufficialmente stampati `2d10 + 9` e la media calcolata `20`, anziché perpetuare la discrepanza. Il caso va sottoposto anche a revisione editoriale indipendente prima di un'eventuale certificazione semantica.
 
 **CHECK Supabase**: 73 record Fizban totali, **73 `completezza_scheda=completa`**, 73 con descrizione e testo, 73 con sei punteggi, 73 con azioni, 73 `translation_review_status=not_required`, 0 lease attivi, 73 ID unici e 73 nomi normalizzati distinti. Readback indipendente dei 7 record: fingerprint corrispondenti. Raggiunta la *completezza strutturale* del manuale; certificazione semantica indipendente separata. Nessun nuovo `ai_verified`, merge o deploy. PR #598 draft verso `develop`; `main` invariata.
+
+
+## Manuale dei Mostri — prime cinque schede (23 ottobre 2026)
+
+Dopo la chiusura strutturale di Fizban 73/73, passaggio al manuale italiano `847921086-Manuale-Dei-Mostri-5e.pdf`. Fonte privata originale, immagini delle pp fisiche 16–20 renderizzate e controllate manualmente. Cinque schede preesistenti aggiornate tramite UPDATE condizionale su ID, nome, `updated_at`, fonte `mm_2014_it` e pagina, CA/PF/velocità iniziali, `review_status=verified`, `translation_status=not_required`, `translation_review_status=pending` e lease assente. Nessun INSERT e nessuna mutazione dei `source_*`.
+
+| Nome | p. PDF | ID | Azioni | Fingerprint MD5 readback |
+| --- | ---: | --- | ---: | --- |
+| Deva | 16 | `ref_fdc32fd9d349cfdc4691f5c23f48cb94` | 4 | `4f48aaac8eb2618d52f4b0b588d9fcf1` |
+| Planetar | 17 | `ref_6eb5d30bbe38c52fb7f6eb913a0d45f1` | 3 | `56526cfe594b5084cc77efa4caac0dc2` |
+| Solar | 18 | `ref_011a266126809e8ffff0ec362e4728a7` | 5 | `83f83652a6ced4795316730a4970ef99` |
+| Ankheg | 19 | `ref_d7ce1b988d901d2bf56c9d64a94f6a80` | 2 | `774aa92ffc1b726350b9776523fb90fc` |
+| Arpia | 20 | `ref_0beb8b912522853120675dab6a4a5959` | 4 | `c1650027984d0ef7cd478a2a4dd1262d` |
+
+Preservati gli incantesimi innati e i poteri di cura dei celestiali, il volo e gli effetti leggendari del Solar, la presa dell'Ankheg e la seduzione condizionata dell'Arpia. Readback SELECT: 5/5 `completezza_scheda=completa`, sei punteggi, azioni presenti, fingerprint MD5 confermati, lease vuoto, `translation_review_status=pending` invariato (nessuna certificazione artificiale).
+
+**Aggregato live del Manuale dei Mostri:** totale 390, complete strutturalmente 33 (28 prima della ripresa), ancora incomplete 357. Prossimo record fonte dopo p20: *Artiglio Strisciante*, PDF pagina 21. PR #598 draft verso `develop`, `main` invariato; nessun merge o deploy.
