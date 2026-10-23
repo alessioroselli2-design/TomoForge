@@ -1362,3 +1362,20 @@ Riletti visivamente PDF originale pp fisiche 194–197; su p197 verificati i tre
 | Drago di zaffiro cucciolo | 196 | `e8b666158886ec97d393ad3c729dca0b` |
 
 Tratti Scavatore e Movimenti del ragno, soffi debilitanti da tuono (incapacitazione), incantesimi psionici e azioni leggendarie distinti per età; antico tre azioni di tana. Verifica SELECT: 4/4 completezza `completa`, hash invariati. Snapshot Fizban **44/73 strutturali complete, 29 incomplete**. PR #598 draft su develop, main stagna, nessun merge/deploy, verifica semantica certificata non attribuita.
+
+
+## Fizban — creature speciali 51/73 (23 ottobre 2026)
+
+Fonte italiana privata Fizban: pp fisiche 198–204 renderizzate visivamente, 7 update condizionali su record preesistenti, CAS su timestamp/nome/provenienza/CA/PF/velocità, status revisione non mutato, lease vuoto. Non inseriti duplicati e non toccati i `source_*`. Corretti dati di forma, sei caratteristiche, immunità, tratti, attacchi, TS/CD, reazioni o capacità speciali. **Dragocchio:** preservati i sei effetti dei raggi oculari come array separato e il soffio antimagico; **Drago cervello antico:** infestazione da girini e trasformazione condizionata; **Drago cavo:** Ricostruzione e azioni leggendarie; **Golem dragosso:** due ventagli alari e soffio pietrificante.
+
+| Nome | P. fisica | MD5 readback |
+| --- | ---: | --- |
+| Drago cavo | 198 | `25b50476fce5e8afdd8329336a7ccf4f` |
+| Drago cervello antico | 199 | `7e0046a9eb2ddd0aebf451ce405c4e84` |
+| Drago fantasma | 200 | `a0796a8afb8b6e10eea0cffcf317a105` |
+| Dragocchio | 201 | `51ed6135962f55d2e22c31a8fe7da021` |
+| Dragoleone | 202 | `a5f5292b1ca3eac5377bb7a5bfcd71d1` |
+| Dragonnel | 203 | `87612c793afeee39f75d6c22137b5125` |
+| Golem dragosso | 204 | `85ce37fadbe8b675321c69a08957ec09` |
+
+Rilettura separata SELECT: **51/73 schede Fizban strutturalmente complete, 22 incompleti**; MD5 coincidenti e `completezza_scheda=completa` per tutte e sette. `main` resta separato, PR #598 draft su develop, nessun merge/deploy né certificazione semantica forzata. Prossime pp205–224 e record isolato p172.
