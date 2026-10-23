@@ -1624,3 +1624,18 @@ PDF originale italiano pp98, 100 e 101 (sottoblocchi dei draghi); cinque record 
 | Drago Verde Giovane | 101 | `249a5b0a0e412e24bce906abefa81a0f` |
 
 Distanze in metri e CA in italiano, statistiche e CD separate per età. Draghi verdi: `Anfibio`, veleno e immunità alla condizione avvelenato; adulti/antichi con 3 opzioni leggendarie, giovani/cuccioli senza. SELECT indipendente: 5/5 stato `completezza_scheda=completa`, sei caratteristiche e azioni, checksum coerenti e `translation_review_status=pending` invariato. **103/390 complete strutturalmente, 287 incomplete**. Non equivale a verifica editoriale indipendente. PR #598 draft su `develop`, nessun merge/deploy, `main` invariata. Prossimo record pagina101: Drago Verde Cucciolo.
+
+
+## Manuale dei Mostri — verde cucciolo e famiglia argento 108/390 (23 ottobre 2026)
+
+Dalla scansione PDF originale italiana, pagine fisiche 101 e 104–106, controllate su rendering immagine. Cinque record preesistenti `mm_2014_it` completati con UPDATE CAS per ID/nome/timestamp/stati/fonte e pagina/CA/PF/velocità e assenza di lease. Nessun INSERT, nessun cambiamento a `source_*`, né `translation_review_status` promosso; `main` invariato.
+
+| Mostro | Pagina PDF | MD5 readback |
+| --- | ---: | --- |
+| Drago Verde Cucciolo | 101 | `364234d7fe307b1ab1c71bb990e8d83a` |
+| Drago D’Argento Antico | 104 | `af4ba4748f44456b00d7ca1965c2e0c7` |
+| Drago D’Argento Adulto | 105 | `f5486b6169da4ba4a43247d250d36c9b` |
+| Drago D’Argento Giovane | 106 | `2f24c7630685d598be88163d9fcd247b` |
+| Drago D’Argento Cucciolo | 106 | `2a4639e28101387b32222dc4dce042d2` |
+
+I draghi d'argento hanno i due soffi alternativi con CD/gittate distinte per età, immunità al freddo, mutaforma per antico e adulto, azioni leggendarie solo per antico e adulto; antico con azioni di tana separate. SELECT indipendente: 5/5 completezza_scheda=completa, 6 caratteristiche, azioni e MD5 corrispondenti, `translation_review_status=pending` invariato. **108/390 completi strutturalmente, 282 incompleti**. Certificazione semantica indipendente ancora necessaria; PR #598 draft verso `develop`, nessun merge/deploy. Prossima famiglia bronzo p107–109.
