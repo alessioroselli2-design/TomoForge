@@ -821,3 +821,20 @@ Fonte privata autorizzata Bigby italiano (`760692359-D-D-5e-ITA-Bigby-Presenta-L
 Rilettura SELECT per ciascuno dei cinque ID: sei caratteristiche, azioni valorizzate, fingerprint attuale coincidente, lease assente e `completezza_scheda=completa`. Censimento Bigby **25/71 con completezza strutturale**, **46 da completare**, **0/71 `ai_verified`** nella revisione semantica indipendente. Nessuna nuova scheda, nessun cambiamento ai `source_*` e nessuna promozione di `pending`.
 
 Queste sono candidate complete strutturate e confrontate con la fonte, non una certificazione indipendente. PR #598 draft verso `develop`, branch `main` invariato, nessun merge o deploy. Proseguire dalla pagina 153, Gigante delle Pietre Linguarupestre.
+
+
+## Bigby — sesto lotto, 5 schede (23 ottobre 2026)
+
+Consultata fonte privata italiana Bigby, pagine PDF 153–157; pagina 155 contiene il blocco del Gigante della Morte Ammantato che prosegue nella pagina 156 (fonte registrata per il record: 156). Le cinque schede sono state completate sui record esistenti mediante UPDATE condizionali su ID/nome, updated_at originale, provenienza e pagina, CA/PF/velocità, lease assente e stato pending; nessun INSERT e nessuna modifica ai source_*.
+
+| Nome | Pagina origine registrata | ID | Tratti | Azioni | Bonus | Reazioni | MD5 readback |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |
+| Gigante Delle Pietre Linguarupestre | 153 | `ref_c5f631a36b5f51dc9123a728f65c2ec9` | 2 | 4 | 0 | 0 | `6b57f02e26d53c0ace9d5aca42a54dae` |
+| Gigante Delle Tempeste Chiamaburrasche | 154 | `ref_e075432f79145e36a484fb6ce88eb62a` | 5 | 5 | 0 | 0 | `65858970f241bb1bce4bf5778995023f` |
+| Gigante Della Morte Ammantato | 156 | `ref_efc0ad0100b750f6a96e4e221e47b897` | 1 | 4 | 2 | 0 | `4110c8597fd45b7fed330b90f7af0755` |
+| Gigante Della Morte Mietitore | 156 | `ref_d557f40025055846af3e6f67e93ad33a` | 0 | 3 | 1 | 0 | `c830b0a7eec1f6d68b82d935abb0215f` |
+| Goliath Dei Giganti | 157 | `ref_f1a4b8883d265be78954f3cfb01f3661` | 0 | 2 | 1 | 0 | `f53156704a83af84b4a07de14ee20cc3` |
+
+Rilettura separata da scrittura: cinque fingerprint MD5 invariati rispetto alla SELECT post-update, sei caratteristiche numeriche, sezioni azioni complete, `completezza_scheda=completa`, lease vuoti, fonte `bgg_2023_it` intatta; tutti `translation_review_status=pending`. Confronto con fonte italiana, ma **nessuna seconda revisione semantica indipendente certificata**.
+
+Censimento a questo punto Bigby **30/71 schede complete strutturalmente**, **41 da lavorare**, **0 ai_verified**. PR #598 ancora draft verso develop, main invariato e nessun merge/deploy. Si prosegue dalla pagina 158.
