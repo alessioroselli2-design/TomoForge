@@ -787,3 +787,20 @@ Correzione mirata successiva alla prima scrittura su Gatto Ghignante: chiarito n
 **Verifica globale dei tre lotti:** 15/15 con sei punteggi delle caratteristiche, sezioni di azioni strutturate e non vuote, `completezza_scheda=completa`, fingerprint ricalcolati direttamente sullo stato live, lease assenti e fonte invariata. Censimento Bigby: **71 record, 15 completi strutturalmente, 56 da lavorare**, 71 ancora `translation_review_status=pending`, 0 certificati `ai_verified`. Il requisito di seconda revisione semantica indipendente è ancora aperto: la completezza strutturale non costituisce attestazione definitiva.
 
 Lavorazione esclusivamente sulla fonte italiana autorizzata; nessuna trascrizione integrale del PDF nel repository. PR #598 sempre draft verso develop, nessun merge, nessun deploy, main invariato. Proseguire dalla Gelatina Da Borsa (PDF p143), senza creare duplicati.
+
+
+## Bigby — quarto lotto, 5 schede (23 ottobre 2026)
+
+Fonte privata italiana letta anche come immagine di pagina, p143–147. Su cinque record preesistenti sono state aggiornate in modo atomico e condizionale soltanto `description`, `full_text`, `attributes` e `updated_at`. Guardie su ID, nome, snapshot temporale, provenienza Bigby e pagina, CA/PF/velocità, review pending e lease vuoto. Nessun duplicato, nessun source_* modificato.
+
+| Nome | ID | Pagina | Tratti | Azioni | Bonus | Reazioni | MD5 readback |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Gelatina Da Borsa | `ref_ce8761edf9f153378635c2730805c245` | 143 | 1 | 2 | 0 | 0 | `593bfb50f6cc3e82cca9f31c266cdb00` |
+| Gelovivente | `ref_995df9449a30503b98317cea591de39b` | 144 | 0 | 4 | 0 | 1 | `43c691b0c568e5d0242ba648deffea2f` |
+| Gigante Del Fuoco Del Fuoco Malvagio | `ref_24fdfda426f35dc2b05cfdd7e17248d9` | 145 | 1 | 3 | 0 | 0 | `d2da9200c22cc093ae201920026de1c1` |
+| Gigante Del Fuoco Invocatore | `ref_0001847c82b3517895ac990182ad5b9a` | 146 | 2 | 4 | 1 | 0 | `f329007d531fa22c81d364f3231ba41b` |
+| Gigante Del Gelo Dell'Acqua Malvagia | `ref_e965d3715ce456e1967dfdae85d0cdc3` | 147 | 1 | 3 | 1 | 0 | `a8156695639d9596bb18bda26d4b811e` |
+
+Rilettura cumulativa dopo tutti e quattro i lotti: **20/20** hanno `completezza_scheda=completa`, sei punteggi, azioni strutturate non vuote, stesso fingerprint ricalcolato da SELECT, lease vuoti. Censimento Bigby: **20/71 complete strutturalmente**, 51 ancora da completare. Il numero di approvazioni `ai_verified` Bigby rimane 0; le 71 traduzioni originali italiane hanno `translation_review_status=pending`. Richiesta ancora la separata revisione semantica indipendente; niente certificazione automatica.
+
+PR #598 sempre draft verso `develop`, `main` invariato, nessun merge/deploy. Prossima pagina di lavoro: 148, Gigante del Gelo Modellaghiaccio. I PDF privati e le traduzioni integrali non entrano nel repository.
