@@ -1509,9 +1509,13 @@ Cinque schede preesistenti completate strutturalmente dal PDF italiano integrale
 | Nome | Pagina PDF | MD5 da rilettura indipendente |
 | --- | ---: | --- |
 | Yochlol | 65 | `ab6946223f78cdcf876bc2f954fcc355` |
-| Diavolo Barbuto | 70 | `ce42c9c5781b9ddba39adebcf513def4` |
+| Diavolo Barbuto | 70 | `a3144aa85923090ddc1492b0feb3313b` |
 | Diavolo Cornuto | 71 | `5f4271d8f1cbf926dab55d211b850ce4` |
 | Diavolo D'Ossa | 72 | `06b54d9bc817d81afead19f7edf92911` |
 | Diavolo Del Ghiaccio | 73 | `9d3a21b7b1a390bbfcdd003139ac0587` |
 
 La Yochlol conserva le forme alternative drow/ragno/nebbia con condizioni d'uso. Il Diavolo Barbuto e Cornuto conservano le ferite infernali. Diavolo D'Ossa contiene la variante separata con arma su asta, e Diavolo Del Ghiaccio la lancia alternativa e l'effetto complesso del muro di ghiaccio. SELECT distinta conferma cinque status `completezza_scheda=completa`, sei caratteristiche, azioni, hash concordanti, varianti separate, revisione semantica ancora `pending`. **Snapshot Supabase 68/390 strutturalmente complete, 322 incomplete**. PR #598 ancora draft su `develop`, main invariato, nessun merge/deploy. Prossima scheda: Diavolo Della Fossa p74.
+
+
+### Correzione mirata sulla regola Ferita infernale — Diavolo Barbuto
+Confronto editoriale della pagina PDF 70: il falcione applica la ferita infernale **solo alle creature diverse da non morti e costrutti**. Rettificata la frase nel record di Diavolo Barbuto, nei campi `attributes.azioni[2].descrizione` e `full_text`, con SQL protetto da ID, name, provenance, timestamp, lease e stato revisione; SELECT readback con risultato testuale corretto e nuovo fingerprint `a3144aa85923090ddc1492b0feb3313b`. L'ID non cambia, nessun duplicato, nessuna certificazione AI automatica.
