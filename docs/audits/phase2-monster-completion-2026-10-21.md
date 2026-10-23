@@ -1010,3 +1010,20 @@ Fonte privata Eberron IT, PDF `618795464-Eberron.pdf`, consultate le pagine 210 
 | Forgiato Titano | 296 | `ref_d378f74d2c6e51868f61aa810e59813e` | 4 | `577048d7e8f3a54bee7fc62f2efa53eb` |
 
 Rilettura: due schede `completezza_scheda=completa`, sei punteggi, fingerprint corrispondenti, lease assenti e revisione `pending`; senza aggiungere duplicati o modificare i `source_*`. Eberron passa a **14/40** complete strutturalmente, **26** da completare. Proseguire con i blocchi mostro registrati dalla pagina 289 e con le restanti voci. Nessuna certificazione artificiale, merge, modifica main o deploy.
+
+
+## Eberron — cinque schede (23 ottobre 2026, ripresa)
+
+Fonte privata `618795464-Eberron.pdf`, pagine PDF 289, 291, 293, 297 e 298: cinque mostri trasformati in schede strutturali complete su ID esistenti. Preflight per ID, nome, updated_at, fonte e pagine, CA/PF/velocità, revisione pending e nessun lease; nessun INSERT, nessuna scrittura nei `source_*`. Conservate specificamente le azioni leggendarie e di tana, oltre alle incantazioni degli imperituri.
+
+| Nome | ID | Azioni | Leggendarie | Fingerprint MD5 (SELECT) |
+| --- | --- | ---: | ---: | --- |
+| Belashyrra | `ref_69a8b962beae5285bfc05e9e20ac6619` | 3 | 3 | `73b2cdb59570159b0ad1b21b31ab8dd4` |
+| Dyrrn | `ref_fd2857143c3b521c9204fc3032cf1d73` | 4 | 3 | `2926c5c8dd93f05ef46a1c67dd9371bf` |
+| Dolgaunt | `ref_2f8a6bc3d49b510f9b04fe5f414d1abc` | 4 | 0 | `8651db6f01c637ac18c5e6091f49e6e5` |
+| Idolo Radioso | `ref_978ee5fda48d58c5a4c023edaab769eb` | 3 | 0 | `3b9c10f1485c909accb5358eb9161ec4` |
+| Consigliere Imperituro | `ref_20727b47fb7e5dc0b5e97867d8cdb6bc` | 4 | 2 | `aa53f537d626fa16de6b820081eac27b` |
+
+Rilettura indipendente via SELECT: sei caratteristiche per scheda, sezioni richieste presenti, fingerprint invariati, `completezza_scheda=completa`, lease vuoti e `translation_review_status=pending`. Il record di Dyrrn conserva entrambe le pagine source_refs (289, 291). Snapshot aggregato live: **Eberron 19/40 completi strutturalmente, 21 incompleti, 0 ai_verified** (30 records translation_review_status pending; gli altri dieci non sono certificati per questa fase). La revisione semantica indipendente non è stata assegnata.
+
+PR #598 in draft sul branch `codex/safe-monster-completion-pilot-20261021` verso develop; `main` non toccato e nessun merge/deploy. Prossimi: Soldato Imperituro, Fulmine Vivente, Mani Brucianti Vivente, Nube Mortale Vivente, Ispirato.
