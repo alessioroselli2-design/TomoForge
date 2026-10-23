@@ -1428,3 +1428,20 @@ Dopo la chiusura strutturale di Fizban 73/73, passaggio al manuale italiano `847
 Preservati gli incantesimi innati e i poteri di cura dei celestiali, il volo e gli effetti leggendari del Solar, la presa dell'Ankheg e la seduzione condizionata dell'Arpia. Readback SELECT: 5/5 `completezza_scheda=completa`, sei punteggi, azioni presenti, fingerprint MD5 confermati, lease vuoto, `translation_review_status=pending` invariato (nessuna certificazione artificiale).
 
 **Aggregato live del Manuale dei Mostri:** totale 390, complete strutturalmente 33 (28 prima della ripresa), ancora incomplete 357. Prossimo record fonte dopo p20: *Artiglio Strisciante*, PDF pagina 21. PR #598 draft verso `develop`, `main` invariato; nessun merge o deploy.
+
+
+## Manuale dei Mostri — secondo gruppo 38/390 (23 ottobre 2026)
+
+Proseguimento dopo Deva, Planetar, Solar, Ankheg, Arpia. Fonte PDF privata originale `847921086-Manuale-Dei-Mostri-5e.pdf`, pagine fisiche 21, 28, 29, 30 e 31 renderizzate e lette. Cinque record preesistenti completati con UPDATE protetti da ID, nome, `updated_at` iniziale, source_refs `mm_2014_it` e pagina, CA/PF/velocità, `review_status=verified`, `translation_status=not_required`, `translation_review_status=pending`, lease vuoto, `completezza_scheda` precedente. Solo `attributes`, `description`, `full_text`, `updated_at` aggiornati; nessun INSERT o variazione alla provenance.
+
+| Nome | p. | ID | Azioni | Raggi oculari | Fingerprint MD5 confermato |
+| --- | ---: | --- | ---: | ---: | --- |
+| Artiglio Strisciante | 21 | `ref_cf0cf8dac94cf42c1db1e8868583300a` | 1 | — | `1f1fa61315563a54f56fce1f5b456d82` |
+| Beholder | 28 | `ref_2da7c9c7d89fc95b6b559c803f79ec0a` | 2 | 10 | `dccc700301aac06fb873784977bb5e31` |
+| Tiranno Della Morte | 29 | `ref_345aba979a9262832adf9971e348a35d` | 2 | 10 | `b7f01df59050c219da71d80a9a356bd2` |
+| Spettatore | 30 | `ref_33a8d9d2d8704ffaa5ccaad64164088a` | 3 | 4 | `5b45bd7ee9bd20f3304023fe76862af4` |
+| Belva Distorcente | 31 | `ref_e4e69058eb282b07fec7f5cf859c814f` | 2 | — | `7d8ef228dc502de7a1564fab94ea61cd` |
+
+Beholder e Tiranno della Morte hanno ciascuno **10 raggi distinti**, con CD di 16 e 17 rispettivamente e diverso cono centrale (anti-magia vs energia negativa). Spettatore conserva quattro raggi e la reazione di riflessione degli incantesimi, Artiglio Strisciante immunità allo scacciare e Belva Distorcente la distorsione difensiva e Sfuggente. Readback separata: tutte 5 `completezza_scheda=completa`, sei statistiche, azioni e fingerprint coerenti, lease libero, revisione `pending` non forzata.
+
+**Manuale dei Mostri ora 38/390 schede complete strutturalmente, 352 incomplete.** Prossimo punto: Cambion p36, poi Cavaliere della Morte p37, senza saltare incongruenze OCR. PR #598 draft su `develop`, `main` intatta; nessun merge o deploy.
