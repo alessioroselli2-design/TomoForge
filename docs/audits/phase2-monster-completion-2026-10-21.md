@@ -1445,3 +1445,23 @@ Proseguimento dopo Deva, Planetar, Solar, Ankheg, Arpia. Fonte PDF privata origi
 Beholder e Tiranno della Morte hanno ciascuno **10 raggi distinti**, con CD di 16 e 17 rispettivamente e diverso cono centrale (anti-magia vs energia negativa). Spettatore conserva quattro raggi e la reazione di riflessione degli incantesimi, Artiglio Strisciante immunità allo scacciare e Belva Distorcente la distorsione difensiva e Sfuggente. Readback separata: tutte 5 `completezza_scheda=completa`, sei statistiche, azioni e fingerprint coerenti, lease libero, revisione `pending` non forzata.
 
 **Manuale dei Mostri ora 38/390 schede complete strutturalmente, 352 incomplete.** Prossimo punto: Cambion p36, poi Cavaliere della Morte p37, senza saltare incongruenze OCR. PR #598 draft su `develop`, `main` intatta; nessun merge o deploy.
+
+
+## Manuale dei Mostri — pagine 36–45: 48/390 (23 ottobre 2026)
+
+Proseguimento operativo autonomo dopo 38/390: PDF originale italiano `847921086-Manuale-Dei-Mostri-5e.pdf` (scansione di 353 pagine), render manuale e confronto delle pagine fisiche 36, 37, 38, 40, 41, 42, 43, 44, 45. Dieci UPDATE su record già presenti, ognuno con CAS su ID/nome/timestamp/stati/fonte e pagina/CA-PF-velocità e assenza di lease; **nessun INSERT né modifica di dati `source_*`**. Conservato `translation_review_status=pending`, senza promovere una certificazione non indipendente.
+
+| Mostro | Pagina | ID | Hash MD5 readback |
+| --- | ---: | --- | --- |
+| Cambion | 36 | `ref_b5f849bf9bd7968749207e2e8993fb43` | `269d4a9502ffad3b1a93bff8dc3bd81d` |
+| Cavaliere Della Morte | 37 | `ref_521ba28322b8568f49e4f0734378d1b2` | `fa09c0a2446ad63afea141abca89ca2a` |
+| Cavallo Degli Incubi | 38 | `ref_78cbd1ce560ddd4b5bb824726713892d` | `6877a773ec0d871a64f1b6106974233f` |
+| Chimera | 40 | `ref_0629e3b394aced0ebb7999781ec8c979` | `50d26f78f7ce58d77615b4e9776dab27` |
+| Chuul | 41 | `ref_153ae6ed4615951279cb9eb50c7422f9` | `7df5893d9d9c8c7e6f47d8ef7657960b` |
+| Ciclope | 42 | `ref_b8f3214dac38dc5a42bc54b58c6645a8` | `c96fe703cbe49e8830011eefc57076c0` |
+| Coboldo | 43 | `ref_8defe4e33fdbedb1d8bf7417884622cb` | `360518d74363c271c6978e618e1b245a` |
+| Coboldo Alato | 43 | `ref_73bba306c5c3da8c2f2874f1e1e3fe3c` | `0de0e2c7cb67b6949a05d301e91c5a6f` |
+| Cockatrice | 44 | `ref_e1b293b4afc942d2eb22eb7851df434b` | `abfa75b8f2bcd5c8233d11761718b39c` |
+| Couatl | 45 | `ref_fd7adba90643a77fce8895073266772e` | `4df26a3f6ba005a816dac7ee9451b0bb` |
+
+Verifiche SELECT separate: 10/10 schede con `completezza_scheda=completa`, 6 punteggi caratteristica, almeno una azione; per 5/5 nel secondo lotto fingerprint e lease libero, tutti `pending` per revisione semantica. Per il Cavaliere Della Morte conservati gli slot e la reazione Parata, per il Chuul la paralisi condizionata dopo essere afferrato, per Coboldo/Coboldo Alato i diversi attacchi e volo, per il Couatl incantesimi e Mente schermata. Totale live: **48/390 strutturalmente complete, 342 ancora incomplete**. Prossima fonte fisica p46 `Cumulo Strisciante`. Nessun merge, PR #598 draft verso `develop`, `main` invariata.
