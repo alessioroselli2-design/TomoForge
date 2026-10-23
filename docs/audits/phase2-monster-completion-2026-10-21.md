@@ -1196,3 +1196,28 @@ La ripresa ha trovato le pagine 232–240 già aggiornate da una sessione concor
 Per Orrore Indicibile mantenute le quattro composizioni corporee, quattro sostituzioni dell'esplosione e quattro varianti di arto (12 opzioni), senza assumere che il mostro possieda tutte le varianti contemporaneamente. Rilettura post-scrittura separata: tutte e quattro le righe hanno `completezza_scheda=completa`, 6 caratteristiche, azioni coerenti, fingerprints MD5 identici ai SELECT, lease vuoto, `translation_review_status=pending`. **Van Richten 25/36 strutturalmente completo, 11 schede residue, zero certificazioni fase 2 forzate**. Inoltre è stata documentata sopra una correzione semantica su Nebbia mentale dell'Emissario maggiore, da riesaminare prima di qualsiasi `ai_verified`.
 
 PR #598 draft verso `develop`, `main` invariato, nessun merge e nessun deploy.
+
+
+## Van Richten — completamento strutturale 36/36 (23 ottobre 2026)
+
+Proseguimento dalle pagine 246–255 del manuale italiano originale, disponibile integralmente in versione privata. Undici schede incomplete già presenti sono state aggiornate con guardie su ID, nome, `updated_at` originale, source_refs e pagina, CA/PF/velocità, `review_status=verified` iniziale, `translation_review_status=pending`, lease vuoto e stato non ancora `completa`. UPDATE sui soli campi applicativi `attributes`, `description`, `full_text`, `updated_at`; nessun INSERT e `source_*` invariati.
+
+| Nome | Pagina | Azioni | Varianti | MD5 SELECT |
+| --- | ---: | ---: | ---: | --- |
+| Baccellaio | 246 | 1 | 0 | `debda6c39e52ac055f07542ee3d22a17` |
+| Pianta Afferracorpi | 246 | 3 | 0 | `dce1810747be104ca8bc7b08e23b85f3` |
+| Sacerdote di Osybus | 249 | 3 | 6 | `f3e7ee519eda2df5b3f31fc5d7ec6263` |
+| Sciame di Parassiti | 250 | 1 | 4 | `e9625d7044223b294dca70152edae50d` |
+| Sciame di Scarabei | 250 | 1 | 4 | `0d0e41d1423dd322abad54e046f010fe` |
+| Senzaossa | 251 | 3 | 0 | `d9d0edbaac13edb452b73de31f039eea` |
+| Strigoi | 252 | 4 | 0 | `b6bada8073a18188e555591b0dc5b072` |
+| Testa della Morte | 253 | 3 | 3 | `9219790c2897592c391969cdcaced39c` |
+| Orda di Membra Zombi | 254 | 3 | 0 | `5050d3aaace0e9cd6980b8aeb688e0b6` |
+| Ammasso di Zombi | 255 | 3 | 0 | `de70f01d08df2b8cbbf1dedaa9a92b03` |
+| Appestato | 255 | 3 | 0 | `3c790ffcb11fb0368865407b41587e5d` |
+
+Per la Testa della Morte le tre tipologie di testa sono **alternative**; gli attacchi sono condizionati alla forma. Per Osybus le sei opzioni di non-morte sono conservate individualmente e non assegnate tutte per errore. Gli sciami mantengono le regole di infestazione e contenimento. Rilettura separata dei dati dopo le scritture: tutte le 11 schede `completezza_scheda=completa`, 6 punteggi, azioni, fingerprint MD5 e lease libero.
+
+**CHECK AGGREGATO LIVE Supabase**: `total=36`, `structurally_complete=36`, `six_scores=36`, `with_actions=36`, `with_description_and_fulltext=36`, `leased=0`, `distinct_ids=36`, `distinct_names=36`, `distinct_normalized_names=36`, `certification_pending=36`, `ai_verified=0`.
+
+**Van Richten strutturalmente 36/36 concluso**; il percorso di seconda revisione semantica, inclusa la voce controversa 'Nebbia mentale' nell'Emissario maggiore, è ancora aperto e non falsamente certificato. Bigby 71/71 ed Eberron 40/40 erano anch'essi già completi strutturalmente. PR #598 draft verso `develop`, `main` stagna, nessun merge/deploy. Prossimo manuale da completare: Il Tesoro dei Draghi di Fizban, attualmente 3/73 strutturali, con PDF privato integro di 227 pagine.
