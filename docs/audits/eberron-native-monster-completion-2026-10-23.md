@@ -24,3 +24,20 @@ Supabase letto dopo il gruppo: bestiario **1501**; `ai_verified=593` (manuali tr
 Procedere prima dagli altri record di Eberron ancora incompleti, sempre con fonte visiva e CAS per record. Gli aggiornamenti a contatori globali possono provenire da altri gruppi; il presente audit rivendica esclusivamente i cinque ID sopra.
 
 **Branch di lavoro:** `codex/safe-monster-completion-pilot-20261021`, PR #598 contro `develop`. Nessun merge di PR, modifica di `main` o deploy di produzione effettuato qui.
+
+
+## Secondo gruppo Eberron — altri 5 record (23 ottobre 2026)
+
+Confronto visivo autonomo del PDF privato registrato: pagine fisiche 285, 286, 292, 294 (stampate 284, 285, 291, 293). Per ogni ID esistente, UPDATE condizionale sullo snapshot precedente, `review_status=verified`, `translation_status=not_required`, `translation_review_status=pending`, `translation_lease_id=''`. Solo le descrizioni destinate all'utente e `attributes` sono stati arricchiti; provenance, raw `source_*`, `source_refs`, checksum, ID e `review_flags` conservati.
+
+| Nome | ID | Pagina | GS | Controlli distintivi |
+|---|---|---:|---|---|
+| Destriero Valenar | `ref_91a87d5fc66973078e75cd06c6b19c28` | 285 | 1/2 | Zoccoli +5, Legame telepatico 30 m, 8 varianti ancestrali |
+| Falco Valenar | `ref_07a2c2a2cbd753699b616693938815cc` | 285 | 1/8 | Volo 18 m, Vista Acuta, speroni, Legame, 8 varianti |
+| Segugio Valenar | `ref_eb4881af3e39558bb7a8740c8f448c46` | 286 | 1/2 | Morso +5 con TS Forza CD 13 prono, olfatto/udito, Legame, 8 varianti |
+| Piedartiglio | `ref_29fd96da4ed65636964afa35065da762` | 292 | 1 | Balzo 6 m CD 11, tattiche del branco, multiattacco, morso, artigli |
+| Dolgrim | `ref_dfe2639567b15131af8daaf40b9d0787` | 294 | 1/2 | Descrizione OCR corretta in campo utente, doppia coscienza, 4 azioni |
+
+**Seconda SELECT readback:** cinque record `review_status=verified`, `translation_review_status=not_required`, `attributes.completezza_scheda=completa`, sei caratteristiche, tratti/azioni, velocità in metri; varianti ancestrali 8/8 per i tre Valenar. I `source_attributes` non sono stati alterati. Nel Dolgrim, `source_attributes.velocita='9 m ••'` è rimasto intenzionalmente quale dato grezzo di provenienza OCR, mentre `attributes.velocita='9 m'` è stato verificato dalla pagina originale e usato nell'app: nessun dato incerto residuo nel campo di visualizzazione.
+
+**Eberron completati in questa sessione: 10/40**. Prossimi: altre 30 schede Eberron ancora `pending`, da completare senza promozioni artificiali delle traduzioni. Nessun merge, intervento su `main` o deploy.
