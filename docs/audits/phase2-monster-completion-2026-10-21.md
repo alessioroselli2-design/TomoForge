@@ -1392,3 +1392,22 @@ PDF originale pp fisiche 205 (cromatico), 207 (gemma) e 209 (metallico) visualiz
 | Grande dragone metallico | 209 | `4dd76ccf8ca29d3043ecc3ddb5b99d90` |
 
 SELECT separata verifica `completezza_scheda=completa` 3/3 e hash coincidenti. Totale live: **54/73 Fizban complete strutturalmente, 19 incomplete**. Non certificazioni semantiche forzate; fonte `source_*` immutata, nessun INSERT, PR #598 draft verso develop, main invariato.
+
+
+## Fizban — completamento strutturale finale 73/73 (23 ottobre 2026)
+
+Stato iniziale della ripresa: `66/73` complete, `7` incomplete. Fonte PDF italiana originale privata Il Tesoro dei Draghi di Fizban, pagine fisiche 172 e 221–224 visualizzate. Sette UPDATE individuali condizionali su record già esistenti con ID, nome, `updated_at` originale, fonte `ftod_2021_it` e pagina, CA/PF/velocità iniziali, lease vuoto, `review_status=verified`, `translation_status=not_required`, `translation_review_status=not_required`, `completezza_scheda` inizialmente non completa. Scritti solo `attributes`, `description`, `full_text`, `updated_at`; nessun INSERT, `source_*` intatti. Anche Terrore draconico p172, rimasto bloccato in sessioni precedenti, è stato completato e verificato con lo stesso UPDATE sicuro.
+
+| Nome | Pagina PDF | ID | Azioni | Speciali | MD5 readback |
+| --- | ---: | --- | ---: | --- | --- |
+| Terrore draconico | 172 | `ref_5773765ac6c6a123dcf9fde5abe44956` | 3 | Reazione Furto di forma | `817b97e782de91b2321a6128ade82979` |
+| Serpente marino antico | 221 | `ref_274be6bf260abcac4819561efb8458d4` | 5 | 2 opzioni leggendarie | `e1a4103c827a9dd24495596c7633ffd9` |
+| Serpente marino giovane | 221 | `ref_c4416d696a8f5931ab872b9346fd160c` | 5 | Stritolamento | `ec8ddf0243e28b15aa629e670ecc2ed7` |
+| Soffio animato | 222 | `ref_62b387e146fd67036885fa19feee7820` | 2 | 5 forme alternative | `a581bd414aba7d970647ee1e4c7df0d5` |
+| Testuggine dragona antica | 223 | `ref_298c4c1fd084c91e1884995b669e9376` | 5 | 3 leggendarie, 2 mitiche | `a1d5a14f078fe29ac5318bf1e1e6330a` |
+| Testuggine dragona giovane | 224 | `ref_b1ce48897e19ba0edf7c1c36111c9a7b` | 4 | Soffio di vapore | `3e5f45175c3a7ae00a26e984fef12d0b` |
+| Testuggine dragona cucciolo | 224 | `ref_d4b2887c48b10bc42711e50c759a8d43` | 2 | Soffio di vapore | `5b8364a13345346491cc4f7df8d794aa` |
+
+**Nota editoriale chiarita:** nel PDF originale, pagina fisica 223, azione *Coda* della Testuggine dragona antica, la media è stampata come `11 (2d10 + 9)`; aritmeticamente il risultato medio dei dadi è `20`. Preservati i dadi ufficialmente stampati `2d10 + 9` e la media calcolata `20`, anziché perpetuare la discrepanza. Il caso va sottoposto anche a revisione editoriale indipendente prima di un'eventuale certificazione semantica.
+
+**CHECK Supabase**: 73 record Fizban totali, **73 `completezza_scheda=completa`**, 73 con descrizione e testo, 73 con sei punteggi, 73 con azioni, 73 `translation_review_status=not_required`, 0 lease attivi, 73 ID unici e 73 nomi normalizzati distinti. Readback indipendente dei 7 record: fingerprint corrispondenti. Raggiunta la *completezza strutturale* del manuale; certificazione semantica indipendente separata. Nessun nuovo `ai_verified`, merge o deploy. PR #598 draft verso `develop`; `main` invariata.
