@@ -1654,3 +1654,18 @@ Dal PDF originale italiano, pagine fisiche 107–110, cinque schede preesistenti
 | Drago Di Rame Antico | 110 | `942a0e7e74cd636e667283dab230f5a0` |
 
 Bronzo: soffio fulmine e respingente alternativi, diversi CD/gittate per età, Anfibio e mutaforma soltanto su antico e adulto. Rame Antico: soffio acido e rallentante, mutaforma; antico/adulto con tre opzioni leggendarie distinte. Rilettura indipendente: tutte cinque con sei caratteristiche, azioni e status `completezza_scheda=completa`, checksum coerenti e `translation_review_status=pending` non promosso. Totale live **113/390 strutturalmente complete, 277 incomplete**. PR #598 draft su `develop`, `main` invariata, nessun merge/deploy.
+
+
+## Manuale dei Mostri — rame restanti, oro antico e adulto, 118/390 (23 ottobre 2026)
+
+Il controllo delle immagini del PDF italiano originale ha rilevato un errore di indicizzazione sorgente di **una pagina** nelle schede di Rame e Oro: le pagine fisiche dello statblock nel PDF erano successive a quelle registrate nel primo elemento di `source_refs`. Prima di promuovere la completezza, eseguiti sei UPDATE condizionali (record Rame Antico 109→110; Rame Adulto 110→111; Rame Giovane 110→111; Rame Cucciolo 111→112; Oro Antico 112→113; Oro Adulto 113→114), aggiornando soltanto `source_refs[0].page`, `source_refs[0].logical_page` e `updated_at` con guardie su nome, ID, source logical ID, PDF, pagine vecchie, lease nullo, review pending, cardinalità source_refs=1 e timestamp dove disponibile. Gli altri attributi di provenienza e campi `source_*` sono stati lasciati immutati. Il PDF effettivamente esaminato è il file `847921086-Manuale-Dei-Mostri-5e.pdf`. Poi cinque UPDATE protetti hanno completato le schede.
+
+| Mostro | Pagina PDF verificata | MD5 da SELECT indipendente |
+| --- | ---: | --- |
+| Drago Di Rame Adulto | 111 | `29237c5df818bbf1d639001ccc8b32d5` |
+| Drago Di Rame Giovane | 111 | `21421e0fef2e413f2a33ceb4eaa768ba` |
+| Drago Di Rame Cucciolo | 112 | `b44552ee03921c48175f4942152039a9` |
+| Drago D’Oro Antico | 113 | `40b8331f927cdd06e9d7187079a93e0e` |
+| Drago D’Oro Adulto | 114 | `c9b3752cf2f279ec5375304839718fad` |
+
+Mantenuti i soffi alternativi di acido e rallentamento per Rame e di fuoco e indebolimento per Oro, con CD, gittate ed effetti distinti per età; azioni leggendarie negli adulti/antichi, non nei giovani/cuccioli. SELECT readback: 5/5 complete strutturalmente, 6 caratteristiche, azioni presenti, fingerprint coincidenti, `translation_review_status=pending` invariato. Totale live **118/390 strutturalmente complete, 272 incomplete**. Nessuna certificazione indipendente forzata; PR #598 draft su `develop`, `main` invariato, nessun merge/deploy. Per i prossimi record occorre verificare il possibile proseguimento della traslazione di 1 pagina nei riferimenti prima di eseguire altri aggiornamenti.
