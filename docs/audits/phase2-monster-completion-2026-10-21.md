@@ -982,3 +982,19 @@ Ultimo gruppo di cinque mostri completato sui record esistenti dopo confronto co
 **Fase 2 Bigby: completamento della costruzione strutturale raggiunto 71/71, 0 schede mancanti nel perimetro censito.** Resta da effettuare la seconda revisione indipendente prima di qualsiasi promozione a `ai_verified`. Non sono stati eseguiti merge, deploy o modifiche a `main`; PR #598 rimane draft verso `develop`.
 
 Prossimo passo: avviare il successivo manuale con schede non complete, proteggendo la medesima distinzione tra completamento, OCR e certificazione indipendente.
+
+
+## Eberron — ripresa dopo Bigby (23 ottobre 2026)
+
+Terminato il censimento successivo a Bigby: **Eberron 40 schede registrate, 10 complete prima della ripresa, 30 strutturalmente incomplete**. Fonte privata italiana originale nella Library, `618795464-Eberron.pdf`. Iniziato dalle due schede compagno artefice alle pagine fisiche 62–63, entrambe controllate rispetto a fonte originale. Sono record `monster` già presenti, anche se descrivono compagni di classe; la definizione di bestiario include ogni blocco di statistiche registrato.
+
+Aggiornamenti condizionali a singolo ID su `description`, `full_text`, `attributes`, `updated_at`, con controlli nome/ID, fonte e pagina, timestamp, CA/PF/velocità, lease e revisione. **Preservata integralmente la formula dinamica di PF** dipendente da livello e INT dell'artefice; non sostituita da punti ferita fissi né alterati i valori `source_*`.
+
+| Nome | Pagina | ID | Azioni | Reazioni | MD5 readback |
+| --- | ---: | --- | ---: | ---: | --- |
+| Difensore D'Acciaio | 62 | `ref_07e14d22e5895eb88362784f61f4066e` | 2 | 1 | `7b00dbca51f185f846944e13d757a4f2` |
+| Omuncolo Servitore | 63 | `ref_52019c529a7a595ab070e09bddcd40b6` | 1 | 1 | `08dbcb7daf192da37dd8e9e05aa31a7e` |
+
+Readback live SELECT: entrambe `completezza_scheda=completa`, sei caratteristiche, azioni e reazioni riprodotte, formule di PF originali, `translation_review_status=pending`, zero lease. **Eberron 12/40 complete strutturalmente, 28 ancora da completare**. Da riprendere al Forgiato Colosso registrato p210; poi capitolo bestiario pp289+. Questi aggiornamenti non sono una nuova certificazione indipendente, niente promotion `ai_verified`.
+
+Le traduzioni e i PDF integrali restano privati, non nel repository. PR #598 sempre draft su develop; main invariato, nessun merge né deploy.
