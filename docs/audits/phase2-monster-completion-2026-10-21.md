@@ -1564,3 +1564,18 @@ PDF italiano privato del Manuale dei Mostri, pp fisiche 80, 81, 82, 83 (testo ar
 | Dracolich Blu Adulto | 84 | `f041efce8b8652fb1d185ed1016f5f65` |
 
 Verificati Balzo travolgente del Triceratopo e regola di due bersagli distinti del Tirannosauro; per Divoracervelli `Divorare il cervello` e `Ladro di corpi`, per Doppelganger Lettura del pensiero con soglie barriere e sorpresa, per Dracolich resistenze specifiche, soffio, e tre opzioni leggendarie separate. Readback SELECT 5/5 `completezza_scheda=completa`, 6 statistiche, azioni e fingerprint coincidenti, tutti `translation_review_status=pending`. Contatore live **83/390 strutturalmente complete, 307 non complete**. Nessuna certificazione indipendente forzata, PR #598 draft su `develop`; `main` invariato. Prossima fonte p85: Drago d'Ombra Rosso Giovane.
+
+
+## Manuale dei Mostri — ombra rossa e draghi bianchi (23 ottobre 2026), 88/390
+
+PDF privato originale del Manuale dei Mostri p85 (Drago d'Ombra), p86 testo generale varianti incantatrici, pp87–89 (Draghi Bianchi). Cinque UPDATE in-place sui record esistenti, protetti da `id`, `name`, `updated_at`, `source_refs` e pagina, CA/PF/velocità originali, lease vuoto, `review_status=verified`, `translation_review_status=pending`. Conservati `source_*`, nessun INSERT né merge/deploy.
+
+| Mostro | p PDF | MD5 SELECT readback |
+| --- | ---: | --- |
+| Drago D’Ombra Rosso Giovane | 85 | `b1ed02b4ddc0373adcea46c4dff6d151` |
+| Drago Bianco Antico | 87 | `c29d217ebb16276d088b42d1681bc446` |
+| Drago Bianco Adulto | 88 | `6377412ea9b5edd6de7fc5e11d30f020` |
+| Drago Bianco Giovane | 88 | `d2d3a3a28565faac5a9b4b65bc6137ce` |
+| Drago Bianco Cucciolo | 89 | `441e675211b9cc0bc19395c4edb81355` |
+
+Il Drago d'Ombra conserva resistenze condizionate alla luce fioca, sensibilità solare, azione bonus nascondersi e ombre non morte generate dal soffio; antico/adulto bianchi 3 azioni leggendarie ciascuno, differenze di CA/PF/gittate/CD, giovani e cuccioli senza azioni leggendarie. SELECT indipendente: tutti e cinque `completezza_scheda=completa`, sei statistiche, azioni presenti, fingerprint coerenti, nessun cambiamento di certificazione (`pending`). Contatore Supabase **88/390 strutturalmente completi**, **302 incompleti**. Nessuna promozione ad `ai_verified`, PR #598 draft verso `develop` con `main` separato.
