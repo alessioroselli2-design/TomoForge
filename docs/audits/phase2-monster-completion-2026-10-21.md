@@ -1776,3 +1776,26 @@ Le meccaniche includono incantesimi innati e getto acquatico del Marid, Ghast/Gh
 | Grifone | 175 | `ae7feab64d5b59e0ecac22f45dc262ce` |
 
 Controllo indipendente da Supabase: tutti i 15 record `completezza_scheda=completa`, sei caratteristiche, azioni presenti, fingerprint uguali ai valori riportati; revisione indipendente tuttora `pending`. Goblin Capo mantiene la reazione Sviare attacco; golem mantengono assorbimenti elementali, Berserk e Lentezza; Gorgone conserva soffio pietrificante e carica, Grell tentacoli con avvelenamento, Grick e Grick Alfa attacco Becco condizionato. Snapshot in tempo reale: **177/390 strutturalmente complete, 213 incomplete**. PR #598 resta draft diretta a `develop`, `main` separata, nessun merge/deploy. Continuare dal Grimlock PDF p176.
+
+
+## Manuale dei Mostri — Grimlock, hobgoblin, Idra e Kuo-Toa, 190/390 (23 ottobre 2026)
+
+Altre tredici schede preesistenti `mm_2014_it` completate mediante confronto con pagine visuali 176–177, 179–185, 187–189 del manuale PDF italiano. UPDATE SQL individuali con compare-and-swap su ID, nome, timestamp, fonte/pagina, CA/PF/velocità, assenza lease, stato di revisione conservato, nessun INSERT e nessuna modifica a `source_*`. Ogni aggiornamento è stato confermato da una SELECT separata di caratteristiche, azioni, completezza e MD5. Per Kraken incluse le opzioni di tana p184 e le azioni leggendarie p185; per Idra gestione teste, per hobgoblin Autorità e Parata.
+
+| Mostro | Pagina PDF | Fingerprint readback |
+| --- | ---: | --- |
+| Grimlock | 176 | `23115a29df0710843a097c10c3e6e30a` |
+| Guardiano Protettore | 177 | `89c7057c8a38f9565698332679e537e9` |
+| Hobgoblin | 179 | `4b77cc9d37f415f84d4d720c401e330b` |
+| Hobgoblin Capitano | 179 | `ac139018fefe55a74c0def1bb0c50f94` |
+| Hobgoblin Signore Della Guerra | 180 | `92b6d1baed2cc2713957833160f412db` |
+| Idra | 181 | `67bcf640243973d5b5c500b4ca9c5bb0` |
+| Ippogrifo | 182 | `b150134ba9e881cf287a411ad867c272` |
+| Kenku | 183 | `3d3f14c81c2534d9b6e5036069fe40a2` |
+| Kraken | 184 | `54d940b033799dd4ba81969f7b242817` |
+| Kuo-Toa | 187 | `0ee68034ac5c69724768f581d72a2968` |
+| Kuo-Toa Esecutore | 188 | `4593b0670f80b7d6e5739688abae24e0` |
+| Kuo-Toa Gran Sacerdote | 188 | `6d468cc3f900c1d6098db0ae90b99c27` |
+| Lamia | 189 | `4c163a7e75af29c175fa73803fdd187c` |
+
+Snapshot live **190/390** schede strutturalmente complete, **200 incomplete**. `translation_review_status=pending` mantenuto in tutte e 13: nessuna certificazione editoriale indipendente automatica. Una sola PR #598 draft diretta a `develop`, `main` separata, nessun deploy o merge. Prossimi dopo p189: lycantropi a pagina 192.
