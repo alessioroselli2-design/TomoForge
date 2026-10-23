@@ -1256,3 +1256,22 @@ Fonte privata originale integrale `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizb
 Per Bahamut e Tiamat preservate **due fasi mitiche distinte**, entrambe con 5 azioni ordinarie, 2 leggendarie, 2 mitiche e requisiti di attivazione al raggiungimento di 0 PF. Dracoidra conserva cinque teste, ricrescita condizionata e soffio multielementale. Fante e Infiltrato mantengono la rispettiva morte pietrificante/acida, senza scambiarne le CD.
 
 **Readback SELECT indipendente**: tutti e cinque presentano `completezza_scheda=completa`, 6 valori delle caratteristiche, azioni salvate, MD5 corrispondenti, lease liberi, `translation_review_status=not_required`. Aggregato live **Fizban: 14/73 complete strutturalmente, 59 ancora incomplete**. Nessuna certificazione semantica aggiunta né promozione artificiale. PR #598 draft verso `develop`, `main` intatta, nessun merge/deploy. Prossimo gruppo: Mago draconico (p170), Stratega draconico (p171) e Terrore draconico (p172).
+
+
+## Fizban — lotto dopo ricollegamento Supabase, 19/73 (23 ottobre 2026)
+
+Verifica connessione SQL a Supabase riuscita; preflight live individuava **Fizban 14/73 complete strutturalmente**. Manuale italiano privato `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf` aperto direttamente (227 pagine effettive); confrontati i render originali delle pagine fisiche 170–174 a 2200 px. Eseguiti cinque UPDATE protetti su record già esistenti, con guardie `id`, `name`, `updated_at` iniziale, `review_status=verified`, `translation_status=not_required`, `translation_review_status=not_required`, assenza di lease, provenienza `ftod_2021_it` e pagina, CA/PF/velocità iniziali, `completezza_scheda IS DISTINCT FROM completa`; scritti solo `attributes`, `description`, `full_text`, `updated_at`.
+
+| Nome | Pagina PDF | ID | Azioni | Fingerprint MD5 da SELECT indipendente |
+| --- | ---: | --- | ---: | --- |
+| Mago draconico | 170 | `ref_8ce7b81a3e40b42a5809ef342c586102` | 3 | `a35fb6c1f9d3adfadbe96006a8fee5cb` |
+| Stratega draconico | 171 | `ref_30a18c1ba336c599ae0760e45a934b10` | 4 | `c5279296dc557d5a3186ff52aebec69c` |
+| Drago della lunopietra antico | 173 | `ref_2a8a81fd1bd2e61d2be06fcefc2f4ba7` | 6 | `b19a25a4d9b0f945935547ae90b884fc` |
+| Drago della lunopietra adulto | 174 | `ref_00e38b0581f2ae822e860bc3d8d38fa1` | 6 | `77edd37e3e5a9c2a1b7e4dce634cee38` |
+| Drago della lunopietra giovane | 174 | `ref_136e382d344efe9e6d7cfdfe857e920b` | 5 | `8c6859e8f8b6504c39b8fdd26fe69e7c` |
+
+Per il drago antico preservate separatamente `azioni_leggendarie` e `azioni_tana` (tana sullo stesso PDF p173), e per l'adulto le azioni leggendarie; i soffi chiardiluna/sognante sono distinti per CD, gittata e danni. Nessun INSERT, nessuna modifica ai `source_*`, nessuna promozione artificiale a `ai_verified`.
+
+**Blocco da risolvere in modo isolato:** il record preesistente `Terrore draconico` p172, ID `ref_5773765ac6c6a123dcf9fde5abe44956`, è rimasto volutamente `completezza_scheda=statistiche_essenziali`: l'azione SQL di aggiornamento è stata bloccata per due volte dai controlli di sicurezza del connettore. Non trattarla come completata, né ripetere ciecamente la stessa chiamata. Non è stata rilevata una discrepanza OCR sul PDF originale. Lo snapshot MD5 invariato è `dc18055eb216a15aad35d0fce318232c`. Il successivo tentativo di SELECT aggregato complesso è stato anch'esso bloccato, ma una lettura SELECT minimale dei sei ID ha avuto successo e ha confermato i cinque fingerprint sopra e lo status incompleto del Terrore.
+
+Snapshot aggregato dopo le scritture: **19/73 complete strutturalmente, 54 incomplete**, `main` invariato e PR #598 draft verso `develop`; nessun merge/deploy. Priorità: isolare il blocco di Terrore draconico prima di certificazioni indipendenti; poi proseguire dal Cucciolo di drago della lunopietra p175.
