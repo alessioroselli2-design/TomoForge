@@ -1465,3 +1465,23 @@ Proseguimento operativo autonomo dopo 38/390: PDF originale italiano `847921086-
 | Couatl | 45 | `ref_fd7adba90643a77fce8895073266772e` | `4df26a3f6ba005a816dac7ee9451b0bb` |
 
 Verifiche SELECT separate: 10/10 schede con `completezza_scheda=completa`, 6 punteggi caratteristica, almeno una azione; per 5/5 nel secondo lotto fingerprint e lease libero, tutti `pending` per revisione semantica. Per il Cavaliere Della Morte conservati gli slot e la reazione Parata, per il Chuul la paralisi condizionata dopo essere afferrato, per Coboldo/Coboldo Alato i diversi attacchi e volo, per il Couatl incantesimi e Mente schermata. Totale live: **48/390 strutturalmente complete, 342 ancora incomplete**. Prossima fonte fisica p46 `Cumulo Strisciante`. Nessun merge, PR #598 draft verso `develop`, `main` invariata.
+
+
+## Manuale dei Mostri — pagine 46–59: 58/390 (23 ottobre 2026)
+
+Dieci record già presenti del Manuale dei Mostri italiano (`mm_2014_it`) completati strutturalmente. Fonte integrale PDF scansione privata, pagine fisiche 46, 47, 48–49 (Demilich), 55, 56, 57, 58, 59 lette su rendering a risoluzione adeguata. UPDATE individuali con guardie `id`, `name`, `updated_at` originale, pagina fonte, CA/PF/velocità preesistenti, `review_status=verified`, `translation_status=not_required`, `translation_review_status=pending`, lease libero e stato non ancora completo. Non modificati `source_*` o reference provenance, nessun INSERT.
+
+| Mostro | pagina | MD5 SELECT indipendente |
+| --- | ---: | --- |
+| Cumulo Strisciante | 46 | `93fc8d37e12cf4906674764b982b2682` |
+| Cuspide Letale | 47 | `1fb75acbe71d63f78cfe4d4fb3eed167` |
+| Demilich | 48 e tana 49 | `419b5386a29121a612056034ae189f6d` |
+| Balor | 55 | `808d232c779518200f37d508f425bd69` |
+| Barlgura | 56 | `a3c39179487a31882ee0871492ce99d1` |
+| Chasme | 57 | `2d8b9e58e485716f19cefbdc2d18a93e` |
+| Demone D'Ombra | 57 | `eb4cf5882da850d063b9af4bb499833d` |
+| Dretch | 58 | `9e5253b07052a68232583eac266e3cce` |
+| Glabrezu | 58 | `4075fc1d8588a30e5a19fb04b12a025b` |
+| Goristro | 59 | `edfeeb24a40fa60e19e8df05b23ec94a` |
+
+Il Demilich include azioni ordinarie, 4 opzioni leggendarie e 3 opzioni di tana distinte, non confuse con poteri at-will. Balor ha Aura di fuoco e Spasmi di morte, Chasme Ronzio e Proboscide, Goristro regola di Carica. Check SELECT dopo scrittura: tutti e 10 con 6 punteggi, almeno una azione, status `completezza_scheda=completa`, hash sopra, lease libero e `translation_review_status=pending` invariato. **Totale Manuale dei Mostri: 58/390 complete strutturalmente, 332 incomplete.** Non c'è certificazione semantica indipendente; PR #598 draft su `develop`, main invariata, nessun merge/deploy. Successivi Hezrou e Mane PDF p60.
