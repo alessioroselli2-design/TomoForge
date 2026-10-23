@@ -1044,3 +1044,18 @@ Fonte PDF Eberron italiano, pagine fisiche 299–302. Quinto gruppo di schede Eb
 Readback separata: 5/5 con `completezza_scheda=completa`, 6 punteggi numerici, sezioni azioni coerenti con i blocchi nel PDF, fingerprint MD5 identici, `translation_review_status=pending`, lease vuoto. Varianti Hashalaq/Kalaraq/Tsucora dell'Ispirato conservate nei campi `varianti`; i tre incantesimi viventi mantengono proprietà e danni differenziati. Bigby già a 71/71 strutturali, Eberron passa a **24/40**, **16 ancora incomplete**, tutte senza certificazione semantica indipendente della seconda fase.
 
 PR #598 ancora draft su develop; nessun merge, deploy o modifica di main. Prossima scheda: Lady Illmarrow p303–304.
+
+
+## Eberron — terzo gruppo della ripresa, 29/40 (23 ottobre 2026)
+
+Fonte originale Eberron IT, pagine PDF 303–307. Completati cinque record già presenti e verificati con UPDATE condizionali a singolo ID su nome, timestamp, fonte/pagina, CA/PF/velocità, stato `verified` originale, `translation_review_status=pending`, lease libero e completezza non ancora impostata. Il PDF resta nella Library, non caricato nel repository.
+
+| Nome | Pagine | ID | Azioni | Leggendarie | Fingerprint MD5 readback |
+| --- | --- | --- | ---: | ---: | --- |
+| Lady Illmarrow | 303–304 | `ref_ff21f073910953168de10d274cd8c31f` | 3 | 4 | `93dfeefcae4ae03659daf0b1ce628e59` |
+| Megera Crepuscolare | 305 | `ref_1be623f67ff55c40aebefd7b8445f16f` | 3 | 0 | `53674af06cb344ea75a47fbc0977b662` |
+| Mordakhesh | 306 | `ref_0868e1924b1a5417ba0ee221f25069ae` | 3 | 3 | `1c19f34c7fce9304ba6a8e77f0bba533` |
+| Difensore Di Ferro | 307 | `ref_b6e198874ae75ccda106abe3af682151` | 1 | 0 | `e654f884a92ea5db3c9bd270cd2537a6` |
+| Messaggero Rapido | 307 | `ref_b0a188913d315ae7903cb7ee9548b481` | 1 | 0 | `3c243f7b6a69cc52781cdd1a563feccb` |
+
+Rilettura separata: 5/5 completezza, 6 caratteristiche, azioni e abilità coerenti con fonte, fingerprint identici, lease vuoto, revisione semantica indipendente pending. Lady Illmarrow: lista di slot e incantesimi fino al 9° grado; Mordakhesh: immunità magica limitata e tre opzioni leggendarie; i due omuncoli non ricevono Multiattacco inventati. **Eberron 29/40, 11 strutturalmente incomplete**. Nessun INSERT, fonte `source_*` intatta, nessun merge/deploy e `main` separato.
