@@ -958,3 +958,27 @@ Ripresi i dieci record iniziali del bestiario Bigby, partendo dalle pagine PDF 1
 SELECT indipendente: 5/5 completezza `completa`, sei punteggi, azioni coerenti con la fonte, fingerprint identici, `translation_review_status=pending`. **66/71 Bigby complete strutturalmente, 5 mancanti**, nessuna certificazione semantica indipendente falsamente attribuita. PR #598 draft verso `develop`; `main` invariato, nessun merge o deploy.
 
 Ultimo gruppo: Colosso Di Carne, Colosso Runico, Aerosauro, Altisauro, Ceratopo (p125–128).
+
+
+## Bigby — completamento strutturale 71/71 (23 ottobre 2026)
+
+Ultimo gruppo di cinque mostri completato sui record esistenti dopo confronto con le pagine fisiche 125–128 del PDF italiano registrato. Aggiornamenti atomici con guardie su identità, snapshot, provenienza, pagina, CA/PF/velocità, lease vuoti e stato pending. Nessuna inserzione, nessuna modifica di `source_*`.
+
+| Nome | Pagina | ID | Azioni | Fingerprint MD5 riletto |
+| --- | ---: | --- | ---: | --- |
+| Colosso Di Carne | 125 | `ref_42d5121498575f11a310f549f441f4d7` | 3 | `d2d559c768be53a2278cf34ddf00782f` |
+| Colosso Runico | 126 | `ref_83a6b991bfec5efdb2dda4da60d408bb` | 4 | `72963e0a9c15ffa108fb4c7faf1354af` |
+| Aerosauro | 127 | `ref_7328deb50d1d5de9bf451bdfb7cbaa0a` | 4 | `f695e7d265964f85a128f689d5d92259` |
+| Altisauro | 128 | `ref_c106f9a6c3115dbf8578f832b04e3a3a` | 3 | `f6fff8396625df1e5753c5f7d318d49c` |
+| Ceratopo | 128 | `ref_e42d82c62c7b5bdba13c3c73663966ff` | 3 | `1742a2b784132075dce2c1005dc95a04` |
+
+**SELECT di controllo aggregato LIVE Supabase**, eseguita dopo tutte le scritture:
+
+- `total=71`, `complete_structurally=71`, `six_ability_scores=71`, `with_actions=71`, `descriptions_and_text=71`.
+- `distinct_ids=71`, `distinct_names=71`, `distinct_normalized_names=71`: nessun duplicato rilevato nel perimetro Bigby.
+- `leased=0`; i 5 fingerprint finali coincidono con gli snapshot post-update.
+- `translation_review_status=pending` in **71/71** e `ai_verified=0`: queste schede provengono da un originale già in italiano, quindi `translation_status=not_required`. La completezza strutturale non sostituisce la verifica indipendente richiesta per la certificazione di fase 2.
+
+**Fase 2 Bigby: completamento della costruzione strutturale raggiunto 71/71, 0 schede mancanti nel perimetro censito.** Resta da effettuare la seconda revisione indipendente prima di qualsiasi promozione a `ai_verified`. Non sono stati eseguiti merge, deploy o modifiche a `main`; PR #598 rimane draft verso `develop`.
+
+Prossimo passo: avviare il successivo manuale con schede non complete, proteggendo la medesima distinzione tra completamento, OCR e certificazione indipendente.
