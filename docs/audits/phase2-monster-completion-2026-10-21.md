@@ -1669,3 +1669,15 @@ Il controllo delle immagini del PDF italiano originale ha rilevato un errore di 
 | Drago D’Oro Adulto | 114 | `c9b3752cf2f279ec5375304839718fad` |
 
 Mantenuti i soffi alternativi di acido e rallentamento per Rame e di fuoco e indebolimento per Oro, con CD, gittate ed effetti distinti per età; azioni leggendarie negli adulti/antichi, non nei giovani/cuccioli. SELECT readback: 5/5 complete strutturalmente, 6 caratteristiche, azioni presenti, fingerprint coincidenti, `translation_review_status=pending` invariato. Totale live **118/390 strutturalmente complete, 272 incomplete**. Nessuna certificazione indipendente forzata; PR #598 draft su `develop`, `main` invariato, nessun merge/deploy. Per i prossimi record occorre verificare il possibile proseguimento della traslazione di 1 pagina nei riferimenti prima di eseguire altri aggiornamenti.
+
+
+## Manuale dei Mostri — oro giovane e cucciolo 120/390 (23 ottobre 2026)
+
+Fonte PDF italiano originale p115. Controllo di provenienza: `source_refs[0].page` e `source_refs[0].logical_page` per Oro Giovane e Oro Cucciolo indicavano erroneamente 114 anziché la pagina effettiva 115. Due correzioni in-place protette da ID/nome/timestamp, file sorgente, vecchia e nuova pagina, lease assente e revisione pending. Non modificati altri riferimenti source_*; nessun nuovo record. Seguono due UPDATE protetti per completamento statblock e testo.
+
+| Mostro | Pagina corretta | MD5 da SELECT readback |
+| --- | ---: | --- |
+| Drago D’Oro Giovane | 115 | `5ec285bd0338772feb9f0c57a06c4e05` |
+| Drago D’Oro Cucciolo | 115 | `37f5a732095503c31a1e35ad46451a0e` |
+
+Entrambi con 6 caratteristiche, azioni e soffi alternativi Fuoco/Indebolente con rispettive CD e distanze. Confermato `completezza_scheda=completa`, `translation_review_status=pending` invariato; **120/390 strutturalmente complete, 270 incomplete**. Il mantenimento della verità editoriale è separato dalla certificazione indipendente. PR #598 draft verso develop; main e deployment non modificati.
