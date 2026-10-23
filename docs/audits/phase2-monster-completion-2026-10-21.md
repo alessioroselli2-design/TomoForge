@@ -1709,3 +1709,26 @@ Dopo 120/390, lettura diretta delle immagini del PDF italiano originale `8479210
 | Flumph | 136 | `958e673e157e5c02caf2cfde66f210a0` |
 
 Tutti i 18 record riletti via SELECT indipendente: `completezza_scheda=completa`, esattamente 6 caratteristiche, almeno una azione, fingerprint concordante, `translation_review_status=pending` invariato. Per i Drow salvati incantesimi, veleni e capacità difensive; per i quattro elementali vulnerabilità, immunità, tratti e le rispettive azioni; per Ettercap variante Garrota, per Empireo e Fantasma poteri speciali. Il completamento è **strutturale**, non un'autocertificazione editoriale. Contatore live **138/390 complete strutturalmente, 252 incomplete**. PR #598 draft su develop, main intatta, nessun merge o deploy.
+
+
+## Manuale dei Mostri — Fomorian, funghi, Fuoco Fatuo, Fustigatore, Galeb Duhr, Gargoyle e geni (149/390)
+
+Proseguimento dopo lo stato live 138/390. Le pagine del PDF italiano originale `847921086-Manuale-Dei-Mostri-5e.pdf` sono state ispezionate visivamente (137, 139–143 e 146–148). È stato corretto l'offset pagina del primo riferimento `mm_2014_it` **solo** per Fomorian (136→137), Boleto Stridente, Fungo Viola e Spora Gassosa (138→139), con CAS su ID, nome, timestamp, stato e provenienza; gli altri riferimenti di origine rimangono intatti. I record esistenti sono stati completati con guardie CAS su ID/nome/timestamp/provenienza/pagina/CA/PF/velocità, lease vuoto e revisione `pending`; **nessun INSERT, merge o deploy**.
+
+| Nome | PDF p. | Fingerprint MD5 (readback SQL) |
+| --- | ---: | --- |
+| Fomorian | 137 | `06637618dd8bac521404853317c831dc` |
+| Boleto Stridente | 139 | `90fb959af1e4f18ebc129986690912d9` |
+| Fungo Viola | 139 | `67c9435f9deee39f3e478d68bf61016d` |
+| Spora Gassosa | 139 | `ad0ebc5c6c0058de757a08312774afa9` |
+| Fuoco Fatuo | 140 | `79c244c954cbfbdc86a2f7c2914a6f1a` |
+| Fustigatore | 141 | `88a9bff022f8d12ab4b2529077eeea3e` |
+| Galeb Duhr | 142 | `142928bd97afbbcb891e976d148a94be` |
+| Gargoyle | 143 | `3ab5c9f4dd5327cc804b8b6adbb75da9` |
+| Dao | 146 | `6c29b2a0f9bb040f8710d4dedbbe565b` |
+| Djinni | 147 | `843c47eda3589e7158d9add41852e722` |
+| Efreeti | 148 | `18db5e569b76d6220321f574e59dd023` |
+
+**Particolarità protette:** Boleto Stridente possiede una reazione Stridio ma nessuna azione d'attacco (quindi `azioni=[]` è conforme al manuale); Fomorian possiede maledizione del Malocchio con recupero lungo; Spora Gassosa conserva i dettagli della malattia; Fuoco Fatuo separa azioni da azioni bonus; Fustigatore i tentacoli afferranti; i tre geni hanno ciascuno liste di incantesimi innate e attacchi distinti. Riletture DB dopo le scritture: tutti undici `completezza_scheda=completa`, sei valori di caratteristica, fingerprint coincidenti con tabella, `translation_review_status=pending` invariato.
+
+**Stato globale Supabase Manuale dei Mostri:** `390` record, `149` complete strutturalmente, `241` incomplete, `372` ancora in revisione semantica `pending`. Le differenze tra completezza strutturale e revisione indipendente vanno mantenute esplicite. La PR #598 resta draft verso `develop` e `main` non è stata modificata. Prossimo record dopo i geni: controllare Marid e gli altri statblock successivi nel PDF prima di aggiornare.
