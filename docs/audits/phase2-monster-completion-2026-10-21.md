@@ -1292,3 +1292,17 @@ Secondo lotto della sessione dopo ricollegamento Supabase. PDF privato integrale
 Drago delle profondità antico: oltre a sei statistiche e attacchi, salvate separatamente azioni leggendarie (Coda, Spore al comando, Raffica di spore) e tre azioni di tana originali; adulto conserva le sue tre azioni leggendarie; giovane e cucciolo mantengono la progressione separata di danni/CD del soffio. Drago della lunopietra cucciolo: due soffio alternativi con CD12 e distanze corrette.
 
 **Readback distinta SELECT**: ciascuno dei cinque risulta `completezza_scheda=completa`, fingerprint MD5 coincidente. Aggregato successivo: **Fizban 24/73 strutturalmente completi, 49 incompleti**. Nessuna promozione semantica forzata o certificazione indipendente effettuata. Il record Terrore draconico p172 resta ancora incompleto a causa del blocco di sicurezza documentato nella sezione 19/73: deve essere recuperato con processo compatibile prima della chiusura. PR #598 draft verso `develop`; `main` separato; nessun merge/deploy.
+
+
+## Fizban — ametista originale verificato, 28/73 (23 ottobre 2026)
+
+Fonte PDF privato originale Il Tesoro dei Draghi di Fizban, pagine fisiche 179, 180, 181 (renderizzate e lette), non OCR preso per buono. Quattro righe già presenti di `ftod_2021_it` aggiornate una alla volta con CAS su ID/nome, updated_at, provenance/pagina, CA/PF/velocità, `review_status=verified` iniziale, lease vuoto e `translation_review_status=not_required`. Nessun INSERT, `source_*` intatti. Lista attributi: sei valori, abilità e TS, resistenze/immunità, morso/artigli, incantesimi, soffio della singolarità; per antico e adulto anche azioni bonus e leggendarie, per antico le azioni di tana.
+
+| Nome | Pag. | ID | MD5 readback |
+| --- | ---: | --- | --- |
+| Drago di ametista antico | 179 | `ref_fe5db98fd22fe3ce6cde1200ab64a18b` | `5b05e6ea0ca8ebf5d60c9d51f106e99d` |
+| Drago di ametista adulto | 180 | `ref_2a5856466b203ad674624ed76678a0c8` | `ba4c192b692d7cd27ae2112df6b8641a` |
+| Drago di ametista giovane | 180 | `ref_173001c403b28fcf93dc6f8c462a1921` | `82af72477f9b89b599e91e266e8d8799` |
+| Drago di ametista cucciolo | 181 | `ref_f5d0a15d980b9577ab970f0824e27dd9` | `cc9b5c2219cfa72f48665f843ce21a71` |
+
+Sul cucciolo effettuata ulteriore correzione puntuale del refuso di digitazione `discol fluttuante` -> `disco fluttuante`, anche in `full_text`, MD5 dopo la correzione riportato sopra. Snapshot SELECT totale: **Fizban 28/73 `completezza_scheda=completa`**, 45 incompleti. Non certificazione semantica forzata; Terrore draconico ancora incompleto e con blocco del connettore documentato. Nessun merge o deploy; branch draft verso develop e main invariata.
