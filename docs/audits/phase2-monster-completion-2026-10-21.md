@@ -1059,3 +1059,18 @@ Fonte originale Eberron IT, pagine PDF 303–307. Completati cinque record già 
 | Messaggero Rapido | 307 | `ref_b0a188913d315ae7903cb7ee9548b481` | 1 | 0 | `3c243f7b6a69cc52781cdd1a563feccb` |
 
 Rilettura separata: 5/5 completezza, 6 caratteristiche, azioni e abilità coerenti con fonte, fingerprint identici, lease vuoto, revisione semantica indipendente pending. Lady Illmarrow: lista di slot e incantesimi fino al 9° grado; Mordakhesh: immunità magica limitata e tre opzioni leggendarie; i due omuncoli non ricevono Multiattacco inventati. **Eberron 29/40, 11 strutturalmente incomplete**. Nessun INSERT, fonte `source_*` intatta, nessun merge/deploy e `main` separato.
+
+
+## Eberron — quarto gruppo della ripresa, 34/40 (23 ottobre 2026)
+
+Fonte `618795464-Eberron.pdf`, pagine fisiche 308–312. Cinque UPDATE condizionali sulle cinque schede esistenti e non complete, con confronto ID, nome, timestamp, provenienza, CA/PF/velocità, revisione pending e lease assente. Nessun INSERT, `source_*` preservati. **Il Quori Kalaraq aveva OCR numerico fortemente errato**: pagina 309 renderizzata dal PDF originale in immagine (poppler, 175 DPI) e verificati direttamente punti ferita 161 (19d8+76), velocità volare 18 m, FOR 12, DES 21, COS 18, INT 23, SAG 24, CAR 25, GS 19, CD 21, bonus +13 e 1d10; nessuna supposizione dagli errori OCR.
+
+| Nome | Pagina | ID | Azioni | Leggendarie | Fingerprint MD5 (readback) |
+| --- | ---: | --- | ---: | ---: | --- |
+| Quori Hashalaq | 308 | `ref_70901222165b54fe8e2827d5a3968998` | 4 | 0 | `478f46cfa94b55e77ee5282d75875d21` |
+| Quori Kalaraq | 309 | `ref_29fef8f16630505f8b98e30fe7af0333` | 6 | 0 | `96fbc8a73aa4972a82a422c97a7fe80e` |
+| Quori Tsucora | 310 | `ref_a9150eb0fdcd5bf596e87dfebd4d899c` | 5 | 0 | `8edaf65669fc3a8c9d2662f430711cb6` |
+| Rakshasa Zakya | 311 | `ref_4f0153fa751a51508a89f19422145690` | 3 | 0 | `222559cea0b4f65d564d0e8bcd55feea` |
+| Il Signore Delle Lame | 312 | `ref_f4b2b8081d51544a922c8652871e617c` | 4 | 4 | `f33629c79ac0e13b28d9a835291c0aad` |
+
+SELECT post-update separata: cinque righe `completezza_scheda=completa`, sei punteggi, fingerprint invariati e nessun lease; tutte `translation_review_status=pending`. **Eberron 34/40 complete nella struttura, sei da completare**. I `source_*` restano intatti; revisione semantica indipendente non effettuata né certificata. PR #598 draft verso develop; main separato, nessun merge/deploy.
