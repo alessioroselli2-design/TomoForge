@@ -1379,3 +1379,16 @@ Fonte italiana privata Fizban: pp fisiche 198–204 renderizzate visivamente, 7 
 | Golem dragosso | 204 | `85ce37fadbe8b675321c69a08957ec09` |
 
 Rilettura separata SELECT: **51/73 schede Fizban strutturalmente complete, 22 incompleti**; MD5 coincidenti e `completezza_scheda=completa` per tutte e sette. `main` resta separato, PR #598 draft su develop, nessun merge/deploy né certificazione semantica forzata. Prossime pp205–224 e record isolato p172.
+
+
+## Fizban — grandi dragoni 54/73 (23 ottobre 2026)
+
+PDF originale pp fisiche 205 (cromatico), 207 (gemma) e 209 (metallico) visualizzato e confrontato ai dati esistenti. Tre schede già esistenti aggiornate con CAS su id/nome/timestamp/CA/PF/velocità/source_refs/lease e stati iniziali. Riprodotti i tre differenti **Risvegli** dopo il primo azzeramento dei PF, i soffi, le immunità variabili per stirpe, i 3 blocchi di azioni leggendarie (ove presenti) e le azioni mitiche, senza sommare opzioni alternative.
+
+| Nome | pagina | MD5 di readback |
+| --- | ---: | --- |
+| Grande dragone cromatico | 205 | `74fa9f7dc23d9767696555437a9d133a` |
+| Grande dragone gemma | 207 | `dd3ff84ff567ac69abb8eccad0a52388` |
+| Grande dragone metallico | 209 | `4dd76ccf8ca29d3043ecc3ddb5b99d90` |
+
+SELECT separata verifica `completezza_scheda=completa` 3/3 e hash coincidenti. Totale live: **54/73 Fizban complete strutturalmente, 19 incomplete**. Non certificazioni semantiche forzate; fonte `source_*` immutata, nessun INSERT, PR #598 draft verso develop, main invariato.
