@@ -1485,3 +1485,18 @@ Dieci record già presenti del Manuale dei Mostri italiano (`mm_2014_it`) comple
 | Goristro | 59 | `edfeeb24a40fa60e19e8df05b23ec94a` |
 
 Il Demilich include azioni ordinarie, 4 opzioni leggendarie e 3 opzioni di tana distinte, non confuse con poteri at-will. Balor ha Aura di fuoco e Spasmi di morte, Chasme Ronzio e Proboscide, Goristro regola di Carica. Check SELECT dopo scrittura: tutti e 10 con 6 punteggi, almeno una azione, status `completezza_scheda=completa`, hash sopra, lease libero e `translation_review_status=pending` invariato. **Totale Manuale dei Mostri: 58/390 complete strutturalmente, 332 incomplete.** Non c'è certificazione semantica indipendente; PR #598 draft su `develop`, main invariata, nessun merge/deploy. Successivi Hezrou e Mane PDF p60.
+
+
+## Manuale dei Mostri — demoni pp 60–64, 63/390 (23 ottobre 2026)
+
+Gruppo di cinque schede del Manuale dei Mostri originale italiano, pp 60, 61, 62, 64 rese in immagini e confrontate, aggiornate esclusivamente su record preesistenti con condizioni CAS su ID, nome, `updated_at`, CA/PF/velocità iniziali, source_refs/pagina, lease assente, stato `review_status=verified` e `translation_review_status=pending`. Scritti `attributes`, `description`, `full_text`, `updated_at` soltanto. `source_*` immutati, nessun INSERT o promozione ad `ai_verified`.
+
+| Nome | Pagina PDF | Fingerprint MD5 readback |
+| --- | ---: | --- |
+| Hezrou | 60 | `2c0fd9985d76924cbea1754e57a90830` |
+| Mane | 60 | `1495bc695828c3d1693109f95d397aa3` |
+| Marilith | 61 | `c428fdf46ac01b5d9c26eed6ec55c40f` |
+| Nalfeshnee | 62 | `59db8e24b9580d742ac52bc3bc1138e8` |
+| Vrock | 64 | `0f80ce2c7c0eed5722a2ec8e0d706fcb` |
+
+Conservate le capacità caratteristiche (Fetore, Nube di orrore, Spore, Stridio stordente), le sette azioni d'attacco della Marilith e reazione Parata, con le distinte CD e immunità. Verifiche SELECT separate: 5/5 `completezza_scheda=completa`, 6 punteggi, azioni presenti, MD5 coincidenti, `translation_review_status=pending` inalterato. Stato live del manuale: **63/390 schede complete nella struttura, 327 incomplete**. Prossimo Yochlol p65. La certificazione semantica indipendente resta separata e non completata. PR #598 in draft su develop, main invariato; nessun merge/deploy.
