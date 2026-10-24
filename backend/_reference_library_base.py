@@ -495,6 +495,18 @@ _SOURCE_RACE_TITLES = {
     "682072052-5e-dnd-dragonlance-shadow-of-the-dragon-queen-mong-icypd5.pdf": frozenset({
         "kender",
     }),
+    "667440680-guida-di-von-richten-a-ravenloft.pdf": frozenset({
+        "dhampir", "sangue strigo", "hexblood", "rinato", "reborn",
+    }),
+    "779447314-toaz-info-strixhaven-a-curriculum-of-chaos-dampd-5e-pr-ddb9ac0faaf75f03b8889d75914d10c4.pdf": frozenset({
+        "owlin",
+    }),
+    "556883105-acquisitions-incorporated-d-d5e.pdf": frozenset({
+        "verdan",
+    }),
+    "432286579-locathah-rising-5e.pdf": frozenset({
+        "locathah",
+    }),
 }
 
 
