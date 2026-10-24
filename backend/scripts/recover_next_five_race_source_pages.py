@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 from scripts.recover_five_race_source_pages import (
-    accepted, ocr as original_ocr, persist, sha256,
+    accepted, persist, sha256,
 )
 
 SOURCES = (
