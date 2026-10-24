@@ -1,105 +1,103 @@
-# Audit di copertura razze e sottorazze — 2026-10-24
+# Audit razze e sottorazze — 24 ottobre 2026
 
-> **Stato**: inventario diagnostico; non è una sorgente canonica di regole.
-> I riferimenti ai manuali sono nomi di file già presenti nel database TomoForge.
-> Non contiene pagine OCR, testi privati dei manuali o credenziali.
+> Diagnostica, non sorgente canonica delle regole. Il contenuto di questo file
+> non include trascrizioni dei manuali, immagini, PDF o dati di accesso.
+> Origine dei numeri: query live `public.private_reference_records`.
 
-## Esito della verifica sul database
+## Contatori effettivi
 
-Query su `public.private_reference_records` dopo la correzione del Manuale del Giocatore italiano:
+| Criterio | Record |
+|---|---:|
+| Schede razze + sottorazze | **148** |
+| Razze | **93** |
+| Sottorazze | **55** |
+| `review_status = verified` (revisione generale) | **148** |
+| `ai_review_status = verified` (controllo indipendente AI) | **86** |
+| Verifiche AI ancora `pending` | **62** |
+| Testo originale OCR mancante nel record (`source_full_text`) | **58** |
+| Taglia, velocità, lingue o array dei tratti mancanti | **0** |
+| Duplicati `source_key + reference_type + normalized_name` | **0** |
+| Sottorazze prive di riferimento alla razza madre | **0** |
 
-- `race`: 58 record, tutti `verified`;
-- `subrace`: 22 record, tutti `verified`;
-- totale: **80 record**;
-- duplicati per (`source_key`, `reference_type`, `normalized_name`): **0**.
+**Stato complessivo: copertura delle opzioni identificate molto avanzata,
+ma convalida fonte-per-fonte NON completa.** L'assenza di `pending` nella
+revisione generale **non** equivale a `fully_validated = true`.
 
-Le nuove schede `Dragonide` e `Elfo Alto` sono state aggiunte al
-`Manuale_del_giocatore__1787259882002.pdf` come sintesi meccaniche italiane
-2014, con fonti incrociate e note di provenienza che esplicitano la mancanza
-del testo integrale OCR italiano. La fonte italiana p. 32 per Dragonide è
-**contesto narrativo**, non evidenza della totalità delle regole. Non inferire
-da `review_status='verified'` la presenza di OCR italiano originale.
+Il report amministrativo di `backend/verify_reference_library.py` ora
+include `race_catalog_validation`, che risulta `fully_validated=false`
+finché mancano OCR originali, verifiche AI, riferimenti o unicità. La
+revisione ordinaria delle carte rimane invariata; non sono cambiati
+autenticazione, RLS né servizi di produzione.
 
-## Manuali con bestiario ma senza razze/sottorazze classificate
+## Copertura per pubblicazione
 
-| `source_key` | Mostri | Razze/sottorazze | Voci razziali da verificare nel manuale |
+| Manuale nel database | Razze | Sottorazze | Nota |
 |---|---:|---:|---|
-| `Guildmasters’ Guide to Ravnica.2 .pdf` | 78 | 0 | Loxodon, Ibrido Simic, Vedalken; distinguere eventuali varianti di Centauro/Goblin/Minotauro dalle altre fonti |
-| `953338587-Mythic-Odysseys-of-Theros.pdf` | 49 | 0 | Leonin; controllare varianti di Satiro, Minotauro, Centauro e Tritone |
-| `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf` | 73 | 0 | Dragonide Cromatico, Dragonide delle Gemme, Dragonide Metallico (varianti delle regole, non copie del Dragonide PHB 2014) |
-| `682072052-5e-DnD-Dragonlance-Shadow-of-the-Dragon-Queen-Mong-IcYPD5.pdf` | 28 | 0 | Kender |
+| Manuale del Giocatore italiano 2014 | 9 | 9 | Elfo Alto e Dragonide ricostruiti con controfonti; 2 OCR originali mancanti |
+| Manuale del Giocatore spagnolo 2014 | 9 | 8 | Trascrizioni originali e traduzioni già verificate |
+| Eberron: Rising from the Last War 2019 | 8 | 16 | 12 Marchi del Drago e 4 Morfici. Cangiante riclassificato dal frammento italiano completo |
+| Monsters of the Multiverse 2022 | 33 | 0 | Raccolta originale verificata |
+| Guildmasters' Guide to Ravnica 2018 | 6 | 0 | Centauro, Goblin, Ibrido Simic, Loxodon, Minotauro, Vedalken |
+| Mythic Odysseys of Theros 2020 | 2 | 0 | Leonin e Satiro; Centauro, Minotauro e Tritone sono ristampe equivalenti collegate alle schede preesistenti |
+| Volo's Guide to Monsters 2016 | 13 | 3 | Razze giocabili e tre sottorazze Aasimar; errata applicate |
+| Mordenkainen's Tome of Foes 2018 | 1 | 15 | Gith + 2 sottorazze; 8 Tiefling, 3 elfiche, Duergar, Gnomo delle Profondità |
+| Explorer's Guide to Wildemount 2020 | 1 | 4 | Orco di Exandria; 2 Dragonidi, Elfo Pallido, Halfling Lotusden |
+| Fizban's Treasury of Dragons 2021 | 3 | 0 | Varianti draconiche Cromatica, Gemmata, Metallica |
+| Van Richten's Guide to Ravenloft 2021 | 3 | 0 | Dhampir, Sangue Strigo, Rinato |
+| Dragonlance: Shadow of the Dragon Queen 2022 | 1 | 0 | Kender |
+| Strixhaven: A Curriculum of Chaos 2021 | 1 | 0 | Owlin |
+| Acquisitions Incorporated 2019 | 1 | 0 | Verdan |
+| Locathah Rising 2019 | 1 | 0 | Locathah |
+| The Tortle Package 2017 | 1 | 0 | Tortle legacy 2017, distinta da MPMM |
 
-### Ulteriori manuali con lignaggi e razze identificati in fonti ufficiali
+**Attenzione:** `source_refs` è un indice della provenienza, non il
+contenuto del testo fonte. Le schede nuove possono essere sintesi delle
+regole confrontate con fonti dell'edizione, pur avendo `review_status=verified`.
+La certificazione AI e la fonte testuale originale restano richieste per
+completamento totale.
 
-La ricognizione successiva ha individuato almeno altre 6 opzioni razziali
-originali in quattro manuali già presenti nel database. Nessuna è attualmente
-classificata come `race`/`subrace` nello specifico `source_key`.
+## Ristampe senza duplicati
 
-| File sorgente censito | Opzioni candidate da verificare | Riferimento ufficiale |
-|---|---|---|
-| `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf` | Dhampir, Sangue Strigo / Hexblood, Rinato / Reborn (lignaggi) | [Van Richten: Character Creation](https://www.dndbeyond.com/sources/dnd/vrgtr) |
-| `779447314-Toaz-info-Strixhaven-a-Curriculum-of-Chaos-Dampd-5e-Pr-Ddb9ac0faaf75f03b8889d75914d10c4.pdf` | Owlin | [Strixhaven: Character Options](https://www.dndbeyond.com/sources/dnd/sacoc) |
-| `556883105-Acquisitions-Incorporated-D-D5e.pdf` | Verdan | [Acquisitions Incorporated](https://www.dndbeyond.com/sources/dnd/ai) |
-| `432286579-Locathah-Rising-5e.pdf` | Locathah | [Locathah Rising](https://marketplace.dndbeyond.com/TTRPG/SRC-000055) |
+Nella fonte Theros compaiono cinque popoli non umani: Leonin, Satiro, Centauro,
+Minotauro, Tritone. I tre ultimi **non** sono schede aggiuntive: Centauro e
+Minotauro ripropongono Ravnica; Tritone coincide con le regole di Volo dopo
+errata (tra cui visione scura). A questi tre record sono stati aggiunti
+riferimenti `also_published_in` a Theros, senza creare altre righe.
 
-Ulteriori verifiche **non ancora chiuse**:
-- `469650052-Explorer-s-Guide-to-Wildemount-pdf.pdf`: confronto delle
-  sottorazze/varianti del capitolo opzioni di personaggio, senza clonare
-  schede omonime da altri manuali.
-- `Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf`: valutare
-  «Origini personalizzate» come opzione di personaggio distinta dalle
-  razze con identità fissa.
-- `645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf`: il file
-  noto sembra riferirsi al *bestiario*, non all'*Astral Adventurer's
-  Guide*, che elenca sei nuove specie (Elfo Astrale, Autognomo, Giff,
-  Hadozee, Plasmoide, Thri-kreen). Verificare che il volume delle specie
-  sia effettivamente disponibile in R2 prima di attribuirgli schede.
+- [D&D Beyond — Sommario ufficiale Theros](https://www.dndbeyond.com/sources/dnd/moot)
+- [D&D Beyond — Discussione regole di Theros](https://www.dndbeyond.com/forums/d-d-beyond-general/release-issues-support/69382-mythic-odysseys-of-theros-issues-and-support)
+- [D&D Beyond — Volo Errata](https://www.dndbeyond.com/sources/dnd/sae/volos-guide-to-monsters)
+- [D&D Beyond — Eberron Errata](https://www.dndbeyond.com/sources/dnd/sae/eberron-rising-from-the-last-war)
 
-La lista è un **insieme minimo di lacune note**, non la certificazione che
-questi libri o l'intera libreria abbiano solo tali lacune. Sorgenti ufficiali
-per la presenza delle opzioni, **non** per attribuire campi numerici:
+## Rimanenze vincolanti, prima di proclamare tutto completo
 
-- [Ravnica — indice ufficiale](https://www.dndbeyond.com/sources/dnd/ggtr)
-- [Theros — indice ufficiale](https://www.dndbeyond.com/sources/dnd/moot)
-- [Fizban — indice ufficiale](https://www.dndbeyond.com/sources/dnd/ftod)
-- [Dragonlance — descrizione ufficiale Kender](https://marketplace.dndbeyond.com/settings/dragonlance-shadow-of-the-dragon-queen)
+1. **62 verifiche AI** ancora pendenti; controllare meccaniche e provenienza
+   individualmente, senza cambiare semplicemente lo stato nel database.
+2. **58 schede senza `source_full_text` e checksum originale**; recuperare la
+   sezione corretta dalle versioni realmente disponibili nei PDF R2, in
+   gruppi OCR di massimo 12 pagine, senza pubblicare trascrizioni su GitHub.
+   Dove il PDF non consente verifica, dichiarare la lacuna.
+3. Controllare versioni e traduzioni italiane — non sovrascrivere regole
+   legacy 2016–2020 con MPMM 2022 né bozze Unearthed Arcana.
+4. Continuare a controllare copertura quando nuovi manuali vengono inseriti.
+   `Boo's Astral Menagerie` è un bestiario: non equivale ad
+   `Astral Adventurer's Guide` con le sei razze Spelljammer; non attribuire
+   a un file la sezione di un altro PDF.
+5. Non fare merge di `develop` su `main` né attivare una release prima
+   delle validazioni di rilascio concordate.
 
-## Recupero fail-closed
-
-1. Verificare accessibilità e integrità del PDF dell'utente, tramite il suo
-   storage R2 nel processo backend autorizzato; non caricare i PDF su GitHub.
-2. Individuare le pagine effettive delle opzioni razziali nella **stessa
-   versione** del manuale presente in R2. Mai supporre numeri di pagina da
-   versioni online, indici o record di altre edizioni.
-3. Estrarre testo con finestre OCR di **al massimo 12 pagine**, applicando i
-   controlli del repository su provenienza e continuità delle sezioni.
-4. Registrare prima le voci candidate con evidenza originale. Se tratti,
-   conversioni in metri, prerequisiti, sottorazze o varianti divergono o sono
-   incompleti, mantenere `pending`/`needs_review` finché non risolti.
-5. Distinguere voci con lo stesso nome ma **meccaniche diverse per manuale**;
-   evitare duplicazioni *nella stessa versione e fonte*.
-6. Solo dopo verifica testuale completa e confronto dei campi, applicare
-   `verified`. Non riempire attributi dal solo nome o da sommari online.
-7. Eseguire query di controllo e ripetere l'audit manuale per manuale.
-
-## Query di controllo (sola lettura)
+## Query finale di verifica (sola lettura)
 
 ```sql
-SELECT source_key, reference_type, review_status, count(*) AS numero
+SELECT reference_type, review_status, ai_review_status,
+       count(*) AS schede,
+       count(*) FILTER (WHERE coalesce(source_full_text, '') = '') AS ocr_mancanti
 FROM public.private_reference_records
 WHERE reference_type IN ('race', 'subrace')
-GROUP BY source_key, reference_type, review_status
-ORDER BY source_key, reference_type, review_status;
-```
+GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;
 
-```sql
 SELECT source_key, reference_type, normalized_name, count(*) AS duplicati
 FROM public.private_reference_records
 WHERE reference_type IN ('race', 'subrace')
-GROUP BY source_key, reference_type, normalized_name
-HAVING count(*) > 1;
+GROUP BY 1, 2, 3 HAVING count(*) > 1;
 ```
-
-L'ordine successivo suggerito è Ravnica → Theros → Fizban → Dragonlance,
-seguendo il processo con documentazione dei valori e tracciabilità della fonte.
-Nessun dato incompleto va promosso automaticamente.

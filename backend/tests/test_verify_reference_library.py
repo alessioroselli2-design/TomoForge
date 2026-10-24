@@ -238,3 +238,67 @@ def test_verify_card_payload_rejects_detached_provenance_or_wrong_type(
 
     with pytest.raises(RuntimeError, match=error):
         verifier.verify_card_payload("owner-1", rows, "http://api.example/api")
+
+def test_race_catalog_gate_does_not_confuse_basic_verified_with_full_review():
+    records = [
+        {
+            "source_key": "manual-original.pdf",
+            "reference_type": "race",
+            "normalized_name": "cangiante",
+            "review_status": "verified",
+            "ai_review_status": "verified",
+            "source_text_checksum": "checksum",
+            "source_refs": [{"filename": "manual-original.pdf", "page": 19}],
+        },
+        {
+            "source_key": "manual-legacy.pdf",
+            "reference_type": "subrace",
+            "normalized_name": "elfo antico",
+            "review_status": "verified",
+            "ai_review_status": "pending",
+            "source_text_checksum": "",
+            "source_refs": [{"filename": "manual-legacy.pdf", "page": 42}],
+        },
+    ]
+    status = verifier.summarize_race_validation(records)
+    assert status["total"] == 2
+    assert status["review_verified"] == 2
+    assert status["ai_verified"] == 1
+    assert status["ai_pending"] == 1
+    assert status["original_ocr_missing"] == 1
+    assert status["fully_validated"] is False
+
+
+def test_race_catalog_gate_catches_duplicate_even_if_ai_verified():
+    rows = [{
+        "source_key": "eberron.pdf",
+        "reference_type": "race",
+        "normalized_name": "cangiante",
+        "review_status": "verified",
+        "ai_review_status": "verified",
+        "source_text_checksum": "checked",
+        "source_refs": [{"filename": "eberron.pdf", "page": 19}],
+    }] * 2
+    report = verifier.summarize_race_validation(rows)
+    assert report["duplicates_per_source"] == 1
+    assert report["fully_validated"] is False
+
+
+def test_race_catalog_gate_accepts_fully_independent_validated_source():
+    rows = [{
+        "source_key": "player-handbook.pdf",
+        "reference_type": "race",
+        "normalized_name": "elfo",
+        "review_status": "verified",
+        "ai_review_status": "verified",
+        "source_text_checksum": "sha256",
+        "source_refs": [{"filename": "player-handbook.pdf", "page": 18}],
+    }]
+    report = verifier.summarize_race_validation(rows)
+    assert report["fully_validated"] is True
+    assert report["ai_pending"] == 0
+    assert report["original_ocr_missing"] == 0
+
+
+def test_race_catalog_gate_requires_entries():
+    assert verifier.summarize_race_validation([])["fully_validated"] is False
