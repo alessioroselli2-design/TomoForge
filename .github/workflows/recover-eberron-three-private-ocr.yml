@@ -1,0 +1,64 @@
+name: Recover three Eberron private source OCR pages
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/recover-eberron-three-private-ocr.yml
+      - backend/scripts/recover_eberron_three_private_source.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-private-eberron-three-source-ocr
+  cancel-in-progress: false
+
+jobs:
+  original-source-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PYTHONUNBUFFERED: '1'
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local OCR and private-library client
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+      - name: Unit-test isolated OCR and fingerprint gates
+        run: PYTHONPATH=backend python -m pytest -q backend/tests/test_recover_eberron_three_private_source.py
+      - name: Source identity and record fingerprint dry-run
+        run: python backend/scripts/recover_eberron_three_private_source.py --output /tmp/eberron-three-dry-run.json
+      - name: Require original source and snapshot evidence for all three
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/eberron-three-dry-run.json',encoding='utf-8'))
+          r=d['source_ocr_recovery']
+          assert len(r)==3 and all(x['source_gate_passed'] and x['original_snapshot_matched'] for x in r), 'Private source or DB snapshot not verified'
+          assert all(x['result']=='source_found_not_written' for x in r), 'Unexpected source state'
+          PY
+      - name: Restore original OCR in private Supabase only, AI status unchanged
+        run: python backend/scripts/recover_eberron_three_private_source.py --execute --output /tmp/eberron-three-execute.json
+      - name: Upload outcomes only (never manual text or PDF)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eberron-three-private-source-outcomes
+          path: |
+            /tmp/eberron-three-dry-run.json
+            /tmp/eberron-three-execute.json
+          if-no-files-found: warn
+          retention-days: 3
