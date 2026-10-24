@@ -5,7 +5,12 @@ All samples are synthetic: no private manual text is copied into the repo.
 
 import pytest
 
-from reference_library import parse_reference_page
+from reference_library import (
+    parse_reference_page,
+    reference_is_trusted,
+    reference_review_reason,
+    reference_review_state,
+)
 
 
 RAVNICA = "Guildmasters’ Guide to Ravnica.2 .pdf"
@@ -62,6 +67,9 @@ def test_scoped_species_have_provenance_and_explicit_review_gate(
     assert len(candidates) == 1
     record = candidates[0]
     assert "razza_sorgente_da_verificare" in record["review_flags"]
+    assert reference_review_state(record) == "review"
+    assert not reference_is_trusted(record)
+    assert "Scheda razziale candidata" in reference_review_reason(record)
     assert record["source_refs"][0]["filename"] == manual
     assert record["source_refs"][0]["page"] == 12
 
