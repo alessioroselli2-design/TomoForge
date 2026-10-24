@@ -1,6 +1,7 @@
 name: MToF four-column source evidence recovery
 
 on:
+  workflow_dispatch:
   push:
     branches: [develop]
     paths:
