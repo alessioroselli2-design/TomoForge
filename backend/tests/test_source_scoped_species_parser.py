@@ -19,6 +19,13 @@ FIZBAN = "950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf"
 DRAGONLANCE = (
     "682072052-5e-DnD-Dragonlance-Shadow-of-the-Dragon-Queen-Mong-IcYPD5.pdf"
 )
+VAN_RICHTEN = "667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf"
+STRIXHAVEN = (
+    "779447314-Toaz-info-Strixhaven-a-Curriculum-of-Chaos-Dampd-5e-Pr-"
+    "Ddb9ac0faaf75f03b8889d75914d10c4.pdf"
+)
+ACQUISITIONS = "556883105-Acquisitions-Incorporated-D-D5e.pdf"
+LOCATHAH = "432286579-Locathah-Rising-5e.pdf"
 
 ENGLISH_RULES = (
     "Ability Score Increase. This option adjusts the character's ability scores.\n"
@@ -50,6 +57,12 @@ ITALIAN_RULES = (
         (FIZBAN, "DRAGONIDI DELLE GEMME", "it", ITALIAN_RULES),
         (FIZBAN, "DRAGONIDI METALLICI", "it", ITALIAN_RULES),
         (DRAGONLANCE, "Kender", "en", ENGLISH_RULES),
+        (VAN_RICHTEN, "Dhampir", "it", ITALIAN_RULES),
+        (VAN_RICHTEN, "SANGUE STRIGO", "it", ITALIAN_RULES),
+        (VAN_RICHTEN, "Rinato", "it", ITALIAN_RULES),
+        (STRIXHAVEN, "Owlin", "en", ENGLISH_RULES),
+        (ACQUISITIONS, "Verdan", "en", ENGLISH_RULES),
+        (LOCATHAH, "Locathah", "en", ENGLISH_RULES),
     ],
 )
 def test_scoped_species_have_provenance_and_explicit_review_gate(
