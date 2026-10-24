@@ -136,7 +136,7 @@ def valid_old_record(row: dict, evidence: dict) -> bool:
         row.get("id") == target[0]
         and row.get("name") == target[1]
         and row.get("source_key") == evidence["source"]
-        and row.get("reference_type") == "race"
+        and row.get("reference_type") in ("race", "subrace")
         and row.get("review_status") == "verified"
         and row.get("ai_review_status") == "pending"
         and not row.get("source_full_text")
