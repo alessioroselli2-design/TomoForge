@@ -101,6 +101,8 @@ def scan(pdf: Path, config: dict) -> dict:
 
     assert 0 < config["end"] - config["start"] + 1 <= WINDOW_MAX
     with pymupdf.open(pdf) as doc:
+        total_pages = doc.page_count
+        actual_scanned = max(0, min(doc.page_count, config["end"]) - config["start"] + 1)
         windows = []
         with tempfile.TemporaryDirectory(prefix="legacy-races-") as tmp:
             for physical in range(config["start"], config["end"] + 1):
@@ -125,9 +127,8 @@ def scan(pdf: Path, config: dict) -> dict:
     return {
         "source": config["filename"],
         "sha256": _sha256(pdf),
-        "pdf_page_count": doc.page_count if not doc.is_closed else 0,
-        "pages_inspected": min(doc.page_count, config["end"]) - config["start"] + 1
-        if not doc.is_closed else config["end"] - config["start"] + 1,
+        "pdf_page_count": total_pages,
+        "pages_inspected": actual_scanned,
         "candidate_pages": windows,
         "mode": "read_only_no_db_access",
     }
