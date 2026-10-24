@@ -19,9 +19,6 @@ BACKEND = Path(__file__).resolve().parents[1]
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
-from scripts.recover_five_race_source_pages import (
-    accepted, persist, sha256,
-)
 
 SOURCES = (
     {
@@ -56,6 +53,7 @@ SOURCES = (
 
 def inspect_original(path: Path, config: dict) -> list[dict]:
     import pymupdf
+    from scripts.recover_five_race_source_pages import accepted, sha256
 
     if sha256(path) != config["sha"]:
         raise RuntimeError("source_pdf_sha_mismatch")
@@ -113,6 +111,7 @@ def main() -> int:
     for key in ("OPENAI_API_KEY", "GEMINI_API_KEY"):
         os.environ.pop(key, None)
     from scripts.import_manuals_from_r2 import _r2_client, _list_pdf_objects
+    from scripts.recover_five_race_source_pages import persist
 
     client = _r2_client()
     bucket = os.getenv("R2_BUCKET", "tomoforge-manuals")
