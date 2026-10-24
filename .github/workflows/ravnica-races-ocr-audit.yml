@@ -1,0 +1,47 @@
+name: Ravnica race pages OCR evidence
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/ravnica-races-ocr-audit.yml
+      - backend/scripts/ravnica_races_ocr_audit.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-ravnica-races-ocr
+  cancel-in-progress: false
+
+jobs:
+  read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      PYTHONUNBUFFERED: '1'
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install offline OCR and R2 client
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+      - name: Original 12-page Ravnica scan with two independent OCR modes
+        run: python backend/scripts/ravnica_races_ocr_audit.py --output /tmp/ravnica-race-metadata.json
+      - name: Persist only factual metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ravnica-12-pages-race-metadata
+          path: /tmp/ravnica-race-metadata.json
+          if-no-files-found: warn
+          retention-days: 3
