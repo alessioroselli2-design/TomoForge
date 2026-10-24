@@ -15,7 +15,7 @@ def test_source_window_and_unique_targets():
 
 
 def test_two_source_modes_must_contain_heading_and_distinct_rules():
-    source, target = SOURCES[0], SOURCES[0]["targets"][0]
+    target = SOURCES[0]["targets"][0]
     good = target[2] + "\n" + "\n".join(target[4]) + "\n" + "Fictional test. " * 75
     assert accepted(good, good, target)
     assert check_text(good, target)["feature_matches"] == 3
