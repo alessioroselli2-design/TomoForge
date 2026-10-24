@@ -1,0 +1,53 @@
+name: Read-only R2 playable races source scan
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/races-r2-native-audit.yml
+      - backend/scripts/races_r2_native_audit.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-races-r2-native-audit
+  cancel-in-progress: false
+
+jobs:
+  race-source-scan:
+    name: Native text scan — metadata only
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      PYTHONUNBUFFERED: '1'
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install project runtime and read-only R2 client
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+
+      - name: Scan bounded original PDF windows without OCR or database access
+        run: |
+          python backend/scripts/races_r2_native_audit.py --output /tmp/races-r2-native-audit.json
+
+      - name: Store metadata-only audit (no source text/PDF)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: races-r2-native-source-metadata-only
+          path: /tmp/races-r2-native-audit.json
+          if-no-files-found: warn
+          retention-days: 3
