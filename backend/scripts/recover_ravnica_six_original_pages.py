@@ -189,16 +189,15 @@ def persist(items: list[dict], write: bool) -> list[dict]:
                     "printed_page": item["target"][1],
                     "logical_source": DB_SOURCE,
                     "source_role": "registered_visual_aid_same_logical_source",
-                    "semantic_review_completed": False,
                     "pdf_sha256": HASH,
                     "scope": "source-page-only_not_a_complete_rules_verification",
                     "reading_agreement": item["reading_agreement"],
                     "semantic_review_completed": False,
                 }
                 note = (str(row.get("review_notes") or "") +
-                    "\nOriginal Ravnica 2016 source page restored privately; exact hash and "
+                    "\nOriginal Ravnica 2018 visual-aid page restored privately; exact hash and "
                     "printed-vs-physical page relationship recorded. "
-                    "No AI approval, original text not uploaded to GitHub.")
+                    "No AI approval: official publication cross-check still required; original text not uploaded to GitHub.")
                 payload = {
                     "source_full_text": item["original_page_text"],
                     "source_text_checksum": item["text_sha"],
