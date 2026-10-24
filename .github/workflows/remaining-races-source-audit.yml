@@ -1,0 +1,42 @@
+name: Additional playable races evidence scan
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/remaining-races-source-audit.yml
+      - backend/scripts/remaining_races_source_audit.py
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PDF and OCR dependencies
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita tesseract-ocr-eng
+      - name: Scan original 12-page source windows in read-only mode
+        run: python backend/scripts/remaining_races_source_audit.py --output /tmp/remaining-race-evidence.json
+      - name: Publish page-level factual metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remaining-races-page-metadata
+          path: /tmp/remaining-race-evidence.json
+          if-no-files-found: warn
+          retention-days: 3
