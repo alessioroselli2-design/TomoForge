@@ -1,0 +1,38 @@
+name: Verdan and Wildemount race page discovery
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/workflows/verdan-wildemount-page-discovery.yml
+      - backend/scripts/verdan_wildemount_race_pages.py
+
+permissions:
+  contents: read
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python dependencies
+        run: python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+      - name: Native source-scoped PDF page survey
+        run: python backend/scripts/verdan_wildemount_race_pages.py --output /tmp/verdan-wildemount-pages.json
+      - name: Publish metadata-only audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdan-wildemount-native-page-metadata
+          path: /tmp/verdan-wildemount-pages.json
+          retention-days: 3
+          if-no-files-found: warn
