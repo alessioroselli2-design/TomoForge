@@ -1,0 +1,64 @@
+name: Recover five Wildemount racial source pages
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/recover-wildemount-five-original-pages.yml
+      - backend/scripts/recover_wildemount_five_original_pages.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-five-wildemount-original-pages
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local OCR dependencies
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+      - name: Run synthetic unit tests
+        run: PYTHONPATH=backend python -m pytest -q backend/tests/test_recover_wildemount_five_original_pages.py
+      - name: Check registered R2 pages and private DB snapshots (read-only)
+        run: python backend/scripts/recover_wildemount_five_original_pages.py --output /tmp/five-pages-dryrun.json
+      - name: Require at least one provable source and unchanged record
+        run: |
+          python - <<'PY'
+          import json
+          report=json.load(open('/tmp/five-pages-dryrun.json',encoding='utf-8'))
+          rows=report['result']
+          assert len(rows)==5
+          assert any(r['source_gate'] and r['old_record_gate'] for r in rows), 'No independently corroborated source page'
+          assert not report['executed'] and report['ai_updates']==0
+          PY
+      - name: Restore only evidenced pages, preserve AI review status
+        run: python backend/scripts/recover_wildemount_five_original_pages.py --execute --output /tmp/five-pages-execute.json
+      - name: Upload source-free outcome metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wildemount-five-original-page-outcomes
+          path: |
+            /tmp/five-pages-dryrun.json
+            /tmp/five-pages-execute.json
+          if-no-files-found: warn
+          retention-days: 3
