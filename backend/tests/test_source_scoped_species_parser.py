@@ -14,6 +14,7 @@ from reference_library import (
 
 
 RAVNICA = "Guildmasters’ Guide to Ravnica.2 .pdf"
+RAVNICA_VISUAL = "468887356-Guildmasters-Guide-to-Ravnica-AnyFlip-pdf.pdf"
 THEROS = "953338587-Mythic-Odysseys-of-Theros.pdf"
 FIZBAN = "950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf"
 DRAGONLANCE = (
@@ -131,3 +132,28 @@ def test_monster_stat_block_is_not_promoted_as_playable_race():
     )
     records = parse_reference_page(text, DRAGONLANCE, 20, source_language="en")
     assert not any(record["reference_type"] == "race" for record in records)
+
+
+def test_visual_aid_ravnica_name_is_candidate_only():
+    records = parse_reference_page(
+        f"Loxodon\\n{ENGLISH_RULES}", RAVNICA_VISUAL, 25, source_language="en"
+    )
+    matched = [r for r in records if r["normalized_name"] == "loxodon"]
+    assert len(matched) == 1
+    assert matched[0]["reference_type"] == "race"
+    assert "razza_sorgente_da_verificare" in matched[0]["review_flags"]
+    assert not reference_is_trusted(matched[0])
+
+
+def test_underscored_owlin_heading_keeps_clean_candidate_name():
+    records = parse_reference_page(
+        f"Owlin______________________________\\n{ENGLISH_RULES}",
+        STRIXHAVEN,
+        29,
+        source_language="en",
+    )
+    matched = [r for r in records if r["normalized_name"] == "owlin"]
+    assert len(matched) == 1
+    assert matched[0]["name"] == "Owlin"
+    assert "razza_sorgente_da_verificare" in matched[0]["review_flags"]
+
