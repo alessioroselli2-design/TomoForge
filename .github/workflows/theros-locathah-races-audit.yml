@@ -1,0 +1,47 @@
+name: Theros and Locathah species source evidence
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/theros-locathah-races-audit.yml
+      - backend/scripts/theros_locathah_source_audit.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-theros-locathah-species
+  cancel-in-progress: false
+
+jobs:
+  native-and-ocr-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONUNBUFFERED: '1'
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install offline R2 and OCR tools
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+      - name: Inspect the two original PDFs within separate 12-page budgets
+        run: python backend/scripts/theros_locathah_source_audit.py --output /tmp/theros-locathah-species-metadata.json
+      - name: Save only factual candidate metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theros-locathah-races-review-only
+          path: /tmp/theros-locathah-species-metadata.json
+          if-no-files-found: warn
+          retention-days: 3
