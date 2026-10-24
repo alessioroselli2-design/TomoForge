@@ -1,0 +1,64 @@
+name: Wildemount private race source evidence
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/workflows/recover-wildemount-private-race-pages.yml
+      - backend/scripts/recover_wildemount_private_race_pages.py
+      - backend/tests/test_recover_wildemount_private_race_pages.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-wildemount-private-race-source
+  cancel-in-progress: false
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local private OCR dependencies
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+      - name: Verify synthetic source and snapshot fail-closed gates
+        run: PYTHONPATH=backend python -m pytest -q backend/tests/test_recover_wildemount_private_race_pages.py
+      - name: Read and compare original source privately (dry-run)
+        run: python backend/scripts/recover_wildemount_private_race_pages.py --output /tmp/wildemount-dryrun.json
+      - name: Require unchanged statuses and bounded source evidence
+        run: |
+          python - <<'PY'
+          import json
+          r = json.load(open('/tmp/wildemount-dryrun.json', encoding='utf-8'))
+          assert len(r['result']) == 5
+          assert r['ai_updates'] == 0
+          assert r['max_ocr_window_pages'] == 1
+          assert not r['executed'] and not r['source_text_emitted']
+          PY
+      - name: Restore only confirmed private source pages
+        run: python backend/scripts/recover_wildemount_private_race_pages.py --execute --output /tmp/wildemount-execute.json
+      - name: Publish metadata only, never source text
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wildemount-private-race-source-outcomes
+          path: |
+            /tmp/wildemount-dryrun.json
+            /tmp/wildemount-execute.json
+          if-no-files-found: warn
+          retention-days: 3
