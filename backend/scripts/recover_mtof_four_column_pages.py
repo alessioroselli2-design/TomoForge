@@ -181,6 +181,7 @@ def valid_row(row: dict, item: dict) -> bool:
         and row.get("reference_type") in ("race", "subrace")
         and row.get("review_status") == "verified"
         and row.get("ai_review_status") == "pending"
+        and bool(row.get("id") and row.get("user_id") and row.get("updated_at"))
         and not row.get("source_full_text") and not row.get("source_text_checksum")
         and any(isinstance(ref, dict) and ref.get("filename") == SOURCE
                 and str(ref.get("page")) == str(target[1])
@@ -201,7 +202,7 @@ def persist(items: list[dict], write: bool) -> list[dict]:
         name = item["target"][0]
         found = client.table("private_reference_records").select(
             "id,user_id,name,reference_type,source_key,review_status,ai_review_status,"
-            "source_full_text,source_text_checksum,source_refs,attributes,review_notes"
+            "source_full_text,source_text_checksum,source_refs,attributes,review_notes,updated_at"
         ).eq("source_key", SOURCE).eq("name", name).execute().data
         row = found[0] if found and len(found) == 1 else {}
         eligible = item["source_gate"] and valid_row(row, item)
@@ -234,7 +235,8 @@ def persist(items: list[dict], write: bool) -> list[dict]:
                     "id", row["id"]
                 ).eq("user_id", row["user_id"]).eq("source_key", SOURCE).eq(
                     "source_text_checksum", ""
-                ).eq("ai_review_status", "pending").execute().data
+                ).eq("source_full_text", "").eq("updated_at", row["updated_at"]).eq(
+                    "review_status", "verified").eq("ai_review_status", "pending").execute().data
                 if not wrote or len(wrote) != 1:
                     raise RuntimeError("mtof_private_source_update_failed")
                 readback = client.table("private_reference_records").select(
