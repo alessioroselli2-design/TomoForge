@@ -1,0 +1,47 @@
+name: Eberron three dragonmarks independent comparison
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/workflows/eberron-three-dragonmark-independent-gate.yml
+      - backend/scripts/eberron_three_dragonmark_independent_gate.py
+      - backend/tests/test_eberron_three_dragonmark_independent_gate.py
+
+permissions:
+  contents: read
+
+jobs:
+  compare-original-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUNBUFFERED: '1'
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
+      - name: Unit test read-only comparison
+        run: PYTHONPATH=backend python -m pytest -q backend/tests/test_eberron_three_dragonmark_independent_gate.py
+      - name: Compare source pages with three cards, no writes
+        run: python backend/scripts/eberron_three_dragonmark_independent_gate.py --output /tmp/three-races-comparison.json
+      - name: Upload non-sensitive comparison metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: three-races-comparison-metadata
+          path: /tmp/three-races-comparison.json
+          retention-days: 3
+          if-no-files-found: warn
