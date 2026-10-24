@@ -133,6 +133,53 @@ def verify_card_payload(
     }
 
 
+def summarize_race_validation(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Measure genuinely complete race provenance without trusting a single status.
+
+    This reads metadata only and never copies rule prose or private PDF content.
+    Legacy records that have merely been summarized or marked `verified` must
+    not be reported as fully source-checked when the independent AI gate or
+    original OCR checksum is missing.
+    """
+    races = [
+        row for row in records
+        if row.get("reference_type") in {"race", "subrace"}
+    ]
+    seen: set[tuple[str, str, str]] = set()
+    duplicates = 0
+    for row in races:
+        identity = (
+            str(row.get("source_key") or ""),
+            str(row.get("reference_type") or ""),
+            str(row.get("normalized_name") or "").casefold(),
+        )
+        if identity in seen:
+            duplicates += 1
+        seen.add(identity)
+    stats = {
+        "total": len(races),
+        "races": sum(r.get("reference_type") == "race" for r in races),
+        "subraces": sum(r.get("reference_type") == "subrace" for r in races),
+        "review_verified": sum(r.get("review_status") == "verified" for r in races),
+        "ai_verified": sum(r.get("ai_review_status") == "verified" for r in races),
+        "ai_pending": sum(r.get("ai_review_status") != "verified" for r in races),
+        "original_ocr_missing": sum(
+            not str(r.get("source_text_checksum") or "").strip() for r in races
+        ),
+        "source_refs_missing": sum(not r.get("source_refs") for r in races),
+        "duplicates_per_source": duplicates,
+    }
+    stats["fully_validated"] = bool(
+        stats["total"]
+        and stats["review_verified"] == stats["total"]
+        and stats["ai_pending"] == 0
+        and stats["original_ocr_missing"] == 0
+        and stats["source_refs_missing"] == 0
+        and stats["duplicates_per_source"] == 0
+    )
+    return stats
+
+
 def verify_library(user_id: str) -> dict[str, Any]:
     """Return a compact, read-only catalogue health report or raise clearly."""
     url = os.getenv("SUPABASE_URL")
@@ -149,7 +196,7 @@ def verify_library(user_id: str) -> dict[str, Any]:
             response = (
                 client
                 .table("private_reference_records")
-                .select("id,reference_type,name,normalized_name,source_normalized_name,review_flags,review_status,translation_status,source_refs")
+                .select("id,reference_type,name,normalized_name,source_key,source_normalized_name,review_flags,review_status,ai_review_status,translation_status,source_text_checksum,source_refs")
                 .eq("user_id", user_id)
                 .range(offset, offset + page_size - 1)
                 .execute()
@@ -225,6 +272,7 @@ def verify_library(user_id: str) -> dict[str, Any]:
     return {
         "status": "ok",
         "records_total": len(records),
+        "race_catalog_validation": summarize_race_validation(records),
         "flagged_for_review": by_state["review"],
         "coverage_by_category": {
             reference_type: {
