@@ -473,6 +473,69 @@ def text_is_usable(value: str) -> bool:
     )
 
 
+# Source-scoped playable race headings. These are only candidate discovery hints.
+# The source PDF's racial rules must independently satisfy the semantic gate,
+# and extracted candidates retain an explicit manual-review flag.
+_SOURCE_RACE_TITLES = {
+    "guildmasters’ guide to ravnica.2 .pdf": frozenset({
+        "centaur", "goblin", "loxodon", "minotaur", "simic hybrid", "vedalken",
+    }),
+    "953338587-mythic-odysseys-of-theros.pdf": frozenset({
+        "centaur", "leonin", "minotaur", "satyr", "triton",
+    }),
+    "950799222-d-d-5e-il-tesoro-dei-draghi-di-fizban.pdf": frozenset({
+        "dragonide cromatico", "dragonide cromatici", "dragonidi cromatici",
+        "dragonide delle gemme", "dragonidi delle gemme",
+        "dragonide metallico", "dragonidi metallici",
+    }),
+    "682072052-5e-dnd-dragonlance-shadow-of-the-dragon-queen-mong-icypd5.pdf": frozenset({
+        "kender",
+    }),
+}
+
+
+def _source_race_heading(value: str, source_filename: str) -> Optional[str]:
+    """Recognize exact race names ONLY in their known uploaded manuals.
+
+    A name match alone is insufficient to create or promote a race record.
+    This does not accept page-numbered table-of-contents or index entries.
+    """
+    titles = _SOURCE_RACE_TITLES.get(Path(source_filename).name.casefold(), frozenset())
+    value = clean_text(value)
+    if not titles or not 3 <= len(value) <= 84:
+        return None
+    if any(char.isdigit() for char in value) or value != value.strip(" .:;,"):
+        return None
+    if normalize_reference_name(value) not in titles:
+        return None
+    return value.title()
+
+
+def _source_race_evidence(title: str, body: str, source_filename: str) -> bool:
+    """Fail-closed semantic evidence for a named race in an allowed source.
+
+    TOC names and nearby unrelated story text cannot satisfy these anchors.
+    A detected record is still a *review candidate*, not a verified race.
+    """
+    headings = _SOURCE_RACE_TITLES.get(Path(source_filename).name.casefold(), frozenset())
+    if normalize_reference_name(title) not in headings or len(body) < 90:
+        return False
+    text = body.casefold()
+    if ("armor class" in text and "hit points" in text) or (
+        "classe armatura" in text and "punti ferita" in text
+    ):
+        return False
+    anchors = (
+        r"\b(?:ability score increase|incremento (?:del )?(?:punteggio|punteggi)|aumento (?:dei )?punteggi)\b",
+        r"\b(?:creature type|tipo di creatura)\b",
+        r"\b(?:size|taglia)\s*[:.]",
+        r"\b(?:speed|velocit[aà])\s*[:.]",
+        r"\b(?:languages|linguaggi)\s*[:.]",
+        r"\b(?:age|et[aà])\s*[:.]",
+    )
+    return sum(bool(re.search(pattern, text)) for pattern in anchors) >= 2
+
+
 def _title_from_line(value: str) -> Optional[str]:
     value = clean_text(value)
     if not 3 <= len(value) <= 84 or not any(char.isalpha() for char in value):
@@ -1450,7 +1513,7 @@ def parse_reference_page(
     headings = [
         (index, title)
         for index, line in enumerate(lines)
-        if (title := _title_from_line(line))
+        if (title := _title_from_line(line) or _source_race_heading(line, source_filename))
     ]
     spell_records = [
         *_spanish_spell_records(
@@ -1480,6 +1543,9 @@ def parse_reference_page(
         raw_body = "\n".join(body_lines)
         body = clean_text(" ".join(body_lines))
         record_type = _record_type(title, body)
+        source_race_candidate = _source_race_evidence(title, body, source_filename)
+        if source_race_candidate and record_type in {"other", "race", "subrace"}:
+            record_type = "race"
         normalized_name = normalize_reference_name(title)
         if normalized_name in spell_names:
             continue
@@ -1506,6 +1572,8 @@ def parse_reference_page(
             if heading_index == len(headings) - 1
             else []
         )
+        if source_race_candidate:
+            review_flags.append("razza_sorgente_da_verificare")
         stable_source = (
             f"{source_filename}:{source_page}:{record_type}:{normalized_name}"
         )
