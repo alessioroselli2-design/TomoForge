@@ -349,6 +349,10 @@ REVIEW_FLAG_MESSAGES = {
     "riga_tabella_da_verificare": "Riga di tabella estratta automaticamente e non ancora verificata.",
     "sezione_potenzialmente_continua": "La sezione potrebbe continuare nella pagina successiva.",
     "traduzione_da_verificare": "Traduzione automatica non ancora verificata dall'AI.",
+    "razza_sorgente_da_verificare": (
+        "Scheda razziale candidata: tratti, pagina e provenienza da verificare "
+        "prima dell'uso."
+    ),
 }
 
 
