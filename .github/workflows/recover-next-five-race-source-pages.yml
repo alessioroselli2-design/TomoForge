@@ -1,0 +1,64 @@
+name: Recover five more private race source pages
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/workflows/recover-next-five-race-source-pages.yml
+      - backend/scripts/recover_next_five_race_source_pages.py
+      - backend/scripts/recover_five_race_source_pages.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-next-five-race-original-pages
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install private OCR runtime
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-ita
+      - name: Test fail-closed source and snapshot gates
+        run: |
+          PYTHONPATH=backend python -m pytest -q backend/tests/test_recover_next_five_race_source_pages.py
+      - name: Private source dry-run
+        run: python backend/scripts/recover_next_five_race_source_pages.py --output /tmp/next-five-dryrun.json
+      - name: Require at least one source and matching private record
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/next-five-dryrun.json',encoding='utf-8'))
+          assert len(r['result'])==5
+          assert any(x['source_gate'] and x['old_record_gate'] for x in r['result'])
+          assert r['ai_updates']==0 and not r['executed']
+          PY
+      - name: Attach only confirmed original page OCR, never change AI status
+        run: python backend/scripts/recover_next_five_race_source_pages.py --execute --output /tmp/next-five-execute.json
+      - name: Publish source-free metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-five-private-race-source-outcomes
+          path: |
+            /tmp/next-five-dryrun.json
+            /tmp/next-five-execute.json
+          if-no-files-found: warn
+          retention-days: 3
