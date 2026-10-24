@@ -27,6 +27,9 @@ from reference_library import _SOURCE_RACE_TITLES, parse_reference_page, text_is
 # Native-text scan only. A textless page is reported for an independent OCR pass.
 SOURCES = (
     ("Guildmasters’ Guide to Ravnica.2 .pdf", "en", 72),
+    # Registered alternate copy, same logical source but visual-aid role. This
+    # is a separate physical PDF and cannot silently replace authority.
+    ("468887356-Guildmasters-Guide-to-Ravnica-AnyFlip-pdf.pdf", "en", 72),
     ("953338587-Mythic-Odysseys-of-Theros.pdf", "en", 72),
     ("950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf", "it", 72),
     ("682072052-5e-DnD-Dragonlance-Shadow-of-the-Dragon-Queen-Mong-IcYPD5.pdf", "en", 72),
