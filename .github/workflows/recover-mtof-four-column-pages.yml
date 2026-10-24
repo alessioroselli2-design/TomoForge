@@ -1,0 +1,61 @@
+name: MToF four-column source evidence recovery
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/workflows/recover-mtof-four-column-pages.yml
+      - backend/scripts/recover_mtof_four_column_pages.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tomoforge-mtof-four-column-source-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-2016:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: tomoforge-manuals
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install OCR and database client
+        run: |
+          python -m pip install -r backend/requirements.txt boto3 PyMuPDF
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+      - name: Run synthetic fail-closed tests
+        run: PYTHONPATH=backend python -m pytest -q backend/tests/test_recover_mtof_four_column_pages.py
+      - name: Audit registered original source pages without writing
+        run: python backend/scripts/recover_mtof_four_column_pages.py --output /tmp/mtof-four-column-dryrun.json
+      - name: Require safe source match before executing any record writes
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/mtof-four-column-dryrun.json',encoding='utf-8'))
+          assert d['targets']==4 and d['ai_reviews_changed']==0
+          assert any(x['result']=='safe_dry_run' for x in d['outcomes']), 'No safe original source evidence'
+          PY
+      - name: Attach only verified original pages to owner's private records
+        run: python backend/scripts/recover_mtof_four_column_pages.py --execute --output /tmp/mtof-four-column-execute.json
+      - name: Publish source-free verification metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtof-four-column-outcomes
+          path: |
+            /tmp/mtof-four-column-dryrun.json
+            /tmp/mtof-four-column-execute.json
+          if-no-files-found: warn
+          retention-days: 3
