@@ -484,6 +484,11 @@ _SOURCE_RACE_TITLES = {
     "guildmasters’ guide to ravnica.2 .pdf": frozenset({
         "centaur", "goblin", "loxodon", "minotaur", "simic hybrid", "vedalken",
     }),
+    # Registry-classified visual aid for the SAME logical 2018 source; candidates
+    # remain unverified until checked against an authority copy.
+    "468887356-guildmasters-guide-to-ravnica-anyflip-pdf.pdf": frozenset({
+        "centaur", "goblin", "loxodon", "minotaur", "simic hybrid", "vedalken",
+    }),
     "953338587-mythic-odysseys-of-theros.pdf": frozenset({
         "centaur", "leonin", "minotaur", "satyr", "triton",
     }),
@@ -1560,6 +1565,13 @@ def parse_reference_page(
         body = clean_text(" ".join(body_lines))
         record_type = _record_type(title, body)
         source_race_candidate = _source_race_evidence(title, body, source_filename)
+        # Some text-native PDFs underline headings with trailing underscores.
+        # Normalize ONLY an evidence-backed race title, without changing its
+        # underlying identity or any of the source's original prose.
+        if source_race_candidate and title.endswith("_"):
+            undecorated = title.rstrip("_").rstrip()
+            if normalize_reference_name(undecorated) == normalize_reference_name(title):
+                title = undecorated
         if source_race_candidate and record_type in {"other", "race", "subrace"}:
             record_type = "race"
         normalized_name = normalize_reference_name(title)
