@@ -29,6 +29,32 @@ da `review_status='verified'` la presenza di OCR italiano originale.
 | `950799222-D-D-5e-Il-Tesoro-dei-Draghi-di-Fizban.pdf` | 73 | 0 | Dragonide Cromatico, Dragonide delle Gemme, Dragonide Metallico (varianti delle regole, non copie del Dragonide PHB 2014) |
 | `682072052-5e-DnD-Dragonlance-Shadow-of-the-Dragon-Queen-Mong-IcYPD5.pdf` | 28 | 0 | Kender |
 
+### Ulteriori manuali con lignaggi e razze identificati in fonti ufficiali
+
+La ricognizione successiva ha individuato almeno altre 6 opzioni razziali
+originali in quattro manuali già presenti nel database. Nessuna è attualmente
+classificata come `race`/`subrace` nello specifico `source_key`.
+
+| File sorgente censito | Opzioni candidate da verificare | Riferimento ufficiale |
+|---|---|---|
+| `667440680-Guida-Di-Von-Richten-a-Ravenloft.pdf` | Dhampir, Sangue Strigo / Hexblood, Rinato / Reborn (lignaggi) | [Van Richten: Character Creation](https://www.dndbeyond.com/sources/dnd/vrgtr) |
+| `779447314-Toaz-info-Strixhaven-a-Curriculum-of-Chaos-Dampd-5e-Pr-Ddb9ac0faaf75f03b8889d75914d10c4.pdf` | Owlin | [Strixhaven: Character Options](https://www.dndbeyond.com/sources/dnd/sacoc) |
+| `556883105-Acquisitions-Incorporated-D-D5e.pdf` | Verdan | [Acquisitions Incorporated](https://www.dndbeyond.com/sources/dnd/ai) |
+| `432286579-Locathah-Rising-5e.pdf` | Locathah | [Locathah Rising](https://marketplace.dndbeyond.com/TTRPG/SRC-000055) |
+
+Ulteriori verifiche **non ancora chiuse**:
+- `469650052-Explorer-s-Guide-to-Wildemount-pdf.pdf`: confronto delle
+  sottorazze/varianti del capitolo opzioni di personaggio, senza clonare
+  schede omonime da altri manuali.
+- `Calderone-Omnicomprensivo-di-TASHA_1787259976040.pdf`: valutare
+  «Origini personalizzate» come opzione di personaggio distinta dalle
+  razze con identità fissa.
+- `645286721-Spelljammer-Boo-s-Astral-Menagerie-5e-pdf.pdf`: il file
+  noto sembra riferirsi al *bestiario*, non all'*Astral Adventurer's
+  Guide*, che elenca sei nuove specie (Elfo Astrale, Autognomo, Giff,
+  Hadozee, Plasmoide, Thri-kreen). Verificare che il volume delle specie
+  sia effettivamente disponibile in R2 prima di attribuirgli schede.
+
 La lista è un **insieme minimo di lacune note**, non la certificazione che
 questi libri o l'intera libreria abbiano solo tali lacune. Sorgenti ufficiali
 per la presenza delle opzioni, **non** per attribuire campi numerici:
