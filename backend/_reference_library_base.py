@@ -1589,7 +1589,8 @@ def parse_reference_page(
             else []
         )
         if source_race_candidate:
-            review_flags.append("razza_sorgente_da_verificare")
+            # Show the source-specific gate before any generic page-continuation warning.
+            review_flags.insert(0, "razza_sorgente_da_verificare")
         stable_source = (
             f"{source_filename}:{source_page}:{record_type}:{normalized_name}"
         )
