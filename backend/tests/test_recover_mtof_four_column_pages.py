@@ -22,10 +22,14 @@ def test_only_original_pending_page_can_be_updated():
         "name":t[0], "source_key":SOURCE, "reference_type":"subrace",
         "review_status":"verified", "ai_review_status":"pending",
         "source_full_text":"", "source_text_checksum":"",
+        "id":"ref_synthetic","user_id":"owner_synthetic",
+        "updated_at":"2026-10-24T17:00:00+00:00",
         "source_refs":[{"filename":SOURCE,"page":t[1]}],
     }
     assert valid_row(row, {"target":t})
     assert not valid_row({**row,"ai_review_status":"verified"},{"target":t})
     assert not valid_row({**row,"source_refs":[]},{"target":t})
     assert not valid_row({**row,"source_key":"not-original.pdf"},{"target":t})
+    assert not valid_row({**row,"updated_at":None},{"target":t})
+    assert not valid_row({**row,"user_id":None},{"target":t})
     assert len(HASH)==64
