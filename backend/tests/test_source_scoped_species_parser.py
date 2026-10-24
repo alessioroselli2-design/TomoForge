@@ -136,7 +136,7 @@ def test_monster_stat_block_is_not_promoted_as_playable_race():
 
 def test_visual_aid_ravnica_name_is_candidate_only():
     records = parse_reference_page(
-        f"Loxodon\\n{ENGLISH_RULES}", RAVNICA_VISUAL, 25, source_language="en"
+        f"Loxodon\n{ENGLISH_RULES}", RAVNICA_VISUAL, 25, source_language="en"
     )
     matched = [r for r in records if r["normalized_name"] == "loxodon"]
     assert len(matched) == 1
@@ -147,7 +147,7 @@ def test_visual_aid_ravnica_name_is_candidate_only():
 
 def test_underscored_owlin_heading_keeps_clean_candidate_name():
     records = parse_reference_page(
-        f"Owlin______________________________\\n{ENGLISH_RULES}",
+        f"Owlin______________________________\n{ENGLISH_RULES}",
         STRIXHAVEN,
         29,
         source_language="en",
