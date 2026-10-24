@@ -47,7 +47,7 @@ def test_ai_verified_target_must_never_be_overwritten():
     record = {
         "id": target[0], "name": target[1],
         "source_key": config["filename"],
-        "reference_type": "race",
+        "reference_type": "subrace",
         "review_status": "verified", "ai_review_status": "pending",
         "source_full_text": "", "source_text_checksum": "",
         "source_refs": [{"filename": config["filename"], "page": target[3]}],
