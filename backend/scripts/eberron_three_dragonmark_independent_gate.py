@@ -39,12 +39,24 @@ def phrase(text, target):
 
 
 def score(text, stat, increase):
-    if stat not in STATS or increase not in (1, 2):
+    if increase not in (1, 2):
+        return False
+    normalized = fold(text)
+    if stat == "altro_a_scelta":
+        # Only an explicit *additional chosen ability* qualifies. This is
+        # different from any named ability increase on the same source page.
+        pattern = (
+            r"\b(?:un|uno)\s+altro\s+punteggio\s+di\s+caratteristica"
+            r"(?:\s+(?:a\s+)?(?:tua\s+)?scelta)?\s+aumenta\s+di\s+"
+            + str(increase) + r"\b"
+        )
+        return bool(re.search(pattern, normalized))
+    if stat not in STATS:
         return False
     pattern = (r"\b" + STATS[stat] + r"\b.{0,85}?\b"
                r"(?:aumenta|incrementa|aumentato|aumentata)\b"
                r".{0,24}?\b(?:di\s+)?" + str(increase) + r"\b")
-    return bool(re.search(pattern, fold(text)))
+    return bool(re.search(pattern, normalized))
 
 
 def compare(row, readings, mark):

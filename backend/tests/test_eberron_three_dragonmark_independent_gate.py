@@ -24,3 +24,10 @@ def test_missing_mechanics_fail_closed():
     row = {"attributes": {"incremento_caratteristiche": {"altro_a_scelta": 1}}}
     result = compare(row, {"psm4": "Addestramento", "psm11": "Addestramento"}, "Addestramento")
     assert result["checks_passed"] < result["checks_total"]
+
+
+def test_choice_ability_requires_explicit_additional_score():
+    text = "Un altro punteggio di caratteristica a tua scelta aumenta di 1."
+    assert score(text, "altro_a_scelta", 1)
+    assert not score(text, "altro_a_scelta", 2)
+    assert not score("Il punteggio di Saggezza aumenta di 1.", "altro_a_scelta", 1)
