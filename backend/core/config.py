@@ -137,6 +137,10 @@ MANUAL_COVERAGE_CATEGORIES = {
         "shield",
         "equipment",
         "tool",
+        "vehicle",
+        "mount",
+        "trade_good",
+        "service",
         "other",
     ),
     "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf": (
