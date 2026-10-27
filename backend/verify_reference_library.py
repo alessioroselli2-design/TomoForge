@@ -23,10 +23,10 @@ from reference_library import CARD_TYPE_BY_REFERENCE_TYPE, reference_review_stat
 
 
 PROBES = {
-    "feat": "acechador",
-    "race": "enano",
-    "subrace": "enano de las colinas",
-    "spell": "bola de fuego",
+    "feat": ("fortunato", "osservatore", "acechador"),
+    "race": ("nano",),
+    "subrace": ("nano delle colline", "nano delle montagne"),
+    "spell": ("palla di fuoco",),
     "weapon": "adamantio",
     "armor": "fumigante",
     "shield": "espressione",
@@ -40,8 +40,37 @@ REQUIRED_CHARACTER_CREATION_TYPES = frozenset({
 REQUIRED_SOURCE_FILENAMES = (
     "724962906-D-D-5e-Manuale-Del-Dungeon-Master_1787282954664.pdf",
 )
-PLAYER_HANDBOOK_FILENAME = "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+# Italian 2014 PHB is the authoritative book; Spanish is an OCR/identity aid.
+PLAYER_HANDBOOK_FILENAME = "Manuale_del_giocatore__1787259882002.pdf"
+PLAYER_HANDBOOK_ALIASES = frozenset({
+    PLAYER_HANDBOOK_FILENAME,
+    "Manuale del giocatore .pdf",
+})
+SPANISH_PLAYER_HANDBOOK_FILENAME = (
+    "731764731-D-D-Manual-Del-Jugador-5e_1787286581630.pdf"
+)
 PLAYER_HANDBOOK_PROBE_TYPES = frozenset({"feat", "race", "subrace", "spell"})
+REQUESTED_RULE_CATEGORIES = frozenset({
+    "monster", "spell", "race", "subrace", "class", "subclass",
+    "class_feature", "feat", "magic_item", "weapon", "armor", "shield",
+})
+
+
+def _primary_source_filename(record: dict[str, Any]) -> str:
+    """Use the import's source_key, never appended cross-language comparison refs."""
+    original = str(record.get("source_key") or "").strip()
+    if original:
+        return original
+    refs = record.get("source_refs") or []
+    if refs and isinstance(refs[0], dict):
+        return str(refs[0].get("filename") or "")
+    return ""
+
+
+def _is_italian_phb_record(record: dict[str, Any]) -> bool:
+    return _primary_source_filename(record) in PLAYER_HANDBOOK_ALIASES
+
+
 
 
 def verify_card_payload(
@@ -216,27 +245,29 @@ def verify_library(user_id: str) -> dict[str, Any]:
     for record in records:
         reviewed_by_type[record.get("reference_type", "")][reference_review_state(record)] += 1
     source_counts = Counter(
-        reference.get("filename")
-        for record in records
-        for reference in record.get("source_refs", [])
-        if reference.get("filename")
+        source for record in records
+        if (source := _primary_source_filename(record))
     )
+    italian_phb_count = sum(source_counts[name] for name in PLAYER_HANDBOOK_ALIASES)
     # DMG absence is reported in required_manual_records but does not block
     # the PHB category checks (feat/race/subrace/spell), which are independent.
-    if source_counts[PLAYER_HANDBOOK_FILENAME] == 0:
+    if italian_phb_count == 0:
         raise RuntimeError(
-            "Manca la provenienza richiesta dal Manuale del Giocatore spagnolo: "
-            + PLAYER_HANDBOOK_FILENAME
+            "Manca la fonte primaria del Manuale del Giocatore italiano: "
+            "il manuale spagnolo è soltanto un ausilio OCR."
         )
     probes: dict[str, dict[str, Any]] = {}
-    for reference_type, needle in PROBES.items():
+    for reference_type, aliases in PROBES.items():
+        needles = (aliases,) if isinstance(aliases, str) else aliases
+        needle = needles[0]
         matches = [
             record
             for record in records
             if record.get("reference_type") == reference_type
-            and (
-                needle in (record.get("normalized_name") or "").casefold()
-                or needle in (record.get("source_normalized_name") or "").casefold()
+            and any(
+                alias in (record.get("normalized_name") or "").casefold()
+                or alias in (record.get("source_normalized_name") or "").casefold()
+                for alias in needles
             )
         ]
         if not matches:
@@ -251,15 +282,11 @@ def verify_library(user_id: str) -> dict[str, Any]:
             )
         if reference_type in PLAYER_HANDBOOK_PROBE_TYPES:
             player_handbook_matches = [
-                record for record in valid_matches
-                if any(
-                    reference.get("filename") == PLAYER_HANDBOOK_FILENAME
-                    for reference in record.get("source_refs", [])
-                )
+                record for record in valid_matches if _is_italian_phb_record(record)
             ]
             if not player_handbook_matches:
                 raise RuntimeError(
-                    "Manca la provenienza dal Manuale del Giocatore spagnolo "
+                    "Manca la provenienza primaria dal Manuale del Giocatore italiano "
                     f"per {reference_type}: {needle}"
                 )
             valid_matches = player_handbook_matches
@@ -284,7 +311,36 @@ def verify_library(user_id: str) -> dict[str, Any]:
         },
         "required_manual_records": {
             filename: source_counts[filename] for filename in REQUIRED_SOURCE_FILENAMES
-        } | {PLAYER_HANDBOOK_FILENAME: source_counts[PLAYER_HANDBOOK_FILENAME]},
+        } | {
+            PLAYER_HANDBOOK_FILENAME: italian_phb_count,
+            SPANISH_PLAYER_HANDBOOK_FILENAME: source_counts[
+                SPANISH_PLAYER_HANDBOOK_FILENAME
+            ],
+        },
+        "requested_rule_categories": {
+            reference_type: {
+                "records_observed": by_type[reference_type],
+                "review_flags_present": sum(
+                    bool(row.get("review_flags"))
+                    for row in records if row.get("reference_type") == reference_type
+                ),
+                "independent_ai_pending": sum(
+                    row.get("ai_review_status") != "verified"
+                    for row in records if row.get("reference_type") == reference_type
+                ),
+                "original_ocr_checksum_missing": sum(
+                    not str(row.get("source_text_checksum") or "").strip()
+                    for row in records if row.get("reference_type") == reference_type
+                ),
+            }
+            for reference_type in sorted(REQUESTED_RULE_CATEGORIES)
+        },
+        "source_priority": {
+            "primary": "phb_2014_it",
+            "ocr_extraction_aid": "phb_2014_es",
+        },
+        # A record count is not a page/index-level source completeness audit.
+        "full_manual_index_coverage_certified": False,
         "probes": probes,
     }
 
