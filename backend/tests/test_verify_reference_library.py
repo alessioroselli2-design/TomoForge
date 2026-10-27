@@ -63,10 +63,10 @@ def make_rows():
         ("shield", "Scudo Dell'Espressione", "scudo dell espressione"),
         ("tool", "Strumenti Da Fabbro", "strumenti da fabbro"),
         ("magic_item", "Perla Dissetante", "perla dissetante"),
-        ("feat", "Acechador", "acechador"),
-        ("race", "Enano", "enano"),
-        ("subrace", "Enano De Las Colinas", "enano de las colinas"),
-        ("spell", "Bola De Fuego", "bola de fuego"),
+        ("feat", "Fortunato", "fortunato"),
+        ("race", "Nano", "nano"),
+        ("subrace", "Nano Delle Colline", "nano delle colline"),
+        ("spell", "Palla Di Fuoco", "palla di fuoco"),
     ):
         filename = (
             verifier.PLAYER_HANDBOOK_FILENAME
@@ -100,8 +100,16 @@ def test_verify_library_reports_required_equipment(monkeypatch):
     ] == 5
     assert report["required_manual_records"][verifier.PLAYER_HANDBOOK_FILENAME] == 4
     assert report["probes"]["magic_item"]["match"] == "Perla Dissetante"
-    assert report["probes"]["feat"]["match"] == "Acechador"
+    assert report["probes"]["feat"]["match"] == "Fortunato"
     assert report["coverage_by_category"]["subrace"]["missing"] == 0
+    assert report["source_priority"] == {
+        "primary": "phb_2014_it",
+        "ocr_extraction_aid": "phb_2014_es",
+    }
+    assert report["full_manual_index_coverage_certified"] is False
+    assert report["requested_rule_categories"]["spell"]["records_observed"] == 1
+    assert report["requested_rule_categories"]["spell"]["independent_ai_pending"] == 1
+    assert report["requested_rule_categories"]["monster"]["records_observed"] == 0
 
 
 def test_verify_library_fails_clearly_when_schema_is_missing(monkeypatch):
@@ -152,7 +160,7 @@ def test_verify_library_rejects_failed_character_option_translation(monkeypatch)
         verifier.verify_library("owner-1")
 
 
-def test_verify_library_requires_player_handbook_for_character_option_probes(monkeypatch):
+def test_verify_library_requires_primary_italian_handbook_for_character_probes(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
     rows = make_rows()
@@ -164,7 +172,7 @@ def test_verify_library_requires_player_handbook_for_character_option_probes(mon
             }]
     monkeypatch.setattr(verifier, "create_client", lambda *_args: FakeClient(FakeQuery(rows)))
 
-    with pytest.raises(RuntimeError, match="Manuale del Giocatore spagnolo"):
+    with pytest.raises(RuntimeError, match="Manuale del Giocatore italiano"):
         verifier.verify_library("owner-1")
 
 
@@ -302,3 +310,63 @@ def test_race_catalog_gate_accepts_fully_independent_validated_source():
 
 def test_race_catalog_gate_requires_entries():
     assert verifier.summarize_race_validation([])["fully_validated"] is False
+
+
+def test_italian_phb_authority_cannot_be_faked_by_a_cross_language_source_ref(monkeypatch):
+    """A Spanish aid record may link to Italian PDF for comparison; it is not Italian."""
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+    rows = make_rows()
+    spell = next(row for row in rows if row["reference_type"] == "spell")
+    spell["source_key"] = verifier.SPANISH_PLAYER_HANDBOOK_FILENAME
+    spell["source_refs"] = [
+        {"filename": verifier.SPANISH_PLAYER_HANDBOOK_FILENAME, "page": 524},
+        {"filename": verifier.PLAYER_HANDBOOK_FILENAME, "page": 263},
+    ]
+    monkeypatch.setattr(verifier, "create_client", lambda *_args: FakeClient(FakeQuery(rows)))
+
+    with pytest.raises(RuntimeError, match="provenienza primaria dal Manuale del Giocatore italiano"):
+        verifier.verify_library("owner-1")
+
+
+def test_primary_italian_handbook_alias_is_recognized(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+    rows = make_rows()
+    for row in rows:
+        if row["reference_type"] in verifier.PLAYER_HANDBOOK_PROBE_TYPES:
+            row["source_key"] = "Manuale del giocatore .pdf"
+            row["source_refs"] = [{"filename": "Manuale del giocatore .pdf", "page": 263}]
+    monkeypatch.setattr(verifier, "create_client", lambda *_args: FakeClient(FakeQuery(rows)))
+    report = verifier.verify_library("owner-1")
+
+    assert report["status"] == "ok"
+    assert report["required_manual_records"][verifier.PLAYER_HANDBOOK_FILENAME] == 4
+    assert report["required_manual_records"][verifier.SPANISH_PLAYER_HANDBOOK_FILENAME] == 0
+
+
+def test_counts_only_primary_source_not_all_linked_refs(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+    rows = make_rows()
+    rows.append({
+        "reference_type": "spell",
+        "name": "Aiuto spagnolo",
+        "normalized_name": "aiuto spagnolo",
+        "source_key": verifier.SPANISH_PLAYER_HANDBOOK_FILENAME,
+        "source_refs": [
+            {"filename": verifier.SPANISH_PLAYER_HANDBOOK_FILENAME, "page": 72},
+            {"filename": verifier.PLAYER_HANDBOOK_FILENAME, "page": 72},
+        ],
+        "review_flags": ["sezione_potenzialmente_continua"],
+        "ai_review_status": "pending",
+        "source_text_checksum": "original-sha",
+    })
+    monkeypatch.setattr(verifier, "create_client", lambda *_args: FakeClient(FakeQuery(rows)))
+    report = verifier.verify_library("owner-1")
+
+    assert report["required_manual_records"][verifier.PLAYER_HANDBOOK_FILENAME] == 4
+    assert report["required_manual_records"][verifier.SPANISH_PLAYER_HANDBOOK_FILENAME] == 1
+    assert report["requested_rule_categories"]["spell"]["review_flags_present"] == 1
+    assert report["requested_rule_categories"]["spell"]["independent_ai_pending"] == 2
+    assert report["requested_rule_categories"]["spell"]["original_ocr_checksum_missing"] == 1
