@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Wand2, ImagePlus, Upload, Save, ArrowLeft, Loader2, Palette, PenLine, Crown, BookOpen, Search, Link2, X, CheckCircle2, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
-import { CARD_TYPES, EMBLEMS, BACK_STYLES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
+import { CARD_TYPES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
+import { CHARACTER_BACK_VARIANTS, getApprovedBack } from "@/lib/cardBacks";
 import Navbar from "@/components/Navbar";
 import { PremiumDialog } from "@/components/PremiumDialog";
 import { CardAppearanceControls } from "@/components/CardAppearanceControls";
@@ -167,7 +168,7 @@ export default function CardEditor() {
     language: "it", attributes: { ...DEFAULT_ATTRS.spell }, artwork_path: null,
     frame: "gold", reference_ids: [], spell_ids: [], rule_sources: [], source_refs: [],
     appearance: { ...DEFAULT_APPEARANCE },
-    back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "" },
+    back: { variant: "luminous" },
   });
   const [prompt, setPrompt] = useState("");
   const [genText, setGenText] = useState(false);
@@ -215,7 +216,7 @@ export default function CardEditor() {
     rule_sources: savedCard.rule_sources || [],
     source_refs: savedCard.source_refs || [],
     appearance: { ...DEFAULT_APPEARANCE, ...(savedCard.appearance || {}) },
-    back: { style: "classic", color: "#7f1d1d", emblem: "flame", motto: "", ...(savedCard.back || {}) },
+    back: { variant: "luminous", ...(savedCard.back || {}) },
   }), []);
 
   const reloadCard = useCallback(async () => {
@@ -904,7 +905,7 @@ export default function CardEditor() {
         type: card.type, custom_type: card.custom_type, name: card.name,
         description: card.description, story: card.story, language: card.language,
         attributes: card.attributes, artwork_path: card.artwork_path, frame: card.frame,
-        appearance: card.appearance, back: card.back,
+        appearance: card.appearance, back: card.type === "character" ? { variant: card.back?.variant === "silver" ? "silver" : "luminous" } : {},
         reference_ids: card.reference_ids || [], spell_ids: card.spell_ids || [], rule_sources: card.rule_sources || [], source_refs: card.source_refs || [],
         version: card.version,
       };
@@ -1463,38 +1464,28 @@ export default function CardEditor() {
                    <span className="flex items-center gap-2"><Palette className="h-5 w-5 text-gold" /> 5 · RETRO DELLA CARTA</span>
                  </AccordionTrigger>
                  <AccordionContent className="pt-2">
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <div>
-                       <Label className="font-label text-xs tracking-widest text-gold/80">STILE</Label>
-                       <Select value={card.back.style} onValueChange={(v) => setBack({ style: v })}>
-                         <SelectTrigger data-testid="back-style" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
-                         <SelectContent className="bg-card border-gold-deep/40 rounded-none">
-                           {BACK_STYLES.map((s) => <SelectItem key={s.id} value={s.id} className="font-body">{s.label}</SelectItem>)}
-                         </SelectContent>
-                       </Select>
-                     </div>
-                     <div>
-                       <Label className="font-label text-xs tracking-widest text-gold/80">EMBLEMA</Label>
-                       <Select value={card.back.emblem} onValueChange={(v) => setBack({ emblem: v })}>
-                         <SelectTrigger data-testid="back-emblem" className={`${inputCls} mt-2`}><SelectValue /></SelectTrigger>
-                         <SelectContent className="bg-card border-gold-deep/40 rounded-none">
-                           {EMBLEMS.map((s) => <SelectItem key={s.id} value={s.id} className="font-body">{s.label}</SelectItem>)}
-                         </SelectContent>
-                       </Select>
-                     </div>
-                     <div>
-                       <Label className="font-label text-xs tracking-widest text-gold/80">COLORE</Label>
-                       <div className="flex items-center gap-3 mt-2">
-                         <input type="color" data-testid="back-color" value={card.back.color} onChange={(e) => setBack({ color: e.target.value })}
-                           className="w-12 h-10 bg-input border border-border cursor-pointer" />
-                         <span className="font-body text-sm text-muted-foreground">{card.back.color}</span>
+                   <div className="rounded border border-gold-deep/40 bg-obsidian/40 p-4" data-testid="automatic-back-selection">
+                     <p className="font-label text-xs tracking-widest text-gold">DORSO ASSEGNATO AUTOMATICAMENTE</p>
+                     <p className="mt-2 font-body text-sm text-foreground/90">
+                       {getApprovedBack(card).label}: il retro ufficiale TomoForge segue la categoria selezionata.
+                       Non esistono più stili, emblemi, colori o motti alternativi.
+                     </p>
+                     {card.type === "character" && (
+                       <div className="mt-4">
+                         <Label className="font-label text-xs tracking-widest text-gold/80">VARIANTE PERSONAGGIO</Label>
+                         <Select value={card.back?.variant === "silver" ? "silver" : "luminous"}
+                           onValueChange={(variant) => setBack({ variant })}>
+                           <SelectTrigger data-testid="character-back-variant" className={`${inputCls} mt-2`}>
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-card border-gold-deep/40 rounded-none">
+                             {CHARACTER_BACK_VARIANTS.map((option) => (
+                               <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
                        </div>
-                     </div>
-                     <div>
-                       <Label className="font-label text-xs tracking-widest text-gold/80">MOTTO</Label>
-                       <Input data-testid="back-motto" value={card.back.motto} onChange={(e) => setBack({ motto: e.target.value })}
-                         placeholder="Es. Dalle ceneri, potere" className={`${inputCls} mt-2`} />
-                     </div>
+                     )}
                    </div>
                  </AccordionContent>
                </AccordionItem>

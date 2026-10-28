@@ -7,6 +7,8 @@ from core.config import utc_now
 
 
 class CardBack(BaseModel):
+    # The chosen reverse is derived from card.type. Only characters have two approved variants.
+    variant: Literal["luminous", "silver"] = "luminous"
     style: str = "classic"
     color: str = "#7f1d1d"
     emblem: str = "flame"

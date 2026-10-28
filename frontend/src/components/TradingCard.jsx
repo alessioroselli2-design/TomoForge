@@ -1,17 +1,12 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Flame, Skull, Sword, Moon, Eye, Shield, Star, Sparkles } from "lucide-react";
 import { artworkUrl } from "@/lib/api";
 import {
   typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE, FRAME_STYLES, TITLE_EFFECTS,
 } from "@/lib/cardTypes";
 import { useI18n } from "@/lib/i18n";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
-
-const EMBLEM_ICONS = {
-  flame: Flame, skull: Skull, dragon: Sparkles, sword: Sword,
-  moon: Moon, eye: Eye, shield: Shield, star: Star,
-};
+import { getApprovedBack } from "@/lib/cardBacks";
 
 const PLACEHOLDER = artworkPlaceholder;
 
@@ -208,56 +203,23 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
 CardFront.displayName = "CardFront";
 
 export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
-  const back = card.back || {};
-  const Emblem = EMBLEM_ICONS[back.emblem] || Flame;
-  const color = back.color || "#7f1d1d";
-  const style = back.style || "classic";
-  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
+  // The physical image is the entire approved reverse, including its frame.
+  // Its source comes only from card.type (or the two character variants).
+  const back = getApprovedBack(card);
   return (
-    <div ref={ref} data-testid="card-back"
-      className={`relative w-full h-full bg-card tf-card-frame tf-back-card tf-back-${style} flex flex-col items-center justify-center overflow-hidden p-6`}
-      style={{
-        ...foilFrameStyle(card.frame || "gold", appearance),
-        "--tf-back-accent": color,
-        "--tf-back-accent-soft": `${color}38`,
-        "--tf-back-accent-glow": `${color}66`,
-      }}>
-      <div className="tf-back-vignette" aria-hidden="true" />
-      <div className="tf-back-pattern" aria-hidden="true" />
-      <div className="tf-back-starfield" aria-hidden="true" />
-      <div className="tf-back-inner-border" aria-hidden="true" />
-      <div className="tf-back-inner-border tf-back-inner-border-soft" aria-hidden="true" />
-      <div className="tf-back-filigree tf-back-filigree-left" aria-hidden="true">❧</div>
-      <div className="tf-back-filigree tf-back-filigree-right" aria-hidden="true">❧</div>
-      <div className="tf-back-corner tf-back-corner-tl" aria-hidden="true">✦</div>
-      <div className="tf-back-corner tf-back-corner-tr" aria-hidden="true">✦</div>
-      <div className="tf-back-corner tf-back-corner-bl" aria-hidden="true">✦</div>
-      <div className="tf-back-corner tf-back-corner-br" aria-hidden="true">✦</div>
-      {style === "runic" && (
-        <div className="tf-back-rune" aria-hidden="true">ᛟ</div>
-      )}
-      <div className="relative z-10 flex min-h-full w-full flex-col items-center justify-center text-center">
-        <div className="tf-back-crest" style={{ borderColor: color, boxShadow: `0 0 0 5px ${color}16, 0 0 34px ${color}55` }}>
-          <div className="tf-back-crest-ring" aria-hidden="true" />
-          <div className="tf-back-crest-orbit" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span><span>✦</span></div>
-          <div className="tf-back-crest-core">
-            <Emblem className="w-10 h-10" strokeWidth={1.5} style={{ color }} />
-          </div>
-          <span className="tf-back-crest-mark tf-back-crest-mark-top" aria-hidden="true">✦</span>
-          <span className="tf-back-crest-mark tf-back-crest-mark-bottom" aria-hidden="true">✦</span>
-        </div>
-        <div className={`tf-back-wordmark ${exportMode ? "tf-back-wordmark-export" : ""}`}>
-          <span>TOME</span><i aria-hidden="true">·</i><span>FORGE</span>
-        </div>
-        {back.motto && (
-          <div className="tf-back-motto">
-            <span aria-hidden="true">“</span>
-            <p>{back.motto}</p>
-            <span aria-hidden="true">”</span>
-          </div>
-        )}
-        <div className="tf-back-rule" aria-hidden="true"><span>◆</span><i /><span>◆</span></div>
-      </div>
+    <div
+      ref={ref}
+      data-testid="card-back"
+      data-back-asset={back.file}
+      className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode ? "tf-export-card" : ""}`}
+    >
+      <img
+        src={back.src}
+        alt={`Retro ufficiale TomoForge: ${back.label}`}
+        className="absolute inset-0 block h-full w-full"
+        style={{ objectFit: "fill" }}
+        draggable={false}
+      />
     </div>
   );
 });

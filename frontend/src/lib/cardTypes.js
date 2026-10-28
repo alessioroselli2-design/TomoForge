@@ -69,24 +69,6 @@ export const QUICK_FIELDS = {
   character: ["classe", "livello", "classe_armatura", "punti_ferita", "bonus_competenza", "cd_incantesimi"],
 };
 
-export const EMBLEMS = [
-  { id: "flame", label: "Fiamma" },
-  { id: "skull", label: "Teschio" },
-  { id: "dragon", label: "Drago" },
-  { id: "sword", label: "Spada" },
-  { id: "moon", label: "Luna" },
-  { id: "eye", label: "Occhio" },
-  { id: "shield", label: "Scudo" },
-  { id: "star", label: "Stella" },
-];
-
-export const BACK_STYLES = [
-  { id: "classic", label: "Classico" },
-  { id: "runic", label: "Runico" },
-  { id: "damask", label: "Damascato" },
-  { id: "arcane", label: "Arcano" },
-];
-
 export const FRAME_STYLES = [
   { id: "gold", label: "Oro", colors: ["#6b4612", "#fff3a4", "#b87c16"] },
   { id: "silver", label: "Argento", colors: ["#535c66", "#f7fbff", "#9ca9b8"] },
