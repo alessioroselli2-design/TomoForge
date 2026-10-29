@@ -412,7 +412,17 @@ export async function renderCardBackCanvas(card) {
     image.src = art.src;
     if (image.complete && image.naturalWidth > 0) resolve();
   });
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  // Do not stretch any original frame, oval, wordmark or book. A back that
+  // already has the print ratio fills the entire canvas; otherwise the entire
+  // drawing is letterboxed, never cropped.
+  const naturalWidth = image.naturalWidth || canvas.width;
+  const naturalHeight = image.naturalHeight || canvas.height;
+  const fit = Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
+  const drawWidth = naturalWidth * fit;
+  const drawHeight = naturalHeight * fit;
+  ctx.fillStyle = "#101019";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
   return canvas;
 }
 
