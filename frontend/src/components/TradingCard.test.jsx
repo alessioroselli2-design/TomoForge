@@ -201,3 +201,19 @@ describe("CardFront artwork placeholder", () => {
     expect(container.textContent).toContain("Artwork non disponibile");
   });
 });
+
+describe("new front integration",()=>{
+ it("renders vector filigree without a pasted reference label",async()=>{
+   const container=document.createElement("div");
+   document.body.appendChild(container);
+   const root=createRoot(container);
+   await act(async()=>root.render(<CardFront card={{type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",grado_sfida:"17"}}}/>));
+   const front=container.querySelector('[data-front-layout="seamless-v6"]');
+   expect(front).not.toBeNull();
+   expect(front.querySelector(".tf-v5-bottom-rail")).toBeNull();
+   expect(front.querySelectorAll(".tf-v4-filigree")).toHaveLength(1);
+   expect(front.querySelector("img").getAttribute("alt")).toBe("Drago Rosso Adulto");
+   await act(async()=>root.unmount());
+   container.remove();
+ });
+});
