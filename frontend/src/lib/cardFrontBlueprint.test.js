@@ -42,3 +42,30 @@ describe("TomoForge v2 front blueprint", () => {
       .toEqual(buildFrontBlueprint(card));
   });
 });
+
+describe("approved upper cartouche",()=>{
+  it("shows creature type, size and alignment, with GS in badge only",()=>{
+    const data=buildFrontBlueprint({type:"monster",name:"Drago Rosso Adulto",attributes:{
+      tipo_creatura:"Drago",taglia:"Enorme",allineamento:"Caotico Malvagio",grado_sfida:"17"
+    }});
+    expect(data.subtitle).toBe("Drago • Enorme • Caotico Malvagio");
+    expect(data.badge).toEqual({top:"GS",value:"17"});
+  });
+  it("uses school and class without duplicating spell level",()=>{
+    const data=buildFrontBlueprint({type:"spell",name:"Palla di Fuoco",attributes:{
+      classe:"Mago",scuola:"Invocazione",livello:"3"
+    }});
+    expect(data.subtitle).toBe("Mago • Invocazione");
+    expect(data.badge.value).toBe("3");
+    expect(data.subtitle).not.toContain("livello");
+  });
+  it("shows a character's subclass and a feature's parent class",()=>{
+    expect(buildFrontBlueprint({type:"character",attributes:{classe:"Druido",sottoclasse:"Circolo delle Stelle"}}).subtitle)
+      .toBe("Druido • Circolo delle Stelle");
+    expect(buildFrontBlueprint({type:"feature",attributes:{classe:"Druido"}}).subtitle)
+      .toBe("Druido • Privilegio di Classe");
+  });
+  it("retains simple race label and omits repeated level",()=>{
+    expect(buildFrontBlueprint({type:"race",name:"Elfo"}).subtitle).toBe("Razza");
+  });
+});
