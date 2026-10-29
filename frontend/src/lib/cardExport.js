@@ -1,4 +1,4 @@
-import { QUICK_FIELDS, attrLabel, typeLabel, DEFAULT_APPEARANCE, FRAME_STYLES } from "@/lib/cardTypes";
+import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const waitForImages = async (element) => {
@@ -12,42 +12,18 @@ const waitForImages = async (element) => {
   }));
 };
 
-const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
-
-const getExportFrameColors = (card, appearance = {}) => {
-  if (appearance.frame_custom_color_enabled) {
-    const color = appearance.frame_custom_color || "#d4af37";
-    return [color, "#ffffff", color];
-  }
-  return FRAME_STYLES.find((style) => style.id === card.frame)?.colors || FRAME_STYLES[0].colors;
-};
-
-// Keep these dimensions independent of CSS so PNG, the single-card PDF, and
-// every physical size on the A4 sheet all originate from the same safe area.
+// A single data blueprint drives both the interactive card and every physical export.
 export const CARD_CANVAS_SIZE = Object.freeze({ width: 340, height: 476, scale: 3 });
 
 export const SINGLE_CARD_A4_BOUNDS = Object.freeze({
-  x: 73.25,
-  y: 104.05,
-  w: 63.5,
-  h: 88.9,
+  x: 73.25, y: 104.05, w: 63.5, h: 88.9,
 });
+
 export const getCardExportLayout = (card) => {
-  const attrs = card.attributes || {};
-  const has = (key) => {
-    const value = attrs[key];
-    return (typeof value === "string" || typeof value === "number") && String(value).trim() !== "";
-  };
-  const abilities = (card.type === "monster" || card.type === "character")
-    ? ABILITIES.filter(has).map((key) => [key.toUpperCase(), String(attrs[key])])
-    : [];
-  let keys = (QUICK_FIELDS[card.type] || []).filter(has);
-  if (!keys.length) {
-    keys = Object.keys(attrs).filter((key) => has(key) && !ABILITIES.includes(key));
-  }
+  const blueprint = buildFrontBlueprint(card);
   return {
-    abilities,
-    fields: keys.slice(0, 6).map((key) => [attrLabel(key), String(attrs[key])]),
+    abilities: blueprint.abilities.map(({ label, value }) => [label, value]),
+    fields: blueprint.highlights.map(({ label, value }) => [label, value]),
   };
 };
 
@@ -62,112 +38,7 @@ const drawFittedText = (ctx, text, x, y, maxWidth, size, family, weight = "400")
   ctx.fillText(text, x, y, maxWidth);
 };
 
-const drawCategorySymbol = (ctx, type, cx, cy) => {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.strokeStyle = "#f8d764";
-  ctx.fillStyle = "#f8d764";
-  ctx.lineWidth = 1.5;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
 
-  if (type === "spell" || type === "custom") {
-    ctx.beginPath();
-    for (let i = 0; i < 16; i += 1) {
-      const angle = -Math.PI / 2 + (Math.PI * i) / 8;
-      const radius = i % 2 === 0 ? 8 : 3.2;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    type === "spell" ? ctx.fill() : ctx.stroke();
-  } else if (type === "weapon") {
-    ctx.beginPath();
-    ctx.moveTo(-6, 7);
-    ctx.lineTo(6, -7);
-    ctx.moveTo(3.5, -7);
-    ctx.lineTo(7, -7);
-    ctx.lineTo(7, -3.5);
-    ctx.moveTo(-7, 3);
-    ctx.lineTo(-3, 7);
-    ctx.stroke();
-  } else if (type === "armor") {
-    ctx.beginPath();
-    ctx.moveTo(0, -8);
-    ctx.lineTo(7, -5);
-    ctx.lineTo(6, 2);
-    ctx.quadraticCurveTo(4, 7, 0, 9);
-    ctx.quadraticCurveTo(-4, 7, -6, 2);
-    ctx.lineTo(-7, -5);
-    ctx.closePath();
-    ctx.stroke();
-  } else if (type === "item") {
-    ctx.strokeRect(-7, -5, 14, 12);
-    ctx.beginPath();
-    ctx.moveTo(-7, -1);
-    ctx.lineTo(7, -1);
-    ctx.moveTo(0, -5);
-    ctx.lineTo(0, 7);
-    ctx.stroke();
-  } else if (type === "class") {
-    ctx.beginPath();
-    ctx.moveTo(0, -8);
-    ctx.lineTo(7, -5);
-    ctx.lineTo(6, 2);
-    ctx.quadraticCurveTo(4, 7, 0, 9);
-    ctx.quadraticCurveTo(-4, 7, -6, 2);
-    ctx.lineTo(-7, -5);
-    ctx.closePath();
-    ctx.stroke();
-  } else if (type === "race") {
-    ctx.beginPath();
-    ctx.arc(0, -4, 3, 0, Math.PI * 2);
-    ctx.arc(-5, -1, 2.2, 0, Math.PI * 2);
-    ctx.arc(5, -1, 2.2, 0, Math.PI * 2);
-    ctx.moveTo(-7, 7);
-    ctx.quadraticCurveTo(0, 0, 7, 7);
-    ctx.stroke();
-  } else if (type === "feat") {
-    ctx.beginPath();
-    ctx.arc(0, -2, 6, 0, Math.PI * 2);
-    ctx.moveTo(-4, 3);
-    ctx.lineTo(-5, 9);
-    ctx.lineTo(0, 6);
-    ctx.lineTo(5, 9);
-    ctx.lineTo(4, 3);
-    ctx.stroke();
-  } else if (type === "monster") {
-    ctx.beginPath();
-    ctx.arc(0, -1, 7, Math.PI, 0);
-    ctx.lineTo(6, 5);
-    ctx.lineTo(3, 8);
-    ctx.lineTo(-3, 8);
-    ctx.lineTo(-6, 5);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(-2.5, 0, 1.2, 0, Math.PI * 2);
-    ctx.arc(2.5, 0, 1.2, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.arc(0, -4, 3.5, 0, Math.PI * 2);
-    ctx.moveTo(-7, 8);
-    ctx.quadraticCurveTo(-6, 1, 0, 1);
-    ctx.quadraticCurveTo(6, 1, 7, 8);
-    ctx.stroke();
-  }
-  ctx.restore();
-};
-
-const colorToRgb = (hex) => {
-  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
-  return match
-    ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)]
-    : [127, 29, 29];
-};
 
 const wrapTextLines = (ctx, text, maxWidth) => {
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
@@ -209,187 +80,162 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
     .forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
 };
 
-// Dedicated raster renderer for A4 sheets. It mirrors the card composition
-// but never asks the browser to screenshot a flex/overflow DOM tree.
+// The v2 renderer uses the same category blueprint as the React preview;
+// changing the saved card's legacy appearance no longer affects either output.
 export async function renderCardCanvas(element, card) {
   if (!element) throw new Error("Card render unavailable");
   await waitForImages(element);
   if (document.fonts?.ready) await document.fonts.ready;
-
+  const data = buildFrontBlueprint(card);
   const { scale, width, height } = CARD_CANVAS_SIZE;
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;
   const ctx = canvas.getContext("2d");
   ctx.scale(scale, scale);
-  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
-  if (appearance.front_background_gradient) {
-    const frontBackground = ctx.createLinearGradient(0, 0, width, height);
-    frontBackground.addColorStop(0, appearance.front_background_start || "#151311");
-    frontBackground.addColorStop(1, appearance.front_background_end || "#151311");
-    ctx.fillStyle = frontBackground;
-  } else {
-    ctx.fillStyle = appearance.front_background_start || "#151311";
-  }
+
+  const background = ctx.createLinearGradient(0, 0, width, height);
+  background.addColorStop(0, "#101b2f");
+  background.addColorStop(0.55, "#10121f");
+  background.addColorStop(1, "#1e192a");
+  ctx.fillStyle = background;
   ctx.fillRect(0, 0, width, height);
 
-  const frameColors = getExportFrameColors(card, appearance);
-  const border = ctx.createLinearGradient(0, 0, width, height);
-  frameColors.forEach((color, index) => border.addColorStop(index / (frameColors.length - 1), color));
-  ctx.strokeStyle = border;
+  // Engraved frame, shared across all categories, with a type-specific accent.
+  const metal = ctx.createLinearGradient(0, 0, width, height);
+  metal.addColorStop(0, "#e8ce8c");
+  metal.addColorStop(0.5, "#9f733e");
+  metal.addColorStop(1, "#e8ce8c");
+  ctx.strokeStyle = metal;
   ctx.lineWidth = 3;
   ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
-  ctx.strokeStyle = "rgba(232, 196, 96, 0.42)";
+  ctx.strokeStyle = "rgba(235,195,116,.55)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(7.5, 7.5, width - 15, height - 15);
-  [[12, 12], [328, 12], [12, 464], [328, 464]].forEach(([x, y]) => {
-    ctx.beginPath();
-    ctx.arc(x, y, 2, 0, Math.PI * 2);
-    ctx.fillStyle = "#f8d764";
-    ctx.fill();
-  });
+  ctx.strokeRect(9, 9, width - 18, height - 18);
 
-  const gold = "#f8d764";
-  const light = "#f5f1df";
-  const titleColors = appearance.title_custom_color_enabled
-    ? [appearance.title_custom_color || gold, appearance.title_custom_color || gold, appearance.title_custom_color || gold]
-    : ({
-    gold: ["#fffbd1", "#f8d764", "#c98b18"],
-    silver: ["#ffffff", "#cbd5e1", "#64748b"],
-    rainbow: ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"],
-    crimson: ["#ffe4e6", "#fb7185", "#881337"],
-    azure: ["#e0f2fe", "#38bdf8", "#1e3a8a"],
-    violet: ["#f3e8ff", "#c084fc", "#581c87"],
-    emerald: ["#d1fae5", "#34d399", "#064e3b"],
-    copper: ["#ffedd5", "#fb923c", "#7c2d12"],
-    rose: ["#fff1f2", "#fb7185", "#9f1239"],
-    arctic: ["#ecfeff", "#67e8f9", "#0e7490"],
-    onyx: ["#f8fafc", "#94a3b8", "#0f172a"],
-    amber: ["#fffbeb", "#fbbf24", "#92400e"],
-    ruby: ["#fee2e2", "#ef4444", "#7f1d1d"],
-  }[appearance.title_effect] || ["#fffbd1", "#f8d764", "#c98b18"]);
-  const titleGradient = ctx.createLinearGradient(12, 12, 238, 36);
-  titleColors.forEach((color, index) => titleGradient.addColorStop(index / (titleColors.length - 1), color));
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = titleGradient;
-  if (appearance.title_shadow !== false) {
-    ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
-    ctx.shadowBlur = 5;
-    ctx.shadowOffsetY = 3;
-  }
-  drawFittedText(ctx, String(card.name || "Senza nome"), 12, 32, 215, 18, "'Cormorant Garamond', Georgia, serif", "700");
-  ctx.shadowColor = "transparent";
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-  ctx.font = "600 10px 'Cinzel', Georgia, serif";
-  ctx.textAlign = "right";
-  ctx.fillStyle = gold;
-  drawFittedText(ctx, typeLabel(card.type, card.custom_type).toUpperCase(), 290, 29, 52, 8, "'Cinzel', Georgia, serif", "600");
+  const gold = "#f3d59b";
+  const ink = "#f9eed8";
   ctx.textAlign = "left";
-  ctx.fillStyle = "#0c0a09";
+  ctx.fillStyle = data.accent;
+  drawFittedText(ctx, data.heading + "  ✦  TOMOFORGE", 18, 25, 240, 9, "'Cinzel',Georgia,serif", "700");
+  ctx.fillStyle = gold;
+  drawFittedText(ctx, data.name, 18, 48, 252, 20, "'Cormorant Garamond',Georgia,serif", "700");
+  ctx.fillStyle = "#b7c6dd";
+  drawFittedText(ctx, data.subtitle, 18, 65, 258, 10, "'Spectral',Georgia,serif");
+
   ctx.beginPath();
-  ctx.arc(312, 25, 13, 0, Math.PI * 2);
+  ctx.arc(303, 43, 20, 0, 2 * Math.PI);
+  ctx.fillStyle = "#1b2033";
   ctx.fill();
-  ctx.strokeStyle = gold;
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#dbbc7c";
+  ctx.lineWidth = 2;
   ctx.stroke();
-  drawCategorySymbol(ctx, card.type, 312, 25);
+  ctx.fillStyle = ink;
+  ctx.textAlign = "center";
+  drawFittedText(ctx, data.crest, 303, 47, 32, 12, "'Cinzel',Georgia,serif", "700");
+  ctx.textAlign = "left";
 
-  const divider = ctx.createLinearGradient(12, 0, 328, 0);
-  divider.addColorStop(0, "transparent");
-  divider.addColorStop(0.5, "#d4af37");
-  divider.addColorStop(1, "transparent");
-  ctx.fillStyle = divider;
-  ctx.fillRect(12, 42, 316, 2);
-
-  const artwork = element.querySelector("img");
-  const artX = 12, artY = 53, artW = 316, artH = 234;
-  ctx.fillStyle = "#090f10";
+  const artX = 16, artY = 82, artW = 308, artH = data.hasAbilities ? 191 : 220;
+  ctx.fillStyle = "#090f1c";
   ctx.fillRect(artX, artY, artW, artH);
   let artworkDrawn = false;
+  const artwork = element.querySelector("img");
   try {
-    if (artwork?.complete && artwork.naturalWidth) {
-      ctx.drawImage(artwork, artX, artY, artW, artH);
+    if (artwork?.complete && artwork.naturalWidth > 0) {
+      // Cover/crop rather than stretch: print and mobile preview preserve aspect ratio.
+      const imageWidth = artwork.naturalWidth;
+      const imageHeight = artwork.naturalHeight || imageWidth;
+      const ratio = Math.max(artW / imageWidth, artH / imageHeight);
+      const cropW = artW / ratio;
+      const cropH = artH / ratio;
+      ctx.drawImage(artwork,
+        (imageWidth - cropW) / 2, (imageHeight - cropH) / 2, cropW, cropH,
+        artX, artY, artW, artH);
       artworkDrawn = true;
     }
   } catch {
-    // Keep the dark artwork panel if a cross-origin image cannot be drawn.
+    // Broken or CORS-restricted artwork never breaks a PDF. Keep dark art panel.
   }
-  ctx.strokeStyle = "#9a7d2e";
+  ctx.strokeStyle = "#b99b5d";
   ctx.lineWidth = 1;
   ctx.strokeRect(artX, artY, artW, artH);
-
-  const { abilities, fields } = getCardExportLayout(card);
-  const statY = 299;
-  if (abilities.length) {
-    const abilityGap = 3;
-    const abilityW = (316 - abilityGap * 5) / 6;
-    abilities.forEach(([label, value], index) => {
-      const cellX = 12 + index * (abilityW + abilityGap);
-      ctx.strokeStyle = "#b4933c";
-      ctx.strokeRect(cellX, statY, abilityW, 28);
-      ctx.textAlign = "center";
-      ctx.fillStyle = gold;
-      ctx.font = "700 7px 'Cinzel', Georgia, serif";
-      drawFittedText(ctx, label, cellX + abilityW / 2, statY + 10, abilityW - 5, 7, "'Cinzel', Georgia, serif", "700");
-      ctx.fillStyle = light;
-      drawFittedText(ctx, value, cellX + abilityW / 2, statY + 23, abilityW - 5, 11, "'Spectral', Georgia, serif", "600");
-    });
-  }
-
-  const fieldStartY = abilities.length ? 334 : statY;
-  const cellW = 154;
-  const cellH = 22;
-  fields.forEach(([label, value], index) => {
-    const col = index % 2;
-    const row = Math.floor(index / 2);
-    const cellX = 12 + col * 162;
-    const cellY = fieldStartY + row * 26;
-    ctx.strokeStyle = "#b4933c";
-    ctx.strokeRect(cellX, cellY, cellW, cellH);
+  if (data.dice) {
+    ctx.fillStyle = "rgba(10,20,34,.94)";
+    ctx.fillRect(artX + artW - 91, artY + artH - 29, 85, 23);
+    ctx.strokeStyle = "#e8c980";
+    ctx.strokeRect(artX + artW - 91, artY + artH - 29, 85, 23);
+    ctx.fillStyle = ink;
+    ctx.textAlign = "center";
+    drawFittedText(ctx, data.dice, artX + artW - 49, artY + artH - 13, 78, 12, "'Cinzel',Georgia,serif", "700");
     ctx.textAlign = "left";
-    ctx.fillStyle = gold;
-    drawFittedText(ctx, label.toUpperCase(), cellX + 6, cellY + 9, cellW - 12, 7, "'Cinzel', Georgia, serif", "700");
-    ctx.fillStyle = light;
-    drawFittedText(ctx, value, cellX + 6, cellY + 19, cellW - 12, 10, "'Spectral', Georgia, serif");
+  }
+
+  const statsY = data.hasAbilities ? 282 : 309;
+  const stats = data.highlights;
+  if (stats.length) {
+    const gap = 4, cellWidth = (308 - gap * (stats.length - 1)) / stats.length;
+    stats.forEach(({ label, value }, index) => {
+      const x = 16 + index * (cellWidth + gap);
+      ctx.fillStyle = "#17243a";
+      ctx.fillRect(x, statsY, cellWidth, 40);
+      ctx.strokeStyle = "rgba(227,186,107,.7)";
+      ctx.strokeRect(x, statsY, cellWidth, 40);
+      ctx.fillStyle = "#d8b879";
+      ctx.textAlign = "center";
+      drawFittedText(ctx, label.toUpperCase(), x + cellWidth / 2, statsY + 14, cellWidth - 8, 8, "'Cinzel',Georgia,serif", "700");
+      ctx.fillStyle = ink;
+      drawFittedText(ctx, value, x + cellWidth / 2, statsY + 31, cellWidth - 8, 13, "'Spectral',Georgia,serif", "700");
+    });
+    ctx.textAlign = "left";
+  } else {
+    ctx.fillStyle = "#aab4c7";
+    ctx.font = "9px Georgia,serif";
+    ctx.fillText("DATI IN ATTESA DI COMPILAZIONE", 21, statsY + 25);
+  }
+
+  if (data.hasAbilities) {
+    const y = 329, gap = 3, cellWidth = (308 - gap * 5) / 6;
+    data.abilities.forEach(({ label, value }, index) => {
+      const x = 16 + index * (cellWidth + gap);
+      ctx.fillStyle = "#101927";
+      ctx.fillRect(x, y, cellWidth, 37);
+      ctx.strokeStyle = "#8b7757";
+      ctx.strokeRect(x, y, cellWidth, 37);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#dfc18d";
+      drawFittedText(ctx, label, x + cellWidth / 2, y + 13, cellWidth - 5, 8, "'Cinzel',Georgia,serif", "700");
+      ctx.fillStyle = ink;
+      drawFittedText(ctx, value, x + cellWidth / 2, y + 29, cellWidth - 5, 12, "'Spectral',Georgia,serif", "700");
+    });
+    ctx.textAlign = "left";
+  }
+
+  const notesY = data.hasAbilities ? 375 : 356;
+  const notesH = data.hasAbilities ? 65 : 84;
+  ctx.fillStyle = "#0d1422";
+  ctx.fillRect(16, notesY, 308, notesH);
+  ctx.strokeStyle = "#b1955e";
+  ctx.strokeRect(16, notesY, 308, notesH);
+  let textY = notesY + 15;
+  data.details.slice(0, data.hasAbilities ? 2 : 3).forEach(({ label, value }) => {
+    ctx.fillStyle = "#dfbb78";
+    ctx.font = "700 8px 'Cinzel',Georgia,serif";
+    const detail = label.toUpperCase() + ": " + value;
+    drawFittedText(ctx, detail, 23, textY, 292, 9, "'Spectral',Georgia,serif", "600");
+    textY += 13;
   });
+  const desc = data.description || "Le informazioni della carta appariranno qui dopo la selezione di un record.";
+  ctx.font = "italic 10px 'Spectral',Georgia,serif";
+  ctx.fillStyle = "#f4e6d0";
+  const maxLines = Math.max(1, Math.floor((notesY + notesH - textY - 4) / 12));
+  drawWrappedText(ctx, desc, 23, textY + 1, 292, 12, Math.min(3, maxLines));
+
+  ctx.fillStyle = "#d7b980";
+  ctx.font = "700 8px 'Cinzel',Georgia,serif";
+  ctx.fillText("✦ TOMOFORGE", 18, 457);
+  ctx.textAlign = "right";
+  ctx.fillText(data.heading, 323, 457);
   ctx.textAlign = "left";
-
-  const description = String(card.description || "").trim();
-  if (description) {
-    const rows = Math.ceil(fields.length / 2);
-    const descriptionY = fields.length
-      ? fieldStartY + rows * 26 + 5
-      : abilities.length ? 334 : 303;
-    // The footer starts at 452. Reserve an 8px gutter so six statistics and
-    // a two-line description can never paint over the footer or be clipped.
-    const descriptionHeight = Math.min(39, 444 - descriptionY);
-    const descriptionLines = descriptionHeight >= 26 ? 2 : 1;
-    const descriptionOpacity = Math.max(0.3, Math.min(0.9, Number(appearance.description_opacity) || 0.64));
-    if (descriptionHeight >= 15) {
-      const [panelRed, panelGreen, panelBlue] = colorToRgb(appearance.text_panel_color || "#05080a");
-      ctx.fillStyle = `rgba(${panelRed}, ${panelGreen}, ${panelBlue}, ${descriptionOpacity})`;
-      ctx.fillRect(12, descriptionY, 250, descriptionHeight);
-      ctx.strokeStyle = "rgba(201, 160, 58, 0.45)";
-      ctx.strokeRect(12.5, descriptionY + 0.5, 249, descriptionHeight - 1);
-      ctx.fillStyle = appearance.text_color || light;
-      ctx.font = "italic 10px 'Spectral', Georgia, serif";
-      drawWrappedText(ctx, description, 19, descriptionY + 13, 232, 12, descriptionLines);
-    }
-  }
-
-  ctx.fillStyle = light;
-  ctx.font = "600 8px 'Cinzel', Georgia, serif";
-  ctx.fillText("DETTAGLI COMPLETI", 12, 452);
-  ctx.font = "700 12px Arial, sans-serif";
-  ctx.fillText(">", 12, 466);
-
-  const qr = element.querySelector("canvas");
-  if (qr) {
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(274, 405, 54, 54);
-    ctx.drawImage(qr, 278, 409, 46, 46);
-  }
   canvas.artworkDrawn = artworkDrawn;
   return canvas;
 }
