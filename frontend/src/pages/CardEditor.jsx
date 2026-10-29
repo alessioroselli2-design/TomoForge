@@ -188,6 +188,7 @@ export default function CardEditor() {
   const [reviewManual, setReviewManual] = useState("");
   const [referenceResults, setReferenceResults] = useState([]);
   const [searchingReferences, setSearchingReferences] = useState(false);
+  const [referenceSearchError, setReferenceSearchError] = useState("");
   const [applyingReference, setApplyingReference] = useState(null);
   const [libraryManuals, setLibraryManuals] = useState([]);
   const [loadingManuals, setLoadingManuals] = useState(false);
@@ -407,11 +408,13 @@ export default function CardEditor() {
       || (!referenceQuery.trim() && !reviewTypes && !referenceClassFilter.trim() && !referenceLevelFilter.trim())
     ) {
       setReferenceResults([]);
+      setReferenceSearchError("");
       setSearchingReferences(false);
       return undefined;
     }
     const timer = window.setTimeout(async () => {
       setSearchingReferences(true);
+      setReferenceSearchError("");
       try {
         const res = await api.get("/library", {
           params: {
@@ -426,6 +429,9 @@ export default function CardEditor() {
         setReferenceResults(res.data.records || []);
       } catch (error) {
         setReferenceResults([]);
+        setReferenceSearchError(
+          error.response?.data?.detail || "La ricerca non è riuscita. Riprova: i record della biblioteca non sono stati cancellati."
+        );
       } finally {
         setSearchingReferences(false);
       }
@@ -1133,7 +1139,10 @@ export default function CardEditor() {
                       <button type="button" onClick={() => { setReviewTypes(""); setReviewManual(""); }} className="font-label text-[9px] tracking-widest text-gold hover:text-amber-200">MOSTRA TUTTI</button>
                     </p>
                   )}
-                  {(referenceQuery.trim() || reviewTypes) && !searchingReferences && referenceResults.length === 0 && (
+                  {referenceSearchError && !searchingReferences && (
+                    <p role="alert" className="mt-3 font-body text-xs text-red-300">{referenceSearchError}</p>
+                  )}
+                  {(referenceQuery.trim() || reviewTypes) && !searchingReferences && !referenceSearchError && referenceResults.length === 0 && (
                     <p className="mt-3 font-body text-xs text-muted-foreground">
                       {reviewTypes ? "Nessun record da verificare per queste categorie." : "Nessun contenuto corrispondente nella tua biblioteca."}
                     </p>
