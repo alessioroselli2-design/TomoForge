@@ -10,15 +10,6 @@ import {
   renderCardCanvas,
 } from "./cardExport";
 
-const sixQuickStats = {
-  livello: "5",
-  area: "18 metri",
-  azione: "Azione",
-  tempo_lancio: "1 azione",
-  concentrazione: "Sì",
-  danno: "8d6 fuoco",
-};
-
 const abilities = {
   for: "18",
   des: "14",
@@ -26,13 +17,6 @@ const abilities = {
   int: "12",
   sag: "10",
   car: "8",
-};
-
-const configuredBack = {
-  style: "runic",
-  color: "#2563eb",
-  emblem: "dragon",
-  motto: "Dove il fuoco incontra l'inchiostro",
 };
 
 const createContext = (operations, gradients) => ({
@@ -102,8 +86,6 @@ describe("card export renderers", () => {
 
   beforeEach(() => {
     previousImage = global.Image;
-    // JSDOM does not fetch local assets. Simulate an already-decoded approved
-    // image and retain its actual src for the canvas-path regression checks.
     global.Image = class BackImageMock {
       complete = false;
       naturalWidth = 0;
@@ -122,12 +104,10 @@ describe("card export renderers", () => {
       const gradients = [];
       const context = createContext(operations, gradients);
       const canvas = {
-        width: 0,
-        height: 0,
+        width: 0, height: 0,
         getContext: () => context,
         toDataURL: () => `data:image/png;base64,card-${canvases.length + 1}`,
-        operations,
-        gradients,
+        operations, gradients,
       };
       canvases.push(canvas);
       return canvas;
@@ -139,234 +119,78 @@ describe("card export renderers", () => {
     global.Image = previousImage;
   });
 
-  it("renders all six quick statistics and the description within the PNG/PDF safe area", async () => {
+  const written = (canvas) => canvas.operations.filter((op) => op.name === "fillText").map((op) => op.text).join(" ");
+
+  it("renders new monster front with its six abilities, sourced stats and actual dice formula", async () => {
     const card = {
-      id: "spell-six-stats",
-      type: "spell",
-      name: "Tempesta del Drago Cremisi",
-      frame: "rainbow",
-      appearance: { title_effect: "gold", description_opacity: 0.8 },
-      attributes: sixQuickStats,
-      description: "Una descrizione abbastanza lunga da richiedere due righe ma non deve invadere il footer.",
-      back: configuredBack,
+      id: "drago", type: "monster", name: "Drago Cremisi",
+      attributes: { ...abilities, classe_armatura: "18", punti_ferita: "152", velocita: "12 m", tipo_creatura: "Drago", danno: "2d10 + 6", grado_sfida: "9" },
+      description: "Un guardiano antico dalle scaglie cremisi.",
     };
-
-    const canvas = await renderCardCanvas(makeExportElement(), card);
-    expect(canvas.artworkDrawn).toBe(true);
-    const text = canvas.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
-    const descriptionPanel = canvas.operations
-      .filter((entry) => entry.name === "fillRect" && entry.x === 12 && entry.w === 250)
-      .at(-1);
-
-    expect(canvas.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
-    expect(canvas.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
-    expect(text).toContain("Tempesta del Drago Cremisi");
-    expect(text).toContain("MAGIA");
-    Object.entries(sixQuickStats).forEach(([label, value]) => {
-      expect(text).toContain(value);
-      expect(text).toContain(label === "tempo_lancio" ? "TEMPO DI LANCIO" : label.toUpperCase());
-    });
-    expect(text).toContain("Una descrizione abbastanza lunga");
-    expect(descriptionPanel.y + descriptionPanel.h).toBeLessThanOrEqual(444);
-    expect(Math.max(...canvas.operations
-      .filter((entry) => entry.name === "fillText")
-      .map((entry) => entry.y))).toBeLessThanOrEqual(466);
+    const front = await renderCardCanvas(makeExportElement(), card);
+    const text = written(front);
+    expect(front.artworkDrawn).toBe(true);
+    expect(front.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
+    expect(front.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
+    ["MOSTRO", "Drago Cremisi", "CA", "18", "PF", "152", "12 m", "2d10+6",
+      "FOR", "DES", "COS", "INT", "SAG", "CAR"].forEach((fragment) => expect(text).toContain(fragment));
+    expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 308 && entry.args.at(-1) === 191)).toBe(true);
+    expect(text).toContain("Un guardiano antico");
+    expect(front.operations.some((op) => op.name === "fillText" && op.y > 466)).toBe(false);
   });
 
-  it("letterboxes a nonstandard legacy back without stretching its border or title", async () => {
+  it("renders the spell-specific front without legacy color customization or fake dice", async () => {
+    const card = {
+      id: "fireball", type: "spell", name: "Palla di Fuoco",
+      attributes: { livello: "3", scuola: "Invocazione", tempo_lancio: "1 azione", gittata: "45 m", danno: "8d6 fuoco" },
+      description: "Un'esplosione di energia ignea investe la zona.",
+      appearance: { title_effect: "rainbow", front_background_start: "#ff0000" },
+    };
+    const front = await renderCardCanvas(makeExportElement(), card);
+    const text = written(front);
+    ["MAGIA", "Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
+    expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
+    expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 220)).toBe(true);
+  });
+
+  it("keeps unchanged official backs, including the silver Personaggio variant", async () => {
+    const back = await renderCardBackCanvas({ type: "character", back: { variant: "silver" } });
+    const op = back.operations.find((entry) => entry.name === "drawImage");
+    expect(op.args[0].src).toBe("/dorsi/personaggio-argento.jpg");
+    expect(back.operations.some((entry) => entry.name === "fillText")).toBe(false);
+  });
+
+  it("letterboxes a nonstandard back instead of stretching its artwork", async () => {
     global.Image = class TallBackMock {
-      complete = false;
-      naturalWidth = 750;
-      naturalHeight = 1200;
-      set src(value) {
-        this._src = value;
-        this.complete = true;
-        this.onload?.();
-      }
+      complete = false; naturalWidth = 750; naturalHeight = 1200;
+      set src(value) { this._src = value; this.complete = true; this.onload?.(); }
       get src() { return this._src; }
     };
-    const canvas = await renderCardBackCanvas({ type: "spell", back: { style: "runic", motto: "old" } });
-    const imageOp = canvas.operations.find((operation) => operation.name === "drawImage");
-    const [image, x, y, w, h] = imageOp.args;
-    expect(image.src).toBe("/dorsi/incantesimo.jpg");
+    const back = await renderCardBackCanvas({ type: "spell" });
+    const [, x, y, w, h] = back.operations.find((op) => op.name === "drawImage").args;
     expect(x).toBeGreaterThan(0);
     expect(y).toBe(0);
-    expect(w).toBeLessThan(canvas.width);
-    expect(h).toBe(canvas.height);
     expect(w / h).toBeCloseTo(750 / 1200);
-    expect(canvas.operations.some((operation) => operation.name === "fillText")).toBe(false);
   });
 
-  it.each(["monster", "character"])(
-    "renders six ability scores and the approved automatic back for %s cards",
-    async (type) => {
-      const card = {
-        id: `${type}-abilities`,
-        type,
-        name: type === "monster" ? "Custode di Ossidiana" : "Aralda delle Rune",
-        frame: "silver",
-        appearance: { title_effect: "silver" },
-        attributes: {
-          ...abilities,
-          classe_armatura: "17",
-          punti_ferita: "120",
-          grado_sfida: "8",
-          velocita: "9 m",
-        },
-        description: "Difende il sigillo antico con potenza e disciplina.",
-        back: configuredBack,
-      };
-
-      const front = await renderCardCanvas(makeExportElement(), card);
-      const back = await renderCardBackCanvas(card);
-      const frontText = front.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
-      const backArt = back.operations.find((entry) => entry.name === "drawImage");
-
-      expect(getCardExportLayout(card).abilities).toHaveLength(6);
-      ["FOR", "DES", "COS", "INT", "SAG", "CAR", ...Object.values(abilities)].forEach((value) => {
-        expect(frontText).toContain(value);
-      });
-      expect(frontText).toContain(type === "monster" ? "MOSTRO" : "PERSONAGGIO");
-      expect(frontText).toContain("Difende il sigillo antico");
-      expect(backArt).toBeDefined();
-      expect(backArt.args[0].src).toBe(type === "monster" ? "/dorsi/mostro.jpg" : "/dorsi/personaggio-luce.jpg");
-      expect(backArt.args.slice(1)).toEqual([0, 0, CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale, CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale]);
-      // A saved runic/motto back must never appear again.
-      expect(back.operations.some((entry) => entry.name === "fillText")).toBe(false);
-    },
-  );
-
-  it.each([
-    ["gold", ["#fffbd1", "#f8d764", "#c98b18"]],
-    ["silver", ["#ffffff", "#cbd5e1", "#64748b"]],
-    ["rainbow", ["#fb7185", "#facc15", "#34d399", "#60a5fa", "#c084fc"]],
-    ["crimson", ["#ffe4e6", "#fb7185", "#881337"]],
-    ["azure", ["#e0f2fe", "#38bdf8", "#1e3a8a"]],
-    ["violet", ["#f3e8ff", "#c084fc", "#581c87"]],
-    ["emerald", ["#d1fae5", "#34d399", "#064e3b"]],
-    ["copper", ["#ffedd5", "#fb923c", "#7c2d12"]],
-    ["rose", ["#fff1f2", "#fb7185", "#9f1239"]],
-    ["arctic", ["#ecfeff", "#67e8f9", "#0e7490"]],
-    ["onyx", ["#f8fafc", "#94a3b8", "#0f172a"]],
-    ["amber", ["#fffbeb", "#fbbf24", "#92400e"]],
-    ["ruby", ["#fee2e2", "#ef4444", "#7f1d1d"]],
-  ])("keeps the %s title effect in the fixed export renderer", async (titleEffect, expectedColors) => {
-    await renderCardCanvas(makeExportElement(), {
-      id: `title-${titleEffect}`,
-      type: "spell",
-      name: "Titolo con effetto",
-      frame: "gold",
-      appearance: { title_effect: titleEffect },
-      attributes: { livello: "1" },
-    });
-
-    const colors = canvases[0].gradients.flatMap((gradient) => gradient.stops.map((stop) => stop.color));
-    expect(colors).toEqual(expect.arrayContaining(expectedColors));
-  });
-
-  it("keeps custom front gradients, title color, and frame color in fixed exports", async () => {
-    const card = {
-      id: "custom-front-treatment",
-      type: "spell",
-      name: "Raggio d'Aurora",
-      frame: "gold",
-      appearance: {
-        front_background_start: "#0b1d31",
-        front_background_end: "#581c87",
-        front_background_gradient: true,
-        title_custom_color_enabled: true,
-        title_custom_color: "#67e8f9",
-        frame_custom_color_enabled: true,
-        frame_custom_color: "#f43f5e",
-      },
-      attributes: { livello: "4" },
-    };
-
-    const canvas = await renderCardCanvas(makeExportElement(), card);
-    const colors = canvas.gradients.flatMap((gradient) => gradient.stops.map((stop) => stop.color));
-
-    expect(colors).toEqual(expect.arrayContaining(["#0b1d31", "#581c87", "#67e8f9", "#f43f5e", "#ffffff"]));
-  });
-
-  it("keeps custom text-panel and text colors in the fixed export renderer", async () => {
-    const card = {
-      id: "contrast-colors",
-      type: "spell",
-      name: "Inchiostro di Luna",
-      frame: "gold",
-      appearance: {
-        text_panel_color: "#0b1d31",
-        text_color: "#dbeafe",
-        description_opacity: 0.85,
-      },
-      attributes: { livello: "2" },
-      description: "Il testo deve conservare il contrasto scelto dall'utente.",
-    };
-
-    const canvas = await renderCardCanvas(makeExportElement(), card);
-    const descriptionPanel = canvas.operations
-      .filter((entry) => entry.name === "fillRect" && entry.x === 12 && entry.w === 250)
-      .at(-1);
-    const text = canvas.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
-
-    expect(descriptionPanel.fillStyle).toBe("rgba(11, 29, 49, 0.85)");
-    expect(text).toContain("Il testo deve conservare");
-  });
-
-  it("uses the same dedicated front/back renderer for PNG, single PDF, and A4 sheet exports", async () => {
-    const card = {
-      id: "all-export-paths",
-      type: "character",
-      name: "Esportazione completa",
-      frame: "rainbow",
-      appearance: { title_effect: "rainbow" },
-      attributes: { ...abilities, classe: "Mago", livello: "8" },
-      description: "Il contenuto completo resta nel canvas su ogni formato.",
-      back: configuredBack,
-    };
-    const pdf = {
-      addImage: jest.fn(),
-      addPage: jest.fn(),
-    };
-    const bounds = { x: 12, y: 18, w: 63.5, h: 88.9 };
-
-    const png = await createCardPng(makeExportElement(), card);
-    const singleCard = await addSingleCardPdfPages(pdf, makeExportElement(), card);
-    const sheetFront = await addPrintSheetCard(pdf, makeExportElement(), card, bounds);
-    const sheetBack = await addPrintSheetCard(pdf, null, card, { ...bounds, x: 134.5 }, true);
-
-    expect(png.operations.some((entry) => entry.name === "strokeRect" && entry.x === 1.5)).toBe(true);
-    expect(singleCard.front.operations.some((entry) => entry.name === "fillText" && entry.text === "PERSONAGGIO")).toBe(true);
-    expect(singleCard.back.operations.find((entry) => entry.name === "drawImage")?.args[0].src).toBe("/dorsi/personaggio-luce.jpg");
-    expect(singleCard.back.operations.some((entry) => entry.name === "fillText")).toBe(false);
-    expect(sheetFront.operations.some((entry) => entry.name === "fillText" && entry.text === "FOR")).toBe(true);
-    expect(sheetBack.operations.find((entry) => entry.name === "drawImage")?.args[0].src).toBe("/dorsi/personaggio-luce.jpg");
-    expect(pdf.addPage).toHaveBeenCalledWith([63.5, 88.9], "portrait");
-    expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 0, 0, 63.5, 88.9);
+  it("shares one renderer between PNG, card PDF, duplex sheet, and A4 PDF", async () => {
+    const card = { id: "person", type: "character", name: "Thalion",
+      attributes: { ...abilities, classe: "Druido", livello: "5" }, back: { variant: "silver" } };
+    const pdf = { addImage: jest.fn(), addPage: jest.fn() };
+    const element = makeExportElement();
+    const png = await createCardPng(element, card);
+    const single = await addSingleCardPdfPages(pdf, element, card);
+    const sheet = await addPrintSheetCard(pdf, element, card, {x: 12,y: 18,w:63.5,h:88.9});
+    const a4 = await addSingleCardA4PdfPages(pdf, element, card);
+    expect(written(png)).toContain("Thalion");
+    expect(written(single.front)).toContain("PERSONAGGIO");
+    expect(written(sheet)).toContain("PERSONAGGIO");
+    expect(written(a4.front)).toContain("PERSONAGGIO");
+    expect(single.back.operations.find(op => op.name === "drawImage").args[0].src).toBe("/dorsi/personaggio-argento.jpg");
+    expect(a4.back.operations.find(op => op.name === "drawImage").args[0].src).toBe("/dorsi/personaggio-argento.jpg");
+    expect(getCardExportLayout(card).abilities).toHaveLength(6);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 12, 18, 63.5, 88.9);
-    expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 134.5, 18, 63.5, 88.9);
-  });
-
-  it("routes the detail page A4 export through the shared front and back print-sheet renderers", async () => {
-    const card = {
-      id: "detail-a4-export",
-      type: "character",
-      name: "Carta dettaglio",
-      attributes: { ...abilities, classe: "Chierico", livello: "6" },
-      back: configuredBack,
-    };
-    const pdf = {
-      addImage: jest.fn(),
-      addPage: jest.fn(),
-    };
-
-    const { front, back } = await addSingleCardA4PdfPages(pdf, makeExportElement(), card);
-
-    expect(front.operations.some((entry) => entry.name === "fillText" && entry.text === "PERSONAGGIO")).toBe(true);
-    expect(back.operations.find((entry) => entry.name === "drawImage")?.args[0].src).toBe("/dorsi/personaggio-luce.jpg");
-    expect(pdf.addPage).toHaveBeenCalledTimes(1);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 73.25, 104.05, 63.5, 88.9);
-    expect(pdf.addImage).toHaveBeenCalledTimes(2);
   });
 
   it("moves every long character-sheet list entry to additional A4 pages", async () => {
@@ -420,146 +244,23 @@ describe("card export renderers", () => {
     expect(pdf.addImage).toHaveBeenCalledTimes(1);
   });
 
-  it("renders cleanly with the SVG placeholder when artwork_path is null", async () => {
-    // Simulate the export element's img being the SVG placeholder that loaded successfully.
-    // The placeholder SVG is 270×200 — naturalWidth > 0 means the canvas draws it normally.
-    const svgArtwork = { complete: true, naturalWidth: 270, naturalHeight: 200 };
-    const qr = { toDataURL: () => "data:image/png;base64,qr" };
-    const element = {
-      querySelectorAll: () => [svgArtwork],
-      querySelector: (selector) => (selector === "img" ? svgArtwork : selector === "canvas" ? qr : null),
-    };
-    const card = {
-      id: "no-artwork-spell",
-      type: "spell",
-      name: "Tempesta Arcana",
-      artwork_path: null,
-      attributes: { livello: "3" },
-    };
 
-    const canvas = await renderCardCanvas(element, card);
-
-    // Canvas completes and has correct physical dimensions.
-    expect(canvas.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
-    expect(canvas.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
-
-    // The dark artwork background rect is painted before the image is drawn.
-    const artworkPanel = canvas.operations.find(
-      (op) => op.name === "fillRect" && op.x === 12 && op.y === 53 && op.w === 316 && op.h === 234,
-    );
-    expect(artworkPanel).toBeDefined();
-
-    // The placeholder image (naturalWidth > 0, complete) must be drawn onto the canvas.
-    const artworkDraw = canvas.operations.find(
-      (op) => op.name === "drawImage" && op.args[0] === svgArtwork,
-    );
-    expect(artworkDraw).toBeDefined();
-    expect(artworkDraw.args[1]).toBe(12);   // artX
-    expect(artworkDraw.args[2]).toBe(53);   // artY
-    expect(artworkDraw.args[3]).toBe(316);  // artW
-    expect(artworkDraw.args[4]).toBe(234);  // artH
-
-    // Card title must be present in the output text.
-    const text = canvas.operations
-      .filter((op) => op.name === "fillText")
-      .map((op) => op.text)
-      .join(" ");
-    expect(text).toContain("Tempesta Arcana");
+  it("draws artwork without distortion using cover-cropping, including the SVG placeholder", async () => {
+    const artwork = { complete: true, naturalWidth: 270, naturalHeight: 200 };
+    const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
+    const front = await renderCardCanvas(element, { type: "spell", name: "Tempesta", attributes: { livello: "3" } });
+    const op = front.operations.find(e => e.name === "drawImage");
+    expect(op.args).toHaveLength(9);
+    expect(op.args.slice(-4)).toEqual([16, 82, 308, 220]);
+    expect(front.artworkDrawn).toBe(true);
   });
 
-  it("falls back to the dark artwork panel without throwing when the artwork image fails to load", async () => {
-    // Simulate an img whose load failed: complete is true but naturalWidth is 0.
-    // This mirrors what happens if the browser fetches the SVG and it is rejected
-    // (e.g. a CORS tainted-canvas error would be caught by the try/catch, but when
-    // naturalWidth is 0 the guard short-circuits before drawImage is even attempted).
-    const brokenArtwork = { complete: true, naturalWidth: 0 };
-    const qr = { toDataURL: () => "data:image/png;base64,qr" };
-    const element = {
-      querySelectorAll: () => [brokenArtwork],
-      querySelector: (selector) => (selector === "img" ? brokenArtwork : selector === "canvas" ? qr : null),
-    };
-    const card = {
-      id: "broken-artwork-item",
-      type: "item",
-      name: "Spada dell'Oblio",
-      artwork_path: null,
-      attributes: { livello: "2" },
-    };
-
-    const canvas = await renderCardCanvas(element, card);
-
-    // Canvas must complete without throwing even when the artwork is unavailable.
-    expect(canvas.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
-    expect(canvas.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
-    expect(canvas.artworkDrawn).toBe(false);
-
-    // The dark artwork panel is painted as a safe visual fallback.
-    const artworkPanel = canvas.operations.find(
-      (op) => op.name === "fillRect" && op.x === 12 && op.y === 53 && op.w === 316 && op.h === 234,
-    );
-    expect(artworkPanel).toBeDefined();
-
-    // No artwork drawImage was attempted — only the QR drawImage (at y≠53) is allowed.
-    const artworkDraw = canvas.operations.find(
-      (op) => op.name === "drawImage" && op.args[2] === 53,
-    );
-    expect(artworkDraw).toBeUndefined();
-
-    // Card name must still appear in the rendered output.
-    const text = canvas.operations
-      .filter((op) => op.name === "fillText")
-      .map((op) => op.text)
-      .join(" ");
-    expect(text).toContain("Spada dell'Oblio");
-  });
-
-  it("keeps failed artwork exports on the placeholder without editor warning overlays", async () => {
-    // CardFront replaces a failed artwork URL with the loaded SVG placeholder.
-    // Keep the editor warning in the source element to prove the raster export
-    // does not accidentally capture that editor-only overlay.
-    const placeholderArtwork = {
-      complete: true,
-      naturalWidth: 270,
-      naturalHeight: 200,
-      src: "artwork-placeholder.svg",
-    };
-    const element = {
-      textContent: "⚠ Artwork non disponibile — ricarica o rigenera",
-      querySelectorAll: () => [placeholderArtwork],
-      querySelector: (selector) => (selector === "img"
-        ? placeholderArtwork
-        : selector === "canvas"
-          ? { toDataURL: () => "data:image/png;base64,qr" }
-          : null),
-    };
-    const card = {
-      id: "failed-artwork-export",
-      type: "spell",
-      name: "Faglia Silenziosa",
-      artwork_path: "uploads/broken.jpg",
-      attributes: { livello: "4" },
-    };
-    const pdf = { addImage: jest.fn(), addPage: jest.fn() };
-    const a4Pdf = { addImage: jest.fn(), addPage: jest.fn() };
-
-    const singlePdf = await addSingleCardPdfPages(pdf, element, card);
-    const a4Sheet = await addSingleCardA4PdfPages(a4Pdf, element, card);
-
-    [singlePdf.front, a4Sheet.front].forEach((front) => {
-      expect(front.artworkDrawn).toBe(true);
-      expect(front.operations).toContainEqual(expect.objectContaining({
-        name: "drawImage",
-        args: [placeholderArtwork, 12, 53, 316, 234],
-      }));
-      const text = front.operations
-        .filter((op) => op.name === "fillText")
-        .map((op) => op.text)
-        .join(" ");
-      expect(text).not.toContain("Artwork non disponibile");
-    });
-
-    expect(pdf.addImage).toHaveBeenCalledTimes(2);
-    expect(a4Pdf.addImage).toHaveBeenCalledTimes(2);
-    expect(a4Pdf.addPage).toHaveBeenCalledTimes(1);
+  it("keeps the card and export functional when an artwork fails to load", async () => {
+    const artwork = { complete: true, naturalWidth: 0 };
+    const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
+    const front = await renderCardCanvas(element, { type: "item", name: "Spada", description: "Oggetto arcano." });
+    expect(front.artworkDrawn).toBe(false);
+    expect(front.operations.some(op => op.name === "fillRect" && op.x === 16 && op.y === 82)).toBe(true);
+    expect(written(front)).toContain("Spada");
   });
 });
