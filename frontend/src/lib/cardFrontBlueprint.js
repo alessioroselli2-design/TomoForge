@@ -137,12 +137,14 @@ export const buildFrontBlueprint = (card = {}) => {
   })();
   const cleanMain = (value) => String(value).split("(")[0].trim();
   const readableStats = highlights.map(item => {
-    let value = cleanMain(item.value);
-    if (item.label === "Vel.") {
-      // Preserve literal values in detail/tooltip; do not invent alternative units.
-      value = value.replace(/volare/ig, "vol.").replace(/nuotare/ig,"nuot.").replace(/scavare/ig,"scav.");
-    }
-    return {...item, value:shortText(value, 19), fullValue:highlighted.find(x=>x.label===item.label)?.value||item.value};
+    const original=highlighted.find(x=>x.label===item.label)?.value||item.value;
+    let value=item.label==="Vel."?String(original).trim():cleanMain(item.value);
+    // Unlike the 19-character trial badge, the speed cell now wraps naturally.
+    // Preserve each original movement mode instead of silently dropping it.
+    if (item.label==="Vel.") value=value.replace(/volare/ig,"vol.")
+      .replace(/nuotare/ig,"nuot.").replace(/scalare/ig,"scal.")
+      .replace(/scavare/ig,"scav.");
+    return {...item,value:shortText(value,item.label==="Vel."?68:24),fullValue:original};
   });
   return {
     badge, emblem:getFrontEmblem(card),

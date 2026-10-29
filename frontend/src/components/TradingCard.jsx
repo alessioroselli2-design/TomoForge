@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL, REFERENCE_FRAME_SIMPLE_URL } from "@/lib/ornateFrame";
+import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -26,8 +26,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  const symbol=data.emblem;
  const detailsLink=publicDescriptionUrl(card);
  return <div ref={ref} data-testid="card-front" data-front-version="3"
-   data-front-category={data.type}
-   className={`tf-front-v3 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""}`}
+   data-front-category={data.type} data-front-layout="seamless-v6"
+   className={`tf-front-v3 tf-front-v6 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
@@ -82,8 +82,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
-   <img className="tf-v4-filigree" src={data.hasAbilities?REFERENCE_FRAME_URL:REFERENCE_FRAME_SIMPLE_URL} alt="" aria-hidden="true" draggable={false}/>
-   <div className="tf-v5-bottom-rail" aria-hidden="true"/>
+   <img className="tf-v4-filigree" src={ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
+
  </div>;
 });
 CardFront.displayName="CardFront";

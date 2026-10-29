@@ -748,3 +748,35 @@ body {
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .tf-front-v3 .tf-v6-stat-text>strong {font-size:13px;line-height:1.1;}
+
+/* v6: coherent, clean front, never a screenshot fragment pasted onto UI content. */
+.tf-front-v6{border:3px solid #e3b769;background:linear-gradient(110deg,#341017,#18050e);
+ box-shadow:inset 0 0 0 2px #52210f,inset 0 0 0 5px #e4b663,
+ inset 0 0 0 7px #5f270f,0 6px 22px #0009;}
+.tf-front-v6::before{background:none;box-shadow:none;outline:0;border:1px solid #b37838;inset:9px;}
+.tf-front-v6 .tf-v4-filigree{z-index:10;object-fit:fill;}
+.tf-front-v6 .tf-v5-bottom-rail{display:none;}
+.tf-front-v6 .tf-v3-layout{inset:12px;z-index:11;}
+.tf-front-v6 .tf-v3-banner{border-radius:16px 16px 10px 10px;
+ background:linear-gradient(95deg,#edce93 0%,#fff8e1 15%,#fff3d2 78%,#c18e42 100%);}
+.tf-front-v6 .tf-v3-titles h3{margin-bottom:3px;max-height:none;}
+.tf-front-v6.tf-v6-long-title .tf-v3-titles h3{
+ font-size:16px;line-height:1.05;letter-spacing:-.4px;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis;}
+.tf-front-v6 .tf-v3-titles p{max-height:none;overflow-wrap:normal;font-size:8.8px;line-height:1.13;}
+.tf-front-v6 .tf-v3-medallion,.tf-front-v6 .tf-v3-badge{z-index:13;}
+.tf-front-v6 .tf-v3-medallion{overflow:hidden;
+ box-shadow:0 0 0 2px #6c3214,0 0 0 4px #ecc478,0 0 0 5px #613017;}
+.tf-front-v6 .tf-v3-medallion::after{inset:-2px;box-shadow:inset 0 0 0 1px #f8dc98;}
+.tf-front-v6 .tf-v3-sprite{image-rendering:auto;}
+.tf-front-v6 .tf-v3-picture{border-radius:9px;border:2px solid #d1a15c;
+ box-shadow:inset 0 0 0 2px #512818,0 0 0 1px #f2cc7a;}
+.tf-front-v6[data-front-category="monster"] .tf-v3-stat:last-child{flex:1.85;}
+.tf-front-v6[data-front-category="monster"] .tf-v3-stat:not(:last-child){flex:.92;}
+.tf-front-v6[data-front-category="monster"] .tf-v3-stat:last-child .tf-v6-stat-text{min-width:0;}
+.tf-front-v6[data-front-category="monster"] .tf-v3-stat:last-child strong{
+ font-size:10px;white-space:normal;overflow:visible;text-overflow:clip;
+ overflow-wrap:anywhere;line-height:1.06;display:-webkit-box;
+ -webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;}
+.tf-front-v6 .tf-v3-parchment{background:linear-gradient(160deg,#fff5d9,#f6e4c1 55%,#eaca99);}
+.tf-front-v6 .tf-v3-qr{z-index:15;}
