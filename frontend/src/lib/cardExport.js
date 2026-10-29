@@ -1,5 +1,5 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
-import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
+import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL, REFERENCE_FRAME_SIMPLE_URL } from "@/lib/ornateFrame";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -170,6 +170,10 @@ export async function renderCardCanvas(element, card) {
     }
   } catch {/* The card remains exportable without a remote image. */}
   ctx.strokeStyle="#d5ab64";ctx.lineWidth=2;ctx.strokeRect(artX,artY,artW,artH);
+  // Matching the approved reference: a carved inner line and a gold central jewel.
+  ctx.strokeStyle="#fff2b7";ctx.lineWidth=0.8;ctx.strokeRect(artX+2,artY+2,artW-4,artH-4);
+  ctx.fillStyle="#b8282d";ctx.beginPath();ctx.moveTo(170,artY+artH-4);ctx.lineTo(175,artY+artH+1);ctx.lineTo(170,artY+artH+6);ctx.lineTo(165,artY+artH+1);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#f5c972";ctx.stroke();
   const statsY=data.hasAbilities?250:279, statsH=42,stats=data.highlights;
   if(stats.length){
     const w=BW/stats.length;
@@ -200,9 +204,9 @@ export async function renderCardCanvas(element, card) {
   panel.addColorStop(0,"#fff6db");panel.addColorStop(1,"#efd6a6");
   canvasBox(ctx,BX,notesY,BW,notesH,panel,"#a36d34");
   ctx.textAlign="left";let yy=notesY+17;
-  data.details.forEach(item=>{
+  data.details.forEach((item,index)=>{
     ctx.fillStyle="#5c351f";ctx.font="700 9px 'Cinzel',Georgia,serif";
-    const str=item.label.toUpperCase()+": "+item.value;
+    const str=item.label+": "+item.value;
     drawFittedText(ctx,str,23,yy,294,10,"'Spectral',Georgia,serif","600");
     yy+=15;
   });
@@ -238,10 +242,24 @@ export async function renderCardCanvas(element, card) {
     await new Promise((resolve, reject) => {
       ornament.onload = resolve;
       ornament.onerror = reject;
-      ornament.src = ORNATE_FRAME_URL;
+      ornament.src = data.hasAbilities ? REFERENCE_FRAME_URL : REFERENCE_FRAME_SIMPLE_URL;
       if (ornament.complete && ornament.naturalWidth > 0) resolve();
     });
     ctx.drawImage(ornament, 0, 0, width, height);
+    // The supplied original has an old category plate beneath the parchment.
+    // Its lettering is NEVER part of the dynamic front. Mask only that tiny
+    // bottom interior strip, preserving gold corners and print bleed.
+    {
+      ctx.fillStyle="#2b0915";
+      ctx.fillRect(18,463,304,12);
+      const lowerMetal=ctx.createLinearGradient(18,463,322,463);
+      lowerMetal.addColorStop(0,"#a8682c");
+      lowerMetal.addColorStop(.35,"#ffdf91");
+      lowerMetal.addColorStop(.7,"#cc873b");
+      lowerMetal.addColorStop(1,"#9f5a25");
+      ctx.strokeStyle=lowerMetal;ctx.lineWidth=2;ctx.beginPath();
+      ctx.moveTo(18,462);ctx.lineTo(322,462);ctx.stroke();
+    }
   } catch {
     // A browser that cannot rasterize SVG still gets the original gold border.
   }

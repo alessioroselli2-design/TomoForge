@@ -33,7 +33,7 @@ const KEYS = {
   custom: [["livello", "level", "Liv."], ["categoria", "tipo", "Tipo"]],
 };
 const DETAIL_KEYS = {
-  monster: ["grado_sfida", "tipo_creatura", "taglia", "sensi", "resistenze", "immunita", "azioni"],
+  monster: ["resistenze", "resistenze_danno", "sensi", "azioni", "azioni_speciali", "tratti", "azioni_leggendarie"],
   spell: ["scuola", "componenti", "durata", "concentrazione", "danno", "effetto"],
   class: ["tiri_salvezza", "caratteristiche", "competenze"],
   subclass: ["sottoclasse", "privilegi"],
@@ -47,6 +47,16 @@ const DETAIL_KEYS = {
   custom: ["categoria"],
 };
 const ABILITY_KEYS = ["for", "des", "cos", "int", "sag", "car"];
+// Modifiers are derived from real ability scores using the 5e rule; already
+// formatted ability scores, including explicit modifiers, are left unchanged.
+const formattedAbility = (value) => {
+  const text = String(value).trim();
+  if (!/^\d{1,2}$/.test(text)) return text;
+  const score = Number(text);
+  if (score < 1 || score > 30) return text;
+  const modifier = Math.floor((score - 10) / 2);
+  return `${score} (${modifier >= 0 ? "+" : ""}${modifier})`;
+};
 const scalar = (value) => (typeof value === "string" || typeof value === "number") && String(value).trim() !== "";
 const readable = (value) => {
   if (scalar(value)) return String(value).trim();
@@ -71,12 +81,12 @@ export const buildFrontBlueprint = (card = {}) => {
   // Never fabricate statistics; empty cells are simply not displayed.
   const highlights = highlighted.map((entry) => ({ ...entry, value: shortText(entry.value, 22) }));
   const abilities = (type === "monster" || type === "character")
-    ? ABILITY_KEYS.filter((key) => scalar(attrs[key])).map((key) => ({ label: key.toUpperCase(), value: String(attrs[key]) }))
+    ? ABILITY_KEYS.filter((key) => scalar(attrs[key])).map((key) => ({ label: key.toUpperCase(), value: formattedAbility(attrs[key]) }))
     : [];
   const details = (DETAIL_KEYS[type] || DETAIL_KEYS.custom)
-    .map((key) => ({ label: attrLabel(key), value: shortText(readable(attrs[key]), 68) }))
+    .map((key) => ({ label: attrLabel(key), value: shortText(readable(attrs[key]), 85), key }))
     .filter((entry) => entry.value)
-    .slice(0, abilities.length ? 2 : 3);
+    .slice(0, type === "monster" ? 3 : (abilities.length ? 2 : 3));
   const heading = typeLabel(type, card.custom_type).toUpperCase();
   const subject = type === "monster"
     ? pick(attrs, ["tipo_creatura", "tipo", "creature_type"])

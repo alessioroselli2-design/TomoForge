@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
+import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL, REFERENCE_FRAME_SIMPLE_URL } from "@/lib/ornateFrame";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -63,9 +63,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </div>)}
      </div>}
      <section className="tf-v3-parchment" aria-label="Dati della carta">
-       {data.details.length>0&&<p className="tf-v3-details">
-         {data.details.map((item,i)=><span key={i}><b>{item.label}</b> {item.value}</span>)}
-       </p>}
+       {data.details.length>0&&<div className={`tf-v3-details ${data.type==="monster"?"tf-v5-monster-details":""}`}>
+         {data.details.map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
+       </div>}
        <p className="tf-v3-desc">{data.description||"I dettagli appariranno dopo la selezione di un record."}</p>
        {data.dice&&<div className="tf-v3-dice" aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
@@ -76,7 +76,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
-   <img className="tf-v4-filigree" src={ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
+   <img className="tf-v4-filigree" src={data.hasAbilities?REFERENCE_FRAME_URL:REFERENCE_FRAME_SIMPLE_URL} alt="" aria-hidden="true" draggable={false}/>
+   <div className="tf-v5-bottom-rail" aria-hidden="true"/>
  </div>;
 });
 CardFront.displayName="CardFront";
