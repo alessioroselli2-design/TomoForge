@@ -69,3 +69,21 @@ describe("approved upper cartouche",()=>{
     expect(buildFrontBlueprint({type:"race",name:"Elfo"}).subtitle).toBe("Razza");
   });
 });
+
+describe("approved reference details",()=>{
+  it("adds D&D modifiers to raw score without modifying the source record",()=>{
+    const attrs={for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"};
+    const card={type:"monster",name:"Drago Rosso Adulto",attributes:attrs};
+    const values=buildFrontBlueprint(card).abilities.map(e=>e.value);
+    expect(values).toEqual(["27 (+8)","10 (+0)","25 (+7)","16 (+3)","13 (+1)","21 (+5)"]);
+    expect(attrs.for).toBe("27");
+  });
+  it("uses resistance, senses and actions rather than repeating GS and creature type",()=>{
+    const bp=buildFrontBlueprint({type:"monster",name:"Drago",attributes:{
+      grado_sfida:"17",tipo_creatura:"Drago",resistenze:"Fuoco",sensi:"Scurovisione 36 m",azioni:["Morso","Artigli"]
+    }});
+    expect(bp.details.map(d=>d.key)).toEqual(["resistenze","sensi","azioni"]);
+    expect(bp.details[2].value).toBe("Morso · Artigli");
+    expect(bp.badge.value).toBe("17");
+  });
+});

@@ -678,3 +678,48 @@ body {
 .tf-front-v3 .tf-v3-parchment {box-shadow:
  inset 0 0 0 2px #fef0cc,inset 0 0 10px #a2673b45,
  0 0 0 1px #e0b36f; }
+
+/* Refined front: same compositions as the approved Dragon card, no category footer.
+   No ornamental element is allowed over medals, GS, artwork, text or QR. */
+.tf-front-v3 {border:3px solid #f0c877;background:#220711;box-shadow:inset 0 0 0 3px #4d1919,inset 0 0 0 7px #dba54a,inset 0 0 0 9px #421314,0 6px 20px #0009;}
+.tf-front-v3::before {inset:10px;border-color:#fce5a2;outline:none;background:none;}
+.tf-front-v3 .tf-v4-filigree {z-index:11;}
+.tf-front-v3 .tf-v3-layout {inset:12px 12px 12px;z-index:2;grid-template-rows:17% 35% 10% 11% 27%;}
+.tf-front-v3:not(.tf-v3-six) .tf-v3-layout {grid-template-rows:17% 41% 12% 0 30%;}
+.tf-front-v3 .tf-v3-banner {border:2px solid #8a451c;border-radius:15px 15px 11px 11px;
+ background:radial-gradient(ellipse at 50% 50%,#fff9e6 0%,#f8edce 48%,#e9c98c 80%,#b77a33 100%);
+ box-shadow:inset 0 0 0 2px #fce6a5,inset 0 0 0 4px #9a5a26,0 0 0 2px #d7a24c,0 2px 7px #080407a0;}
+.tf-front-v3 .tf-v3-banner::after {content:"◆";position:absolute;left:50%;bottom:-8px;
+ transform:translateX(-50%);z-index:4;color:#9c1f24;font-size:13px;-webkit-text-stroke:1px #f5d68a;text-shadow:0 0 2px #451007;}
+.tf-front-v3 .tf-v3-medallion {height:91%;z-index:3;margin-left:-5px;
+ border:3px solid #f4d18b;box-shadow:0 0 0 2px #6b2c16,0 0 0 4px #e8b45b,0 0 0 5px #4a1b16,inset 0 0 8px #080611;}
+.tf-front-v3 .tf-v3-badge {z-index:3;margin-right:-5px;min-width:52px;max-width:58px;
+ border:3px solid #f9d48c;box-shadow:0 0 0 2px #612417,0 0 0 4px #e6ad4e,0 0 0 5px #421a18;
+ background:radial-gradient(ellipse at 45% 35%,#5a1426,#300714 73%,#130712);}
+.tf-front-v3 .tf-v3-badge::after {content:"◆";position:absolute;bottom:-9px;font-size:11px;color:#f3ce81;text-shadow:0 0 3px #55201c;}
+.tf-front-v3 .tf-v3-badge{position:relative;}
+.tf-front-v3 .tf-v3-titles h3{font-size:clamp(16px,6cqw,21px);font-weight:800;line-height:1.08;}
+.tf-front-v3 .tf-v3-titles p{font-size:9px;line-height:1.22;color:#4c321f;}
+.tf-front-v3 .tf-v3-picture {border:2px solid #d8a858;border-radius:0 0 13px 13px;overflow:hidden;
+ box-shadow:0 0 0 2px #492318,inset 0 0 0 2px #f5d889,inset 0 0 16px #090405;}
+.tf-front-v3 .tf-v3-stats {border:2px solid #c19049;border-radius:12px 12px 0 0;
+ background:linear-gradient(#ffeec9,#f6e4bc 50%,#ebce96);}
+.tf-front-v3 .tf-v3-stat {border-right:1px solid #ab713e;}
+.tf-front-v3 .tf-v3-stat strong {font-size:13px;}
+.tf-front-v3 .tf-v3-stat:not(:last-child)::after {content:"◆";right:-5px;top:calc(50% - 5px);color:#9d5227;}
+.tf-front-v3 .tf-v3-abilities {border:1px solid #ad8146;background:linear-gradient(180deg,#fff4d8,#fae9c3,#f5dca8);}
+.tf-front-v3 .tf-v3-ability {border-right:1px solid #b78848;}
+.tf-front-v3 .tf-v3-ability strong{font-size:10px;letter-spacing:-.25px;}
+.tf-front-v3 .tf-v3-parchment {border:2px solid #ad7940;border-radius:0 0 14px 14px;
+ background:linear-gradient(140deg,#fff8df,#f4e0b7 63%,#e8c48d);
+ box-shadow:inset 0 0 0 1px #fff7e2,inset 0 0 11px #a6682c4b; padding:5px 6px;}
+.tf-front-v3 .tf-v3-details {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;
+ max-height:65%;overflow:hidden;margin:0 0 3px;font:9px/1.15 Spectral,Georgia,serif;}
+.tf-front-v3 .tf-v5-detail-cell {display:flex;flex-direction:column;gap:2px;padding:2px 4px;min-width:0;overflow:hidden;}
+.tf-front-v3 .tf-v5-detail-cell:not(:first-child){border-left:1px solid #bc8b52;}
+.tf-front-v3 .tf-v5-detail-cell:nth-child(3){grid-column:1 / -1;border:0;border-top:1px solid #bd9568;padding-top:4px;}
+.tf-front-v3 .tf-v5-detail-cell b{color:#301a0d;font-size:9px;text-transform:none;}
+.tf-front-v3 .tf-v5-detail-cell span {color:#3a2415;line-height:1.25;overflow:hidden;text-overflow:ellipsis;}
+.tf-front-v3 .tf-v3-desc{line-height:1.22;font-size:10px;}
+.tf-front-v3 .tf-v3-qr{z-index:5;bottom:5px;right:5px;}
+.tf-front-v3 .tf-v3-parchment:has(.tf-v3-qr) .tf-v3-desc{padding-right:52px;}

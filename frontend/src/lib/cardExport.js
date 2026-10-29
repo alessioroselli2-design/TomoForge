@@ -170,6 +170,10 @@ export async function renderCardCanvas(element, card) {
     }
   } catch {/* The card remains exportable without a remote image. */}
   ctx.strokeStyle="#d5ab64";ctx.lineWidth=2;ctx.strokeRect(artX,artY,artW,artH);
+  // Matching the approved reference: a carved inner line and a gold central jewel.
+  ctx.strokeStyle="#fff2b7";ctx.lineWidth=0.8;ctx.strokeRect(artX+2,artY+2,artW-4,artH-4);
+  ctx.fillStyle="#b8282d";ctx.beginPath();ctx.moveTo(170,artY+artH-4);ctx.lineTo(175,artY+artH+1);ctx.lineTo(170,artY+artH+6);ctx.lineTo(165,artY+artH+1);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#f5c972";ctx.stroke();
   const statsY=data.hasAbilities?250:279, statsH=42,stats=data.highlights;
   if(stats.length){
     const w=BW/stats.length;
@@ -200,9 +204,9 @@ export async function renderCardCanvas(element, card) {
   panel.addColorStop(0,"#fff6db");panel.addColorStop(1,"#efd6a6");
   canvasBox(ctx,BX,notesY,BW,notesH,panel,"#a36d34");
   ctx.textAlign="left";let yy=notesY+17;
-  data.details.forEach(item=>{
+  data.details.forEach((item,index)=>{
     ctx.fillStyle="#5c351f";ctx.font="700 9px 'Cinzel',Georgia,serif";
-    const str=item.label.toUpperCase()+": "+item.value;
+    const str=item.label+": "+item.value;
     drawFittedText(ctx,str,23,yy,294,10,"'Spectral',Georgia,serif","600");
     yy+=15;
   });
