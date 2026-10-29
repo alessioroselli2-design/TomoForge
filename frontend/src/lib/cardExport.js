@@ -1,4 +1,5 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
+import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -229,6 +230,20 @@ export async function renderCardCanvas(element, card) {
     } catch {
       // Keep the card exportable even if a QR canvas is unavailable.
     }
+  }
+  // Exactly the same ornate asset is placed over the preview and the PNG/PDF.
+  // Corners and vines occupy only the physical border and never cover data.
+  try {
+    const ornament = new Image();
+    await new Promise((resolve, reject) => {
+      ornament.onload = resolve;
+      ornament.onerror = reject;
+      ornament.src = ORNATE_FRAME_URL;
+      if (ornament.complete && ornament.naturalWidth > 0) resolve();
+    });
+    ctx.drawImage(ornament, 0, 0, width, height);
+  } catch {
+    // A browser that cannot rasterize SVG still gets the original gold border.
   }
   canvas.artworkDrawn=artworkDrawn;
   return canvas;

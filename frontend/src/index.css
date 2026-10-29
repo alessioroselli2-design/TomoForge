@@ -650,3 +650,31 @@ body {
 .tf-front-v3 .tf-v3-dice {right:auto;left:7px;bottom:7px;}
 .tf-front-v3 .tf-v3-parchment:has(.tf-v3-dice) .tf-v3-desc {padding-bottom:22px;}
 .tf-front-v3.tf-export-card {width:340px!important;height:476px!important;}
+
+/* Original vector ornament layer: real filigree, gemstones, foliage, not CSS lines. */
+.tf-front-v3 .tf-v4-filigree { position:absolute;inset:0;width:100%;height:100%;object-fit:fill;
+ pointer-events:none;z-index:12;user-select:none; }
+.tf-front-v3 .tf-v3-layout { z-index:2; }
+.tf-front-v3 .tf-v3-banner { border-color:#9d5c21; box-shadow:
+ inset 0 0 0 1px #fff6d9,inset 0 0 0 4px #9b622f,
+ 0 0 0 2px #dcb169,0 2px 8px #0006; }
+.tf-front-v3 .tf-v3-medallion { position:relative;isolation:isolate;
+ border:3px solid #f8d688;background:radial-gradient(circle,#2b1830,#080916);
+ box-shadow:0 0 0 1px #432113,0 0 0 3px #dda34e,0 0 0 5px #66371a,
+ inset 0 0 5px #000; }
+.tf-front-v3 .tf-v3-medallion::after { content:"";position:absolute;inset:-6px;z-index:2;
+ border-radius:50%;border:1px solid #fce4a4;pointer-events:none;
+ box-shadow:0 0 0 1px #5a3218,inset 0 0 0 1px #d69b45; }
+.tf-front-v3 .tf-v3-badge { box-shadow:
+ 0 0 0 2px #5b2c1b,0 0 0 4px #f3d68e,0 0 0 5px #90491f,
+ inset 0 0 0 1px #3b5b8b,inset 0 -6px 10px #010714; }
+.tf-front-v3 .tf-v3-picture { box-shadow:
+ inset 0 0 0 2px #aa692b,0 0 0 2px #f0c577,
+ 0 0 0 3px #6f371a,0 3px 8px #0009; }
+.tf-front-v3 .tf-v3-stat {position:relative;}
+.tf-front-v3 .tf-v3-stat:not(:last-child)::after {content:"◆";position:absolute;
+ right:-4px;top:calc(50% - 5px);font-size:9px;color:#a45b22;
+ text-shadow:0 1px #ffe9ac;z-index:3;}
+.tf-front-v3 .tf-v3-parchment {box-shadow:
+ inset 0 0 0 2px #fef0cc,inset 0 0 10px #a2673b45,
+ 0 0 0 1px #e0b36f; }
