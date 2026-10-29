@@ -1,4 +1,5 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
+import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL, REFERENCE_FRAME_SIMPLE_URL } from "@/lib/ornateFrame";
 import { getApprovedBack } from "@/lib/cardBacks";
 
@@ -177,13 +178,36 @@ export async function renderCardCanvas(element, card) {
   const statsY=data.hasAbilities?250:279, statsH=42,stats=data.highlights;
   if(stats.length){
     const w=BW/stats.length;
+    // Match the preview: original approved CA/PF medallions are images, not emoji.
+    // Load each icon independently and keep a printable fallback if it is missing.
+    const statImages=await Promise.all(stats.map(async item=>{
+      const src=getFrontStatIcon(item.label);
+      if(!src)return null;
+      const icon=new Image();
+      try {
+        await new Promise((resolve,reject)=>{
+          icon.onload=resolve;
+          icon.onerror=reject;
+          icon.src=src;
+          if(icon.complete && icon.naturalWidth>0)resolve();
+        });
+        return icon;
+      } catch { return null; }
+    }));
     stats.forEach((item,index)=>{
       const x=BX+index*w;
       canvasBox(ctx,x,statsY,w,statsH,"#f9edcb","#ae783b");
+      const icon=statImages[index];
+      if(icon){
+        try {ctx.drawImage(icon,x+5,statsY+7,28,28);}
+        catch {/* Keep all numeric values readable if this browser rejects WebP. */}
+      }
+      const center=x+(icon?(w+34)/2:w/2);
+      const textWidth=w-(icon?38:8);
       ctx.textAlign="center";ctx.fillStyle="#754726";
-      drawFittedText(ctx,item.label.toUpperCase(),x+w/2,statsY+15,w-8,9,"'Cinzel',Georgia,serif","700");
+      drawFittedText(ctx,item.label.toUpperCase(),center,statsY+15,textWidth,9,"'Cinzel',Georgia,serif","700");
       ctx.fillStyle="#22150e";
-      drawFittedText(ctx,item.value,x+w/2,statsY+31,w-8,14,"'Spectral',Georgia,serif","700");
+      drawFittedText(ctx,item.value,center,statsY+31,textWidth,14,"'Spectral',Georgia,serif","700");
     });
   } else {
     canvasBox(ctx,BX,statsY,BW,statsH,"#f9edcb","#ae783b");
