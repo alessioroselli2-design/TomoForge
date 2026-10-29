@@ -31,9 +31,11 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem" title={symbol?.label||data.subtitle}>
-         {symbol ? <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
-           backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
-         : <span className="tf-v3-fallback">✦</span>}
+         {symbol ? <>
+           <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
+           <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
+             backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
+         </> : <span className="tf-v3-fallback">✦</span>}
        </div>
        <div className="tf-v3-titles">
          <h3 title={data.name}>{data.name}</h3>
