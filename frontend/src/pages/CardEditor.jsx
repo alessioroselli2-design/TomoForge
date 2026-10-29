@@ -307,7 +307,7 @@ export default function CardEditor() {
   const setBack = (patch) => setCard((c) => ({ ...c, back: { ...c.back, ...patch } }));
 
   const onTypeChange = (type) => {
-    set({ type, attributes: isEdit ? card.attributes : { ...DEFAULT_ATTRS[type] } });
+    set({ type, back: { variant: "luminous" }, attributes: isEdit ? card.attributes : { ...DEFAULT_ATTRS[type] } });
   };
 
   const generateText = async () => {
