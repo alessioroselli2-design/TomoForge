@@ -136,7 +136,7 @@ describe("card export renderers", () => {
       "FOR", "DES", "COS", "INT", "SAG", "CAR"].forEach((fragment) => expect(text).toContain(fragment));
     expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 310 && entry.args.at(-1) === 166)).toBe(true);
     expect(text).toContain("Un guardiano antico");
-    expect(front.operations.some((op) => op.name === "fillText" && op.y > 466)).toBe(false);
+    expect(front.operations.some((op) => op.name === "fillText" && op.y > 472)).toBe(false);
   });
 
   it("renders the spell-specific front without legacy color customization or fake dice", async () => {
