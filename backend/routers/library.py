@@ -141,6 +141,7 @@ async def search_private_library(
     from core.config import MOCK_DATA
     if (
         not MOCK_DATA
+        and hasattr(db, "client")
         and len(q.strip()) >= 2
         and not review_only
         and not source_filename
