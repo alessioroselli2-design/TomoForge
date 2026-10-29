@@ -8,7 +8,6 @@ import { CARD_TYPES, DEFAULT_APPEARANCE, attrLabel } from "@/lib/cardTypes";
 import { CHARACTER_BACK_VARIANTS, getApprovedBack } from "@/lib/cardBacks";
 import Navbar from "@/components/Navbar";
 import { PremiumDialog } from "@/components/PremiumDialog";
-import { CardAppearanceControls } from "@/components/CardAppearanceControls";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
 import { CardHistoryPanel } from "@/components/CardHistoryPanel";
 import LibraryCoverageReadiness from "@/components/LibraryCoverageReadiness";
@@ -1454,19 +1453,12 @@ export default function CardEditor() {
             </div>
 
              <Accordion type="multiple" defaultValue={["appearance", "back"]} className="border-y border-border">
-               <AccordionItem value="appearance" id="editor-appearance" className="scroll-mt-28 border-border">
-                 <AccordionTrigger className="font-heading text-xl text-foreground hover:no-underline">
-                   <span className="flex items-center gap-2"><Palette className="h-5 w-5 text-gold" /> 4 · ASPETTO DEL FRONTE</span>
-                 </AccordionTrigger>
-                 <AccordionContent className="pt-2">
-                   <CardAppearanceControls
-                     frame={card.frame || "gold"}
-                     appearance={{ ...DEFAULT_APPEARANCE, ...(card.appearance || {}) }}
-                     onFrameChange={(frame) => set({ frame })}
-                     onAppearanceChange={setAppearance}
-                   />
-                 </AccordionContent>
-               </AccordionItem>
+               <div id="editor-appearance" className="rounded border border-gold-deep/40 bg-obsidian/40 px-4 py-3" data-testid="automatic-front-layout">
+                 <p className="font-label text-xs tracking-widest text-gold">4 · FRONTE TOMOFORGE</p>
+                 <p className="mt-2 font-body text-sm text-muted-foreground">
+                   Il nuovo fronte si compone automaticamente dai dati della carta. L'anteprima e l'esportazione usano lo stesso schema.
+                 </p>
+               </div>
 
                {card.type === "character" && (
                <AccordionItem value="back" id="editor-back" className="scroll-mt-28 border-0">

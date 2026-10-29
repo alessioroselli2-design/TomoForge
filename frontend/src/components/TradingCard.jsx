@@ -1,201 +1,71 @@
 import React from "react";
-import { QRCodeCanvas } from "qrcode.react";
 import { artworkUrl } from "@/lib/api";
-import {
-  typeLabel, typeIcon, attrLabel, QUICK_FIELDS, DEFAULT_APPEARANCE, FRAME_STYLES, TITLE_EFFECTS,
-} from "@/lib/cardTypes";
-import { useI18n } from "@/lib/i18n";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
-
-const PLACEHOLDER = artworkPlaceholder;
-
-// Module-level fallback guard: used when state-based handler is unavailable.
-const silentArtworkFallback = (e) => {
-  if (!e.currentTarget.dataset.fallback) {
-    e.currentTarget.dataset.fallback = "1";
-    e.currentTarget.src = artworkPlaceholder;
-  }
-};
-
-const isScalar = (v) => typeof v === "string" || typeof v === "number";
-
-const ABIL = ["for", "des", "cos", "int", "sag", "car"];
-
-const getFrameColors = (frame, appearance = {}) => {
-  if (appearance.frame_custom_color_enabled) {
-    return [appearance.frame_custom_color || "#d4af37", "#ffffff", appearance.frame_custom_color || "#d4af37"];
-  }
-  return FRAME_STYLES.find((style) => style.id === frame)?.colors || FRAME_STYLES[0].colors;
-};
-
-const sourceLabel = (sources = []) => sources
-  .map((source) => `${source.filename || "Manuale"} · p.${source.page || "?"}`)
-  .filter((source, index, all) => all.indexOf(source) === index)
-  .join(" | ");
-
-const ruleSourceLabel = (rules = []) => rules
-  .map((rule) => `${rule.name || "Regola"} — ${sourceLabel(rule.source_refs || [])}`)
-  .filter((rule, index, all) => all.indexOf(rule) === index)
-  .join(" | ");
-
-const foilFrameStyle = (frame, appearance) => {
-  const colors = getFrameColors(frame, appearance);
-  const primary = colors[0];
-  const highlight = colors[Math.floor(colors.length / 2)] || primary;
-  const accent = colors[colors.length - 1] || primary;
-  return {
-    "--tf-frame-primary": primary,
-    "--tf-frame-highlight": highlight,
-    "--tf-frame-accent": accent,
-    borderImageSource: `linear-gradient(135deg, ${colors.join(", ")})`,
-    borderImageSlice: 1,
-    boxShadow: `inset 0 0 0 2px ${highlight}2e, inset 0 0 35px rgba(0,0,0,.68), 0 0 14px ${highlight}55`,
-  };
-};
-
-// Compact gameplay quick-reference shown on the card FRONT.
-const QuickStats = ({ card, exportMode }) => {
-  const attrs = card.attributes || {};
-  const has = (k) => isScalar(attrs[k]) && String(attrs[k]).trim() !== "";
-  const showAbil = (card.type === "monster" || card.type === "character") && ABIL.some(has);
-
-  let fields = (QUICK_FIELDS[card.type] || []).filter(has);
-  if (!fields.length && !showAbil) {
-    fields = Object.keys(attrs).filter((k) => has(k) && !ABIL.includes(k)).slice(0, 4);
-  }
-  fields = fields.slice(0, 6);
-
-  if (!showAbil && !fields.length) return null;
-  return (
-    <div className="mt-2 space-y-1.5">
-      {showAbil && (
-        <div className="grid grid-cols-6 gap-1">
-          {ABIL.filter(has).map((k) => (
-              <div key={k} className="text-center border border-gold-deep/40 bg-obsidian/60 py-1">
-                <div className={`font-label text-[8px] tracking-wider uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/70"}`}>{k}</div>
-                <div className={`font-body text-[11px] leading-none mt-0.5 ${exportMode ? "tf-export-stat-value" : "text-foreground"}`}>{attrs[k]}</div>
-            </div>
-          ))}
-        </div>
-      )}
-      {fields.length > 0 && (
-        <div className="grid grid-cols-2 gap-1">
-          {fields.map((k) => (
-            <div key={k} className="border border-gold-deep/30 bg-obsidian/50 px-1.5 py-1 leading-tight">
-              <div className={`font-label text-[7px] tracking-wider uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/60 truncate"}`}>{attrLabel(k)}</div>
-              <div className={`font-body text-[10px] ${exportMode ? "tf-export-stat-value" : "text-foreground/90 truncate"}`}>{attrs[k]}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
-  const { t } = useI18n();
+  const blueprint = buildFrontBlueprint(card);
   const [artworkError, setArtworkError] = React.useState(false);
-  React.useEffect(() => {
-    setArtworkError(false);
-  }, [imgUrl, card.artwork_path]);
-  const TypeIcon = typeIcon(card.type);
+  React.useEffect(() => setArtworkError(false), [imgUrl, card.artwork_path]);
   const hasArtwork = !!(imgUrl || card.artwork_path);
-  const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : PLACEHOLDER);
-
-  const handleArtworkError = React.useCallback((e) => {
-    const artworkSrc = e.currentTarget.dataset.artworkSrc;
-    if (!e.currentTarget.dataset.fallback || e.currentTarget.dataset.fallbackSrc !== artworkSrc) {
-      e.currentTarget.dataset.fallback = "1";
-      e.currentTarget.dataset.fallbackSrc = artworkSrc;
-      e.currentTarget.src = artworkPlaceholder;
+  const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : artworkPlaceholder);
+  const handleError = React.useCallback((event) => {
+    if (event.currentTarget.dataset.fallback !== "1") {
+      event.currentTarget.dataset.fallback = "1";
+      event.currentTarget.src = artworkPlaceholder;
       if (hasArtwork) setArtworkError(true);
     }
   }, [hasArtwork]);
-  const qrValue = `${window.location.origin}/p/${card.id}`;
-  const frame = card.frame || "gold";
-  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
-  const titleEffect = TITLE_EFFECTS.find((effect) => effect.id === appearance.title_effect) || TITLE_EFFECTS[0];
-  const titleColors = appearance.title_custom_color_enabled
-    ? [appearance.title_custom_color, appearance.title_custom_color, appearance.title_custom_color]
-    : titleEffect.colors;
-  const frontBackground = appearance.front_background_gradient
-    ? `linear-gradient(145deg, ${appearance.front_background_start}, ${appearance.front_background_end})`
-    : appearance.front_background_start;
+
   return (
-    <div ref={ref} data-testid="card-front"
-      className={`relative w-full h-full tf-card-front tf-card-frame flex flex-col overflow-hidden ${exportMode ? "tf-export-card" : ""}`}
-      style={{
-        ...foilFrameStyle(frame, appearance),
-        background: frontBackground,
-        "--tf-description-opacity": appearance.description_opacity,
-        "--tf-description-color": appearance.text_panel_color,
-        "--tf-description-text": appearance.text_color,
-      }}>
-      <div className="tf-front-inner-border" aria-hidden="true" />
-      <div className="tf-front-corner tf-front-corner-tl" aria-hidden="true">✦</div>
-      <div className="tf-front-corner tf-front-corner-tr" aria-hidden="true">✦</div>
-      <div className="tf-front-corner tf-front-corner-bl" aria-hidden="true">✦</div>
-      <div className="tf-front-corner tf-front-corner-br" aria-hidden="true">✦</div>
-      {/* header */}
-      <div className="relative z-10 flex-none flex items-center justify-between px-3 pt-3 pb-1.5">
-        <h3
-          className={`min-w-0 font-heading font-bold text-lg leading-tight pr-2 tf-title-metal ${appearance.title_shadow ? "tf-title-shadow" : "tf-title-flat"} ${exportMode ? "tf-export-title" : "truncate"}`}
-          style={{ backgroundImage: `linear-gradient(180deg, ${titleColors.join(", ")})` }}
-        >
-          {card.name || "Senza nome"}
-        </h3>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`font-label hidden min-[250px]:block text-[8px] tracking-widest uppercase ${exportMode ? "tf-export-stat-label" : "text-gold/80"}`}>
-            {typeLabel(card.type, card.custom_type)}
-          </span>
-          <div className="tf-type-seal" title={typeLabel(card.type, card.custom_type)} aria-label={typeLabel(card.type, card.custom_type)}>
-            <TypeIcon className="h-4 w-4" strokeWidth={1.8} />
+    <div
+      ref={ref}
+      data-testid="card-front"
+      data-front-version="2"
+      data-front-category={blueprint.type}
+      className={`tf-front-v2 ${exportMode ? "tf-export-card" : ""}`}
+      style={{ "--tf-front-accent": blueprint.accent, "--tf-front-shadow": blueprint.shadow }}
+    >
+      <div className={`tf-v2-layout ${blueprint.hasAbilities ? "tf-v2-with-abilities" : ""}`}>
+        <header className="tf-v2-header">
+          <span className="tf-v2-overline">{blueprint.heading} <span aria-hidden="true">✦</span> TOMOFORGE</span>
+          <h3 className="tf-v2-title" title={blueprint.name}>{blueprint.name}</h3>
+          <p className="tf-v2-subtitle">{blueprint.subtitle}</p>
+          <div className="tf-v2-crest" title={blueprint.subtitle} aria-label={`Sigillo ${blueprint.subtitle}`}>
+            {blueprint.crest}
           </div>
+        </header>
+
+        <div className="tf-v2-artwork">
+          <img src={img} alt={blueprint.name} data-artwork-src={img} crossOrigin="anonymous"
+            onError={handleError} draggable={false} />
+          {editorMode && !hasArtwork && <span className="tf-v2-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+          {artworkError && !exportMode && <span role="alert" className="tf-v2-art-warning">Immagine non disponibile</span>}
+          {blueprint.dice && <span className="tf-v2-dice" aria-label={`Formula dado ${blueprint.dice}`}>{blueprint.dice}</span>}
         </div>
-      </div>
-      <hr className="tf-divider mx-3" aria-hidden="true" />
-      {/* artwork */}
-      <div className="relative flex-none mx-3 mt-2 border border-gold-deep/60 overflow-hidden bg-obsidian" style={{ aspectRatio: "1.35" }}>
-        <img src={img} data-artwork-src={img} alt={card.name} className="w-full h-full object-cover" crossOrigin="anonymous" onError={handleArtworkError} />
-        {editorMode && !hasArtwork && (
-          <div className="absolute inset-0 flex flex-col items-center justify-end pb-2 pointer-events-none">
-            <p className="font-label text-[7px] tracking-widest text-gold/60 text-center px-2 leading-tight">
-              USA &ldquo;GENERA ARTWORK&rdquo; O &ldquo;CARICA IMMAGINE&rdquo;
-            </p>
-          </div>
-        )}
-        {artworkError && !exportMode && (
-          <div
-            className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/60 py-1 pointer-events-none"
-            role="alert"
-          >
-            <span className="font-label text-[7px] tracking-wide text-amber-300/90 text-center leading-tight px-1">
-              <span aria-hidden="true">⚠</span> Artwork non disponibile — ricarica o rigenera
-            </span>
-          </div>
-        )}
-      </div>
-      {/* body */}
-      <div className="min-h-0 flex-1 px-3 py-2 overflow-hidden">
-        <QuickStats card={card} exportMode={exportMode} />
-        {card.description && (
-          <div className="tf-description-panel">
-            <p className={`font-body text-[10px] italic ${exportMode ? "tf-export-description" : "text-foreground/90 leading-snug line-clamp-2 pr-12"}`}>{card.description}</p>
-          </div>
-        )}
-        {(card.rule_sources?.length > 0 || card.source_refs?.length > 0) && (
-          <p className={`relative z-10 mt-1 px-3 pb-2 font-label text-[7px] tracking-wide ${exportMode ? "tf-export-stat-label" : "text-sky-100/75"}`}>
-            FONTE · {card.rule_sources?.length ? ruleSourceLabel(card.rule_sources) : sourceLabel(card.source_refs)}
-          </p>
-        )}
-      </div>
-      {/* footer with QR */}
-      <div className="relative flex min-h-[52px] flex-none items-end justify-between px-3 pb-2.5 pt-1">
-        <span className={`font-label text-[8px] tracking-widest uppercase leading-tight ${exportMode ? "tf-export-footer" : "text-muted-foreground"}`}>{t("completeDetails")}<br/>→</span>
-        <div className="bg-white p-1 border border-gold-deep absolute right-2.5 bottom-2.5">
-          <QRCodeCanvas value={qrValue} size={40} bgColor="#ffffff" fgColor="#0c0a09" level="M" />
+
+        <div className="tf-v2-stats" data-testid="front-highlights">
+          {blueprint.highlights.length ? blueprint.highlights.map((entry) => (
+            <div key={entry.label} className="tf-v2-stat">
+              <span>{entry.label}</span><strong title={entry.value}>{entry.value}</strong>
+            </div>
+          )) : <div className="tf-v2-stat tf-v2-stat-empty"><span>IN ATTESA DEI DATI DELLA CARTA</span></div>}
         </div>
+
+        {blueprint.hasAbilities && <div className="tf-v2-abilities" data-testid="front-abilities">
+          {blueprint.abilities.map((entry) => (
+            <div key={entry.label} className="tf-v2-ability"><span>{entry.label}</span><strong>{entry.value}</strong></div>
+          ))}
+        </div>}
+
+        <section className="tf-v2-details" aria-label="Dati della carta">
+          {blueprint.details.length > 0 && <p className="tf-v2-detail-line">
+            {blueprint.details.map((entry) => <span key={entry.label}><b>{entry.label}</b> {entry.value}</span>)}
+          </p>}
+          <p className="tf-v2-description">{blueprint.description || "Le informazioni della carta appariranno qui dopo la selezione di un record."}</p>
+        </section>
+        <footer className="tf-v2-footer"><span>✦ TOMOFORGE</span><span>{blueprint.heading}</span></footer>
       </div>
     </div>
   );
@@ -203,23 +73,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
 CardFront.displayName = "CardFront";
 
 export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
-  // The physical image is the entire approved reverse, including its frame.
-  // Its source comes only from card.type (or the two character variants).
+  // Official approved art is selected by type, independently of the new front.
   const back = getApprovedBack(card);
   return (
-    <div
-      ref={ref}
-      data-testid="card-back"
-      data-back-asset={back.file}
-      className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode ? "tf-export-card" : ""}`}
-    >
-      <img
-        src={back.src}
-        alt={`Retro ufficiale TomoForge: ${back.label}`}
-        className="absolute inset-0 block h-full w-full"
-        style={{ objectFit: "contain" }}
-        draggable={false}
-      />
+    <div ref={ref} data-testid="card-back" data-back-asset={back.file}
+      className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode ? "tf-export-card" : ""}`}>
+      <img src={back.src} alt={`Retro ufficiale TomoForge: ${back.label}`}
+        className="absolute inset-0 block h-full w-full" style={{ objectFit: "contain" }} draggable={false} />
     </div>
   );
 });
