@@ -98,7 +98,7 @@ export const buildFrontBlueprint = (card = {}) => {
     if (type === "item") return text(attrs.rarita) ? {top:"RARITÀ",value:text(attrs.rarita)} : null;
     return null;
   })();
-  const cleanMain = (text) => String(text).split(/\\s*\\(/)[0].trim();
+  const cleanMain = (value) => String(value).split("(")[0].trim();
   const readableStats = highlights.map(item => {
     let value = cleanMain(item.value);
     if (item.label === "Vel.") {
