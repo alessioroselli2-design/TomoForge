@@ -7,7 +7,7 @@ describe("approved TomoForge backs", () => {
     expect(APPROVED_BACK_FILES).toHaveLength(10);
     expect(new Set(APPROVED_BACK_FILES).size).toBe(10);
     const actualFiles = fs.readdirSync(path.resolve(__dirname, "../../public/dorsi"))
-      .filter((name) => /\\.(?:jpg|jpeg|png|webp)$/i.test(name)).sort();
+      .filter((name) => /\.(?:jpg|jpeg|png|webp)$/i.test(name)).sort();
     expect(actualFiles).toEqual(APPROVED_BACK_FILES.map((name) => `${name}.jpg`).sort());
   });
 
