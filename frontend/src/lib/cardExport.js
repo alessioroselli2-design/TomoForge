@@ -246,6 +246,20 @@ export async function renderCardCanvas(element, card) {
       if (ornament.complete && ornament.naturalWidth > 0) resolve();
     });
     ctx.drawImage(ornament, 0, 0, width, height);
+    // The supplied original has an old category plate beneath the parchment.
+    // Its lettering is NEVER part of the dynamic front. Mask only that tiny
+    // bottom interior strip, preserving gold corners and print bleed.
+    if (data.hasAbilities) {
+      ctx.fillStyle="#2b0915";
+      ctx.fillRect(18,463,304,12);
+      const lowerMetal=ctx.createLinearGradient(18,463,322,463);
+      lowerMetal.addColorStop(0,"#a8682c");
+      lowerMetal.addColorStop(.35,"#ffdf91");
+      lowerMetal.addColorStop(.7,"#cc873b");
+      lowerMetal.addColorStop(1,"#9f5a25");
+      ctx.strokeStyle=lowerMetal;ctx.lineWidth=2;ctx.beginPath();
+      ctx.moveTo(18,462);ctx.lineTo(322,462);ctx.stroke();
+    }
   } catch {
     // A browser that cannot rasterize SVG still gets the original gold border.
   }

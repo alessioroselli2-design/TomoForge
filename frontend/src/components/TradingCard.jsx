@@ -77,6 +77,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </section>
    </div>
    <img className="tf-v4-filigree" src={data.hasAbilities?REFERENCE_FRAME_URL:ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
+   {data.hasAbilities&&<div className="tf-v5-bottom-rail" aria-hidden="true"/>}
  </div>;
 });
 CardFront.displayName="CardFront";
