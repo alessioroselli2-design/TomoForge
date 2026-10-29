@@ -1,6 +1,6 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
-import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL, REFERENCE_FRAME_SIMPLE_URL } from "@/lib/ornateFrame";
+import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -147,7 +147,7 @@ export async function renderCardCanvas(element, card) {
     ctx.fillStyle="#f8d78a";ctx.textAlign="center";ctx.font="700 20px Georgia,serif";ctx.fillText("✦",48,56);
   }
   ctx.fillStyle="#24140d";ctx.textAlign="center";
-  drawFittedText(ctx,data.name,182,45,data.badge?176:214,22,"'Cormorant Garamond',Georgia,serif","700");
+  drawFittedText(ctx,data.name,182,45,data.badge?176:214,data.name.length>=17?17:22,"'Cormorant Garamond',Georgia,serif","700");
   ctx.fillStyle="#55381f";
   drawFittedText(ctx,data.subtitle,182,63,data.badge?174:214,10,"'Spectral',Georgia,serif");
   if(data.badge){
@@ -178,6 +178,7 @@ export async function renderCardCanvas(element, card) {
   const statsY=data.hasAbilities?250:279, statsH=42,stats=data.highlights;
   if(stats.length){
     const w=BW/stats.length;
+    const monsterWidths=data.type==="monster"&&stats.length===3?[80,80,150]:null;
     // Match the preview: original approved CA/PF medallions are images, not emoji.
     // Load each icon independently and keep a printable fallback if it is missing.
     const statImages=await Promise.all(stats.map(async item=>{
@@ -195,19 +196,20 @@ export async function renderCardCanvas(element, card) {
       } catch { return null; }
     }));
     stats.forEach((item,index)=>{
-      const x=BX+index*w;
-      canvasBox(ctx,x,statsY,w,statsH,"#f9edcb","#ae783b");
+      const cellWidth=monsterWidths?monsterWidths[index]:w;
+      const x=monsterWidths?BX+monsterWidths.slice(0,index).reduce((sum,v)=>sum+v,0):BX+index*w;
+      canvasBox(ctx,x,statsY,cellWidth,statsH,"#f9edcb","#ae783b");
       const icon=statImages[index];
       if(icon){
         try {ctx.drawImage(icon,x+5,statsY+7,28,28);}
         catch {/* Keep all numeric values readable if this browser rejects WebP. */}
       }
-      const center=x+(icon?(w+34)/2:w/2);
-      const textWidth=w-(icon?38:8);
+      const center=x+(icon?(cellWidth+34)/2:cellWidth/2);
+      const textWidth=cellWidth-(icon?38:8);
       ctx.textAlign="center";ctx.fillStyle="#754726";
       drawFittedText(ctx,item.label.toUpperCase(),center,statsY+15,textWidth,9,"'Cinzel',Georgia,serif","700");
       ctx.fillStyle="#22150e";
-      drawFittedText(ctx,item.value,center,statsY+31,textWidth,14,"'Spectral',Georgia,serif","700");
+      drawFittedText(ctx,item.value,center,statsY+31,textWidth,item.label==="Vel."?11:14,"'Spectral',Georgia,serif","700");
     });
   } else {
     canvasBox(ctx,BX,statsY,BW,statsH,"#f9edcb","#ae783b");
@@ -266,24 +268,10 @@ export async function renderCardCanvas(element, card) {
     await new Promise((resolve, reject) => {
       ornament.onload = resolve;
       ornament.onerror = reject;
-      ornament.src = data.hasAbilities ? REFERENCE_FRAME_URL : REFERENCE_FRAME_SIMPLE_URL;
+      ornament.src = ORNATE_FRAME_URL;
       if (ornament.complete && ornament.naturalWidth > 0) resolve();
     });
     ctx.drawImage(ornament, 0, 0, width, height);
-    // The supplied original has an old category plate beneath the parchment.
-    // Its lettering is NEVER part of the dynamic front. Mask only that tiny
-    // bottom interior strip, preserving gold corners and print bleed.
-    {
-      ctx.fillStyle="#2b0915";
-      ctx.fillRect(18,463,304,12);
-      const lowerMetal=ctx.createLinearGradient(18,463,322,463);
-      lowerMetal.addColorStop(0,"#a8682c");
-      lowerMetal.addColorStop(.35,"#ffdf91");
-      lowerMetal.addColorStop(.7,"#cc873b");
-      lowerMetal.addColorStop(1,"#9f5a25");
-      ctx.strokeStyle=lowerMetal;ctx.lineWidth=2;ctx.beginPath();
-      ctx.moveTo(18,462);ctx.lineTo(322,462);ctx.stroke();
-    }
   } catch {
     // A browser that cannot rasterize SVG still gets the original gold border.
   }
