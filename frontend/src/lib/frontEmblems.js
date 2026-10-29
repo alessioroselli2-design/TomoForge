@@ -26,10 +26,11 @@ const keyFor = (value, keys) => {
  const normalized = normalize(value);
  if (!normalized) return null;
  const alias = ALIASES[normalized] || normalized;
- const exact = keys.indexOf(alias);
+ const normalizedKeys = keys.map(normalize);
+ const exact = normalizedKeys.indexOf(normalize(alias));
  if (exact >= 0) return exact;
  // Creature strings can include size or alignment. Prefer a matching whole type.
- return keys.findIndex(key => ((" "+alias+" ").includes(" "+key+" ")));
+ return normalizedKeys.findIndex(key => ((" "+normalize(alias)+" ").includes(" "+key+" ")));
 };
 const site = "/emblemi/";
 export const getFrontEmblem = (card = {}) => {
