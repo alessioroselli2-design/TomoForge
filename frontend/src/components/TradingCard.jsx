@@ -11,8 +11,11 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
   const hasArtwork = !!(imgUrl || card.artwork_path);
   const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : artworkPlaceholder);
   const handleError = React.useCallback((event) => {
-    if (event.currentTarget.dataset.fallback !== "1") {
+    const currentSource = event.currentTarget.dataset.artworkSrc;
+    if (event.currentTarget.dataset.fallback !== "1" ||
+        event.currentTarget.dataset.fallbackSrc !== currentSource) {
       event.currentTarget.dataset.fallback = "1";
+      event.currentTarget.dataset.fallbackSrc = currentSource;
       event.currentTarget.src = artworkPlaceholder;
       if (hasArtwork) setArtworkError(true);
     }
@@ -41,7 +44,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
           <img src={img} alt={blueprint.name} data-artwork-src={img} crossOrigin="anonymous"
             onError={handleError} draggable={false} />
           {editorMode && !hasArtwork && <span className="tf-v2-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
-          {artworkError && !exportMode && <span role="alert" className="tf-v2-art-warning">Immagine non disponibile</span>}
+          {artworkError && !exportMode && <span role="alert" className="tf-v2-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
           {blueprint.dice && <span className="tf-v2-dice" aria-label={`Formula dado ${blueprint.dice}`}>{blueprint.dice}</span>}
         </div>
 

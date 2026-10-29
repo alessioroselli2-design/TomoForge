@@ -10,15 +10,6 @@ import {
   renderCardCanvas,
 } from "./cardExport";
 
-const sixQuickStats = {
-  livello: "5",
-  area: "18 metri",
-  azione: "Azione",
-  tempo_lancio: "1 azione",
-  concentrazione: "Sì",
-  danno: "8d6 fuoco",
-};
-
 const abilities = {
   for: "18",
   des: "14",
@@ -26,13 +17,6 @@ const abilities = {
   int: "12",
   sag: "10",
   car: "8",
-};
-
-const configuredBack = {
-  style: "runic",
-  color: "#2563eb",
-  emblem: "dragon",
-  motto: "Dove il fuoco incontra l'inchiostro",
 };
 
 const createContext = (operations, gradients) => ({
@@ -164,7 +148,7 @@ describe("card export renderers", () => {
     };
     const front = await renderCardCanvas(makeExportElement(), card);
     const text = written(front);
-    ["MAGIA", "Palla di Fuoco", "Invocazione", "8d6", "Liv.", "Lancio", "Gittata"].forEach((value) => expect(text).toContain(value));
+    ["MAGIA", "Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
     expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 220)).toBe(true);
   });
