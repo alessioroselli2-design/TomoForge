@@ -9,3 +9,6 @@ export const ORNATE_FRAME_URL = "data:image/svg+xml;charset=utf-8," + encodeURIC
 // numbers, picture and footer are transparent. For six-ability cards these
 // separators line up with the fixed print grid.
 export const REFERENCE_FRAME_URL = "/card-art/reference-gold-rail.webp";
+
+// Reference artwork with floating panel separators positioned for cards without six ability scores.
+export const REFERENCE_FRAME_SIMPLE_URL = "/card-art/reference-gold-rail-simple.webp";

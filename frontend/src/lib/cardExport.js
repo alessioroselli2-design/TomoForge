@@ -1,5 +1,5 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
-import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL } from "@/lib/ornateFrame";
+import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL, REFERENCE_FRAME_SIMPLE_URL } from "@/lib/ornateFrame";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -242,14 +242,14 @@ export async function renderCardCanvas(element, card) {
     await new Promise((resolve, reject) => {
       ornament.onload = resolve;
       ornament.onerror = reject;
-      ornament.src = data.hasAbilities ? REFERENCE_FRAME_URL : ORNATE_FRAME_URL;
+      ornament.src = data.hasAbilities ? REFERENCE_FRAME_URL : REFERENCE_FRAME_SIMPLE_URL;
       if (ornament.complete && ornament.naturalWidth > 0) resolve();
     });
     ctx.drawImage(ornament, 0, 0, width, height);
     // The supplied original has an old category plate beneath the parchment.
     // Its lettering is NEVER part of the dynamic front. Mask only that tiny
     // bottom interior strip, preserving gold corners and print bleed.
-    if (data.hasAbilities) {
+    {
       ctx.fillStyle="#2b0915";
       ctx.fillRect(18,463,304,12);
       const lowerMetal=ctx.createLinearGradient(18,463,322,463);
