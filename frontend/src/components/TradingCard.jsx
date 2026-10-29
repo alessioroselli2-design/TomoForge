@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
+import { ORNATE_FRAME_URL, REFERENCE_FRAME_URL } from "@/lib/ornateFrame";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -76,7 +76,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
-   <img className="tf-v4-filigree" src={ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
+   <img className="tf-v4-filigree" src={data.hasAbilities?REFERENCE_FRAME_URL:ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
  </div>;
 });
 CardFront.displayName="CardFront";
