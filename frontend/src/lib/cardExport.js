@@ -1,6 +1,8 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getApprovedBack } from "@/lib/cardBacks";
 
+const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
+
 const waitForImages = async (element) => {
   const images = Array.from(element?.querySelectorAll("img") || []);
   await Promise.all(images.map((img) => {
