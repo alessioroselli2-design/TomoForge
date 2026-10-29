@@ -418,8 +418,8 @@ export async function renderCardBackCanvas(card) {
   const naturalWidth = image.naturalWidth || canvas.width;
   const naturalHeight = image.naturalHeight || naturalWidth * (canvas.height / canvas.width);
   const fit = Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
-  const drawWidth = naturalWidth * fit;
-  const drawHeight = naturalHeight * fit;
+  const drawWidth = Math.min(canvas.width, naturalWidth * fit);
+  const drawHeight = Math.min(canvas.height, naturalHeight * fit);
   ctx.fillStyle = "#101019";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
