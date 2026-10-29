@@ -84,7 +84,34 @@ export const buildFrontBlueprint = (card = {}) => {
       : type === "character" ? pick(attrs, ["classe", "class"])
         : type === "class" || type === "subclass" ? (type === "class" ? card.name : pick(attrs, ["classe", "parent_class"]))
           : type === "race" ? card.name : pick(attrs, ["categoria", "tipo", "parent_class"]);
-  const subtitle = shortText(subject || heading, 55);
+  // The subtitle names the record, not its category badge or a repeated level.
+  // All values originate from actual card attributes.
+  const subtitleParts = (() => {
+    if (type === "monster") return [
+      pick(attrs, ["tipo_creatura", "tipo", "creature_type"]),
+      pick(attrs, ["taglia", "size"]),
+      pick(attrs, ["allineamento", "alignment"]),
+    ];
+    if (type === "spell") return [
+      pick(attrs, ["classe", "classi", "class", "classes"]),
+      pick(attrs, ["scuola", "school"]),
+    ];
+    if (type === "feature") return [
+      pick(attrs, ["classe", "parent_class"]),
+      "Privilegio di Classe",
+    ];
+    if (type === "subclass") return [pick(attrs, ["classe", "parent_class"]), "Sottoclasse"];
+    if (type === "character") return [
+      pick(attrs, ["classe", "class"]),
+      pick(attrs, ["sottoclasse", "subclass"]),
+    ];
+    if (type === "race") return ["Razza"];
+    if (type === "class") return ["Classe"];
+    if (type === "feat") return ["Talento"];
+    if (type === "item") return [pick(attrs, ["categoria", "tipo"]), "Oggetto Magico"];
+    return [subject || heading];
+  })().filter(Boolean);
+  const subtitle = shortText([...new Set(subtitleParts)].join(" • ") || heading, 80);
   const crest = (subject || heading).replace(/[^a-zA-ZÀ-ÿ ]/g, "").trim().split(/\s+/)
     .filter(Boolean).slice(0, 2).map((token) => token[0].toUpperCase()).join("") || "TF";
   const diceSource = [attrs.danno, attrs.danni, attrs.dadi_vita, attrs.dado_vita, attrs.formula_danno]

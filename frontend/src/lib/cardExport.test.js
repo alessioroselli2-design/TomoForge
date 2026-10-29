@@ -75,7 +75,7 @@ const makeExportElement = () => {
   const qr = { toDataURL: () => "data:image/png;base64,qr" };
   return {
     querySelectorAll: () => [artwork],
-    querySelector: (selector) => (selector === "img" ? artwork : selector === "canvas" ? qr : null),
+    querySelector: (selector) => (selector === "img" ? artwork : selector === "[data-card-qr] canvas" ? qr : null),
   };
 };
 
@@ -132,11 +132,13 @@ describe("card export renderers", () => {
     expect(front.artworkDrawn).toBe(true);
     expect(front.width).toBe(CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale);
     expect(front.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
-    ["MOSTRO", "Drago Cremisi", "CA", "18", "PF", "152", "12 m", "2d10+6",
+    ["Drago Cremisi", "CA", "18", "PF", "152", "12 m", "2d10+6",
       "FOR", "DES", "COS", "INT", "SAG", "CAR"].forEach((fragment) => expect(text).toContain(fragment));
     expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 310 && entry.args.at(-1) === 166)).toBe(true);
     expect(text).toContain("Un guardiano antico");
     expect(front.operations.some((op) => op.name === "fillText" && op.y > 472)).toBe(false);
+    expect(text).not.toContain("MOSTRO");
+    expect(front.operations.some((op)=>op.name==="drawImage" && op.args.at(-2)===47 && op.args.at(-1)===47)).toBe(true);
   });
 
   it("renders the spell-specific front without legacy color customization or fake dice", async () => {
@@ -148,7 +150,7 @@ describe("card export renderers", () => {
     };
     const front = await renderCardCanvas(makeExportElement(), card);
     const text = written(front);
-    ["MAGIA", "Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
+    ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
     expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 195)).toBe(true);
   });
@@ -183,9 +185,9 @@ describe("card export renderers", () => {
     const sheet = await addPrintSheetCard(pdf, element, card, {x: 12,y: 18,w:63.5,h:88.9});
     const a4 = await addSingleCardA4PdfPages(pdf, element, card);
     expect(written(png)).toContain("Thalion");
-    expect(written(single.front)).toContain("PERSONAGGIO");
-    expect(written(sheet)).toContain("PERSONAGGIO");
-    expect(written(a4.front)).toContain("PERSONAGGIO");
+    expect(written(single.front)).toContain("Thalion");
+    expect(written(sheet)).toContain("Thalion");
+    expect(written(a4.front)).toContain("Thalion");
     expect(single.back.operations.find(op => op.name === "drawImage").args[0].src).toBe("/dorsi/personaggio-argento.jpg");
     expect(a4.back.operations.find(op => op.name === "drawImage").args[0].src).toBe("/dorsi/personaggio-argento.jpg");
     expect(getCardExportLayout(card).abilities).toHaveLength(6);

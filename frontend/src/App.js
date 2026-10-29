@@ -9,6 +9,7 @@ import CardEditor from "@/pages/CardEditor";
 import CardDetail from "@/pages/CardDetail";
 import CharacterSheet from "@/pages/CharacterSheet";
 import PublicCard from "@/pages/PublicCard";
+import PublicDescription from "@/pages/PublicDescription";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import Admin from "@/pages/Admin";
@@ -35,6 +36,7 @@ function AppRouter() {
       <Route path="/" element={<Landing />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/p/:id" element={<PublicCard />} />
+      <Route path="/d/:id" element={<PublicDescription />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />

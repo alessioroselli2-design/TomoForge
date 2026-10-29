@@ -1,4 +1,6 @@
 import React from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import { publicDescriptionUrl } from "@/lib/cardDescription";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -20,6 +22,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    }
  },[hasArtwork]);
  const symbol=data.emblem;
+ const detailsLink=publicDescriptionUrl(card);
  return <div ref={ref} data-testid="card-front" data-front-version="3"
    data-front-category={data.type}
    className={`tf-front-v3 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""}`}
@@ -64,8 +67,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </p>}
        <p className="tf-v3-desc">{data.description||"I dettagli appariranno dopo la selezione di un record."}</p>
        {data.dice&&<div className="tf-v3-dice" aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>}
+       {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
+           target="_blank" rel="noopener noreferrer" title="Apri la descrizione completa"
+           aria-label={`Apri la descrizione completa di ${data.name}`}>
+         <QRCodeCanvas value={detailsLink} size={46} level="M" marginSize={1}
+            bgColor="#ffffff" fgColor="#10131c" />
+       </a>}
      </section>
-     <footer className="tf-v3-category"><span>✦</span>{data.heading}<span>✦</span></footer>
    </div>
  </div>;
 });

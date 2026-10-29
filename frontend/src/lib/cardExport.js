@@ -194,7 +194,7 @@ export async function renderCardCanvas(element, card) {
       ctx.fillStyle="#20150f";ctx.font="700 13px Georgia,serif";ctx.fillText(item.value,x+w/2,y+33,w-6);
     });
   }
-  const notesY=data.hasAbilities?336:321,notesH=data.hasAbilities?100:115;
+  const notesY=data.hasAbilities?336:321,notesH=data.hasAbilities?125:140;
   const panel=ctx.createLinearGradient(0,notesY,0,notesY+notesH);
   panel.addColorStop(0,"#fff6db");panel.addColorStop(1,"#efd6a6");
   canvasBox(ctx,BX,notesY,BW,notesH,panel,"#a36d34");
@@ -208,17 +208,28 @@ export async function renderCardCanvas(element, card) {
   const description=data.description||"I dettagli appariranno dopo la selezione di un record.";
   ctx.fillStyle="#342014";ctx.font="italic 11px 'Spectral',Georgia,serif";
   const maxLines=Math.max(1,Math.min(5,Math.floor((notesY+notesH-yy-9)/13)));
-  drawWrappedText(ctx,description,23,yy+3,data.dice?246:291,13,maxLines);
+  drawWrappedText(ctx,description,23,yy+3,card?.id?235:(data.dice?246:291),13,maxLines);
   if(data.dice){
-    const diceX=250,diceY=notesY+notesH-30;
+    const diceX=23,diceY=notesY+notesH-29;
     canvasBox(ctx,diceX,diceY,68,25,"#8b1724","#e6b767");
     ctx.textAlign="center";ctx.fillStyle="#fff1ce";
     drawFittedText(ctx,data.dice,diceX+34,diceY+17,62,13,"'Cinzel',Georgia,serif","700");
   }
-  const footY=438,footH=23;
-  canvasBox(ctx,BX,footY,BW,footH,data.accent,"#d7a75c");
-  ctx.fillStyle="#fce7b6";ctx.font="700 13px 'Cinzel',Georgia,serif";
-  ctx.textAlign="center";drawFittedText(ctx,data.heading,170,footY+16,280,13,"'Cinzel',Georgia,serif","700");
+  // A saved card carries its QR on every fixed print/export path. Reuse the
+  // real SVG-free QR canvas from the preview so no secondary QR generator drifts.
+  const qr = element.querySelector('[data-card-qr] canvas');
+  if (card?.id && qr) {
+    try {
+      ctx.fillStyle="#ffffff";
+      ctx.fillRect(267,408,53,53);
+      ctx.drawImage(qr,270,411,47,47);
+      ctx.strokeStyle="#b07835";
+      ctx.lineWidth=1;
+      ctx.strokeRect(267,408,53,53);
+    } catch {
+      // Keep the card exportable even if a QR canvas is unavailable.
+    }
+  }
   canvas.artworkDrawn=artworkDrawn;
   return canvas;
 }
