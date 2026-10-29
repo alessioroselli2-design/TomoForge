@@ -416,7 +416,7 @@ export async function renderCardBackCanvas(card) {
   // already has the print ratio fills the entire canvas; otherwise the entire
   // drawing is letterboxed, never cropped.
   const naturalWidth = image.naturalWidth || canvas.width;
-  const naturalHeight = image.naturalHeight || canvas.height;
+  const naturalHeight = image.naturalHeight || naturalWidth * (canvas.height / canvas.width);
   const fit = Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
   const drawWidth = naturalWidth * fit;
   const drawHeight = naturalHeight * fit;
