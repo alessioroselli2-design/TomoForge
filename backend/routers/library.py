@@ -135,12 +135,42 @@ async def search_private_library(
         raise HTTPException(status_code=400, detail="Tipo di contenuto non valido")
     if source_filename and source_filename not in _lib_svc.available_reference_manuals():
         raise HTTPException(status_code=400, detail="Manuale non disponibile nella biblioteca privata")
-    # Search only the requested monsters rather than the entire manual archive.
-    records = await private_reference_records(
-        user.user_id,
-        db=db,
-        reference_types={"monster"} if requested_types == {"monster"} else None,
-    )
+    # Ordinary typing searches run inside Postgres, rather than transferring
+    # thousands of full-text/OCR records on every keypress. The endpoint still
+    # ranks and checks provenance in Python on the small matching result set.
+    from core.config import MOCK_DATA
+    if (
+        not MOCK_DATA
+        and hasattr(db, "client")
+        and len(q.strip()) >= 2
+        and not review_only
+        and not source_filename
+        and not parent_class
+        and not parent_subclass
+        and not level
+        and limit <= 40
+    ):
+        needle = normalize_reference_name(q).replace("%", "").replace("_", "").strip()
+        if needle:
+            statement = (
+                db.client.table("private_reference_records")
+                .select("*")
+                .eq("user_id", user.user_id)
+                .ilike("normalized_name", f"%{needle}%")
+            )
+            if requested_types:
+                statement = statement.in_("reference_type", sorted(requested_types))
+            result = statement.order("normalized_name").limit(300).execute()
+            records = result.data or []
+        else:
+            records = []
+    else:
+        # Admin review/manual coverage intentionally retains full paging.
+        records = await private_reference_records(
+            user.user_id,
+            db=db,
+            reference_types=requested_types or None,
+        )
     if requested_types:
         records = [record for record in records if record.get("reference_type") in requested_types]
     if source_filename:

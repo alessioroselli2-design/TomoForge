@@ -98,8 +98,23 @@ const makeExportElement = () => {
 describe("card export renderers", () => {
   let createElement;
   let canvases;
+  let previousImage;
 
   beforeEach(() => {
+    previousImage = global.Image;
+    // JSDOM does not fetch local assets. Simulate an already-decoded approved
+    // image and retain its actual src for the canvas-path regression checks.
+    global.Image = class BackImageMock {
+      complete = false;
+      naturalWidth = 0;
+      set src(value) {
+        this._src = value;
+        this.naturalWidth = 750;
+        this.complete = true;
+        this.onload?.();
+      }
+      get src() { return this._src; }
+    };
     canvases = [];
     createElement = jest.spyOn(document, "createElement").mockImplementation((tag) => {
       if (tag !== "canvas") return { style: {} };
@@ -119,7 +134,10 @@ describe("card export renderers", () => {
     });
   });
 
-  afterEach(() => createElement.mockRestore());
+  afterEach(() => {
+    createElement.mockRestore();
+    global.Image = previousImage;
+  });
 
   it("renders all six quick statistics and the description within the PNG/PDF safe area", async () => {
     const card = {
@@ -155,8 +173,32 @@ describe("card export renderers", () => {
       .map((entry) => entry.y))).toBeLessThanOrEqual(466);
   });
 
+  it("letterboxes a nonstandard legacy back without stretching its border or title", async () => {
+    global.Image = class TallBackMock {
+      complete = false;
+      naturalWidth = 750;
+      naturalHeight = 1200;
+      set src(value) {
+        this._src = value;
+        this.complete = true;
+        this.onload?.();
+      }
+      get src() { return this._src; }
+    };
+    const canvas = await renderCardBackCanvas({ type: "spell", back: { style: "runic", motto: "old" } });
+    const imageOp = canvas.operations.find((operation) => operation.name === "drawImage");
+    const [image, x, y, w, h] = imageOp.args;
+    expect(image.src).toBe("/dorsi/incantesimo.jpg");
+    expect(x).toBeGreaterThan(0);
+    expect(y).toBe(0);
+    expect(w).toBeLessThan(canvas.width);
+    expect(h).toBe(canvas.height);
+    expect(w / h).toBeCloseTo(750 / 1200);
+    expect(canvas.operations.some((operation) => operation.name === "fillText")).toBe(false);
+  });
+
   it.each(["monster", "character"])(
-    "renders six ability scores, type, description, and configured back for %s cards",
+    "renders six ability scores and the approved automatic back for %s cards",
     async (type) => {
       const card = {
         id: `${type}-abilities`,
@@ -178,7 +220,7 @@ describe("card export renderers", () => {
       const front = await renderCardCanvas(makeExportElement(), card);
       const back = await renderCardBackCanvas(card);
       const frontText = front.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
-      const backText = back.operations.filter((entry) => entry.name === "fillText").map((entry) => entry.text).join(" ");
+      const backArt = back.operations.find((entry) => entry.name === "drawImage");
 
       expect(getCardExportLayout(card).abilities).toHaveLength(6);
       ["FOR", "DES", "COS", "INT", "SAG", "CAR", ...Object.values(abilities)].forEach((value) => {
@@ -186,15 +228,11 @@ describe("card export renderers", () => {
       });
       expect(frontText).toContain(type === "monster" ? "MOSTRO" : "PERSONAGGIO");
       expect(frontText).toContain("Difende il sigillo antico");
-      expect(backText).toContain("TOME · FORGE");
-      expect(backText).toContain("Dove il fuoco incontra");
-      expect(backText).not.toContain(type === "monster" ? "MOSTRO" : "PERSONAGGIO");
-      expect(backText).toContain("ᚱ");
-      expect(backText).toContain("♜");
-      expect(back.operations.some((entry) => entry.name === "stroke" && entry.strokeStyle === configuredBack.color)).toBe(true);
-      expect(Math.max(...back.operations
-        .filter((entry) => entry.name === "fillText")
-        .map((entry) => entry.y))).toBeLessThanOrEqual(CARD_CANVAS_SIZE.height);
+      expect(backArt).toBeDefined();
+      expect(backArt.args[0].src).toBe(type === "monster" ? "/dorsi/mostro.jpg" : "/dorsi/personaggio-luce.jpg");
+      expect(backArt.args.slice(1)).toEqual([0, 0, CARD_CANVAS_SIZE.width * CARD_CANVAS_SIZE.scale, CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale]);
+      // A saved runic/motto back must never appear again.
+      expect(back.operations.some((entry) => entry.name === "fillText")).toBe(false);
     },
   );
 
@@ -299,10 +337,10 @@ describe("card export renderers", () => {
 
     expect(png.operations.some((entry) => entry.name === "strokeRect" && entry.x === 1.5)).toBe(true);
     expect(singleCard.front.operations.some((entry) => entry.name === "fillText" && entry.text === "PERSONAGGIO")).toBe(true);
-    expect(singleCard.back.operations.some((entry) => entry.name === "fillText" && entry.text === "♜")).toBe(true);
-    expect(singleCard.back.operations.some((entry) => entry.name === "fillText" && entry.text === "GRIMORIO ARCANO")).toBe(false);
+    expect(singleCard.back.operations.find((entry) => entry.name === "drawImage")?.args[0].src).toBe("/dorsi/personaggio-luce.jpg");
+    expect(singleCard.back.operations.some((entry) => entry.name === "fillText")).toBe(false);
     expect(sheetFront.operations.some((entry) => entry.name === "fillText" && entry.text === "FOR")).toBe(true);
-    expect(sheetBack.operations.some((entry) => entry.name === "stroke" && entry.strokeStyle === configuredBack.color)).toBe(true);
+    expect(sheetBack.operations.find((entry) => entry.name === "drawImage")?.args[0].src).toBe("/dorsi/personaggio-luce.jpg");
     expect(pdf.addPage).toHaveBeenCalledWith([63.5, 88.9], "portrait");
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 0, 0, 63.5, 88.9);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 12, 18, 63.5, 88.9);
@@ -325,7 +363,7 @@ describe("card export renderers", () => {
     const { front, back } = await addSingleCardA4PdfPages(pdf, makeExportElement(), card);
 
     expect(front.operations.some((entry) => entry.name === "fillText" && entry.text === "PERSONAGGIO")).toBe(true);
-    expect(back.operations.some((entry) => entry.name === "fillText" && entry.text === "♜")).toBe(true);
+    expect(back.operations.find((entry) => entry.name === "drawImage")?.args[0].src).toBe("/dorsi/personaggio-luce.jpg");
     expect(pdf.addPage).toHaveBeenCalledTimes(1);
     expect(pdf.addImage).toHaveBeenCalledWith(expect.any(String), "PNG", 73.25, 104.05, 63.5, 88.9);
     expect(pdf.addImage).toHaveBeenCalledTimes(2);

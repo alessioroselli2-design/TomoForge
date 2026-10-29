@@ -1,4 +1,5 @@
 import { QUICK_FIELDS, attrLabel, typeLabel, DEFAULT_APPEARANCE, FRAME_STYLES } from "@/lib/cardTypes";
+import { getApprovedBack } from "@/lib/cardBacks";
 
 const waitForImages = async (element) => {
   const images = Array.from(element?.querySelectorAll("img") || []);
@@ -208,28 +209,6 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
     .forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
 };
 
-const drawBackEmblem = (ctx, emblem, cx, cy, accent) => {
-  const glyphs = {
-    flame: "♨",
-    skull: "☠",
-    dragon: "♜",
-    sword: "⚔",
-    moon: "☾",
-    eye: "◉",
-    shield: "⬡",
-    star: "✦",
-  };
-  ctx.save();
-  ctx.fillStyle = accent;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = "400 50px Georgia, 'Times New Roman', serif";
-  ctx.shadowColor = `${accent}88`;
-  ctx.shadowBlur = 12;
-  ctx.fillText(glyphs[emblem] || glyphs.flame, cx, cy + 1);
-  ctx.restore();
-};
-
 // Dedicated raster renderer for A4 sheets. It mirrors the card composition
 // but never asks the browser to screenshot a flex/overflow DOM tree.
 export async function renderCardCanvas(element, card) {
@@ -418,160 +397,32 @@ export async function renderCardCanvas(element, card) {
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back
 // independent from DOM capture prevents motto and wordmark clipping on iOS.
 export async function renderCardBackCanvas(card) {
-  if (document.fonts?.ready) await document.fonts.ready;
-
+  // The same official artwork is used in preview, PNG, individual PDF and A4.
+  // Load it explicitly to avoid a blank canvas on Safari/iPhone.
   const { scale, width, height } = CARD_CANVAS_SIZE;
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;
   const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
-
-  const back = card.back || {};
-  const style = back.style || "classic";
-  const accent = back.color || "#7f1d1d";
-  const [r, g, b] = colorToRgb(accent);
-  const appearance = { ...DEFAULT_APPEARANCE, ...(card.appearance || {}) };
-  const frameColors = getExportFrameColors(card, appearance);
-
-  const background = ctx.createLinearGradient(0, 0, width, height);
-  background.addColorStop(0, style === "arcane" ? "#10192a" : "#241a18");
-  background.addColorStop(0.5, "#09090c");
-  background.addColorStop(1, style === "damask" ? "#211421" : "#1b1415");
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
-
-  const aura = ctx.createRadialGradient(width / 2, 210, 15, width / 2, 210, style === "runic" ? 190 : 150);
-  aura.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${style === "arcane" ? 0.52 : 0.38})`);
-  aura.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = aura;
-  ctx.fillRect(0, 0, width, height);
-
-  const border = ctx.createLinearGradient(0, 0, width, height);
-  frameColors.forEach((color, index) => border.addColorStop(index / (frameColors.length - 1), color));
-  ctx.strokeStyle = border;
-  ctx.lineWidth = 3;
-  ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
-  ctx.strokeStyle = "rgba(232, 196, 96, 0.48)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(9.5, 9.5, width - 19, height - 19);
-  ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.62)`;
-  ctx.strokeRect(15.5, 15.5, width - 31, height - 31);
-
-  ctx.save();
-  ctx.translate(width / 2, 210);
-  if (style === "arcane") {
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.36)`;
-    for (let i = 0; i < 16; i += 1) {
-      ctx.rotate(Math.PI / 8);
-      ctx.beginPath();
-      ctx.moveTo(72, 0);
-      ctx.lineTo(132, 0);
-      ctx.stroke();
-    }
-  } else if (style === "runic") {
-    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.7)`;
-    ctx.font = "400 15px Georgia, serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    for (let i = 0; i < 12; i += 1) {
-      const angle = (Math.PI * 2 * i) / 12;
-      ctx.fillText(i % 2 ? "ᚱ" : "ᛟ", Math.cos(angle) * 116, Math.sin(angle) * 116);
-    }
-  } else if (style === "damask") {
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.42)`;
-    ctx.lineWidth = 1.2;
-    for (let i = 0; i < 4; i += 1) {
-      ctx.rotate(Math.PI / 2);
-      ctx.beginPath();
-      ctx.moveTo(0, -62);
-      ctx.bezierCurveTo(34, -82, 78, -70, 102, -112);
-      ctx.bezierCurveTo(83, -75, 78, -33, 46, -25);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-
-  [[19, 19, 1, 1], [321, 19, -1, 1], [19, 457, 1, -1], [321, 457, -1, -1]].forEach(([x, y, sx, sy]) => {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(sx, sy);
-    ctx.strokeStyle = "#d7b652";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, 18);
-    ctx.lineTo(0, 0);
-    ctx.lineTo(18, 0);
-    ctx.moveTo(4, 14);
-    ctx.quadraticCurveTo(4, 4, 14, 4);
-    ctx.stroke();
-    ctx.restore();
+  const art = getApprovedBack(card);
+  const image = new Image();
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error(`Dorso ufficiale non disponibile: ${art.src}`));
+    image.src = art.src;
+    if (image.complete && image.naturalWidth > 0) resolve();
   });
-
-  ctx.fillStyle = "rgba(232, 196, 96, 0.58)";
-  [[53, 91], [286, 98], [75, 342], [269, 339], [43, 391], [297, 395]].forEach(([x, y]) => {
-    ctx.fillRect(x, y, 1.5, 1.5);
-  });
-  ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.46)`;
-  ctx.lineWidth = 1;
-  [-1, 1].forEach((side) => {
-    ctx.save();
-    ctx.translate(width / 2 + side * 93, 210);
-    ctx.scale(side, 1);
-    ctx.beginPath();
-    ctx.moveTo(0, -54);
-    ctx.bezierCurveTo(20, -44, 27, -25, 15, -6);
-    ctx.bezierCurveTo(31, 8, 28, 30, 0, 51);
-    ctx.stroke();
-    ctx.restore();
-  });
-
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(width / 2, 210, 68, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(232, 196, 96, 0.62)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(width / 2, 210, 57, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = "rgba(232, 196, 96, 0.72)";
-  ctx.font = "400 8px Georgia, serif";
-  for (let i = 0; i < 8; i += 1) {
-    const angle = (Math.PI * 2 * i) / 8;
-    ctx.fillText("✦", width / 2 + Math.cos(angle) * 63, 213 + Math.sin(angle) * 63);
-  }
-  ctx.fillStyle = "rgba(5, 6, 8, 0.76)";
-  ctx.beginPath();
-  ctx.arc(width / 2, 210, 47, 0, Math.PI * 2);
-  ctx.fill();
-  drawBackEmblem(ctx, back.emblem, width / 2, 210, accent);
-
-  const wordmark = ctx.createLinearGradient(80, 282, 260, 318);
-  wordmark.addColorStop(0, "#9a6c19");
-  wordmark.addColorStop(0.48, "#fff0a0");
-  wordmark.addColorStop(1, "#9a6c19");
-  ctx.fillStyle = wordmark;
-  ctx.font = "700 30px 'Cinzel Decorative', Georgia, serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText("TOME · FORGE", width / 2, 315);
-
-  if (String(back.motto || "").trim()) {
-    ctx.strokeStyle = "rgba(216, 186, 97, 0.42)";
-    ctx.beginPath();
-    ctx.moveTo(94, 365);
-    ctx.lineTo(246, 365);
-    ctx.stroke();
-    ctx.fillStyle = "#f2ead3";
-    ctx.font = "italic 12px 'Spectral', Georgia, serif";
-    drawWrappedText(ctx, `“${back.motto}”`, width / 2, 388, 230, 17, 2);
-  }
-
-  ctx.fillStyle = "rgba(216, 186, 97, 0.7)";
-  ctx.font = "400 9px Georgia, serif";
-  ctx.fillText("✦", width / 2, 425);
+  // Do not stretch any original frame, oval, wordmark or book. A back that
+  // already has the print ratio fills the entire canvas; otherwise the entire
+  // drawing is letterboxed, never cropped.
+  const naturalWidth = image.naturalWidth || canvas.width;
+  const naturalHeight = image.naturalHeight || naturalWidth * (canvas.height / canvas.width);
+  const fit = Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
+  const drawWidth = Math.min(canvas.width, naturalWidth * fit);
+  const drawHeight = Math.min(canvas.height, naturalHeight * fit);
+  ctx.fillStyle = "#101019";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
   return canvas;
 }
 

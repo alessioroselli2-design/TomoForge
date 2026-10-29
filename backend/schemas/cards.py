@@ -1,16 +1,20 @@
 import uuid
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from core.config import utc_now
 
 
 class CardBack(BaseModel):
-    style: str = "classic"
-    color: str = "#7f1d1d"
-    emblem: str = "flame"
-    motto: str = ""
+    """The back artwork comes from the category; only characters choose a variant."""
+    model_config = ConfigDict(extra="ignore")
+    variant: Literal["luminous", "silver"] = "luminous"
+
+
+def approved_back_payload(card_type: str, back: "CardBack | dict | None" = None) -> dict:
+    variant = back.variant if isinstance(back, CardBack) else (back or {}).get("variant")
+    return {"variant": "silver" if card_type == "character" and variant == "silver" else "luminous"}
 
 
 class CardAppearance(BaseModel):
@@ -56,6 +60,11 @@ class Card(BaseModel):
     version: int = 0
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def normalize_reverse(self):
+        self.back = CardBack(**approved_back_payload(self.type, self.back))
+        return self
 
 
 class CardCreate(BaseModel):
