@@ -87,3 +87,17 @@ describe("approved reference details",()=>{
     expect(bp.badge.value).toBe("17");
   });
 });
+
+describe("movement-mode presentation",()=>{
+ it("does not chop a monster's flying or climbing speed after nineteen characters",()=>{
+   const card={type:"monster",name:"Drago Rosso Adulto",attributes:{
+     velocita:"12 m, scalare 12 m, volare 36 m",
+     tipo_creatura:"Drago",grado_sfida:"17"
+   }};
+   const speed=buildFrontBlueprint(card).highlights.find(item=>item.label==="Vel.");
+   expect(speed.value).toContain("scal. 12 m");
+   expect(speed.value).toContain("vol. 36 m");
+   expect(speed.value).not.toContain("…");
+   expect(speed.fullValue).toContain("volare 36 m");
+ });
+});
