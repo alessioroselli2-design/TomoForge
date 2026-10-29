@@ -135,6 +135,11 @@ describe("card export renderers", () => {
     ["Drago Cremisi", "CA", "18", "PF", "152", "12 m", "2d10+6",
       "FOR", "DES", "COS", "INT", "SAG", "CAR"].forEach((fragment) => expect(text).toContain(fragment));
     expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 310 && entry.args.at(-1) === 166)).toBe(true);
+    // Preview and the printed canvas must carry both original medallions.
+    const statAssets=front.operations.filter(op=>op.name==="drawImage")
+      .map(op=>op.args[0]?.src)
+      .filter(src=>typeof src==="string" && src.includes("/card-art/stat-"));
+    expect(statAssets).toEqual(["/card-art/stat-ca.webp","/card-art/stat-pf.webp"]);
     expect(text).toContain("Un guardiano antico");
     expect(front.operations.some((op) => op.name === "fillText" && op.y > 472)).toBe(false);
     expect(text).not.toContain("MOSTRO");

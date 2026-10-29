@@ -6,6 +6,7 @@ import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
+import { getFrontStatIcon } from "@/lib/frontStatIcons";
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
  const data=buildFrontBlueprint(card);
@@ -53,9 +54,14 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
-       {data.highlights.length?data.highlights.map((item,i)=><div className="tf-v3-stat" key={i} title={item.fullValue||item.value}>
-         <span>{item.label}</span><strong>{item.value}</strong>
-       </div>):<div className="tf-v3-stat tf-v3-empty">I DATI COMPARRANNO QUI</div>}
+       {data.highlights.length?data.highlights.map((item,i)=>{
+         const statIcon = getFrontStatIcon(item.label);
+         return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
+           key={i} title={item.fullValue||item.value}>
+           {statIcon&&<img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>}
+           <div className="tf-v6-stat-text"><span>{item.label}</span><strong>{item.value}</strong></div>
+         </div>;
+       }):<div className="tf-v3-stat tf-v3-empty">I DATI COMPARRANNO QUI</div>}
      </div>
      {data.hasAbilities&&<div className="tf-v3-abilities" data-testid="front-abilities">
        {data.abilities.map(item=><div className="tf-v3-ability" key={item.label}>

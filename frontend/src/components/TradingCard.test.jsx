@@ -37,6 +37,25 @@ jest.mock("@/lib/i18n", () => ({
   useI18n: () => ({ t: (k) => k }),
 }));
 
+describe("reference card statistics medallions", () => {
+  it("uses the approved CA and PF icons without substituting symbols for other statistics", async () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    const root = createRoot(element);
+    await act(async () => {
+      root.render(<CardFront card={{
+        type:"monster",name:"Drago Rosso Adulto",
+        attributes:{classe_armatura:"19",punti_ferita:"256",velocita:"12 m"}
+      }}/>);
+    });
+    const badges = [...element.querySelectorAll(".tf-v6-stat-icon")];
+    expect(badges.map(img=>img.getAttribute("src")))
+      .toEqual(["/card-art/stat-ca.webp","/card-art/stat-pf.webp"]);
+    expect(element.querySelectorAll(".tf-v3-stat")).toHaveLength(3);
+    await act(async () => root.unmount());
+    element.remove();
+  });
+});
 describe("CardFront artwork placeholder", () => {
   let container;
   let root;

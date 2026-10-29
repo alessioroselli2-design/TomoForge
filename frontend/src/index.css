@@ -729,3 +729,22 @@ body {
 .tf-front-v3 .tf-v5-bottom-rail{position:absolute;left:18px;right:18px;bottom:1px;
  height:12px;z-index:13;pointer-events:none;background:linear-gradient(90deg,#2c0a17,#360d18,#2a0915);
  border-top:2px solid #daa653;box-shadow:inset 0 1px #ffe1a5;}
+
+/* Original CA (hourglass) and PF (weapon crest) medallions from the approved reference.
+   A real two-column stat cell prevents the badges from covering labels or values. */
+.tf-front-v3 .tf-v3-stat.tf-v6-stat-with-icon {
+  flex-direction:row;align-items:center;justify-content:center;gap:3px;
+  padding:2px 3px;min-width:0;
+}
+.tf-front-v3 .tf-v6-stat-icon {
+  width:28px;height:28px;flex:0 0 28px;display:block;
+  object-fit:contain;image-rendering:auto;
+  filter:drop-shadow(0 1px 1px rgba(34,13,8,.35));
+}
+.tf-front-v3 .tf-v6-stat-text {display:flex;flex-direction:column;
+  justify-content:center;align-items:center;min-width:0;flex:1;
+  overflow:hidden;text-align:center;}
+.tf-front-v3 .tf-v6-stat-text>span,.tf-front-v3 .tf-v6-stat-text>strong {
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tf-front-v3 .tf-v6-stat-text>strong {font-size:13px;line-height:1.1;}
