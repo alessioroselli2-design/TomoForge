@@ -217,7 +217,7 @@ export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
         src={back.src}
         alt={`Retro ufficiale TomoForge: ${back.label}`}
         className="absolute inset-0 block h-full w-full"
-        style={{ objectFit: "fill" }}
+        style={{ objectFit: "contain" }}
         draggable={false}
       />
     </div>

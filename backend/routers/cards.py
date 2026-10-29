@@ -10,7 +10,7 @@ from core.config import utc_now
 from core.db import get_db, SupabaseDatabase
 from schemas.cards import (
     Card, CardCreate, CardUpdate, CardVersionInput,
-    LinkedCardInput, ManualCompletionInput, ReferenceUpdateInput,
+    LinkedCardInput, ManualCompletionInput, ReferenceUpdateInput, approved_back_payload,
 )
 from schemas.users import User
 from services.cards import (
@@ -49,6 +49,7 @@ def card_history_view(history: list[dict]) -> list[dict]:
 @router.post("/cards", response_model=Card)
 async def create_card(body: CardCreate, user: User = Depends(get_current_user), db: SupabaseDatabase = Depends(get_db)):
     data = body.model_dump(exclude_none=True)
+    data["back"] = approved_back_payload(data.get("type", "custom"), data.get("back"))
     generic_reference_ids, legacy_spell_ids = await normalize_generic_spell_links(
         user.user_id, data.get("reference_ids", []), data.get("spell_ids", []), db=db
     )
@@ -95,6 +96,11 @@ async def update_card(card_id: str, body: CardUpdate, user: User = Depends(get_c
     before_card = copy.deepcopy(card)
     updates = body.model_dump(exclude_none=True)
     expected_version = updates.pop("version")
+    if "type" in updates or "back" in updates:
+        updates["back"] = approved_back_payload(
+            updates.get("type", card.get("type", "custom")),
+            updates.get("back", card.get("back")),
+        )
     if "reference_ids" in updates or "spell_ids" in updates:
         generic_reference_ids, legacy_spell_ids = await normalize_generic_spell_links(
             user.user_id,
