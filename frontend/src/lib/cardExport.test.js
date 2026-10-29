@@ -173,6 +173,30 @@ describe("card export renderers", () => {
       .map((entry) => entry.y))).toBeLessThanOrEqual(466);
   });
 
+  it("letterboxes a nonstandard legacy back without stretching its border or title", async () => {
+    global.Image = class TallBackMock {
+      complete = false;
+      naturalWidth = 750;
+      naturalHeight = 1200;
+      set src(value) {
+        this._src = value;
+        this.complete = true;
+        this.onload?.();
+      }
+      get src() { return this._src; }
+    };
+    const canvas = await renderCardBackCanvas({ type: "spell", back: { style: "runic", motto: "old" } });
+    const imageOp = canvas.operations.find((operation) => operation.name === "drawImage");
+    const [image, x, y, w, h] = imageOp.args;
+    expect(image.src).toBe("/dorsi/incantesimo.jpg");
+    expect(x).toBeGreaterThan(0);
+    expect(y).toBe(0);
+    expect(w).toBeLessThan(canvas.width);
+    expect(h).toBe(canvas.height);
+    expect(w / h).toBeCloseTo(750 / 1200);
+    expect(canvas.operations.some((operation) => operation.name === "fillText")).toBe(false);
+  });
+
   it.each(["monster", "character"])(
     "renders six ability scores and the approved automatic back for %s cards",
     async (type) => {
