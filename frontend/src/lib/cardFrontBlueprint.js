@@ -1,6 +1,7 @@
 // The v2 front is a presentation of existing verified card data, never a new
 // source of game rules. One blueprint drives preview, PNG and both PDF modes.
 import { typeLabel, attrLabel } from "./cardTypes";
+import { getFrontEmblem } from "./frontEmblems";
 
 const THEMES = {
   monster: { accent: "#b5534f", shadow: "#341b28" },
@@ -89,9 +90,27 @@ export const buildFrontBlueprint = (card = {}) => {
   const diceSource = [attrs.danno, attrs.danni, attrs.dadi_vita, attrs.dado_vita, attrs.formula_danno]
     .filter(scalar).map(String).find((value) => /\b\d+d\d+\b/i.test(value)) || "";
   const match = diceSource.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i);
+  const badge = (() => {
+    const text = (value) => (value === null || value === undefined) ? "" : String(value).trim();
+    if (type === "monster") return text(attrs.grado_sfida) ? {top:"GS", value:text(attrs.grado_sfida)} : null;
+    if (["spell","character","class","subclass","feature"].includes(type))
+      return text(attrs.livello) ? {top:"LIV.", value:text(attrs.livello)} : null;
+    if (type === "item") return text(attrs.rarita) ? {top:"RARITÀ",value:text(attrs.rarita)} : null;
+    return null;
+  })();
+  const cleanMain = (text) => String(text).split(/\\s*\\(/)[0].trim();
+  const readableStats = highlights.map(item => {
+    let value = cleanMain(item.value);
+    if (item.label === "Vel.") {
+      // Preserve literal values in detail/tooltip; do not invent alternative units.
+      value = value.replace(/volare/ig, "vol.").replace(/nuotare/ig,"nuot.").replace(/scavare/ig,"scav.");
+    }
+    return {...item, value:shortText(value, 19), fullValue:highlighted.find(x=>x.label===item.label)?.value||item.value};
+  });
   return {
+    badge, emblem:getFrontEmblem(card),
     type, heading, name: card.name || "Senza nome", subtitle, crest,
-    ...THEMES[type], highlights, abilities, details,
+    ...THEMES[type], highlights:readableStats, abilities, details,
     dice: match ? match[0].replace(/\s+/g, "") : "",
     description: shortText(card.description, 235),
     hasAbilities: abilities.length > 0,
