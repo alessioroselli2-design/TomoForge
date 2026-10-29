@@ -32,7 +32,6 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-br" aria-hidden="true">✦</span>
-   <img className="tf-v4-filigree" src={ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem" title={symbol?.label||data.subtitle}>
@@ -77,6 +76,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
+   <img className="tf-v4-filigree" src={ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
  </div>;
 });
 CardFront.displayName="CardFront";
