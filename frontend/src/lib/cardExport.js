@@ -82,163 +82,144 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
     .forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
 };
 
-// The v2 renderer uses the same category blueprint as the React preview;
-// changing the saved card's legacy appearance no longer affects either output.
+// Premium front v3: the same badge, medallion and parchment information shown
+// in CardFront is drawn at physical card size for PNG and both PDF print paths.
+const loadFrontEmblem = async (emblem) => {
+  if (!emblem) return null;
+  const img = new Image();
+  try {
+    await new Promise((resolve,reject) => {
+      img.onload=resolve; img.onerror=reject; img.src=emblem.src;
+      if(img.complete && img.naturalWidth>0)resolve();
+    });
+    return img;
+  } catch { return null; }
+};
+const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
+  ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+};
 export async function renderCardCanvas(element, card) {
   if (!element) throw new Error("Card render unavailable");
   await waitForImages(element);
-  if (document.fonts?.ready) await document.fonts.ready;
-  const data = buildFrontBlueprint(card);
-  const { scale, width, height } = CARD_CANVAS_SIZE;
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
+  if(document.fonts?.ready)await document.fonts.ready;
+  const data=buildFrontBlueprint(card);
+  const {width,height,scale}=CARD_CANVAS_SIZE;
+  const canvas=document.createElement("canvas");
+  canvas.width=width*scale;canvas.height=height*scale;
+  const ctx=canvas.getContext("2d");
+  ctx.scale(scale,scale);
+  const background=ctx.createLinearGradient(0,0,width,height);
+  background.addColorStop(0,"#2f101a");
+  background.addColorStop(.5,data.accent);
+  background.addColorStop(1,"#270c18");
+  ctx.fillStyle=background;ctx.fillRect(0,0,width,height);
+  const gold=ctx.createLinearGradient(0,0,width,height);
+  gold.addColorStop(0,"#ffde94");gold.addColorStop(.45,"#b67c32");gold.addColorStop(1,"#ffe5a3");
+  ctx.strokeStyle=gold;ctx.lineWidth=5;ctx.strokeRect(3,3,width-6,height-6);
+  ctx.lineWidth=1;ctx.strokeRect(10,10,width-20,height-20);
+  ctx.fillStyle="#ffe1a3";
+  ["✦"].forEach(star => [[9,16],[331,16],[9,467],[331,467]].forEach(([x,y])=>{
+    ctx.font="700 13px Georgia,serif";ctx.textAlign="center";ctx.fillText(star,x,y);
+  }));
 
-  const background = ctx.createLinearGradient(0, 0, width, height);
-  background.addColorStop(0, "#101b2f");
-  background.addColorStop(0.55, "#10121f");
-  background.addColorStop(1, "#1e192a");
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
+  const BX=15,BW=310;
+  // Engraved ivory header.
+  const parchment=ctx.createLinearGradient(BX,0,BX+BW,0);
+  parchment.addColorStop(0,"#d6a85b");
+  parchment.addColorStop(.22,"#fff6d8");
+  parchment.addColorStop(.8,"#f7e6bc");
+  parchment.addColorStop(1,"#ad763c");
+  canvasBox(ctx,BX,16,BW,66,parchment,"#dfb46c");
+  ctx.strokeStyle="#925e2e";ctx.strokeRect(BX+3,19,BW-6,60);
 
-  // Engraved frame, shared across all categories, with a type-specific accent.
-  const metal = ctx.createLinearGradient(0, 0, width, height);
-  metal.addColorStop(0, "#e8ce8c");
-  metal.addColorStop(0.5, "#9f733e");
-  metal.addColorStop(1, "#e8ce8c");
-  ctx.strokeStyle = metal;
-  ctx.lineWidth = 3;
-  ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
-  ctx.strokeStyle = "rgba(235,195,116,.55)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(9, 9, width - 18, height - 18);
-
-  const gold = "#f3d59b";
-  const ink = "#f9eed8";
-  ctx.textAlign = "left";
-  ctx.fillStyle = data.accent;
-  drawFittedText(ctx, data.heading + "  ✦  TOMOFORGE", 18, 25, 240, 9, "'Cinzel',Georgia,serif", "700");
-  ctx.fillStyle = gold;
-  drawFittedText(ctx, data.name, 18, 48, 252, 20, "'Cormorant Garamond',Georgia,serif", "700");
-  ctx.fillStyle = "#b7c6dd";
-  drawFittedText(ctx, data.subtitle, 18, 65, 258, 10, "'Spectral',Georgia,serif");
-
-  ctx.beginPath();
-  ctx.arc(303, 43, 20, 0, 2 * Math.PI);
-  ctx.fillStyle = "#1b2033";
-  ctx.fill();
-  ctx.strokeStyle = "#dbbc7c";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = ink;
-  ctx.textAlign = "center";
-  drawFittedText(ctx, data.crest, 303, 47, 32, 12, "'Cinzel',Georgia,serif", "700");
-  ctx.textAlign = "left";
-
-  const artX = 16, artY = 82, artW = 308, artH = data.hasAbilities ? 191 : 220;
-  ctx.fillStyle = "#090f1c";
-  ctx.fillRect(artX, artY, artW, artH);
-  let artworkDrawn = false;
-  const artwork = element.querySelector("img");
-  try {
-    if (artwork?.complete && artwork.naturalWidth > 0) {
-      // Cover/crop rather than stretch: print and mobile preview preserve aspect ratio.
-      const imageWidth = artwork.naturalWidth;
-      const imageHeight = artwork.naturalHeight || imageWidth;
-      const ratio = Math.max(artW / imageWidth, artH / imageHeight);
-      const cropW = artW / ratio;
-      const cropH = artH / ratio;
-      ctx.drawImage(artwork,
-        (imageWidth - cropW) / 2, (imageHeight - cropH) / 2, cropW, cropH,
-        artX, artY, artW, artH);
-      artworkDrawn = true;
-    }
-  } catch {
-    // Broken or CORS-restricted artwork never breaks a PDF. Keep dark art panel.
-  }
-  ctx.strokeStyle = "#b99b5d";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(artX, artY, artW, artH);
-  if (data.dice) {
-    ctx.fillStyle = "rgba(10,20,34,.94)";
-    ctx.fillRect(artX + artW - 91, artY + artH - 29, 85, 23);
-    ctx.strokeStyle = "#e8c980";
-    ctx.strokeRect(artX + artW - 91, artY + artH - 29, 85, 23);
-    ctx.fillStyle = ink;
-    ctx.textAlign = "center";
-    drawFittedText(ctx, data.dice, artX + artW - 49, artY + artH - 13, 78, 12, "'Cinzel',Georgia,serif", "700");
-    ctx.textAlign = "left";
-  }
-
-  const statsY = data.hasAbilities ? 282 : 309;
-  const stats = data.highlights;
-  if (stats.length) {
-    const gap = 4, cellWidth = (308 - gap * (stats.length - 1)) / stats.length;
-    stats.forEach(({ label, value }, index) => {
-      const x = 16 + index * (cellWidth + gap);
-      ctx.fillStyle = "#17243a";
-      ctx.fillRect(x, statsY, cellWidth, 40);
-      ctx.strokeStyle = "rgba(227,186,107,.7)";
-      ctx.strokeRect(x, statsY, cellWidth, 40);
-      ctx.fillStyle = "#d8b879";
-      ctx.textAlign = "center";
-      drawFittedText(ctx, label.toUpperCase(), x + cellWidth / 2, statsY + 14, cellWidth - 8, 8, "'Cinzel',Georgia,serif", "700");
-      ctx.fillStyle = ink;
-      drawFittedText(ctx, value, x + cellWidth / 2, statsY + 31, cellWidth - 8, 13, "'Spectral',Georgia,serif", "700");
-    });
-    ctx.textAlign = "left";
+  // Approved medal remains an actual image, not a letter-only placeholder.
+  const symbol=data.emblem;
+  ctx.fillStyle="#0e1425";ctx.beginPath();ctx.arc(48,49,27,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#dbb76d";ctx.lineWidth=3;ctx.stroke();
+  const emblemImage=await loadFrontEmblem(symbol);
+  if(emblemImage && symbol){
+    const sx=symbol.col*symbol.cell,sy=symbol.row*symbol.cell;
+    ctx.drawImage(emblemImage,sx,sy,symbol.cell,symbol.cell,22,23,52,52);
   } else {
-    ctx.fillStyle = "#aab4c7";
-    ctx.font = "9px Georgia,serif";
-    ctx.fillText("DATI IN ATTESA DI COMPILAZIONE", 21, statsY + 25);
+    ctx.fillStyle="#f8d78a";ctx.textAlign="center";ctx.font="700 20px Georgia,serif";ctx.fillText("✦",48,56);
   }
-
-  if (data.hasAbilities) {
-    const y = 329, gap = 3, cellWidth = (308 - gap * 5) / 6;
-    data.abilities.forEach(({ label, value }, index) => {
-      const x = 16 + index * (cellWidth + gap);
-      ctx.fillStyle = "#101927";
-      ctx.fillRect(x, y, cellWidth, 37);
-      ctx.strokeStyle = "#8b7757";
-      ctx.strokeRect(x, y, cellWidth, 37);
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#dfc18d";
-      drawFittedText(ctx, label, x + cellWidth / 2, y + 13, cellWidth - 5, 8, "'Cinzel',Georgia,serif", "700");
-      ctx.fillStyle = ink;
-      drawFittedText(ctx, value, x + cellWidth / 2, y + 29, cellWidth - 5, 12, "'Spectral',Georgia,serif", "700");
+  ctx.fillStyle="#24140d";ctx.textAlign="center";
+  drawFittedText(ctx,data.name,182,45,data.badge?176:214,22,"'Cormorant Garamond',Georgia,serif","700");
+  ctx.fillStyle="#55381f";
+  drawFittedText(ctx,data.subtitle,182,63,data.badge?174:214,10,"'Spectral',Georgia,serif");
+  if(data.badge){
+    ctx.fillStyle="#0d1934";ctx.beginPath();ctx.arc(297,49,26,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#edc478";ctx.lineWidth=3;ctx.stroke();
+    ctx.fillStyle="#fce5b2";ctx.textAlign="center";
+    ctx.font="700 8px 'Cinzel',Georgia,serif";ctx.fillText(data.badge.top,297,43);
+    drawFittedText(ctx,data.badge.value,297,60,40,16,"'Spectral',Georgia,serif","700");
+  }
+  ctx.textAlign="left";
+  const artX=BX,artY=84,artW=BW,artH=data.hasAbilities?166:195;
+  canvasBox(ctx,artX,artY,artW,artH,"#100d15","#d5ab64");
+  const artwork=element.querySelector("img");
+  let artworkDrawn=false;
+  try {
+    if(artwork?.complete && artwork.naturalWidth>0){
+      const iw=artwork.naturalWidth,ih=artwork.naturalHeight||iw;
+      const fit=Math.max(artW/iw,artH/ih),sw=artW/fit,sh=artH/fit;
+      ctx.drawImage(artwork,(iw-sw)/2,(ih-sh)/2,sw,sh,artX,artY,artW,artH);
+      artworkDrawn=true;
+    }
+  } catch {/* The card remains exportable without a remote image. */}
+  ctx.strokeStyle="#d5ab64";ctx.lineWidth=2;ctx.strokeRect(artX,artY,artW,artH);
+  const statsY=data.hasAbilities?250:279, statsH=42,stats=data.highlights;
+  if(stats.length){
+    const w=BW/stats.length;
+    stats.forEach((item,index)=>{
+      const x=BX+index*w;
+      canvasBox(ctx,x,statsY,w,statsH,"#f9edcb","#ae783b");
+      ctx.textAlign="center";ctx.fillStyle="#754726";
+      drawFittedText(ctx,item.label.toUpperCase(),x+w/2,statsY+15,w-8,9,"'Cinzel',Georgia,serif","700");
+      ctx.fillStyle="#22150e";
+      drawFittedText(ctx,item.value,x+w/2,statsY+31,w-8,14,"'Spectral',Georgia,serif","700");
     });
-    ctx.textAlign = "left";
+  } else {
+    canvasBox(ctx,BX,statsY,BW,statsH,"#f9edcb","#ae783b");
+    ctx.fillStyle="#624122";ctx.font="9px Georgia,serif";ctx.fillText("I DATI COMPARRANNO QUI",22,statsY+24);
   }
-
-  const notesY = data.hasAbilities ? 375 : 356;
-  const notesH = data.hasAbilities ? 65 : 84;
-  ctx.fillStyle = "#0d1422";
-  ctx.fillRect(16, notesY, 308, notesH);
-  ctx.strokeStyle = "#b1955e";
-  ctx.strokeRect(16, notesY, 308, notesH);
-  let textY = notesY + 15;
-  data.details.slice(0, data.hasAbilities ? 2 : 3).forEach(({ label, value }) => {
-    ctx.fillStyle = "#dfbb78";
-    ctx.font = "700 8px 'Cinzel',Georgia,serif";
-    const detail = label.toUpperCase() + ": " + value;
-    drawFittedText(ctx, detail, 23, textY, 292, 9, "'Spectral',Georgia,serif", "600");
-    textY += 13;
+  if(data.hasAbilities){
+    const y=292,w=BW/6;
+    data.abilities.forEach((item,index)=>{
+      const x=BX+index*w;
+      canvasBox(ctx,x,y,w,44,"#fff3d4","#ad814a");
+      ctx.fillStyle="#6b4327";ctx.textAlign="center";
+      ctx.font="700 8px Georgia,serif";ctx.fillText(item.label,x+w/2,y+16);
+      ctx.fillStyle="#20150f";ctx.font="700 13px Georgia,serif";ctx.fillText(item.value,x+w/2,y+33,w-6);
+    });
+  }
+  const notesY=data.hasAbilities?336:321,notesH=data.hasAbilities?100:115;
+  const panel=ctx.createLinearGradient(0,notesY,0,notesY+notesH);
+  panel.addColorStop(0,"#fff6db");panel.addColorStop(1,"#efd6a6");
+  canvasBox(ctx,BX,notesY,BW,notesH,panel,"#a36d34");
+  ctx.textAlign="left";let yy=notesY+17;
+  data.details.forEach(item=>{
+    ctx.fillStyle="#5c351f";ctx.font="700 9px 'Cinzel',Georgia,serif";
+    const str=item.label.toUpperCase()+": "+item.value;
+    drawFittedText(ctx,str,23,yy,294,10,"'Spectral',Georgia,serif","600");
+    yy+=15;
   });
-  const desc = data.description || "Le informazioni della carta appariranno qui dopo la selezione di un record.";
-  ctx.font = "italic 10px 'Spectral',Georgia,serif";
-  ctx.fillStyle = "#f4e6d0";
-  const maxLines = Math.max(1, Math.floor((notesY + notesH - textY - 4) / 12));
-  drawWrappedText(ctx, desc, 23, textY + 1, 292, 12, Math.min(3, maxLines));
-
-  ctx.fillStyle = "#d7b980";
-  ctx.font = "700 8px 'Cinzel',Georgia,serif";
-  ctx.fillText("✦ TOMOFORGE", 18, 457);
-  ctx.textAlign = "right";
-  ctx.fillText(data.heading, 323, 457);
-  ctx.textAlign = "left";
-  canvas.artworkDrawn = artworkDrawn;
+  const description=data.description||"I dettagli appariranno dopo la selezione di un record.";
+  ctx.fillStyle="#342014";ctx.font="italic 11px 'Spectral',Georgia,serif";
+  const maxLines=Math.max(1,Math.min(5,Math.floor((notesY+notesH-yy-9)/13)));
+  drawWrappedText(ctx,description,23,yy+3,data.dice?246:291,13,maxLines);
+  if(data.dice){
+    const diceX=250,diceY=notesY+notesH-30;
+    canvasBox(ctx,diceX,diceY,68,25,"#8b1724","#e6b767");
+    ctx.textAlign="center";ctx.fillStyle="#fff1ce";
+    drawFittedText(ctx,data.dice,diceX+34,diceY+17,62,13,"'Cinzel',Georgia,serif","700");
+  }
+  const footY=438,footH=23;
+  canvasBox(ctx,BX,footY,BW,footH,data.accent,"#d7a75c");
+  ctx.fillStyle="#fce7b6";ctx.font="700 13px 'Cinzel',Georgia,serif";
+  ctx.textAlign="center";drawFittedText(ctx,data.heading,170,footY+16,280,13,"'Cinzel',Georgia,serif","700");
+  canvas.artworkDrawn=artworkDrawn;
   return canvas;
 }
 

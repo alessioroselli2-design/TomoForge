@@ -512,3 +512,89 @@ body {
 .tf-front-v2.tf-export-card { width: 340px !important; height: 476px !important; }
 .tf-front-v2.tf-export-card .tf-v2-title { font-size: 19px; }
 .tf-front-v2.tf-export-card .tf-v2-overline { font-size: 8px; }
+
+
+/* APPROVED FRONT v3 — fantasy parchment + ornamental gold, built from record data.
+   Keeps the old v2 styles for compatibility; only v3 classes are rendered. */
+.tf-front-v3 {
+  --tf-v3-gold: #d7aa55;
+  box-sizing: border-box; width:100%; height:100%; position:relative; isolation:isolate;
+  overflow:hidden; border:4px ridge #cf9a41; border-radius:2px;
+  color:#23150e; background:
+    radial-gradient(ellipse at 50% 0%,var(--tf-v3-accent,#7a2629),#1c0915 70%);
+  box-shadow:inset 0 0 0 2px #1b0b16,inset 0 0 0 6px #f3d286,inset 0 0 0 8px #331320,0 8px 28px #0009;
+  font-family:Spectral,Georgia,serif;
+}
+.tf-front-v3::before {content:"";position:absolute;inset:7px;z-index:6;pointer-events:none;
+ border:1px solid #e7b45e;outline:1px solid #50351a;outline-offset:-4px;}
+.tf-v3-corner {position:absolute;z-index:8;pointer-events:none;color:#ffe3a2;font-size:13px;
+ text-shadow:0 0 5px #a25d25,-1px -1px #4f2b15;}
+.tf-v3-tl{left:5px;top:2px}.tf-v3-tr{right:5px;top:2px}.tf-v3-bl{left:5px;bottom:2px}.tf-v3-br{right:5px;bottom:2px}
+.tf-v3-layout{position:absolute;inset:12px 11px 11px;display:grid;min-height:0;min-width:0;
+ grid-template-rows:17% 40% 11% 0 25% 7%;gap:0;}
+.tf-front-v3.tf-v3-six .tf-v3-layout{grid-template-rows:17% 35% 10% 11% 20% 7%;}
+.tf-v3-banner{position:relative;min-width:0;display:flex;align-items:center;gap:5px;
+ border:2px solid #ac7631;border-radius:13px 13px 5px 5px;
+ background:linear-gradient(90deg,#e1c38b 0%,#fff7db 25%,#f3e0af 75%,#a9783b 100%);
+ box-shadow:inset 0 0 0 2px #fae4a6,inset 0 0 0 3px #6a391e,0 2px 5px #0008;}
+.tf-v3-medallion{margin-left:-5px;flex:none;height:90%;aspect-ratio:1;border-radius:50%;
+ border:2px solid #f1c777;background:radial-gradient(circle,#39202c,#0a0d19);
+ box-shadow:0 0 0 2px #492418,0 0 0 3px #f2c46b,inset 0 0 7px #0d0812;}
+.tf-v3-sprite{width:100%;height:100%;border-radius:50%;background-repeat:no-repeat;}
+.tf-v3-fallback{display:grid;place-items:center;color:#f6d68c;font-size:26px;height:100%}
+.tf-v3-titles{min-width:0;flex:1;align-self:center;text-align:center;}
+.tf-v3-titles h3{font:bold clamp(15px,5.5cqw,21px)/1.03 'Cormorant Garamond',Georgia,serif;
+ margin:0 0 3px;color:#26150b;max-height:2.1em;overflow:hidden;overflow-wrap:anywhere}
+.tf-v3-titles p{font:9px/1.1 Spectral,Georgia,serif;margin:0;color:#5a3923;max-height:2.2em;overflow:hidden}
+.tf-v3-badge{flex:none;margin-right:-5px;max-width:53px;min-width:43px;aspect-ratio:1;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ border-radius:50%;border:2px solid #f3c979;color:#fff5d8;
+ background:radial-gradient(circle at 35% 25%,#2a4676,#07162d 74%);box-shadow:0 0 0 2px #4d2815,0 0 0 3px #edbb69;}
+.tf-v3-badge small{font:bold 7px Cinzel,Georgia,serif;color:#e9c788;line-height:1}
+.tf-v3-badge strong{font:bold 15px/1.1 Spectral,Georgia,serif;max-width:90%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.tf-v3-picture{position:relative;border:2px solid #f0cd77;background:#100d13;overflow:hidden;
+ box-shadow:inset 0 0 0 3px #442818,0 0 0 1px #3c190d;}
+.tf-v3-picture img{width:100%;height:100%;object-fit:cover;display:block;}
+.tf-v3-picture::after{content:"";position:absolute;inset:0;pointer-events:none;
+ box-shadow:inset 0 0 18px #180c12aa,inset 0 0 0 3px #30131a77}
+.tf-v3-art-hint,.tf-v3-art-warning{z-index:4;position:absolute;bottom:5px;left:4px;right:4px;text-align:center;
+ background:#0d1222dd;color:#ffdb89;font:8px Cinzel,Georgia,serif;padding:3px;}
+.tf-v3-stats{min-width:0;min-height:0;display:flex;align-items:stretch;gap:0;
+ border:1px solid #ae7236;background:linear-gradient(#fff5d3,#e9c98a);}
+.tf-v3-stat{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ padding:2px 3px;border-right:1px solid #c79c5a;text-align:center}
+.tf-v3-stat:last-child{border-right:0}
+.tf-v3-stat span{font:bold 9px/1.2 Cinzel,Georgia,serif;color:#613f26;white-space:nowrap}
+.tf-v3-stat strong{font:bold 12px/1.1 Spectral,Georgia,serif;color:#2a180d;max-width:100%;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-v3-abilities{min-height:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+ border:1px solid #b58a4d;background:linear-gradient(#faeaca,#fff7df);}
+.tf-v3-ability{text-align:center;min-width:0;display:flex;flex-direction:column;justify-content:center;
+ border-right:1px solid #c69b5e;}
+.tf-v3-ability:last-child{border-right:0}
+.tf-v3-ability span{font:bold 8px Cinzel,Georgia,serif;color:#63472e}
+.tf-v3-ability strong{font:700 12px Spectral,Georgia,serif;color:#20140d}
+.tf-v3-parchment{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid #ab763e;
+ padding:6px 7px;background:linear-gradient(160deg,#fff7db,#f2dfb3 56%,#ebd0a0);
+ box-shadow:inset 0 0 8px #b97c3433;}
+.tf-v3-details{margin:0 0 4px;font:9px/1.25 Spectral,Georgia,serif;color:#302013;display:flex;flex-wrap:wrap;gap:3px 8px;
+ overflow:hidden;max-height:41%}
+.tf-v3-details b{font:bold 8px Cinzel,Georgia,serif;color:#633922;text-transform:uppercase}
+.tf-v3-desc{color:#2c1c11;font:11px/1.22 Spectral,Georgia,serif;margin:0;overflow:hidden;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;line-clamp:5;}
+.tf-v3-dice{position:absolute;bottom:4px;right:5px;padding:3px 6px;background:linear-gradient(140deg,#b32e2f,#5c0713);
+ color:#fff2cb;border:2px ridge #edc06c;border-radius:7px;box-shadow:0 0 0 1px #552c18;
+ font:bold 11px Cinzel,Georgia,serif;max-width:37%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+.tf-v3-parchment:has(.tf-v3-dice) .tf-v3-desc{padding-right:27%}
+.tf-v3-category{align-self:stretch;display:flex;align-items:center;justify-content:space-around;gap:4px;
+ font:700 12px Cinzel,Georgia,serif;color:#fff2cc;letter-spacing:.8px;text-align:center;overflow:hidden;
+ border:2px solid #bb8137;border-radius:0 0 13px 13px;
+ background:linear-gradient(90deg,#2a0815,var(--tf-v3-accent,#7b1d2a) 50%,#290b15);
+ text-shadow:0 1px 2px #000;box-shadow:inset 0 0 0 1px #f8c66a88;}
+.tf-v3-category span{color:#f5c36c}
+.tf-front-v3.tf-export-card{width:340px!important;height:476px!important}
+
+/* Keep a visible emblem on slow/offline phones or while a race sprite is absent. */
+.tf-v3-medallion{position:relative;}
+.tf-v3-underlay{position:absolute;inset:0;z-index:0;}
+.tf-v3-sprite{position:relative;z-index:1;}

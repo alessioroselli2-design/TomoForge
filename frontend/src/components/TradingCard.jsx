@@ -5,85 +5,78 @@ import { getApprovedBack } from "@/lib/cardBacks";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
-  const blueprint = buildFrontBlueprint(card);
-  const [artworkError, setArtworkError] = React.useState(false);
-  React.useEffect(() => setArtworkError(false), [imgUrl, card.artwork_path]);
-  const hasArtwork = !!(imgUrl || card.artwork_path);
-  const img = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : artworkPlaceholder);
-  const handleError = React.useCallback((event) => {
-    const currentSource = event.currentTarget.dataset.artworkSrc;
-    if (event.currentTarget.dataset.fallback !== "1" ||
-        event.currentTarget.dataset.fallbackSrc !== currentSource) {
-      event.currentTarget.dataset.fallback = "1";
-      event.currentTarget.dataset.fallbackSrc = currentSource;
-      event.currentTarget.src = artworkPlaceholder;
-      if (hasArtwork) setArtworkError(true);
-    }
-  }, [hasArtwork]);
-
-  return (
-    <div
-      ref={ref}
-      data-testid="card-front"
-      data-front-version="2"
-      data-front-category={blueprint.type}
-      className={`tf-front-v2 ${exportMode ? "tf-export-card" : ""}`}
-      style={{ "--tf-front-accent": blueprint.accent, "--tf-front-shadow": blueprint.shadow }}
-    >
-      <div className={`tf-v2-layout ${blueprint.hasAbilities ? "tf-v2-with-abilities" : ""}`}>
-        <header className="tf-v2-header">
-          <span className="tf-v2-overline">{blueprint.heading} <span aria-hidden="true">✦</span> TOMOFORGE</span>
-          <h3 className="tf-v2-title" title={blueprint.name}>{blueprint.name}</h3>
-          <p className="tf-v2-subtitle">{blueprint.subtitle}</p>
-          <div className="tf-v2-crest" title={blueprint.subtitle} aria-label={`Sigillo ${blueprint.subtitle}`}>
-            {blueprint.crest}
-          </div>
-        </header>
-
-        <div className="tf-v2-artwork">
-          <img src={img} alt={blueprint.name} data-artwork-src={img} crossOrigin="anonymous"
-            onError={handleError} draggable={false} />
-          {editorMode && !hasArtwork && <span className="tf-v2-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
-          {artworkError && !exportMode && <span role="alert" className="tf-v2-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
-          {blueprint.dice && <span className="tf-v2-dice" aria-label={`Formula dado ${blueprint.dice}`}>{blueprint.dice}</span>}
-        </div>
-
-        <div className="tf-v2-stats" data-testid="front-highlights">
-          {blueprint.highlights.length ? blueprint.highlights.map((entry) => (
-            <div key={entry.label} className="tf-v2-stat">
-              <span>{entry.label}</span><strong title={entry.value}>{entry.value}</strong>
-            </div>
-          )) : <div className="tf-v2-stat tf-v2-stat-empty"><span>IN ATTESA DEI DATI DELLA CARTA</span></div>}
-        </div>
-
-        {blueprint.hasAbilities && <div className="tf-v2-abilities" data-testid="front-abilities">
-          {blueprint.abilities.map((entry) => (
-            <div key={entry.label} className="tf-v2-ability"><span>{entry.label}</span><strong>{entry.value}</strong></div>
-          ))}
-        </div>}
-
-        <section className="tf-v2-details" aria-label="Dati della carta">
-          {blueprint.details.length > 0 && <p className="tf-v2-detail-line">
-            {blueprint.details.map((entry) => <span key={entry.label}><b>{entry.label}</b> {entry.value}</span>)}
-          </p>}
-          <p className="tf-v2-description">{blueprint.description || "Le informazioni della carta appariranno qui dopo la selezione di un record."}</p>
-        </section>
-        <footer className="tf-v2-footer"><span>✦ TOMOFORGE</span><span>{blueprint.heading}</span></footer>
-      </div>
-    </div>
-  );
+ const data=buildFrontBlueprint(card);
+ const [artworkError,setArtworkError]=React.useState(false);
+ React.useEffect(()=>setArtworkError(false),[imgUrl,card.artwork_path]);
+ const hasArtwork=!!(imgUrl||card.artwork_path);
+ const img=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):artworkPlaceholder);
+ const handleError=React.useCallback(event=>{
+   const src=event.currentTarget.dataset.artworkSrc;
+   if(event.currentTarget.dataset.fallback!=="1"||event.currentTarget.dataset.fallbackSrc!==src){
+     event.currentTarget.dataset.fallback="1";
+     event.currentTarget.dataset.fallbackSrc=src;
+     event.currentTarget.src=artworkPlaceholder;
+     if(hasArtwork)setArtworkError(true);
+   }
+ },[hasArtwork]);
+ const symbol=data.emblem;
+ return <div ref={ref} data-testid="card-front" data-front-version="3"
+   data-front-category={data.type}
+   className={`tf-front-v3 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""}`}
+   style={{"--tf-v3-accent":data.accent}}>
+   <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
+   <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
+   <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
+   <span className="tf-v3-corner tf-v3-br" aria-hidden="true">✦</span>
+   <div className="tf-v3-layout">
+     <header className="tf-v3-banner">
+       <div className="tf-v3-medallion" data-testid="front-emblem" title={symbol?.label||data.subtitle}>
+         {symbol ? <>
+           <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
+           <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
+             backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
+         </> : <span className="tf-v3-fallback">✦</span>}
+       </div>
+       <div className="tf-v3-titles">
+         <h3 title={data.name}>{data.name}</h3>
+         <p>{data.subtitle}</p>
+       </div>
+       {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
+     </header>
+     <section className="tf-v3-picture">
+       <img src={img} data-artwork-src={img} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
+       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
+     </section>
+     <div className="tf-v3-stats" data-testid="front-highlights">
+       {data.highlights.length?data.highlights.map((item,i)=><div className="tf-v3-stat" key={i} title={item.fullValue||item.value}>
+         <span>{item.label}</span><strong>{item.value}</strong>
+       </div>):<div className="tf-v3-stat tf-v3-empty">I DATI COMPARRANNO QUI</div>}
+     </div>
+     {data.hasAbilities&&<div className="tf-v3-abilities" data-testid="front-abilities">
+       {data.abilities.map(item=><div className="tf-v3-ability" key={item.label}>
+         <span>{item.label}</span><strong>{item.value}</strong>
+       </div>)}
+     </div>}
+     <section className="tf-v3-parchment" aria-label="Dati della carta">
+       {data.details.length>0&&<p className="tf-v3-details">
+         {data.details.map((item,i)=><span key={i}><b>{item.label}</b> {item.value}</span>)}
+       </p>}
+       <p className="tf-v3-desc">{data.description||"I dettagli appariranno dopo la selezione di un record."}</p>
+       {data.dice&&<div className="tf-v3-dice" aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>}
+     </section>
+     <footer className="tf-v3-category"><span>✦</span>{data.heading}<span>✦</span></footer>
+   </div>
+ </div>;
 });
-CardFront.displayName = "CardFront";
+CardFront.displayName="CardFront";
 
-export const CardBack = React.forwardRef(({ card, exportMode }, ref) => {
-  // Official approved art is selected by type, independently of the new front.
-  const back = getApprovedBack(card);
-  return (
-    <div ref={ref} data-testid="card-back" data-back-asset={back.file}
-      className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode ? "tf-export-card" : ""}`}>
-      <img src={back.src} alt={`Retro ufficiale TomoForge: ${back.label}`}
-        className="absolute inset-0 block h-full w-full" style={{ objectFit: "contain" }} draggable={false} />
-    </div>
-  );
+export const CardBack=React.forwardRef(({card,exportMode},ref)=>{
+ const back=getApprovedBack(card);
+ return <div ref={ref} data-testid="card-back" data-back-asset={back.file}
+   className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode?"tf-export-card":""}`}>
+    <img src={back.src} alt={`Retro ufficiale TomoForge: ${back.label}`}
+    className="absolute inset-0 block h-full w-full" style={{objectFit:"contain"}} draggable={false}/>
+ </div>;
 });
-CardBack.displayName = "CardBack";
+CardBack.displayName="CardBack";
