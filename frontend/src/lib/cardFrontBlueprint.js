@@ -51,7 +51,7 @@ const ABILITY_KEYS = ["for", "des", "cos", "int", "sag", "car"];
 // formatted ability scores, including explicit modifiers, are left unchanged.
 const formattedAbility = (value) => {
   const text = String(value).trim();
-  if (!/^\\d{1,2}$/.test(text)) return text;
+  if (!/^\d{1,2}$/.test(text)) return text;
   const score = Number(text);
   if (score < 1 || score > 30) return text;
   const modifier = Math.floor((score - 10) / 2);
