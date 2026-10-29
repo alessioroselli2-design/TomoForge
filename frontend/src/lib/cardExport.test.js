@@ -134,7 +134,7 @@ describe("card export renderers", () => {
     expect(front.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
     ["MOSTRO", "Drago Cremisi", "CA", "18", "PF", "152", "12 m", "2d10+6",
       "FOR", "DES", "COS", "INT", "SAG", "CAR"].forEach((fragment) => expect(text).toContain(fragment));
-    expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 308 && entry.args.at(-1) === 191)).toBe(true);
+    expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 310 && entry.args.at(-1) === 166)).toBe(true);
     expect(text).toContain("Un guardiano antico");
     expect(front.operations.some((op) => op.name === "fillText" && op.y > 466)).toBe(false);
   });
@@ -150,7 +150,7 @@ describe("card export renderers", () => {
     const text = written(front);
     ["MAGIA", "Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
-    expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 220)).toBe(true);
+    expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 195)).toBe(true);
   });
 
   it("keeps unchanged official backs, including the silver Personaggio variant", async () => {
@@ -245,13 +245,13 @@ describe("card export renderers", () => {
   });
 
 
-  it("draws artwork without distortion using cover-cropping, including the SVG placeholder", async () => {
+  it("keeps the artwork dimensions in preview-aligned cover-cropping", async () => {
     const artwork = { complete: true, naturalWidth: 270, naturalHeight: 200 };
     const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
     const front = await renderCardCanvas(element, { type: "spell", name: "Tempesta", attributes: { livello: "3" } });
-    const op = front.operations.find(e => e.name === "drawImage");
+    const op = front.operations.find(e => e.name === "drawImage" && e.args[0] === artwork);
     expect(op.args).toHaveLength(9);
-    expect(op.args.slice(-4)).toEqual([16, 82, 308, 220]);
+    expect(op.args.slice(-4)).toEqual([15, 84, 310, 195]);
     expect(front.artworkDrawn).toBe(true);
   });
 
@@ -260,7 +260,7 @@ describe("card export renderers", () => {
     const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
     const front = await renderCardCanvas(element, { type: "item", name: "Spada", description: "Oggetto arcano." });
     expect(front.artworkDrawn).toBe(false);
-    expect(front.operations.some(op => op.name === "fillRect" && op.x === 16 && op.y === 82)).toBe(true);
+    expect(front.operations.some(op => op.name === "fillRect" && op.x === 15 && op.y === 84)).toBe(true);
     expect(written(front)).toContain("Spada");
   });
 });
