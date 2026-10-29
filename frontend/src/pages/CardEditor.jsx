@@ -952,7 +952,7 @@ export default function CardEditor() {
               <h1 className="font-display text-3xl sm:text-4xl tf-gold-text">{isEdit ? "Modifica Carta" : "Forgia una Carta"}</h1>
                 <p className="mt-2 font-body text-sm text-muted-foreground">Segui i passaggi del laboratorio: la preview resta accanto a te mentre modifichi.</p>
             </div>
-             <EditorNavigation />
+             <EditorNavigation cardType={card.type} />
 
             <ReferenceUpdatesPanel
               updates={referenceUpdates}
@@ -1468,6 +1468,7 @@ export default function CardEditor() {
                  </AccordionContent>
                </AccordionItem>
 
+               {card.type === "character" && (
                <AccordionItem value="back" id="editor-back" className="scroll-mt-28 border-0">
                  <AccordionTrigger className="font-heading text-xl text-foreground hover:no-underline">
                    <span className="flex items-center gap-2"><Palette className="h-5 w-5 text-gold" /> 5 · RETRO DELLA CARTA</span>
@@ -1498,6 +1499,7 @@ export default function CardEditor() {
                    </div>
                  </AccordionContent>
                </AccordionItem>
+               )}
              </Accordion>
 
             <Button data-testid="save-btn" onClick={save} disabled={saving}
@@ -1796,7 +1798,7 @@ function ManualPreloadDashboard({ manuals, loading, retryingPreload, onRetry, on
   );
 }
 
-const EditorNavigation = () => {
+const EditorNavigation = ({ cardType }) => {
   const goTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   return (
     <nav aria-label="Passaggi dell'editor" className="grid grid-cols-2 gap-2 border-y border-border py-3 sm:grid-cols-5">
@@ -1806,7 +1808,7 @@ const EditorNavigation = () => {
         ["editor-stats", "3 · STATISTICHE"],
         ["editor-appearance", "4 · FRONTE"],
         ["editor-back", "5 · RETRO"],
-      ].map(([id, label]) => (
+      ].filter(([id]) => id !== "editor-back" || cardType === "character").map(([id, label]) => (
         <button key={id} type="button" onClick={() => goTo(id)}
           className="border border-border px-2 py-2 font-label text-[9px] tracking-wider text-muted-foreground transition-colors hover:border-gold-deep hover:text-gold sm:text-[10px]">
           {label}
