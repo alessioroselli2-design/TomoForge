@@ -303,7 +303,6 @@ export default function CardEditor() {
   }, [card.type, card.reference_ids]);
 
   const set = (patch) => setCard((c) => ({ ...c, ...patch }));
-  const setAppearance = (appearance) => setCard((c) => ({ ...c, appearance }));
   const setBack = (patch) => setCard((c) => ({ ...c, back: { ...c.back, ...patch } }));
 
   const onTypeChange = (type) => {
