@@ -881,3 +881,12 @@ body {
 .tf-front-master-v7 .tf-v7-description-label{position:absolute;top:33%;left:2%;
  font:700 9px/1 Georgia,serif;color:#2b1a0f;display:block;}
 .tf-front-master-v7 .tf-v3-desc{top:41%;-webkit-line-clamp:6;line-clamp:6;}
+
+/* Register circles and parchment text to the identical reference wells. */
+.tf-front-master-v7 .tf-v3-medallion,
+.tf-front-master-v7 .tf-v3-badge {top:.7%;}
+.tf-front-master-v7 .tf-v3-details{height:36%;}
+.tf-front-master-v7 .tf-v5-detail-cell{padding-top:7px;}
+.tf-front-master-v7 .tf-v7-description-label{top:45%;}
+.tf-front-master-v7 .tf-v3-desc{top:53%;max-height:42%;-webkit-line-clamp:5;line-clamp:5;}
+.tf-front-master-v7 .tf-v3-qr{top:79%;bottom:auto;}
