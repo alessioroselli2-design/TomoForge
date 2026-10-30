@@ -1118,3 +1118,46 @@ body {
   left:calc(50% - 23px);
   top:calc(50% + 2px);
 }
+
+/* v14 · Substantive alignment pass after the iPhone test.
+   Titles and subtitles live INSIDE the clear parchment well: they must never
+   touch the ornamental left/right shoulders. No changes to the base artwork. */
+.tf-front-master-v7 .tf-v3-titles {
+  left:28%;width:44%;top:4.65%;height:8.85%;
+  box-sizing:border-box;padding-inline:6px;gap:1px;
+  transform:none;
+}
+.tf-front-master-v7 .tf-v3-titles h3 {
+  box-sizing:border-box;max-width:100%;width:100%;
+  font-size:clamp(15px,5.05cqw,17.25px);
+  line-height:1.04;letter-spacing:-.28px;
+  white-space:normal;text-wrap:balance;
+  overflow-wrap:normal;
+  margin:0;
+}
+.tf-front-master-v7.tf-v6-long-title .tf-v3-titles h3 {
+  font-size:clamp(14px,4.65cqw,16px);
+  line-height:1.04;letter-spacing:-.3px;
+  white-space:normal;text-overflow:clip;
+}
+.tf-front-master-v7.tf-v6-extra-long-title .tf-v3-titles h3{
+  font-size:clamp(12.5px,4cqw,14px);
+  line-height:1.05;
+}
+.tf-front-master-v7 .tf-v3-titles p {
+  box-sizing:border-box;max-width:100%;width:100%;
+  padding-inline:2px;
+  font-size:7.7px;line-height:1.06;
+  text-align:center;text-wrap:balance;
+  overflow-wrap:normal;
+  white-space:normal;
+}
+/* Optical alignment corrected inside the existing 60px medallions only. */
+.tf-front-master-v7 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
+  transform:translate(2px,-1px) scale(.91);
+  transform-origin:50% 50%;
+}
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
+  left:calc(50% - 20px);top:calc(50% + 2px);
+  width:24px;height:24px;
+}
