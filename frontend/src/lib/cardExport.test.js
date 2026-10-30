@@ -146,6 +146,20 @@ describe("card export renderers", () => {
     expect(front.operations.some((op)=>op.name==="drawImage" && op.args.at(-2)===47 && op.args.at(-1)===47)).toBe(true);
   });
 
+  it("prints the approved exact master image for a live v7 card, with no separate filigree", async () => {
+    const el=makeExportElement();
+    el.getAttribute=(name)=>name==="data-front-version"?"7":null;
+    const card={id:"dragon",type:"monster",name:"Drago Rosso Adulto",
+      attributes:{tipo_creatura:"Drago",grado_sfida:"17",classe_armatura:"19",punti_ferita:"256",
+        velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}};
+    const front=await renderCardCanvas(el,card);
+    const drawings=front.operations.filter(op=>op.name==="drawImage");
+    expect(drawings[0].args[0].src).toBe("/card-art/front-master-v7.webp");
+    expect(written(front)).toContain("Drago Rosso Adulto");
+    expect(written(front)).not.toContain("MOSTRI");
+    expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
+  });
+
   it("renders the spell-specific front without legacy color customization or fake dice", async () => {
     const card = {
       id: "fireball", type: "spell", name: "Palla di Fuoco",

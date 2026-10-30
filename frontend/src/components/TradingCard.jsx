@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
+import { FRONT_MASTER_URL } from "@/lib/frontMaster";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -25,10 +25,10 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  },[hasArtwork]);
  const symbol=data.emblem;
  const detailsLink=publicDescriptionUrl(card);
- return <div ref={ref} data-testid="card-front" data-front-version="3"
-   data-front-category={data.type} data-front-layout="seamless-v6"
-   className={`tf-front-v3 tf-front-v6 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
-   style={{"--tf-v3-accent":data.accent}}>
+ return <div ref={ref} data-testid="card-front" data-front-version="7"
+   data-front-category={data.type} data-front-layout="reference-master-v7"
+   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
+   style={{"--tf-v3-accent":data.accent,backgroundImage:`url(${FRONT_MASTER_URL})`}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
@@ -49,7 +49,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
      </header>
      <section className="tf-v3-picture">
-       <img src={img} data-artwork-src={img} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
+       <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
        {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
@@ -70,8 +70,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </div>}
      <section className="tf-v3-parchment" aria-label="Dati della carta">
        {data.details.length>0&&<div className={`tf-v3-details ${data.type==="monster"?"tf-v5-monster-details":""}`}>
-         {data.details.map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
+         {data.details.slice(0,2).map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
        </div>}
+       <span className="tf-v7-description-label">Descrizione</span>
        <p className="tf-v3-desc">{data.description||"I dettagli appariranno dopo la selezione di un record."}</p>
        {data.dice&&<div className="tf-v3-dice" aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
@@ -82,7 +83,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
-   <img className="tf-v4-filigree" src={ORNATE_FRAME_URL} alt="" aria-hidden="true" draggable={false}/>
+   {/* The original approved drawing IS the frame. Never paste a second frame over it. */}
 
  </div>;
 });

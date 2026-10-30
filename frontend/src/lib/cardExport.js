@@ -1,6 +1,7 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
+import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -84,6 +85,96 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
     .forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight, maxWidth));
 };
 
+
+/* Print the same exact approved frame seen in the editor, with real text and
+   true artwork, rather than drawing a second approximation of the design.
+   Legacy projects lacking a v7 preview still use the original safe renderer. */
+async function renderApprovedMaster(element,card) {
+ const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
+ const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
+ const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
+ const master=new Image();
+ await new Promise((resolve,reject)=>{
+   master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
+   master.src=FRONT_MASTER_URL;
+   if(master.complete&&master.naturalWidth>0)resolve();
+ });
+ ctx.drawImage(master,0,0,width,height);
+ const art=element.querySelector(".tf-v3-picture img");
+ const g=MASTER_REGIONS.art;
+ let artworkDrawn=false;
+ if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
+   const iw=art.naturalWidth,ih=art.naturalHeight||iw;
+   const fit=Math.max(g.w/iw,g.h/ih),sw=g.w/fit,sh=g.h/fit;
+   ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,g.x,g.y,g.w,g.h);
+   artworkDrawn=true;
+ } catch {}
+ const icon=await loadFrontEmblem(data.emblem);
+ if(icon&&data.emblem) {
+   const s=data.emblem,m=MASTER_REGIONS.emblem;
+   ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,m.x-m.r,m.y-m.r,m.r*2,m.r*2);
+ }
+ ctx.fillStyle="#29180e";ctx.textAlign="center";
+ drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+6,
+   MASTER_REGIONS.title.w,data.name.length>=17?16:20,"'Cormorant Garamond',Georgia,serif","700");
+ ctx.fillStyle="#4a2b1a";
+ drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y,
+   MASTER_REGIONS.subtitle.w,9,"'Spectral',Georgia,serif","400");
+ if(data.badge){
+   ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
+   ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,35);
+   drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,49,44,22,"Georgia,serif","700");
+ }
+ const statY=MASTER_REGIONS.stats.y;
+ const statImages=await Promise.all(data.highlights.map(async it=>{
+   const src=getFrontStatIcon(it.label);
+   if(!src)return null;
+   const im=new Image();try {
+     await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=src;
+       if(im.complete&&im.naturalWidth>0)resolve()});
+     return im;
+   } catch {return null;}
+ }));
+ const sx=MASTER_REGIONS.stats.x,cellW=MASTER_REGIONS.stats.w/3;
+ data.highlights.slice(0,3).forEach((it,i)=>{
+   const cx=sx+(i+.5)*cellW,icon=statImages[i];
+   if(icon)try {ctx.drawImage(icon,cx-31,statY+7,22,22)}catch{}
+   const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
+   ctx.textAlign="center";ctx.fillStyle="#51301c";
+   drawFittedText(ctx,it.label,tx,statY+13,max,9,"Georgia,serif","700");
+   ctx.fillStyle="#1d140c";
+   drawFittedText(ctx,it.value,tx,statY+29,max,it.label==="Vel."?9:13,"Georgia,serif","700");
+ });
+ data.abilities.slice(0,6).forEach((it,i)=>{
+   const cx=MASTER_REGIONS.abilities.x+(i+.5)*MASTER_REGIONS.abilities.w/6;
+   ctx.fillStyle="#402418";ctx.textAlign="center";ctx.font="700 8px Georgia,serif";
+   ctx.fillText(it.label,cx,MASTER_REGIONS.abilities.y+13);
+   ctx.fillStyle="#23150f";
+   drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+30,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
+ });
+ const details=data.details.slice(0,2);
+ details.forEach((d,i)=>{
+   const x=MASTER_REGIONS.detail.x+8+i*152;
+   ctx.fillStyle="#2d190e";ctx.textAlign="left";
+   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+15,136,9,"Georgia,serif","700");
+   ctx.font="9px Spectral,Georgia,serif";
+   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+28,136,11,2);
+ });
+ const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
+ ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
+ ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+14);
+ ctx.font="10px Spectral,Georgia,serif";
+ drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+29,
+   card?.id?244:287,12,5);
+ const qr=element.querySelector('[data-card-qr] canvas');
+ if(card?.id&&qr)try {
+   ctx.fillStyle="#fff";ctx.fillRect(278,414,42,42);
+   ctx.drawImage(qr,281,417,36,36);
+   ctx.strokeStyle="#b37c38";ctx.lineWidth=1;ctx.strokeRect(278,414,42,42);
+ }catch{}
+ canvas.artworkDrawn=artworkDrawn;return canvas;
+}
+
 // Premium front v3: the same badge, medallion and parchment information shown
 // in CardFront is drawn at physical card size for PNG and both PDF print paths.
 const loadFrontEmblem = async (emblem) => {
@@ -103,6 +194,11 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
 };
 export async function renderCardCanvas(element, card) {
   if (!element) throw new Error("Card render unavailable");
+  if (element.getAttribute?.("data-front-version")==="7") {
+    await waitForImages(element);
+    if(document.fonts?.ready)await document.fonts.ready;
+    return renderApprovedMaster(element,card);
+  }
   await waitForImages(element);
   if(document.fonts?.ready)await document.fonts.ready;
   const data=buildFrontBlueprint(card);
