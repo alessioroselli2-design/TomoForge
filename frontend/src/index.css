@@ -1021,3 +1021,43 @@ body {
 .tf-front-master-v7 .tf-v3-medallion .tf-v3-sprite {
   filter:none;image-rendering:auto;
 }
+
+/* v11 medal registration: the circles are EXACTLY the 60px wells cut into the
+   approved 340x476 artwork (x=55 and 285, y=39, r=30). Do not redraw any
+   ornaments: only constrain the dynamic symbol INSIDE those existing wells. */
+.tf-front-master-v7 .tf-v3-medallion {
+  left:7.35294%;top:1.89076%;width:17.64706%;height:auto;
+  aspect-ratio:1 / 1;max-width:none;max-height:none;
+  margin:0;border:0;box-shadow:none;border-radius:50%;
+  overflow:hidden;filter:none;
+}
+.tf-front-master-v7 .tf-v3-medallion .tf-v3-sprite {
+  width:100%;height:100%;border-radius:50%;
+  background-repeat:no-repeat;background-position:center;
+}
+.tf-front-master-v7 .tf-v3-badge {
+  right:7.35294%;top:1.89076%;width:17.64706%;height:auto;
+  aspect-ratio:1 / 1;max-width:none;min-width:0;
+  margin:0;padding:0;border:0;box-shadow:none;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+}
+.tf-front-master-v7 .tf-v3-badge small {font-size:8px;line-height:1;}
+.tf-front-master-v7 .tf-v3-badge strong {font-size:19px;line-height:1.04;}
+/* Reuse the same print-canvas coordinates for CA/PF:
+   icon left at stat centre - 24px, label/value centre + 10px. */
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon {
+  display:block!important;position:relative;
+  padding:0!important;min-width:0;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-icon {
+  position:absolute!important;left:calc(50% - 24px);top:calc(50% + 1px);
+  transform:translateY(-50%);width:22px;height:22px;min-width:0;
+  margin:0;max-width:none;max-height:none;object-fit:contain;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {
+  position:absolute;left:calc(50% - 7px);top:50%;
+  transform:translateY(-50%);width:34px!important;max-width:34px;
+  height:auto;min-width:0;margin:0;padding:0;
+  display:flex;flex-direction:column;justify-content:center;
+  align-items:center;gap:1px;text-align:center;
+}
