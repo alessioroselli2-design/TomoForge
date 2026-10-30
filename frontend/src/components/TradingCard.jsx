@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { FRONT_MASTER_URL } from "@/lib/frontMaster";
+import { FRONT_MASTER_URL, FRONT_DETAIL_REPAIR_URL } from "@/lib/frontMaster";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -83,7 +83,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
-   {/* The original approved drawing IS the frame. Never paste a second frame over it. */}
+   {/* Only the erased paper texture is repaired; all goldwork remains the approved master. */}
+   <img className="tf-v8-detail-repair" data-front-detail-repair src={FRONT_DETAIL_REPAIR_URL}
+     alt="" aria-hidden="true" draggable={false}/>
 
  </div>;
 });

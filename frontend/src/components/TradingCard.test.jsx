@@ -212,6 +212,8 @@ describe("new front integration",()=>{
    expect(front).not.toBeNull();
    expect(front.querySelector(".tf-v5-bottom-rail")).toBeNull();
    expect(front.querySelectorAll(".tf-v4-filigree")).toHaveLength(0);
+   const repair=front.querySelector("[data-front-detail-repair]");
+   expect(repair?.getAttribute("src")).toBe("/card-art/front-detail-repair-v8.webp");
    expect(front.querySelector("img").getAttribute("alt")).toBe("Drago Rosso Adulto");
    await act(async()=>root.unmount());
    container.remove();

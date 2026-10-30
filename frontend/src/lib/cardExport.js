@@ -1,7 +1,7 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
-import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
+import { FRONT_MASTER_URL, FRONT_DETAIL_REPAIR_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -100,6 +100,19 @@ async function renderApprovedMaster(element,card) {
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
+ // Paint the restored parchment texture *before* data, never over the labels
+ // or the permanent QR. The same aligned repair appears in the editor.
+ const repair=new Image();
+ try {
+   await new Promise((resolve,reject)=>{
+     repair.onload=resolve;repair.onerror=reject;
+     repair.src=FRONT_DETAIL_REPAIR_URL;
+     if(repair.complete&&repair.naturalWidth>0)resolve();
+   });
+   ctx.drawImage(repair,0,0,width,height);
+ } catch {
+   // Retain a printable master if this tiny decorative texture fails to load.
+ }
  const art=element.querySelector(".tf-v3-picture img");
  const g=MASTER_REGIONS.art;
  let artworkDrawn=false;
