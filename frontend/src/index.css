@@ -912,3 +912,79 @@ body {
   font:9px/1.24 'Spectral',Georgia,serif;color:#38241a;
   background:none;border:0;padding:0;margin:0;
 }
+
+/* v9 final front polish: precision placement on the *approved* drawn master.
+   No new panels or pasted graphics; keep the repaired Sensi/Azioni parchment. */
+.tf-front-master-v7 .tf-v3-medallion {
+  top: .8%;
+  filter: contrast(1.1) saturate(1.05);
+}
+.tf-front-master-v7 .tf-v3-sprite {
+  image-rendering:auto;
+  background-repeat:no-repeat;
+}
+.tf-front-master-v7 .tf-v3-badge {
+  top:.8%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:0;line-height:1;
+}
+.tf-front-master-v7 .tf-v3-badge small {
+  display:block;margin:0;font:700 8px/1 'Cinzel',Georgia,serif;
+}
+.tf-front-master-v7 .tf-v3-badge strong {
+  display:block;margin:0;font:700 19px/1.05 'Spectral',Georgia,serif;
+}
+.tf-front-master-v7 .tf-v3-titles{
+  top:3.9%;height:10.2%;justify-content:center;gap:3px;
+}
+.tf-front-master-v7 .tf-v3-titles h3{
+  line-height:1.05;letter-spacing:-.22px;
+}
+.tf-front-master-v7 .tf-v3-titles p{
+  font:8.7px/1.12 'Spectral',Georgia,serif;
+  max-height:2.5em;text-wrap:balance;overflow-wrap:normal;
+}
+/* Fixed icon well + centered stat text. No overlap between CA/PF icons and numbers. */
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon{
+  display:grid;grid-template-columns:29px minmax(0,1fr);align-items:center;
+  justify-items:center;column-gap:0;padding:0 3px;
+}
+.tf-front-master-v7 .tf-v6-stat-icon{
+  display:block;position:static;width:25px;height:25px;flex:none;
+  object-fit:contain;align-self:center;justify-self:center;
+}
+.tf-front-master-v7 .tf-v6-stat-text{
+  min-width:0;max-width:100%;width:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;overflow:visible;
+  text-align:center;padding:0;
+}
+.tf-front-master-v7 .tf-v3-stat:not(.tf-v6-stat-with-icon){
+  display:flex;flex-direction:column;justify-content:center;
+  align-items:center;gap:1px;padding:1px 3px;text-align:center;
+}
+.tf-front-master-v7 .tf-v6-stat-text>span,
+.tf-front-master-v7 .tf-v3-stat>span{line-height:1.05;font-size:8px;}
+.tf-front-master-v7 .tf-v6-stat-text>strong{font-size:12px;line-height:1.1;}
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="Vel."] strong{
+  display:block;font:700 8.5px/1.06 'Spectral',Georgia,serif;
+  max-height:3.4em;width:100%;overflow:hidden;
+  overflow-wrap:normal;word-break:normal;white-space:normal;
+  text-overflow:clip;text-align:center;
+}
+.tf-front-master-v7 .tf-v3-ability{
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  padding:0 1px;
+}
+.tf-front-master-v7 .tf-v3-ability span{font-size:8px;line-height:1;}
+.tf-front-master-v7 .tf-v3-ability strong{font-size:10px;line-height:1.08;}
+.tf-front-master-v7 .tf-v5-detail-cell span{
+  font-size:8.5px;line-height:1.22;overflow-wrap:normal;
+}
+.tf-front-master-v7 .tf-v3-desc{
+  line-height:1.24;overflow-wrap:normal;
+}
+.tf-front-master-v7 .tf-v3-picture .tf-v3-art-hint{
+  left:7%;right:7%;bottom:3px;padding:5px 3px 3px;
+  background:linear-gradient(0deg,rgba(13,9,15,.76),rgba(13,9,15,.08));
+  color:#f8dea9;font:700 7px/1.14 'Cinzel',Georgia,serif;
+  letter-spacing:.04em;border:0;box-shadow:none;
+}

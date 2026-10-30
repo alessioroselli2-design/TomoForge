@@ -52,6 +52,8 @@ describe("reference card statistics medallions", () => {
     expect(badges.map(img=>img.getAttribute("src")))
       .toEqual(["/card-art/stat-ca.webp","/card-art/stat-pf.webp"]);
     expect(element.querySelectorAll(".tf-v3-stat")).toHaveLength(3);
+    expect([...element.querySelectorAll("[data-stat-label]")].map(el=>el.getAttribute("data-stat-label")))
+      .toEqual(["CA","PF","Vel."]);
     await act(async () => root.unmount());
     element.remove();
   });
