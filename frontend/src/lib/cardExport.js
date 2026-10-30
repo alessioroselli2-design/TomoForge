@@ -130,15 +130,15 @@ async function renderApprovedMaster(element,card) {
    ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,m.x-m.r,m.y-m.r,m.r*2,m.r*2);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
- drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+6,
+ drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+8,
    MASTER_REGIONS.title.w,data.name.length>=17?16:20,"'Cormorant Garamond',Georgia,serif","700");
  ctx.fillStyle="#4a2b1a";
- drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y,
-   MASTER_REGIONS.subtitle.w,9,"'Spectral',Georgia,serif","400");
+ drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y+2,
+   MASTER_REGIONS.subtitle.w,8.5,"'Spectral',Georgia,serif","400");
  if(data.badge){
    ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
-   ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,35);
-   drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,49,44,22,"Georgia,serif","700");
+   ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
+   drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
  const statY=MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
@@ -153,41 +153,41 @@ async function renderApprovedMaster(element,card) {
  const sx=MASTER_REGIONS.stats.x,cellW=MASTER_REGIONS.stats.w/3;
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
-   if(icon)try {ctx.drawImage(icon,cx-24,statY+10,22,22)}catch{}
+   if(icon)try {ctx.drawImage(icon,cx-22,statY+12,22,22)}catch{}
    const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
-   drawFittedText(ctx,it.label,tx,statY+12,max,9,"Georgia,serif","700");
+   drawFittedText(ctx,it.label,tx,statY+14,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
    if(it.label==="Vel.") {
      // Full movement modes, no ellipsis or line clipped by the parchment border.
-     ctx.font="700 8px Georgia,serif";
+     ctx.font="700 7.8px Georgia,serif";
      const lines=wrapTextLines(ctx,it.value,max-3).slice(0,3);
-     const first=statY+(lines.length===1?29:lines.length===2?24:19);
-     lines.forEach((line,n)=>ctx.fillText(line,tx,first+n*9,max-3));
+     const first=statY+(lines.length===1?30:lines.length===2?26:21);
+     lines.forEach((line,n)=>ctx.fillText(line,tx,first+n*8,max-3));
    } else {
-     drawFittedText(ctx,it.value,tx,statY+29,max,13,"Georgia,serif","700");
+     drawFittedText(ctx,it.value,tx,statY+31,max,13,"Georgia,serif","700");
    }
  });
  data.abilities.slice(0,6).forEach((it,i)=>{
    const cx=MASTER_REGIONS.abilities.x+(i+.5)*MASTER_REGIONS.abilities.w/6;
    ctx.fillStyle="#402418";ctx.textAlign="center";ctx.font="700 8px Georgia,serif";
-   ctx.fillText(it.label,cx,MASTER_REGIONS.abilities.y+13);
+   ctx.fillText(it.label,cx,MASTER_REGIONS.abilities.y+15);
    ctx.fillStyle="#23150f";
-   drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+30,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
+   drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+32,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
  });
  const details=data.details.slice(0,2);
  details.forEach((d,i)=>{
    const x=MASTER_REGIONS.detail.x+8+i*152;
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
-   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+15,136,9,"Georgia,serif","700");
+   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+17,136,9,"Georgia,serif","700");
    ctx.font="9px Spectral,Georgia,serif";
-   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+28,136,11,2);
+   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+30,136,11,2);
  });
  const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
  ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
- ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+14);
+ ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+16);
  ctx.font="10px Spectral,Georgia,serif";
- drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+29,
+ drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+31,
    card?.id?244:287,12,5);
  const qr=element.querySelector('[data-card-qr] canvas');
  if(card?.id&&qr)try {

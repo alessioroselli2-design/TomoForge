@@ -2,7 +2,7 @@ import { getFrontEmblem } from "./frontEmblems";
 describe("approved TomoForge front medal rules",()=>{
  it("uses unique Beholder and Dragon monster medals",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Aberrazione"}}).index).toBe(13);
-  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/drago-originale-hd.webp", cell:128});
+  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/drago-originale-hd-v2.webp", cell:160});
  });
  it("uses school-specific medals rather than a generic magic icon",()=>{
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Invocazione"}}).index).toBe(32);
