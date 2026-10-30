@@ -875,3 +875,9 @@ body {
 /* Without a six-ability block, use the empty six columns as additional detail
    space rather than leaving a second artificial card design on top of the art. */
 .tf-front-master-v7:not(.tf-v3-six) .tf-v3-abilities{display:none;}
+
+.tf-front-master-v7 .tf-v3-picture img[data-is-placeholder="true"]{opacity:0;}
+.tf-front-master-v7 .tf-v3-picture img[src*="artwork-placeholder.svg"]{opacity:0;}
+.tf-front-master-v7 .tf-v7-description-label{position:absolute;top:33%;left:2%;
+ font:700 9px/1 Georgia,serif;color:#2b1a0f;display:block;}
+.tf-front-master-v7 .tf-v3-desc{top:41%;-webkit-line-clamp:6;line-clamp:6;}

@@ -103,7 +103,7 @@ async function renderApprovedMaster(element,card) {
  const art=element.querySelector(".tf-v3-picture img");
  const g=MASTER_REGIONS.art;
  let artworkDrawn=false;
- if (art?.complete&&art.naturalWidth>0) try {
+ if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const fit=Math.max(g.w/iw,g.h/ih),sw=g.w/fit,sh=g.h/fit;
    ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,g.x,g.y,g.w,g.h);

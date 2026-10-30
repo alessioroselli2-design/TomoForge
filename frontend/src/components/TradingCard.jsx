@@ -49,7 +49,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
      </header>
      <section className="tf-v3-picture">
-       <img src={img} data-artwork-src={img} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
+       <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
        {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
@@ -70,8 +70,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </div>}
      <section className="tf-v3-parchment" aria-label="Dati della carta">
        {data.details.length>0&&<div className={`tf-v3-details ${data.type==="monster"?"tf-v5-monster-details":""}`}>
-         {data.details.map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
+         {data.details.slice(0,2).map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
        </div>}
+       <span className="tf-v7-description-label">Descrizione</span>
        <p className="tf-v3-desc">{data.description||"I dettagli appariranno dopo la selezione di un record."}</p>
        {data.dice&&<div className="tf-v3-dice" aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
