@@ -780,3 +780,98 @@ body {
  -webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;}
 .tf-front-v6 .tf-v3-parchment{background:linear-gradient(160deg,#fff5d9,#f6e4c1 55%,#eaca99);}
 .tf-front-v6 .tf-v3-qr{z-index:15;}
+
+/* v7. MASTER REFERENCE — exact user-supplied ornamental image. The drawing is
+   the one and only graphic layer. Every string, image, badge, QR and emblem
+   remains selectable, dynamic DOM over the blank wells of the artwork.
+   Percentages are measured against the master at 1086 × 1448. */
+.tf-front-v3.tf-front-master-v7 {
+  box-sizing:border-box; overflow:hidden; border:0; border-radius:0;
+  background-color:#170709; background-position:center; background-size:100% 100%;
+  background-repeat:no-repeat; box-shadow:none; isolation:isolate; container-type:inline-size;
+}
+.tf-front-master-v7::before {display:none!important;}
+.tf-front-master-v7 .tf-v3-corner {display:none!important;}
+.tf-front-master-v7 .tf-v3-layout{position:absolute;inset:0!important;display:block;
+  width:100%;height:100%;z-index:2;min-width:0;min-height:0;}
+.tf-front-master-v7 .tf-v3-banner{position:static;display:contents;border:0;border-radius:0;
+  background:none;box-shadow:none;}
+.tf-front-master-v7 .tf-v3-banner::after{display:none;}
+.tf-front-master-v7 .tf-v3-medallion {position:absolute;top:2.5%;left:5.8%;
+  width:21.5%;height:auto;aspect-ratio:1;border:0;border-radius:50%;
+  overflow:hidden;margin:0;z-index:6;
+  background:radial-gradient(circle,#36100e,#160607);
+  box-shadow:none;}
+.tf-front-master-v7 .tf-v3-medallion::after{display:none;}
+.tf-front-master-v7 .tf-v3-sprite{height:100%;width:100%;border-radius:50%;}
+.tf-front-master-v7 .tf-v3-titles{position:absolute;left:26%;top:4.5%;
+  width:48%;height:9%;padding:0;margin:0;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;gap:1px;}
+.tf-front-master-v7 .tf-v3-titles h3{
+  color:#2a130d;font:700 clamp(11px,5.2cqw,22px)/1.04 'Cormorant Garamond',Georgia,serif;
+  letter-spacing:-.35px;text-wrap:balance;white-space:normal;max-height:2.1em;
+  margin:0;overflow:hidden;text-overflow:clip;}
+.tf-front-master-v7 .tf-v3-titles p{
+  color:#493124;font:9px/1.1 Spectral,Georgia,serif;
+  white-space:normal;text-align:center;max-height:2.2em;overflow:hidden;}
+.tf-front-master-v7.tf-v6-long-title .tf-v3-titles h3{
+  font-size:clamp(10px,4.25cqw,16px);letter-spacing:-.25px;white-space:normal;}
+.tf-front-master-v7 .tf-v3-badge{position:absolute;top:2.5%;right:6%;
+  width:21.5%;min-width:0;max-width:none;height:auto;aspect-ratio:1;
+  margin:0;box-sizing:border-box;background:transparent;border:0;border-radius:50%;
+  box-shadow:none;color:#fff2db;z-index:6;}
+.tf-front-master-v7 .tf-v3-badge::after{display:none;}
+.tf-front-master-v7 .tf-v3-badge small{font-size:8px;color:#f9d6a5;}
+.tf-front-master-v7 .tf-v3-badge strong{font-size:clamp(14px,5.6cqw,23px);}
+.tf-front-master-v7 .tf-v3-picture{position:absolute;left:5.4%;top:15.8%;
+  width:89.2%;height:26.5%;min-height:0;border:0!important;
+  background:transparent!important;border-radius:11px;box-shadow:none!important;
+  overflow:hidden;z-index:2;}
+.tf-front-master-v7 .tf-v3-picture::after {display:none;}
+.tf-front-master-v7 .tf-v3-picture img{width:100%;height:100%;object-fit:cover;display:block;}
+.tf-front-master-v7 .tf-v3-picture:not(:has(img[src])) {background:transparent;}
+.tf-front-master-v7 .tf-v3-stats {position:absolute;left:5.3%;top:43.8%;
+  width:89.3%;height:8.2%;min-height:0;background:none!important;
+  border:0!important;border-radius:0;box-shadow:none;gap:0;z-index:3;}
+.tf-front-master-v7 .tf-v3-stat{flex:1!important;min-width:0;
+  padding:0 2px;border:0!important;box-shadow:none;}
+.tf-front-master-v7 .tf-v3-stat:last-child{flex:1!important;}
+.tf-front-master-v7 .tf-v3-stat:not(:last-child)::after{display:none;}
+.tf-front-master-v7 .tf-v6-stat-icon{height:24px;width:24px;flex:0 0 24px;}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon{gap:0;}
+.tf-front-master-v7 .tf-v6-stat-text > span,.tf-front-master-v7 .tf-v3-stat span{
+  font-size:8px;font-weight:700;color:#3e2014;}
+.tf-front-master-v7 .tf-v6-stat-text > strong,.tf-front-master-v7 .tf-v3-stat strong{
+  font-size:11px;color:#271309;white-space:normal;line-height:1.1;
+  overflow:visible;text-overflow:clip;overflow-wrap:anywhere;}
+.tf-front-master-v7 .tf-v3-abilities{position:absolute;left:5.3%;top:52.8%;
+  width:89.3%;height:8.5%;min-height:0;background:transparent!important;border:0!important;
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;}
+.tf-front-master-v7 .tf-v3-ability{border:0!important;
+ background:none!important;}
+.tf-front-master-v7 .tf-v3-ability span{font:bold 8px Spectral,Georgia,serif;color:#3d2518;}
+.tf-front-master-v7 .tf-v3-ability strong{font:bold 10px Spectral,Georgia,serif;color:#231509;letter-spacing:-.3px;}
+.tf-front-master-v7 .tf-v3-parchment{position:absolute;left:5.2%;top:62.1%;
+  width:89.4%;height:31.4%;min-height:0;padding:0;border:0!important;
+  background:none!important;box-shadow:none!important;overflow:hidden;
+  border-radius:0;}
+.tf-front-master-v7 .tf-v3-details{position:absolute;left:0;top:0;width:100%;height:30%;
+  max-height:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;
+  padding:0 2%;margin:0;border:0;overflow:hidden;}
+.tf-front-master-v7 .tf-v5-detail-cell{padding:1px 3px;min-width:0;gap:1px;
+  overflow:hidden;border:0!important;}
+.tf-front-master-v7 .tf-v5-detail-cell:nth-child(3){grid-column:1 / -1;}
+.tf-front-master-v7 .tf-v5-detail-cell b{font-size:8px;color:#2e180d;}
+.tf-front-master-v7 .tf-v5-detail-cell span{font:8px/1.15 Spectral,Georgia,serif;color:#2a1b10;}
+.tf-front-master-v7 .tf-v3-desc{position:absolute;left:2%;top:36%;
+ width:95%;max-height:61%;margin:0;padding:0;
+ font:10px/1.19 Spectral,Georgia,serif;color:#2c1b0d;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:8;line-clamp:8;overflow:hidden;}
+.tf-front-master-v7 .tf-v3-parchment:has(.tf-v3-qr) .tf-v3-desc{padding-right:55px;}
+.tf-front-master-v7 .tf-v3-qr{z-index:9;right:2%;bottom:4%;width:42px;height:42px;padding:2px;}
+.tf-front-master-v7 .tf-v3-qr canvas{width:36px!important;height:36px!important;}
+.tf-front-master-v7 .tf-v3-dice{bottom:3%;left:2%;z-index:9;}
+.tf-front-master-v7 .tf-v4-filigree{display:none;}
+/* Without a six-ability block, use the empty six columns as additional detail
+   space rather than leaving a second artificial card design on top of the art. */
+.tf-front-master-v7:not(.tf-v3-six) .tf-v3-abilities{display:none;}
