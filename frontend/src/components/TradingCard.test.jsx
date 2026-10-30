@@ -231,6 +231,7 @@ describe("v10: approved dragon high resolution and readable senses",()=>{
     const emblem=container.querySelector(".tf-v3-sprite");
     expect(emblem.style.backgroundImage).toContain("drago-originale-hd-v2.webp");
     expect(emblem.style.backgroundSize).toBe("100% 100%");
+    expect(container.querySelector('[data-testid="front-emblem"]').dataset.emblemSprite).toBe("drago-hd");
     expect(container.textContent).toContain("vista cieca 18 m");
     await act(async()=>root.unmount());container.remove();
   });

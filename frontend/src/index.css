@@ -1091,3 +1091,30 @@ body {
 .tf-front-master-v7 .tf-v5-detail-cell {padding-top:8px!important;}
 .tf-front-master-v7 .tf-v7-description-label {top:47%;}
 .tf-front-master-v7 .tf-v3-desc {top:55%;max-height:39%;}
+
+/* v13 · Fine tuning requested after iPhone trial.
+   Change only the dynamic contents inside the approved engraved wells.
+   Keep the master raster, parchment labels, data and footer unchanged. */
+.tf-front-master-v7 .tf-v3-titles h3 {
+  font-size:clamp(16px,5.7cqw,21px);
+  line-height:1.02;letter-spacing:-.45px;
+  max-width:100%;text-wrap:balance;
+}
+.tf-front-master-v7.tf-v6-long-title .tf-v3-titles h3 {
+  font-size:clamp(15px,5.15cqw,19px);
+  line-height:1.02;letter-spacing:-.45px;
+  white-space:normal;max-width:100%;
+}
+/* The design is symmetric. The Dragon illustration itself has an optical
+   centre slightly to the right: offset only its contents, not the gold ring. */
+.tf-front-master-v7 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
+  transform:translate(-2px,0) scale(.94);
+  transform-origin:50% 50%;
+}
+/* The PF artwork has an extra inset; enlarge it around exactly the same
+   centre point as CA while leaving labels and parchment untouched. */
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
+  width:24px;height:24px;
+  left:calc(50% - 23px);
+  top:calc(50% + 2px);
+}
