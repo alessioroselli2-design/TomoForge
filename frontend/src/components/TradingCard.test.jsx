@@ -221,3 +221,17 @@ describe("new front integration",()=>{
    container.remove();
  });
 });
+
+describe("v10: approved dragon high resolution and readable senses",()=>{
+  it("uses an original-size separate Dragon medal and preserves all senses",async()=>{
+    const container=document.createElement("div");document.body.appendChild(container);
+    const root=createRoot(container);
+    await act(async()=>root.render(<CardFront card={{type:"monster",name:"Drago Rosso Adulto",
+      attributes:{tipo_creatura:"Drago",grado_sfida:"17",sensi:"Percezione passiva 23, scurovisione 36 m, vista cieca 18 m"}}}/>));
+    const emblem=container.querySelector(".tf-v3-sprite");
+    expect(emblem.style.backgroundImage).toContain("drago-originale-hd.webp");
+    expect(emblem.style.backgroundSize).toBe("100% 100%");
+    expect(container.textContent).toContain("vista cieca 18 m");
+    await act(async()=>root.unmount());container.remove();
+  });
+});

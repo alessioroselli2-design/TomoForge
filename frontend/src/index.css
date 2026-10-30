@@ -988,3 +988,36 @@ body {
   color:#f8dea9;font:700 7px/1.14 'Cinzel',Georgia,serif;
   letter-spacing:.04em;border:0;box-shadow:none;
 }
+
+/* v10: the artwork remains unchanged. Give text inside the existing carved
+   parchment room to breathe, and keep stat medals centered as one group. */
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon {
+  display:flex!important;flex-direction:row!important;align-items:center;
+  justify-content:center;gap:4px;padding:0 2px;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-icon {
+  flex:0 0 24px;width:24px;height:24px;align-self:center;
+  margin:0;object-fit:contain;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {
+  flex:0 1 auto;width:auto;min-width:33px;max-width:calc(100% - 30px);
+  align-self:center;justify-content:center;margin:0;padding:0;
+}
+.tf-front-master-v7 .tf-v3-details {
+  height:42%;max-height:42%;
+}
+.tf-front-master-v7 .tf-v5-detail-cell {
+  padding:6px 5px 0!important;
+  gap:2px;
+}
+.tf-front-master-v7 .tf-v5-detail-cell b {font-size:8.7px;line-height:1.05;}
+.tf-front-master-v7 .tf-v5-detail-cell span {
+  font-size:8px;line-height:1.13;
+  overflow:visible;text-overflow:clip;
+  display:block;white-space:normal;
+}
+.tf-front-master-v7 .tf-v7-description-label {top:46%;}
+.tf-front-master-v7 .tf-v3-desc {top:54%;max-height:40%;}
+.tf-front-master-v7 .tf-v3-medallion .tf-v3-sprite {
+  filter:none;image-rendering:auto;
+}
