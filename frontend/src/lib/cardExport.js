@@ -122,6 +122,8 @@ async function renderApprovedMaster(element,card) {
    ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,g.x,g.y,g.w,g.h);
    artworkDrawn=true;
  } catch {}
+ // The card image, header badge and stat icons all use the same engraved
+ // master coordinates as the CSS preview; never offset the source artwork.
  const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;

@@ -6,6 +6,8 @@ export const FRONT_MASTER_URL = "/card-art/front-master-v7.webp";
 // patches over the original labels. This transparent texture restores only
 // those areas, with feathered edges; all frame filigree stays untouched.
 export const FRONT_DETAIL_REPAIR_URL = "/card-art/front-detail-repair-v8.webp";
+// Circle centres and radius are measured from the original engraved wells.
+// Preview CSS follows these same x/y/r values (340x476 design pixels).
 export const MASTER_REGIONS = Object.freeze({
   art: {x:18,y:76,w:304,h:125},
   badge:{x:285,y:39,r:31}, emblem:{x:55,y:39,r:30},
