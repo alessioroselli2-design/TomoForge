@@ -143,6 +143,8 @@ describe("card export renderers", () => {
     expect(text).toContain("Un guardiano antico");
     expect(front.operations.some((op) => op.name === "fillText" && op.y > 472)).toBe(false);
     expect(text).not.toContain("MOSTRO");
+    // Every recorded movement mode is preserved by the print renderer.
+    expect(text).toContain("12 m");
     expect(front.operations.some((op)=>op.name==="drawImage" && op.args.at(-2)===47 && op.args.at(-1)===47)).toBe(true);
   });
 

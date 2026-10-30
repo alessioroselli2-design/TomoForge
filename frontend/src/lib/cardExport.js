@@ -151,12 +151,20 @@ async function renderApprovedMaster(element,card) {
  const sx=MASTER_REGIONS.stats.x,cellW=MASTER_REGIONS.stats.w/3;
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
-   if(icon)try {ctx.drawImage(icon,cx-31,statY+7,22,22)}catch{}
+   if(icon)try {ctx.drawImage(icon,cx-42,statY+10,22,22)}catch{}
    const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
-   drawFittedText(ctx,it.label,tx,statY+13,max,9,"Georgia,serif","700");
+   drawFittedText(ctx,it.label,tx,statY+12,max,9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
-   drawFittedText(ctx,it.value,tx,statY+29,max,it.label==="Vel."?9:13,"Georgia,serif","700");
+   if(it.label==="Vel.") {
+     // Full movement modes, no ellipsis or line clipped by the parchment border.
+     ctx.font="700 8px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,max-3).slice(0,3);
+     const first=statY+(lines.length===1?29:lines.length===2?24:19);
+     lines.forEach((line,n)=>ctx.fillText(line,tx,first+n*9,max-3));
+   } else {
+     drawFittedText(ctx,it.value,tx,statY+29,max,13,"Georgia,serif","700");
+   }
  });
  data.abilities.slice(0,6).forEach((it,i)=>{
    const cx=MASTER_REGIONS.abilities.x+(i+.5)*MASTER_REGIONS.abilities.w/6;
