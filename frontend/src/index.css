@@ -1154,7 +1154,7 @@ body {
 }
 /* Optical alignment corrected inside the existing 60px medallions only. */
 .tf-front-master-v7 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
-  transform:translate(2px,-1px) scale(.91);
+  transform:scale(1.06);
   transform-origin:50% 50%;
 }
 /* Both engraved stat disks share the same centre x=(column centre - 11px).
@@ -1167,3 +1167,17 @@ body {
   left:calc(50% - 23px);top:calc(50% + 5px);
   width:24px;height:24px;
 }
+
+/* v15: trim the grey halo baked into the original CA/PF raster crops.
+   Share one disk centre; preserve the approved frame, text and GS badge. */
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="CA"] .tf-v6-stat-icon,
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
+  position:absolute!important;
+  width:30px;height:30px;
+  left:calc(50% - 26px);top:50%;
+  transform:translateY(-50%);
+  filter:none;
+  clip-path:circle(44% at 50% 50%);
+  object-fit:contain;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {top:50%;}
