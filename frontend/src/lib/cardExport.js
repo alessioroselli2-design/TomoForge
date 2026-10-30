@@ -125,7 +125,13 @@ async function renderApprovedMaster(element,card) {
  const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
-   ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,m.x-m.r,m.y-m.r,m.r*2,m.r*2);
+   const rr = 26; // same 18% well centred on MASTER_REGIONS.emblem
+   ctx.save();
+   ctx.beginPath();ctx.arc(m.x,m.y,rr,0,Math.PI*2);ctx.clip();
+   const radius = s.sprite==="drago-hd"?rr*.87:rr;
+   ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,
+     m.x-radius,m.y-radius,radius*2,radius*2);
+   ctx.restore();
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+6,
@@ -151,8 +157,9 @@ async function renderApprovedMaster(element,card) {
  const sx=MASTER_REGIONS.stats.x,cellW=MASTER_REGIONS.stats.w/3;
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
-   if(icon)try {ctx.drawImage(icon,cx-24,statY+10,22,22)}catch{}
-   const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
+   const start=sx+i*cellW;
+   if(icon)try {ctx.drawImage(icon,start+10,statY+10,22,22)}catch{}
+   const tx=icon?start+68:cx, max=icon?cellW-44:cellW-7;
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,tx,statY+12,max,9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";

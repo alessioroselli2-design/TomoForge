@@ -35,7 +35,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    <span className="tf-v3-corner tf-v3-br" aria-hidden="true">✦</span>
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
-       <div className="tf-v3-medallion" data-testid="front-emblem" title={symbol?.label||data.subtitle}>
+       <div className="tf-v3-medallion" data-testid="front-emblem" data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
          {symbol ? <>
            <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
            <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,

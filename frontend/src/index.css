@@ -1021,3 +1021,46 @@ body {
 .tf-front-master-v7 .tf-v3-medallion .tf-v3-sprite {
   filter:none;image-rendering:auto;
 }
+
+/* v11 | One measured center for every medallion and stat icon.
+   Respect the approved artwork: no overlay, no additional border graphics. */
+.tf-front-master-v7 .tf-v3-medallion{
+  left:7.25%;top:1.75%;width:18%;height:auto;aspect-ratio:1;
+  margin:0;overflow:hidden;display:block;box-sizing:border-box;
+  border-radius:50%;background:#230a10;box-shadow:none;
+  filter:none;
+}
+.tf-front-master-v7 .tf-v3-medallion .tf-v3-sprite{
+  width:100%;height:100%;margin:0;
+  background-repeat:no-repeat;image-rendering:auto;
+  transform-origin:50% 50%;
+}
+/* The approved Dragon emblem includes its own border. Reduce it inside the
+   master medal ring instead of letting the square crop obscure gold filigree. */
+.tf-front-master-v7 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite{
+  transform:scale(.87);
+}
+.tf-front-master-v7 .tf-v3-badge {
+  right:7.25%;top:1.75%;width:18%;min-width:0;max-width:none;
+  aspect-ratio:1;height:auto;transform:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;margin:0;padding:0;
+}
+.tf-front-master-v7 .tf-v3-badge small,
+.tf-front-master-v7 .tf-v3-badge strong{
+  display:block;position:static;transform:none;margin:0;
+  width:100%;text-align:center;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon{
+  display:grid!important;grid-template-columns:33px minmax(0,1fr);
+  align-items:center;justify-items:stretch;gap:0;padding:0 4px!important;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-icon {
+  width:24px;height:24px;flex:none;place-self:center;
+  margin:0;transform:translateY(1px);object-fit:contain;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text{
+  width:100%;flex:none;min-width:0;max-width:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;margin:0;padding:0;text-align:center;
+}
