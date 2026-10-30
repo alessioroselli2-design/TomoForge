@@ -128,9 +128,9 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   const drawnDiameter = m.r*2*(dragon?.94:1);
-   const dx = m.x-drawnDiameter/2+(dragon?-2:0);
-   const dy = m.y-drawnDiameter/2;
+   const drawnDiameter = m.r*2*(dragon?.91:1);
+   const dx = m.x-drawnDiameter/2+(dragon?2:0);
+   const dy = m.y-drawnDiameter/2+(dragon?-1:0);
    ctx.save();
    ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);ctx.clip();
    ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,dx,dy,drawnDiameter,drawnDiameter);
@@ -138,10 +138,10 @@ async function renderApprovedMaster(element,card) {
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+8,
-   MASTER_REGIONS.title.w,data.name.length>=17?19:21,"'Cormorant Garamond',Georgia,serif","700");
+   Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
  ctx.fillStyle="#4a2b1a";
  drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y+2,
-   MASTER_REGIONS.subtitle.w,8.5,"'Spectral',Georgia,serif","400");
+   Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
  if(data.badge){
    ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
@@ -162,7 +162,7 @@ async function renderApprovedMaster(element,card) {
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
    if(icon)try {
      const isPF=it.label==="PF", diameter=isPF?24:22;
-     ctx.drawImage(icon,cx-11-diameter/2,statY+23-diameter/2,diameter,diameter);
+     ctx.drawImage(icon,cx-11-diameter/2+(isPF?3:0),statY+23-diameter/2,diameter,diameter);
    }catch{}
    const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";

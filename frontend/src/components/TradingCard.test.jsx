@@ -232,6 +232,7 @@ describe("v10: approved dragon high resolution and readable senses",()=>{
     expect(emblem.style.backgroundImage).toContain("drago-originale-hd-v2.webp");
     expect(emblem.style.backgroundSize).toBe("100% 100%");
     expect(container.querySelector('[data-testid="front-emblem"]').dataset.emblemSprite).toBe("drago-hd");
+    expect(container.querySelector("[data-front-layout]")?.className).toContain("tf-v6-long-title");
     expect(container.textContent).toContain("vista cieca 18 m");
     await act(async()=>root.unmount());container.remove();
   });
