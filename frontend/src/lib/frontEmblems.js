@@ -58,13 +58,13 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // The original approved Dragon artwork is stored at 128px instead of the
+ // The original approved Dragon artwork is recropped symmetrically at 160px instead of the
  // 44px preview atlas. No AI substitution, no CSS upscaling of a tiny cell.
  if (type === "monster" && index === CLASSES.length + 4) {
    return {
      sprite:"drago-hd", index:0, col:0, row:0, label,
-     src:"/emblemi/drago-originale-hd.webp", width:128, height:128,
-     cell:128, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
+     src:"/emblemi/drago-originale-hd-v2.webp", width:160, height:160,
+     cell:160, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
    };
  }
  const col = index % 8, row = Math.floor(index / 8);

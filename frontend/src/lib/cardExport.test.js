@@ -160,7 +160,7 @@ describe("card export renderers", () => {
     expect(drawings[1].args[0].src).toBe("/card-art/front-detail-repair-v8.webp");
     expect(written(front)).toContain("Drago Rosso Adulto");
     const hd=front.operations.filter(o=>o.name==="drawImage").map(o=>o.args[0]?.src);
-    expect(hd).toContain("/emblemi/drago-originale-hd.webp");
+    expect(hd).toContain("/emblemi/drago-originale-hd-v2.webp");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
   });

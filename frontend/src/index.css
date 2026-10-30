@@ -1061,3 +1061,33 @@ body {
   display:flex;flex-direction:column;justify-content:center;
   align-items:center;gap:1px;text-align:center;
 }
+
+/* v12 | Optical alignment on the ORIGINAL carved master. The dragon artwork
+   is now recropped symmetrically, so it needs no CSS shifting or replacement
+   ornament. Move only live text a little away from the engraved top edges. */
+.tf-front-master-v7 .tf-v3-titles { transform:translateY(2px); }
+.tf-front-master-v7 .tf-v3-titles p {
+  font-size:8.35px;line-height:1.1;max-width:98%;
+  overflow-wrap:normal;
+}
+.tf-front-master-v7 .tf-v3-medallion .tf-v3-sprite {transform:none;filter:none;}
+.tf-front-master-v7 .tf-v3-badge small,
+.tf-front-master-v7 .tf-v3-badge strong {position:relative;top:2px;}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-icon {
+  left:calc(50% - 22px);top:calc(50% + 2px);
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {
+  top:calc(50% + 2px);
+}
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="Vel."] {
+  transform:translateY(2px);gap:0;
+}
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="Vel."] span{font-size:7.5px;}
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="Vel."] strong{
+  font-size:7.8px;line-height:1.03;
+}
+.tf-front-master-v7 .tf-v3-ability span,
+.tf-front-master-v7 .tf-v3-ability strong {position:relative;top:2px;}
+.tf-front-master-v7 .tf-v5-detail-cell {padding-top:8px!important;}
+.tf-front-master-v7 .tf-v7-description-label {top:47%;}
+.tf-front-master-v7 .tf-v3-desc {top:55%;max-height:39%;}
