@@ -155,6 +155,7 @@ describe("card export renderers", () => {
     const front=await renderCardCanvas(el,card);
     const drawings=front.operations.filter(op=>op.name==="drawImage");
     expect(drawings[0].args[0].src).toBe("/card-art/front-master-v7.webp");
+    expect(drawings[1].args[0].src).toBe("/card-art/front-detail-repair-v8.webp");
     expect(written(front)).toContain("Drago Rosso Adulto");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
