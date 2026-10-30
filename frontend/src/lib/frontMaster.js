@@ -8,7 +8,7 @@ export const FRONT_MASTER_URL = "/card-art/front-master-v7.webp";
 export const FRONT_DETAIL_REPAIR_URL = "/card-art/front-detail-repair-v8.webp";
 export const MASTER_REGIONS = Object.freeze({
   art: {x:18,y:76,w:304,h:125},
-  badge:{x:285,y:39,r:26}, emblem:{x:55,y:39,r:26},
+  badge:{x:285,y:39,r:30}, emblem:{x:55,y:39,r:30},
   title:{x:170,y:29,w:178}, subtitle:{x:170,y:54,w:178},
   stats:{y:208,h:41,x:18,w:304}, abilities:{y:252,h:42,x:18,w:304},
   detail:{y:295,h:53,x:18,w:304},

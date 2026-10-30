@@ -125,7 +125,7 @@ async function renderApprovedMaster(element,card) {
  const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
-   const rr = 26; // same 18% well centred on MASTER_REGIONS.emblem
+   const rr = m.r; // same ~18% well centred on MASTER_REGIONS.emblem
    ctx.save();
    ctx.beginPath();ctx.arc(m.x,m.y,rr,0,Math.PI*2);ctx.clip();
    const radius = s.sprite==="drago-hd"?rr*.87:rr;
