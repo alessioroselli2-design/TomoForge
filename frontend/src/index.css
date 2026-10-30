@@ -1123,7 +1123,7 @@ body {
    Titles and subtitles live INSIDE the clear parchment well: they must never
    touch the ornamental left/right shoulders. No changes to the base artwork. */
 .tf-front-master-v7 .tf-v3-titles {
-  left:28%;width:44%;top:4.65%;height:8.85%;
+  left:28%;width:44%;top:4%;height:8.85%;
   box-sizing:border-box;padding-inline:6px;gap:1px;
   transform:none;
 }
@@ -1157,7 +1157,13 @@ body {
   transform:translate(2px,-1px) scale(.91);
   transform-origin:50% 50%;
 }
+/* Both engraved stat disks share the same centre x=(column centre - 11px).
+   PF has a 24px asset, CA a 22px one, so each uses its true half-width. */
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="CA"] .tf-v6-stat-icon {
+  left:calc(50% - 22px);top:calc(50% + 5px);
+  width:22px;height:22px;
+}
 .tf-front-master-v7 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
-  left:calc(50% - 20px);top:calc(50% + 2px);
+  left:calc(50% - 23px);top:calc(50% + 5px);
   width:24px;height:24px;
 }
