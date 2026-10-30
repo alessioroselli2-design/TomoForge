@@ -151,7 +151,7 @@ async function renderApprovedMaster(element,card) {
  const sx=MASTER_REGIONS.stats.x,cellW=MASTER_REGIONS.stats.w/3;
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
-   if(icon)try {ctx.drawImage(icon,cx-42,statY+10,22,22)}catch{}
+   if(icon)try {ctx.drawImage(icon,cx-24,statY+10,22,22)}catch{}
    const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,tx,statY+12,max,9,"Georgia,serif","700");
