@@ -47,3 +47,22 @@ describe("v15 centered medallions and clean stat discs",()=>{
     expect(print).toContain("ctx.arc(iconX,iconY,diameter*.34");
   });
 });
+
+describe("v22: integrated symbols on the ornate hi-res master",()=>{
+ const css=readFileSync(resolve(__dirname,"../index.css"),"utf8");
+ const exportSource=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
+ it("blends the dragon into the crimson recess instead of adding a second ring",()=>{
+  expect(css).toContain('.tf-front-master-v17 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite');
+  expect(css).toContain('transform:none!important');
+  expect(css).toContain('transparent 80%');
+  expect(exportSource).toContain('layer.globalCompositeOperation="destination-in"');
+  expect(exportSource).toContain('drawIntegratedMedallion(ctx,icon,');
+ });
+ it("keeps small CA/PF runes aligned to the printable statistics",()=>{
+  expect(css).toContain('width:30px!important;height:30px!important');
+  expect(css).toContain('left:calc(50% - 25px)!important;top:50%!important');
+  expect(css).toContain('flex:0 0 32%!important');
+  expect(css).toContain('flex:0 0 35%!important');
+  expect(exportSource).toContain('{x:iconX,y:iconY,size:30},.23,.38');
+ });
+});
