@@ -224,7 +224,7 @@ async function renderApprovedMaster(element,card) {
      const jewel=data.classDieAsset ? await loadFrontEmblem({src:data.classDieAsset}) : null;
      if(jewel)ctx.drawImage(jewel,239,297,73,73);
      ctx.textAlign="center";ctx.fillStyle="#fff7df";
-     ctx.font="700 21px Georgia,serif";ctx.fillText(data.dice,275,337,65);
+     ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,275,337,65);
    }
    const classQr=element.querySelector('[data-card-qr] canvas');
    if(card?.id&&classQr)try{
