@@ -50,7 +50,7 @@ describe("reference card statistics medallions", () => {
     });
     const badges = [...element.querySelectorAll(".tf-v6-stat-icon")];
     expect(badges.map(img=>img.getAttribute("src")))
-      .toEqual(["/card-art/stat-ca.webp","/card-art/stat-pf.webp"]);
+      .toEqual(["/card-art/stat-ca-rune-v23.svg","/card-art/stat-pf-rune-v23.svg"]);
     expect(element.querySelectorAll(".tf-v3-stat")).toHaveLength(3);
     expect([...element.querySelectorAll("[data-stat-label]")].map(el=>el.getAttribute("data-stat-label")))
       .toEqual(["CA","PF","Vel."]);

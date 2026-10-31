@@ -93,7 +93,10 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
   const tile=document.createElement("canvas");
   tile.width=source.cell;tile.height=source.cell;
   const layer=tile.getContext("2d");
-  layer.drawImage(image,source.x,source.y,source.cell,source.cell,0,0,source.cell,source.cell);
+  const cropSize=source.cell/(source.zoom||1);
+  const inset=(source.cell-cropSize)/2;
+  layer.drawImage(image,source.x+inset,source.y+inset,cropSize,cropSize,
+    0,0,source.cell,source.cell);
   const middle=source.cell/2;
   const feather=layer.createRadialGradient(middle,middle,source.cell*fadeStart,
     middle,middle,source.cell*fadeEnd);
@@ -137,9 +140,9 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
      {x:m.x,y:m.y,size:m.r*2},
-     dragon?.26:.275,dragon?.40:.415);
+     dragon?.37:.35,dragon?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
@@ -166,12 +169,11 @@ async function renderApprovedMaster(element,card) {
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    if(icon)try {
-     // Same small, softly blended inset as the CA/PF circles in the preview.
-     const iconX=cx-25,iconY=statY+MASTER_REGIONS.stats.h/2;
-     drawIntegratedMedallion(ctx,icon,
-       {x:0,y:0,cell:56},{x:iconX,y:iconY,size:30},.23,.38);
+     // Both runes are transparent already: no backdrop, clipping or separate rim.
+     const iconX=cx-19,iconY=statY+MASTER_REGIONS.stats.h/2+8;
+     ctx.drawImage(icon,iconX-9,iconY-9,18,18);
    }catch(error){if(process.env.NODE_ENV==="test")throw error;}
-   const tx=cx+(icon?10:0), max=cellW-(icon?27:7);
+   const tx=cx, max=cellW-(icon?27:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,tx,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";

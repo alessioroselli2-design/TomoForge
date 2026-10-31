@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="14 14 28 28" aria-hidden="true">
+<!-- Approved CA/PF glyph isolated from its black pre-framed thumbnail.
+     The gold frame and parchment belong to front-master-v17.webp. -->
+<defs>
+ <clipPath id="core"><circle cx="28" cy="28" r="11.8"/></clipPath>
+ <filter id="only-rune" color-interpolation-filters="sRGB" x="-30%" y="-30%" width="160%" height="160%">
+  <feColorMatrix in="SourceGraphic" type="matrix"
+    values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  .2126 .7152 .0722 0 -.38" result="brightness"/>
+  <feComponentTransfer in="brightness" result="bright-rune">
+   <feFuncA type="linear" slope="2.25" intercept="-.13"/>
+  </feComponentTransfer>
+  <feFlood flood-color="#65381f" result="engraving"/>
+  <feComposite in="engraving" in2="bright-rune" operator="in"/>
+ </filter>
+</defs>
+<g clip-path="url(#core)" filter="url(#only-rune)">
+ <image x="0" y="0" width="56" height="56" href="data:image/webp;base64,UklGRoQFAABXRUJQVlA4WAoAAAAQAAAANwAANwAAQUxQSGACAAABoITtnyFJ+v0ist19G9u2T7Zn1sZtZ4+2jaN1su+2bdu2M+L/W0ZFxuoaEROA/+/889Kc98Qf6b0rh94BQFtnV2cFAN6zDAdg8Pxdjrno2puuPvewLbP7AWABBLqXHn/fe9/pz79569aDFniADZHo3Hj5F5Jkoa7raJLi++cuIcgmCEy5+AtJMZrpj2YxSnrvzCEA8xHtuz0jyUzpZpLuWuXIXETv4R8rKq/ptf0rMo9Dz0nfKip30McHODIH2X74t4rKH/TRPsiD3T9SUJNBLy1BRmLKs4pq1nTLALAldF+iqOaPrlpy2PBlVONmr86CTyP7rlCZp1ZkkseSL8wKiPbSePgk546XSjD9uC9cisOg+2QqMejqbriECvPeVyyi1pPDkjx2/k5WRNQHi1JIHCMrw/TzXmAC2i5UUBlRhyOR6LxWdRkKOiOt66Ziap2T1nl1MUGnpVXnKpZhUQcnEYeZWRn6cRfwr1BhyzcqI+rdOXBJM99RLKLWo4OTiH63yooIuqwDTIDnwSYrwPTdjvBIwvz3rYRoT4xoAew8T2UeRiLdYfH7Zo2ZnhgP1wLQdqaak213Dq0SQ+9WaCjqyh5kJFa9ptBI0EMzkYXc7yPFBqJeWQvmAFlt/1CWLeqVrXB5QFb7vCSZZTCTHloHT2QmsORmSdFasCjpypkgkZ3AwKNfNSmEaH8wiyFI4ckDu9EwgTmnvvSjJMW6rqMkffvEYZMANgQSnLjP1U988LP++MM7D1+24yjAoUBHoGf4or2OOP2c0w7edc6QDsA5FEnvkO4dUSyd45/QOeL/OVZQOCD+AgAAEA8AnQEqOAA4AD6pSJxKJiQioagb/fjAFQlBtgCwWfDWrlkbeMPKApmL4Lh12QywodCaF5Ufqr2CP1f3wD9TUBfwKQZ4gtOqSZmiYqpGf+lo0Cyz5xUQ7B2FdSZBoFpM3eSLSFSoAM9nsoAX6n7BebLfYbgk5Qb3/QpnmE630tAAAP7+hvY/7jYbRY5n2bAHWNMx3nT/8cZ7clPKbzLwvtQgM3T7LTgJUeV/sS6yB32yW3KlXK+FUBOHUZIdwG/fhCXxxbu3f96nXl8dY3HrhfZnVqDzhGBp3kFfKpfR658G0KnXtqvhWMPiVBT6a6k1an5S9Na7rWos8qebT1cjzwa7TQiQWGKH7NZMp4426/80Q80CJr9IzX6BEcWojFdVy5D3qdAiXcHmSj8F18AQX8uFK38Vu+TJNN9Aat+6yReYoMDDDofZdYUACrftoYsOUV+xWOHIhuwiEjy3SLZ2/8WgOCNjfl3IbQXD7oFCkWJrA/4/RchSZsk15cWgxsuBqwCfIIA/vWFX85yGmsQKQRVveY0ym5IXUvtEv4ZGPv91cZz0X6Yt+1G9/jHCxkFR7HNoZNcuDcx45GMALPJnHECvcIL3ap5+7nurHfDMyldyGAw+JTXvcfoNiWS1WQfiR9O1X5aMd65X8D7sjOWvJunuQghqf+rP1a4fMIUJPDkfaOvXv/kjddcB9zDEwtuKjFiXdj3QeMOYw+fFdl+MkK0uSKk4jmHUQQIgK2AKZ4vrQcnWJ0K8xRInKm+2r/H0PUFamLkpfF2MuiahDbS3THX+CF6+Siw6EXHb1uEG/WrROj2MPWwPqR6gi4LI2N5nTFEXenXFd/hxu/VdXdzCeV5b1vO2S2QsVO7MdZMmiHkIHb+KKvdhXerz/RLqk+8neX0sWPIr5d1gTtn2cU3VvlzlN4hb9gCaIF/7jJA/99Gf3ge0flxA0VQAqFLlsF4PHPhdfCiCDv6XCz3byQCxhbTeN2NTGfZM7EvK9W7/sqi/AuBZA4B+JvUhcAAAAA=="/>
+</g>
+</svg>
