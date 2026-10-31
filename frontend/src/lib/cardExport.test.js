@@ -165,9 +165,9 @@ describe("card export renderers", () => {
     expect(dragonDraw).toBeDefined();
     const dragonOnMaster=drawings.find(op=>op.args[0]?.operations?.some(op=>op.args?.[0]?.src==="/emblemi/drago-originale-hd-v2.webp"));
     expect(dragonOnMaster.args.slice(-2)).toEqual([56,56]);
-    const statDraws=embedded.filter(op=>/\\/card-art\\/stat-(ca|pf)\\.webp$/.test(op.args[0]?.src||""));
+    const statDraws=embedded.filter(op=>/\/card-art\/stat-(ca|pf)\\.webp$/.test(op.args[0]?.src||""));
     expect(statDraws).toHaveLength(2);
-    const statOnMaster=drawings.filter(op=>op.args[0]?.operations?.some(op=>/\\/card-art\\/stat-(ca|pf)\\.webp$/.test(op.args?.[0]?.src||"")));
+    const statOnMaster=drawings.filter(op=>op.args[0]?.operations?.some(op=>/\/card-art\/stat-(ca|pf)\\.webp$/.test(op.args?.[0]?.src||"")));
     expect(statOnMaster).toHaveLength(2);
     expect(statOnMaster[0].args.slice(-2)).toEqual([30,30]);
     expect(statOnMaster[1].args.slice(-2)).toEqual([30,30]);
