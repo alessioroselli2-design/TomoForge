@@ -75,11 +75,17 @@ const shortText = (value, max = 62) => String(value || "").length > max
 export const buildFrontBlueprint = (card = {}) => {
   const type = THEMES[card.type] ? card.type : "custom";
   const attrs = card.attributes || {};
-  const highlighted = (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
+  const classProficiencies = pick(attrs, ["competenze", "competenza_armature", "proficiencies"])
+    || ((String(card.description || "").match(/Competenza in ([^.]+)\./i) || [])[1] || "").trim();
+  const highlighted = type === "class" ? [
+    { label: "Abilità primaria", value: pick(attrs, ["abilita_primaria", "caratteristica_principale"]) },
+    { label: "Tiri salvezza", value: pick(attrs, ["tiri_salvezza", "salvezze"]) },
+    { label: "Competenze", value: classProficiencies },
+  ].filter(entry => entry.value) : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
     label, value: pick(attrs, [first, second]),
   })).filter((entry) => entry.value).slice(0, 3);
   // Never fabricate statistics; empty cells are simply not displayed.
-  const highlights = highlighted.map((entry) => ({ ...entry, value: shortText(entry.value, 22) }));
+  const highlights = highlighted.map((entry) => ({ ...entry, value: shortText(entry.value, type === "class" ? 90 : 22) }));
   const abilities = (type === "monster" || type === "character")
     ? ABILITY_KEYS.filter((key) => scalar(attrs[key])).map((key) => ({ label: key.toUpperCase(), value: formattedAbility(attrs[key]) }))
     : [];
@@ -146,12 +152,19 @@ export const buildFrontBlueprint = (card = {}) => {
       .replace(/scavare/ig,"scav.");
     return {...item,value:shortText(value,item.label==="Vel."?68:24),fullValue:original};
   });
+  const classLegacyText = type === "class"
+    ? pick(attrs, ["_legacy_full_text_before_20261024", "legacy_full_text_before_20261024"])
+    : "";
+  const hitDie = type === "class" ? pick(attrs, ["dado_vita", "dadi_vita"]) : "";
+  const classDie = /^d(?:4|6|8|10|12|20)$/i.test(hitDie) ? hitDie.toLowerCase() : "";
   return {
     badge, emblem:getFrontEmblem(card),
     type, heading, name: card.name || "Senza nome", subtitle, crest,
     ...THEMES[type], highlights:readableStats, abilities, details,
-    dice: match ? match[0].replace(/\s+/g, "") : "",
-    description: shortText(card.description, 235),
+    dice: classDie || (match ? match[0].replace(/\s+/g, "") : ""),
+    description: classLegacyText || shortText(card.description, 235),
+    classLegacyText,
+    showDescriptionLabel: type !== "class",
     hasAbilities: abilities.length > 0,
   };
 };

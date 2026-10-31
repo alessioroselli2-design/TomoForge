@@ -545,10 +545,10 @@ export default function CardDetail() {
               <p className="font-label text-xs tracking-[0.3em] text-gold/70 mb-2">{typeLabel(card.type, card.custom_type).toUpperCase()}</p>
               <h1 className="font-display text-4xl sm:text-5xl tf-gold-text">{card.name}</h1>
             </div>
-            {(card.description || card.story) && (
+            {(card.description || card.story || (card.type==="class" && card.attributes?._legacy_full_text_before_20261024)) && (
               <div className="tf-detail-text-panel" style={textPanelStyle}>
-                {card.description && (
-                  <p className="font-body text-lg italic leading-relaxed">{card.description}</p>
+                {(card.type==="class" && card.attributes?._legacy_full_text_before_20261024 || card.description) && (
+                  <p className="font-body text-lg italic leading-relaxed whitespace-pre-line">{card.type==="class" && card.attributes?._legacy_full_text_before_20261024 || card.description}</p>
                 )}
                 {card.story && (
                   <div className={card.description ? "mt-4 border-t border-gold-deep/40 pt-4" : ""}>

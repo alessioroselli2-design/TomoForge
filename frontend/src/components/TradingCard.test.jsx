@@ -63,6 +63,22 @@ describe("reference card statistics medallions", () => {
     element.remove();
   });
 });
+describe("approved class preview",()=>{
+ it("shows one ruby d10 and exact beginning of original paragraph, with no heading",async()=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   await act(async()=>root.render(<CardFront card={{type:"class",name:"Guerriero",
+     attributes:{dado_vita:"d10",abilita_primaria:"Forza o Destrezza",
+       tiri_salvezza:"Forza, Costituzione",
+       _legacy_full_text_before_20261024:"Un’umana in una sferragliante corazza di piastre"}}}/>));
+   expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
+   expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
+   expect(mount.querySelector(".tf-v3-class-dice")?.textContent).toBe("d10");
+   expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
+   expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
+   await act(async()=>root.unmount());mount.remove();
+ });
+});
 describe("CardFront artwork placeholder", () => {
   let container;
   let root;

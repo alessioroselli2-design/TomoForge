@@ -182,6 +182,14 @@ async function renderApprovedMaster(element,card) {
      valueCenter=runeLeft+runeSize+gap+renderedTextWidth/2;
      valueMaxWidth=Math.max(12,renderedTextWidth);
    }
+   if(data.type==="class"){
+     ctx.textAlign="center";ctx.fillStyle="#49301d";
+     ctx.font="700 7px Georgia,serif";
+     ctx.fillText(it.label,cx,statY+11,cellW-8);
+     ctx.font="700 8.2px Georgia,serif";ctx.fillStyle="#271709";
+     drawWrappedText(ctx,it.value,cx,statY+25,cellW-9,9,3);
+     return;
+   }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,labelCenter,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
@@ -202,6 +210,29 @@ async function renderApprovedMaster(element,card) {
    ctx.fillStyle="#23150f";
    drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+32,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
  });
+ if(data.type==="class"){
+   // A long parchment replaces the redundant empty ability and detail cells.
+   // The exact legacy narrative remains in the card attributes for the full details view.
+   ctx.fillStyle="#f8e8c0";ctx.fillRect(18,239,304,206);
+   ctx.strokeStyle="#b27d3a";ctx.lineWidth=2;ctx.strokeRect(19,240,302,204);
+   ctx.strokeStyle="#fcebbb";ctx.lineWidth=1;ctx.strokeRect(22,243,296,198);
+   ctx.textAlign="left";ctx.fillStyle="#382314";
+   ctx.font="9px Spectral,Georgia,serif";
+   drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
+     31,258,207,11,16);
+   if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
+     const jewel=await loadFrontEmblem({src:"/card-art/class-d10-gem-v26.svg"});
+     if(jewel)ctx.drawImage(jewel,239,297,73,73);
+     ctx.textAlign="center";ctx.fillStyle="#fff7df";
+     ctx.font="700 21px Georgia,serif";ctx.fillText(data.dice,275,337,65);
+   }
+   const classQr=element.querySelector('[data-card-qr] canvas');
+   if(card?.id&&classQr)try{
+     ctx.fillStyle="#fff";ctx.fillRect(280,406,36,36);
+     ctx.drawImage(classQr,283,409,30,30);
+   }catch{}
+   canvas.artworkDrawn=artworkDrawn;return canvas;
+ }
  const details=data.details.slice(0,2);
  details.forEach((d,i)=>{
    const x=MASTER_REGIONS.detail.x+8+i*152;

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+<defs><radialGradient id="ruby"><stop stop-color="#fa6155"/><stop offset=".42" stop-color="#a10f1c"/><stop offset="1" stop-color="#340008"/></radialGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff1ad"/><stop offset=".25" stop-color="#b36a26"/><stop offset=".5" stop-color="#ffe39a"/><stop offset=".78" stop-color="#8a3917"/><stop offset="1" stop-color="#efb747"/></linearGradient></defs>
+<path d="M80 4 98 20 119 15 133 36 154 47 145 80 155 106 129 124 119 146 91 140 80 157 62 140 41 146 28 123 5 105 14 80 5 51 27 37 40 15 63 20Z" fill="#230707" stroke="url(#gold)" stroke-width="6"/>
+<path d="M80 16 107 28 133 54 143 80 128 114 98 135 62 135 31 114 17 80 28 50 56 27Z" fill="url(#ruby)" stroke="#ffcf7a" stroke-width="4"/>
+<path d="M80 25 118 62 118 105 80 130 42 105 42 62Z" fill="none" stroke="#ffd59a" stroke-width="3"/>
+<path d="M80 25 80 130M42 62 80 83 118 62M42 105 80 83 118 105" fill="none" stroke="#ef9b73" stroke-opacity=".9" stroke-width="2"/>
+<path d="M80 25 42 62 80 83Z" fill="#e64147" opacity=".62"/><path d="M80 25 118 62 80 83Z" fill="#7c0613" opacity=".68"/>
+<path d="M80 83 42 105 80 130Z" fill="#b71e32" opacity=".55"/><path d="M80 83 118 105 80 130Z" fill="#490510" opacity=".64"/>
+<path d="M80 4 89 15 80 27 71 15Z M153 80 144 88 132 80 144 71Z M80 155 89 144 80 132 71 144Z M6 80 17 88 29 80 17 71Z" fill="#ff3b43" stroke="#ffe2aa" stroke-width="2"/>
+</svg>
