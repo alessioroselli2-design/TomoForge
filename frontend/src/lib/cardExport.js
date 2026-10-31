@@ -170,7 +170,7 @@ async function renderApprovedMaster(element,card) {
      const iconX=cx-25,iconY=statY+MASTER_REGIONS.stats.h/2;
      drawIntegratedMedallion(ctx,icon,
        {x:0,y:0,cell:56},{x:iconX,y:iconY,size:30},.23,.38);
-   }catch{}
+   }catch(error){if(process.env.NODE_ENV==="test")throw error;}
    const tx=cx+(icon?10:0), max=cellW-(icon?27:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,tx,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
