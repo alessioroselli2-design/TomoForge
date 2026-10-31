@@ -50,7 +50,12 @@ describe("reference card statistics medallions", () => {
     });
     const badges = [...element.querySelectorAll(".tf-v6-stat-icon")];
     expect(badges.map(img=>img.getAttribute("src")))
-      .toEqual(["/card-art/stat-ca-rune-v23.svg","/card-art/stat-pf-rune-v23.svg"]);
+      .toEqual(["/card-art/stat-ca-clean-v24.svg","/card-art/stat-pf-clean-v24.svg"]);
+    const integratedRows=[...element.querySelectorAll(".tf-v6-stat-value-row")];
+    expect(integratedRows).toHaveLength(2);
+    expect(integratedRows.map(row=>[row.querySelector("img")?.getAttribute("src"),row.querySelector("strong")?.textContent]))
+      .toEqual([["/card-art/stat-ca-clean-v24.svg","19"],["/card-art/stat-pf-clean-v24.svg","256"]]);
+    expect(element.querySelectorAll(".tf-v3-stat > .tf-v6-stat-icon")).toHaveLength(0);
     expect(element.querySelectorAll(".tf-v3-stat")).toHaveLength(3);
     expect([...element.querySelectorAll("[data-stat-label]")].map(el=>el.getAttribute("data-stat-label")))
       .toEqual(["CA","PF","Vel."]);
