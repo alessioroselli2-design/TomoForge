@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { FRONT_MASTER_URL, FRONT_DETAIL_REPAIR_URL } from "@/lib/frontMaster";
+import { FRONT_MASTER_URL } from "@/lib/frontMaster";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -26,8 +26,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  const symbol=data.emblem;
  const detailsLink=publicDescriptionUrl(card);
  return <div ref={ref} data-testid="card-front" data-front-version="7"
-   data-front-category={data.type} data-front-layout="reference-master-v7"
-   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
+   data-front-category={data.type} data-front-layout="reference-master-v17"
+   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,backgroundImage:`url(${FRONT_MASTER_URL})`}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
@@ -84,9 +84,6 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        </a>}
      </section>
    </div>
-   {/* Only the erased paper texture is repaired; all goldwork remains the approved master. */}
-   <img className="tf-v8-detail-repair" data-front-detail-repair src={FRONT_DETAIL_REPAIR_URL}
-     alt="" aria-hidden="true" draggable={false}/>
 
  </div>;
 });

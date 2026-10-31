@@ -1,7 +1,7 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
-import { FRONT_MASTER_URL, FRONT_DETAIL_REPAIR_URL, MASTER_REGIONS } from "@/lib/frontMaster";
+import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -100,19 +100,7 @@ async function renderApprovedMaster(element,card) {
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
- // Paint the restored parchment texture *before* data, never over the labels
- // or the permanent QR. The same aligned repair appears in the editor.
- const repair=new Image();
- try {
-   await new Promise((resolve,reject)=>{
-     repair.onload=resolve;repair.onerror=reject;
-     repair.src=FRONT_DETAIL_REPAIR_URL;
-     if(repair.complete&&repair.naturalWidth>0)resolve();
-   });
-   ctx.drawImage(repair,0,0,width,height);
- } catch {
-   // Retain a printable master if this tiny decorative texture fails to load.
- }
+ // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
  const g=MASTER_REGIONS.art;
  let artworkDrawn=false;
@@ -157,20 +145,20 @@ async function renderApprovedMaster(element,card) {
      return im;
    } catch {return null;}
  }));
- const sx=MASTER_REGIONS.stats.x,cellW=MASTER_REGIONS.stats.w/3;
+ const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
  data.highlights.slice(0,3).forEach((it,i)=>{
-   const cx=sx+(i+.5)*cellW,icon=statImages[i];
+   const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    if(icon)try {
      // Clip the grey outer fringe built into the original WebP thumbnails.
-     const diameter=44,iconX=cx-11,iconY=statY+MASTER_REGIONS.stats.h/2;
+     const diameter=44,iconX=cx-29,iconY=statY+MASTER_REGIONS.stats.h/2+6;
      ctx.save();
      ctx.beginPath();ctx.arc(iconX,iconY,diameter*.34,0,Math.PI*2);ctx.clip();
      ctx.drawImage(icon,iconX-diameter/2,iconY-diameter/2,diameter,diameter);
      ctx.restore();
    }catch{}
-   const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
+   const tx=cx+(icon?10:0), max=cellW-(icon?27:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
-   drawFittedText(ctx,it.label,tx,statY+(icon?12:14),max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
+   drawFittedText(ctx,it.label,tx,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
    if(it.label==="Vel.") {
      // Full movement modes, no ellipsis or line clipped by the parchment border.
@@ -179,7 +167,7 @@ async function renderApprovedMaster(element,card) {
      const first=statY+(lines.length===1?30:lines.length===2?26:21);
      lines.forEach((line,n)=>ctx.fillText(line,tx,first+n*8,max-3));
    } else {
-     drawFittedText(ctx,it.value,tx,statY+(icon?29:31),max,13,"Georgia,serif","700");
+     drawFittedText(ctx,it.value,tx,statY+32,max,13,"Georgia,serif","700");
    }
  });
  data.abilities.slice(0,6).forEach((it,i)=>{
@@ -193,15 +181,15 @@ async function renderApprovedMaster(element,card) {
  details.forEach((d,i)=>{
    const x=MASTER_REGIONS.detail.x+8+i*152;
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
-   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+17,136,9,"Georgia,serif","700");
+   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+12,136,9,"Georgia,serif","700");
    ctx.font="9px Spectral,Georgia,serif";
-   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+30,136,11,2);
+   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+27,136,11,2);
  });
  const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
  ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
- ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+16);
+ ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
  ctx.font="10px Spectral,Georgia,serif";
- drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+31,
+ drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+27,
    card?.id?244:287,12,5);
  const qr=element.querySelector('[data-card-qr] canvas');
  if(card?.id&&qr)try {
