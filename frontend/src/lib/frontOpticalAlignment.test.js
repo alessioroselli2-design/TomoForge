@@ -44,7 +44,7 @@ describe("v15 centered medallions and clean stat discs",()=>{
     expect(css).toContain("width:44px;height:44px");
     expect(css).toContain("transform:translate(-50%,-50%)");
     expect(print).toContain("iconX=cx-19,iconY=statY+MASTER_REGIONS.stats.h/2+8");
-    expect(print).toContain("ctx.drawImage(icon,iconX-9,iconY-9,18,18)");
+    expect(print).toContain("ctx.drawImage(icon,runeLeft,statY+19,runeSize,runeSize)");
   });
 });
 
@@ -63,7 +63,7 @@ describe("v22: integrated symbols on the ornate hi-res master",()=>{
   expect(css).toContain('left:calc(50% - 25px)!important;top:50%!important');
   expect(css).toContain('flex:0 0 32%!important');
   expect(css).toContain('flex:0 0 35%!important');
-  expect(exportSource).toContain('ctx.drawImage(icon,iconX-9,iconY-9,18,18)');
+  expect(exportSource).toContain('ctx.drawImage(icon,runeLeft,statY+19,runeSize,runeSize)');
  });
 });
 
@@ -82,5 +82,23 @@ describe("v23: rune only, master frame untouched",()=>{
    expect(css).toContain("top:calc(50% + 8px)!important");
    expect(css).toContain("padding-left:0!important");
    expect(exportSource).toContain("ctx.drawImage(icon,iconX-9,iconY-9,18,18)");
+ });
+});
+
+describe("v24: truly centered clean CA/PF artwork and export",()=>{
+ const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
+ const exportSource=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
+ const reactSource=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
+ it("keeps images inside a single centered flex value row",()=>{
+   expect(reactSource).toContain("tf-v6-stat-value-row");
+   expect(css).toContain("display:inline-flex!important");
+   expect(css).toContain("position:static!important");
+   expect(css).toContain("width:17px!important");
+   expect(css).toContain("clip-path:none!important");
+ });
+ it("uses intrinsic source-independent layout in canvas printing",()=>{
+   expect(exportSource).toContain("const groupWidth=runeSize+gap+renderedTextWidth");
+   expect(exportSource).toContain("ctx.drawImage(icon,runeLeft,statY+19,runeSize,runeSize)");
+   expect(exportSource).toContain("drawFittedText(ctx,it.value,valueCenter,statY+32,valueMaxWidth,icon?14:13");
  });
 });
