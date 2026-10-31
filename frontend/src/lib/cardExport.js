@@ -173,7 +173,7 @@ async function renderApprovedMaster(element,card) {
      const iconX=cx-19,iconY=statY+MASTER_REGIONS.stats.h/2+8;
      ctx.drawImage(icon,iconX-9,iconY-9,18,18);
    }catch(error){if(process.env.NODE_ENV==="test")throw error;}
-   const tx=cx+(icon?10:0), max=cellW-(icon?27:7);
+   const tx=cx, max=cellW-(icon?27:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,tx,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
