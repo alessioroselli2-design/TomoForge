@@ -2,6 +2,7 @@
 // source of game rules. One blueprint drives preview, PNG and both PDF modes.
 import { typeLabel, attrLabel } from "./cardTypes";
 import { getFrontEmblem } from "./frontEmblems";
+import { normalizeClassHitDie, classHitDieAsset } from "./classHitDice";
 
 const THEMES = {
   monster: { accent: "#b5534f", shadow: "#341b28" },
@@ -71,6 +72,16 @@ const pick = (attrs, names) => names.map((name) => readable(attrs[name])).find(B
 const shortText = (value, max = 62) => String(value || "").length > max
   ? String(value).slice(0, max - 1).trimEnd() + "…"
   : String(value || "");
+
+// Exact original stays in classLegacyText; a printed card displays a word-safe teaser.
+const classExcerpt=(original,limit=290)=>{
+  const value=String(original||"").trim();
+  if(value.length<=limit) return value;
+  const segment=value.slice(0,limit-1);
+  const end=segment.lastIndexOf(" ");
+  return (end>limit*.75?segment.slice(0,end):segment).trimEnd()
+    .replace(/[.,;:!?)—-]+$/,"")+"…";
+};
 
 export const buildFrontBlueprint = (card = {}) => {
   const type = THEMES[card.type] ? card.type : "custom";
@@ -156,13 +167,14 @@ export const buildFrontBlueprint = (card = {}) => {
     ? pick(attrs, ["_legacy_full_text_before_20261024", "legacy_full_text_before_20261024"])
     : "";
   const hitDie = type === "class" ? pick(attrs, ["dado_vita", "dadi_vita"]) : "";
-  const classDie = /^d(?:4|6|8|10|12|20)$/i.test(hitDie) ? hitDie.toLowerCase() : "";
+  const classDie = normalizeClassHitDie(hitDie);
   return {
     badge, emblem:getFrontEmblem(card),
     type, heading, name: card.name || "Senza nome", subtitle, crest,
     ...THEMES[type], highlights:readableStats, abilities, details,
-    dice: classDie || (match ? match[0].replace(/\s+/g, "") : ""),
-    description: classLegacyText || shortText(card.description, 235),
+    dice: type === "class" ? classDie : (match ? match[0].replace(/\s+/g, "") : ""),
+    classDieAsset: type === "class" ? classHitDieAsset(classDie) : "",
+    description: classLegacyText ? classExcerpt(classLegacyText) : shortText(card.description, 235),
     classLegacyText,
     showDescriptionLabel: type !== "class",
     hasAbilities: abilities.length > 0,
