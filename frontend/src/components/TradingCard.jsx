@@ -80,9 +80,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.details.length>0&&<div className={`tf-v3-details ${data.type==="monster"?"tf-v5-monster-details":""}`}>
          {data.details.slice(0,2).map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
        </div>}
-       <span className="tf-v7-description-label">Descrizione</span>
+       {data.showDescriptionLabel&&<span className="tf-v7-description-label">Descrizione</span>}
        <p className="tf-v3-desc">{data.description||"I dettagli appariranno dopo la selezione di un record."}</p>
-       {data.dice&&<div className="tf-v3-dice" aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>}
+       {data.dice&&<div className={`tf-v3-dice ${data.type==="class"?"tf-v3-class-dice":""}`} data-die={data.dice} aria-label={data.type==="class" ? `Dado vita ${data.dice}` : `Formula dado ${data.dice}`}>{data.dice}</div>}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
            target="_blank" rel="noopener noreferrer" title="Apri la descrizione completa"
            aria-label={`Apri la descrizione completa di ${data.name}`}>
