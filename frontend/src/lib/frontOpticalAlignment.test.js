@@ -37,3 +37,14 @@ describe("v24 clean stat symbols within the existing parchment",()=>{
     expect(exporter).toContain("drawFittedText(ctx,it.value,valueCenter,statY+32,valueMaxWidth,icon?14:13");
   });
 });
+
+describe("v25 small subtitle raise — no ornament overlap",()=>{
+  it("raises only the subtitle by three logical pixels without moving the title or approved frame",()=>{
+    expect(finalMaster).toContain('.tf-front-master-v17 .tf-v3-titles p{font-size:7.8px;line-height:1.1;color:#422b1d;position:relative;top:-3px}');
+    expect(finalMaster).toContain('.tf-front-master-v17 .tf-v3-titles{left:28%!important;top:3.6%!important;width:44%!important;height:9.15%!important;transform:none!important;gap:2px}');
+  });
+  it("matches the same 3px lift when exported in PNG and PDF",()=>{
+    expect(exporter).toContain('drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,');
+    expect(exporter).toContain('drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,');
+  });
+});

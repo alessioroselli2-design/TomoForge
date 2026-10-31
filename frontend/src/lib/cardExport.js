@@ -148,7 +148,7 @@ async function renderApprovedMaster(element,card) {
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
    Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
  ctx.fillStyle="#4a2b1a";
- drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-1,
+ drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,
    Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
  if(data.badge){
    ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
