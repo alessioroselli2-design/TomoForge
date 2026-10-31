@@ -32,7 +32,7 @@ describe("v15 centered medallions and clean stat discs",()=>{
   const print=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
   it("fills the approved dragon circle without removing the GS badge",()=>{
     expect(css).toContain("transform:scale(1.23)");
-    expect(print).toContain("dragon?1.23:1");
+    expect(print).toContain("dragon?.26:.275");
     expect(print).toContain("if(data.badge)");
   });
   it("centers CA/PF equally and crops the peripheral tile fringe in preview and print",()=>{
@@ -43,8 +43,8 @@ describe("v15 centered medallions and clean stat discs",()=>{
     expect(css).toContain("filter:none!important");
     expect(css).toContain("width:44px;height:44px");
     expect(css).toContain("transform:translate(-50%,-50%)");
-    expect(print).toContain("iconX=cx-29,iconY=statY+MASTER_REGIONS.stats.h/2+6");
-    expect(print).toContain("ctx.arc(iconX,iconY,diameter*.34");
+    expect(print).toContain("iconX=cx-25,iconY=statY+MASTER_REGIONS.stats.h/2");
+    expect(print).toContain("{x:iconX,y:iconY,size:30},.23,.38");
   });
 });
 
