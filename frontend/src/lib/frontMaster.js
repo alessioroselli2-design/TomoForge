@@ -1,18 +1,11 @@
-// One high-resolution raster of the exact approved frame; never redraw the
-// parchment or paste fragments on top of a different frame. Text and icons
-// are added as independent dynamic layers by CardFront and print renderer.
-export const FRONT_MASTER_URL = "/card-art/front-master-v7.webp";
-// Pixel-level parchment restoration: the early master contained two hard-edged
-// patches over the original labels. This transparent texture restores only
-// those areas, with feathered edges; all frame filigree stays untouched.
+// Ornate master recreated from the approved empty TomoForge card.
+export const FRONT_MASTER_URL = "/card-art/front-master-v17.webp";
+// Retained only for compatibility with older tests; do NOT overlay v8 on v17.
 export const FRONT_DETAIL_REPAIR_URL = "/card-art/front-detail-repair-v8.webp";
-// Circle centres and radius are measured from the original engraved wells.
-// Preview CSS follows these same x/y/r values (340x476 design pixels).
 export const MASTER_REGIONS = Object.freeze({
-  art: {x:18,y:76,w:304,h:125},
-  badge:{x:285,y:39,r:31}, emblem:{x:55,y:39,r:30},
-  title:{x:170,y:29,w:178}, subtitle:{x:170,y:54,w:178},
-  stats:{y:208,h:41,x:18,w:304}, abilities:{y:252,h:42,x:18,w:304},
-  detail:{y:295,h:53,x:18,w:304},
-  description:{y:351,h:100,x:18,w:304},
+ art:{x:18,y:72,w:304,h:117},
+ badge:{x:286,y:40,r:28},emblem:{x:54,y:40,r:28},
+ title:{x:170,y:29,w:146},subtitle:{x:170,y:54,w:146},
+ stats:{y:195,h:42,x:18,w:304},abilities:{y:238,h:40,x:18,w:304},
+ detail:{y:282,h:51,x:18,w:304},description:{y:335,h:112,x:18,w:304},
 });
