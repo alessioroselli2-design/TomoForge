@@ -68,7 +68,7 @@ describe("v22: integrated symbols on the ornate hi-res master",()=>{
 });
 
 describe("v23: rune only, master frame untouched",()=>{
- const css=readFileSync(resolve(__dirname,"../index.css"),"utf8");
+ const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
  const exportSource=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
  it("uses a closest-side radial mask and scales out the source dragon ring",()=>{
    expect(css).toContain("circle closest-side at center");
@@ -80,6 +80,7 @@ describe("v23: rune only, master frame untouched",()=>{
    expect(css).toContain("width:18px!important;height:18px!important");
    expect(css).toContain("left:calc(50% - 19px)!important");
    expect(css).toContain("top:calc(50% + 8px)!important");
+   expect(css).toContain("padding-left:0!important");
    expect(exportSource).toContain("ctx.drawImage(icon,iconX-9,iconY-9,18,18)");
  });
 });
