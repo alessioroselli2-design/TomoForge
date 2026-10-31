@@ -1184,3 +1184,43 @@ body {
   object-fit:contain;
 }
 .tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {top:50%;}
+
+/* v22: integrate the symbol inside the approved engraved wells (not a glued-on medal).
+   The raster emblems include their own ring/soft shadow. Fade their outer edge
+   into the existing crimson inset, leaving the master's gold filigree visible.
+   All dimensions below are in the 340px card coordinate system. */
+.tf-front-master-v17 .tf-v3-medallion {
+  background:transparent;
+}
+.tf-front-master-v17 .tf-v3-medallion .tf-v3-sprite {
+  transform:none!important;
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 55%,rgba(0,0,0,.85) 66%,transparent 83%);
+  mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 55%,rgba(0,0,0,.85) 66%,transparent 83%);
+}
+.tf-front-master-v17 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
+  transform:none!important;
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 52%,rgba(0,0,0,.96) 64%,transparent 80%);
+  mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 52%,rgba(0,0,0,.96) 64%,transparent 80%);
+}
+/* The engraved three-column rail has unequal cells: match the export
+   positions exactly, and keep both CA/PF icons inside the parchment. */
+.tf-front-master-v17 .tf-v3-stats .tf-v3-stat:nth-child(1) {flex:0 0 32%!important;}
+.tf-front-master-v17 .tf-v3-stats .tf-v3-stat:nth-child(2) {flex:0 0 35%!important;}
+.tf-front-master-v17 .tf-v3-stats .tf-v3-stat:nth-child(3) {flex:0 0 33%!important;}
+.tf-front-master-v17 .tf-v3-stat[data-stat-label="CA"] .tf-v6-stat-icon,
+.tf-front-master-v17 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
+  width:30px!important;height:30px!important;
+  left:calc(50% - 25px)!important;top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  margin:0!important;object-fit:contain;
+  border:0!important;border-radius:50%;box-shadow:none!important;
+  clip-path:none!important;filter:none!important;
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 46%,rgba(0,0,0,.9) 58%,transparent 76%);
+  mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 46%,rgba(0,0,0,.9) 58%,transparent 76%);
+}
+.tf-front-master-v17 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {
+  left:calc(50% - 9px)!important;
+  top:50%!important;
+  width:38px!important;max-width:38px!important;
+  transform:translateY(-50%)!important;
+}

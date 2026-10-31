@@ -86,6 +86,26 @@ const drawWrappedText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) =>
 };
 
 
+/* Convert a pre-framed symbol into a soft inset so its baked-in metal rim
+   never sits on top of the gold ring already engraved into the master.
+   This reproduces the CSS radial mask in PNG and PDF output. */
+function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEnd=.40) {
+  const tile=document.createElement("canvas");
+  tile.width=source.cell;tile.height=source.cell;
+  const layer=tile.getContext("2d");
+  layer.drawImage(image,source.x,source.y,source.cell,source.cell,0,0,source.cell,source.cell);
+  const middle=source.cell/2;
+  const feather=layer.createRadialGradient(middle,middle,source.cell*fadeStart,
+    middle,middle,source.cell*fadeEnd);
+  feather.addColorStop(0,"rgba(0,0,0,1)");
+  feather.addColorStop(1,"rgba(0,0,0,0)");
+  layer.globalCompositeOperation="destination-in";
+  layer.fillStyle=feather;
+  layer.fillRect(0,0,source.cell,source.cell);
+  layer.globalCompositeOperation="source-over";
+  ctx.drawImage(tile,dest.x-dest.size/2,dest.y-dest.size/2,dest.size,dest.size);
+}
+
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
@@ -116,13 +136,10 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   const drawnDiameter = m.r*2*(dragon?1.23:1);
-   const dx = m.x-drawnDiameter/2;
-   const dy = m.y-drawnDiameter/2;
-   ctx.save();
-   ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);ctx.clip();
-   ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,dx,dy,drawnDiameter,drawnDiameter);
-   ctx.restore();
+   drawIntegratedMedallion(ctx,icon,
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell},
+     {x:m.x,y:m.y,size:m.r*2},
+     dragon?.26:.275,dragon?.40:.415);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
@@ -149,13 +166,11 @@ async function renderApprovedMaster(element,card) {
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    if(icon)try {
-     // Clip the grey outer fringe built into the original WebP thumbnails.
-     const diameter=44,iconX=cx-29,iconY=statY+MASTER_REGIONS.stats.h/2+6;
-     ctx.save();
-     ctx.beginPath();ctx.arc(iconX,iconY,diameter*.34,0,Math.PI*2);ctx.clip();
-     ctx.drawImage(icon,iconX-diameter/2,iconY-diameter/2,diameter,diameter);
-     ctx.restore();
-   }catch{}
+     // Same small, softly blended inset as the CA/PF circles in the preview.
+     const iconX=cx-25,iconY=statY+MASTER_REGIONS.stats.h/2;
+     drawIntegratedMedallion(ctx,icon,
+       {x:0,y:0,cell:56},{x:iconX,y:iconY,size:30},.23,.38);
+   }catch(error){if(process.env.NODE_ENV==="test")throw error;}
    const tx=cx+(icon?10:0), max=cellW-(icon?27:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,tx,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");

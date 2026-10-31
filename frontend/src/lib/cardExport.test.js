@@ -157,22 +157,29 @@ describe("card export renderers", () => {
         velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}};
     const front=await renderCardCanvas(el,card);
     const drawings=front.operations.filter(op=>op.name==="drawImage");
+    const embedded=canvases.slice(1).flatMap(c=>c.operations.filter(op=>op.name==="drawImage"));
     expect(drawings[0].args[0].src).toBe("/card-art/front-master-v17.webp");
     expect(drawings.map(op=>op.args[0]?.src)).not.toContain("/card-art/front-detail-repair-v8.webp");
     expect(written(front)).toContain("Drago Rosso Adulto");
-    const hd=front.operations.filter(o=>o.name==="drawImage").map(o=>o.args[0]?.src);
-    expect(hd).toContain("/emblemi/drago-originale-hd-v2.webp");
-    const dragonDraw=drawings.find(op=>op.args[0]?.src==="/emblemi/drago-originale-hd-v2.webp");
-    expect(dragonDraw.args.slice(-2)).toEqual([56*1.23,56*1.23]);
-    const statDraws=drawings.filter(op=>/\/card-art\/stat-(ca|pf)\.webp$/.test(op.args[0]?.src||""));
+    const dragonDraw=embedded.find(op=>op.args[0]?.src==="/emblemi/drago-originale-hd-v2.webp");
+    expect(dragonDraw).toBeDefined();
+    const dragonOnMaster=drawings.find(op=>op.args[0]?.operations?.some(op=>op.args?.[0]?.src==="/emblemi/drago-originale-hd-v2.webp"));
+    expect(dragonOnMaster.args.slice(-2)).toEqual([56,56]);
+    const statDraws=embedded.filter(op=>/\/card-art\/stat-(ca|pf)\.webp$/.test(op.args[0]?.src||""));
+    expect(embedded.map(op=>op.args[0]?.src).filter(Boolean))
+      .toEqual(expect.arrayContaining(["/emblemi/drago-originale-hd-v2.webp",
+        "/card-art/stat-ca.webp","/card-art/stat-pf.webp"]));
     expect(statDraws).toHaveLength(2);
-    expect(statDraws[0].args.slice(-2)).toEqual([44,44]);
-    expect(statDraws[1].args.slice(-2)).toEqual([44,44]);
-    // The assets have different transparent margins but their visible disks
-    // must share the same 44px crop and vertical centre on the original rail.
-    expect(statDraws[0].args.at(-3)+22).toBeCloseTo(195+42/2+6);
-    expect(statDraws[1].args.at(-3)+22).toBeCloseTo(195+42/2+6);
-    expect(statDraws[1].args.at(-4)-statDraws[0].args.at(-4)).toBeCloseTo(304*(.32/2+.35/2));
+    const statOnMaster=drawings.filter(op=>op.args[0]?.operations?.some(op=>/\/card-art\/stat-(ca|pf)\.webp$/.test(op.args?.[0]?.src||"")));
+    expect(statOnMaster).toHaveLength(2);
+    expect(statOnMaster[0].args.slice(-2)).toEqual([30,30]);
+    expect(statOnMaster[1].args.slice(-2)).toEqual([30,30]);
+    expect(statOnMaster[0].args.at(-3)+15).toBeCloseTo(195+42/2);
+    expect(statOnMaster[1].args.at(-3)+15).toBeCloseTo(195+42/2);
+    expect(statOnMaster[1].args.at(-4)-statOnMaster[0].args.at(-4))
+      .toBeCloseTo(304*(.32/2+.35/2));
+    expect(canvases.slice(1).every(c=>c.operations.some(op=>op.name==="fillRect")))
+      .toBe(true); // no hard painted rim in any export layer
     expect(written(front)).toContain("17");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
