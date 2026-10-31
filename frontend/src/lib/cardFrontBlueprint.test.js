@@ -101,3 +101,26 @@ describe("movement-mode presentation",()=>{
    expect(speed.fullValue).toContain("volare 36 m");
  });
 });
+
+describe("approved class: source-faithful narrative with d10",()=>{
+ it("preserves exact legacy text, without repetitive Dado vita heading",()=>{
+   const original="Un’umana in una sferragliante corazza di piastre solleva lo scudo davanti a sé.";
+   const card={type:"class",name:"Guerriero",
+     description:"Guerriero — Dado Vita d10. Tiri salvezza: Forza, Costituzione. Competenza in tutte le armature, scudi, armi semplici e marziali.",
+     attributes:{dado_vita:"d10",abilita_primaria:"Forza o Destrezza",
+       tiri_salvezza:"Forza, Costituzione",_legacy_full_text_before_20261024:original}};
+   const data=buildFrontBlueprint(card);
+   expect(data.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
+   expect(data.highlights[2].value).toContain("tutte le armature");
+   expect(data.dice).toBe("d10");
+   expect(data.showDescriptionLabel).toBe(false);
+   expect(data.description).toBe(original);
+   expect(card.description).toContain("Dado Vita d10");
+ });
+ it("does not introduce fictitious class narrative when no legacy source exists",()=>{
+   const data=buildFrontBlueprint({type:"class",name:"Bardo",description:"Testo già disponibile.",attributes:{dado_vita:"d8"}});
+   expect(data.description).toBe("Testo già disponibile.");
+   expect(data.dice).toBe("d8");
+   expect(data.highlights).toHaveLength(0);
+ });
+});
