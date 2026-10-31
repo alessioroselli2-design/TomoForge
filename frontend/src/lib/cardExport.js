@@ -128,9 +128,9 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   const drawnDiameter = m.r*2*(dragon?.91:1);
-   const dx = m.x-drawnDiameter/2+(dragon?2:0);
-   const dy = m.y-drawnDiameter/2+(dragon?-1:0);
+   const drawnDiameter = m.r*2*(dragon?1.23:1);
+   const dx = m.x-drawnDiameter/2;
+   const dy = m.y-drawnDiameter/2;
    ctx.save();
    ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);ctx.clip();
    ctx.drawImage(icon,s.col*s.cell,s.row*s.cell,s.cell,s.cell,dx,dy,drawnDiameter,drawnDiameter);
@@ -161,12 +161,16 @@ async function renderApprovedMaster(element,card) {
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
    if(icon)try {
-     const isPF=it.label==="PF", diameter=isPF?24:22;
-     ctx.drawImage(icon,cx-11-diameter/2,statY+26-diameter/2,diameter,diameter);
+     // Clip the grey outer fringe built into the original WebP thumbnails.
+     const diameter=44,iconX=cx-11,iconY=statY+MASTER_REGIONS.stats.h/2;
+     ctx.save();
+     ctx.beginPath();ctx.arc(iconX,iconY,diameter*.34,0,Math.PI*2);ctx.clip();
+     ctx.drawImage(icon,iconX-diameter/2,iconY-diameter/2,diameter,diameter);
+     ctx.restore();
    }catch{}
    const tx=cx+(icon?10:0), max=cellW-(icon?26:7);
    ctx.textAlign="center";ctx.fillStyle="#51301c";
-   drawFittedText(ctx,it.label,tx,statY+14,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
+   drawFittedText(ctx,it.label,tx,statY+(icon?12:14),max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
    if(it.label==="Vel.") {
      // Full movement modes, no ellipsis or line clipped by the parchment border.
@@ -175,7 +179,7 @@ async function renderApprovedMaster(element,card) {
      const first=statY+(lines.length===1?30:lines.length===2?26:21);
      lines.forEach((line,n)=>ctx.fillText(line,tx,first+n*8,max-3));
    } else {
-     drawFittedText(ctx,it.value,tx,statY+31,max,13,"Georgia,serif","700");
+     drawFittedText(ctx,it.value,tx,statY+(icon?29:31),max,13,"Georgia,serif","700");
    }
  });
  data.abilities.slice(0,6).forEach((it,i)=>{

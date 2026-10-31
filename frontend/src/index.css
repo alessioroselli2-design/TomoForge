@@ -1154,7 +1154,7 @@ body {
 }
 /* Optical alignment corrected inside the existing 60px medallions only. */
 .tf-front-master-v7 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
-  transform:translate(2px,-1px) scale(.91);
+  transform:scale(1.23);
   transform-origin:50% 50%;
 }
 /* Both engraved stat disks share the same centre x=(column centre - 11px).
@@ -1167,3 +1167,20 @@ body {
   left:calc(50% - 23px);top:calc(50% + 5px);
   width:24px;height:24px;
 }
+
+/* v16: display the actual medallion, not its transparent 56px source tile.
+   Share one disk centre; preserve the approved frame, text and GS badge. */
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="CA"] .tf-v6-stat-icon,
+.tf-front-master-v7 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
+  position:absolute!important;
+  width:44px;height:44px;
+  /* Anchor the image centre, not its transparent 56px source box edge. */
+  left:calc(50% - 11px);top:50%;
+  transform:translate(-50%,-50%);
+  max-width:none;max-height:none;min-width:0;flex:none;margin:0;
+  filter:none!important;
+  /* Only the engraved black/gold disk, without the baked shadow. */
+  clip-path:circle(34% at 50% 50%);
+  object-fit:contain;
+}
+.tf-front-master-v7 .tf-v3-stat.tf-v6-stat-with-icon .tf-v6-stat-text {top:50%;}

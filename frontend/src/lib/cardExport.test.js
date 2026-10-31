@@ -162,6 +162,18 @@ describe("card export renderers", () => {
     expect(written(front)).toContain("Drago Rosso Adulto");
     const hd=front.operations.filter(o=>o.name==="drawImage").map(o=>o.args[0]?.src);
     expect(hd).toContain("/emblemi/drago-originale-hd-v2.webp");
+    const dragonDraw=drawings.find(op=>op.args[0]?.src==="/emblemi/drago-originale-hd-v2.webp");
+    expect(dragonDraw.args.slice(-2)).toEqual([60*1.23,60*1.23]);
+    const statDraws=drawings.filter(op=>/\/card-art\/stat-(ca|pf)\.webp$/.test(op.args[0]?.src||""));
+    expect(statDraws).toHaveLength(2);
+    expect(statDraws[0].args.slice(-2)).toEqual([44,44]);
+    expect(statDraws[1].args.slice(-2)).toEqual([44,44]);
+    // The assets have different transparent margins but their visible disks
+    // must share the same 44px crop and vertical centre on the original rail.
+    expect(statDraws[0].args.at(-3)+22).toBeCloseTo(208+41/2);
+    expect(statDraws[1].args.at(-3)+22).toBeCloseTo(208+41/2);
+    expect(statDraws[1].args.at(-4)-statDraws[0].args.at(-4)).toBeCloseTo(304/3);
+    expect(written(front)).toContain("17");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
   });
