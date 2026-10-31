@@ -52,7 +52,7 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("dedicated class front only",()=>{
  it("uses a single long parchment and d10 gem without modifying monster master",()=>{
    expect(finalMaster).toContain('[data-front-category="class"] .tf-v3-parchment');
-   expect(finalMaster).toContain("class-d10-gem-v26.svg");
+   expect(component).toContain("class-d10-gem-v26.svg");
    expect(component).toContain("data.showDescriptionLabel&&");
    expect(exporter).toContain('if(data.type==="class"){');
    expect(exporter).toContain("class-d10-gem-v26.svg");
