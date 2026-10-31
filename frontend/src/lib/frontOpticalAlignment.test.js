@@ -48,3 +48,13 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
     expect(exporter).toContain('drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,');
   });
 });
+
+describe("dedicated class front only",()=>{
+ it("uses a single long parchment and d10 gem without modifying monster master",()=>{
+   expect(finalMaster).toContain('[data-front-category="class"] .tf-v3-parchment');
+   expect(finalMaster).toContain("class-d10-gem-v26.svg");
+   expect(component).toContain("data.showDescriptionLabel&&");
+   expect(exporter).toContain('if(data.type==="class"){');
+   expect(exporter).toContain("class-d10-gem-v26.svg");
+ });
+});
