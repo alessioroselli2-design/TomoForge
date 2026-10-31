@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+<!-- A crisp hourglass engraved in parchment: no pre-rendered disk, border or shadow. -->
+<path d="M12 8H36M12 40H36" stroke="#5B3523" stroke-width="4" stroke-linecap="round"/>
+<path d="M15 11C15 17.1 19.7 20.9 24 24C28.3 20.2 33 17.1 33 11M15 37C15 30.9 19.7 27.1 24 24C28.3 27.8 33 30.9 33 37" stroke="#5B3523" stroke-width="3.3" stroke-linejoin="round"/>
+<path d="M18.7 16.3C20.5 19.3 22.1 20.5 24 22.3C25.9 20.5 27.5 19.3 29.3 16.3ZM18.7 32C20.5 29.5 22 28.1 24 26.1C26 28.1 27.5 29.5 29.3 32Z" fill="#794A30"/>
+</svg>
