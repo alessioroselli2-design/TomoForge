@@ -188,3 +188,12 @@
   position:absolute!important;right:3%!important;top:auto!important;bottom:3%!important;
   width:36px!important;height:36px!important;
 }
+
+/* v27: high-resolution illustrated polyhedral jewels, one silhouette per die.
+   This applies only to Class. Previously approved monster fronts are untouched. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-v3-class-dice{
+  background-size:100% 100%!important;
+  font:700 22px/1 'Cinzel',Georgia,serif!important;
+  letter-spacing:-.6px!important;-webkit-font-smoothing:antialiased;
+  text-shadow:0 2px 2px #3b0310,0 0 9px rgba(255,215,147,.5)!important;
+}
