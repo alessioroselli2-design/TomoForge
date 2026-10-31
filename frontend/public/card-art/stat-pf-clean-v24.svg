@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+<!-- Crisp version of the approved linked vitality rune, without the black circular tile. -->
+<path d="M12 16.4C8.9 19.8 8.2 25.3 10.4 29.8M36 16.4C39.1 19.8 39.8 25.3 37.6 29.8" stroke="#5B3523" stroke-width="3.4" stroke-linecap="round"/>
+<path d="M16 12.6 23.8 21.5 32 12.6M24 22V34M16.1 32.6 23.9 35.4 31.8 32.6" stroke="#5B3523" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="23" r="5.6" fill="#794A30" stroke="#5B3523" stroke-width="1.4"/>
+<path d="m13.1 8.2 5.9 5.9-5.9 5.9-5.9-5.9ZM34.9 8.2l5.9 5.9-5.9 5.9-5.9-5.9Z" fill="#794A30" stroke="#5B3523" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M20.3 32.4H27.7V40H20.3Z" fill="#794A30" stroke="#5B3523" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>
