@@ -124,3 +124,29 @@ describe("approved class: source-faithful narrative with d10",()=>{
    expect(data.highlights).toHaveLength(0);
  });
 });
+
+describe("v27: one ornate die silhouette for each verified Hit Die",()=>{
+  it.each([
+    ["Mago","d6"],["Stregone","d6"],["Druido","d8"],["Bardo","d8"],
+    ["Guerriero","d10"],["Paladino","d10"],["Barbaro","d12"],
+    ["Personalizzato","d4"],["Epico","d20"],
+  ])("%s uses its stored die %s",(name,die)=>{
+    const bp=buildFrontBlueprint({type:"class",name,attributes:{dado_vita:die}});
+    expect(bp.dice).toBe(die);
+    expect(bp.classDieAsset).toBe(`/card-art/class-dice/${die}-gem-v27.svg`);
+  });
+  it("does not guess a die from a class name or its damage",()=>{
+    const bp=buildFrontBlueprint({type:"class",name:"Barbaro",attributes:{danno:"2d12"}});
+    expect(bp.dice).toBe(""); expect(bp.classDieAsset).toBe("");
+  });
+  it("normalizes valid dice strings supplied by different imports",()=>{
+    expect(buildFrontBlueprint({type:"class",attributes:{dado_vita:"1D 8"}}).dice).toBe("d8");
+  });
+  it("ends the authentic card excerpt with a visible ellipsis and preserves full source",()=>{
+    const whole=("Un’umana in una sferragliante corazza di piastre solleva lo scudo davanti a sé. ").repeat(12);
+    const bp=buildFrontBlueprint({type:"class",attributes:{_legacy_full_text_before_20261024:whole}});
+    expect(bp.description.endsWith("…")).toBe(true);
+    expect(bp.description.length).toBeLessThanOrEqual(290);
+    expect(bp.classLegacyText).toBe(whole.trim());
+  });
+});
