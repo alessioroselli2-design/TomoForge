@@ -1224,3 +1224,31 @@ body {
   width:38px!important;max-width:38px!important;
   transform:translateY(-50%)!important;
 }
+
+/* v23: remove the pasted-on appearance at the SOURCE, not by growing a
+   cropped black/gold thumbnail. The approved v17 raster holds all gold rings.
+   closest-side is essential: farthest-corner left the old circular mask opaque
+   right to its visible rim, which is why earlier CSS changes looked unchanged. */
+.tf-front-master-v17 .tf-v3-medallion .tf-v3-sprite {
+  transform:scale(1.2)!important;
+  transform-origin:center!important;
+  -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 59%,rgba(0,0,0,.75) 67%,transparent 82%)!important;
+  mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 59%,rgba(0,0,0,.75) 67%,transparent 82%)!important;
+}
+.tf-front-master-v17 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
+  transform:scale(1.28)!important;
+  -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
+  mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
+}
+/* The new SVGs extract ONLY the original ivory rune, without the baked black
+   disk, edge shadow or duplicate gold frame. Position beside the numeric value. */
+.tf-front-master-v17 .tf-v3-stat[data-stat-label="CA"] .tf-v6-stat-icon,
+.tf-front-master-v17 .tf-v3-stat[data-stat-label="PF"] .tf-v6-stat-icon {
+  width:18px!important;height:18px!important;
+  left:calc(50% - 19px)!important;
+  top:calc(50% + 8px)!important;
+  border:0!important;border-radius:0!important;
+  clip-path:none!important;box-shadow:none!important;filter:none!important;
+  -webkit-mask-image:none!important;mask-image:none!important;
+  transform:translate(-50%,-50%)!important;
+}
