@@ -32,7 +32,7 @@ describe("v15 centered medallions and clean stat discs",()=>{
   const print=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
   it("fills the approved dragon circle without removing the GS badge",()=>{
     expect(css).toContain("transform:scale(1.23)");
-    expect(print).toContain("dragon?.26:.275");
+    expect(print).toContain("dragon?.37:.35");
     expect(print).toContain("if(data.badge)");
   });
   it("centers CA/PF equally and crops the peripheral tile fringe in preview and print",()=>{
@@ -43,8 +43,8 @@ describe("v15 centered medallions and clean stat discs",()=>{
     expect(css).toContain("filter:none!important");
     expect(css).toContain("width:44px;height:44px");
     expect(css).toContain("transform:translate(-50%,-50%)");
-    expect(print).toContain("iconX=cx-25,iconY=statY+MASTER_REGIONS.stats.h/2");
-    expect(print).toContain("{x:iconX,y:iconY,size:30},.23,.38");
+    expect(print).toContain("iconX=cx-19,iconY=statY+MASTER_REGIONS.stats.h/2+8");
+    expect(print).toContain("ctx.drawImage(icon,iconX-9,iconY-9,18,18)");
   });
 });
 
@@ -63,6 +63,23 @@ describe("v22: integrated symbols on the ornate hi-res master",()=>{
   expect(css).toContain('left:calc(50% - 25px)!important;top:50%!important');
   expect(css).toContain('flex:0 0 32%!important');
   expect(css).toContain('flex:0 0 35%!important');
-  expect(exportSource).toContain('{x:iconX,y:iconY,size:30},.23,.38');
+  expect(exportSource).toContain('ctx.drawImage(icon,iconX-9,iconY-9,18,18)');
+ });
+});
+
+describe("v23: rune only, master frame untouched",()=>{
+ const css=readFileSync(resolve(__dirname,"../index.css"),"utf8");
+ const exportSource=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
+ it("uses a closest-side radial mask and scales out the source dragon ring",()=>{
+   expect(css).toContain("circle closest-side at center");
+   expect(css).toContain("transform:scale(1.28)!important");
+   expect(exportSource).toContain("zoom:dragon?1.28:1.2");
+   expect(exportSource).toContain("const cropSize=source.cell/(source.zoom||1)");
+ });
+ it("renders clean transparent runes at 18px, under the label and beside values",()=>{
+   expect(css).toContain("width:18px!important;height:18px!important");
+   expect(css).toContain("left:calc(50% - 19px)!important");
+   expect(css).toContain("top:calc(50% + 8px)!important");
+   expect(exportSource).toContain("ctx.drawImage(icon,iconX-9,iconY-9,18,18)");
  });
 });
