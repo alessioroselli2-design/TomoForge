@@ -128,7 +128,7 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   const drawnDiameter = m.r*2*(dragon?1.06:1);
+   const drawnDiameter = m.r*2*(dragon?1.23:1);
    const dx = m.x-drawnDiameter/2;
    const dy = m.y-drawnDiameter/2;
    ctx.save();
@@ -162,9 +162,9 @@ async function renderApprovedMaster(element,card) {
    const cx=sx+(i+.5)*cellW,icon=statImages[i];
    if(icon)try {
      // Clip the grey outer fringe built into the original WebP thumbnails.
-     const diameter=30,iconX=cx-11,iconY=statY+MASTER_REGIONS.stats.h/2;
+     const diameter=44,iconX=cx-11,iconY=statY+MASTER_REGIONS.stats.h/2;
      ctx.save();
-     ctx.beginPath();ctx.arc(iconX,iconY,diameter*.44,0,Math.PI*2);ctx.clip();
+     ctx.beginPath();ctx.arc(iconX,iconY,diameter*.34,0,Math.PI*2);ctx.clip();
      ctx.drawImage(icon,iconX-diameter/2,iconY-diameter/2,diameter,diameter);
      ctx.restore();
    }catch{}
