@@ -180,7 +180,7 @@
   margin:0!important;padding:0!important;
   display:flex;align-items:center;justify-content:center;
   border:0!important;border-radius:0!important;
-  background:transparent url("/card-art/class-d10-gem-v26.svg") center/contain no-repeat!important;
+  background-color:transparent!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important;
   box-shadow:none!important;color:#fff5db!important;text-shadow:0 2px 3px #330510;
   font:700 23px/1 'Cinzel',Georgia,serif!important;overflow:visible!important;
 }
