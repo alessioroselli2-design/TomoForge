@@ -133,7 +133,7 @@ describe("v27: one ornate die silhouette for each verified Hit Die",()=>{
   ])("%s uses its stored die %s",(name,die)=>{
     const bp=buildFrontBlueprint({type:"class",name,attributes:{dado_vita:die}});
     expect(bp.dice).toBe(die);
-    expect(bp.classDieAsset).toBe(`/card-art/class-dice/${die}-gem-v27.svg`);
+    expect(bp.classDieAsset).toBe(`/card-art/class-dice/${die}-master-v28.svg`);
   });
   it("does not guess a die from a class name or its damage",()=>{
     const bp=buildFrontBlueprint({type:"class",name:"Barbaro",attributes:{danno:"2d12"}});
