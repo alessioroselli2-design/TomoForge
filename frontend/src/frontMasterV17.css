@@ -197,3 +197,21 @@
   letter-spacing:-.6px!important;-webkit-font-smoothing:antialiased;
   text-shadow:0 2px 2px #3b0310,0 0 9px rgba(255,215,147,.5)!important;
 }
+
+/* v28: one ornate ruby-and-gold master across d4/d6/d8/d10/d12/d20.
+   The SVG is the graphic. Its lower-case label is always real dynamic text,
+   shared with PNG/PDF. No CSS-drawn ring, artificial bevel, or extra box. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-v3-class-dice {
+  background-size:100% 100%!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  background-color:transparent!important;
+  border:0!important;box-shadow:none!important;
+  text-transform:none!important;font-variant:normal!important;
+  color:#fff6e3!important;
+  font:700 23px/1 Georgia,"Times New Roman",serif!important;
+  letter-spacing:-.7px!important;
+  text-shadow:0 1px 1px #420715,0 2px 3px #24000d,0 0 5px rgba(255,224,167,.38)!important;
+  -webkit-text-stroke:.15px rgba(71,5,26,.5);
+  image-rendering:auto;
+}
