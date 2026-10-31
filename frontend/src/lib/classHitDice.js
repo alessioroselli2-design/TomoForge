@@ -9,5 +9,5 @@ export const normalizeClassHitDie = (value) => {
 
 export const classHitDieAsset = (value) => {
   const die=normalizeClassHitDie(value);
-  return die ? `/card-art/class-dice/${die}-gem-v27.svg` : "";
+  return die ? `/card-art/class-dice/${die}-master-v28.svg` : "";
 };
