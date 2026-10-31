@@ -33,7 +33,7 @@ describe("TomoForge v2 front blueprint", () => {
       expect(data.heading).toBeTruthy();
       expect(data.highlights.length).toBeLessThanOrEqual(3);
       expect(data.details.length).toBeLessThanOrEqual(3);
-      expect(data.dice).toBe("1d8+2");
+      expect(data.dice).toBe(type === "class" ? "" : "1d8+2");
     }
   );
   it("ignores previous color, foil, motto and custom front style settings", () => {
