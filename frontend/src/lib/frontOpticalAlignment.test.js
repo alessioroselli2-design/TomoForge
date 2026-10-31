@@ -43,7 +43,7 @@ describe("v15 centered medallions and clean stat discs",()=>{
     expect(css).toContain("filter:none!important");
     expect(css).toContain("width:44px;height:44px");
     expect(css).toContain("transform:translate(-50%,-50%)");
-    expect(print).toContain("iconX=cx-11,iconY=statY+MASTER_REGIONS.stats.h/2");
+    expect(print).toContain("iconX=cx-29,iconY=statY+MASTER_REGIONS.stats.h/2+6");
     expect(print).toContain("ctx.arc(iconX,iconY,diameter*.34");
   });
 });
