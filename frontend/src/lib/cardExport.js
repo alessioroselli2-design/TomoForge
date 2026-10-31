@@ -221,7 +221,7 @@ async function renderApprovedMaster(element,card) {
    drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
      31,258,207,11,16);
    if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
-     const jewel=await loadFrontEmblem({src:"/card-art/class-d10-gem-v26.svg"});
+     const jewel=data.classDieAsset ? await loadFrontEmblem({src:data.classDieAsset}) : null;
      if(jewel)ctx.drawImage(jewel,239,297,73,73);
      ctx.textAlign="center";ctx.fillStyle="#fff7df";
      ctx.font="700 21px Georgia,serif";ctx.fillText(data.dice,275,337,65);
