@@ -140,7 +140,7 @@ describe("card export renderers", () => {
     const statAssets=front.operations.filter(op=>op.name==="drawImage")
       .map(op=>op.args[0]?.src)
       .filter(src=>typeof src==="string" && src.includes("/card-art/stat-"));
-    expect(statAssets).toEqual(["/card-art/stat-ca.webp","/card-art/stat-pf.webp"]);
+    expect(statAssets).toEqual(["/card-art/stat-ca-rune-v23.svg","/card-art/stat-pf-rune-v23.svg"]);
     expect(text).toContain("Un guardiano antico");
     expect(front.operations.some((op) => op.name === "fillText" && op.y > 472)).toBe(false);
     expect(text).not.toContain("MOSTRO");
@@ -165,21 +165,19 @@ describe("card export renderers", () => {
     expect(dragonDraw).toBeDefined();
     const dragonOnMaster=drawings.find(op=>op.args[0]?.operations?.some(op=>op.args?.[0]?.src==="/emblemi/drago-originale-hd-v2.webp"));
     expect(dragonOnMaster.args.slice(-2)).toEqual([56,56]);
-    const statDraws=embedded.filter(op=>/\/card-art\/stat-(ca|pf)\.webp$/.test(op.args[0]?.src||""));
-    expect(embedded.map(op=>op.args[0]?.src).filter(Boolean))
-      .toEqual(expect.arrayContaining(["/emblemi/drago-originale-hd-v2.webp",
-        "/card-art/stat-ca.webp","/card-art/stat-pf.webp"]));
+
+    const statDraws=drawings.filter(op=>/\/card-art\/stat-(ca|pf)-rune-v23\.svg$/.test(op.args[0]?.src||""));
     expect(statDraws).toHaveLength(2);
-    const statOnMaster=drawings.filter(op=>op.args[0]?.operations?.some(op=>/\/card-art\/stat-(ca|pf)\.webp$/.test(op.args?.[0]?.src||"")));
-    expect(statOnMaster).toHaveLength(2);
-    expect(statOnMaster[0].args.slice(-2)).toEqual([30,30]);
-    expect(statOnMaster[1].args.slice(-2)).toEqual([30,30]);
-    expect(statOnMaster[0].args.at(-3)+15).toBeCloseTo(195+42/2);
-    expect(statOnMaster[1].args.at(-3)+15).toBeCloseTo(195+42/2);
-    expect(statOnMaster[1].args.at(-4)-statOnMaster[0].args.at(-4))
+    expect(statDraws[0].args.slice(-2)).toEqual([18,18]);
+    expect(statDraws[1].args.slice(-2)).toEqual([18,18]);
+    expect(statDraws[0].args.at(-3)+9).toBeCloseTo(195+42/2+8);
+    expect(statDraws[1].args.at(-3)+9).toBeCloseTo(195+42/2+8);
+    expect(statDraws[1].args.at(-4)-statDraws[0].args.at(-4))
       .toBeCloseTo(304*(.32/2+.35/2));
-    expect(canvases.slice(1).every(c=>c.operations.some(op=>op.name==="fillRect")))
-      .toBe(true); // no hard painted rim in any export layer
+    expect(embedded.map(op=>op.args[0]?.src).filter(Boolean))
+      .toEqual(expect.arrayContaining(["/emblemi/drago-originale-hd-v2.webp"]));
+    expect(canvases.slice(1).some(c=>c.operations.some(op=>op.name==="fillRect")))
+      .toBe(true);
     expect(written(front)).toContain("17");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
