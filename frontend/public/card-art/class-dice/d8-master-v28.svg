@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256" role="img" aria-label="Master illustrato dado vita d8">
+<defs>
+ <linearGradient id="gold" x1=".08" y1=".04" x2=".9" y2=".95">
+  <stop stop-color="#fff7ca"/><stop offset=".11" stop-color="#8b3c16"/><stop offset=".21" stop-color="#ffd87c"/><stop offset=".33" stop-color="#b36320"/><stop offset=".48" stop-color="#fff5b6"/><stop offset=".6" stop-color="#a44718"/><stop offset=".78" stop-color="#ffc65e"/><stop offset=".89" stop-color="#61300e"/><stop offset="1" stop-color="#fff1b6"/>
+ </linearGradient>
+ <linearGradient id="outer" x1="0" y1="0" x2="1" y2="1">
+  <stop stop-color="#ffefad"/><stop offset=".32" stop-color="#9b4517"/><stop offset=".52" stop-color="#fff0a4"/><stop offset=".76" stop-color="#8a3b19"/><stop offset="1" stop-color="#ffd775"/>
+ </linearGradient>
+ <radialGradient id="felt" cx=".42" cy=".28" r=".82">
+  <stop stop-color="#891523"/><stop offset=".42" stop-color="#58091c"/><stop offset=".86" stop-color="#1f0410"/><stop offset="1" stop-color="#070207"/>
+ </radialGradient>
+ <linearGradient id="ruby" x1="0" y1="0" x2=".84" y2="1">
+  <stop stop-color="#ffe1cb"/><stop offset=".12" stop-color="#ff8591"/><stop offset=".34" stop-color="#c42144"/><stop offset=".66" stop-color="#75051f"/><stop offset="1" stop-color="#2d0013"/>
+ </linearGradient>
+ <radialGradient id="shine" cx=".29" cy=".17" r=".94">
+  <stop stop-color="#ffb5a6" stop-opacity=".62"/><stop offset=".27" stop-color="#ff4756" stop-opacity=".23"/><stop offset=".65" stop-color="#a20b30" stop-opacity="0"/><stop offset="1" stop-color="#140008" stop-opacity=".58"/>
+ </radialGradient>
+ <filter id="drop" x="-35%" y="-35%" width="170%" height="170%">
+  <feGaussianBlur stdDeviation="3"/>
+ </filter>
+ <clipPath id="cut"><polygon points="128,33 211,127 128,222 45,127"/></clipPath>
+</defs>
+<!-- Single approved ornamental master shared verbatim by all six dice. -->
+<circle cx="128" cy="133" r="107" fill="#130504" opacity=".5" filter="url(#drop)"/>
+<path d="M128 7 141 24 162 17 174 33 196 26 207 49 229 56 227 81 248 104 232 128 248 152 227 175 229 201 206 208 195 231 174 223 161 241 141 232 128 250 115 232 94 241 82 223 60 231 49 208 27 201 29 175 8 152 24 128 8 104 29 81 27 56 49 49 60 26 82 33 94 17 115 24Z" fill="#321008" stroke="url(#gold)" stroke-width="4.4" stroke-linejoin="round"/>
+<path d="M128 16 144 31 168 28 181 42 207 49 213 75 230 94 216 128 230 161 213 181 207 207 180 214 167 230 144 225 128 241 112 225 89 230 76 214 49 207 43 181 26 161 40 128 26 94 43 75 49 49 75 42 88 28 112 31Z" fill="#170807" stroke="#ffeea5" stroke-opacity=".8" stroke-width="1.3"/>
+<circle cx="128" cy="128" r="109" fill="#230c0b" stroke="url(#outer)" stroke-width="10"/>
+<circle cx="128" cy="128" r="103" fill="none" stroke="#7a3215" stroke-width="3"/>
+<circle cx="128" cy="128" r="98" fill="url(#felt)" stroke="#ffe2a1" stroke-width="2.3"/>
+<circle cx="128" cy="128" r="92" fill="none" stroke="#842d24" stroke-width="3"/>
+<circle cx="128" cy="128" r="88" fill="none" stroke="#f5b357" stroke-opacity=".83" stroke-width="1.3"/>
+<path d="M35 112C42 62 75 36 113 34 M153 221C192 211 215 189 221 151" fill="none" stroke="#fff5c5" stroke-width="2.7" stroke-linecap="round" opacity=".8"/>
+<path d="M39 136C43 188 74 215 115 221 M143 35C187 42 216 76 221 113" fill="none" stroke="#8d441f" stroke-width="2.8" stroke-linecap="round"/>
+<g transform="rotate(45 128 128)">
+   <path d="M128 12 136 23 143 41 128 35 113 41 120 23Z" fill="url(#gold)" stroke="#6b2e17" stroke-width="1.9"/>
+   <path d="M128 21 136 36 128 32 120 36Z" fill="#a60b28" stroke="#ffe5a0" stroke-width=".8"/>
+  </g>
+<g transform="rotate(135 128 128)">
+   <path d="M128 12 136 23 143 41 128 35 113 41 120 23Z" fill="url(#gold)" stroke="#6b2e17" stroke-width="1.9"/>
+   <path d="M128 21 136 36 128 32 120 36Z" fill="#a60b28" stroke="#ffe5a0" stroke-width=".8"/>
+  </g>
+<g transform="rotate(225 128 128)">
+   <path d="M128 12 136 23 143 41 128 35 113 41 120 23Z" fill="url(#gold)" stroke="#6b2e17" stroke-width="1.9"/>
+   <path d="M128 21 136 36 128 32 120 36Z" fill="#a60b28" stroke="#ffe5a0" stroke-width=".8"/>
+  </g>
+<g transform="rotate(315 128 128)">
+   <path d="M128 12 136 23 143 41 128 35 113 41 120 23Z" fill="url(#gold)" stroke="#6b2e17" stroke-width="1.9"/>
+   <path d="M128 21 136 36 128 32 120 36Z" fill="#a60b28" stroke="#ffe5a0" stroke-width=".8"/>
+  </g>
+<!-- One independently faceted ruby silhouette for d8; no baked lettering. -->
+<polygon points="128,33 211,127 128,222 45,127" fill="#21010e" stroke="#20010b" stroke-width="8" stroke-linejoin="round"/>
+<g clip-path="url(#cut)"><polygon points="128,33 128,121 45,127" fill="#ff6774" stroke="#ff9b86" stroke-opacity=".22" stroke-width=".7"/>
+<polygon points="128,33 211,127 128,121" fill="#ad1638" stroke="#ff9b86" stroke-opacity=".22" stroke-width=".7"/>
+<polygon points="45,127 128,121 128,222" fill="#aa0e2e" stroke="#ff9b86" stroke-opacity=".22" stroke-width=".7"/>
+<polygon points="128,121 211,127 128,222" fill="#570419" stroke="#ff9b86" stroke-opacity=".22" stroke-width=".7"/><polygon points="128,33 211,127 128,222 45,127" fill="url(#shine)"/></g>
+<polygon points="128,33 211,127 128,222 45,127" fill="none" stroke="#ffd180" stroke-width="3.1" stroke-linejoin="round"/>
+<polygon points="128,33 211,127 128,222 45,127" fill="none" stroke="#ff9392" stroke-opacity=".62" stroke-width=".8" stroke-linejoin="round" transform="translate(-1 -1)"/>
+<path d="M128 33V222 M45 127L128 121 211 127" fill="none" stroke="#ff9985" stroke-opacity=".56" stroke-width="2.1" stroke-linejoin="round"/>
+<path d="M87 65Q112 46 139 49 M61 103L66 91 M173 198L192 168" fill="none" stroke="#ffe6b6" stroke-width="2" stroke-linecap="round" opacity=".77"/>
+<path d="M75 85 97 66 89 86Z M158 55 170 63 161 66Z" fill="#fff0ce" opacity=".53"/>
+<!-- Same four gilt ruby cardinal mounts and microfiligree on every master. -->
+<g transform="rotate(0 128 128)">
+   <path d="M128 1 146 27 128 48 110 27Z" fill="#3d100a" stroke="url(#gold)" stroke-width="3.2"/>
+   <path d="M128 4 142 27 128 42 114 27Z" fill="url(#ruby)" stroke="#ffe2a2" stroke-width="1.2"/>
+   <path d="M128 6 128 40 115 27Z" fill="#ff787c" opacity=".72"/>
+   <path d="M118 20 128 8 124 23Z" fill="#fff3cb" opacity=".86"/>
+  </g>
+<g transform="rotate(90 128 128)">
+   <path d="M128 1 146 27 128 48 110 27Z" fill="#3d100a" stroke="url(#gold)" stroke-width="3.2"/>
+   <path d="M128 4 142 27 128 42 114 27Z" fill="url(#ruby)" stroke="#ffe2a2" stroke-width="1.2"/>
+   <path d="M128 6 128 40 115 27Z" fill="#ff787c" opacity=".72"/>
+   <path d="M118 20 128 8 124 23Z" fill="#fff3cb" opacity=".86"/>
+  </g>
+<g transform="rotate(180 128 128)">
+   <path d="M128 1 146 27 128 48 110 27Z" fill="#3d100a" stroke="url(#gold)" stroke-width="3.2"/>
+   <path d="M128 4 142 27 128 42 114 27Z" fill="url(#ruby)" stroke="#ffe2a2" stroke-width="1.2"/>
+   <path d="M128 6 128 40 115 27Z" fill="#ff787c" opacity=".72"/>
+   <path d="M118 20 128 8 124 23Z" fill="#fff3cb" opacity=".86"/>
+  </g>
+<g transform="rotate(270 128 128)">
+   <path d="M128 1 146 27 128 48 110 27Z" fill="#3d100a" stroke="url(#gold)" stroke-width="3.2"/>
+   <path d="M128 4 142 27 128 42 114 27Z" fill="url(#ruby)" stroke="#ffe2a2" stroke-width="1.2"/>
+   <path d="M128 6 128 40 115 27Z" fill="#ff787c" opacity=".72"/>
+   <path d="M118 20 128 8 124 23Z" fill="#fff3cb" opacity=".86"/>
+  </g>
+<g fill="#fff5cf" opacity=".92"><circle cx="76" cy="47" r="1.4"/><circle cx="179" cy="49" r="1.5"/><circle cx="45" cy="172" r="1.2"/><circle cx="200" cy="188" r="1.4"/></g>
+</svg>
