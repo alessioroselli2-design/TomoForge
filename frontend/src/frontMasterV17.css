@@ -129,3 +129,62 @@
   padding:0!important;
   margin:0!important;
 }
+
+/* Approved class-specific layout — isolated from the already verified monster front.
+   The six empty ability compartments and redundant details are covered by one
+   long parchment panel while preserving the master frame and header. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
+  position:absolute!important;left:50%!important;top:3px!important;
+  transform:translateX(-50%)!important;
+  width:94%!important;max-width:94%!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:flex-start!important;gap:3px!important;text-align:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text>span{
+  font:700 7px/1.04 Georgia,serif!important;white-space:normal!important;
+  color:#442719!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text>strong{
+  font:700 8.2px/1.08 Georgia,serif!important;
+  color:#2a160c!important;padding:0!important;
+  white-space:normal!important;overflow-wrap:break-word!important;
+  max-height:33px!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment{
+  top:50%!important;height:43.7%!important;
+  overflow:hidden!important;isolation:isolate;
+  border:0!important;background:transparent!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment::before{
+  content:"";position:absolute;inset:1px 0 0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 48% 36%,rgba(255,249,224,.88) 5%,rgba(245,215,162,.74) 85%),
+    linear-gradient(140deg,#edd0a0,#ffefc8 43%,#e7c38c);
+  border:2px ridge #b77b38;border-radius:8px 8px 13px 13px;
+  box-shadow:inset 0 0 0 1px #fff3d4,inset 0 0 14px rgba(141,72,20,.34);
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-details,
+.tf-front-master-v17[data-front-category="class"] .tf-v7-description-label{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-desc{
+  z-index:1;position:absolute!important;left:4.5%!important;top:8%!important;
+  width:68%!important;max-width:68%!important;max-height:82%!important;
+  padding:0!important;margin:0!important;
+  font:9px/1.22 'Spectral',Georgia,serif!important;
+  color:#382314!important;overflow:hidden!important;
+  -webkit-line-clamp:15!important;line-clamp:15!important;
+  overflow-wrap:break-word!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-v3-class-dice{
+  position:absolute!important;z-index:3;left:auto!important;right:3%!important;
+  top:25%!important;bottom:auto!important;
+  width:77px!important;height:77px!important;max-width:none!important;
+  margin:0!important;padding:0!important;
+  display:flex;align-items:center;justify-content:center;
+  border:0!important;border-radius:0!important;
+  background:transparent url("/card-art/class-d10-gem-v26.svg") center/contain no-repeat!important;
+  box-shadow:none!important;color:#fff5db!important;text-shadow:0 2px 3px #330510;
+  font:700 23px/1 'Cinzel',Georgia,serif!important;overflow:visible!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-qr{
+  position:absolute!important;right:3%!important;top:auto!important;bottom:3%!important;
+  width:36px!important;height:36px!important;
+}
