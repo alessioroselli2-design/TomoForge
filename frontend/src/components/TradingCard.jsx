@@ -59,8 +59,15 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
          const statIcon = getFrontStatIcon(item.label);
          return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
-           {statIcon&&<img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>}
-           <div className="tf-v6-stat-text"><span>{item.label}</span><strong>{item.value}</strong></div>
+           <div className="tf-v6-stat-text">
+             <span>{item.label}</span>
+             {statIcon
+               ? <div className="tf-v6-stat-value-row">
+                   <img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>
+                   <strong>{item.value}</strong>
+                 </div>
+               : <strong>{item.value}</strong>}
+           </div>
          </div>;
        }):<div className="tf-v3-stat tf-v3-empty">I DATI COMPARRANNO QUI</div>}
      </div>
