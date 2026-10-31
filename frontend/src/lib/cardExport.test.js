@@ -149,6 +149,15 @@ describe("card export renderers", () => {
     expect(front.operations.some((op)=>op.name==="drawImage" && op.args.at(-2)===47 && op.args.at(-1)===47)).toBe(true);
   });
 
+  it.each(["d4","d6","d8","d10","d12","d20"])("uses the correct %s illustrated jewel in export canvas", async(die)=>{
+    const card={type:"class",name:"Classe",attributes:{dado_vita:die,abilita_primaria:"Forza"}};
+    const canvas=await renderCardCanvas(makeExportElement(),card);
+    const images=canvas.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
+    expect(images).toContain(`/card-art/class-dice/${die}-gem-v27.svg`);
+    expect(written(canvas)).toContain(die);
+    expect(images).not.toContain("/card-art/class-d10-gem-v26.svg");
+  });
+
   it("prints the approved exact master image for a live v7 card, with no separate filigree", async () => {
     const el=makeExportElement();
     el.getAttribute=(name)=>name==="data-front-version"?"7":null;
