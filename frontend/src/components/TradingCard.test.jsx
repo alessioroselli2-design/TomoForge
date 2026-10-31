@@ -70,7 +70,7 @@ describe("approved class preview",()=>{
    await act(async()=>root.render(<CardFront card={{type:"class",name:"Guerriero",
      attributes:{dado_vita:"d10",abilita_primaria:"Forza o Destrezza",
        tiri_salvezza:"Forza, Costituzione",
-       _legacy_full_text_before_20261024:"Un’umana in una sferragliante corazza di piastre"}}/>));
+       _legacy_full_text_before_20261024:"Un’umana in una sferragliante corazza di piastre"}}}/>));
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-v3-class-dice")?.textContent).toBe("d10");
