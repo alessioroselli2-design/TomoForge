@@ -155,7 +155,7 @@ describe("card export renderers", () => {
     element.getAttribute=name=>name==="data-front-version"?"7":null;
     const canvas=await renderCardCanvas(element,card);
     const images=canvas.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
-    expect(images).toContain(`/card-art/class-dice/${die}-gem-v27.svg`);
+    expect(images).toContain(`/card-art/class-dice/${die}-master-v28.svg`);
     expect(written(canvas)).toContain(die);
     expect(images).not.toContain("/card-art/class-d10-gem-v26.svg");
   });
