@@ -85,7 +85,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.dice&&(data.type==="spell"&&data.spellDieAsset
          ? <div className="tf-v3-spell-dice" data-die={data.spellDie} aria-label={`Danni ${data.dice}`}>
              <img src={data.spellDieAsset} alt="" aria-hidden="true" draggable={false}/>
-             <strong className="tf-v3-spell-formula">{data.dice}</strong>
+             <strong className="tf-v3-spell-formula" style={{fontSize:
+               data.dice.length<=3?"21px":data.dice.length<=4?"18px":data.dice.length<=5?"15px":"12px"
+             }}>{data.dice}</strong>
            </div>
          : <div className={`tf-v3-dice ${data.type==="class"?"tf-v3-class-dice":""}`} data-die={data.dice} style={data.classDieAsset?{backgroundImage:`url("${data.classDieAsset}")`}:undefined} aria-label={data.type==="class" ? `Dado vita ${data.dice}` : `Formula dado ${data.dice}`}>{data.type==="class" && data.classDieAsset ? <span className="sr-only">{data.dice}</span> : data.dice}</div>)}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
