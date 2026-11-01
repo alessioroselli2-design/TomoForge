@@ -345,7 +345,7 @@
   top:29%!important;right:3.4%!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-hd"] .tf-v3-sprite {
-  transform:scale(1.08)!important;transform-origin:center!important;
+  transform:scale(1.27)!important;transform-origin:center!important;
   -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 70%,transparent 94%)!important;
   mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 70%,transparent 94%)!important;
 }
