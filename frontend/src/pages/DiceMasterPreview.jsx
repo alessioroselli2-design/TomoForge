@@ -7,7 +7,7 @@ const DEMOS = {
   d4: ["Classe di prova", "Un dado vita d4 per verificare la variante grafica."],
   d6: ["Mago", "I maghi padroneggiano le arti arcane attraverso lo studio e la pratica."],
   d8: ["Druido", "I druidi custodiscono l'equilibrio delle forze naturali."],
-  d10: ["Guerriero", "Maestri del combattimento, i guerrieri sono addestrati nell'uso di armi e armature e uniscono disciplina e resistenza per eccellere in battaglia."],
+  d10: ["Guerriero", "Maestri del combattimento. Tutti conoscono bene la morte, sia perché la elargiscono, sia perché spesso la incontrano sul campo di battaglia. I guerrieri sono addestrati all'uso di un'ampia varietà di armi e armature. Uniscono addestramento, disciplina e resistenza per eccellere in battaglia."],
   d12: ["Barbaro", "I barbari affrontano il pericolo con vigore e forza straordinari."],
   d20: ["Classe di prova", "Un dado vita d20 per verificare la variante grafica."],
 };
