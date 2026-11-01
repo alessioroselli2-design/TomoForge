@@ -458,9 +458,9 @@
  top:22%!important;right:3.2%!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-hd"] .tf-v3-sprite {
- transform:scale(1.11)!important;transform-origin:center!important;
- -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 73%,rgba(0,0,0,.94) 85%,transparent 96%)!important;
- mask-image:radial-gradient(circle closest-side,#000 0%,#000 73%,rgba(0,0,0,.94) 85%,transparent 96%)!important;
+ transform:scale(1.02)!important;transform-origin:center!important;
+ -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 77%,rgba(0,0,0,.94) 87%,transparent 97%)!important;
+ mask-image:radial-gradient(circle closest-side,#000 0%,#000 77%,rgba(0,0,0,.94) 87%,transparent 97%)!important;
 }
 
 /* Reference's ruby divider is already part of the Class master image. */
