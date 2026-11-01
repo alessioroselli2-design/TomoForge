@@ -73,7 +73,7 @@ describe("v36 Class frame uses actual approved engraved plate",()=>{
     expect(component).toContain('className="tf-v38-class-master"');
     expect(component).toContain('class-master-clean-v38.webp');
     expect(finalMaster).toContain('content:none!important;display:none!important');
-    expect(exporter).toContain('ctx.drawImage(classPlate,0,206,340,270)');
+    expect(exporter).toContain('ctx.drawImage(classPlate,0,0,340,476)');
   });
   it("avoids drawing solid rectangles that cover carved parchment and bottom rail",()=>{
     expect(exporter).not.toContain('ctx.fillRect(23,199,294,75)');
