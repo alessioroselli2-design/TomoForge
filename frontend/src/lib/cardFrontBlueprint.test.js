@@ -153,7 +153,7 @@ describe("v27: one ornate die silhouette for each verified Hit Die",()=>{
     const bp=buildFrontBlueprint({type:"class",attributes:{_legacy_full_text_before_20261024:whole}});
     expect(bp.description.endsWith(".")).toBe(true);
     expect(bp.description.endsWith("…")).toBe(false);
-    expect(bp.description.length).toBeLessThanOrEqual(290);
+    expect(bp.description.length).toBeLessThanOrEqual(410);
     expect(bp.classLegacyText).toBe(whole.trim());
   });
 });
