@@ -215,3 +215,17 @@
   -webkit-text-stroke:.15px rgba(71,5,26,.5);
   image-rendering:auto;
 }
+
+/* v29: exact approved premium dice cropped from the reference artwork.
+   Six independently selected transparent WebP assets already contain their
+   engraved lower-case labels. No CSS faceted drawing or duplicate type. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-v3-class-dice {
+  background-size:contain!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  background-color:transparent!important;
+  border:0!important;box-shadow:none!important;
+  text-shadow:none!important;filter:none!important;
+  image-rendering:auto;
+  -webkit-text-stroke:0!important;
+}
