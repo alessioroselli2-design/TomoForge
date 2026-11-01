@@ -204,7 +204,7 @@ describe("card export renderers", () => {
       element.getAttribute=name=>name==="data-front-version"?"7":null;
       const front=await renderCardCanvas(element,{type:"spell",name:"Test",attributes:{danno:formula}});
       expect(front.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src))
-        .toContain(`/card-art/spell-dice/${die}-blank-v31.webp`);
+        .toContain(`/card-art/spell-dice/${die}-${["d12","d20"].includes(die)?"clean-v32":"blank-v31"}.webp`);
       expect(written(front)).toContain(formula);
       // On the approved v7 renderer the jewel and its formula share one area.
       expect(front.operations.some(op=>op.name==="drawImage" &&
