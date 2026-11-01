@@ -395,3 +395,70 @@
  font:9px/1.23 'Spectral',Georgia,serif!important;
  -webkit-line-clamp:13!important;line-clamp:13!important;
 }
+
+/* v36 CLASS — the ornamental lower half is physically the original approved
+   engraving, with its text cleared. All info is ink laid directly into the
+   already-carved wells: no second parchment rectangles or covered borders. */
+.tf-front-master-v17[data-front-category="class"] .tf-v36-class-master {
+ display:block!important;position:absolute!important;top:43.2943%!important;left:0!important;
+ width:100%!important;height:56.7057%!important;object-fit:fill!important;
+ z-index:1!important;pointer-events:none!important;background:none!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats {
+ position:absolute!important;top:45.0%!important;left:5.9%!important;
+ width:88.2%!important;height:13.3%!important;
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ padding:0!important;gap:0!important;z-index:4!important;
+ background:transparent!important;border:0!important;border-radius:0!important;
+ outline:0!important;box-shadow:none!important;
+ -webkit-mask-image:none!important;mask-image:none!important;overflow:visible!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-class-stat {
+ overflow:hidden!important;padding:5px 3px 4px!important;
+ align-items:center!important;justify-content:flex-start!important;
+ background:transparent!important;box-shadow:none!important;border:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-class-stat:not(:last-child) {
+ border-right:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-label {
+ font:700 8.65px/1.04 Georgia,serif!important;color:#332014!important;
+ margin:0!important;padding:0!important;white-space:normal!important;text-align:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body {
+ display:flex!important;flex:1!important;width:100%!important;
+ align-items:center!important;justify-content:center!important;gap:2px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body img {
+ width:18px!important;height:18px!important;flex:0 0 18px!important;object-fit:contain!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body strong {
+ flex:0 1 auto!important;min-width:0!important;max-width:calc(100% - 20px)!important;
+ font:700 7.35px/1.13 Georgia,serif!important;white-space:normal!important;
+ max-height:6.7em!important;overflow:hidden!important;text-overflow:clip!important;
+ overflow-wrap:normal!important;word-break:normal!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment {
+ top:59.5%!important;left:5.29412%!important;width:89.41176%!important;
+ height:29.55%!important;max-height:29.55%!important;
+ padding:0!important;overflow:hidden!important;background:transparent!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment::before {
+ content:none!important;display:none!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-desc {
+ left:5.5%!important;top:8%!important;width:64.7%!important;max-width:64.7%!important;
+ max-height:85%!important;text-align:left!important;margin:0!important;padding:0!important;
+ font:8.6px/1.19 'Spectral',Georgia,serif!important;
+ display:block!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;
+ overflow:hidden!important;text-overflow:clip!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-v3-class-dice {
+ top:22%!important;right:3.2%!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-hd"] .tf-v3-sprite {
+ transform:scale(1.11)!important;transform-origin:center!important;
+ -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 73%,rgba(0,0,0,.94) 85%,transparent 96%)!important;
+ mask-image:radial-gradient(circle closest-side,#000 0%,#000 73%,rgba(0,0,0,.94) 85%,transparent 96%)!important;
+}
