@@ -160,11 +160,26 @@ describe("spell damage jewel mapping",()=>{
       const bp=buildFrontBlueprint({type:"spell",attributes:{danno:formula+" fuoco"}});
       expect(bp.dice).toBe(formula);
       expect(bp.spellDie).toBe(die);
-      expect(bp.spellDieAsset).toBe(`/card-art/spell-dice/${die}-blank-v31.webp`);
+      const version = ["d12","d20"].includes(die) ? "clean-v32" : "blank-v31";
+      expect(bp.spellDieAsset).toBe(`/card-art/spell-dice/${die}-${version}.webp`);
     });
   it("does not invent jewel for spells without damage or unsupported dice",()=>{
     expect(buildFrontBlueprint({type:"spell",attributes:{scuola:"Abiurazione"}}).spellDieAsset).toBe("");
     expect(buildFrontBlueprint({type:"spell",attributes:{danno:"1d100"}}).spellDieAsset).toBe("");
     expect(buildFrontBlueprint({type:"class",attributes:{dado_vita:"d10"}}).spellDieAsset).toBe("");
+  });
+});
+
+describe("clean d12 and d20 spell artworks",()=>{
+  it.each(["d12","d20"])("loads an unlettered %s v32 jewel without modifying class art",die=>{
+    const fs=require("fs");
+    const path=require("path");
+    const bp=buildFrontBlueprint({type:"spell",name:"Prova",attributes:{danno:`1${die}`}});
+    expect(bp.spellDieAsset).toBe(`/card-art/spell-dice/${die}-clean-v32.webp`);
+    const disk=fs.readFileSync(path.resolve(__dirname,`../../public/card-art/spell-dice/${die}-clean-v32.webp`));
+    expect(disk.subarray(0,4).toString()).toBe("RIFF");
+    expect(disk.subarray(8,12).toString()).toBe("WEBP");
+    const klass=buildFrontBlueprint({type:"class",attributes:{dado_vita:die}});
+    expect(klass.classDieAsset).toBe(`/card-art/class-dice/${die}-premium-v29.webp`);
   });
 });
