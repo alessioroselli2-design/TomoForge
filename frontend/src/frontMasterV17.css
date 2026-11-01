@@ -271,3 +271,81 @@
   top:3%!important;right:4%!important;bottom:auto!important;left:auto!important;
   width:34px!important;height:34px!important;
 }
+
+/* v33 · FINAL CLASS FRONT only.  Keep the approved original gold frame
+   completely visible below the parchment; restore the three illustrated wells
+   as a single tall band instead of compressing text into the old monster rail. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats {
+  position:absolute!important;z-index:5!important;
+  top:40.75%!important;left:5.29412%!important;
+  width:89.41176%!important;height:17.45%!important;
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;padding:3px!important;
+  background:linear-gradient(100deg,#e0b36f 0%,#fff0c5 12%,#ffeac0 48%,#f7d69c 85%,#dbac64 100%)!important;
+  border:2px solid #b87b32!important;border-radius:12px!important;
+  box-shadow:inset 0 0 0 1px #ffefb9,inset 0 0 0 4px #ba7834,inset 0 0 15px #8d542633!important;
+  overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-class-stat {
+  position:relative!important;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:flex-start!important;
+  padding:4px 3px 2px!important;min-width:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  text-align:center!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-class-stat:not(:last-child) {
+  border-right:1px solid #ac773a!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-label {
+  font:700 9px/1.08 Georgia,serif!important;
+  color:#392013!important;text-align:center!important;
+  display:block!important;white-space:normal!important;
+  padding:0 0 5px!important;margin:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body {
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:center!important;gap:4px!important;width:100%!important;
+  min-width:0!important;flex:1!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body img {
+  display:block!important;width:22px!important;height:22px!important;flex:0 0 22px!important;
+  object-fit:contain!important;max-width:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body strong {
+  display:block!important;position:static!important;flex:1!important;min-width:0!important;
+  max-width:calc(100% - 26px)!important;margin:0!important;padding:0!important;
+  font:700 8.1px/1.13 Georgia,serif!important;
+  color:#2e180d!important;text-align:center!important;
+  overflow-wrap:normal!important;word-break:normal!important;
+  white-space:normal!important;overflow:hidden!important;
+  text-overflow:clip!important;max-height:6em!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment {
+  top:59.24370%!important;height:34.45378%!important;
+  overflow:hidden!important;border:0!important;box-shadow:none!important;
+  background:transparent!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment::before {
+  content:"";position:absolute;z-index:0;pointer-events:none;
+  inset:3.5% 3.2% 6.5% 3.2%!important;
+  background:radial-gradient(ellipse at 41% 28%,#fff8df,#f8e1b1 82%,#eac88e)!important;
+  border:1px solid #c48a49!important;border-radius:7px!important;
+  box-shadow:inset 0 0 0 1px #fff1c4,inset 0 0 9px #8b562633!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-desc {
+  position:absolute!important;left:5%!important;top:9%!important;
+  width:65%!important;max-width:65%!important;max-height:73%!important;
+  display:block!important;margin:0!important;padding:0!important;
+  overflow:hidden!important;text-overflow:clip!important;
+  -webkit-line-clamp:unset!important;line-clamp:unset!important;
+  font:9.1px/1.26 'Spectral',Georgia,serif!important;
+  color:#382314!important;z-index:2!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-v3-class-dice {
+  top:29%!important;right:3.4%!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-hd"] .tf-v3-sprite {
+  transform:scale(1.08)!important;transform-origin:center!important;
+  -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 70%,transparent 94%)!important;
+  mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 70%,transparent 94%)!important;
+}
