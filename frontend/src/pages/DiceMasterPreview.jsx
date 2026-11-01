@@ -57,9 +57,7 @@ export default function DiceMasterPreview() {
       <div className="mx-auto" style={{ width: 280, aspectRatio: "2.5 / 3.5" }}>
         <CardFront card={card} editorMode />
       </div>
-      <p className="font-body text-sm text-foreground/70 my-6">
-        {mode==="spell"?"Danno:":"Dado vita:"} <strong>{mode==="spell"?spellFormula:die}</strong> · Master grafico approvato.
-      </p>
+      {/* Formula already appears inside the medallion: do not repeat it below the card. */}
       <div className="mx-auto grid grid-cols-3 sm:grid-cols-6 gap-1 max-w-3xl">
         {CLASS_HIT_DICE.map(d => (
           <button type="button" key={d} onClick={() => setDie(d)}
@@ -69,7 +67,7 @@ export default function DiceMasterPreview() {
         ))}
       </div>
       <p className="font-body text-xs text-foreground/60 mt-5">
-        Questa anteprima è separata dalla produzione finché il nuovo fronte non è approvato.
+        Pagina di collaudo grafico: nessun record viene modificato.
       </p>
     </main>
   );
