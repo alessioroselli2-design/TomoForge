@@ -285,3 +285,22 @@ describe("approved premium spell dice",()=>{
     await act(async()=>root.unmount());mount.remove();
   });
 });
+
+describe("final Class row and crisp Guerriero medal",()=>{
+ it("keeps three independently labelled stat cells with crisp image icons",async()=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   await act(async()=>root.render(<CardFront card={{type:"class",name:"Guerriero",attributes:{
+     abilita_primaria:"Forza o Destrezza",tiri_salvezza:"Forza, Costituzione",
+     competenze:"Tutte le armature, scudi, armi semplici e da guerra",dado_vita:"d10"
+   },description:"Una frase completa. Una seconda frase completa."}}/>));
+   const cells=[...mount.querySelectorAll(".tf-v3-class-stat")];
+   expect(cells).toHaveLength(3);
+   expect(cells.map(c=>c.querySelector("img").getAttribute("src")))
+     .toEqual(["/card-art/class-stats/primary-v33.svg","/card-art/class-stats/saves-v33.svg","/card-art/class-stats/proficiencies-v33.svg"]);
+   expect(mount.querySelector(".tf-v3-sprite").style.backgroundImage)
+     .toContain("/emblemi/guerriero-hd-v33.svg");
+   expect(mount.querySelector(".tf-v3-desc").textContent).toBe("Una frase completa. Una seconda frase completa.");
+   await act(async()=>root.unmount());mount.remove();
+ });
+});
