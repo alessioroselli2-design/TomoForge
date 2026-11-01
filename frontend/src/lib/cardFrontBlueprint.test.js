@@ -114,6 +114,10 @@ describe("approved class: source-faithful narrative with d10",()=>{
    const data=buildFrontBlueprint(card);
    expect(data.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
    expect(data.highlights[2].value).toContain("tutte le armature");
+   expect(data.highlights[0].value).toBe("Forza o Destrezza");
+   expect(data.highlights[1].value).toBe("Forza, Costituzione");
+   expect(data.highlights[2].value).toBe("tutte le armature, scudi, armi semplici e marziali");
+   expect(data.highlights[2].value).not.toContain("…");
    expect(data.dice).toBe("d10");
    expect(data.showDescriptionLabel).toBe(false);
    expect(data.description).toBe(original);
