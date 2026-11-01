@@ -230,32 +230,36 @@
   -webkit-text-stroke:0!important;
 }
 
-/* v30 — spell damage jewels: same approved premium WebP masters as Class.
-   The embedded d6/d8 engraving identifies the physical die; the separate
-   ivory ribbon preserves the FULL spell formula, such as 8d6 or 2d10+3.
-   Spells without an actual dice expression do not display a fake jewel.
-   The QR is moved above the jewel; spell details/description avoid that rail. */
+
+/* v31 — Palla di Fuoco visual reference: one ornate gem, entire formula
+   INSIDE the original jewel. Assets are transparent, unlettered premium
+   gemstones derived from the already approved six-design family.
+   This is spell-only: Class ruby medallions and other categories are untouched. */
 .tf-front-master-v17[data-front-category="spell"] .tf-v3-spell-dice {
-  position:absolute!important;z-index:3;top:40%!important;right:2.5%!important;
-  width:75px!important;max-width:75px!important;
-  display:flex!important;flex-direction:column!important;align-items:center!important;
-  justify-content:flex-start!important;gap:0!important;
+  position:absolute!important;z-index:3!important;
+  top:40%!important;right:2.5%!important;
+  display:block!important;width:80px!important;height:84px!important;
+  max-width:80px!important;max-height:84px!important;
   padding:0!important;margin:0!important;overflow:visible!important;
   background:transparent!important;border:0!important;box-shadow:none!important;
 }
 .tf-front-master-v17[data-front-category="spell"] .tf-v3-spell-dice img {
-  display:block!important;width:70px!important;height:73px!important;
+  display:block!important;width:100%!important;height:100%!important;
   object-fit:contain!important;max-width:none!important;flex:none!important;
   image-rendering:auto;
 }
-.tf-front-master-v17[data-front-category="spell"] .tf-v3-spell-dice .tf-v3-spell-formula {
-  display:block!important;min-width:60px;max-width:82px;white-space:nowrap!important;
-  padding:1px 4px 2px!important;margin:-2px 0 0!important;
-  background:linear-gradient(#fff3cc,#e5c28c)!important;
-  border:1px solid #ab7132!important;border-radius:5px!important;
-  box-shadow:0 1px 3px #52291433!important;
-  font:700 10px/1.2 Georgia,serif!important;text-align:center!important;
-  color:#401b11!important;text-shadow:none!important;
+.tf-front-master-v17[data-front-category="spell"] .tf-v3-spell-formula {
+  position:absolute!important;z-index:2!important;
+  left:50%!important;top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  display:block!important;min-width:0!important;max-width:73px!important;
+  width:max-content!important;padding:0!important;margin:0!important;
+  border:0!important;border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;overflow:visible!important;white-space:nowrap!important;
+  font-family:Georgia,"Times New Roman",serif!important;
+  font-weight:700!important;line-height:1!important;letter-spacing:-.5px!important;
+  text-align:center!important;color:#fff2d6!important;
+  text-shadow:0 1px 1px #270519,0 2px 3px #1a0509,0 0 3px rgba(255,229,182,.42)!important;
 }
 .tf-front-master-v17[data-front-category="spell"]:has(.tf-v3-spell-dice) .tf-v3-desc {
   width:68%!important;max-width:68%!important;padding-right:0!important;
