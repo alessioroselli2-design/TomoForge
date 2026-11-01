@@ -33,7 +33,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-br" aria-hidden="true">✦</span>
-   {data.type==="class"&&<img className="tf-v36-class-master" src="/card-art/class-reference-parchment-v36.webp" alt="" aria-hidden="true" draggable={false}/>}
+   {data.type==="class"&&<img className="tf-v38-class-master" src="/card-art/class-master-clean-v38.webp" alt="" aria-hidden="true" draggable={false}/>}
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem"
