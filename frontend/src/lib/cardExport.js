@@ -242,22 +242,35 @@ async function renderApprovedMaster(element,card) {
  const details=data.details.slice(0,2);
  details.forEach((d,i)=>{
    const x=MASTER_REGIONS.detail.x+8+i*152;
+   const detailW=data.spellDieAsset&&i===1?87:136;
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
-   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+12,136,9,"Georgia,serif","700");
+   drawFittedText(ctx,d.label,x,MASTER_REGIONS.detail.y+12,detailW,9,"Georgia,serif","700");
    ctx.font="9px Spectral,Georgia,serif";
-   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+27,136,11,2);
+   drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+27,detailW,11,2);
  });
  const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
  ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
  ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
  ctx.font="10px Spectral,Georgia,serif";
  drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+27,
-   card?.id?244:287,12,5);
+   data.spellDieAsset?201:(card?.id?244:287),12,5);
+ if(data.spellDieAsset){
+   const jewel=await loadFrontEmblem({src:data.spellDieAsset});
+   // The art has its original die label engraved; draw the actual spell formula
+   // on a separate parchment slip, never overprint the ruby image.
+   if(jewel)ctx.drawImage(jewel,242,347,70,73);
+   ctx.fillStyle="#f6e1b0";ctx.fillRect(252,420,54,17);
+   ctx.strokeStyle="#ae7637";ctx.lineWidth=1;ctx.strokeRect(252,420,54,17);
+   ctx.textAlign="center";ctx.fillStyle="#401b11";
+   drawFittedText(ctx,data.dice,279,432,50,11,"Georgia,serif","700");
+ }
  const qr=element.querySelector('[data-card-qr] canvas');
  if(card?.id&&qr)try {
-   ctx.fillStyle="#fff";ctx.fillRect(278,414,42,42);
-   ctx.drawImage(qr,281,417,36,36);
-   ctx.strokeStyle="#b37c38";ctx.lineWidth=1;ctx.strokeRect(278,414,42,42);
+   const qrX=data.spellDieAsset?280:278,qrY=data.spellDieAsset?285:414;
+   const qrSize=data.spellDieAsset?33:42;
+   ctx.fillStyle="#fff";ctx.fillRect(qrX,qrY,qrSize,qrSize);
+   ctx.drawImage(qr,qrX+3,qrY+3,qrSize-6,qrSize-6);
+   ctx.strokeStyle="#b37c38";ctx.lineWidth=1;ctx.strokeRect(qrX,qrY,qrSize,qrSize);
  }catch{}
  canvas.artworkDrawn=artworkDrawn;return canvas;
 }
