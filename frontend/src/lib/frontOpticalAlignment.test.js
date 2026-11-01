@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain("zoom:dragon?1.28:1.2");
+    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.27:1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
   });
   it("preserves the existing three parchment columns",()=>{
@@ -56,5 +56,14 @@ describe("dedicated class front only",()=>{
    expect(component).toContain("data.showDescriptionLabel&&");
    expect(exporter).toContain('if(data.type==="class"){');
    expect(exporter).toContain("src:data.classDieAsset");
+ });
+});
+
+describe("v33 class frame optical safety",()=>{
+ it("does not extend the class parchment over the lower carved frame",()=>{
+   expect(finalMaster).toContain('top:59.24370%!important;height:34.45378%!important');
+   expect(finalMaster).toContain('inset:3.5% 3.2% 6.5% 3.2%!important');
+   expect(finalMaster).toContain('height:17.45%!important');
+   expect(finalMaster).toContain('top:29%!important;right:3.4%!important');
  });
 });

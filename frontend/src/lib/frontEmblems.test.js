@@ -17,6 +17,12 @@ describe("approved TomoForge front medal rules",()=>{
   expect(getFrontEmblem({type:"race",name:"Hadozee"})).toMatchObject({sprite:"race",index:51});
   expect(getFrontEmblem({type:"race",name:"Gnomo delle Profondità"})).toMatchObject({sprite:"race",index:4});
  });
+ it("uses an independent 512px scalable sword-and-shield medal for the Guerriero",()=>{
+   expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
+     sprite:"guerriero-hd",src:"/emblemi/guerriero-hd-v33.svg",cell:512
+   });
+   expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("core");
+ });
  it("does not assign an incorrect medal when the type is unknown",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Sconosciuto"}})).toBeNull();
  });

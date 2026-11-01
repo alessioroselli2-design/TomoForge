@@ -56,6 +56,18 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
        {data.highlights.length?data.highlights.map((item,i)=>{
+         if(data.type==="class") {
+           const classIcons=["primary","saves","proficiencies"];
+           return <div className="tf-v3-stat tf-v3-class-stat" key={i}
+             data-stat-label={item.label} title={item.fullValue||item.value}>
+             <span className="tf-v3-class-stat-label">{item.label}</span>
+             <div className="tf-v3-class-stat-body">
+               <img src={`/card-art/class-stats/${classIcons[i]||classIcons[2]}-v33.svg`}
+                 alt="" aria-hidden="true" draggable={false}/>
+               <strong>{item.value}</strong>
+             </div>
+           </div>;
+         }
          const statIcon = getFrontStatIcon(item.label);
          return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>

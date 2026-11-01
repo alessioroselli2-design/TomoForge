@@ -144,10 +144,11 @@ describe("v27: one ornate die silhouette for each verified Hit Die",()=>{
   it("normalizes valid dice strings supplied by different imports",()=>{
     expect(buildFrontBlueprint({type:"class",attributes:{dado_vita:"1D 8"}}).dice).toBe("d8");
   });
-  it("ends the authentic card excerpt with a visible ellipsis and preserves full source",()=>{
+  it("ends the authentic card excerpt at a complete sentence and preserves full source",()=>{
     const whole=("Un’umana in una sferragliante corazza di piastre solleva lo scudo davanti a sé. ").repeat(12);
     const bp=buildFrontBlueprint({type:"class",attributes:{_legacy_full_text_before_20261024:whole}});
-    expect(bp.description.endsWith("…")).toBe(true);
+    expect(bp.description.endsWith(".")).toBe(true);
+    expect(bp.description.endsWith("…")).toBe(false);
     expect(bp.description.length).toBeLessThanOrEqual(290);
     expect(bp.classLegacyText).toBe(whole.trim());
   });
@@ -181,5 +182,25 @@ describe("clean d12 and d20 spell artworks",()=>{
     expect(disk.subarray(8,12).toString()).toBe("WEBP");
     const klass=buildFrontBlueprint({type:"class",attributes:{dado_vita:die}});
     expect(klass.classDieAsset).toBe(`/card-art/class-dice/${die}-premium-v29.webp`);
+  });
+});
+
+describe("final Class description sentence boundaries",()=>{
+  it("stops on the final complete sentence, keeping the original unmodified",()=>{
+    const source="Prima frase completa. Seconda frase termina qui. "+("Una terza frase molto lunga non deve venire tagliata da CSS o JavaScript. ").repeat(9);
+    const bp=buildFrontBlueprint({type:"class",description:source});
+    expect(bp.description.endsWith(".")).toBe(true);
+    expect(source.startsWith(bp.description)).toBe(true);
+    expect(bp.description.length).toBeLessThanOrEqual(260);
+    expect(bp.description).not.toContain("…");
+  });
+  it("avoids an incomplete excerpt when the source has no stop before the card capacity",()=>{
+    const source="Questa descrizione non ha segni di interpunzione ".repeat(20);
+    const bp=buildFrontBlueprint({type:"class",description:source});
+    expect(bp.description).toBe("Descrizione completa disponibile nei dettagli della carta.");
+  });
+  it("keeps non-class descriptions unchanged",()=>{
+    const description="Questa prova non cambia il fronte del mostro.";
+    expect(buildFrontBlueprint({type:"monster",description}).description).toBe(description);
   });
 });

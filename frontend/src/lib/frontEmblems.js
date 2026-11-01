@@ -58,6 +58,16 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
+ // An independent 512px vector master replaces the blurry 44px atlas tile.
+ // The existing gold circular card well stays entirely untouched.
+ if (type === "class" && index === 4) {
+   return {
+     sprite:"guerriero-hd",index:4,col:0,row:0,label,
+     src:"/emblemi/guerriero-hd-v33.svg",
+     width:512,height:512,cell:512,
+     backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
+   };
+ }
  // The original approved Dragon artwork is recropped symmetrically at 160px instead of the
  // 44px preview atlas. No AI substitution, no CSS upscaling of a tiny cell.
  if (type === "monster" && index === CLASSES.length + 4) {

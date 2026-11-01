@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+ <radialGradient id="bg" cx=".42" cy=".24" r=".85"><stop stop-color="#87735a"/><stop offset=".28" stop-color="#39343a"/><stop offset=".7" stop-color="#17151b"/><stop offset="1" stop-color="#4d1b16"/></radialGradient>
+ <linearGradient id="gold" x1=".1" y1="0" x2=".85" y2="1"><stop stop-color="#fff1c0"/><stop offset=".18" stop-color="#a46129"/><stop offset=".37" stop-color="#ffe69e"/><stop offset=".57" stop-color="#784122"/><stop offset=".8" stop-color="#f7b85d"/><stop offset="1" stop-color="#593016"/></linearGradient>
+ <linearGradient id="steel" x1="0" y1="0" x2="1" y2=".4"><stop stop-color="#454853"/><stop offset=".2" stop-color="#e8eef4"/><stop offset=".42" stop-color="#a2a6b0"/><stop offset=".56" stop-color="#fcfbfa"/><stop offset=".82" stop-color="#646675"/><stop offset="1" stop-color="#272430"/></linearGradient>
+ <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e4cfb3"/><stop offset=".17" stop-color="#61606a"/><stop offset=".46" stop-color="#242630"/><stop offset=".75" stop-color="#77707a"/><stop offset="1" stop-color="#2a2325"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
+</defs>
+<circle cx="256" cy="256" r="237" fill="#22070e" stroke="url(#gold)" stroke-width="15"/>
+<circle cx="256" cy="256" r="212" fill="url(#bg)" stroke="#4f1716" stroke-width="15"/>
+<circle cx="256" cy="256" r="190" fill="none" stroke="url(#gold)" stroke-width="12"/>
+<circle cx="256" cy="256" r="171" fill="#17141b" stroke="#a87943" stroke-width="2"/>
+<!-- Central etched shield and its raised boss. -->
+<path d="M256 104C219 125 180 135 140 134L150 284Q166 366 256 407Q346 366 362 284L372 134Q313 130 256 104Z" fill="#06070a" opacity=".7" transform="translate(5 7)" filter="url(#shadow)"/>
+<path d="M256 104C219 125 180 135 140 134L150 284Q166 366 256 407Q346 366 362 284L372 134Q313 130 256 104Z" fill="url(#shield)" stroke="url(#gold)" stroke-width="14"/>
+<path d="M256 129C217 149 182 156 163 156L171 282Q184 341 256 378Q326 340 341 282L351 156Q302 151 256 129Z" fill="none" stroke="#d5cfc1" stroke-width="4" opacity=".9"/>
+<path d="M256 153L256 370M171 230H341M194 178L315 342M321 175L195 338" fill="none" stroke="#e9d5b1" stroke-width="2.5" opacity=".28"/>
+<path d="M256 171l22 44 49 7-36 36 9 51-44-24-44 24 9-51-36-36 49-7Z" fill="#34313c" stroke="#afa7a4" stroke-width="3" opacity=".85"/>
+<!-- Two matched steel swords, crossing clearly over the shield. -->
+<g transform="rotate(-42 256 256)">
+ <path d="M238 81 256 33 274 81 273 326 239 326Z" fill="url(#steel)" stroke="#252331" stroke-width="5"/>
+ <path d="M256 45V317" stroke="#fff6ee" stroke-width="3" opacity=".8"/>
+ <path d="M228 319H284L303 333 283 343H229L209 333Z" fill="url(#gold)" stroke="#52321d" stroke-width="5"/>
+ <path d="M248 341H264L264 413H248Z" fill="#795132" stroke="#f9c478" stroke-width="4"/>
+ <path d="M244 409Q256 420 268 409Q276 430 256 438Q236 430 244 409Z" fill="url(#gold)" stroke="#542d15" stroke-width="4"/>
+ <path d="M248 350l16 12m-16 8 16 12m-16 8 16 12" stroke="#dfb06c" stroke-width="4"/>
+</g>
+<g transform="rotate(42 256 256)">
+ <path d="M238 81 256 33 274 81 273 326 239 326Z" fill="url(#steel)" stroke="#27222c" stroke-width="5"/>
+ <path d="M256 46V318" stroke="#fff8ee" stroke-width="3" opacity=".75"/>
+ <path d="M228 319H284L303 333 283 343H229L209 333Z" fill="url(#gold)" stroke="#57321d" stroke-width="5"/>
+ <path d="M248 341H264L264 413H248Z" fill="#70482a" stroke="#edbc78" stroke-width="4"/>
+ <path d="M244 409Q256 420 268 409Q276 430 256 438Q236 430 244 409Z" fill="url(#gold)" stroke="#542d15" stroke-width="4"/>
+ <path d="M248 350l16 12m-16 8 16 12m-16 8 16 12" stroke="#e7c387" stroke-width="4"/>
+</g>
+<circle cx="256" cy="256" r="235" fill="none" stroke="#fff1bc" stroke-width="2" opacity=".65"/>
+</svg>
