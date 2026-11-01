@@ -14,6 +14,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import Admin from "@/pages/Admin";
 import ReferenceReview from "@/pages/ReferenceReview";
+import DiceMasterPreview from "@/pages/DiceMasterPreview";
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
 
@@ -37,6 +38,7 @@ function AppRouter() {
       <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/p/:id" element={<PublicCard />} />
       <Route path="/d/:id" element={<PublicDescription />} />
+      <Route path="/prova-dadi-v29" element={<DiceMasterPreview />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />

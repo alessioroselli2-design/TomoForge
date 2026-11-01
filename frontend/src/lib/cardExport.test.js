@@ -155,8 +155,10 @@ describe("card export renderers", () => {
     element.getAttribute=name=>name==="data-front-version"?"7":null;
     const canvas=await renderCardCanvas(element,card);
     const images=canvas.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
-    expect(images).toContain(`/card-art/class-dice/${die}-gem-v27.svg`);
-    expect(written(canvas)).toContain(die);
+    expect(images).toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
+    expect(canvas.operations.some(op=>op.name==="drawImage" && op.args[0]?.src===`/card-art/class-dice/${die}-premium-v29.webp`)).toBe(true);
+    // The approved image contains the inscription; export must not overprint it.
+    expect(written(canvas)).not.toContain(die);
     expect(images).not.toContain("/card-art/class-d10-gem-v26.svg");
   });
 
@@ -193,6 +195,19 @@ describe("card export renderers", () => {
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
   });
+
+// Exactly one approved jewel and one full formula in the print renderer.
+  describe("premium spells printed from source data",()=>{
+  it.each([["8d6","d6"],["2d10+3","d10"],["3d8","d8"]])(
+    "prints %s with the %s master and no invented damage",async(formula,die)=>{
+      const element=makeExportElement();
+      element.getAttribute=name=>name==="data-front-version"?"7":null;
+      const front=await renderCardCanvas(element,{type:"spell",name:"Test",attributes:{danno:formula}});
+      expect(front.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src))
+        .toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
+      expect(written(front)).toContain(formula);
+    });
+});
 
   it("renders the spell-specific front without legacy color customization or fake dice", async () => {
     const card = {
@@ -319,3 +334,4 @@ describe("card export renderers", () => {
     expect(written(front)).toContain("Spada");
   });
 });
+

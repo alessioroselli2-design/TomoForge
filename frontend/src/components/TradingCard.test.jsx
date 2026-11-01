@@ -74,7 +74,7 @@ describe("approved class preview",()=>{
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-v3-class-dice")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-v3-class-dice")?.style.backgroundImage).toContain("/class-dice/d10-gem-v27.svg");
+   expect(mount.querySelector(".tf-v3-class-dice")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
    expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
@@ -256,5 +256,30 @@ describe("v10: approved dragon high resolution and readable senses",()=>{
     expect(container.querySelector("[data-front-layout]")?.className).toContain("tf-v6-long-title");
     expect(container.textContent).toContain("vista cieca 18 m");
     await act(async()=>root.unmount());container.remove();
+  });
+});
+
+// A spell has the same PREMIUM jewel as its class counterpart, but with an
+// explicit full damage formula (8d6 is never reduced to d6 in the description).
+describe("approved premium spell dice",()=>{
+  it("renders fireball with a d6 jewel, complete 8d6 and no class dice badge",async()=>{
+    const mount=document.createElement("div");document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async()=>root.render(<CardFront card={{type:"spell",name:"Palla di Fuoco",attributes:{
+      livello:"3",scuola:"Invocazione",danno:"8d6 fuoco"
+    }}}/>));
+    expect(mount.querySelector('[data-front-category="spell"]')).not.toBeNull();
+    expect(mount.querySelector('.tf-v3-spell-dice img')?.getAttribute("src"))
+      .toBe("/card-art/class-dice/d6-premium-v29.webp");
+    expect(mount.querySelector(".tf-v3-spell-formula")?.textContent).toBe("8d6");
+    expect(mount.querySelector(".tf-v3-class-dice")).toBeNull();
+    await act(async()=>root.unmount());mount.remove();
+  });
+  it("does not create a fake medallion for a non-damaging spell",async()=>{
+    const mount=document.createElement("div");document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async()=>root.render(<CardFront card={{type:"spell",name:"Scudo",attributes:{scuola:"Abiurazione"}}}/>));
+    expect(mount.querySelector(".tf-v3-spell-dice")).toBeNull();
+    await act(async()=>root.unmount());mount.remove();
   });
 });
