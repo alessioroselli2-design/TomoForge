@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.27:1.2)');
+    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.08:1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
   });
   it("preserves the existing three parchment columns",()=>{
