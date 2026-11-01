@@ -74,13 +74,16 @@ const shortText = (value, max = 62) => String(value || "").length > max
   : String(value || "");
 
 // Exact original stays in classLegacyText; a printed card displays a word-safe teaser.
-const classExcerpt=(original,limit=290)=>{
+// Only complete sentences belong in the Class card teaser. The full uncut
+// description remains in the record, accessible through the detail/QR link.
+const classExcerpt=(original,limit=260)=>{
   const value=String(original||"").trim();
   if(value.length<=limit) return value;
-  const segment=value.slice(0,limit-1);
-  const end=segment.lastIndexOf(" ");
-  return (end>limit*.75?segment.slice(0,end):segment).trimEnd()
-    .replace(/[.,;:!?)—-]+$/,"")+"…";
+  const endings=[...value.matchAll(/[.!?](?=\\s|$)/g)]
+    .map(m=>m.index+1).filter(n=>n<=limit);
+  if(endings.length) return value.slice(0,endings.at(-1)).trimEnd();
+  // A first unusually long sentence must not be severed in the card.
+  return "Descrizione completa disponibile nei dettagli della carta.";
 };
 
 export const buildFrontBlueprint = (card = {}) => {
@@ -182,7 +185,9 @@ export const buildFrontBlueprint = (card = {}) => {
     classDieAsset: type === "class" ? classHitDieAsset(classDie) : "",
     spellDie, spellDieAsset: type === "spell" && spellDie
       ? `/card-art/spell-dice/${spellDie}-${["d12","d20"].includes(spellDie)?"clean-v32":"blank-v31"}.webp` : "",
-    description: classLegacyText ? classExcerpt(classLegacyText) : shortText(card.description, 235),
+    description: type === "class"
+      ? classExcerpt(classLegacyText || card.description,260)
+      : shortText(card.description,235),
     classLegacyText,
     showDescriptionLabel: type !== "class",
     hasAbilities: abilities.length > 0,
