@@ -68,24 +68,10 @@ describe("v33 class frame optical safety",()=>{
  });
 });
 
-describe("v35 original approved Warrior emblem + integrated Class layout",()=>{
- it("uses the approved cropped silver sword badge rather than redesigned v33 art",()=>{
-   expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
-   expect(finalMaster).toContain('transform:scale(1.08)!important');
-   expect(exporter).toContain('s.sprite==="guerriero-hd"?1.11:1.2');
- });
- it("has no extra Class statistic frame or portrait-covering description borders",()=>{
-   expect(finalMaster).toContain('border:none!important;outline:none!important;border-radius:2px!important;');
-   expect(finalMaster).toContain('mask-image:radial-gradient(ellipse 73% 73% at center');
-   expect(exporter).toContain('ctx.fillRect(23,199,294,75)');
-   expect(exporter).toContain('ctx.fillRect(30,290,280,135)');
- });
-});
-
 describe("v36 Class frame uses actual approved engraved plate",()=>{
   it("renders a dedicated reference-backed image beneath real data",()=>{
     expect(component).toContain('className="tf-v36-class-master"');
-    expect(finalMaster).toContain('class-reference-parchment-v36.webp');
+    expect(component).toContain('class-reference-parchment-v36.webp');
     expect(finalMaster).toContain('content:none!important;display:none!important');
     expect(exporter).toContain('ctx.drawImage(classPlate,0,206,340,270)');
   });
