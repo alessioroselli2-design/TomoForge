@@ -80,3 +80,19 @@ describe("v36 Class frame uses actual approved engraved plate",()=>{
     expect(exporter).not.toContain('ctx.fillRect(30,290,280,135)');
   });
 });
+
+
+describe("Class v38 anti-overlap contract",()=>{
+  it("uses a full-canvas lower master and leaves no obsolete v36 image node",()=>{
+    const plate=readFileSync(resolve(__dirname,"../../public/card-art/class-master-clean-v38.webp"));
+    expect(plate.subarray(0,4).toString()).toBe("RIFF");
+    expect(plate.subarray(8,12).toString()).toBe("WEBP");
+    expect(plate.length).toBeGreaterThan(50000);
+    expect(component).toContain('className="tf-v38-class-master"');
+    expect(component).not.toContain('className="tf-v36-class-master"');
+    expect(exporter).toContain('ctx.drawImage(classPlate,0,0,340,476)');
+    expect(finalMaster).toContain('top:41.2%!important;left:5.2%!important');
+    expect(finalMaster).toContain('top:55.6%!important;left:5.1%!important');
+    expect(finalMaster).toContain('content:none!important;display:none!important');
+  });
+});
