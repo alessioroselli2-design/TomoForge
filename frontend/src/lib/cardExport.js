@@ -222,9 +222,15 @@ async function renderApprovedMaster(element,card) {
      31,258,207,11,16);
    if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
      const jewel=data.classDieAsset ? await loadFrontEmblem({src:data.classDieAsset}) : null;
-     if(jewel)ctx.drawImage(jewel,239,297,73,73);
-     ctx.textAlign="center";ctx.fillStyle="#fff7df";
-     ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,275,337,65);
+     if(jewel){
+       // The approved source master already has the correct engraved label.
+       // Keep its 240:250 aspect ratio, with no duplicate canvas lettering.
+       ctx.drawImage(jewel,241,297,70,73);
+     } else {
+       // Still identify the die when an offline asset cannot be loaded.
+       ctx.textAlign="center";ctx.fillStyle="#fff7df";
+       ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,275,337,65);
+     }
    }
    const classQr=element.querySelector('[data-card-qr] canvas');
    if(card?.id&&classQr)try{
