@@ -213,9 +213,8 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // The enlarged three-well row spans the obsolete six-ability cells.
    // Use actual source values and separate 128px line-art SVGs, never emojis.
-   ctx.fillStyle="#f9dfac";ctx.fillRect(19,194,302,83);
-   ctx.strokeStyle="#995b2a";ctx.lineWidth=2;ctx.strokeRect(19,194,302,83);
-   ctx.strokeStyle="#f6e6b8";ctx.lineWidth=1;ctx.strokeRect(22,197,296,77);
+   // Class ink flows within the existing carved wells, no extra double frame.
+   ctx.fillStyle="#f7e2ba";ctx.fillRect(23,199,294,75);
    const classXs=[19,120,221], classW=101;
    for(let i=1;i<3;i++){
      ctx.strokeStyle="#af7a40";ctx.lineWidth=1;
@@ -237,13 +236,12 @@ async function renderApprovedMaster(element,card) {
    }
    // The paper covers only the empty INNER engraving. Original bottom border,
    // gilded corners and lower ornament remain visible all the way to y=476.
-   ctx.fillStyle="#f8e8c0";ctx.fillRect(27,286,286,145);
-   ctx.strokeStyle="#c48a49";ctx.lineWidth=1;ctx.strokeRect(27,286,286,145);
-   ctx.strokeStyle="#fff0ca";ctx.strokeRect(29,288,282,141);
+   // Keep the ornate lower rim exposed, without a pasted-on rectangle border.
+   ctx.fillStyle="#fae6bd";ctx.fillRect(30,290,280,135);
    ctx.textAlign="left";ctx.fillStyle="#382314";
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
-     34,306,202,11,11);
+     34,305,200,10.7,12);
    if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
      const jewel=data.classDieAsset?await loadFrontEmblem({src:data.classDieAsset}):null;
      if(jewel){
