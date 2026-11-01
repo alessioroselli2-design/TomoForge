@@ -79,7 +79,7 @@ const shortText = (value, max = 62) => String(value || "").length > max
 const classExcerpt=(original,limit=260)=>{
   const value=String(original||"").trim();
   if(value.length<=limit) return value;
-  const endings=[...value.matchAll(/[.!?](?=\\s|$)/g)]
+  const endings=[...value.matchAll(/[.!?](?=\s|$)/g)]
     .map(m=>m.index+1).filter(n=>n<=limit);
   if(endings.length) return value.slice(0,endings.at(-1)).trimEnd();
   // A first unusually long sentence must not be severed in the card.
