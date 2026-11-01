@@ -11,15 +11,16 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/guerriero-reference-approved-v35.webp",cell:96,sprite:"guerriero-hd"});
  });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
   expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race",index:1});
   expect(getFrontEmblem({type:"race",name:"Hadozee"})).toMatchObject({sprite:"race",index:51});
   expect(getFrontEmblem({type:"race",name:"Gnomo delle Profondità"})).toMatchObject({sprite:"race",index:4});
  });
- it("uses an independent 512px scalable sword-and-shield medal for the Guerriero",()=>{
+ it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
-     sprite:"guerriero-hd",src:"/emblemi/guerriero-hd-v33.svg",cell:512
+     sprite:"guerriero-hd",src:"/emblemi/guerriero-reference-approved-v35.webp",cell:96
    });
    expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("core");
  });

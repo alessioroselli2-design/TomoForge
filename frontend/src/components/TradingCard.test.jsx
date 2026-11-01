@@ -299,7 +299,7 @@ describe("final Class row and crisp Guerriero medal",()=>{
    expect(cells.map(c=>c.querySelector("img").getAttribute("src")))
      .toEqual(["/card-art/class-stats/primary-v33.svg","/card-art/class-stats/saves-v33.svg","/card-art/class-stats/proficiencies-v33.svg"]);
    expect(mount.querySelector(".tf-v3-sprite").style.backgroundImage)
-     .toContain("/emblemi/guerriero-hd-v33.svg");
+     .toContain("/emblemi/guerriero-reference-approved-v35.webp");
    expect(mount.querySelector(".tf-v3-desc").textContent).toBe("Una frase completa. Una seconda frase completa.");
    await act(async()=>root.unmount());mount.remove();
  });

@@ -76,7 +76,7 @@ const shortText = (value, max = 62) => String(value || "").length > max
 // Exact original stays in classLegacyText; a printed card displays a word-safe teaser.
 // Only complete sentences belong in the Class card teaser. The full uncut
 // description remains in the record, accessible through the detail/QR link.
-const classExcerpt=(original,limit=260)=>{
+const classExcerpt=(original,limit=410)=>{
   const value=String(original||"").trim();
   if(value.length<=limit) return value;
   const endings=[...value.matchAll(/[.!?](?=\s|$)/g)]
