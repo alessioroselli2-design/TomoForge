@@ -206,6 +206,8 @@ describe("card export renderers", () => {
     const front = await renderCardCanvas(makeExportElement(), card);
     const text = written(front);
     ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
+    expect(front.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src))
+      .toContain("/card-art/class-dice/d6-premium-v29.webp");
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
     expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 195)).toBe(true);
   });
@@ -320,4 +322,17 @@ describe("card export renderers", () => {
     expect(front.operations.some(op => op.name === "fillRect" && op.x === 15 && op.y === 84)).toBe(true);
     expect(written(front)).toContain("Spada");
   });
+});
+
+// Exactly one approved jewel and one full formula in the print renderer.
+describe("premium spells printed from source data",()=>{
+  it.each([["8d6","d6"],["2d10+3","d10"],["3d8","d8"]])(
+    "prints %s with the %s master and no invented damage",async(formula,die)=>{
+      const element=makeExportElement();
+      element.getAttribute=name=>name==="data-front-version"?"7":null;
+      const front=await renderCardCanvas(element,{type:"spell",name:"Test",attributes:{danno:formula}});
+      expect(front.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src))
+        .toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
+      expect(written(front)).toContain(formula);
+    });
 });
