@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.08:1.2)');
+    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.11:1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
   });
   it("preserves the existing three parchment columns",()=>{
@@ -72,7 +72,7 @@ describe("v35 original approved Warrior emblem + integrated Class layout",()=>{
  it("uses the approved cropped silver sword badge rather than redesigned v33 art",()=>{
    expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
    expect(finalMaster).toContain('transform:scale(1.08)!important');
-   expect(exporter).toContain('s.sprite==="guerriero-hd"?1.08:1.2');
+   expect(exporter).toContain('s.sprite==="guerriero-hd"?1.11:1.2');
  });
  it("has no extra Class statistic frame or portrait-covering description borders",()=>{
    expect(finalMaster).toContain('border:none!important;outline:none!important;border-radius:2px!important;');
@@ -80,4 +80,17 @@ describe("v35 original approved Warrior emblem + integrated Class layout",()=>{
    expect(exporter).toContain('ctx.fillRect(23,199,294,75)');
    expect(exporter).toContain('ctx.fillRect(30,290,280,135)');
  });
+});
+
+describe("v36 Class frame uses actual approved engraved plate",()=>{
+  it("renders a dedicated reference-backed image beneath real data",()=>{
+    expect(component).toContain('className="tf-v36-class-master"');
+    expect(finalMaster).toContain('class-reference-parchment-v36.webp');
+    expect(finalMaster).toContain('content:none!important;display:none!important');
+    expect(exporter).toContain('ctx.drawImage(classPlate,0,206,340,270)');
+  });
+  it("avoids drawing solid rectangles that cover carved parchment and bottom rail",()=>{
+    expect(exporter).not.toContain('ctx.fillRect(23,199,294,75)');
+    expect(exporter).not.toContain('ctx.fillRect(30,290,280,135)');
+  });
 });
