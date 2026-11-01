@@ -164,7 +164,10 @@ export const buildFrontBlueprint = (card = {}) => {
     if (item.label==="Vel.") value=value.replace(/volare/ig,"vol.")
       .replace(/nuotare/ig,"nuot.").replace(/scalare/ig,"scal.")
       .replace(/scavare/ig,"scav.");
-    return {...item,value:shortText(value,item.label==="Vel."?68:24),fullValue:original};
+    // Class wells are taller and have dedicated wrapping. Do not apply
+    // the old 24-character monster quick-stat abbreviation to class values.
+    // The full source remains available for tooltips and QR details.
+    return {...item,value:type==="class"?String(value).trim():shortText(value,item.label==="Vel."?68:24),fullValue:original};
   });
   const classLegacyText = type === "class"
     ? pick(attrs, ["_legacy_full_text_before_20261024", "legacy_full_text_before_20261024"])
