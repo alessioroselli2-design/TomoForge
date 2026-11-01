@@ -67,3 +67,17 @@ describe("v33 class frame optical safety",()=>{
    expect(finalMaster).toContain('top:29%!important;right:3.4%!important');
  });
 });
+
+describe("v35 original approved Warrior emblem + integrated Class layout",()=>{
+ it("uses the approved cropped silver sword badge rather than redesigned v33 art",()=>{
+   expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
+   expect(finalMaster).toContain('transform:scale(1.08)!important');
+   expect(exporter).toContain('s.sprite==="guerriero-hd"?1.08:1.2');
+ });
+ it("has no extra Class statistic frame or portrait-covering description borders",()=>{
+   expect(finalMaster).toContain('border:none!important;outline:none!important;border-radius:2px!important;');
+   expect(finalMaster).toContain('mask-image:radial-gradient(ellipse 73% 73% at center');
+   expect(exporter).toContain('ctx.fillRect(23,199,294,75)');
+   expect(exporter).toContain('ctx.fillRect(30,290,280,135)');
+ });
+});
