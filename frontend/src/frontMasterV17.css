@@ -349,3 +349,49 @@
   -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 70%,transparent 94%)!important;
   mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 70%,transparent 94%)!important;
 }
+
+/* v35 — exact silver swords/shield from the signed-off visual, feathered into
+   the EXISTING embossed roundel. No replacement gold mount. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-hd"] .tf-v3-sprite{
+ transform:scale(1.08)!important;transform-origin:center!important;
+ -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 75%,rgba(0,0,0,.88) 87%,transparent 97%)!important;
+ mask-image:radial-gradient(circle closest-side,#000 0%,#000 75%,rgba(0,0,0,.88) 87%,transparent 97%)!important;
+}
+/* The master itself owns the gold edging. These new Class information wells
+   must be ink on its parchment, not a second thick rounded rectangle. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
+ left:5.8%!important;top:41.3%!important;width:88.4%!important;height:16.5%!important;
+ padding:2px 4px!important;
+ background:linear-gradient(95deg,#f6dfb4,#fff0cb 48%,#f3d6a7)!important;
+ border:none!important;outline:none!important;border-radius:2px!important;
+ box-shadow:none!important;z-index:4!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,black 2.5%,black 97.5%,transparent 100%)!important;
+ mask-image:linear-gradient(90deg,transparent 0%,black 2.5%,black 97.5%,transparent 100%)!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-class-stat{
+ padding:4px 4px 3px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-class-stat:not(:last-child){
+ border-right:1px solid rgba(157,103,48,.68)!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-label{
+ font-size:8.5px!important;padding-bottom:2px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat-body strong{
+ font-size:7.9px!important;line-height:1.12!important;
+}
+/* Blend the large narrative into the original parchment; preserve the lower
+   scrollwork of the master (never cover it with an extra opaque card). */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment::before{
+ inset:2.5% 2.8% 4.5%!important;border:0!important;box-shadow:none!important;
+ background:radial-gradient(ellipse at 43% 32%,#fff4d5,#f8e1b3 70%,#ecca96 100%)!important;
+ border-radius:7px!important;
+ -webkit-mask-image:radial-gradient(ellipse 73% 73% at center,#000 72%,rgba(0,0,0,.93) 86%,transparent 99%)!important;
+ mask-image:radial-gradient(ellipse 73% 73% at center,#000 72%,rgba(0,0,0,.93) 86%,transparent 99%)!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-desc{
+ left:5%!important;top:7.4%!important;
+ width:65%!important;max-width:65%!important;max-height:84%!important;
+ font:9px/1.23 'Spectral',Georgia,serif!important;
+ -webkit-line-clamp:13!important;line-clamp:13!important;
+}
