@@ -37,7 +37,7 @@ export default function DiceMasterPreview() {
       <h1 className="font-display text-2xl sm:text-3xl mt-4">Dadi premium · Classi e Incantesimi</h1>
       <p className="font-body text-sm max-w-lg mx-auto mt-3 text-foreground/75">
         Prova sulla vera carta TomoForge, senza login e senza modificare alcun record.
-        Per gli incantesimi la formula completa compare accanto al dado.
+        Per gli incantesimi la formula completa compare dentro la gemma, come Palla di Fuoco.
       </p>
       <div className="flex justify-center gap-3 mt-6">
         <button type="button" onClick={()=>setMode("class")} aria-pressed={mode==="class"}
