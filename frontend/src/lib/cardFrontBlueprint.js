@@ -181,7 +181,7 @@ export const buildFrontBlueprint = (card = {}) => {
     dice: type === "class" ? classDie : (match ? match[0].replace(/\s+/g, "") : ""),
     classDieAsset: type === "class" ? classHitDieAsset(classDie) : "",
     spellDie, spellDieAsset: type === "spell" && spellDie
-      ? `/card-art/spell-dice/${spellDie}-blank-v31.webp` : "",
+      ? `/card-art/spell-dice/${spellDie}-${["d12","d20"].includes(spellDie)?"clean-v32":"blank-v31"}.webp` : "",
     description: classLegacyText ? classExcerpt(classLegacyText) : shortText(card.description, 235),
     classLegacyText,
     showDescriptionLabel: type !== "class",
