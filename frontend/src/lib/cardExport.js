@@ -140,7 +140,7 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.27:1.2)},
      {x:m.x,y:m.y,size:m.r*2},
      dragon?.37:.35,dragon?.48:.48);
  }
@@ -211,31 +211,53 @@ async function renderApprovedMaster(element,card) {
    drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+32,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
  });
  if(data.type==="class"){
-   // A long parchment replaces the redundant empty ability and detail cells.
-   // The exact legacy narrative remains in the card attributes for the full details view.
-   ctx.fillStyle="#f8e8c0";ctx.fillRect(18,239,304,206);
-   ctx.strokeStyle="#b27d3a";ctx.lineWidth=2;ctx.strokeRect(19,240,302,204);
-   ctx.strokeStyle="#fcebbb";ctx.lineWidth=1;ctx.strokeRect(22,243,296,198);
+   // The enlarged three-well row spans the obsolete six-ability cells.
+   // Use actual source values and separate 128px line-art SVGs, never emojis.
+   ctx.fillStyle="#f9dfac";ctx.fillRect(19,194,302,83);
+   ctx.strokeStyle="#995b2a";ctx.lineWidth=2;ctx.strokeRect(19,194,302,83);
+   ctx.strokeStyle="#f6e6b8";ctx.lineWidth=1;ctx.strokeRect(22,197,296,77);
+   const classXs=[19,120,221], classW=101;
+   for(let i=1;i<3;i++){
+     ctx.strokeStyle="#af7a40";ctx.lineWidth=1;
+     ctx.beginPath();ctx.moveTo(classXs[i],197);ctx.lineTo(classXs[i],274);ctx.stroke();
+   }
+   const statArt=["primary","saves","proficiencies"];
+   for(let i=0;i<3;i++){
+     const it=data.highlights[i];if(!it)continue;
+     const x=classXs[i],cx=x+classW/2;
+     ctx.textAlign="center";ctx.fillStyle="#392013";
+     drawFittedText(ctx,it.label,cx,210,94,9,"Georgia,serif","700");
+     const art=await loadFrontEmblem({src:`/card-art/class-stats/${statArt[i]}-v33.svg`});
+     if(art)ctx.drawImage(art,x+6,222,23,23);
+     ctx.textAlign="center";ctx.fillStyle="#29180e";
+     ctx.font="700 8px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,64).slice(0,5);
+     const textY=lines.length<=2?234:lines.length===3?229:224;
+     lines.forEach((line,j)=>ctx.fillText(line,x+65,textY+j*10,64));
+   }
+   // The paper covers only the empty INNER engraving. Original bottom border,
+   // gilded corners and lower ornament remain visible all the way to y=476.
+   ctx.fillStyle="#f8e8c0";ctx.fillRect(27,286,286,145);
+   ctx.strokeStyle="#c48a49";ctx.lineWidth=1;ctx.strokeRect(27,286,286,145);
+   ctx.strokeStyle="#fff0ca";ctx.strokeRect(29,288,282,141);
    ctx.textAlign="left";ctx.fillStyle="#382314";
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
-     31,258,207,11,16);
+     34,306,202,11,11);
    if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
-     const jewel=data.classDieAsset ? await loadFrontEmblem({src:data.classDieAsset}) : null;
+     const jewel=data.classDieAsset?await loadFrontEmblem({src:data.classDieAsset}):null;
      if(jewel){
-       // The approved source master already has the correct engraved label.
-       // Keep its 240:250 aspect ratio, with no duplicate canvas lettering.
-       ctx.drawImage(jewel,241,297,70,73);
-     } else {
-       // Still identify the die when an offline asset cannot be loaded.
+       // Unaltered approved premium master and its baked-in lower-case label.
+       ctx.drawImage(jewel,241,329,70,73);
+     }else{
        ctx.textAlign="center";ctx.fillStyle="#fff7df";
-       ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,275,337,65);
+       ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,275,369,65);
      }
    }
    const classQr=element.querySelector('[data-card-qr] canvas');
    if(card?.id&&classQr)try{
-     ctx.fillStyle="#fff";ctx.fillRect(280,406,36,36);
-     ctx.drawImage(classQr,283,409,30,30);
+     ctx.fillStyle="#fff";ctx.fillRect(280,405,36,36);
+     ctx.drawImage(classQr,283,408,30,30);
    }catch{}
    canvas.artworkDrawn=artworkDrawn;return canvas;
  }
