@@ -58,3 +58,12 @@ describe("dedicated class front only",()=>{
    expect(exporter).toContain("src:data.classDieAsset");
  });
 });
+
+describe("v33 class frame optical safety",()=>{
+ it("does not extend the class parchment over the lower carved frame",()=>{
+   expect(finalMaster).toContain('top:59.24370%!important;height:34.45378%!important');
+   expect(finalMaster).toContain('inset:3.5% 3.2% 6.5% 3.2%!important');
+   expect(finalMaster).toContain('height:17.45%!important');
+   expect(finalMaster).toContain('top:29%!important;right:3.4%!important');
+ });
+});
