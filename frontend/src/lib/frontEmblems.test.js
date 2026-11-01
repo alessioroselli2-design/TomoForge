@@ -11,6 +11,7 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/guerriero-reference-approved-v35.webp",cell:96,sprite:"guerriero-hd"});
  });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
   expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race",index:1});
