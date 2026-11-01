@@ -20,7 +20,7 @@ describe("TomoForge v2 front blueprint", () => {
     expect(data.abilities).toHaveLength(0);
     expect(data.dice).toBe("8d6");
     expect(data.spellDie).toBe("d6");
-    expect(data.spellDieAsset).toBe("/card-art/class-dice/d6-premium-v29.webp");
+    expect(data.spellDieAsset).toBe("/card-art/spell-dice/d6-blank-v31.webp");
     expect(data.highlights).toHaveLength(3);
   });
   it("displays no invented formula or empty stats on a placeholder card", () => {
@@ -160,7 +160,7 @@ describe("spell damage jewel mapping",()=>{
       const bp=buildFrontBlueprint({type:"spell",attributes:{danno:formula+" fuoco"}});
       expect(bp.dice).toBe(formula);
       expect(bp.spellDie).toBe(die);
-      expect(bp.spellDieAsset).toBe(`/card-art/class-dice/${die}-premium-v29.webp`);
+      expect(bp.spellDieAsset).toBe(`/card-art/spell-dice/${die}-blank-v31.webp`);
     });
   it("does not invent jewel for spells without damage or unsupported dice",()=>{
     expect(buildFrontBlueprint({type:"spell",attributes:{scuola:"Abiurazione"}}).spellDieAsset).toBe("");

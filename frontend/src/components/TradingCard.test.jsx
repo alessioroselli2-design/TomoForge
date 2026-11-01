@@ -270,8 +270,10 @@ describe("approved premium spell dice",()=>{
     }}}/>));
     expect(mount.querySelector('[data-front-category="spell"]')).not.toBeNull();
     expect(mount.querySelector('.tf-v3-spell-dice img')?.getAttribute("src"))
-      .toBe("/card-art/class-dice/d6-premium-v29.webp");
+      .toBe("/card-art/spell-dice/d6-blank-v31.webp");
     expect(mount.querySelector(".tf-v3-spell-formula")?.textContent).toBe("8d6");
+    expect(mount.querySelector(".tf-v3-spell-dice")?.textContent).toBe("8d6");
+    expect(mount.querySelector(".tf-v3-spell-formula")?.style.fontSize).toBe("21px");
     expect(mount.querySelector(".tf-v3-class-dice")).toBeNull();
     await act(async()=>root.unmount());mount.remove();
   });

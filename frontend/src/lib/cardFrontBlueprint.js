@@ -170,7 +170,7 @@ export const buildFrontBlueprint = (card = {}) => {
   const classDie = normalizeClassHitDie(hitDie);
   // A spell's dice are damage (e.g. 8d6+2), not Class hit dice.
   // Reuse the approved premium jewel for its actual polyhedron, while keeping
-  // the complete dice formula separate and readable below the jewel.
+  // the full dice formula centered inside the label-free jewel.
   const spellDie = type === "spell" && match
     ? normalizeClassHitDie((match[0].match(/d(4|6|8|10|12|20)\b/i) || [])[0])
     : "";
@@ -180,7 +180,8 @@ export const buildFrontBlueprint = (card = {}) => {
     ...THEMES[type], highlights:readableStats, abilities, details,
     dice: type === "class" ? classDie : (match ? match[0].replace(/\s+/g, "") : ""),
     classDieAsset: type === "class" ? classHitDieAsset(classDie) : "",
-    spellDie, spellDieAsset: type === "spell" ? classHitDieAsset(spellDie) : "",
+    spellDie, spellDieAsset: type === "spell" && spellDie
+      ? `/card-art/spell-dice/${spellDie}-blank-v31.webp` : "",
     description: classLegacyText ? classExcerpt(classLegacyText) : shortText(card.description, 235),
     classLegacyText,
     showDescriptionLabel: type !== "class",

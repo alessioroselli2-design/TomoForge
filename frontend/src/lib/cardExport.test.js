@@ -204,8 +204,14 @@ describe("card export renderers", () => {
       element.getAttribute=name=>name==="data-front-version"?"7":null;
       const front=await renderCardCanvas(element,{type:"spell",name:"Test",attributes:{danno:formula}});
       expect(front.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src))
-        .toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
+        .toContain(`/card-art/spell-dice/${die}-blank-v31.webp`);
       expect(written(front)).toContain(formula);
+      // On the approved v7 renderer the jewel and its formula share one area.
+      expect(front.operations.some(op=>op.name==="drawImage" &&
+        op.args.at(-4)===239 && op.args.at(-3)===342 &&
+        op.args.at(-2)===78 && op.args.at(-1)===81)).toBe(true);
+      expect(front.operations.some(op=>op.name==="fillRect" &&
+        op.x===252 && op.y===420)).toBe(false);
     });
 });
 

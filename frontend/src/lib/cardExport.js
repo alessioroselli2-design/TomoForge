@@ -258,11 +258,13 @@ async function renderApprovedMaster(element,card) {
    const jewel=await loadFrontEmblem({src:data.spellDieAsset});
    // The art has its original die label engraved; draw the actual spell formula
    // on a separate parchment slip, never overprint the ruby image.
-   if(jewel)ctx.drawImage(jewel,242,347,70,73);
-   ctx.fillStyle="#f6e1b0";ctx.fillRect(252,420,54,17);
-   ctx.strokeStyle="#ae7637";ctx.lineWidth=1;ctx.strokeRect(252,420,54,17);
-   ctx.textAlign="center";ctx.fillStyle="#401b11";
-   drawFittedText(ctx,data.dice,279,432,50,11,"Georgia,serif","700");
+   if(jewel)ctx.drawImage(jewel,239,342,78,81);
+   // A single print-layer formula at the geometric center, matching Safari.
+   // No detached parchment label and no pre-engraved text in the spell gem.
+   ctx.textAlign="center";ctx.fillStyle="#fff2d6";
+   ctx.shadowColor="#26051a";ctx.shadowBlur=2;ctx.shadowOffsetY=1;
+   drawFittedText(ctx,data.dice,278,389,64,18,"Georgia,serif","700");
+   ctx.shadowBlur=0;ctx.shadowOffsetY=0;
  }
  const qr=element.querySelector('[data-card-qr] canvas');
  if(card?.id&&qr)try {
