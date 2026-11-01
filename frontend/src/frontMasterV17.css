@@ -462,3 +462,12 @@
  -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 73%,rgba(0,0,0,.94) 85%,transparent 96%)!important;
  mask-image:radial-gradient(circle closest-side,#000 0%,#000 73%,rgba(0,0,0,.94) 85%,transparent 96%)!important;
 }
+
+/* Reference's ruby divider is already part of the Class master image. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-class-stat::after {
+  content:none!important;display:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-abilities,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-details {
+  display:none!important;
+}
