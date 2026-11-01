@@ -140,7 +140,7 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.02:1.2)},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.0:1.2)},
      {x:m.x,y:m.y,size:m.r*2},
      dragon?.37:.35,dragon?.48:.48);
  }
@@ -213,8 +213,9 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Draw the exact reference-based blank Class engraving before the dynamic
    // values; its ruby filigree and gilded corners ARE the frame, not overlays.
-   const classPlate=await loadFrontEmblem({src:"/card-art/class-reference-parchment-v36.webp"});
-   if(classPlate)ctx.drawImage(classPlate,0,206,340,270);
+   const classPlate=await loadFrontEmblem({src:"/card-art/class-master-clean-v38.webp"});
+   // Full alpha master: opaque across obsolete stats/abilities/extra footer.
+   if(classPlate)ctx.drawImage(classPlate,0,0,340,476);
    // The enlarged three-well row spans the obsolete six-ability cells.
    // Use actual source values and separate 128px line-art SVGs, never emojis.
    // Class ink flows within the existing carved wells, no extra double frame.
@@ -229,13 +230,13 @@ async function renderApprovedMaster(element,card) {
      const it=data.highlights[i];if(!it)continue;
      const x=classXs[i],cx=x+classW/2;
      ctx.textAlign="center";ctx.fillStyle="#392013";
-     drawFittedText(ctx,it.label,cx,229,94,8.6,"Georgia,serif","700");
+     drawFittedText(ctx,it.label,cx,211,94,8.6,"Georgia,serif","700");
      const art=await loadFrontEmblem({src:`/card-art/class-stats/${statArt[i]}-v33.svg`});
-     if(art)ctx.drawImage(art,x+6,243,18,18);
+     if(art)ctx.drawImage(art,x+6,222,18,18);
      ctx.textAlign="center";ctx.fillStyle="#29180e";
      ctx.font="700 7.3px Georgia,serif";
      const lines=wrapTextLines(ctx,it.value,72).slice(0,5);
-     const textY=lines.length<=2?250:lines.length===3?247:244;
+     const textY=lines.length<=2?231:lines.length===3?226:222;
      lines.forEach((line,j)=>ctx.fillText(line,x+63,textY+j*8,72));
    }
    // The paper covers only the empty INNER engraving. Original bottom border,
@@ -245,7 +246,7 @@ async function renderApprovedMaster(element,card) {
    ctx.textAlign="left";ctx.fillStyle="#382314";
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
-     34,303,200,10.2,12);
+     34,293,200,10.2,12);
    if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
      const jewel=data.classDieAsset?await loadFrontEmblem({src:data.classDieAsset}):null;
      if(jewel){
@@ -258,8 +259,8 @@ async function renderApprovedMaster(element,card) {
    }
    const classQr=element.querySelector('[data-card-qr] canvas');
    if(card?.id&&classQr)try{
-     ctx.fillStyle="#fff";ctx.fillRect(280,405,36,36);
-     ctx.drawImage(classQr,283,408,30,30);
+     ctx.fillStyle="#fff";ctx.fillRect(286,390,28,28);
+     ctx.drawImage(classQr,288,392,24,24);
    }catch{}
    canvas.artworkDrawn=artworkDrawn;return canvas;
  }

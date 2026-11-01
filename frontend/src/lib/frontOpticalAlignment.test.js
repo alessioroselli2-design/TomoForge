@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.02:1.2)');
+    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.0:1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
   });
   it("preserves the existing three parchment columns",()=>{
@@ -70,13 +70,29 @@ describe("v33 class frame optical safety",()=>{
 
 describe("v36 Class frame uses actual approved engraved plate",()=>{
   it("renders a dedicated reference-backed image beneath real data",()=>{
-    expect(component).toContain('className="tf-v36-class-master"');
-    expect(component).toContain('class-reference-parchment-v36.webp');
+    expect(component).toContain('className="tf-v38-class-master"');
+    expect(component).toContain('class-master-clean-v38.webp');
     expect(finalMaster).toContain('content:none!important;display:none!important');
-    expect(exporter).toContain('ctx.drawImage(classPlate,0,206,340,270)');
+    expect(exporter).toContain('ctx.drawImage(classPlate,0,0,340,476)');
   });
   it("avoids drawing solid rectangles that cover carved parchment and bottom rail",()=>{
     expect(exporter).not.toContain('ctx.fillRect(23,199,294,75)');
     expect(exporter).not.toContain('ctx.fillRect(30,290,280,135)');
+  });
+});
+
+
+describe("Class v38 anti-overlap contract",()=>{
+  it("uses a full-canvas lower master and leaves no obsolete v36 image node",()=>{
+    const plate=readFileSync(resolve(__dirname,"../../public/card-art/class-master-clean-v38.webp"));
+    expect(plate.subarray(0,4).toString()).toBe("RIFF");
+    expect(plate.subarray(8,12).toString()).toBe("WEBP");
+    expect(plate.length).toBeGreaterThan(50000);
+    expect(component).toContain('className="tf-v38-class-master"');
+    expect(component).not.toContain('className="tf-v36-class-master"');
+    expect(exporter).toContain('ctx.drawImage(classPlate,0,0,340,476)');
+    expect(finalMaster).toContain('top:41.2%!important;left:5.2%!important');
+    expect(finalMaster).toContain('top:55.6%!important;left:5.1%!important');
+    expect(finalMaster).toContain('content:none!important;display:none!important');
   });
 });
