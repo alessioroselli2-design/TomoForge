@@ -140,7 +140,7 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.08:1.2)},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.11:1.2)},
      {x:m.x,y:m.y,size:m.r*2},
      dragon?.37:.35,dragon?.48:.48);
  }
@@ -166,7 +166,7 @@ async function renderApprovedMaster(element,card) {
    } catch {return null;}
  }));
  const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
- data.highlights.slice(0,3).forEach((it,i)=>{
+ if(data.type!=="class")data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    const labelCenter=cx;
    const max=cellW-12;
@@ -211,45 +211,49 @@ async function renderApprovedMaster(element,card) {
    drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+32,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
  });
  if(data.type==="class"){
+   // Draw the exact reference-based blank Class engraving before the dynamic
+   // values; its ruby filigree and gilded corners ARE the frame, not overlays.
+   const classPlate=await loadFrontEmblem({src:"/card-art/class-reference-parchment-v36.webp"});
+   if(classPlate)ctx.drawImage(classPlate,0,206,340,270);
    // The enlarged three-well row spans the obsolete six-ability cells.
    // Use actual source values and separate 128px line-art SVGs, never emojis.
    // Class ink flows within the existing carved wells, no extra double frame.
-   ctx.fillStyle="#f7e2ba";ctx.fillRect(23,199,294,75);
+   // No separate rectangle over the engraved columns.
    const classXs=[19,120,221], classW=101;
    for(let i=1;i<3;i++){
      ctx.strokeStyle="#af7a40";ctx.lineWidth=1;
-     ctx.beginPath();ctx.moveTo(classXs[i],197);ctx.lineTo(classXs[i],274);ctx.stroke();
+     // The signed-off master contains the engraved gold divider already.
    }
    const statArt=["primary","saves","proficiencies"];
    for(let i=0;i<3;i++){
      const it=data.highlights[i];if(!it)continue;
      const x=classXs[i],cx=x+classW/2;
      ctx.textAlign="center";ctx.fillStyle="#392013";
-     drawFittedText(ctx,it.label,cx,210,94,9,"Georgia,serif","700");
+     drawFittedText(ctx,it.label,cx,229,94,8.6,"Georgia,serif","700");
      const art=await loadFrontEmblem({src:`/card-art/class-stats/${statArt[i]}-v33.svg`});
-     if(art)ctx.drawImage(art,x+6,222,23,23);
+     if(art)ctx.drawImage(art,x+6,243,18,18);
      ctx.textAlign="center";ctx.fillStyle="#29180e";
-     ctx.font="700 8px Georgia,serif";
-     const lines=wrapTextLines(ctx,it.value,64).slice(0,5);
-     const textY=lines.length<=2?234:lines.length===3?229:224;
-     lines.forEach((line,j)=>ctx.fillText(line,x+65,textY+j*10,64));
+     ctx.font="700 7.3px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,72).slice(0,5);
+     const textY=lines.length<=2?250:lines.length===3?247:244;
+     lines.forEach((line,j)=>ctx.fillText(line,x+63,textY+j*8,72));
    }
    // The paper covers only the empty INNER engraving. Original bottom border,
    // gilded corners and lower ornament remain visible all the way to y=476.
    // Keep the ornate lower rim exposed, without a pasted-on rectangle border.
-   ctx.fillStyle="#fae6bd";ctx.fillRect(30,290,280,135);
+   // Reference master supplies the entire parchment without pasted-on edges.
    ctx.textAlign="left";ctx.fillStyle="#382314";
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
-     34,305,200,10.7,12);
+     34,303,200,10.2,12);
    if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
      const jewel=data.classDieAsset?await loadFrontEmblem({src:data.classDieAsset}):null;
      if(jewel){
        // Unaltered approved premium master and its baked-in lower-case label.
-       ctx.drawImage(jewel,241,329,70,73);
+       ctx.drawImage(jewel,242,317,70,73);
      }else{
        ctx.textAlign="center";ctx.fillStyle="#fff7df";
-       ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,275,369,65);
+       ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,277,358,65);
      }
    }
    const classQr=element.querySelector('[data-card-qr] canvas');
