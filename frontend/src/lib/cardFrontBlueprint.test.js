@@ -153,7 +153,8 @@ describe("v27: one ornate die silhouette for each verified Hit Die",()=>{
   });
 });
 
-// The spell's full damage formula stays dynamic, but the artwork matches its diedescribe("spell damage jewel mapping",()=>{
+// The spell's full damage formula stays dynamic, but the artwork matches its die.
+describe("spell damage jewel mapping",()=>{
   it.each([["1d4","d4"],["8d6","d6"],["3d8+2","d8"],["2d10+3","d10"],["1d12","d12"],["1d20","d20"]])(
     "renders %s with the approved %s visual master", (formula,die)=>{
       const bp=buildFrontBlueprint({type:"spell",attributes:{danno:formula+" fuoco"}});
