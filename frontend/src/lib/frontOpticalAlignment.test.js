@@ -79,7 +79,7 @@ describe("Class v40 dynamic content stays INSIDE approved master",()=>{
    expect(component).not.toContain("previewApprovedArtwork");
    expect(css).toContain(".tf-class-v40-art-empty{position:absolute;inset:0;background:");
    expect(css).toContain("z-index:2");
-   expect(exporter).toContain("ctx.restore();");
+   expect(exporter).toContain('imageCtx.globalCompositeOperation="destination-in"');
    expect(exporter).toContain("ctx.drawImage(master,0,0,width,height);");
  });
  it("aligns all 3 inset values and bounds them to their ORIGINAL gold wells",()=>{
@@ -91,15 +91,25 @@ describe("Class v40 dynamic content stays INSIDE approved master",()=>{
  });
 });
 
-describe("v41 painted layers: chosen illustration is below original gilded frame",()=>{
+describe("v46 exact shared artwork aperture, without any extra border overlay",()=>{
  const styles=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
- it("uses one transparent master above a clipped artwork area",()=>{
+ it("uses the original master alpha as a single CSS mask covering the entire card",()=>{
    expect(styles).toContain("z-index:2");
-   expect(styles).toContain("z-index:1;left:3.9%;top:17.45%");
-   expect(styles).toContain("border-radius:4.45% / 9.6%");
+   expect(styles).toContain("z-index:1;inset:0;width:100%;height:100%");
+   expect(styles).toContain('-webkit-mask-image:url("/card-art/class-art-window-mask-v46.png")');
+   expect(styles).toContain('mask-image:url("/card-art/class-art-window-mask-v46.png")');
+   expect(styles).not.toContain("border-radius:4.45% / 9.6%");
+   const mask=readFileSync(resolve(__dirname,"../../public/card-art/class-art-window-mask-v46.png"));
+   expect(mask.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
+   expect(mask.readUInt32BE(16)).toBe(1024);
+   expect(mask.readUInt32BE(20)).toBe(1375);
+ });
+ it("uses that very same mask in PNG/PDF, then paints the gold frame on top",()=>{
    const classExport=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
-   expect(classExport.indexOf("ctx.drawImage(master,0,0,width,height)"))
-     .toBeGreaterThan(classExport.indexOf("ctx.clip()"));
-   expect(classExport).toContain("ctx.quadraticCurveTo");
+   expect(classExport).toContain('/card-art/class-art-window-mask-v46.png');
+   expect(classExport).toContain('imageCtx.globalCompositeOperation="destination-in"');
+   expect(classExport).not.toContain("ctx.quadraticCurveTo");
+   expect(classExport.indexOf('imageCtx.globalCompositeOperation="destination-in"'))
+     .toBeLessThan(classExport.indexOf("ctx.drawImage(master,0,0,width,height)"));
  });
 });
