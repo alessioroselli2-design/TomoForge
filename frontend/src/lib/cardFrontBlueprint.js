@@ -73,6 +73,25 @@ const shortText = (value, max = 62) => String(value || "").length > max
   ? String(value).slice(0, max - 1).trimEnd() + "…"
   : String(value || "");
 
+// Small printed summary only. The complete verified value remains in fullValue
+// (and the QR details); no database field is changed or discarded.
+const classWellText=(label,raw)=>{
+  const value=String(raw||"").replace(/\s+/g," ").trim();
+  if(label==="Competenze"){
+    const groups=[
+      /\barmatur[ae]\b/i.test(value)?"Armature":null,
+      /\bscud[io]\b/i.test(value)?"scudi":null,
+      /\barmi\b/i.test(value)?"armi":null,
+    ].filter(Boolean);
+    if(groups.length>=2)
+      return groups.length===2?groups.join(" e "):"Armature, scudi e armi";
+  }
+  const max=label==="Competenze"?34:39;
+  if(value.length<=max)return value;
+  const end=value.slice(0,max+1).lastIndexOf(" ");
+  return value.slice(0,end>max*.55?end:max).trimEnd()+"…";
+};
+
 // Exact original stays in classLegacyText; a printed card displays a word-safe teaser.
 // Only complete sentences belong in the Class card teaser. The full uncut
 // description remains in the record, accessible through the detail/QR link.
@@ -99,7 +118,7 @@ export const buildFrontBlueprint = (card = {}) => {
     label, value: pick(attrs, [first, second]),
   })).filter((entry) => entry.value).slice(0, 3);
   // Never fabricate statistics; empty cells are simply not displayed.
-  const highlights = highlighted.map((entry) => ({ ...entry, value: shortText(entry.value, type === "class" ? 90 : 22) }));
+  const highlights = highlighted.map((entry) => ({ ...entry, value: type === "class" ? entry.value : shortText(entry.value,22) }));
   const abilities = (type === "monster" || type === "character")
     ? ABILITY_KEYS.filter((key) => scalar(attrs[key])).map((key) => ({ label: key.toUpperCase(), value: formattedAbility(attrs[key]) }))
     : [];
@@ -167,7 +186,7 @@ export const buildFrontBlueprint = (card = {}) => {
     // Class wells are taller and have dedicated wrapping. Do not apply
     // the old 24-character monster quick-stat abbreviation to class values.
     // The full source remains available for tooltips and QR details.
-    return {...item,value:type==="class"?String(value).trim():shortText(value,item.label==="Vel."?68:24),fullValue:original};
+    return {...item,value:type==="class"?classWellText(item.label,original):shortText(value,item.label==="Vel."?68:24),fullValue:original};
   });
   const classLegacyText = type === "class"
     ? pick(attrs, ["_legacy_full_text_before_20261024", "legacy_full_text_before_20261024"])
