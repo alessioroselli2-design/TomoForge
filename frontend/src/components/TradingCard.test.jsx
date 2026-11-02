@@ -303,19 +303,35 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
      .toHaveLength(0);
    expect(front.querySelectorAll(".tf-class-v40-emblem")).toHaveLength(0);
    expect([...front.querySelectorAll(".tf-class-v40-value strong")].map(x=>x.textContent))
-     .toEqual(["Forza o Destrezza","Forza, Costituzione",
-       "Tutte le armature, scudi, armi semplici e da guerra"]);
+     .toEqual(["Forza o Destrezza","Forza, Costituzione","Armature, scudi e armi"]);
+   expect(front.querySelector('[data-stat-label="Competenze"]').title)
+     .toBe("Tutte le armature, scudi, armi semplici e da guerra");
+   expect(front.querySelectorAll(".tf-class-v40-art-empty")).toHaveLength(1);
+   expect(front.querySelector(".tf-class-v40-art img")).toBeNull();
    expect(front.querySelector(".tf-v3-class-dice").style.backgroundImage)
      .toContain("/class-dice/d10-premium-v29.webp");
    expect(front.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    await act(async()=>root.unmount());mount.remove();
  });
+ it("never reuses the baked Warrior picture without a chosen art file",async()=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   const card={type:"class",name:"Guerriero",previewApprovedArtwork:true,attributes:{dado_vita:"d10"}};
+   await act(async()=>root.render(<CardFront card={card} editorMode/>));
+   expect(mount.querySelector(".tf-class-v40-art img")).toBeNull();
+   expect(mount.querySelectorAll("[data-testid='front-artwork-empty']")).toHaveLength(1);
+   expect(mount.textContent).toContain("CARICA O GENERA L'ILLUSTRAZIONE");
+   await act(async()=>root.render(<CardFront card={card} imgUrl="data:image/png;base64,ZGF0YQ==" editorMode/>));
+   expect(mount.querySelector(".tf-class-v40-art img")?.getAttribute("src")).toBe("data:image/png;base64,ZGF0YQ==");
+   expect(mount.querySelectorAll(".tf-class-v40-art-empty")).toHaveLength(0);
+   await act(async()=>root.unmount());mount.remove();
+ });
  it("allows another class to replace the Warrior artwork and emblem dynamically",async()=>{
    const mount=document.createElement("div");document.body.appendChild(mount);
    const root=createRoot(mount);
    await act(async()=>root.render(<CardFront card={{type:"class",name:"Druido",
-     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}}/>));
+     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}}}/>));
    const front=mount.querySelector('[data-front-version="40"]');
    expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
    expect(front.querySelector(".tf-class-v40-art img")?.getAttribute("src"))
