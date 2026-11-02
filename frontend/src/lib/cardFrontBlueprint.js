@@ -228,6 +228,9 @@ export const buildFrontBlueprint = (card = {}) => {
       ? classExcerpt(classLegacyText || card.description,390)
       : shortText(card.description,235),
     classLegacyText,
+    // Unlike the historical preview teaser, the class interior displays the full
+    // verified description. Never add ellipses or drop sentences from the source.
+    fullDescription: type==="class" ? String(classLegacyText||card.description||"").trim() : "",
     showDescriptionLabel: type !== "class",
     hasAbilities: abilities.length > 0,
   };

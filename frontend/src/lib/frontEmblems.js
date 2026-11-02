@@ -62,9 +62,9 @@ export const getFrontEmblem = (card = {}) => {
  // The existing gold circular card well stays entirely untouched.
  if (type === "class" && index === 4) {
    return {
-     sprite:"guerriero-hd",index:4,col:0,row:0,label,
-     src:"/card-art/guerriero-approved-medal-v39.webp",
-     width:136,height:140,cell:136,
+     sprite:"guerriero-crest",index:4,col:0,row:0,label,
+     src:"/emblemi/guerriero-crest-only-v1.svg",
+     width:512,height:512,cell:512,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

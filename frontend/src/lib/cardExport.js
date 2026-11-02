@@ -2,6 +2,7 @@ import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
+import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -123,6 +124,17 @@ async function renderApprovedMaster(element,card) {
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
+ // Independent interior layouts never replace or redraw the outer gold master.
+ const layout=categoryFrontLayout(data.type);
+ if(layout.interior){
+   const inner=new Image();
+   await new Promise((resolve,reject)=>{
+     inner.onload=resolve;inner.onerror=()=>reject(new Error("Layout interno non disponibile"));
+     inner.src=layout.interior;
+     if(inner.complete&&inner.naturalWidth>0)resolve();
+   });
+   ctx.drawImage(inner,0,height*layout.interiorY,width,height*layout.interiorHeight);
+ }
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
  const g=MASTER_REGIONS.art;
@@ -141,7 +153,7 @@ async function renderApprovedMaster(element,card) {
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
      {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?1:1.2)},
-     {x:m.x,y:m.y,size:m.r*2*(data.type==="class"?.84:1)},
+     {x:m.x,y:m.y,size:m.r*2*(s.sprite==="guerriero-crest"?1.08:(data.type==="class"?.9:1))},
      dragon?.37:.35,dragon?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
@@ -187,10 +199,11 @@ async function renderApprovedMaster(element,card) {
      // concise values. No additional graphical panels are painted.
      ctx.textAlign="center";ctx.fillStyle="#51301c";
      drawFittedText(ctx,it.label,labelCenter,statY+10,max,7.3,"Georgia,serif","700");
-     ctx.fillStyle="#1d140c";ctx.font="700 8px Georgia,serif";
-     const lines=wrapTextLines(ctx,it.value,max-7).slice(0,3);
-     const first=statY+31-(lines.length-1)*4;
-     lines.forEach((line,n)=>ctx.fillText(line,labelCenter,first+n*8,max-7));
+     ctx.fillStyle="#1d140c";ctx.font="700 7px Georgia,serif";
+     const full=it.fullValue||it.value;
+     const lines=wrapTextLines(ctx,full,max-15).slice(0,4);
+     const first=statY+27-(lines.length-1)*3.6;
+     lines.forEach((line,n)=>ctx.fillText(line,labelCenter+6,first+n*7.3,max-15));
      return;
    }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
@@ -213,7 +226,7 @@ async function renderApprovedMaster(element,card) {
    ctx.fillStyle="#23150f";
    drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+32,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
  });
- const details=data.details.slice(0,2);
+ const details=layout.showDetails ? data.details.slice(0,2) : [];
  details.forEach((d,i)=>{
    const x=MASTER_REGIONS.detail.x+8+i*152;
    const detailW=data.spellDieAsset&&i===1?87:136;
@@ -222,17 +235,33 @@ async function renderApprovedMaster(element,card) {
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+27,detailW,11,2);
  });
- const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
- ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
- if(data.showDescriptionLabel)ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
- ctx.font="10px Spectral,Georgia,serif";
- drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,
-   MASTER_REGIONS.description.y+(data.showDescriptionLabel?27:17),
-   data.type==="class"?200:(data.spellDieAsset?201:(card?.id?244:287)),
-   data.type==="class"?10:12,data.type==="class"?8:5);
- if(data.type==="class"&&data.classDieAsset){
-   const jewel=await loadFrontEmblem({src:data.classDieAsset});
-   if(jewel)ctx.drawImage(jewel,240,369,70,73);
+ const desc=(data.type==="class"?data.fullDescription:data.description)||"I dettagli appariranno dopo la selezione di un record.";
+ if(data.type==="class"){
+   // Full class narrative: fit all available words instead of clipping it
+   // to an arbitrary sentence or character limit.
+   const x=32,y=263,w=195,h=164;
+   let lines=[],fontSize=9.4,lineHeight=11;
+   for(;fontSize>=4.3;fontSize-=.25){
+     ctx.font=`${fontSize}px Spectral,Georgia,serif`;
+     lines=wrapTextLines(ctx,desc,w);
+     lineHeight=fontSize*1.16;
+     if(lines.length*lineHeight<=h)break;
+   }
+   ctx.fillStyle="#2d190e";ctx.textAlign="left";
+   lines.forEach((line,i)=>{
+     if(y+i*lineHeight<=y+h)ctx.fillText(line,x,y+i*lineHeight,w);
+   });
+   if(data.classDieAsset){
+     const jewel=await loadFrontEmblem({src:data.classDieAsset});
+     if(jewel)ctx.drawImage(jewel,240,335,72,75);
+   }
+ } else {
+   ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
+   if(data.showDescriptionLabel)ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
+   ctx.font="10px Spectral,Georgia,serif";
+   drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,
+     MASTER_REGIONS.description.y+(data.showDescriptionLabel?27:17),
+     data.spellDieAsset?201:(card?.id?244:287),12,5);
  }
  if(data.type==="monster"&&data.dice){
    ctx.fillStyle="#3c2013";ctx.textAlign="left";
@@ -253,8 +282,9 @@ async function renderApprovedMaster(element,card) {
  }
  const qr=element.querySelector('[data-card-qr] canvas');
  if(card?.id&&qr)try {
-   const qrX=data.spellDieAsset?280:278,qrY=data.spellDieAsset?285:414;
-   const qrSize=data.spellDieAsset?33:42;
+   const qrX=data.type==="class"?286:(data.spellDieAsset?280:278);
+   const qrY=data.type==="class"?415:(data.spellDieAsset?285:414);
+   const qrSize=data.type==="class"?22:(data.spellDieAsset?33:42);
    ctx.fillStyle="#fff";ctx.fillRect(qrX,qrY,qrSize,qrSize);
    ctx.drawImage(qr,qrX+3,qrY+3,qrSize-6,qrSize-6);
    ctx.strokeStyle="#b37c38";ctx.lineWidth=1;ctx.strokeRect(qrX,qrY,qrSize,qrSize);

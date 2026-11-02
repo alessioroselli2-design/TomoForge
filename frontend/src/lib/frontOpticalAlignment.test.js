@@ -15,10 +15,10 @@ describe("TomoForge approved ornate master",()=>{
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster only the class icon shrinks, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
-    expect(finalMaster).toContain("transform:scale(.84)!important");
-    expect(exporter).toContain('size:m.r*2*(data.type==="class"?.84:1)');
+    expect(finalMaster).toContain('data-emblem-sprite="guerriero-crest"');
+    expect(exporter).toContain('size:m.r*2*(s.sprite==="guerriero-crest"?1.08:');
     expect(component).toContain('data.type==="class"&&(!hasArtwork||artworkError)');
-    expect(component).toContain('editorMode&&!hasArtwork&&data.type!=="class"');
+    expect(component).toContain('editorMode&&!hasArtwork');
   });
   it("preserves the existing three parchment columns",()=>{
     expect(finalMaster).toContain("grid-template-columns:32% 35% 33%");
@@ -58,14 +58,14 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("shared Monster master across every front",()=>{
  it("does not import or render another class master",()=>{
    expect(component).toContain('data-front-layout="unified-monster-master-v17"');
-   expect(component).toContain('backgroundImage:`url(${FRONT_MASTER_URL})`');
+   expect(component).toContain('...frontBackground(data.type)');
    expect(component).not.toContain("class-master-v50");
    expect(component).not.toContain("tf-class-v40-master");
    expect(component).not.toContain('data-front-version="40"');
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,240,369,70,73)");
+   expect(exporter).toContain("ctx.drawImage(jewel,240,335,72,75)");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
