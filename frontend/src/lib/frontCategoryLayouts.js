@@ -18,4 +18,10 @@ export const CATEGORY_FRONT_LAYOUTS=Object.freeze({
 export const categoryFrontLayout=(type)=>CATEGORY_FRONT_LAYOUTS[type]||CATEGORY_FRONT_LAYOUTS.custom;
 // The outer reference stays the same inline style for EVERY category.
 // Inner background layers are owned by each category CSS (not by the shell).
-export const frontBackground=()=>({backgroundImage:`url(${FRONT_OUTER_MASTER})`});
+export const frontBackground=(type)=>{
+ const layout=categoryFrontLayout(type);
+ return {
+  backgroundImage:`url(${FRONT_OUTER_MASTER})`,
+  ...(layout.interior?{"--tf-class-background":`url(${layout.interior}),url(${FRONT_OUTER_MASTER})`}:{})
+ };
+};
