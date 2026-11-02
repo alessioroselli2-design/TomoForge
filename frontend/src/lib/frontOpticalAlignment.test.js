@@ -53,19 +53,21 @@ describe("v40 Class has ONE authoritatively approved master",()=>{
  it("uses independent layout that cannot inherit any v17/33/36/38/39 frame",()=>{
    expect(component).toContain('data-front-layout="single-approved-master-v40"');
    expect(component).toContain('className="tf-class-v40-master"');
-   expect(component).toContain('class-approved-single-master-v40.webp');
+   expect(component).toContain('class-approved-clean-master-v41.webp');
    expect(component).toContain('if(data.type==="class")');
    expect(component).not.toContain('className="tf-v39-class-master"');
    expect(component).not.toContain('className="tf-v38-class-master"');
    expect(component).not.toContain('className="tf-v36-class-master"');
  });
  it("uses one exact ornamental image without the circled lower extension",()=>{
-   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-approved-single-master-v40.webp"));
+   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-approved-clean-master-v41.webp"));
    expect(asset.subarray(0,4).toString()).toBe("RIFF");
    expect(asset.subarray(8,12).toString()).toBe("WEBP");
    expect(asset.length).toBeGreaterThan(50000);
+   expect(asset.toString("ascii",12,16)).toBe("VP8X");
+   expect(asset[20]&0x10).toBe(0x10); // VP8X alpha feature: image window is truly transparent
    expect(exporter).toContain('renderClassApprovedV40(element,card)');
-   expect(exporter).toContain('/card-art/class-approved-single-master-v40.webp');
+   expect(exporter).toContain('/card-art/class-approved-clean-master-v41.webp');
    expect(exporter).not.toContain('renderClassReferenceV39');
  });
 });
@@ -76,7 +78,9 @@ describe("Class v40 dynamic content stays INSIDE approved master",()=>{
    expect(component).toContain('data-testid="front-artwork-empty"');
    expect(component).not.toContain("previewApprovedArtwork");
    expect(css).toContain(".tf-class-v40-art-empty{position:absolute;inset:0;background:");
-   expect(exporter).toContain("The master contains a baked sample Warrior illustration.");
+   expect(css).toContain("z-index:2");
+   expect(exporter).toContain("ctx.restore();");
+   expect(exporter).toContain("ctx.drawImage(master,0,0,width,height);");
  });
  it("aligns all 3 inset values and bounds them to their ORIGINAL gold wells",()=>{
    expect(css).toContain("top:56.0%;width:89.5%;height:6.6%");
@@ -84,5 +88,18 @@ describe("Class v40 dynamic content stays INSIDE approved master",()=>{
    expect(css).toContain("-webkit-line-clamp:3");
    expect(exporter).toContain("wrapTextLines(ctx,value,maxWidth[i]).slice(0,3)");
    expect(exporter).toContain("const first=height*.587");
+ });
+});
+
+describe("v41 painted layers: chosen illustration is below original gilded frame",()=>{
+ const styles=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
+ it("uses one transparent master above a clipped artwork area",()=>{
+   expect(styles).toContain("z-index:2");
+   expect(styles).toContain("z-index:1;left:3.9%;top:17.45%");
+   expect(styles).toContain("border-radius:4.45% / 9.6%");
+   const classExport=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
+   expect(classExport.indexOf("ctx.drawImage(master,0,0,width,height)"))
+     .toBeGreaterThan(classExport.indexOf("ctx.clip()"));
+   expect(classExport).toContain("ctx.quadraticCurveTo");
  });
 });

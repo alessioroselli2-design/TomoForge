@@ -194,7 +194,7 @@ describe("final Class description sentence boundaries",()=>{
     const bp=buildFrontBlueprint({type:"class",description:source});
     expect(bp.description.endsWith(".")).toBe(true);
     expect(source.startsWith(bp.description)).toBe(true);
-    expect(bp.description.length).toBeLessThanOrEqual(260);
+    expect(bp.description.length).toBeLessThanOrEqual(390);
     expect(bp.description).not.toContain("…");
   });
   it("avoids an incomplete excerpt when the source has no stop before the card capacity",()=>{
@@ -226,5 +226,16 @@ describe("Class v40 compact printed values only",()=>{
    expect(item.value.length).toBeLessThanOrEqual(36);
    expect(item.value.endsWith("…")).toBe(true);
    expect(item.fullValue).toBe(full);
+ });
+});
+
+describe("Class description uses available parchment until the next sentence boundary",()=>{
+ it("keeps the second finished sentence when the old 260 character limit would drop it",()=>{
+   const first="La prima frase spiega il combattente e le sue abilità in battaglia. ";
+   const second="La seconda frase racconta come la classe affronta i nemici, impara le tecniche di combattimento e usa tutte le armature, gli scudi e le armi per proteggere i compagni in ogni situazione di pericolo e durante le grandi battaglie. ";
+   const third="La terza frase è molto lunga e non deve interrompersi a metà; ".repeat(12);
+   const bp=buildFrontBlueprint({type:"class",name:"Guerriero",description:first+second+third});
+   expect(bp.description).toBe((first+second).trim());
+   expect(bp.description.endsWith(".")).toBe(true);
  });
 });
