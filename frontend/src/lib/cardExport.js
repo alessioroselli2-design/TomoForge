@@ -117,34 +117,21 @@ async function renderClassApprovedV40(element,card){
  const canvas=document.createElement("canvas");
  canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- // Empty view renders the exact approved texture + gilding as ONE master.
- // When artwork exists, select the genuinely transparent master and cut the
- // photo through the same mask. Never draw a CSS-style radial placeholder.
+ // The Class picture frame is reproduced from the approved Monster master.
+ // The PNG/PDF renderer and the browser select the exact same two bitmaps;
+ // no mask or second decorative overlay is painted by either.
  const art=element.querySelector(".tf-class-v40-art img");
  const artworkReady=!!(art?.complete&&art.naturalWidth>0);
  const master=await loadFrontEmblem({src:artworkReady
-   ?"/card-art/class-approved-clean-master-v41.webp"
-   :"/card-art/class-approved-empty-master-v47.webp"});
- if(!master)throw new Error("Master Classe approvato non disponibile");
+   ?"/card-art/class-monster-picture-alpha-v49.webp"
+   :"/card-art/class-monster-picture-empty-v49.webp"});
+ if(!master)throw new Error("Cornice illustrativa Mostro/Classe non disponibile");
  const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
- // Shared art aperture with CSS: left 3.9%, top 17.45%, width 92.2%, height 31.78%.
- // The photo is painted BELOW the single transparent ornamental frame, never on top.
- const x=width*.039,y=height*.1745,w=width*.922,h=height*.3178;
- // Same exact mask as the CSS preview: no hand-drawn rectangle or
- // approximate corner radius, and therefore no image across the gold frame.
- if(artworkReady) {
-   const windowMask=await loadFrontEmblem({src:"/card-art/class-art-window-mask-v46.png"});
-   if(!windowMask)throw new Error("Maschera finestra Classe non disponibile");
-   const imageLayer=document.createElement("canvas");
-   imageLayer.width=canvas.width;imageLayer.height=canvas.height;
-   const imageCtx=imageLayer.getContext("2d");imageCtx.scale(scale,scale);
+ const x=width*.04883,y=height*.192,w=width*.90234,h=height*.29455;
+ if(artworkReady){
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
-   imageCtx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
-   imageCtx.globalCompositeOperation="destination-in";
-   imageCtx.drawImage(windowMask,0,0,width,height);
-   imageCtx.globalCompositeOperation="source-over";
-   ctx.drawImage(imageLayer,0,0,width,height);
+   ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
  }
  canvas.artworkDrawn=artworkReady;
  ctx.drawImage(master,0,0,width,height);
