@@ -73,9 +73,9 @@ describe("approved class preview",()=>{
        _legacy_full_text_before_20261024:"Un’umana in una sferragliante corazza di piastre"}}}/>));
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
-   expect(mount.querySelector(".tf-class-v40-die")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-class-v40-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
-   expect(mount.querySelector(".tf-class-v40-description")?.textContent).toContain("Un’umana");
+   expect(mount.querySelector(".tf-class-hit-die")?.textContent).toBe("d10");
+   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
+   expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
  });
@@ -274,7 +274,7 @@ describe("approved premium spell dice",()=>{
     expect(mount.querySelector(".tf-v3-spell-formula")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-v3-spell-dice")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-v3-spell-formula")?.style.fontSize).toBe("21px");
-    expect(mount.querySelector(".tf-class-v40-die")).toBeNull();
+    expect(mount.querySelector(".tf-class-hit-die")).toBeNull();
     await act(async()=>root.unmount());mount.remove();
   });
   it("does not create a fake medallion for a non-damaging spell",async()=>{
@@ -286,64 +286,71 @@ describe("approved premium spell dice",()=>{
   });
 });
 
-describe("Class v40 one approved master, no stacked frame layers",()=>{
- it("keeps the exact original Warrior crest in the only master, full data and premium d10",async()=>{
+describe("One Monster master for all cards, with category-specific data",()=>{
+ const mountCard=async card=>{
    const mount=document.createElement("div");document.body.appendChild(mount);
    const root=createRoot(mount);
-   await act(async()=>root.render(<CardFront card={{type:"class",name:"Guerriero",attributes:{
+   await act(async()=>root.render(<CardFront card={card}/>));
+   return {mount,root,close:async()=>{await act(async()=>root.unmount());mount.remove()}};
+ };
+ it("keeps the Monster unchanged and uses the SAME raster for the Warrior",async()=>{
+   const monster=await mountCard({type:"monster",name:"Drago",attributes:{
+     classe_armatura:"18",punti_ferita:"200",grado_sfida:"14"}});
+   const warrior=await mountCard({type:"class",name:"Guerriero",attributes:{
      abilita_primaria:"Forza o Destrezza",tiri_salvezza:"Forza, Costituzione",
      competenze:"Tutte le armature, scudi, armi semplici e da guerra",dado_vita:"d10"
-   },description:"Una frase completa. Una seconda frase completa."}}/>));
-   const front=mount.querySelector('[data-front-version="40"]');
-   expect(front.dataset.frontLayout).toBe("single-approved-master-v40");
-   expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
-   expect(front.querySelector(".tf-class-v40-master")?.getAttribute("src"))
-     .toBe("/card-art/class-master-v50-approved-empty.webp");
-   expect(front.querySelectorAll(".tf-v38-class-master,.tf-v39-class-master,.tf-v3-layout"))
-     .toHaveLength(0);
-   expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
-   expect(front.querySelector(".tf-class-v40-art")).not.toBeNull();
-   expect(front.querySelectorAll(".tf-class-v40-emblem")).toHaveLength(0);
-   expect([...front.querySelectorAll(".tf-class-v40-value strong")].map(x=>x.textContent))
-     .toEqual(["Forza o Destrezza","Forza, Costituzione","Armature, scudi e armi"]);
-   expect(front.querySelector('[data-stat-label="Competenze"]').title)
+   },description:"Una frase completa. Una seconda frase completa."});
+   const m=monster.mount.querySelector("[data-testid='card-front']");
+   const c=warrior.mount.querySelector("[data-testid='card-front']");
+   expect(c.dataset.frontVersion).toBe("7");
+   expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
+   expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
+   expect(c.style.backgroundImage).toBe(m.style.backgroundImage);
+   expect(c.style.backgroundImage).toContain("/card-art/front-master-v17.webp");
+   expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
+   expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
+   expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
+     .toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
+   expect(c.querySelector('[data-stat-label="Competenze"]').title)
      .toBe("Tutte le armature, scudi, armi semplici e da guerra");
-   expect(front.querySelectorAll(".tf-class-v40-art-empty")).toHaveLength(1);
-   expect(front.querySelector(".tf-class-v40-art img")).toBeNull();
-   expect(front.querySelector(".tf-class-v40-die").style.backgroundImage)
-     .toContain("/class-dice/d10-premium-v29.webp");
-   expect(front.querySelector(".tf-class-v40-description").textContent)
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10-premium-v29.webp");
+   expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
-   await act(async()=>root.unmount());mount.remove();
+   expect([...c.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["DVd10"]);
+   expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
+   await warrior.close();await monster.close();
  });
- it("never reuses the baked Warrior picture without a chosen art file",async()=>{
-   const mount=document.createElement("div");document.body.appendChild(mount);
-   const root=createRoot(mount);
-   const card={type:"class",name:"Guerriero",previewApprovedArtwork:true,attributes:{dado_vita:"d10"}};
-   await act(async()=>root.render(<CardFront card={card} editorMode/>));
-   expect(mount.querySelector(".tf-class-v40-art img")).toBeNull();
-   expect(mount.querySelectorAll("[data-testid='front-artwork-empty']")).toHaveLength(1);
-   expect(mount.querySelector(".tf-class-v40-master").getAttribute("src"))
-     .toBe("/card-art/class-master-v50-approved-empty.webp");
-   expect(mount.textContent).toContain("CARICA O GENERA L'ILLUSTRAZIONE");
-   await act(async()=>root.render(<CardFront card={card} imgUrl="data:image/png;base64,ZGF0YQ==" editorMode/>));
-   expect(mount.querySelector(".tf-class-v40-art img")?.getAttribute("src")).toBe("data:image/png;base64,ZGF0YQ==");
-   expect(mount.querySelector(".tf-class-v40-master").getAttribute("src"))
-     .toBe("/card-art/class-master-v50-approved-window.webp");
-   expect(mount.querySelectorAll(".tf-class-v40-art-empty")).toHaveLength(0);
-   await act(async()=>root.unmount());mount.remove();
+ it("leaves the Class artwork window empty until a real image is provided",async()=>{
+   const card={type:"class",name:"Guerriero",attributes:{dado_vita:"d10"}};
+   const {mount,root,close}=await mountCard(card);
+   expect(mount.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
+   expect(mount.querySelector(".tf-v3-picture img")).toBeNull();
+   await act(async()=>root.render(<CardFront card={card} imgUrl="data:image/png;base64,ZGF0YQ=="/>));
+   expect(mount.querySelector(".tf-v3-picture img").getAttribute("src"))
+     .toBe("data:image/png;base64,ZGF0YQ==");
+   expect(mount.querySelector("[data-testid='front-artwork-empty']")).toBeNull();
+   await close();
  });
- it("allows another class to replace the Warrior artwork and emblem dynamically",async()=>{
-   const mount=document.createElement("div");document.body.appendChild(mount);
-   const root=createRoot(mount);
-   await act(async()=>root.render(<CardFront card={{type:"class",name:"Druido",
-     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}}}/>));
-   const front=mount.querySelector('[data-front-version="40"]');
-   expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
-   expect(front.querySelector(".tf-class-v40-art img")?.getAttribute("src"))
+ it("changes the Class emblem, die and information without changing the raster",async()=>{
+   const {mount,close}=await mountCard({type:"class",name:"Druido",
+     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
+   const c=mount.querySelector("[data-testid='card-front']");
+   expect(c.style.backgroundImage).toContain("/card-art/front-master-v17.webp");
+   expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
-   expect(front.querySelector(".tf-class-v40-emblem")).not.toBeNull();
-   expect(front.querySelector(".tf-class-v40-die").style.backgroundImage).toContain("d8");
-   await act(async()=>root.unmount());mount.remove();
+   expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8-premium-v29.webp");
+   await close();
+ });
+ it("uses the same outer drawing in spells and magic items with their own badges",async()=>{
+   const spell=await mountCard({type:"spell",name:"Palla di Fuoco",attributes:{livello:"3"}});
+   const item=await mountCard({type:"item",name:"Anello",attributes:{rarita:"Raro"}});
+   for(const x of [spell,item]){
+     expect(x.mount.querySelector("[data-testid='card-front']").style.backgroundImage)
+       .toContain("/card-art/front-master-v17.webp");
+   }
+   expect(spell.mount.querySelector(".tf-v3-badge").textContent).toBe("LIV.3");
+   expect(item.mount.querySelector(".tf-v3-badge").textContent).toBe("RARITÀRaro");
+   await spell.close();await item.close();
  });
 });
