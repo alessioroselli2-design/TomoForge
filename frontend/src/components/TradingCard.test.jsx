@@ -305,7 +305,8 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.dataset.frontVersion).toBe("7");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.style.backgroundImage).toBe(m.style.backgroundImage);
+   expect(c.style.backgroundImage).toContain("/card-art/class-interior-v17.webp");
+   expect(c.style.backgroundImage).toContain(m.style.backgroundImage.replaceAll('"',"").replace("url(", "").replace(")",""));
    expect(c.style.backgroundImage).toContain("/card-art/front-master-v17.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
@@ -316,6 +317,8 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10-premium-v29.webp");
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
+   expect(c.querySelector(".tf-v3-details")).toBeNull();
+   expect(c.dataset.categoryLayout).toBe("class-v1");
    expect([...c.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["DVd10"]);
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
@@ -324,7 +327,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const card={type:"class",name:"Guerriero",attributes:{dado_vita:"d10"}};
    const {mount,root,close}=await mountCard(card);
    expect(mount.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
-   expect(mount.querySelector(".tf-v3-art-hint")).toBeNull();
+   expect(mount.querySelector(".tf-v3-picture img")).toBeNull();
    expect(mount.querySelector(".tf-v3-picture img")).toBeNull();
    await act(async()=>root.render(<CardFront card={card} imgUrl="data:image/png;base64,ZGF0YQ=="/>));
    expect(mount.querySelector(".tf-v3-picture img").getAttribute("src"))
