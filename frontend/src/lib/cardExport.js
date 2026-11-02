@@ -171,7 +171,7 @@ async function renderClassApprovedV40(element,card){
    Legacy projects lacking a v7 preview still use the original safe renderer. */
 async function renderApprovedMaster(element,card) {
  const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
- if(data.type==="class")return renderClassReferenceV39(element,card,data);
+ if(data.type==="class")return renderClassApprovedV40(element,card);
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
  const master=new Image();
