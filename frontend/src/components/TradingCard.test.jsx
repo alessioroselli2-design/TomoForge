@@ -331,7 +331,7 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
    const mount=document.createElement("div");document.body.appendChild(mount);
    const root=createRoot(mount);
    await act(async()=>root.render(<CardFront card={{type:"class",name:"Druido",
-     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}}/>));
+     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}}}/>));
    const front=mount.querySelector('[data-front-version="40"]');
    expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
    expect(front.querySelector(".tf-class-v40-art img")?.getAttribute("src"))
