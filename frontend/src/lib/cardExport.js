@@ -109,71 +109,11 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
   ctx.drawImage(tile,dest.x-dest.size/2,dest.y-dest.size/2,dest.size,dest.size);
 }
 
-/* The only Class exporter. The image contains the ENTIRE approved ornament,
-   with no footer extension. No legacy v17/v39 painting is performed. */
-async function renderClassApprovedV40(element,card){
- const data=buildFrontBlueprint(card);
- const {width,height,scale}=CARD_CANVAS_SIZE;
- const canvas=document.createElement("canvas");
- canvas.width=width*scale;canvas.height=height*scale;
- const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- // The Class picture frame is reproduced from the approved Monster master.
- // The PNG/PDF renderer and the browser select the exact same two bitmaps;
- // no mask or second decorative overlay is painted by either.
- const art=element.querySelector(".tf-class-v40-art img");
- const artworkReady=!!(art?.complete&&art.naturalWidth>0);
- const master=await loadFrontEmblem({src:artworkReady
-   ?"/card-art/class-master-v50-approved-window.webp"
-   :"/card-art/class-master-v50-approved-empty.webp"});
- if(!master)throw new Error("Cornice illustrativa Mostro/Classe non disponibile");
- const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
- const x=width*.0475,y=height*.17,w=width*.905,h=height*.285;
- if(artworkReady){
-   const iw=art.naturalWidth,ih=art.naturalHeight||iw;
-   const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
-   ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
- }
- canvas.artworkDrawn=artworkReady;
- ctx.drawImage(master,0,0,width,height);
- if(!warrior&&data.emblem){
-   const emblem=await loadFrontEmblem(data.emblem);
-   const e=data.emblem;
-   const ex=width*.083,ey=height*.051,ew=width*.152;
-   ctx.fillStyle="#25131a";ctx.beginPath();ctx.arc(ex+ew/2,ey+ew/2,ew/2,0,Math.PI*2);ctx.fill();
-   if(emblem)ctx.drawImage(emblem,e.col*e.cell,e.row*e.cell,e.cell,e.cell,ex,ey,ew,ew);
- }
- ctx.textAlign="center";ctx.fillStyle="#25130a";
- drawFittedText(ctx,data.name,width*.505,height*.103,width*.43,
-   data.name.length>19?16:22,"'Cormorant Garamond',Georgia,serif","700");
- const wanted=["Abilità primaria","Tiri salvezza","Competenze"];
- const values=wanted.map(label=>data.highlights.find(it=>it.label===label)?.value||"");
- // Match the three text centers inside the icon-bearing wells of the v50 raster.
- const cx=[width*.254,width*.540,width*.830], maxWidth=[width*.18,width*.19,width*.21];
- values.forEach((value,i)=>{
-   ctx.fillStyle="#2b180e";ctx.textAlign="center";
-   ctx.font="700 10px Georgia,serif";
-   const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,3);
-   const first=height*.552-(lines.length-1)*4.8;
-   lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
- });
- ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
- ctx.font="9.4px Spectral,Georgia,serif";
- drawWrappedText(ctx,data.description||"",width*.078,height*.666,width*.62,10.8,12);
- if(data.classDieAsset){
-   const die=await loadFrontEmblem({src:data.classDieAsset});
-   if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
- }
- const qr=element.querySelector?.("[data-card-qr] canvas");
- if(card?.id&&qr)try{ctx.drawImage(qr,width*.86,height*.92,18,18)}catch{}
- return canvas;
-}
-
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
 async function renderApprovedMaster(element,card) {
  const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
- if(data.type==="class")return renderClassApprovedV40(element,card);
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
  const master=new Image();
@@ -242,6 +182,17 @@ async function renderApprovedMaster(element,card) {
      valueCenter=runeLeft+runeSize+gap+renderedTextWidth/2;
      valueMaxWidth=Math.max(12,renderedTextWidth);
    }
+   if(data.type==="class"){
+     // The Monster's three real parchment cells provide the Class labels and
+     // concise values. No additional graphical panels are painted.
+     ctx.textAlign="center";ctx.fillStyle="#51301c";
+     drawFittedText(ctx,it.label,labelCenter,statY+10,max,7.3,"Georgia,serif","700");
+     ctx.fillStyle="#1d140c";ctx.font="700 8px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,max-7).slice(0,3);
+     const first=statY+31-(lines.length-1)*4;
+     lines.forEach((line,n)=>ctx.fillText(line,labelCenter,first+n*8,max-7));
+     return;
+   }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,labelCenter,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
@@ -273,10 +224,16 @@ async function renderApprovedMaster(element,card) {
  });
  const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
  ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
- ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
+ if(data.showDescriptionLabel)ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
  ctx.font="10px Spectral,Georgia,serif";
- drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+27,
-   data.spellDieAsset?201:(card?.id?244:287),12,5);
+ drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,
+   MASTER_REGIONS.description.y+(data.showDescriptionLabel?27:17),
+   data.type==="class"?200:(data.spellDieAsset?201:(card?.id?244:287)),
+   data.type==="class"?10:12,data.type==="class"?8:5);
+ if(data.type==="class"&&data.classDieAsset){
+   const jewel=await loadFrontEmblem({src:data.classDieAsset});
+   if(jewel)ctx.drawImage(jewel,240,369,70,73);
+ }
  if(data.spellDieAsset){
    const jewel=await loadFrontEmblem({src:data.spellDieAsset});
    // The art has its original die label engraved; draw the actual spell formula
@@ -319,11 +276,6 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
 };
 export async function renderCardCanvas(element, card) {
   if (!element) throw new Error("Card render unavailable");
-  if (element.getAttribute?.("data-front-version")==="40") {
-    await waitForImages(element);
-    if(document.fonts?.ready)await document.fonts.ready;
-    return renderClassApprovedV40(element,card);
-  }
   if (element.getAttribute?.("data-front-version")==="7") {
     await waitForImages(element);
     if(document.fonts?.ready)await document.fonts.ready;
