@@ -298,9 +298,11 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
    expect(front.dataset.frontLayout).toBe("single-approved-master-v40");
    expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
    expect(front.querySelector(".tf-class-v40-master")?.getAttribute("src"))
-     .toBe("/card-art/class-approved-single-master-v40.webp");
+     .toBe("/card-art/class-approved-clean-master-v41.webp");
    expect(front.querySelectorAll(".tf-v38-class-master,.tf-v39-class-master,.tf-v3-layout"))
      .toHaveLength(0);
+   expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
+   expect(front.querySelector(".tf-class-v40-art")).not.toBeNull();
    expect(front.querySelectorAll(".tf-class-v40-emblem")).toHaveLength(0);
    expect([...front.querySelectorAll(".tf-class-v40-value strong")].map(x=>x.textContent))
      .toEqual(["Forza o Destrezza","Forza, Costituzione","Armature, scudi e armi"]);
