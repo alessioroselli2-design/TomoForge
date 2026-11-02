@@ -30,12 +30,14 @@
  height:auto;aspect-ratio:1;overflow:hidden;border-radius:50%;background:#25131a}
 .tf-class-v40-emblem-symbol{position:absolute;inset:0;background-repeat:no-repeat;
  background-size:var(--emblem-size,100% 100%);background-position:var(--emblem-position,center)}
-.tf-class-v40-values{position:absolute;left:5.2%;top:52.3%;width:89.5%;height:7.2%;
+/* The icon row is etched into v50. Dynamic copy must sit beside it, never
+   on the lower gold divider. Keep the content inside an invariant safe well. */
+.tf-class-v40-values{position:absolute;left:5.2%;top:49.8%;width:89.5%;height:8.5%;
  display:grid;grid-template-columns:35% 32% 33%;align-items:center;z-index:4;
  gap:0;pointer-events:none;overflow:hidden}
 .tf-class-v40-value{display:flex;align-items:center;justify-content:center;
  padding:0 2%;min-width:0;min-height:0;height:100%;text-align:center;overflow:hidden}
-.tf-class-v40-value strong{display:-webkit-box;max-width:100%;max-height:100%;min-width:0;
+.tf-class-v40-value strong{display:-webkit-box;max-width:100%;max-height:calc(100% - 2px);min-width:0;
  -webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;
  font:700 clamp(6.7px,2.9cqw,10px)/1.13 Georgia,serif;color:#2b180e;
  overflow-wrap:normal;word-break:normal;white-space:normal}
