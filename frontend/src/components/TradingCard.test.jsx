@@ -73,9 +73,9 @@ describe("approved class preview",()=>{
        _legacy_full_text_before_20261024:"Un’umana in una sferragliante corazza di piastre"}}}/>));
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
-   expect(mount.querySelector(".tf-v3-class-dice")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-v3-class-dice")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
-   expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
+   expect(mount.querySelector(".tf-class-v40-die")?.textContent).toBe("d10");
+   expect(mount.querySelector(".tf-class-v40-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
+   expect(mount.querySelector(".tf-class-v40-description")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
  });
@@ -274,7 +274,7 @@ describe("approved premium spell dice",()=>{
     expect(mount.querySelector(".tf-v3-spell-formula")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-v3-spell-dice")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-v3-spell-formula")?.style.fontSize).toBe("21px");
-    expect(mount.querySelector(".tf-v3-class-dice")).toBeNull();
+    expect(mount.querySelector(".tf-class-v40-die")).toBeNull();
     await act(async()=>root.unmount());mount.remove();
   });
   it("does not create a fake medallion for a non-damaging spell",async()=>{
@@ -310,9 +310,9 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
      .toBe("Tutte le armature, scudi, armi semplici e da guerra");
    expect(front.querySelectorAll(".tf-class-v40-art-empty")).toHaveLength(1);
    expect(front.querySelector(".tf-class-v40-art img")).toBeNull();
-   expect(front.querySelector(".tf-v3-class-dice").style.backgroundImage)
+   expect(front.querySelector(".tf-class-v40-die").style.backgroundImage)
      .toContain("/class-dice/d10-premium-v29.webp");
-   expect(front.querySelector(".tf-v3-desc").textContent)
+   expect(front.querySelector(".tf-class-v40-description").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    await act(async()=>root.unmount());mount.remove();
  });
@@ -343,7 +343,7 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
    expect(front.querySelector(".tf-class-v40-art img")?.getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(front.querySelector(".tf-class-v40-emblem")).not.toBeNull();
-   expect(front.querySelector(".tf-v3-class-dice").style.backgroundImage).toContain("d8");
+   expect(front.querySelector(".tf-class-v40-die").style.backgroundImage).toContain("d8");
    await act(async()=>root.unmount());mount.remove();
  });
 });
