@@ -13,7 +13,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  const [artworkError,setArtworkError]=React.useState(false);
  React.useEffect(()=>setArtworkError(false),[imgUrl,card.artwork_path]);
  const hasArtwork=!!(imgUrl||card.artwork_path);
- const img=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):artworkPlaceholder);
+ const referencePreview=editorMode && card?.previewApprovedArtwork && data.type==="class" && data.name==="Guerriero";
+ const img=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):referencePreview?"/card-art/guerriero-approved-art-v39.webp":artworkPlaceholder);
  const handleError=React.useCallback(event=>{
    const src=event.currentTarget.dataset.artworkSrc;
    if(event.currentTarget.dataset.fallback!=="1"||event.currentTarget.dataset.fallbackSrc!==src){
@@ -27,13 +28,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  const detailsLink=publicDescriptionUrl(card);
  return <div ref={ref} data-testid="card-front" data-front-version="7"
    data-front-category={data.type} data-front-layout="reference-master-v17"
-   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
+   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${data.type==="class"?"tf-v39-class":""} ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,backgroundImage:`url(${FRONT_MASTER_URL})`}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-br" aria-hidden="true">✦</span>
-   {data.type==="class"&&<img className="tf-v38-class-master" src="/card-art/class-master-clean-v38.webp" alt="" aria-hidden="true" draggable={false}/>}
+   {data.type==="class"&&<img className="tf-v39-class-master" src="/card-art/class-master-reference-v39.webp" alt="" aria-hidden="true" draggable={false}/>} 
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem"
@@ -51,8 +52,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
      </header>
      <section className="tf-v3-picture">
-       <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
-       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       <img src={img} data-artwork-src={img} data-is-placeholder={(!hasArtwork&&!referencePreview)||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
+       {editorMode&&!hasArtwork&&!referencePreview&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">

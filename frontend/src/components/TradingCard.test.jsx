@@ -295,13 +295,13 @@ describe("final Class row and crisp Guerriero medal",()=>{
      competenze:"Tutte le armature, scudi, armi semplici e da guerra",dado_vita:"d10"
    },description:"Una frase completa. Una seconda frase completa."}}/>));
    const cells=[...mount.querySelectorAll(".tf-v3-class-stat")];
-   expect(mount.querySelector(".tf-v38-class-master")?.getAttribute("src"))
-     .toBe("/card-art/class-master-clean-v38.webp");
+   expect(mount.querySelector(".tf-v39-class-master")?.getAttribute("src"))
+     .toBe("/card-art/class-master-reference-v39.webp");
    expect(cells).toHaveLength(3);
    expect(cells.map(c=>c.querySelector("img").getAttribute("src")))
      .toEqual(["/card-art/class-stats/primary-v33.svg","/card-art/class-stats/saves-v33.svg","/card-art/class-stats/proficiencies-v33.svg"]);
    expect(mount.querySelector(".tf-v3-sprite").style.backgroundImage)
-     .toContain("/card-art/guerriero-reference-original-v36.webp");
+     .toContain("/card-art/guerriero-approved-medal-v39.webp");
    expect(mount.querySelector(".tf-v3-desc").textContent).toBe("Una frase completa. Una seconda frase completa.");
    await act(async()=>root.unmount());mount.remove();
  });

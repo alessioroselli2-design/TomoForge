@@ -533,3 +533,91 @@
  -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 77%,rgba(0,0,0,.94) 88%,transparent 97%)!important;
  mask-image:radial-gradient(circle closest-side,#000 0%,#000 77%,rgba(0,0,0,.94) 88%,transparent 97%)!important;
 }
+
+/* v39 CLASS — one high-resolution reference frame, cropped at the user's blue
+   circle. The legacy v17/v36/v38 plates are NOT composited for this category.
+   Every pixel of the gold rail comes from the user's actual approved artwork.
+   Only text, emblems, art and dice stay dynamic. No extra drawn panels. */
+.tf-front-master-v17.tf-v39-class{
+  background:#18070c!important;overflow:hidden!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v38-class-master,
+.tf-front-master-v17.tf-v39-class .tf-v36-class-master{display:none!important}
+.tf-front-master-v17.tf-v39-class .tf-v39-class-master{
+  position:absolute!important;inset:0!important;display:block!important;
+  height:100%!important;width:100%!important;object-fit:fill!important;
+  pointer-events:none!important;z-index:3!important;border:0!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-layout{z-index:auto!important;}
+.tf-front-master-v17.tf-v39-class .tf-v3-picture{
+  left:3.9%!important;top:19%!important;width:92.2%!important;height:32.3%!important;
+  border:0!important;border-radius:2px!important;box-shadow:none!important;
+  z-index:1!important;overflow:hidden!important;background:#1c0909!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-picture img{
+  width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-medallion{
+  top:3.1%!important;left:6%!important;width:13.5%!important;
+  height:auto!important;aspect-ratio:1!important;
+  z-index:5!important;background:transparent!important;box-shadow:none!important;
+  border:0!important;overflow:hidden!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-medallion .tf-v3-sprite{
+  transform:none!important;filter:none!important;
+  -webkit-mask-image:none!important;mask-image:none!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-titles{
+  top:4.3%!important;left:23%!important;width:54%!important;height:10.3%!important;
+  z-index:5!important;transform:none!important;gap:0!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-titles h3{
+  font:700 clamp(15px,5.5cqw,20px)/1.04 Georgia,serif!important;
+  color:#28150d!important;max-height:2.1em!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-titles p{
+  position:static!important;top:auto!important;
+  font:9px/1.1 Georgia,serif!important;color:#3b2617!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-badge{z-index:5!important;}
+.tf-front-master-v17.tf-v39-class .tf-v3-stats{
+  top:53.4%!important;left:5.4%!important;width:89.2%!important;height:13.3%!important;
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  z-index:5!important;overflow:hidden!important;padding:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-stats .tf-v3-class-stat{
+  padding:4px 3px!important;background:transparent!important;border:0!important;
+  overflow:hidden!important;align-items:center!important;justify-content:space-around!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-class-stat-label{
+  font:700 8px/1.08 Georgia,serif!important;color:#2b180d!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-class-stat-body{gap:3px!important;}
+.tf-front-master-v17.tf-v39-class .tf-v3-class-stat-body img{
+  width:17px!important;height:17px!important;flex:0 0 17px!important;
+  filter:none!important;mix-blend-mode:multiply!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-class-stat-body strong{
+  font:700 7.3px/1.1 Georgia,serif!important;max-width:calc(100% - 21px)!important;
+  text-align:center!important;overflow:hidden!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-parchment{
+  left:5.5%!important;top:69.2%!important;width:89%!important;height:29.3%!important;
+  padding:0!important;background:transparent!important;z-index:5!important;
+  border:0!important;box-shadow:none!important;overflow:hidden!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-parchment::before{content:none!important;display:none!important;}
+.tf-front-master-v17.tf-v39-class .tf-v3-desc{
+  left:2.8%!important;top:4%!important;width:67%!important;max-width:67%!important;
+  height:auto!important;max-height:89%!important;overflow:hidden!important;
+  padding:0!important;margin:0!important;
+  font:9px/1.18 Georgia,serif!important;color:#2a170c!important;
+  text-align:left!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-dice.tf-v3-class-dice{
+  top:21%!important;right:3%!important;left:auto!important;
+  width:71px!important;height:74px!important;background-size:contain!important;
+  z-index:6!important;
+}
+.tf-front-master-v17.tf-v39-class .tf-v3-qr{right:1%!important;bottom:1%!important;}
