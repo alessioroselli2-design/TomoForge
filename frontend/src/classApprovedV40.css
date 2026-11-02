@@ -15,15 +15,24 @@
  text-align:center;text-wrap:balance;overflow:hidden;color:#25130a;
 }
 .tf-class-v40-name.tf-class-v40-long{font-size:clamp(10px,4.8cqw,18px)}
-.tf-class-v40-art{position:absolute;z-index:1;left:3.9%;top:17.45%;
- width:92.2%;height:31.78%;overflow:hidden;
- border-radius:4.45% / 9.6%;pointer-events:none;background:#110811}
-.tf-class-v40-art>img{display:block;width:100%;height:100%;object-fit:cover}
-.tf-class-v40-art-empty{position:absolute;inset:0;background:
+/* The window is *not* a rectangular CSS box. Its exact alpha aperture is
+   derived pixel-for-pixel from the single approved master. Both the chosen
+   artwork and the empty well are cut by that SAME mask, underneath the gold.
+   No separate decorative overlay can be introduced by this selector. */
+.tf-class-v40-art{position:absolute;z-index:1;inset:0;width:100%;height:100%;
+ overflow:hidden;pointer-events:none;background:transparent;border:0;border-radius:0;
+ -webkit-mask-image:url("../public/card-art/class-art-window-mask-v46.png");
+ mask-image:url("../public/card-art/class-art-window-mask-v46.png");
+ -webkit-mask-size:100% 100%;mask-size:100% 100%;
+ -webkit-mask-position:center;mask-position:center;
+ -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.tf-class-v40-art>img,.tf-class-v40-art-empty{position:absolute;display:block;
+ left:3.9%;top:17.45%;width:92.2%;height:31.78%;object-fit:cover}
+.tf-class-v40-art-empty{background:
  radial-gradient(ellipse at 54% 100%,#922920 0%,#420b12 42%,#10090e 95%)}
-.tf-class-v40-art-hint{position:absolute;left:2%;bottom:6%;width:96%;color:#ffdeb3;
- text-shadow:0 1px 4px #000;letter-spacing:.04em;font-size:clamp(7px,2.4cqw,10px);
- text-align:center}
+.tf-class-v40-art-hint{position:absolute;left:5.7%;top:43.5%;width:88.6%;
+ color:#ffdeb3;text-shadow:0 1px 4px #000;letter-spacing:.04em;
+ font-size:clamp(7px,2.4cqw,10px);text-align:center}
 .tf-class-v40-emblem{position:absolute;z-index:4;left:8.3%;top:5.1%;width:15.2%;
  height:auto;aspect-ratio:1;overflow:hidden;border-radius:50%;background:#25131a}
 .tf-class-v40-emblem-symbol{position:absolute;inset:0;background-repeat:no-repeat;
