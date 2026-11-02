@@ -124,27 +124,28 @@ async function renderClassApprovedV40(element,card){
  // Shared art aperture with CSS: left 3.9%, top 17.45%, width 92.2%, height 31.78%.
  // The photo is painted BELOW the single transparent ornamental frame, never on top.
  const x=width*.039,y=height*.1745,w=width*.922,h=height*.3178;
- ctx.save();
- const radius=width*.041;
- ctx.beginPath();
- ctx.moveTo(x+radius,y);
- ctx.lineTo(x+w-radius,y);ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
- ctx.lineTo(x+w,y+h-radius);ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
- ctx.lineTo(x+radius,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
- ctx.lineTo(x,y+radius);ctx.quadraticCurveTo(x,y,x+radius,y);
- ctx.closePath();ctx.clip();
+ // Same exact mask as the CSS preview: no hand-drawn rectangle or
+ // approximate corner radius, and therefore no image across the gold frame.
+ const windowMask=await loadFrontEmblem({src:"/card-art/class-art-window-mask-v46.png"});
+ if(!windowMask)throw new Error("Maschera finestra Classe non disponibile");
+ const imageLayer=document.createElement("canvas");
+ imageLayer.width=canvas.width;imageLayer.height=canvas.height;
+ const imageCtx=imageLayer.getContext("2d");imageCtx.scale(scale,scale);
  if(art?.complete&&art.naturalWidth>0) {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
-   ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
+   imageCtx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
    canvas.artworkDrawn=true;
  } else {
-   const bg=ctx.createRadialGradient(x+w*.54,y+h,1,x+w*.54,y+h,w*.95);
+   const bg=imageCtx.createRadialGradient(x+w*.54,y+h,1,x+w*.54,y+h,w*.95);
    bg.addColorStop(0,"#922920");bg.addColorStop(.42,"#420b12");bg.addColorStop(.95,"#10090e");
-   ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);
+   imageCtx.fillStyle=bg;imageCtx.fillRect(x,y,w,h);
    canvas.artworkDrawn=false;
  }
- ctx.restore();
+ imageCtx.globalCompositeOperation="destination-in";
+ imageCtx.drawImage(windowMask,0,0,width,height);
+ imageCtx.globalCompositeOperation="source-over";
+ ctx.drawImage(imageLayer,0,0,width,height);
  ctx.drawImage(master,0,0,width,height);
  if(!warrior&&data.emblem){
    const emblem=await loadFrontEmblem(data.emblem);
