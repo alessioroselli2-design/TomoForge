@@ -36,9 +36,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    const slotValues=["Abilità primaria","Tiri salvezza","Competenze"].map(label=>
      data.highlights.find(item=>item.label===label)?.value||"");
    return <div ref={ref} data-testid="card-front" data-front-version="40"
-     data-front-layout="single-approved-master-v40" data-front-category="class"
+     data-front-layout="single-approved-master-v50" data-front-category="class"
      className={`tf-class-v40 ${exportMode?"tf-export-card":""}`}>
-     <img className="tf-class-v40-master" src={hasRealArtwork?"/card-art/class-monster-picture-alpha-v49.webp":"/card-art/class-monster-picture-empty-v49.webp"}
+     <img className="tf-class-v40-master" src={hasRealArtwork?"/card-art/class-master-v50-approved-window.webp":"/card-art/class-master-v50-approved-empty.webp"}
        alt="" aria-hidden="true" draggable={false}/>
      <h3 className={`tf-class-v40-name ${data.name.length>19?"tf-class-v40-long":""}`}>{data.name}</h3>
      {!approvedWarrior&&symbol&&<div className="tf-class-v40-emblem" data-testid="front-emblem"
