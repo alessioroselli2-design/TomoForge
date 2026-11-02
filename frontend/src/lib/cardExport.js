@@ -122,18 +122,20 @@ async function renderClassApprovedV40(element,card){
  ctx.drawImage(master,0,0,width,height);
  const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
  const art=element.querySelector(".tf-class-v40-art img");
- const x=width*.055,y=height*.185,w=width*.888,h=height*.297;
+ const x=width*.055,y=height*.1805,w=width*.888,h=height*.3075;
  if(art?.complete&&art.naturalWidth>0) {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
    ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
    canvas.artworkDrawn=true;
- } else if(!warrior){
-   const bg=ctx.createRadialGradient(x+w*.5,y+h*.95,1,x+w*.5,y+h*.9,w*.85);
-   bg.addColorStop(0,"#89291f");bg.addColorStop(.46,"#34070d");bg.addColorStop(1,"#09080d");
+ } else {
+   // The master contains a baked sample Warrior illustration. Cover it
+   // whenever no image has explicitly been chosen; keep the gold rim intact.
+   const bg=ctx.createRadialGradient(x+w*.54,y+h,1,x+w*.54,y+h,w*.95);
+   bg.addColorStop(0,"#922920");bg.addColorStop(.42,"#420b12");bg.addColorStop(.95,"#10090e");
    ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);
    canvas.artworkDrawn=false;
- } else canvas.artworkDrawn=false;
+ }
  if(!warrior&&data.emblem){
    const emblem=await loadFrontEmblem(data.emblem);
    const e=data.emblem;
@@ -150,9 +152,9 @@ async function renderClassApprovedV40(element,card){
  values.forEach((value,i)=>{
    ctx.fillStyle="#2b180e";ctx.textAlign="center";
    ctx.font="700 10px Georgia,serif";
-   const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,4);
-   const first=height*.602-(lines.length-1)*5.5;
-   lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*11,maxWidth[i]));
+   const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,3);
+   const first=height*.587-(lines.length-1)*4.8;
+   lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
  });
  ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
  ctx.font="10.4px Spectral,Georgia,serif";
