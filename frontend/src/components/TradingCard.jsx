@@ -14,8 +14,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  const [artworkError,setArtworkError]=React.useState(false);
  React.useEffect(()=>setArtworkError(false),[imgUrl,card.artwork_path]);
  const hasArtwork=!!(imgUrl||card.artwork_path);
- const referencePreview=editorMode && card?.previewApprovedArtwork && data.type==="class" && data.name==="Guerriero";
- const img=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):referencePreview?"/card-art/guerriero-approved-art-v39.webp":artworkPlaceholder);
+ const img=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):artworkPlaceholder);
  const handleError=React.useCallback(event=>{
    const src=event.currentTarget.dataset.artworkSrc;
    if(event.currentTarget.dataset.fallback!=="1"||event.currentTarget.dataset.fallbackSrc!==src){
@@ -52,14 +51,15 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      <div className="tf-class-v40-art" data-testid="front-artwork">
        {hasRealArtwork?<img src={img} data-artwork-src={img} alt={data.name}
          crossOrigin="anonymous" onError={handleError} draggable={false}/>
-         : !approvedWarrior?<div className="tf-class-v40-art-empty"/>:null}
-       {editorMode&&!hasRealArtwork&&!approvedWarrior&&
+         : <div className="tf-class-v40-art-empty" data-testid="front-artwork-empty"/>}
+       {editorMode&&!hasRealArtwork&&
          <span className="tf-class-v40-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
      </div>
      <div className="tf-class-v40-values" data-testid="front-highlights">
        {slotValues.map((value,i)=><div className="tf-class-v40-value tf-v3-class-stat"
          data-stat-label={["Abilità primaria","Tiri salvezza","Competenze"][i]}
-         title={value} key={i}><strong>{value}</strong></div>)}
+         title={data.highlights.find(item=>item.label===["Abilità primaria","Tiri salvezza","Competenze"][i])?.fullValue||value}
+         key={i}><strong>{value}</strong></div>)}
      </div>
      <p className="tf-class-v40-description tf-v3-desc">{data.description||""}</p>
      {data.classDieAsset&&<div className="tf-class-v40-die tf-v3-class-dice"
@@ -100,8 +100,8 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
      </header>
      <section className="tf-v3-picture">
-       <img src={img} data-artwork-src={img} data-is-placeholder={(!hasArtwork&&!referencePreview)||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
-       {editorMode&&!hasArtwork&&!referencePreview&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
+       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
