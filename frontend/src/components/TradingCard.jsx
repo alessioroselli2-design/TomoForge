@@ -76,13 +76,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  }
  return <div ref={ref} data-testid="card-front" data-front-version="7"
    data-front-category={data.type} data-front-layout="reference-master-v17"
-   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${data.type==="class"?"tf-v39-class":""} ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
+   className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,backgroundImage:`url(${FRONT_MASTER_URL})`}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-br" aria-hidden="true">✦</span>
-   {data.type==="class"&&<img className="tf-v39-class-master" src="/card-art/class-master-reference-v39.webp" alt="" aria-hidden="true" draggable={false}/>} 
+   
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem"
