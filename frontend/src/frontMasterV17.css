@@ -276,3 +276,11 @@
   background-repeat:no-repeat!important;box-shadow:none!important;
   font-size:0!important;overflow:hidden!important;
 }
+
+/* Class icons use a smaller, centered inlay inside the UNCHANGED Monster
+   medallion. The gold circle comes solely from front-master-v17.webp.
+   Other categories, especially the approved Monster, stay untouched. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite {
+  transform:scale(.84)!important;
+  transform-origin:50% 50%!important;
+}

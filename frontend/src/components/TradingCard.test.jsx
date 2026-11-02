@@ -324,6 +324,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const card={type:"class",name:"Guerriero",attributes:{dado_vita:"d10"}};
    const {mount,root,close}=await mountCard(card);
    expect(mount.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
+   expect(mount.querySelector(".tf-v3-art-hint")).toBeNull();
    expect(mount.querySelector(".tf-v3-picture img")).toBeNull();
    await act(async()=>root.render(<CardFront card={card} imgUrl="data:image/png;base64,ZGF0YQ=="/>));
    expect(mount.querySelector(".tf-v3-picture img").getAttribute("src"))

@@ -140,8 +140,8 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.0:1.2)},
-     {x:m.x,y:m.y,size:m.r*2},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?1:1.2)},
+     {x:m.x,y:m.y,size:m.r*2*(data.type==="class"?.84:1)},
      dragon?.37:.35,dragon?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";

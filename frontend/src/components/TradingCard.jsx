@@ -53,10 +53,10 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
      </header>
      <section className="tf-v3-picture">
-       {data.type==="class"&&!hasArtwork
+       {data.type==="class"&&(!hasArtwork||artworkError)
          ? <span data-testid="front-artwork-empty" aria-hidden="true"/>
          : <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>}
-       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       {editorMode&&!hasArtwork&&data.type!=="class"&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">

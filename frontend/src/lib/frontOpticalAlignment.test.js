@@ -11,8 +11,14 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:(s.sprite==="guerriero-hd"?1.0:1.2)');
+    expect(exporter).toContain('zoom:dragon?1.28:(data.type==="class"?1:1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
+    // On the shared raster only the class icon shrinks, never the gold rim.
+    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
+    expect(finalMaster).toContain("transform:scale(.84)!important");
+    expect(exporter).toContain('size:m.r*2*(data.type==="class"?.84:1)');
+    expect(component).toContain('data.type==="class"&&(!hasArtwork||artworkError)');
+    expect(component).toContain('editorMode&&!hasArtwork&&data.type!=="class"');
   });
   it("preserves the existing three parchment columns",()=>{
     expect(finalMaster).toContain("grid-template-columns:32% 35% 33%");
