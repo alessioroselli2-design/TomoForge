@@ -286,23 +286,42 @@ describe("approved premium spell dice",()=>{
   });
 });
 
-describe("final Class row and crisp Guerriero medal",()=>{
- it("keeps three independently labelled stat cells with crisp image icons",async()=>{
+describe("Class v40 one approved master, no stacked frame layers",()=>{
+ it("keeps the exact original Warrior crest in the only master, full data and premium d10",async()=>{
    const mount=document.createElement("div");document.body.appendChild(mount);
    const root=createRoot(mount);
    await act(async()=>root.render(<CardFront card={{type:"class",name:"Guerriero",attributes:{
      abilita_primaria:"Forza o Destrezza",tiri_salvezza:"Forza, Costituzione",
      competenze:"Tutte le armature, scudi, armi semplici e da guerra",dado_vita:"d10"
    },description:"Una frase completa. Una seconda frase completa."}}/>));
-   const cells=[...mount.querySelectorAll(".tf-v3-class-stat")];
-   expect(mount.querySelector(".tf-v39-class-master")?.getAttribute("src"))
-     .toBe("/card-art/class-master-reference-v39.webp");
-   expect(cells).toHaveLength(3);
-   expect(cells.map(c=>c.querySelector("img").getAttribute("src")))
-     .toEqual(["/card-art/class-stats/primary-v33.svg","/card-art/class-stats/saves-v33.svg","/card-art/class-stats/proficiencies-v33.svg"]);
-   expect(mount.querySelector(".tf-v3-sprite").style.backgroundImage)
-     .toContain("/card-art/guerriero-approved-medal-v39.webp");
-   expect(mount.querySelector(".tf-v3-desc").textContent).toBe("Una frase completa. Una seconda frase completa.");
+   const front=mount.querySelector('[data-front-version="40"]');
+   expect(front.dataset.frontLayout).toBe("single-approved-master-v40");
+   expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
+   expect(front.querySelector(".tf-class-v40-master")?.getAttribute("src"))
+     .toBe("/card-art/class-approved-single-master-v40.webp");
+   expect(front.querySelectorAll(".tf-v38-class-master,.tf-v39-class-master,.tf-v3-layout"))
+     .toHaveLength(0);
+   expect(front.querySelectorAll(".tf-class-v40-emblem")).toHaveLength(0);
+   expect([...front.querySelectorAll(".tf-class-v40-value strong")].map(x=>x.textContent))
+     .toEqual(["Forza o Destrezza","Forza, Costituzione",
+       "Tutte le armature, scudi, armi semplici e da guerra"]);
+   expect(front.querySelector(".tf-v3-class-dice").style.backgroundImage)
+     .toContain("/class-dice/d10-premium-v29.webp");
+   expect(front.querySelector(".tf-v3-desc").textContent)
+     .toBe("Una frase completa. Una seconda frase completa.");
+   await act(async()=>root.unmount());mount.remove();
+ });
+ it("allows another class to replace the Warrior artwork and emblem dynamically",async()=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   await act(async()=>root.render(<CardFront card={{type:"class",name:"Druido",
+     artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}}/>));
+   const front=mount.querySelector('[data-front-version="40"]');
+   expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
+   expect(front.querySelector(".tf-class-v40-art img")?.getAttribute("src"))
+     .toBe("https://cdn.example.com/druid.jpg");
+   expect(front.querySelector(".tf-class-v40-emblem")).not.toBeNull();
+   expect(front.querySelector(".tf-v3-class-dice").style.backgroundImage).toContain("d8");
    await act(async()=>root.unmount());mount.remove();
  });
 });
