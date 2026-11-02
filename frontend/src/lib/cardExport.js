@@ -152,12 +152,12 @@ async function renderClassApprovedV40(element,card){
    ctx.fillStyle="#2b180e";ctx.textAlign="center";
    ctx.font="700 10px Georgia,serif";
    const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,3);
-   const first=height*.587-(lines.length-1)*4.8;
+   const first=height*.558-(lines.length-1)*4.8;
    lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
  });
  ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
  ctx.font="9.4px Spectral,Georgia,serif";
- drawWrappedText(ctx,data.description||"",width*.078,height*.666,width*.62,10.8,18);
+ drawWrappedText(ctx,data.description||"",width*.078,height*.666,width*.62,10.8,12);
  if(data.classDieAsset){
    const die=await loadFrontEmblem({src:data.classDieAsset});
    if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
@@ -225,7 +225,7 @@ async function renderApprovedMaster(element,card) {
    } catch {return null;}
  }));
  const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
- if(data.type!=="class")data.highlights.slice(0,3).forEach((it,i)=>{
+ data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    const labelCenter=cx;
    const max=cellW-12;
@@ -240,14 +240,6 @@ async function renderApprovedMaster(element,card) {
      ctx.drawImage(icon,runeLeft,statY+19,runeSize,runeSize);
      valueCenter=runeLeft+runeSize+gap+renderedTextWidth/2;
      valueMaxWidth=Math.max(12,renderedTextWidth);
-   }
-   if(data.type==="class"){
-     ctx.textAlign="center";ctx.fillStyle="#49301d";
-     ctx.font="700 7px Georgia,serif";
-     ctx.fillText(it.label,cx,statY+11,cellW-8);
-     ctx.font="700 8.2px Georgia,serif";ctx.fillStyle="#271709";
-     drawWrappedText(ctx,it.value,cx,statY+25,cellW-9,9,3);
-     return;
    }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,labelCenter,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
@@ -269,60 +261,6 @@ async function renderApprovedMaster(element,card) {
    ctx.fillStyle="#23150f";
    drawFittedText(ctx,it.value,cx,MASTER_REGIONS.abilities.y+32,MASTER_REGIONS.abilities.w/6-5,10,"Georgia,serif","700");
  });
- if(data.type==="class"){
-   // Draw the exact reference-based blank Class engraving before the dynamic
-   // values; its ruby filigree and gilded corners ARE the frame, not overlays.
-   const classPlate=await loadFrontEmblem({src:"/card-art/class-master-clean-v38.webp"});
-   // Full alpha master: opaque across obsolete stats/abilities/extra footer.
-   if(classPlate)ctx.drawImage(classPlate,0,0,340,476);
-   // The enlarged three-well row spans the obsolete six-ability cells.
-   // Use actual source values and separate 128px line-art SVGs, never emojis.
-   // Class ink flows within the existing carved wells, no extra double frame.
-   // No separate rectangle over the engraved columns.
-   const classXs=[19,120,221], classW=101;
-   for(let i=1;i<3;i++){
-     ctx.strokeStyle="#af7a40";ctx.lineWidth=1;
-     // The signed-off master contains the engraved gold divider already.
-   }
-   const statArt=["primary","saves","proficiencies"];
-   for(let i=0;i<3;i++){
-     const it=data.highlights[i];if(!it)continue;
-     const x=classXs[i],cx=x+classW/2;
-     ctx.textAlign="center";ctx.fillStyle="#392013";
-     drawFittedText(ctx,it.label,cx,211,94,8.6,"Georgia,serif","700");
-     const art=await loadFrontEmblem({src:`/card-art/class-stats/${statArt[i]}-v33.svg`});
-     if(art)ctx.drawImage(art,x+6,222,18,18);
-     ctx.textAlign="center";ctx.fillStyle="#29180e";
-     ctx.font="700 7.3px Georgia,serif";
-     const lines=wrapTextLines(ctx,it.value,72).slice(0,5);
-     const textY=lines.length<=2?231:lines.length===3?226:222;
-     lines.forEach((line,j)=>ctx.fillText(line,x+63,textY+j*8,72));
-   }
-   // The paper covers only the empty INNER engraving. Original bottom border,
-   // gilded corners and lower ornament remain visible all the way to y=476.
-   // Keep the ornate lower rim exposed, without a pasted-on rectangle border.
-   // Reference master supplies the entire parchment without pasted-on edges.
-   ctx.textAlign="left";ctx.fillStyle="#382314";
-   ctx.font="9px Spectral,Georgia,serif";
-   drawWrappedText(ctx,data.description||"I dati della classe appariranno qui.",
-     34,293,200,10.2,12);
-   if(/^d(?:4|6|8|10|12|20)$/.test(data.dice||"")){
-     const jewel=data.classDieAsset?await loadFrontEmblem({src:data.classDieAsset}):null;
-     if(jewel){
-       // Unaltered approved premium master and its baked-in lower-case label.
-       ctx.drawImage(jewel,242,317,70,73);
-     }else{
-       ctx.textAlign="center";ctx.fillStyle="#fff7df";
-       ctx.font="700 23px Georgia,serif";ctx.fillText(data.dice,277,358,65);
-     }
-   }
-   const classQr=element.querySelector('[data-card-qr] canvas');
-   if(card?.id&&classQr)try{
-     ctx.fillStyle="#fff";ctx.fillRect(286,390,28,28);
-     ctx.drawImage(classQr,288,392,24,24);
-   }catch{}
-   canvas.artworkDrawn=artworkDrawn;return canvas;
- }
  const details=data.details.slice(0,2);
  details.forEach((d,i)=>{
    const x=MASTER_REGIONS.detail.x+8+i*152;
