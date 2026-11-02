@@ -123,11 +123,11 @@ async function renderClassApprovedV40(element,card){
  const art=element.querySelector(".tf-class-v40-art img");
  const artworkReady=!!(art?.complete&&art.naturalWidth>0);
  const master=await loadFrontEmblem({src:artworkReady
-   ?"/card-art/class-monster-picture-alpha-v49.webp"
-   :"/card-art/class-monster-picture-empty-v49.webp"});
+   ?"/card-art/class-master-v50-approved-window.webp"
+   :"/card-art/class-master-v50-approved-empty.webp"});
  if(!master)throw new Error("Cornice illustrativa Mostro/Classe non disponibile");
  const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
- const x=width*.04883,y=height*.192,w=width*.90234,h=height*.29455;
+ const x=width*.0475,y=height*.17,w=width*.905,h=height*.285;
  if(artworkReady){
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
@@ -157,7 +157,7 @@ async function renderClassApprovedV40(element,card){
  });
  ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
  ctx.font="9.4px Spectral,Georgia,serif";
- drawWrappedText(ctx,data.description||"",width*.078,height*.725,width*.62,10.8,12);
+ drawWrappedText(ctx,data.description||"",width*.078,height*.666,width*.62,10.8,18);
  if(data.classDieAsset){
    const die=await loadFrontEmblem({src:data.classDieAsset});
    if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
