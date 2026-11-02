@@ -234,6 +234,11 @@ async function renderApprovedMaster(element,card) {
    const jewel=await loadFrontEmblem({src:data.classDieAsset});
    if(jewel)ctx.drawImage(jewel,240,369,70,73);
  }
+ if(data.type==="monster"&&data.dice){
+   ctx.fillStyle="#3c2013";ctx.textAlign="left";
+   drawFittedText(ctx,data.dice,MASTER_REGIONS.description.x+16,
+     MASTER_REGIONS.description.y+103,66,10,"Georgia,serif","700");
+ }
  if(data.spellDieAsset){
    const jewel=await loadFrontEmblem({src:data.spellDieAsset});
    // The art has its original die label engraved; draw the actual spell formula
