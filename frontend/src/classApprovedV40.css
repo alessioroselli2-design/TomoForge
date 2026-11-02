@@ -1,5 +1,6 @@
-/* TomoForge Class v40 — standalone. ONE approved ornamental master; no v17,
-   v36, v38 or v39 frame/repair layers. Coordinates are shared with cardExport. */
+/* TomoForge Class v50 — exact approved Monster-height picture window. One
+   frame under ALL classes; Class-only data wells are not separately painted.
+   Export uses the same pixel coordinates. */
 .tf-class-v40{
  position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;
  box-sizing:border-box;container-type:inline-size;background:#060305;
@@ -19,8 +20,8 @@
    The master already contains all gold edges and corner curls; the only
    transparent pixels are INSIDE that one frame. Nothing draws a second rim.
    Coordinates also drive the PNG/PDF exporter below. */
-.tf-class-v40-art{position:absolute;z-index:1;left:4.883%;top:19.2%;
- width:90.234%;height:29.455%;overflow:hidden;pointer-events:none;
+.tf-class-v40-art{position:absolute;z-index:1;left:5.078%;top:17.673%;
+ width:90.039%;height:26.909%;overflow:hidden;pointer-events:none;
  background:transparent;border:0;border-radius:0}
 .tf-class-v40-art>img{display:block;width:100%;height:100%;object-fit:cover}
 .tf-class-v40-art-empty{display:none!important;background:none!important}
@@ -31,7 +32,7 @@
  height:auto;aspect-ratio:1;overflow:hidden;border-radius:50%;background:#25131a}
 .tf-class-v40-emblem-symbol{position:absolute;inset:0;background-repeat:no-repeat;
  background-size:var(--emblem-size,100% 100%);background-position:var(--emblem-position,center)}
-.tf-class-v40-values{position:absolute;left:5.2%;top:56.0%;width:89.5%;height:6.6%;
+.tf-class-v40-values{position:absolute;left:5.2%;top:52.5%;width:89.5%;height:8.0%;
  display:grid;grid-template-columns:35% 32% 33%;align-items:center;z-index:4;
  gap:0;pointer-events:none;overflow:hidden}
 .tf-class-v40-value{display:flex;align-items:center;justify-content:center;
@@ -43,8 +44,8 @@
 .tf-class-v40-value:nth-child(1){padding-left:29%}
 .tf-class-v40-value:nth-child(2){padding-left:22%}
 .tf-class-v40-value:nth-child(3){padding-left:21%;padding-right:1%}
-.tf-class-v40-description{position:absolute;z-index:4;left:7.8%;top:70.2%;
- width:62%;height:24.2%;overflow:hidden;margin:0;padding:0;
+.tf-class-v40-description{position:absolute;z-index:4;left:7.8%;top:64.4%;
+ width:62%;height:30%;overflow:hidden;margin:0;padding:0;
  font:clamp(7.6px,2.7cqw,9.6px)/1.15 'Spectral',Georgia,serif;color:#2d1a0e;
  text-align:left;white-space:normal;overflow-wrap:normal}
 .tf-class-v40-die{position:absolute;left:71.9%;top:70.4%;width:25%;height:auto;
