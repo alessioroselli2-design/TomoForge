@@ -1,7 +1,6 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { FRONT_MASTER_URL } from "@/lib/frontMaster";
 import { categoryFrontLayout, frontBackground } from "@/lib/frontCategoryLayouts";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
