@@ -305,8 +305,8 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.dataset.frontVersion).toBe("7");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.style.backgroundImage).toContain("/card-art/class-interior-v17.webp");
-   expect(c.style.backgroundImage).toContain(m.style.backgroundImage.replaceAll('"',"").replace("url(", "").replace(")",""));
+   expect(c.dataset.categoryLayout).toBe("class-v1");
+   expect(c.style.backgroundImage).toBe(m.style.backgroundImage);
    expect(c.style.backgroundImage).toContain("/card-art/front-master-v17.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
