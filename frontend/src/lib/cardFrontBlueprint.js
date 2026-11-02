@@ -208,7 +208,7 @@ export const buildFrontBlueprint = (card = {}) => {
     spellDie, spellDieAsset: type === "spell" && spellDie
       ? `/card-art/spell-dice/${spellDie}-${["d12","d20"].includes(spellDie)?"clean-v32":"blank-v31"}.webp` : "",
     description: type === "class"
-      ? classExcerpt(classLegacyText || card.description,260)
+      ? classExcerpt(classLegacyText || card.description,390)
       : shortText(card.description,235),
     classLegacyText,
     showDescriptionLabel: type !== "class",
