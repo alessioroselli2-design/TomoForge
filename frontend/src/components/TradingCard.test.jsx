@@ -306,6 +306,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
    expect(c.dataset.categoryLayout).toBe("class-v1");
+   expect(c.style.getPropertyValue("--tf-class-background")).toContain("/card-art/class-interior-v17.webp");
    expect(c.style.backgroundImage).toBe(m.style.backgroundImage);
    expect(c.style.backgroundImage).toContain("/card-art/front-master-v17.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
