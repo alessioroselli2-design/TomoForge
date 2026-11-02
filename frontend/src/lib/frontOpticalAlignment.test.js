@@ -96,8 +96,8 @@ describe("v46 exact shared artwork aperture, without any extra border overlay",(
  it("uses the original master alpha as a single CSS mask covering the entire card",()=>{
    expect(styles).toContain("z-index:2");
    expect(styles).toContain("z-index:1;inset:0;width:100%;height:100%");
-   expect(styles).toContain('-webkit-mask-image:url("/card-art/class-art-window-mask-v46.png")');
-   expect(styles).toContain('mask-image:url("/card-art/class-art-window-mask-v46.png")');
+   expect(styles).toContain('-webkit-mask-image:url("../public/card-art/class-art-window-mask-v46.png")');
+   expect(styles).toContain('mask-image:url("../public/card-art/class-art-window-mask-v46.png")');
    expect(styles).not.toContain("border-radius:4.45% / 9.6%");
    const mask=readFileSync(resolve(__dirname,"../../public/card-art/class-art-window-mask-v46.png"));
    expect(mask.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
