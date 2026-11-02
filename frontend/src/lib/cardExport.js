@@ -147,12 +147,13 @@ async function renderClassApprovedV40(element,card){
    data.name.length>19?16:22,"'Cormorant Garamond',Georgia,serif","700");
  const wanted=["Abilità primaria","Tiri salvezza","Competenze"];
  const values=wanted.map(label=>data.highlights.find(it=>it.label===label)?.value||"");
- const cx=[width*.215,width*.534,width*.838], maxWidth=[width*.18,width*.19,width*.21];
+ // Match the three text centers inside the icon-bearing wells of the v50 raster.
+ const cx=[width*.254,width*.540,width*.830], maxWidth=[width*.18,width*.19,width*.21];
  values.forEach((value,i)=>{
    ctx.fillStyle="#2b180e";ctx.textAlign="center";
    ctx.font="700 10px Georgia,serif";
    const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,3);
-   const first=height*.558-(lines.length-1)*4.8;
+   const first=height*.552-(lines.length-1)*4.8;
    lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
  });
  ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
