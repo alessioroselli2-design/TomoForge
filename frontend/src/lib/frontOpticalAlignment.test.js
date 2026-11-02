@@ -69,3 +69,20 @@ describe("v40 Class has ONE authoritatively approved master",()=>{
    expect(exporter).not.toContain('renderClassReferenceV39');
  });
 });
+
+describe("Class v40 dynamic content stays INSIDE approved master",()=>{
+ const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
+ it("keeps the original one-piece artwork and hides its baked sample until selected",()=>{
+   expect(component).toContain('data-testid="front-artwork-empty"');
+   expect(component).not.toContain("previewApprovedArtwork");
+   expect(css).toContain(".tf-class-v40-art-empty{position:absolute;inset:0;background:");
+   expect(exporter).toContain("The master contains a baked sample Warrior illustration.");
+ });
+ it("aligns all 3 inset values and bounds them to their ORIGINAL gold wells",()=>{
+   expect(css).toContain("top:56.0%;width:89.5%;height:6.6%");
+   expect(css).toContain("pointer-events:none;overflow:hidden");
+   expect(css).toContain("-webkit-line-clamp:3");
+   expect(exporter).toContain("wrapTextLines(ctx,value,maxWidth[i]).slice(0,3)");
+   expect(exporter).toContain("const first=height*.587");
+ });
+});
