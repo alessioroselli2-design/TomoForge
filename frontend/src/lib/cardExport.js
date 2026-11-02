@@ -123,11 +123,11 @@ async function renderClassApprovedV40(element,card){
  const art=element.querySelector(".tf-class-v40-art img");
  const artworkReady=!!(art?.complete&&art.naturalWidth>0);
  const master=await loadFrontEmblem({src:artworkReady
-   ?"/card-art/class-monster-picture-alpha-v49.webp"
-   :"/card-art/class-monster-picture-empty-v49.webp"});
+   ?"/card-art/class-master-v50-approved-window.webp"
+   :"/card-art/class-master-v50-approved-empty.webp"});
  if(!master)throw new Error("Cornice illustrativa Mostro/Classe non disponibile");
  const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
- const x=width*.04883,y=height*.192,w=width*.90234,h=height*.29455;
+ const x=width*.05078,y=height*.17673,w=width*.90039,h=height*.26909;
  if(artworkReady){
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
@@ -152,12 +152,12 @@ async function renderClassApprovedV40(element,card){
    ctx.fillStyle="#2b180e";ctx.textAlign="center";
    ctx.font="700 10px Georgia,serif";
    const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,3);
-   const first=height*.587-(lines.length-1)*4.8;
+   const first=height*.568-(lines.length-1)*4.8;
    lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
  });
  ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
  ctx.font="9.4px Spectral,Georgia,serif";
- drawWrappedText(ctx,data.description||"",width*.078,height*.725,width*.62,10.8,12);
+ drawWrappedText(ctx,data.description||"",width*.078,height*.664,width*.62,10.8,17);
  if(data.classDieAsset){
    const die=await loadFrontEmblem({src:data.classDieAsset});
    if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
