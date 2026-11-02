@@ -224,7 +224,7 @@ describe("card export renderers", () => {
     };
     const front = await renderCardCanvas(makeExportElement(), card);
     const text = written(front);
-    ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
+    ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "Lancio", "Gittata"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
     expect(front.operations.some(op => op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
   });
@@ -323,7 +323,7 @@ describe("card export renderers", () => {
 
   it("keeps the artwork dimensions in preview-aligned cover-cropping", async () => {
     const artwork = { complete: true, naturalWidth: 270, naturalHeight: 200 };
-    const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
+    const element = {querySelectorAll: () => [artwork], querySelector: sel => (sel === "img" || sel === ".tf-v3-picture img") ? artwork : null};
     const front = await renderCardCanvas(element, { type: "spell", name: "Tempesta", attributes: { livello: "3" } });
     const op = front.operations.find(e => e.name === "drawImage" && e.args[0] === artwork);
     expect(op.args).toHaveLength(9);
@@ -333,7 +333,7 @@ describe("card export renderers", () => {
 
   it("keeps the card and export functional when an artwork fails to load", async () => {
     const artwork = { complete: true, naturalWidth: 0 };
-    const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
+    const element = {querySelectorAll: () => [artwork], querySelector: sel => (sel === "img" || sel === ".tf-v3-picture img") ? artwork : null};
     const front = await renderCardCanvas(element, { type: "item", name: "Spada", description: "Oggetto arcano." });
     expect(front.artworkDrawn).toBe(false);
     expect(front.operations.some(op => op.name === "drawImage" && op.args[0]?.src === "/card-art/front-master-v17.webp")).toBe(true);
