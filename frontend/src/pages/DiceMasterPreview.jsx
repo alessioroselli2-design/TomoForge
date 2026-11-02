@@ -23,7 +23,7 @@ export default function DiceMasterPreview() {
     description:"Prova grafica della formula reale, con lo stesso dado illustrato delle Classi.",
     attributes:{livello:"3",scuola:"Invocazione",tempo_lancio:"1 azione",gittata:"45 m",danno:spellFormula+" fuoco"}
   } : {
-    type:"class",name,description,
+    type:"class",name,description,previewApprovedArtwork:die==="d10",
     attributes:{
       dado_vita:die,
       abilita_primaria:die==="d6"?"Intelligenza":"Forza o Destrezza",
