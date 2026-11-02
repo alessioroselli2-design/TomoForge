@@ -49,65 +49,23 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
   });
 });
 
-describe("dedicated class front only",()=>{
- it("uses a single long parchment and d10 gem without modifying monster master",()=>{
-   expect(finalMaster).toContain('[data-front-category="class"] .tf-v3-parchment');
-   expect(component).toContain("data.classDieAsset?");
-   expect(component).toContain("data.showDescriptionLabel&&");
-   expect(exporter).toContain('if(data.type==="class"){');
-   expect(exporter).toContain("src:data.classDieAsset");
- });
-});
-
-describe("v33 class frame optical safety",()=>{
- it("does not extend the class parchment over the lower carved frame",()=>{
-   expect(finalMaster).toContain('top:59.24370%!important;height:34.45378%!important');
-   expect(finalMaster).toContain('inset:3.5% 3.2% 6.5% 3.2%!important');
-   expect(finalMaster).toContain('height:17.45%!important');
-   expect(finalMaster).toContain('top:29%!important;right:3.4%!important');
- });
-});
-
-describe("v36 Class frame uses actual approved engraved plate",()=>{
-  it("renders a dedicated reference-backed image beneath real data",()=>{
-    expect(component).toContain('className="tf-v39-class-master"');
-    expect(component).toContain('class-master-reference-v39.webp');
-    expect(finalMaster).toContain('content:none!important;display:none!important');
-    expect(exporter).toContain('ctx.drawImage(master,0,0,width,height)');
-  });
-  it("avoids drawing solid rectangles that cover carved parchment and bottom rail",()=>{
-    expect(exporter).not.toContain('ctx.fillRect(23,199,294,75)');
-    expect(exporter).not.toContain('ctx.fillRect(30,290,280,135)');
-  });
-});
-
-
-describe("Class v38 anti-overlap contract",()=>{
-  it("uses a full-canvas lower master and leaves no obsolete v36 image node",()=>{
-    const plate=readFileSync(resolve(__dirname,"../../public/card-art/class-master-reference-v39.webp"));
-    expect(plate.subarray(0,4).toString()).toBe("RIFF");
-    expect(plate.subarray(8,12).toString()).toBe("WEBP");
-    expect(plate.length).toBeGreaterThan(50000);
-    expect(component).toContain('className="tf-v39-class-master"');
-    expect(component).not.toContain('className="tf-v36-class-master"');
-    expect(exporter).toContain('ctx.drawImage(master,0,0,width,height)');
-    expect(finalMaster).toContain('top:53.4%!important;left:5.4%!important');
-    expect(finalMaster).toContain('left:5.5%!important;top:69.2%!important');
-    expect(finalMaster).toContain('content:none!important;display:none!important');
-  });
-});
-
-describe("v39 user-approved Class card, without the circled lower footer",()=>{
- it("loads exactly one reference-derived master and preserves an independent artwork well",()=>{
-   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-master-reference-v39.webp"));
-   expect(asset.subarray(0,4).toString()).toBe("RIFF");
-   expect(asset.length).toBeGreaterThan(50000);
-   expect(component).toContain('className="tf-v39-class-master"');
+describe("v40 Class has ONE authoritatively approved master",()=>{
+ it("uses independent layout that cannot inherit any v17/33/36/38/39 frame",()=>{
+   expect(component).toContain('data-front-layout="single-approved-master-v40"');
+   expect(component).toContain('className="tf-class-v40-master"');
+   expect(component).toContain('class-approved-single-master-v40.webp');
+   expect(component).toContain('if(data.type==="class")');
+   expect(component).not.toContain('className="tf-v39-class-master"');
    expect(component).not.toContain('className="tf-v38-class-master"');
-   expect(component).toContain('previewApprovedArtwork');
-   expect(exporter).toContain('if(data.type==="class")return renderClassReferenceV39(element,card,data)');
-   expect(exporter).toContain('/card-art/class-master-reference-v39.webp');
-   expect(finalMaster).toContain('top:53.4%!important;left:5.4%!important');
-   expect(finalMaster).toContain('left:5.5%!important;top:69.2%!important');
+   expect(component).not.toContain('className="tf-v36-class-master"');
+ });
+ it("uses one exact ornamental image without the circled lower extension",()=>{
+   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-approved-single-master-v40.webp"));
+   expect(asset.subarray(0,4).toString()).toBe("RIFF");
+   expect(asset.subarray(8,12).toString()).toBe("WEBP");
+   expect(asset.length).toBeGreaterThan(50000);
+   expect(exporter).toContain('renderClassApprovedV40(element,card)');
+   expect(exporter).toContain('/card-art/class-approved-single-master-v40.webp');
+   expect(exporter).not.toContain('renderClassReferenceV39');
  });
 });

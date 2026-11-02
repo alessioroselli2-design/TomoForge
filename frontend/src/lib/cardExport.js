@@ -109,69 +109,60 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
   ctx.drawImage(tile,dest.x-dest.size/2,dest.y-dest.size/2,dest.size,dest.size);
 }
 
-/* v39: CLASS ONLY. A single precisely cleaned plate from the approved
-   screenshot owns every gold ornament. The source artwork ends at the user's
-   marked cut line; we never paint the legacy v17 master or v38 lower plate.
-   Artwork is drawn BEHIND the transparent photo well, then only real data
-   (title, icon, three columns, description and premium die) is overprinted. */
-async function renderClassReferenceV39(element,card,data){
+/* The only Class exporter. The image contains the ENTIRE approved ornament,
+   with no footer extension. No legacy v17/v39 painting is performed. */
+async function renderClassApprovedV40(element,card){
+ const data=buildFrontBlueprint(card);
  const {width,height,scale}=CARD_CANVAS_SIZE;
  const canvas=document.createElement("canvas");
  canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- const art=element.querySelector?.(".tf-v3-picture img");
- let artworkDrawn=false;
- if(art?.complete&&art.naturalWidth>0&&!String(art.src||"").includes("artwork-placeholder")){
-   try{
-     const box={x:13,y:91,w:314,h:156};
-     const fit=Math.max(box.w/art.naturalWidth,box.h/(art.naturalHeight||art.naturalWidth));
-     const sw=box.w/fit,sh=box.h/fit;
-     ctx.drawImage(art,(art.naturalWidth-sw)/2,((art.naturalHeight||art.naturalWidth)-sh)/2,sw,sh,box.x,box.y,box.w,box.h);
-     artworkDrawn=true;
-   }catch{}
- }
- // Transparent picture and emblem wells, complete ORIGINAL golden frame.
- const master=await loadFrontEmblem({src:"/card-art/class-master-reference-v39.webp"});
- if(!master)throw new Error("Master Classe v39 non disponibile");
+ const master=await loadFrontEmblem({src:"/card-art/class-approved-single-master-v40.webp"});
+ if(!master)throw new Error("Master Classe approvato non disponibile");
  ctx.drawImage(master,0,0,width,height);
- const symbol=await loadFrontEmblem(data.emblem);
- if(symbol&&data.emblem){
-   const cell=data.emblem.cell||44;
-   ctx.drawImage(symbol,data.emblem.col*cell,data.emblem.row*cell,cell,cell,20,15,48,48);
+ const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
+ const art=element.querySelector(".tf-class-v40-art img");
+ const x=width*.055,y=height*.185,w=width*.888,h=height*.297;
+ if(art?.complete&&art.naturalWidth>0) {
+   const iw=art.naturalWidth,ih=art.naturalHeight||iw;
+   const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
+   ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
+   canvas.artworkDrawn=true;
+ } else if(!warrior){
+   const bg=ctx.createRadialGradient(x+w*.5,y+h*.95,1,x+w*.5,y+h*.9,w*.85);
+   bg.addColorStop(0,"#89291f");bg.addColorStop(.46,"#34070d");bg.addColorStop(1,"#09080d");
+   ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);
+   canvas.artworkDrawn=false;
+ } else canvas.artworkDrawn=false;
+ if(!warrior&&data.emblem){
+   const emblem=await loadFrontEmblem(data.emblem);
+   const e=data.emblem;
+   const ex=width*.083,ey=height*.051,ew=width*.152;
+   ctx.fillStyle="#25131a";ctx.beginPath();ctx.arc(ex+ew/2,ey+ew/2,ew/2,0,Math.PI*2);ctx.fill();
+   if(emblem)ctx.drawImage(emblem,e.col*e.cell,e.row*e.cell,e.cell,e.cell,ex,ey,ew,ew);
  }
- ctx.fillStyle="#28150d";ctx.textAlign="center";
- drawFittedText(ctx,data.name,170,42,164,data.name.length>24?15:20,"Georgia,serif","700");
- ctx.fillStyle="#3b2617";
- drawFittedText(ctx,data.subtitle,170,57,156,9,"Georgia,serif");
- if(data.badge){
-   ctx.fillStyle="#fff0ce";
-   drawFittedText(ctx,data.badge.top||"",299,38,38,8,"Georgia,serif","700");
-   drawFittedText(ctx,data.badge.value||"",299,55,38,18,"Georgia,serif","700");
- }
- const xs=[20,121,222],icons=["primary","saves","proficiencies"];
- for(let i=0;i<Math.min(3,data.highlights.length);i++){
-   const item=data.highlights[i],x=xs[i],cx=x+49;
-   ctx.fillStyle="#2c1a0e";ctx.textAlign="center";
-   drawFittedText(ctx,item.label,cx,266,98,9,"Georgia,serif","700");
-   const icon=await loadFrontEmblem({src:`/card-art/class-stats/${icons[i]}-v33.svg`});
-   if(icon)ctx.drawImage(icon,x+4,287,17,17);
-   ctx.font="700 8px Georgia,serif";
-   ctx.fillStyle="#29180d";
-   const lines=wrapTextLines(ctx,item.value,68).slice(0,4);
-   const y=lines.length>2?286:291;
-   lines.forEach((line,j)=>ctx.fillText(line,x+64,y+j*9,68));
- }
- ctx.textAlign="left";ctx.fillStyle="#2a170d";
- ctx.font="9px Georgia,serif";
- drawWrappedText(ctx,data.description||"I dettagli della classe appariranno qui.",
-   29,345,199,11.3,10);
+ ctx.textAlign="center";ctx.fillStyle="#25130a";
+ drawFittedText(ctx,data.name,width*.505,height*.103,width*.43,
+   data.name.length>19?16:22,"'Cormorant Garamond',Georgia,serif","700");
+ const wanted=["Abilità primaria","Tiri salvezza","Competenze"];
+ const values=wanted.map(label=>data.highlights.find(it=>it.label===label)?.value||"");
+ const cx=[width*.215,width*.534,width*.838], maxWidth=[width*.18,width*.19,width*.21];
+ values.forEach((value,i)=>{
+   ctx.fillStyle="#2b180e";ctx.textAlign="center";
+   ctx.font="700 10px Georgia,serif";
+   const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,4);
+   const first=height*.602-(lines.length-1)*5.5;
+   lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*11,maxWidth[i]));
+ });
+ ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
+ ctx.font="10.4px Spectral,Georgia,serif";
+ drawWrappedText(ctx,data.description||"",width*.078,height*.725,width*.62,11.7,10);
  if(data.classDieAsset){
    const die=await loadFrontEmblem({src:data.classDieAsset});
-   if(die)ctx.drawImage(die,244,366,73,76);
+   if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
  }
- const qr=element.querySelector?.('[data-card-qr] canvas');
- if(card?.id&&qr)try{ctx.drawImage(qr,287,446,20,20)}catch{}
- canvas.artworkDrawn=artworkDrawn;
+ const qr=element.querySelector?.("[data-card-qr] canvas");
+ if(card?.id&&qr)try{ctx.drawImage(qr,width*.86,height*.92,18,18)}catch{}
  return canvas;
 }
 
@@ -180,7 +171,7 @@ async function renderClassReferenceV39(element,card,data){
    Legacy projects lacking a v7 preview still use the original safe renderer. */
 async function renderApprovedMaster(element,card) {
  const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
- if(data.type==="class")return renderClassReferenceV39(element,card,data);
+ if(data.type==="class")return renderClassApprovedV40(element,card);
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
  const master=new Image();
@@ -388,6 +379,11 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
 };
 export async function renderCardCanvas(element, card) {
   if (!element) throw new Error("Card render unavailable");
+  if (element.getAttribute?.("data-front-version")==="40") {
+    await waitForImages(element);
+    if(document.fonts?.ready)await document.fonts.ready;
+    return renderClassApprovedV40(element,card);
+  }
   if (element.getAttribute?.("data-front-version")==="7") {
     await waitForImages(element);
     if(document.fonts?.ready)await document.fonts.ready;

@@ -1,4 +1,5 @@
 import React from "react";
+import "../classApprovedV40.css";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
 import { FRONT_MASTER_URL } from "@/lib/frontMaster";
@@ -26,6 +27,53 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  },[hasArtwork]);
  const symbol=data.emblem;
  const detailsLink=publicDescriptionUrl(card);
+ // Class v40 does NOT inherit or render the v17/v36/v38/v39 masters.
+ // The user's approved gold ornament is a SINGLE background image; every
+ // editable element (title, artwork, values, description, hit die) sits in a
+ // bounded, undecorated well. In particular, no extra footer exists.
+ if(data.type==="class"){
+   const approvedWarrior=String(data.name||"").trim().toLowerCase()==="guerriero";
+   const hasRealArtwork=!!(imgUrl||card.artwork_path)&&!artworkError;
+   const slotValues=["Abilità primaria","Tiri salvezza","Competenze"].map(label=>
+     data.highlights.find(item=>item.label===label)?.value||"");
+   return <div ref={ref} data-testid="card-front" data-front-version="40"
+     data-front-layout="single-approved-master-v40" data-front-category="class"
+     className={`tf-class-v40 ${exportMode?"tf-export-card":""}`}>
+     <img className="tf-class-v40-master" src="/card-art/class-approved-single-master-v40.webp"
+       alt="" aria-hidden="true" draggable={false}/>
+     <h3 className={`tf-class-v40-name ${data.name.length>19?"tf-class-v40-long":""}`}>{data.name}</h3>
+     {!approvedWarrior&&symbol&&<div className="tf-class-v40-emblem" data-testid="front-emblem"
+       data-emblem-sprite={symbol.sprite} aria-label={symbol.label}>
+       <div className="tf-class-v40-emblem-symbol"
+         style={{backgroundImage:`url("${symbol.src}")`,
+           "--emblem-size":symbol.backgroundSize||"100% 100%",
+           "--emblem-position":symbol.backgroundPosition||"center"}}/>
+     </div>}
+     <div className="tf-class-v40-art" data-testid="front-artwork">
+       {hasRealArtwork?<img src={img} data-artwork-src={img} alt={data.name}
+         crossOrigin="anonymous" onError={handleError} draggable={false}/>
+         : !approvedWarrior?<div className="tf-class-v40-art-empty"/>:null}
+       {editorMode&&!hasRealArtwork&&!approvedWarrior&&
+         <span className="tf-class-v40-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+     </div>
+     <div className="tf-class-v40-values" data-testid="front-highlights">
+       {slotValues.map((value,i)=><div className="tf-class-v40-value tf-v3-class-stat"
+         data-stat-label={["Abilità primaria","Tiri salvezza","Competenze"][i]}
+         title={value} key={i}><strong>{value}</strong></div>)}
+     </div>
+     <p className="tf-class-v40-description tf-v3-desc">{data.description||""}</p>
+     {data.classDieAsset&&<div className="tf-class-v40-die tf-v3-class-dice"
+       data-die={data.dice} aria-label={`Dado vita ${data.dice}`}
+       style={{backgroundImage:`url("${data.classDieAsset}")`}}>
+       <span>{data.dice}</span></div>}
+     {detailsLink&&<a className="tf-class-v40-qr" data-card-qr
+       href={detailsLink} target="_blank" rel="noopener noreferrer"
+       aria-label={`Apri la descrizione completa di ${data.name}`}>
+       <QRCodeCanvas value={detailsLink} size={36} level="M" marginSize={1}
+         bgColor="#ffffff" fgColor="#10131c"/>
+     </a>}
+   </div>;
+ }
  return <div ref={ref} data-testid="card-front" data-front-version="7"
    data-front-category={data.type} data-front-layout="reference-master-v17"
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${data.type==="class"?"tf-v39-class":""} ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
