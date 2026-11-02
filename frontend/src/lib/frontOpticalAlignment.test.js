@@ -49,57 +49,27 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
   });
 });
 
-describe("Class v50: SAME Monster artwork-window geometry across categories",()=>{
- const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
- const frameScope=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
- it("reuses the approved Monster picture's gold edges, without changing Class-only wells",()=>{
-   expect(component).toContain('data-front-layout="single-approved-master-v40"');
-   expect(component).toContain('className="tf-class-v40-master"');
-   expect(component).toContain('"/card-art/class-master-v50-approved-empty.webp"');
-   expect(component).toContain('"/card-art/class-master-v50-approved-window.webp"');
-   expect(component).not.toContain('className="tf-v39-class-master"');
-   expect(css).toContain("top:49.8%;width:89.5%;height:8.5%");
-   expect(css).toContain(".tf-class-v40-description");
-   expect(css).toContain("-webkit-line-clamp:3");
-   expect(exporter).toContain("wrapTextLines(ctx,value,maxWidth[i]).slice(0,3)");
+describe("shared Monster master across every front",()=>{
+ it("does not import or render another class master",()=>{
+   expect(component).toContain('data-front-layout="unified-monster-master-v17"');
+   expect(component).toContain('backgroundImage:`url(${FRONT_MASTER_URL})`');
+   expect(component).not.toContain("class-master-v50");
+   expect(component).not.toContain("tf-class-v40-master");
+   expect(component).not.toContain('data-front-version="40"');
+   expect(exporter).not.toContain("renderClassApprovedV40");
+   expect(exporter).not.toContain("class-master-v50");
+   expect(exporter).toContain("if(data.type===\"class\"){");
+   expect(exporter).toContain("ctx.drawImage(jewel,240,369,70,73)");
  });
- it("stores two valid interchangeable rasters, with a REAL transparent artwork aperture",()=>{
-   const empty=readFileSync(resolve(__dirname,"../../public/card-art/class-master-v50-approved-empty.webp"));
-   const alpha=readFileSync(resolve(__dirname,"../../public/card-art/class-master-v50-approved-window.webp"));
-   for(const bytes of [empty,alpha]){
-     expect(bytes.subarray(0,4).toString()).toBe("RIFF");
-     expect(bytes.subarray(8,12).toString()).toBe("WEBP");
-     expect(bytes.length).toBeGreaterThan(100000);
-   }
-   expect(alpha.toString("ascii",12,16)).toBe("VP8X");
-   expect(alpha[20]&0x10).toBe(0x10);
-   expect(Buffer.compare(empty,alpha)).not.toBe(0);
- });
- it("never adds a second border, approximation, or legacy Class image mask",()=>{
-   expect(css).toContain("z-index:1;left:4.75%;top:17.0%");
-   expect(css).toContain("width:90.5%;height:28.5%");
-   expect(css).toContain(".tf-class-v40-master");
-   expect(css).not.toContain("class-art-window-mask-v46.png");
-   expect(css).not.toContain("border-radius:4.45% / 9.6%");
-   expect(frameScope).not.toContain("windowMask");
-   expect(frameScope).not.toContain('globalCompositeOperation="destination-in"');
-   expect(frameScope).not.toContain("ctx.quadraticCurveTo");
-   expect(frameScope.indexOf("ctx.drawImage(art,")).toBeLessThan(frameScope.indexOf("ctx.drawImage(master,0,0,width,height)"));
-   expect(frameScope).toContain("/card-art/class-master-v50-approved-empty.webp");
-   expect(frameScope).toContain("/card-art/class-master-v50-approved-window.webp");
-   expect(frameScope).toContain("const x=width*.0475,y=height*.17,w=width*.905,h=height*.285;");
-   expect(css).toContain("top:64.4%");
-   expect(css).toContain("-webkit-line-clamp:12");
-   expect(component).not.toContain("tf-class-v40-value tf-v3-class-stat");
-   expect(component).not.toContain("tf-class-v40-description tf-v3-desc");
-   expect(exporter).not.toContain("class-master-clean-v38.webp");
-   expect(frameScope).toContain("height*.552");
-   expect(frameScope).toContain("const cx=[width*.254,width*.540,width*.830]");
-   // Stats start below the inked icons and end ABOVE the carved bottom divider.
-   const well=css.match(/\.tf-class-v40-values\{[^}]*top:([\d.]+)%;[^}]*height:([\d.]+)%/);
-   expect(well).not.toBeNull();
-   const bottom=Number(well[1])+Number(well[2]);
-   expect(bottom).toBeLessThan(59);
-   expect(frameScope).toContain("height*.666");
+ it("keeps the Monster's approved raster as the sole active front art master",()=>{
+   const root=resolve(__dirname,"../../public/card-art/");
+   const monster=readFileSync(resolve(root,"front-master-v17.webp"));
+   expect(monster.subarray(0,4).toString()).toBe("RIFF");
+   expect(monster.subarray(8,12).toString()).toBe("WEBP");
+   expect(monster.length).toBeGreaterThan(100000);
+   expect(finalMaster).not.toContain(".tf-v39-class");
+   expect(finalMaster).not.toContain("class-master-v50");
+   expect(finalMaster).not.toContain("class-master-clean-v38");
+   expect(finalMaster).toContain('data-front-category="class"');
  });
 });
