@@ -30,7 +30,7 @@
  height:auto;aspect-ratio:1;overflow:hidden;border-radius:50%;background:#25131a}
 .tf-class-v40-emblem-symbol{position:absolute;inset:0;background-repeat:no-repeat;
  background-size:var(--emblem-size,100% 100%);background-position:var(--emblem-position,center)}
-.tf-class-v40-values{position:absolute;left:5.2%;top:56.0%;width:89.5%;height:6.6%;
+.tf-class-v40-values{position:absolute;left:5.2%;top:52.3%;width:89.5%;height:7.2%;
  display:grid;grid-template-columns:35% 32% 33%;align-items:center;z-index:4;
  gap:0;pointer-events:none;overflow:hidden}
 .tf-class-v40-value{display:flex;align-items:center;justify-content:center;
@@ -45,7 +45,7 @@
 .tf-class-v40-description{position:absolute;z-index:4;left:7.8%;top:64.4%;
  width:62%;height:29.4%;overflow:hidden;margin:0;padding:0;
  font:clamp(7.6px,2.7cqw,9.6px)/1.15 'Spectral',Georgia,serif;color:#2d1a0e;
- text-align:left;white-space:normal;overflow-wrap:normal}
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:12;line-clamp:12; text-align:left;white-space:normal;overflow-wrap:normal}
 .tf-class-v40-die{position:absolute;left:71.9%;top:70.4%;width:25%;height:auto;
  aspect-ratio:1;z-index:5;background-position:center;background-size:contain;
  background-repeat:no-repeat;display:flex;align-items:center;justify-content:center;

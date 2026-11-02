@@ -56,13 +56,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
          <span className="tf-class-v40-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
      </div>
      <div className="tf-class-v40-values" data-testid="front-highlights">
-       {slotValues.map((value,i)=><div className="tf-class-v40-value tf-v3-class-stat"
+       {slotValues.map((value,i)=><div className="tf-class-v40-value"
          data-stat-label={["Abilità primaria","Tiri salvezza","Competenze"][i]}
          title={data.highlights.find(item=>item.label===["Abilità primaria","Tiri salvezza","Competenze"][i])?.fullValue||value}
          key={i}><strong>{value}</strong></div>)}
      </div>
-     <p className="tf-class-v40-description tf-v3-desc">{data.description||""}</p>
-     {data.classDieAsset&&<div className="tf-class-v40-die tf-v3-class-dice"
+     <p className="tf-class-v40-description">{data.description||""}</p>
+     {data.classDieAsset&&<div className="tf-class-v40-die"
        data-die={data.dice} aria-label={`Dado vita ${data.dice}`}
        style={{backgroundImage:`url("${data.classDieAsset}")`}}>
        <span>{data.dice}</span></div>}
@@ -106,18 +106,6 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
        {data.highlights.length?data.highlights.map((item,i)=>{
-         if(data.type==="class") {
-           const classIcons=["primary","saves","proficiencies"];
-           return <div className="tf-v3-stat tf-v3-class-stat" key={i}
-             data-stat-label={item.label} title={item.fullValue||item.value}>
-             <span className="tf-v3-class-stat-label">{item.label}</span>
-             <div className="tf-v3-class-stat-body">
-               <img src={`/card-art/class-stats/${classIcons[i]||classIcons[2]}-v33.svg`}
-                 alt="" aria-hidden="true" draggable={false}/>
-               <strong>{item.value}</strong>
-             </div>
-           </div>;
-         }
          const statIcon = getFrontStatIcon(item.label);
          return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
@@ -151,7 +139,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
                data.dice.length<=3?"21px":data.dice.length<=4?"18px":data.dice.length<=5?"15px":"12px"
              }}>{data.dice}</strong>
            </div>
-         : <div className={`tf-v3-dice ${data.type==="class"?"tf-v3-class-dice":""}`} data-die={data.dice} style={data.classDieAsset?{backgroundImage:`url("${data.classDieAsset}")`}:undefined} aria-label={data.type==="class" ? `Dado vita ${data.dice}` : `Formula dado ${data.dice}`}>{data.type==="class" && data.classDieAsset ? <span className="sr-only">{data.dice}</span> : data.dice}</div>)}
+         : <div className="tf-v3-dice" data-die={data.dice} style={data.classDieAsset?{backgroundImage:`url("${data.classDieAsset}")`}:undefined} aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>)}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
            target="_blank" rel="noopener noreferrer" title="Apri la descrizione completa"
            aria-label={`Apri la descrizione completa di ${data.name}`}>

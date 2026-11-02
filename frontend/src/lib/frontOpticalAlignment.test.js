@@ -58,7 +58,7 @@ describe("Class v50: SAME Monster artwork-window geometry across categories",()=
    expect(component).toContain('"/card-art/class-master-v50-approved-empty.webp"');
    expect(component).toContain('"/card-art/class-master-v50-approved-window.webp"');
    expect(component).not.toContain('className="tf-v39-class-master"');
-   expect(css).toContain("top:56.0%;width:89.5%;height:6.6%");
+   expect(css).toContain("top:52.3%;width:89.5%;height:7.2%");
    expect(css).toContain(".tf-class-v40-description");
    expect(css).toContain("-webkit-line-clamp:3");
    expect(exporter).toContain("wrapTextLines(ctx,value,maxWidth[i]).slice(0,3)");
@@ -89,6 +89,11 @@ describe("Class v50: SAME Monster artwork-window geometry across categories",()=
    expect(frameScope).toContain("/card-art/class-master-v50-approved-window.webp");
    expect(frameScope).toContain("const x=width*.0475,y=height*.17,w=width*.905,h=height*.285;");
    expect(css).toContain("top:64.4%");
+   expect(css).toContain("-webkit-line-clamp:12");
+   expect(component).not.toContain("tf-class-v40-value tf-v3-class-stat");
+   expect(component).not.toContain("tf-class-v40-description tf-v3-desc");
+   expect(exporter).not.toContain("class-master-clean-v38.webp");
+   expect(frameScope).toContain("height*.558");
    expect(frameScope).toContain("height*.666");
  });
 });
