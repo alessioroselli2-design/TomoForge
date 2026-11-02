@@ -49,89 +49,43 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
   });
 });
 
-describe("v40 Class has ONE authoritatively approved master",()=>{
- it("uses independent layout that cannot inherit any v17/33/36/38/39 frame",()=>{
+describe("One Monster-derived artwork window for Class and Monster",()=>{
+ const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
+ const frameScope=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
+ it("reuses the approved Monster picture's gold edges, without changing Class-only wells",()=>{
    expect(component).toContain('data-front-layout="single-approved-master-v40"');
    expect(component).toContain('className="tf-class-v40-master"');
-   expect(component).toContain('class-approved-clean-master-v41.webp');
-   expect(component).toContain('if(data.type==="class")');
+   expect(component).toContain('"/card-art/class-monster-picture-empty-v49.webp"');
+   expect(component).toContain('"/card-art/class-monster-picture-alpha-v49.webp"');
    expect(component).not.toContain('className="tf-v39-class-master"');
-   expect(component).not.toContain('className="tf-v38-class-master"');
-   expect(component).not.toContain('className="tf-v36-class-master"');
- });
- it("uses one exact ornamental image without the circled lower extension",()=>{
-   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-approved-clean-master-v41.webp"));
-   expect(asset.subarray(0,4).toString()).toBe("RIFF");
-   expect(asset.subarray(8,12).toString()).toBe("WEBP");
-   expect(asset.length).toBeGreaterThan(50000);
-   expect(asset.toString("ascii",12,16)).toBe("VP8X");
-   expect(asset[20]&0x10).toBe(0x10); // VP8X alpha feature: image window is truly transparent
-   expect(exporter).toContain('renderClassApprovedV40(element,card)');
-   expect(exporter).toContain('/card-art/class-approved-clean-master-v41.webp');
-   expect(exporter).not.toContain('renderClassReferenceV39');
- });
-});
-
-describe("Class v40 dynamic content stays INSIDE approved master",()=>{
- const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
- it("keeps the original one-piece artwork and hides its baked sample until selected",()=>{
-   expect(component).toContain('data-testid="front-artwork-empty"');
-   expect(component).not.toContain("previewApprovedArtwork");
-   expect(css).toContain(".tf-class-v40-art-empty{display:none!important;background:none!important}");
-   expect(component).toContain('"/card-art/class-approved-empty-master-v47.webp"');
-   expect(css).toContain("z-index:2");
-   expect(exporter).toContain('imageCtx.globalCompositeOperation="destination-in"');
-   expect(exporter).toContain("ctx.drawImage(master,0,0,width,height);");
- });
- it("aligns all 3 inset values and bounds them to their ORIGINAL gold wells",()=>{
    expect(css).toContain("top:56.0%;width:89.5%;height:6.6%");
-   expect(css).toContain("pointer-events:none;overflow:hidden");
+   expect(css).toContain(".tf-class-v40-description");
    expect(css).toContain("-webkit-line-clamp:3");
    expect(exporter).toContain("wrapTextLines(ctx,value,maxWidth[i]).slice(0,3)");
-   expect(exporter).toContain("const first=height*.587");
  });
-});
-
-describe("v46 exact shared artwork aperture, without any extra border overlay",()=>{
- const styles=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
- it("uses the original master alpha as a single CSS mask covering the entire card",()=>{
-   expect(styles).toContain("z-index:2");
-   expect(styles).toContain("z-index:1;inset:0;width:100%;height:100%");
-   expect(styles).toContain('-webkit-mask-image:url("../public/card-art/class-art-window-mask-v46.png")');
-   expect(styles).toContain('mask-image:url("../public/card-art/class-art-window-mask-v46.png")');
-   expect(styles).not.toContain("border-radius:4.45% / 9.6%");
-   const mask=readFileSync(resolve(__dirname,"../../public/card-art/class-art-window-mask-v46.png"));
-   expect(mask.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
-   expect(mask.readUInt32BE(16)).toBe(1024);
-   expect(mask.readUInt32BE(20)).toBe(1375);
+ it("stores two valid interchangeable rasters, with a REAL transparent artwork aperture",()=>{
+   const empty=readFileSync(resolve(__dirname,"../../public/card-art/class-monster-picture-empty-v49.webp"));
+   const alpha=readFileSync(resolve(__dirname,"../../public/card-art/class-monster-picture-alpha-v49.webp"));
+   for(const bytes of [empty,alpha]){
+     expect(bytes.subarray(0,4).toString()).toBe("RIFF");
+     expect(bytes.subarray(8,12).toString()).toBe("WEBP");
+     expect(bytes.length).toBeGreaterThan(100000);
+   }
+   expect(alpha.toString("ascii",12,16)).toBe("VP8X");
+   expect(alpha[20]&0x10).toBe(0x10);
+   expect(Buffer.compare(empty,alpha)).not.toBe(0);
  });
- it("uses that very same mask in PNG/PDF, then paints the gold frame on top",()=>{
-   const classExport=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
-   expect(classExport).toContain('/card-art/class-art-window-mask-v46.png');
-   expect(classExport).toContain('imageCtx.globalCompositeOperation="destination-in"');
-   expect(classExport).not.toContain("ctx.quadraticCurveTo");
-   expect(classExport.indexOf('imageCtx.globalCompositeOperation="destination-in"'))
-     .toBeLessThan(classExport.indexOf("ctx.drawImage(master,0,0,width,height)"));
- });
-});
-
-
-describe("v47 approved empty illustration well is genuinely one raster master",()=>{
- const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
- it("does not draw a secondary burgundy gradient over the gilded frame",()=>{
-   expect(css).not.toContain("radial-gradient(ellipse at 54% 100%");
-   expect(css).toContain(".tf-class-v40-art-empty{display:none!important;background:none!important}");
-   expect(component).toContain("/card-art/class-approved-empty-master-v47.webp");
-   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-approved-empty-master-v47.webp"));
-   expect(asset.toString("ascii",0,4)).toBe("RIFF");
-   expect(asset.toString("ascii",8,12)).toBe("WEBP");
-   expect(asset.length).toBeGreaterThan(100000);
- });
- it("exports the same exact empty artwork raster instead of drawing a CSS gradient",()=>{
-   const scope=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
-   expect(scope).toContain('const artworkReady=!!(art?.complete&&art.naturalWidth>0)');
-   expect(scope).toContain("/card-art/class-approved-empty-master-v47.webp");
-   expect(scope).not.toContain("createRadialGradient");
-   expect(scope).toContain('ctx.drawImage(master,0,0,width,height)');
+ it("never adds a second border, approximation, or legacy Class image mask",()=>{
+   expect(css).toContain("z-index:1;left:4.883%;top:19.2%");
+   expect(css).toContain("width:90.234%;height:29.455%");
+   expect(css).toContain(".tf-class-v40-master");
+   expect(css).not.toContain("class-art-window-mask-v46.png");
+   expect(css).not.toContain("border-radius:4.45% / 9.6%");
+   expect(frameScope).not.toContain("windowMask");
+   expect(frameScope).not.toContain('globalCompositeOperation="destination-in"');
+   expect(frameScope).not.toContain("ctx.quadraticCurveTo");
+   expect(frameScope.indexOf("ctx.drawImage(art,")).toBeLessThan(frameScope.indexOf("ctx.drawImage(master,0,0,width,height)"));
+   expect(frameScope).toContain("/card-art/class-monster-picture-empty-v49.webp");
+   expect(frameScope).toContain("/card-art/class-monster-picture-alpha-v49.webp");
  });
 });
