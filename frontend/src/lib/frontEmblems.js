@@ -63,8 +63,8 @@ export const getFrontEmblem = (card = {}) => {
  if (type === "class" && index === 4) {
    return {
      sprite:"guerriero-hd",index:4,col:0,row:0,label,
-     src:"/card-art/guerriero-reference-original-v36.webp",
-     width:168,height:168,cell:168,
+     src:"/card-art/guerriero-approved-medal-v39.webp",
+     width:136,height:140,cell:136,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }
