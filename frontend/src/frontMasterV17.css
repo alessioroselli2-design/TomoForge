@@ -332,3 +332,12 @@
  transform:scale(1.08)!important;
  mask-image:none!important;-webkit-mask-image:none!important;
 }
+
+/* The Class-specific inner art replaces ONLY the painted Monster rows.
+   It never changes the common outer master or its title/illustration frame. */
+.tf-front-master-v17[data-front-category="class"]{
+ background-image:url("/card-art/class-interior-v17.webp"),url("/card-art/front-master-v17.webp")!important;
+ background-size:100% 44.54178%,100% 100%!important;
+ background-position:0 89.91495%,center center!important;
+ background-repeat:no-repeat,no-repeat!important;
+}
