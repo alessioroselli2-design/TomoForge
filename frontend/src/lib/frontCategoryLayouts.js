@@ -16,15 +16,6 @@ export const CATEGORY_FRONT_LAYOUTS=Object.freeze({
  custom:{id:"custom-v17",interior:null,showDetails:true},
 });
 export const categoryFrontLayout=(type)=>CATEGORY_FRONT_LAYOUTS[type]||CATEGORY_FRONT_LAYOUTS.custom;
-export const frontBackground=(type)=>{
- const layout=categoryFrontLayout(type);
- if(!layout.interior) return {backgroundImage:`url("${FRONT_OUTER_MASTER}")`};
- // Each layer's dimensions are relative to the same immutable full card.
- const position=layout.interiorY/(1-layout.interiorHeight)*100;
- return {
-  backgroundImage:`url("${layout.interior}"),url("${FRONT_OUTER_MASTER}")`,
-  backgroundSize:`100% ${(layout.interiorHeight*100).toFixed(5)}%,100% 100%`,
-  backgroundPosition:`0 ${position.toFixed(5)}%,center center`,
-  backgroundRepeat:"no-repeat,no-repeat",
- };
-};
+// The outer reference stays the same inline style for EVERY category.
+// Inner background layers are owned by each category CSS (not by the shell).
+export const frontBackground=()=>({backgroundImage:`url(${FRONT_OUTER_MASTER})`});
