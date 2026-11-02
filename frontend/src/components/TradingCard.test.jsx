@@ -232,7 +232,7 @@ describe("new front integration",()=>{
    document.body.appendChild(container);
    const root=createRoot(container);
    await act(async()=>root.render(<CardFront card={{type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",grado_sfida:"17"}}}/>));
-   const front=container.querySelector('[data-front-layout="reference-master-v17"]');
+   const front=container.querySelector('[data-front-layout="unified-monster-master-v17"]');
    expect(front).not.toBeNull();
    expect(front.querySelector(".tf-v5-bottom-rail")).toBeNull();
    expect(front.querySelectorAll(".tf-v4-filigree")).toHaveLength(0);
