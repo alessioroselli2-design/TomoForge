@@ -298,7 +298,7 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
    expect(front.dataset.frontLayout).toBe("single-approved-master-v40");
    expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
    expect(front.querySelector(".tf-class-v40-master")?.getAttribute("src"))
-     .toBe("/card-art/class-approved-empty-master-v47.webp");
+     .toBe("/card-art/class-monster-picture-empty-v49.webp");
    expect(front.querySelectorAll(".tf-v38-class-master,.tf-v39-class-master,.tf-v3-layout"))
      .toHaveLength(0);
    expect(front.querySelectorAll(".tf-class-v40-master")).toHaveLength(1);
@@ -324,12 +324,12 @@ describe("Class v40 one approved master, no stacked frame layers",()=>{
    expect(mount.querySelector(".tf-class-v40-art img")).toBeNull();
    expect(mount.querySelectorAll("[data-testid='front-artwork-empty']")).toHaveLength(1);
    expect(mount.querySelector(".tf-class-v40-master").getAttribute("src"))
-     .toBe("/card-art/class-approved-empty-master-v47.webp");
+     .toBe("/card-art/class-monster-picture-empty-v49.webp");
    expect(mount.textContent).toContain("CARICA O GENERA L'ILLUSTRAZIONE");
    await act(async()=>root.render(<CardFront card={card} imgUrl="data:image/png;base64,ZGF0YQ==" editorMode/>));
    expect(mount.querySelector(".tf-class-v40-art img")?.getAttribute("src")).toBe("data:image/png;base64,ZGF0YQ==");
    expect(mount.querySelector(".tf-class-v40-master").getAttribute("src"))
-     .toBe("/card-art/class-approved-clean-master-v41.webp");
+     .toBe("/card-art/class-monster-picture-alpha-v49.webp");
    expect(mount.querySelectorAll(".tf-class-v40-art-empty")).toHaveLength(0);
    await act(async()=>root.unmount());mount.remove();
  });
