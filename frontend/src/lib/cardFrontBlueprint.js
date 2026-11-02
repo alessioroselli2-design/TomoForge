@@ -186,8 +186,8 @@ export const buildFrontBlueprint = (card = {}) => {
     }
     if (type === "weapon"){
       const damage=text(attrs.danno || attrs.danni);
-      const dice=damage.match(/\\b\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?\\b/i);
-      return dice ? {top:"DANNI",value:dice[0].replace(/\\s+/g,"")} : null;
+      const dice=damage.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i);
+      return dice ? {top:"DANNI",value:dice[0].replace(/\s+/g,"")} : null;
     }
     return null;
   })();
