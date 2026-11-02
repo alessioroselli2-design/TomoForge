@@ -117,25 +117,35 @@ async function renderClassApprovedV40(element,card){
  const canvas=document.createElement("canvas");
  canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- const master=await loadFrontEmblem({src:"/card-art/class-approved-single-master-v40.webp"});
- if(!master)throw new Error("Master Classe approvato non disponibile");
- ctx.drawImage(master,0,0,width,height);
+ const master=await loadFrontEmblem({src:"/card-art/class-approved-clean-master-v41.webp"});
+ if(!master)throw new Error("Master Classe trasparente non disponibile");
  const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
  const art=element.querySelector(".tf-class-v40-art img");
- const x=width*.055,y=height*.1805,w=width*.888,h=height*.3075;
+ // Shared art aperture with CSS: left 3.9%, top 17.45%, width 92.2%, height 31.78%.
+ // The photo is painted BELOW the single transparent ornamental frame, never on top.
+ const x=width*.039,y=height*.1745,w=width*.922,h=height*.3178;
+ ctx.save();
+ const radius=width*.041;
+ ctx.beginPath();
+ ctx.moveTo(x+radius,y);
+ ctx.lineTo(x+w-radius,y);ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
+ ctx.lineTo(x+w,y+h-radius);ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
+ ctx.lineTo(x+radius,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
+ ctx.lineTo(x,y+radius);ctx.quadraticCurveTo(x,y,x+radius,y);
+ ctx.closePath();ctx.clip();
  if(art?.complete&&art.naturalWidth>0) {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
    ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
    canvas.artworkDrawn=true;
  } else {
-   // The master contains a baked sample Warrior illustration. Cover it
-   // whenever no image has explicitly been chosen; keep the gold rim intact.
    const bg=ctx.createRadialGradient(x+w*.54,y+h,1,x+w*.54,y+h,w*.95);
    bg.addColorStop(0,"#922920");bg.addColorStop(.42,"#420b12");bg.addColorStop(.95,"#10090e");
    ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);
    canvas.artworkDrawn=false;
  }
+ ctx.restore();
+ ctx.drawImage(master,0,0,width,height);
  if(!warrior&&data.emblem){
    const emblem=await loadFrontEmblem(data.emblem);
    const e=data.emblem;
@@ -157,8 +167,8 @@ async function renderClassApprovedV40(element,card){
    lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
  });
  ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
- ctx.font="10.4px Spectral,Georgia,serif";
- drawWrappedText(ctx,data.description||"",width*.078,height*.725,width*.62,11.7,10);
+ ctx.font="9.4px Spectral,Georgia,serif";
+ drawWrappedText(ctx,data.description||"",width*.078,height*.725,width*.62,10.8,12);
  if(data.classDieAsset){
    const die=await loadFrontEmblem({src:data.classDieAsset});
    if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
