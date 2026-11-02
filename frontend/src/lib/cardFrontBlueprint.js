@@ -169,7 +169,11 @@ export const buildFrontBlueprint = (card = {}) => {
   const badge = (() => {
     const text = (value) => (value === null || value === undefined) ? "" : String(value).trim();
     if (type === "monster") return text(attrs.grado_sfida) ? {top:"GS", value:text(attrs.grado_sfida)} : null;
-    if (["spell","character","class","subclass","feature"].includes(type))
+    // Classi do not have a universal level; their verified hit die is the
+    // corresponding value in the common Monster master medal.
+    if (type === "class") return text(attrs.dado_vita || attrs.dadi_vita)
+      ? {top:"DV", value:text(attrs.dado_vita || attrs.dadi_vita)} : null;
+    if (["spell","character","subclass","feature"].includes(type))
       return text(attrs.livello) ? {top:"LIV.", value:text(attrs.livello)} : null;
     if (type === "item") return text(attrs.rarita) ? {top:"RARITÀ",value:text(attrs.rarita)} : null;
     return null;
