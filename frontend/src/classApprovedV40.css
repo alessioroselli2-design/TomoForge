@@ -28,8 +28,10 @@
  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
 .tf-class-v40-art>img,.tf-class-v40-art-empty{position:absolute;display:block;
  left:3.9%;top:17.45%;width:92.2%;height:31.78%;object-fit:cover}
-.tf-class-v40-art-empty{background:
- radial-gradient(ellipse at 54% 100%,#922920 0%,#420b12 42%,#10090e 95%)}
+/* Empty cards use the APPROVED textured illustration well baked into the one-piece
+   v47 master.  This inert marker exists only for state/testing; it cannot paint
+   a rectangular block over the gold frame. */
+.tf-class-v40-art-empty{display:none!important;background:none!important}
 .tf-class-v40-art-hint{position:absolute;left:5.7%;top:43.5%;width:88.6%;
  color:#ffdeb3;text-shadow:0 1px 4px #000;letter-spacing:.04em;
  font-size:clamp(7px,2.4cqw,10px);text-align:center}

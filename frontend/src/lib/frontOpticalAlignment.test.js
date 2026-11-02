@@ -77,7 +77,8 @@ describe("Class v40 dynamic content stays INSIDE approved master",()=>{
  it("keeps the original one-piece artwork and hides its baked sample until selected",()=>{
    expect(component).toContain('data-testid="front-artwork-empty"');
    expect(component).not.toContain("previewApprovedArtwork");
-   expect(css).toContain(".tf-class-v40-art-empty{background:");
+   expect(css).toContain(".tf-class-v40-art-empty{display:none!important;background:none!important}");
+   expect(component).toContain('"/card-art/class-approved-empty-master-v47.webp"');
    expect(css).toContain("z-index:2");
    expect(exporter).toContain('imageCtx.globalCompositeOperation="destination-in"');
    expect(exporter).toContain("ctx.drawImage(master,0,0,width,height);");
@@ -111,5 +112,26 @@ describe("v46 exact shared artwork aperture, without any extra border overlay",(
    expect(classExport).not.toContain("ctx.quadraticCurveTo");
    expect(classExport.indexOf('imageCtx.globalCompositeOperation="destination-in"'))
      .toBeLessThan(classExport.indexOf("ctx.drawImage(master,0,0,width,height)"));
+ });
+});
+
+
+describe("v47 approved empty illustration well is genuinely one raster master",()=>{
+ const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
+ it("does not draw a secondary burgundy gradient over the gilded frame",()=>{
+   expect(css).not.toContain("radial-gradient(ellipse at 54% 100%");
+   expect(css).toContain(".tf-class-v40-art-empty{display:none!important;background:none!important}");
+   expect(component).toContain("/card-art/class-approved-empty-master-v47.webp");
+   const asset=readFileSync(resolve(__dirname,"../../public/card-art/class-approved-empty-master-v47.webp"));
+   expect(asset.toString("ascii",0,4)).toBe("RIFF");
+   expect(asset.toString("ascii",8,12)).toBe("WEBP");
+   expect(asset.length).toBeGreaterThan(100000);
+ });
+ it("exports the same exact empty artwork raster instead of drawing a CSS gradient",()=>{
+   const scope=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
+   expect(scope).toContain('const artworkReady=!!(art?.complete&&art.naturalWidth>0)');
+   expect(scope).toContain("/card-art/class-approved-empty-master-v47.webp");
+   expect(scope).not.toContain("createRadialGradient");
+   expect(scope).toContain('ctx.drawImage(master,0,0,width,height)');
  });
 });
