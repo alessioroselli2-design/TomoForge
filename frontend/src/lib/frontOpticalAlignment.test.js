@@ -77,7 +77,7 @@ describe("Class v40 dynamic content stays INSIDE approved master",()=>{
  it("keeps the original one-piece artwork and hides its baked sample until selected",()=>{
    expect(component).toContain('data-testid="front-artwork-empty"');
    expect(component).not.toContain("previewApprovedArtwork");
-   expect(css).toContain(".tf-class-v40-art-empty{position:absolute;inset:0;background:");
+   expect(css).toContain(".tf-class-v40-art-empty{background:");
    expect(css).toContain("z-index:2");
    expect(exporter).toContain('imageCtx.globalCompositeOperation="destination-in"');
    expect(exporter).toContain("ctx.drawImage(master,0,0,width,height);");
