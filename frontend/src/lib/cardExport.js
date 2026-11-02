@@ -109,71 +109,11 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
   ctx.drawImage(tile,dest.x-dest.size/2,dest.y-dest.size/2,dest.size,dest.size);
 }
 
-/* The only Class exporter. The image contains the ENTIRE approved ornament,
-   with no footer extension. No legacy v17/v39 painting is performed. */
-async function renderClassApprovedV40(element,card){
- const data=buildFrontBlueprint(card);
- const {width,height,scale}=CARD_CANVAS_SIZE;
- const canvas=document.createElement("canvas");
- canvas.width=width*scale;canvas.height=height*scale;
- const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- // The Class picture frame is reproduced from the approved Monster master.
- // The PNG/PDF renderer and the browser select the exact same two bitmaps;
- // no mask or second decorative overlay is painted by either.
- const art=element.querySelector(".tf-class-v40-art img");
- const artworkReady=!!(art?.complete&&art.naturalWidth>0);
- const master=await loadFrontEmblem({src:artworkReady
-   ?"/card-art/class-master-v50-approved-window.webp"
-   :"/card-art/class-master-v50-approved-empty.webp"});
- if(!master)throw new Error("Cornice illustrativa Mostro/Classe non disponibile");
- const warrior=String(data.name||"").trim().toLowerCase()==="guerriero";
- const x=width*.0475,y=height*.17,w=width*.905,h=height*.285;
- if(artworkReady){
-   const iw=art.naturalWidth,ih=art.naturalHeight||iw;
-   const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
-   ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
- }
- canvas.artworkDrawn=artworkReady;
- ctx.drawImage(master,0,0,width,height);
- if(!warrior&&data.emblem){
-   const emblem=await loadFrontEmblem(data.emblem);
-   const e=data.emblem;
-   const ex=width*.083,ey=height*.051,ew=width*.152;
-   ctx.fillStyle="#25131a";ctx.beginPath();ctx.arc(ex+ew/2,ey+ew/2,ew/2,0,Math.PI*2);ctx.fill();
-   if(emblem)ctx.drawImage(emblem,e.col*e.cell,e.row*e.cell,e.cell,e.cell,ex,ey,ew,ew);
- }
- ctx.textAlign="center";ctx.fillStyle="#25130a";
- drawFittedText(ctx,data.name,width*.505,height*.103,width*.43,
-   data.name.length>19?16:22,"'Cormorant Garamond',Georgia,serif","700");
- const wanted=["Abilità primaria","Tiri salvezza","Competenze"];
- const values=wanted.map(label=>data.highlights.find(it=>it.label===label)?.value||"");
- // Match the three text centers inside the icon-bearing wells of the v50 raster.
- const cx=[width*.254,width*.540,width*.830], maxWidth=[width*.18,width*.19,width*.21];
- values.forEach((value,i)=>{
-   ctx.fillStyle="#2b180e";ctx.textAlign="center";
-   ctx.font="700 10px Georgia,serif";
-   const lines=wrapTextLines(ctx,value,maxWidth[i]).slice(0,3);
-   const first=height*.552-(lines.length-1)*4.8;
-   lines.forEach((line,j)=>ctx.fillText(line,cx[i],first+j*9.6,maxWidth[i]));
- });
- ctx.textAlign="left";ctx.fillStyle="#2d1a0e";
- ctx.font="9.4px Spectral,Georgia,serif";
- drawWrappedText(ctx,data.description||"",width*.078,height*.666,width*.62,10.8,12);
- if(data.classDieAsset){
-   const die=await loadFrontEmblem({src:data.classDieAsset});
-   if(die)ctx.drawImage(die,width*.719,height*.704,width*.25,width*.25);
- }
- const qr=element.querySelector?.("[data-card-qr] canvas");
- if(card?.id&&qr)try{ctx.drawImage(qr,width*.86,height*.92,18,18)}catch{}
- return canvas;
-}
-
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
 async function renderApprovedMaster(element,card) {
  const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
- if(data.type==="class")return renderClassApprovedV40(element,card);
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
  const master=new Image();
@@ -242,6 +182,17 @@ async function renderApprovedMaster(element,card) {
      valueCenter=runeLeft+runeSize+gap+renderedTextWidth/2;
      valueMaxWidth=Math.max(12,renderedTextWidth);
    }
+   if(data.type==="class"){
+     // The Monster's three real parchment cells provide the Class labels and
+     // concise values. No additional graphical panels are painted.
+     ctx.textAlign="center";ctx.fillStyle="#51301c";
+     drawFittedText(ctx,it.label,labelCenter,statY+10,max,7.3,"Georgia,serif","700");
+     ctx.fillStyle="#1d140c";ctx.font="700 8px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,max-7).slice(0,3);
+     const first=statY+31-(lines.length-1)*4;
+     lines.forEach((line,n)=>ctx.fillText(line,labelCenter,first+n*8,max-7));
+     return;
+   }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,labelCenter,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
    ctx.fillStyle="#1d140c";
@@ -273,10 +224,21 @@ async function renderApprovedMaster(element,card) {
  });
  const desc=data.description||"I dettagli appariranno dopo la selezione di un record.";
  ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
- ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
+ if(data.showDescriptionLabel)ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
  ctx.font="10px Spectral,Georgia,serif";
- drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+27,
-   data.spellDieAsset?201:(card?.id?244:287),12,5);
+ drawWrappedText(ctx,desc,MASTER_REGIONS.description.x+8,
+   MASTER_REGIONS.description.y+(data.showDescriptionLabel?27:17),
+   data.type==="class"?200:(data.spellDieAsset?201:(card?.id?244:287)),
+   data.type==="class"?10:12,data.type==="class"?8:5);
+ if(data.type==="class"&&data.classDieAsset){
+   const jewel=await loadFrontEmblem({src:data.classDieAsset});
+   if(jewel)ctx.drawImage(jewel,240,369,70,73);
+ }
+ if(data.type==="monster"&&data.dice){
+   ctx.fillStyle="#3c2013";ctx.textAlign="left";
+   drawFittedText(ctx,data.dice,MASTER_REGIONS.description.x+16,
+     MASTER_REGIONS.description.y+103,66,10,"Georgia,serif","700");
+ }
  if(data.spellDieAsset){
    const jewel=await loadFrontEmblem({src:data.spellDieAsset});
    // The art has its original die label engraved; draw the actual spell formula
@@ -317,192 +279,13 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
   ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
   ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
 };
-export async function renderCardCanvas(element, card) {
-  if (!element) throw new Error("Card render unavailable");
-  if (element.getAttribute?.("data-front-version")==="40") {
-    await waitForImages(element);
-    if(document.fonts?.ready)await document.fonts.ready;
-    return renderClassApprovedV40(element,card);
-  }
-  if (element.getAttribute?.("data-front-version")==="7") {
-    await waitForImages(element);
-    if(document.fonts?.ready)await document.fonts.ready;
-    return renderApprovedMaster(element,card);
-  }
-  await waitForImages(element);
-  if(document.fonts?.ready)await document.fonts.ready;
-  const data=buildFrontBlueprint(card);
-  const {width,height,scale}=CARD_CANVAS_SIZE;
-  const canvas=document.createElement("canvas");
-  canvas.width=width*scale;canvas.height=height*scale;
-  const ctx=canvas.getContext("2d");
-  ctx.scale(scale,scale);
-  const background=ctx.createLinearGradient(0,0,width,height);
-  background.addColorStop(0,"#2f101a");
-  background.addColorStop(.5,data.accent);
-  background.addColorStop(1,"#270c18");
-  ctx.fillStyle=background;ctx.fillRect(0,0,width,height);
-  const gold=ctx.createLinearGradient(0,0,width,height);
-  gold.addColorStop(0,"#ffde94");gold.addColorStop(.45,"#b67c32");gold.addColorStop(1,"#ffe5a3");
-  ctx.strokeStyle=gold;ctx.lineWidth=5;ctx.strokeRect(3,3,width-6,height-6);
-  ctx.lineWidth=1;ctx.strokeRect(10,10,width-20,height-20);
-  ctx.fillStyle="#ffe1a3";
-  ["✦"].forEach(star => [[9,16],[331,16],[9,467],[331,467]].forEach(([x,y])=>{
-    ctx.font="700 13px Georgia,serif";ctx.textAlign="center";ctx.fillText(star,x,y);
-  }));
-
-  const BX=15,BW=310;
-  // Engraved ivory header.
-  const parchment=ctx.createLinearGradient(BX,0,BX+BW,0);
-  parchment.addColorStop(0,"#d6a85b");
-  parchment.addColorStop(.22,"#fff6d8");
-  parchment.addColorStop(.8,"#f7e6bc");
-  parchment.addColorStop(1,"#ad763c");
-  canvasBox(ctx,BX,16,BW,66,parchment,"#dfb46c");
-  ctx.strokeStyle="#925e2e";ctx.strokeRect(BX+3,19,BW-6,60);
-
-  // Approved medal remains an actual image, not a letter-only placeholder.
-  const symbol=data.emblem;
-  ctx.fillStyle="#0e1425";ctx.beginPath();ctx.arc(48,49,27,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle="#dbb76d";ctx.lineWidth=3;ctx.stroke();
-  const emblemImage=await loadFrontEmblem(symbol);
-  if(emblemImage && symbol){
-    const sx=symbol.col*symbol.cell,sy=symbol.row*symbol.cell;
-    ctx.drawImage(emblemImage,sx,sy,symbol.cell,symbol.cell,22,23,52,52);
-  } else {
-    ctx.fillStyle="#f8d78a";ctx.textAlign="center";ctx.font="700 20px Georgia,serif";ctx.fillText("✦",48,56);
-  }
-  ctx.fillStyle="#24140d";ctx.textAlign="center";
-  drawFittedText(ctx,data.name,182,45,data.badge?176:214,data.name.length>=17?17:22,"'Cormorant Garamond',Georgia,serif","700");
-  ctx.fillStyle="#55381f";
-  drawFittedText(ctx,data.subtitle,182,63,data.badge?174:214,10,"'Spectral',Georgia,serif");
-  if(data.badge){
-    ctx.fillStyle="#0d1934";ctx.beginPath();ctx.arc(297,49,26,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle="#edc478";ctx.lineWidth=3;ctx.stroke();
-    ctx.fillStyle="#fce5b2";ctx.textAlign="center";
-    ctx.font="700 8px 'Cinzel',Georgia,serif";ctx.fillText(data.badge.top,297,43);
-    drawFittedText(ctx,data.badge.value,297,60,40,16,"'Spectral',Georgia,serif","700");
-  }
-  ctx.textAlign="left";
-  const artX=BX,artY=84,artW=BW,artH=data.hasAbilities?166:195;
-  canvasBox(ctx,artX,artY,artW,artH,"#100d15","#d5ab64");
-  const artwork=element.querySelector("img");
-  let artworkDrawn=false;
-  try {
-    if(artwork?.complete && artwork.naturalWidth>0){
-      const iw=artwork.naturalWidth,ih=artwork.naturalHeight||iw;
-      const fit=Math.max(artW/iw,artH/ih),sw=artW/fit,sh=artH/fit;
-      ctx.drawImage(artwork,(iw-sw)/2,(ih-sh)/2,sw,sh,artX,artY,artW,artH);
-      artworkDrawn=true;
-    }
-  } catch {/* The card remains exportable without a remote image. */}
-  ctx.strokeStyle="#d5ab64";ctx.lineWidth=2;ctx.strokeRect(artX,artY,artW,artH);
-  // Matching the approved reference: a carved inner line and a gold central jewel.
-  ctx.strokeStyle="#fff2b7";ctx.lineWidth=0.8;ctx.strokeRect(artX+2,artY+2,artW-4,artH-4);
-  ctx.fillStyle="#b8282d";ctx.beginPath();ctx.moveTo(170,artY+artH-4);ctx.lineTo(175,artY+artH+1);ctx.lineTo(170,artY+artH+6);ctx.lineTo(165,artY+artH+1);ctx.closePath();ctx.fill();
-  ctx.strokeStyle="#f5c972";ctx.stroke();
-  const statsY=data.hasAbilities?250:279, statsH=42,stats=data.highlights;
-  if(stats.length){
-    const w=BW/stats.length;
-    const monsterWidths=data.type==="monster"&&stats.length===3?[80,80,150]:null;
-    // Match the preview: original approved CA/PF medallions are images, not emoji.
-    // Load each icon independently and keep a printable fallback if it is missing.
-    const statImages=await Promise.all(stats.map(async item=>{
-      const src=getFrontStatIcon(item.label);
-      if(!src)return null;
-      const icon=new Image();
-      try {
-        await new Promise((resolve,reject)=>{
-          icon.onload=resolve;
-          icon.onerror=reject;
-          icon.src=src;
-          if(icon.complete && icon.naturalWidth>0)resolve();
-        });
-        return icon;
-      } catch { return null; }
-    }));
-    stats.forEach((item,index)=>{
-      const cellWidth=monsterWidths?monsterWidths[index]:w;
-      const x=monsterWidths?BX+monsterWidths.slice(0,index).reduce((sum,v)=>sum+v,0):BX+index*w;
-      canvasBox(ctx,x,statsY,cellWidth,statsH,"#f9edcb","#ae783b");
-      const icon=statImages[index];
-      if(icon){
-        try {ctx.drawImage(icon,x+5,statsY+7,28,28);}
-        catch {/* Keep all numeric values readable if this browser rejects WebP. */}
-      }
-      const center=x+(icon?(cellWidth+34)/2:cellWidth/2);
-      const textWidth=cellWidth-(icon?38:8);
-      ctx.textAlign="center";ctx.fillStyle="#754726";
-      drawFittedText(ctx,item.label.toUpperCase(),center,statsY+15,textWidth,9,"'Cinzel',Georgia,serif","700");
-      ctx.fillStyle="#22150e";
-      drawFittedText(ctx,item.value,center,statsY+31,textWidth,item.label==="Vel."?11:14,"'Spectral',Georgia,serif","700");
-    });
-  } else {
-    canvasBox(ctx,BX,statsY,BW,statsH,"#f9edcb","#ae783b");
-    ctx.fillStyle="#624122";ctx.font="9px Georgia,serif";ctx.fillText("I DATI COMPARRANNO QUI",22,statsY+24);
-  }
-  if(data.hasAbilities){
-    const y=292,w=BW/6;
-    data.abilities.forEach((item,index)=>{
-      const x=BX+index*w;
-      canvasBox(ctx,x,y,w,44,"#fff3d4","#ad814a");
-      ctx.fillStyle="#6b4327";ctx.textAlign="center";
-      ctx.font="700 8px Georgia,serif";ctx.fillText(item.label,x+w/2,y+16);
-      ctx.fillStyle="#20150f";ctx.font="700 13px Georgia,serif";ctx.fillText(item.value,x+w/2,y+33,w-6);
-    });
-  }
-  const notesY=data.hasAbilities?336:321,notesH=data.hasAbilities?125:140;
-  const panel=ctx.createLinearGradient(0,notesY,0,notesY+notesH);
-  panel.addColorStop(0,"#fff6db");panel.addColorStop(1,"#efd6a6");
-  canvasBox(ctx,BX,notesY,BW,notesH,panel,"#a36d34");
-  ctx.textAlign="left";let yy=notesY+17;
-  data.details.forEach((item,index)=>{
-    ctx.fillStyle="#5c351f";ctx.font="700 9px 'Cinzel',Georgia,serif";
-    const str=item.label+": "+item.value;
-    drawFittedText(ctx,str,23,yy,294,10,"'Spectral',Georgia,serif","600");
-    yy+=15;
-  });
-  const description=data.description||"I dettagli appariranno dopo la selezione di un record.";
-  ctx.fillStyle="#342014";ctx.font="italic 11px 'Spectral',Georgia,serif";
-  const maxLines=Math.max(1,Math.min(5,Math.floor((notesY+notesH-yy-9)/13)));
-  drawWrappedText(ctx,description,23,yy+3,card?.id?235:(data.dice?246:291),13,maxLines);
-  if(data.dice){
-    const diceX=23,diceY=notesY+notesH-29;
-    canvasBox(ctx,diceX,diceY,68,25,"#8b1724","#e6b767");
-    ctx.textAlign="center";ctx.fillStyle="#fff1ce";
-    drawFittedText(ctx,data.dice,diceX+34,diceY+17,62,13,"'Cinzel',Georgia,serif","700");
-  }
-  // A saved card carries its QR on every fixed print/export path. Reuse the
-  // real SVG-free QR canvas from the preview so no secondary QR generator drifts.
-  const qr = element.querySelector('[data-card-qr] canvas');
-  if (card?.id && qr) {
-    try {
-      ctx.fillStyle="#ffffff";
-      ctx.fillRect(267,408,53,53);
-      ctx.drawImage(qr,270,411,47,47);
-      ctx.strokeStyle="#b07835";
-      ctx.lineWidth=1;
-      ctx.strokeRect(267,408,53,53);
-    } catch {
-      // Keep the card exportable even if a QR canvas is unavailable.
-    }
-  }
-  // Exactly the same ornate asset is placed over the preview and the PNG/PDF.
-  // Corners and vines occupy only the physical border and never cover data.
-  try {
-    const ornament = new Image();
-    await new Promise((resolve, reject) => {
-      ornament.onload = resolve;
-      ornament.onerror = reject;
-      ornament.src = ORNATE_FRAME_URL;
-      if (ornament.complete && ornament.naturalWidth > 0) resolve();
-    });
-    ctx.drawImage(ornament, 0, 0, width, height);
-  } catch {
-    // A browser that cannot rasterize SVG still gets the original gold border.
-  }
-  canvas.artworkDrawn=artworkDrawn;
-  return canvas;
+// All cards, including legacy records without a preview version tag, now
+// render with the SAME approved Monster v17 raster. No procedural fallback.
+export async function renderCardCanvas(element,card){
+ if(!element)throw new Error("Card render unavailable");
+ await waitForImages(element);
+ if(document.fonts?.ready)await document.fonts.ready;
+ return renderApprovedMaster(element,card);
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back

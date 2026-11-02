@@ -239,3 +239,22 @@ describe("Class description uses available parchment until the next sentence bou
    expect(bp.description.endsWith(".")).toBe(true);
  });
 });
+
+describe("One master: medallion values from each verified category",()=>{
+ it.each([
+   ["monster",{grado_sfida:"8"},{top:"GS",value:"8"}],
+   ["class",{dado_vita:"d10"},{top:"DV",value:"d10"}],
+   ["spell",{livello:"3"},{top:"LIV.",value:"3"}],
+   ["race",{taglia:"Media"},{top:"TAGLIA",value:"Media"}],
+   ["armor",{classe_armatura:"18"},{top:"CA",value:"18"}],
+   ["weapon",{danno:"1d8 + 3 taglienti"},{top:"DANNI",value:"1d8+3"}],
+   ["item",{rarita:"Raro"},{top:"RARITÀ",value:"Raro"}],
+ ])("%s shows only its own badge", (type,attributes,badge)=>{
+   expect(buildFrontBlueprint({type,name:"Esempio",attributes}).badge).toEqual(badge);
+ });
+ it("does not invent missing values",()=>{
+   expect(buildFrontBlueprint({type:"feat",name:"Esperto"}).badge).toBeNull();
+   expect(buildFrontBlueprint({type:"class",name:"Guerriero"}).badge).toBeNull();
+   expect(buildFrontBlueprint({type:"weapon",attributes:{danno:"variabile"}}).badge).toBeNull();
+ });
+});

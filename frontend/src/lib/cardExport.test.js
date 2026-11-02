@@ -76,7 +76,7 @@ const makeExportElement = () => {
   const qr = { toDataURL: () => "data:image/png;base64,qr" };
   return {
     querySelectorAll: () => [artwork],
-    querySelector: (selector) => (selector === "img" ? artwork : selector === "[data-card-qr] canvas" ? qr : null),
+    querySelector: (selector) => ((selector === "img" || selector === ".tf-v3-picture img") ? artwork : selector === "[data-card-qr] canvas" ? qr : null),
   };
 };
 
@@ -135,7 +135,7 @@ describe("card export renderers", () => {
     expect(front.height).toBe(CARD_CANVAS_SIZE.height * CARD_CANVAS_SIZE.scale);
     ["Drago Cremisi", "CA", "18", "PF", "152", "12 m", "2d10+6",
       "FOR", "DES", "COS", "INT", "SAG", "CAR"].forEach((fragment) => expect(text).toContain(fragment));
-    expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 310 && entry.args.at(-1) === 166)).toBe(true);
+    expect(front.operations.some((entry) => entry.name === "drawImage" && entry.args.at(-2) === 340 && entry.args.at(-1) === 476)).toBe(true);
     // Preview and the printed canvas must carry both original medallions.
     const statAssets=front.operations.filter(op=>op.name==="drawImage")
       .map(op=>op.args[0]?.src)
@@ -146,7 +146,7 @@ describe("card export renderers", () => {
     expect(text).not.toContain("MOSTRO");
     // Every recorded movement mode is preserved by the print renderer.
     expect(text).toContain("12 m");
-    expect(front.operations.some((op)=>op.name==="drawImage" && op.args.at(-2)===47 && op.args.at(-1)===47)).toBe(true);
+    expect(front.operations.some(op=>op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
   });
 
   it.each(["d4","d6","d8","d10","d12","d20"])("uses the correct %s illustrated jewel in export canvas", async(die)=>{
@@ -158,7 +158,7 @@ describe("card export renderers", () => {
     expect(images).toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
     expect(canvas.operations.some(op=>op.name==="drawImage" && op.args[0]?.src===`/card-art/class-dice/${die}-premium-v29.webp`)).toBe(true);
     // The approved image contains the inscription; export must not overprint it.
-    expect(written(canvas)).not.toContain(die);
+    expect(canvas.operations.some(op=>op.name==="fillText" && op.text===die && op.y>335)).toBe(false);
     expect(images).not.toContain("/card-art/class-d10-gem-v26.svg");
   });
 
@@ -224,9 +224,9 @@ describe("card export renderers", () => {
     };
     const front = await renderCardCanvas(makeExportElement(), card);
     const text = written(front);
-    ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "LANCIO", "GITTATA"].forEach((value) => expect(text).toContain(value));
+    ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "Lancio", "Gittata"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
-    expect(front.operations.some((op) => op.name === "drawImage" && op.args.at(-1) === 195)).toBe(true);
+    expect(front.operations.some(op => op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
   });
 
   it("keeps unchanged official backs, including the silver Personaggio variant", async () => {
@@ -323,20 +323,20 @@ describe("card export renderers", () => {
 
   it("keeps the artwork dimensions in preview-aligned cover-cropping", async () => {
     const artwork = { complete: true, naturalWidth: 270, naturalHeight: 200 };
-    const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
+    const element = {querySelectorAll: () => [artwork], querySelector: sel => (sel === "img" || sel === ".tf-v3-picture img") ? artwork : null};
     const front = await renderCardCanvas(element, { type: "spell", name: "Tempesta", attributes: { livello: "3" } });
     const op = front.operations.find(e => e.name === "drawImage" && e.args[0] === artwork);
     expect(op.args).toHaveLength(9);
-    expect(op.args.slice(-4)).toEqual([15, 84, 310, 195]);
+    expect(op.args.slice(-4)).toEqual([18, 72, 304, 117]);
     expect(front.artworkDrawn).toBe(true);
   });
 
   it("keeps the card and export functional when an artwork fails to load", async () => {
     const artwork = { complete: true, naturalWidth: 0 };
-    const element = {querySelectorAll: () => [artwork], querySelector: sel => sel === "img" ? artwork : null};
+    const element = {querySelectorAll: () => [artwork], querySelector: sel => (sel === "img" || sel === ".tf-v3-picture img") ? artwork : null};
     const front = await renderCardCanvas(element, { type: "item", name: "Spada", description: "Oggetto arcano." });
     expect(front.artworkDrawn).toBe(false);
-    expect(front.operations.some(op => op.name === "fillRect" && op.x === 15 && op.y === 84)).toBe(true);
+    expect(front.operations.some(op => op.name === "drawImage" && op.args[0]?.src === "/card-art/front-master-v17.webp")).toBe(true);
     expect(written(front)).toContain("Spada");
   });
 });

@@ -1,5 +1,4 @@
 import React from "react";
-import "../classApprovedV40.css";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
 import { FRONT_MASTER_URL } from "@/lib/frontMaster";
@@ -26,56 +25,10 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  },[hasArtwork]);
  const symbol=data.emblem;
  const detailsLink=publicDescriptionUrl(card);
- // Class v40 does NOT inherit or render the v17/v36/v38/v39 masters.
- // The user's approved gold ornament is a SINGLE background image; every
- // editable element (title, artwork, values, description, hit die) sits in a
- // bounded, undecorated well. In particular, no extra footer exists.
- if(data.type==="class"){
-   const approvedWarrior=String(data.name||"").trim().toLowerCase()==="guerriero";
-   const hasRealArtwork=!!(imgUrl||card.artwork_path)&&!artworkError;
-   const slotValues=["Abilità primaria","Tiri salvezza","Competenze"].map(label=>
-     data.highlights.find(item=>item.label===label)?.value||"");
-   return <div ref={ref} data-testid="card-front" data-front-version="40"
-     data-front-layout="single-approved-master-v40" data-front-category="class"
-     className={`tf-class-v40 ${exportMode?"tf-export-card":""}`}>
-     <img className="tf-class-v40-master" src={hasRealArtwork?"/card-art/class-master-v50-approved-window.webp":"/card-art/class-master-v50-approved-empty.webp"}
-       alt="" aria-hidden="true" draggable={false}/>
-     <h3 className={`tf-class-v40-name ${data.name.length>19?"tf-class-v40-long":""}`}>{data.name}</h3>
-     {!approvedWarrior&&symbol&&<div className="tf-class-v40-emblem" data-testid="front-emblem"
-       data-emblem-sprite={symbol.sprite} aria-label={symbol.label}>
-       <div className="tf-class-v40-emblem-symbol"
-         style={{backgroundImage:`url("${symbol.src}")`,
-           "--emblem-size":symbol.backgroundSize||"100% 100%",
-           "--emblem-position":symbol.backgroundPosition||"center"}}/>
-     </div>}
-     <div className="tf-class-v40-art" data-testid="front-artwork">
-       {hasRealArtwork?<img src={img} data-artwork-src={img} alt={data.name}
-         crossOrigin="anonymous" onError={handleError} draggable={false}/>
-         : <div className="tf-class-v40-art-empty" data-testid="front-artwork-empty"/>}
-       {editorMode&&!hasRealArtwork&&
-         <span className="tf-class-v40-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
-     </div>
-     <div className="tf-class-v40-values" data-testid="front-highlights">
-       {slotValues.map((value,i)=><div className="tf-class-v40-value"
-         data-stat-label={["Abilità primaria","Tiri salvezza","Competenze"][i]}
-         title={data.highlights.find(item=>item.label===["Abilità primaria","Tiri salvezza","Competenze"][i])?.fullValue||value}
-         key={i}><strong>{value}</strong></div>)}
-     </div>
-     <p className="tf-class-v40-description">{data.description||""}</p>
-     {data.classDieAsset&&<div className="tf-class-v40-die"
-       data-die={data.dice} aria-label={`Dado vita ${data.dice}`}
-       style={{backgroundImage:`url("${data.classDieAsset}")`}}>
-       <span>{data.dice}</span></div>}
-     {detailsLink&&<a className="tf-class-v40-qr" data-card-qr
-       href={detailsLink} target="_blank" rel="noopener noreferrer"
-       aria-label={`Apri la descrizione completa di ${data.name}`}>
-       <QRCodeCanvas value={detailsLink} size={36} level="M" marginSize={1}
-         bgColor="#ffffff" fgColor="#10131c"/>
-     </a>}
-   </div>;
- }
+ // Every category shares the exact Monster v17 illustrated master.
+ // Only data and inner content differ; never compose a second decorative plate.
  return <div ref={ref} data-testid="card-front" data-front-version="7"
-   data-front-category={data.type} data-front-layout="reference-master-v17"
+   data-front-category={data.type} data-front-layout="unified-monster-master-v17"
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,backgroundImage:`url(${FRONT_MASTER_URL})`}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
@@ -100,7 +53,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.badge&&<div className="tf-v3-badge"><small>{data.badge.top}</small><strong>{data.badge.value}</strong></div>}
      </header>
      <section className="tf-v3-picture">
-       <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>
+       {data.type==="class"&&!hasArtwork
+         ? <span data-testid="front-artwork-empty" aria-hidden="true"/>
+         : <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>}
        {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
@@ -139,7 +94,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
                data.dice.length<=3?"21px":data.dice.length<=4?"18px":data.dice.length<=5?"15px":"12px"
              }}>{data.dice}</strong>
            </div>
-         : <div className="tf-v3-dice" data-die={data.dice} style={data.classDieAsset?{backgroundImage:`url("${data.classDieAsset}")`}:undefined} aria-label={`Formula dado ${data.dice}`}>{data.dice}</div>)}
+         : <div className={`tf-v3-dice ${data.type==="class"?"tf-class-hit-die":""}`} data-die={data.dice} style={data.classDieAsset?{backgroundImage:`url("${data.classDieAsset}")`}:undefined} aria-label={data.type==="class"?`Dado vita ${data.dice}`:`Formula dado ${data.dice}`}>{data.classDieAsset?<span className="sr-only">{data.dice}</span>:data.dice}</div>)}
        {detailsLink&&<a className="tf-v3-qr" data-card-qr href={detailsLink}
            target="_blank" rel="noopener noreferrer" title="Apri la descrizione completa"
            aria-label={`Apri la descrizione completa di ${data.name}`}>
