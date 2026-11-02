@@ -49,14 +49,14 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
   });
 });
 
-describe("One Monster-derived artwork window for Class and Monster",()=>{
+describe("Class v50: SAME Monster artwork-window geometry across categories",()=>{
  const css=readFileSync(resolve(__dirname,"../classApprovedV40.css"),"utf8");
  const frameScope=exporter.slice(exporter.indexOf("async function renderClassApprovedV40"),exporter.indexOf("async function renderApprovedMaster"));
  it("reuses the approved Monster picture's gold edges, without changing Class-only wells",()=>{
    expect(component).toContain('data-front-layout="single-approved-master-v40"');
    expect(component).toContain('className="tf-class-v40-master"');
-   expect(component).toContain('"/card-art/class-monster-picture-empty-v49.webp"');
-   expect(component).toContain('"/card-art/class-monster-picture-alpha-v49.webp"');
+   expect(component).toContain('"/card-art/class-master-v50-approved-empty.webp"');
+   expect(component).toContain('"/card-art/class-master-v50-approved-window.webp"');
    expect(component).not.toContain('className="tf-v39-class-master"');
    expect(css).toContain("top:56.0%;width:89.5%;height:6.6%");
    expect(css).toContain(".tf-class-v40-description");
@@ -64,8 +64,8 @@ describe("One Monster-derived artwork window for Class and Monster",()=>{
    expect(exporter).toContain("wrapTextLines(ctx,value,maxWidth[i]).slice(0,3)");
  });
  it("stores two valid interchangeable rasters, with a REAL transparent artwork aperture",()=>{
-   const empty=readFileSync(resolve(__dirname,"../../public/card-art/class-monster-picture-empty-v49.webp"));
-   const alpha=readFileSync(resolve(__dirname,"../../public/card-art/class-monster-picture-alpha-v49.webp"));
+   const empty=readFileSync(resolve(__dirname,"../../public/card-art/class-master-v50-approved-empty.webp"));
+   const alpha=readFileSync(resolve(__dirname,"../../public/card-art/class-master-v50-approved-window.webp"));
    for(const bytes of [empty,alpha]){
      expect(bytes.subarray(0,4).toString()).toBe("RIFF");
      expect(bytes.subarray(8,12).toString()).toBe("WEBP");
@@ -76,8 +76,8 @@ describe("One Monster-derived artwork window for Class and Monster",()=>{
    expect(Buffer.compare(empty,alpha)).not.toBe(0);
  });
  it("never adds a second border, approximation, or legacy Class image mask",()=>{
-   expect(css).toContain("z-index:1;left:4.883%;top:19.2%");
-   expect(css).toContain("width:90.234%;height:29.455%");
+   expect(css).toContain("z-index:1;left:4.75%;top:17.0%");
+   expect(css).toContain("width:90.5%;height:28.5%");
    expect(css).toContain(".tf-class-v40-master");
    expect(css).not.toContain("class-art-window-mask-v46.png");
    expect(css).not.toContain("border-radius:4.45% / 9.6%");
@@ -85,7 +85,10 @@ describe("One Monster-derived artwork window for Class and Monster",()=>{
    expect(frameScope).not.toContain('globalCompositeOperation="destination-in"');
    expect(frameScope).not.toContain("ctx.quadraticCurveTo");
    expect(frameScope.indexOf("ctx.drawImage(art,")).toBeLessThan(frameScope.indexOf("ctx.drawImage(master,0,0,width,height)"));
-   expect(frameScope).toContain("/card-art/class-monster-picture-empty-v49.webp");
-   expect(frameScope).toContain("/card-art/class-monster-picture-alpha-v49.webp");
+   expect(frameScope).toContain("/card-art/class-master-v50-approved-empty.webp");
+   expect(frameScope).toContain("/card-art/class-master-v50-approved-window.webp");
+   expect(frameScope).toContain("const x=width*.0475,y=height*.17,w=width*.905,h=height*.285;");
+   expect(css).toContain("top:64.4%");
+   expect(frameScope).toContain("height*.666");
  });
 });
