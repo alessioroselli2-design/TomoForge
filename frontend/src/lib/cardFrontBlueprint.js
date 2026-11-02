@@ -176,6 +176,19 @@ export const buildFrontBlueprint = (card = {}) => {
     if (["spell","character","subclass","feature"].includes(type))
       return text(attrs.livello) ? {top:"LIV.", value:text(attrs.livello)} : null;
     if (type === "item") return text(attrs.rarita) ? {top:"RARITÀ",value:text(attrs.rarita)} : null;
+    if (type === "race"){
+      const size=text(attrs.taglia || attrs.size);
+      return size ? {top:"TAGLIA",value:size} : null;
+    }
+    if (type === "armor"){
+      const ca=text(attrs.classe_armatura || attrs.ca);
+      return ca ? {top:"CA",value:ca} : null;
+    }
+    if (type === "weapon"){
+      const damage=text(attrs.danno || attrs.danni);
+      const dice=damage.match(/\\b\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?\\b/i);
+      return dice ? {top:"DANNI",value:dice[0].replace(/\\s+/g,"")} : null;
+    }
     return null;
   })();
   const cleanMain = (value) => String(value).split("(")[0].trim();
