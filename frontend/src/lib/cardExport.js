@@ -3,6 +3,7 @@ import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
+import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -152,8 +153,8 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?1:1.2)},
-     {x:m.x,y:m.y,size:m.r*2*(s.sprite==="guerriero-crest"?1.08:(data.type==="class"?.9:1))},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?(s.sprite==="guerriero-crest"?1.38:1.23):1.2)},
+     {x:m.x,y:m.y,size:m.r*2},
      dragon?.37:.35,dragon?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
@@ -183,7 +184,20 @@ async function renderApprovedMaster(element,card) {
    const labelCenter=cx;
    const max=cellW-12;
    let valueCenter=cx,valueMaxWidth=max;
-   if(icon) {
+   if(data.type==="class"){
+     ctx.textAlign="center";ctx.fillStyle="#51301c";
+     drawFittedText(ctx,it.label,cx,statY+10,max,7.3,"Georgia,serif","700");
+     const left=cx-cellW/2+9;
+     if(icon)ctx.drawImage(icon,left,statY+20,14,14);
+     ctx.fillStyle="#1d140c";ctx.font="700 7.4px Georgia,serif";
+     const maxText=cellW-(icon?32:15);
+     const lines=wrapTextLines(ctx,it.value,maxText).slice(0,4);
+     const first=statY+23-(lines.length-1)*2.1;
+     ctx.textAlign="left";
+     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?17:0),first+n*7.9,maxText));
+     return;
+   }
+   if(icon&&data.type!=="class"){
      // Exactly the same centered [rune + 5px gap + value] flex group as CSS.
      const runeSize=17,gap=5;
      ctx.font="700 14px Georgia,serif";
@@ -193,18 +207,6 @@ async function renderApprovedMaster(element,card) {
      ctx.drawImage(icon,runeLeft,statY+19,runeSize,runeSize);
      valueCenter=runeLeft+runeSize+gap+renderedTextWidth/2;
      valueMaxWidth=Math.max(12,renderedTextWidth);
-   }
-   if(data.type==="class"){
-     // The Monster's three real parchment cells provide the Class labels and
-     // concise values. No additional graphical panels are painted.
-     ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,labelCenter,statY+10,max,7.3,"Georgia,serif","700");
-     ctx.fillStyle="#1d140c";ctx.font="700 7px Georgia,serif";
-     const full=it.fullValue||it.value;
-     const lines=wrapTextLines(ctx,full,max-15).slice(0,4);
-     const first=statY+27-(lines.length-1)*3.6;
-     lines.forEach((line,n)=>ctx.fillText(line,labelCenter+6,first+n*7.3,max-15));
-     return;
    }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,labelCenter,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
@@ -237,20 +239,15 @@ async function renderApprovedMaster(element,card) {
  });
  const desc=(data.type==="class"?data.fullDescription:data.description)||"I dettagli appariranno dopo la selezione di un record.";
  if(data.type==="class"){
-   // Full class narrative: fit all available words instead of clipping it
-   // to an arbitrary sentence or character limit.
-   const x=32,y=263,w=195,h=164;
-   let lines=[],fontSize=9.4,lineHeight=11;
-   for(;fontSize>=4.3;fontSize-=.25){
-     ctx.font=`${fontSize}px Spectral,Georgia,serif`;
-     lines=wrapTextLines(ctx,desc,w);
-     lineHeight=fontSize*1.16;
-     if(lines.length*lineHeight<=h)break;
-   }
+   // Print exactly the maximum number of complete sentences that fit.
+   // No scrollable text and no sentence cut at an arbitrary character count.
+   const x=32,y=260,w=195,h=169,fontSize=9,lineHeight=10.53;
+   ctx.font=`${fontSize}px Spectral,Georgia,serif`;
+   const fitted=fitClassDescription(desc,text=>
+     wrapTextLines(ctx,text,w).length*lineHeight<=h);
+   const lines=wrapTextLines(ctx,fitted,w);
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
-   lines.forEach((line,i)=>{
-     if(y+i*lineHeight<=y+h)ctx.fillText(line,x,y+i*lineHeight,w);
-   });
+   lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
      if(jewel)ctx.drawImage(jewel,240,335,72,75);

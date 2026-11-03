@@ -320,7 +320,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
    expect(c.dataset.categoryLayout).toBe("class-v1");
-   expect([...c.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["DVd10"]);
+   expect(c.querySelector(".tf-v3-badge")).toBeNull();
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
  });

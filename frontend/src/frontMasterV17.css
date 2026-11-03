@@ -341,3 +341,46 @@
  background-position:0 89.91495%,center center!important;
  background-repeat:no-repeat,no-repeat!important;
 }
+
+// Solo Classe: simbolo scelto dal record, grande e centrato; nessun dado in alto.
+.tf-front-master-v17[data-front-category="class"] .tf-v3-badge{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ transform:scale(1.23)!important;transform-origin:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-crest"] .tf-v3-sprite{
+ transform:scale(1.38)!important;-webkit-mask-image:none!important;mask-image:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text{
+ position:absolute!important;top:2px!important;left:50%!important;width:98%!important;
+ transform:translateX(-50%)!important;display:flex!important;
+ flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+ gap:3px!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>span{
+ font:700 7.35px/1.05 Georgia,serif!important;white-space:nowrap!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-value-row{
+ display:flex!important;width:100%!important;max-width:100%!important;
+ height:30px!important;max-height:30px!important;gap:3px!important;
+ justify-content:center!important;align-items:center!important;
+ overflow:hidden!important;margin:0!important;padding:0 2px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-value-row>.tf-v6-stat-icon{
+ position:static!important;display:block!important;flex:0 0 14px!important;
+ width:14px!important;min-width:14px!important;max-width:14px!important;
+ height:14px!important;max-height:14px!important;object-fit:contain!important;transform:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-value-row>strong{
+ flex:0 1 auto!important;max-width:calc(100% - 18px)!important;
+ max-height:30px!important;overflow:hidden!important;
+ font:700 7.4px/1.06 Georgia,serif!important;
+ white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;
+ margin:0!important;padding:0!important;text-align:left!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats [data-stat-label="Competenze"] .tf-v6-stat-value-row>strong{font-size:7.1px!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-desc{
+ top:5%!important;height:90%!important;max-height:90%!important;
+ overflow:hidden!important;overflow-y:hidden!important;
+ display:block!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;
+ font:9px/1.17 Spectral,Georgia,serif!important;
+}

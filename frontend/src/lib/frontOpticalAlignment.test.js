@@ -11,12 +11,12 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:(data.type==="class"?1:1.2)');
+    expect(exporter).toContain('zoom:dragon?1.28:(data.type==="class"?(s.sprite==="guerriero-crest"?1.38:1.23):1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
-    // On the shared raster only the class icon shrinks, never the gold rim.
+    // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
     expect(finalMaster).toContain('data-emblem-sprite="guerriero-crest"');
-    expect(exporter).toContain('size:m.r*2*(s.sprite==="guerriero-crest"?1.08:');
+    expect(exporter).toContain("size:m.r*2},");
     expect(component).toContain('data.type==="class"&&(!hasArtwork||artworkError)');
     expect(component).toContain('editorMode&&!hasArtwork');
   });

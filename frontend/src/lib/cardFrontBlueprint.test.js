@@ -243,7 +243,7 @@ describe("Class description uses available parchment until the next sentence bou
 describe("One master: medallion values from each verified category",()=>{
  it.each([
    ["monster",{grado_sfida:"8"},{top:"GS",value:"8"}],
-   ["class",{dado_vita:"d10"},{top:"DV",value:"d10"}],
+   ["class",{dado_vita:"d10"},null],
    ["spell",{livello:"3"},{top:"LIV.",value:"3"}],
    ["race",{taglia:"Media"},{top:"TAGLIA",value:"Media"}],
    ["armor",{classe_armatura:"18"},{top:"CA",value:"18"}],

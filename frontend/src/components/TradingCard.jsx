@@ -7,6 +7,7 @@ import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { fitClassDescription } from "@/lib/classDescriptionFit";
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
  const data=buildFrontBlueprint(card);
@@ -26,6 +27,42 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  },[hasArtwork]);
  const symbol=data.emblem;
  const detailsLink=publicDescriptionUrl(card);
+ const descriptionRef=React.useRef(null);
+ const [printedClassDescription,setPrintedClassDescription]=React.useState(data.description);
+ React.useLayoutEffect(()=>{
+   if(data.type!=="class")return undefined;
+   const node=descriptionRef.current;
+   if(!node)return undefined;
+   let disposed=false;
+   const update=()=>{
+     if(disposed)return;
+     const width=node.clientWidth,height=node.clientHeight;
+     if(width<=0||height<=0){setPrintedClassDescription(data.description);return;}
+     const style=window.getComputedStyle(node);
+     const probe=document.createElement("div");
+     Object.assign(probe.style,{
+       position:"fixed",left:"-10000px",top:"-10000px",visibility:"hidden",
+       boxSizing:"border-box",width:`${width}px`,height:"auto",maxHeight:"none",
+       margin:"0",padding:"0",border:"0",overflow:"visible",
+       fontFamily:style.fontFamily,fontSize:style.fontSize,fontWeight:style.fontWeight,
+       lineHeight:style.lineHeight,letterSpacing:style.letterSpacing,
+       overflowWrap:style.overflowWrap,whiteSpace:"normal",
+     });
+     document.body.appendChild(probe);
+     try{
+       const fitted=fitClassDescription(data.fullDescription,text=>{
+         probe.textContent=text;
+         return probe.getBoundingClientRect().height<=height+.5;
+       });
+       setPrintedClassDescription(fitted);
+     }finally{probe.remove();}
+   };
+   update();
+   const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(update):null;
+   observer?.observe(node);
+   if(document.fonts?.ready)document.fonts.ready.then(update).catch(()=>{});
+   return ()=>{disposed=true;observer?.disconnect();};
+ },[data.type,data.fullDescription,data.description]);
  // Every category shares the exact Monster v17 illustrated master.
  // Only data and inner content differ; never compose a second decorative plate.
  return <div ref={ref} data-testid="card-front" data-front-version="7"
@@ -70,9 +107,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
              {statIcon
                ? <div className="tf-v6-stat-value-row">
                    <img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>
-                   <strong>{data.type==="class"?item.fullValue:item.value}</strong>
+                   <strong>{item.value}</strong>
                  </div>
-               : <strong>{data.type==="class"?item.fullValue:item.value}</strong>}
+               : <strong>{item.value}</strong>}
            </div>
          </div>;
        }):<div className="tf-v3-stat tf-v3-empty">I DATI COMPARRANNO QUI</div>}
@@ -87,7 +124,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
          {data.details.slice(0,2).map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
        </div>}
        {data.showDescriptionLabel&&<span className="tf-v7-description-label">Descrizione</span>}
-       <p className="tf-v3-desc">{(data.type==="class"?data.fullDescription:data.description)||"I dettagli appariranno dopo la selezione di un record."}</p>
+       <p ref={data.type==="class"?descriptionRef:undefined} className="tf-v3-desc">{(data.type==="class"?printedClassDescription:data.description)||"I dettagli appariranno dopo la selezione di un record."}</p>
        {data.dice&&(data.type==="spell"&&data.spellDieAsset
          ? <div className="tf-v3-spell-dice" data-die={data.spellDie} aria-label={`Danni ${data.dice}`}>
              <img src={data.spellDieAsset} alt="" aria-hidden="true" draggable={false}/>
