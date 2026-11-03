@@ -358,11 +358,12 @@
  * creare caselle, immagini segnaposto, bordi o sfondi aggiuntivi.
  */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- left:7.1%!important;top:4.05%!important;width:16.4%!important;height:auto!important;
+ left:7.1%!important;top:4.05%!important;width:16.47059%!important;height:auto!important;
  background:transparent!important;border:0!important;box-shadow:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
- transform:scale(1.1)!important;transform-origin:center!important;
+ /* Same full-circle optical scale as the approved Red Dragon monster emblem. */
+ transform:scale(1.28)!important;transform-origin:center!important;
  -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 61%,transparent 81%)!important;
  mask-image:radial-gradient(circle closest-side,#000 0%,#000 61%,transparent 81%)!important;
 }
