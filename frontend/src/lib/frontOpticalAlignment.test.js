@@ -116,3 +116,18 @@ describe("Originale immutabile carte Classe — campi indipendenti",()=>{
    expect(component).toContain('data.type!=="class"');
  });
 });
+describe("Classe: medaglione ottico al livello del Drago Rosso",()=>{
+ it("uses the signed-off 168px Warrior shield instead of the rejected SVG",()=>{
+   const mapping=readFileSync(resolve(__dirname,"./frontEmblems.js"),"utf8");
+   expect(mapping).toContain('/card-art/guerriero-reference-original-v36.webp');
+   expect(mapping).not.toContain('guerriero-crest-optical-v2.svg');
+ });
+ it("gives class icons the same 1.28 enlargement as Dragon without scaling the outer ring",()=>{
+   const classBlock=finalMaster.slice(finalMaster.lastIndexOf('Master Classe firmato 03/11/2026'));
+   expect(classBlock).toContain('width:16.47059%!important');
+   expect(classBlock).toContain('transform:scale(1.28)!important');
+   expect(classBlock).toContain('background:transparent!important;border:0!important;box-shadow:none!important');
+   expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
+   expect(exporter).toContain('x:data.type==="class"?52:m.x,y:data.type==="class"?47:m.y');
+ });
+});
