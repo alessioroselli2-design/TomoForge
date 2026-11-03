@@ -293,7 +293,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    await act(async()=>root.render(<CardFront card={card}/>));
    return {mount,root,close:async()=>{await act(async()=>root.unmount());mount.remove()}};
  };
- it("keeps the Monster unchanged and uses the SAME raster for the Warrior",async()=>{
+ it("keeps the Monster unchanged and uses the precise user-approved Class raster",async()=>{
    const monster=await mountCard({type:"monster",name:"Drago",attributes:{
      classe_armatura:"18",punti_ferita:"200",grado_sfida:"14"}});
    const warrior=await mountCard({type:"class",name:"Guerriero",attributes:{
@@ -302,14 +302,14 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    },description:"Una frase completa. Una seconda frase completa."});
    const m=monster.mount.querySelector("[data-testid='card-front']");
    const c=warrior.mount.querySelector("[data-testid='card-front']");
-   expect(c.dataset.frontVersion).toBe("7");
+   expect(c.dataset.frontLayout).toBe("class-user-original-20261103");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
-   expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.dataset.frontLayout).not.toBe(m.dataset.frontLayout);
+   expect(c.dataset.classMasterSrc).toBe("/card-art/class-user-original-20261103.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/class-user-original-20261103.jpg");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
-   expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
+   expect(c.style.backgroundImage).toContain("/card-art/class-user-original-20261103.jpg");
+   expect(c.querySelectorAll(".tf-class-user-parchment")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
      .toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
@@ -319,7 +319,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
+   expect(c.dataset.classMasterSrc).toBe("/card-art/class-user-original-20261103.jpg");
    expect(c.querySelector(".tf-v3-badge")).toBeNull();
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
@@ -340,7 +340,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-user-original-20261103.jpg");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();

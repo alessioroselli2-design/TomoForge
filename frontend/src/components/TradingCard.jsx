@@ -8,8 +8,9 @@ import { getApprovedBack } from "@/lib/cardBacks";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
+import { ClassCardFront } from "./ClassCardFront";
 
-export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
+const StandardCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
  const data=buildFrontBlueprint(card);
  const layout=categoryFrontLayout(data.type);
  const [artworkError,setArtworkError]=React.useState(false);
@@ -144,6 +145,14 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
 
  </div>;
 });
+StandardCardFront.displayName="StandardCardFront";
+
+// A Class uses the user-supplied, immutable master. Other categories keep v17.
+export const CardFront=React.forwardRef((props,ref)=>
+  props.card?.type==="class"
+    ? <ClassCardFront {...props} ref={ref}/>
+    : <StandardCardFront {...props} ref={ref}/>
+);
 CardFront.displayName="CardFront";
 
 export const CardBack=React.forwardRef(({card,exportMode},ref)=>{

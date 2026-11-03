@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { createHash } from "crypto";
 
 const base=readFileSync(resolve(__dirname,"../index.css"),"utf8");
 const finalMaster=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
@@ -58,15 +59,17 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-approved-v4.webp"));
-   expect(master.subarray(0,4).toString()).toBe("RIFF");
-   expect(master.subarray(8,12).toString()).toBe("WEBP");
+   const master=readFileSync(resolve(root,"class-user-original-20261103.jpg"));
+   expect(master.subarray(0,3).toString("hex")).toBe("ffd8ff");
+   // Byte-for-byte integrity check against the exact user-uploaded JPG.
+   expect(createHash("sha256").update(master).digest("hex")).toBe("e0077e11a65cb716b951e56cdec86e4948074e4a55b01ea9b34183f7916c8b8b");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-approved-v4.webp"');
+   expect(layouts).toContain('master:"/card-art/class-user-original-20261103.jpg"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
+   expect(exporter).toContain('renderUserOriginalClassCanvas(element,card,CARD_CANVAS_SIZE)');
  });
 
  it("has one authoritative Class CSS block, no obsolete height cap and no scrolling",()=>{
