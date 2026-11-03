@@ -5,6 +5,7 @@ import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
+import { renderUserOriginalClassCanvas } from "@/lib/renderUserOriginalClass";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
@@ -301,6 +302,7 @@ export async function renderCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
  await waitForImages(element);
  if(document.fonts?.ready)await document.fonts.ready;
+ if(card?.type==="class")return renderUserOriginalClassCanvas(element,card,CARD_CANVAS_SIZE);
  return renderApprovedMaster(element,card);
 }
 
