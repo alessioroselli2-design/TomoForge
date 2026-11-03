@@ -2,6 +2,7 @@ import React from "react";
 import { CardFront } from "@/components/TradingCard";
 
 const CLASS_MASTER = "/card-art/class-master-user-final-20261103.jpg";
+const CLASS_NAMES = ["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco","Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
 
 // Standalone read-only acceptance preview: no API, login, drafts or records.
 // A single raster is the complete decorative master. CardFront overlays only
@@ -34,7 +35,8 @@ const EXAMPLES = {
 
 export default function ClassMasterPreview() {
   const [variant, setVariant] = React.useState("warrior");
-  const card = EXAMPLES[variant];
+  // Other classes exercise the real emblem mapper without inventing statistics.
+  const card = EXAMPLES[variant] || {type:"class",name:variant.replace(/^class:/,""),description:"",attributes:{}};
   return (
     <main className="min-h-screen bg-obsidian text-foreground px-3 py-7"
       data-testid="class-master-reference-20261103">
@@ -64,6 +66,19 @@ export default function ClassMasterPreview() {
             </button>
           ))}
         </nav>
+        <div className="flex flex-col items-center gap-1 mb-5">
+          <label htmlFor="class-medal-check" className="text-gold text-sm font-label">
+            Verifica il simbolo di tutte le 13 classi
+          </label>
+          <select id="class-medal-check" value={variant} onChange={event=>setVariant(event.target.value)}
+            className="w-[min(340px,92vw)] bg-obsidian border border-gold-deep text-gold px-3 py-2 text-base">
+            <option value="empty">Modello vuoto</option>
+            <option value="warrior">Guerriero (dati di prova)</option>
+            <option value="druid">Druido (dati di prova)</option>
+            {CLASS_NAMES.filter(name=>!["Guerriero","Druido"].includes(name)).map(name=>
+              <option key={name} value={"class:"+name}>{name} (solo simbolo e titolo)</option>)}
+          </select>
+        </div>
         <div className="flex flex-wrap justify-center items-start gap-6">
           <figure className="w-[min(340px,92vw)]">
             <img src={CLASS_MASTER} alt="Cornice originale approvata, vuota"
@@ -78,7 +93,7 @@ export default function ClassMasterPreview() {
             </div>
             <figcaption className="text-gold text-xs mt-3 font-label">
               Applicazione dinamica · {variant === "empty" ? "vuota" :
-                variant === "warrior" ? "Guerriero" : "Druido"}
+                variant === "warrior" ? "Guerriero" : variant === "druid" ? "Druido" : card.name}
             </figcaption>
           </figure>
         </div>
