@@ -52,7 +52,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      try{
        const fitted=fitClassDescription(data.fullDescription,text=>{
          probe.textContent=text;
-         return probe.getBoundingClientRect().height<=height+.5;
+         return probe.getBoundingClientRect().height<=height-2;
        });
        setPrintedClassDescription(fitted);
      }finally{probe.remove();}

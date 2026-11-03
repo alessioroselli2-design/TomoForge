@@ -3,6 +3,7 @@
 import { typeLabel, attrLabel } from "./cardTypes";
 import { getFrontEmblem } from "./frontEmblems";
 import { normalizeClassHitDie, classHitDieAsset } from "./classHitDice";
+import { classPrintNarrative } from "./classPrintNarrative";
 
 const THEMES = {
   monster: { accent: "#b5534f", shadow: "#341b28" },
@@ -76,20 +77,18 @@ const shortText = (value, max = 62) => String(value || "").length > max
 // Small printed summary only. The complete verified value remains in fullValue
 // (and the QR details); no database field is changed or discarded.
 const classWellText=(label,raw)=>{
-  const value=String(raw||"").replace(/\s+/g," ").trim();
-  if(label==="Competenze"){
-    const groups=[
-      /\barmatur[ae]\b/i.test(value)?"Armature":null,
-      /\bscud[io]\b/i.test(value)?"scudi":null,
-      /\barmi\b/i.test(value)?"armi":null,
-    ].filter(Boolean);
-    if(groups.length>=2)
-      return groups.length===2?groups.join(" e "):"Armature, scudi e armi";
-  }
-  const max=label==="Competenze"?34:39;
-  if(value.length<=max)return value;
-  const end=value.slice(0,max+1).lastIndexOf(" ");
-  return value.slice(0,end>max*.55?end:max).trimEnd()+"…";
+ const value=String(raw||"").replace(/\s+/g," ").trim();
+ if(label==="Competenze"){
+   const lower=value.toLowerCase();
+   if(/tutte le armature|armature leggere.*medie.*pesanti/.test(lower)
+      && /armi semplici/.test(lower) && /(?:da guerra|marziali)/.test(lower))
+     return "Tutte le armature, scudi, armi semplici e da guerra";
+   if(value.length<=34)return value;
+ }
+ const max=label==="Competenze"?34:43;
+ if(value.length<=max)return value;
+ const end=value.slice(0,max+1).lastIndexOf(" ");
+ return value.slice(0,end>max*.55?end:max).trimEnd()+"…";
 };
 
 // Exact original stays in classLegacyText; a printed card displays a word-safe teaser.
@@ -208,6 +207,7 @@ export const buildFrontBlueprint = (card = {}) => {
     ? pick(attrs, ["_legacy_full_text_before_20261024", "legacy_full_text_before_20261024"])
     : "";
   const hitDie = type === "class" ? pick(attrs, ["dado_vita", "dadi_vita"]) : "";
+  const printedClassNarrative = type === "class" ? classPrintNarrative(card,classLegacyText) : "";
   const classDie = normalizeClassHitDie(hitDie);
   // A spell's dice are damage (e.g. 8d6+2), not Class hit dice.
   // Reuse the approved premium jewel for its actual polyhedron, while keeping
@@ -224,12 +224,12 @@ export const buildFrontBlueprint = (card = {}) => {
     spellDie, spellDieAsset: type === "spell" && spellDie
       ? `/card-art/spell-dice/${spellDie}-${["d12","d20"].includes(spellDie)?"clean-v32":"blank-v31"}.webp` : "",
     description: type === "class"
-      ? classExcerpt(classLegacyText || card.description,390)
+      ? classExcerpt(printedClassNarrative,390)
       : shortText(card.description,235),
     classLegacyText,
     // Unlike the historical preview teaser, the class interior displays the full
     // verified description. Never add ellipses or drop sentences from the source.
-    fullDescription: type==="class" ? String(classLegacyText||card.description||"").trim() : "",
+    fullDescription: type==="class" ? printedClassNarrative : "",
     showDescriptionLabel: type !== "class",
     hasAbilities: abilities.length > 0,
   };

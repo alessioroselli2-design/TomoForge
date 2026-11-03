@@ -246,99 +246,107 @@
 
 
 
-/* Class master v4 — three fixed sections at the exact proportions approved
-   for the Class card. This is ONE raster background, no stacked panels. */
+/* CLASS V5 — ONE ENGRAVED MASTER. This class-only block is the sole
+   category layout. The Monster gold frame and Monster rules above are frozen.
+   Constant headers are baked into the full-resolution master. */
 .tf-front-master-v17[data-front-category="class"]{
- background-size:100% 100%!important;
- background-position:center!important;
+ background-size:100% 100%!important;background-position:center!important;
  background-repeat:no-repeat!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-badge,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
-/* Optical treatment of every Class emblem uses the approved Dragon's slot.
-   The underlying medallion, decorative ring and Monster CSS never change. */
+/* Same gold medal slot and placement as the approved Red Dragon.
+   The actual symbol is selected by each Class record. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
- transform:scale(1.28)!important;transform-origin:center!important;
- -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
- mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
+ transform:scale(1.42)!important;transform-origin:50% 50%!important;
+ -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.9) 71%,transparent 88%)!important;
+ mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.9) 71%,transparent 88%)!important;
 }
-/* Illustration takes the same large image field in every Class master. */
+/* The 512px Warrior SVG has more blank margins than the atlas symbols.
+   Adjust its OPTICAL size only, never the gold frame or the medallion slot. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="guerriero-crest"] .tf-v3-sprite{
+ transform:scale(1.86)!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+ font-size:20px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles p{
+ font-size:9.4px!important;
+}
+/* Uploaded artwork never paints over the approved gold border. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
  top:15.49865%!important;height:30.99730%!important;
 }
-/* Carved Class stats: fixed three equal-purpose bays (690–925 on 1484px). */
+/* Exactly three locked engraving wells: source coordinates 690–925. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
  top:46.49596%!important;height:15.83558%!important;
- grid-template-columns:32% 35% 33%!important;
- overflow:hidden!important;
+ grid-template-columns:32% 35% 33%!important;overflow:hidden!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats>.tf-v3-stat{
  position:relative!important;display:block!important;height:100%!important;
  min-width:0!important;overflow:hidden!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
- position:absolute!important;left:50%!important;top:12.5%!important;
+ position:absolute!important;left:50%!important;top:10%!important;
  transform:translateX(-50%)!important;
- width:98%!important;max-width:98%!important;height:85%!important;
- display:flex!important;flex-direction:column!important;
- justify-content:flex-start!important;align-items:center!important;
- gap:16px!important;text-align:center!important;overflow:hidden!important;
+ width:97%!important;max-width:97%!important;height:88%!important;
  margin:0!important;padding:0!important;
+ display:block!important;overflow:hidden!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>span{
- font:700 9.8px/1.06 Georgia,serif!important;
- white-space:normal!important;max-height:22px!important;overflow:hidden!important;
+ position:absolute!important;opacity:0!important;pointer-events:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row{
- position:static!important;display:flex!important;flex-direction:row!important;
- justify-content:center!important;align-items:center!important;
- width:100%!important;max-width:100%!important;height:auto!important;
- max-height:42px!important;gap:4px!important;
- padding:0 3px!important;margin:0!important;box-sizing:border-box!important;
- overflow:hidden!important;
+ position:absolute!important;left:0!important;top:35%!important;
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ justify-content:center!important;width:100%!important;max-width:100%!important;
+ height:65%!important;max-height:65%!important;min-height:0!important;
+ gap:3px!important;box-sizing:border-box!important;
+ margin:0!important;padding:0 3px!important;overflow:hidden!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>.tf-v6-stat-icon{
- position:static!important;display:block!important;flex:0 0 19px!important;
- width:19px!important;min-width:19px!important;max-width:19px!important;
- height:19px!important;max-height:19px!important;object-fit:contain!important;
- margin:0!important;padding:0!important;transform:none!important;
- border:0!important;clip-path:none!important;filter:none!important;
+ position:static!important;display:block!important;flex:0 0 17px!important;
+ width:17px!important;min-width:17px!important;max-width:17px!important;
+ height:17px!important;max-height:17px!important;object-fit:contain!important;
+ margin:0!important;padding:0!important;transform:none!important;border:0!important;
+ filter:none!important;clip-path:none!important;
  -webkit-mask-image:none!important;mask-image:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>strong{
  position:static!important;display:block!important;flex:0 1 auto!important;
- min-width:0!important;max-width:calc(100% - 23px)!important;
- max-height:42px!important;height:auto!important;overflow:hidden!important;
- font:700 9.1px/1.09 Georgia,serif!important;text-align:left!important;
- white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;
- text-overflow:clip!important;margin:0!important;padding:0!important;
+ min-width:0!important;max-width:calc(100% - 20px)!important;
+ height:auto!important;max-height:100%!important;
+ font:700 7.7px/1.04 Georgia,serif!important;
+ text-align:left!important;white-space:normal!important;
+ overflow-wrap:normal!important;word-break:normal!important;
+ text-overflow:clip!important;overflow:hidden!important;
+ margin:0!important;padding:0!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats [data-stat-label="Competenze"] .tf-v6-stat-value-row>strong{
- font-size:8.5px!important;
+ font-size:6.6px!important;line-height:1.02!important;
 }
-/* The only description bay is the single uninterrupted parchment
-   between y=925 and y=1370; it cannot scroll or overlap the other bays. */
+/* Single spacious parchment; source pixels 925–1390. Die sits to its
+   right; description fits by whole sentences without any scrolling. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-parchment{
- top:62.33154%!important;height:29.98652%!important;
+ top:62.33154%!important;height:31.33423%!important;
  overflow:hidden!important;background:transparent!important;
  border:0!important;box-shadow:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
- position:absolute!important;left:4.6%!important;top:14%!important;
- width:64%!important;max-width:64%!important;
- height:80%!important;max-height:80%!important;
- padding:0!important;margin:0!important;box-sizing:border-box!important;
- display:block!important;color:#28190f!important;background:transparent!important;
- font:8px/1.13 'Spectral',Georgia,serif!important;
- text-align:left!important;white-space:normal!important;
- overflow:hidden!important;overflow-y:hidden!important;
+ position:absolute!important;left:2.5%!important;top:9%!important;
+ width:70%!important;max-width:70%!important;height:64%!important;
+ max-height:64%!important;padding:0!important;margin:0!important;
+ display:block!important;box-sizing:border-box!important;
+ color:#27170e!important;background:transparent!important;
+ font:8px/1.16 Georgia,serif!important;text-align:left!important;
+ white-space:normal!important;overflow:hidden!important;overflow-y:hidden!important;
  -webkit-line-clamp:unset!important;line-clamp:unset!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
- position:absolute!important;left:auto!important;right:-1%!important;
- top:26%!important;bottom:auto!important;
- width:72px!important;height:75px!important;max-width:none!important;
+ position:absolute!important;left:auto!important;right:0%!important;
+ top:12%!important;bottom:auto!important;
+ width:63px!important;height:68px!important;max-width:none!important;
  margin:0!important;padding:0!important;border:0!important;
  border-radius:0!important;box-shadow:none!important;
  background-color:transparent!important;background-size:contain!important;
