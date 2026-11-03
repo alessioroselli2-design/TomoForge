@@ -58,13 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // An independent 512px vector master replaces the blurry 44px atlas tile.
- // The existing gold circular card well stays entirely untouched.
+ // Use the original approved Warrior crest (metal shield and crossed swords).
+ // This original 168px image was already in the repo. Never redraw it as an SVG:
+ // the fixed ornamental circle belongs to the card master, not to the icon.
  if (type === "class" && index === 4) {
    return {
-     sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-optical-v2.svg",
-     width:512,height:512,cell:512,
+     sprite:"guerriero-approved",index:4,col:0,row:0,label,
+     src:"/card-art/guerriero-reference-original-v36.webp",
+     width:168,height:168,cell:168,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }
