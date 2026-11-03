@@ -1,0 +1,93 @@
+import React from "react";
+import { CardFront } from "@/components/TradingCard";
+
+const CLASS_MASTER = "/card-art/class-master-user-final-20261103.jpg";
+
+// Standalone read-only acceptance preview: no API, login, drafts or records.
+// A single raster is the complete decorative master. CardFront overlays only
+// user-provided fields and uploaded artwork; no replacement frame is generated.
+const EXAMPLES = {
+  empty: {
+    type: "class", name: "", description: "", attributes: {},
+  },
+  warrior: {
+    type: "class", name: "Guerriero",
+    description: "Maestri del combattimento, i guerrieri uniscono addestramento, disciplina e resistenza per eccellere in battaglia.",
+    attributes: {
+      abilita_primaria: "Forza o Destrezza",
+      tiri_salvezza: "Forza, Costituzione",
+      competenze: "Tutte le armature, scudi, armi semplici e da guerra",
+      dado_vita: "d10",
+    },
+  },
+  druid: {
+    type: "class", name: "Druido",
+    description: "I druidi custodiscono la natura e attingono alla sua magia, mantenendo l'equilibrio tra le creature e le forze del mondo.",
+    attributes: {
+      abilita_primaria: "Saggezza",
+      tiri_salvezza: "Intelligenza, Saggezza",
+      competenze: "Armature leggere e medie, scudi, kit da erborista",
+      dado_vita: "d8",
+    },
+  },
+};
+
+export default function ClassMasterPreview() {
+  const [variant, setVariant] = React.useState("warrior");
+  const card = EXAMPLES[variant];
+  return (
+    <main className="min-h-screen bg-obsidian text-foreground px-3 py-7"
+      data-testid="class-master-reference-20261103">
+      <div className="max-w-5xl mx-auto text-center">
+        <p className="font-label text-xs tracking-[.16em] text-gold">
+          TOMOFORGE · COLLAUDO CLASSE · 3 NOVEMBRE 2026
+        </p>
+        <h1 className="text-gold font-display text-2xl sm:text-3xl mt-3">
+          Cornice originale, senza sovrapposizioni
+        </h1>
+        <p className="font-body text-sm mt-3 text-foreground/80 max-w-2xl mx-auto">
+          Questa pagina mostra la versione proposta, non il sito pubblico.
+          La carta a sinistra e la fotografia originale; a destra e la stessa
+          base con i soli campi dinamici. Nessuna decorazione viene ridisegnata.
+        </p>
+        <nav className="flex flex-wrap justify-center gap-2 mt-5 mb-6" aria-label="Prova carta Classe">
+          {[
+            ["empty", "Modello vuoto"],
+            ["warrior", "Guerriero"],
+            ["druid", "Druido"],
+          ].map(([key, label]) => (
+            <button key={key} type="button" onClick={() => setVariant(key)}
+              aria-pressed={variant === key}
+              className={`border px-4 py-2 text-sm ${variant === key ?
+                "bg-gold text-obsidian border-gold" : "text-gold border-gold-deep"}`}>
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="flex flex-wrap justify-center items-start gap-6">
+          <figure className="w-[min(340px,92vw)]">
+            <img src={CLASS_MASTER} alt="Cornice originale approvata, vuota"
+              className="block w-full h-auto" style={{ aspectRatio: "864 / 1210" }} />
+            <figcaption className="text-gold text-xs mt-3 font-label">
+              Originale intatto
+            </figcaption>
+          </figure>
+          <figure className="w-[min(340px,92vw)]">
+            <div className="w-full" style={{ aspectRatio: "340 / 476" }}>
+              <CardFront card={card} />
+            </div>
+            <figcaption className="text-gold text-xs mt-3 font-label">
+              Applicazione dinamica · {variant === "empty" ? "vuota" :
+                variant === "warrior" ? "Guerriero" : "Druido"}
+            </figcaption>
+          </figure>
+        </div>
+        <p className="font-body text-xs text-foreground/60 mt-5 max-w-xl mx-auto">
+          Dimostrazione isolata: l'immagine rimane vuota finche non viene
+          caricata un'illustrazione. I dati di prova non vengono salvati.
+          Nessun cambiamento alla produzione o alle altre categorie.
+        </p>
+      </div>
+    </main>
+  );
+}
