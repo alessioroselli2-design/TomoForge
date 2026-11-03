@@ -115,11 +115,12 @@ describe("approved class: source-faithful narrative with d10",()=>{
    expect(data.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
    expect(data.highlights[0].value).toBe("Forza o Destrezza");
    expect(data.highlights[1].value).toBe("Forza, Costituzione");
-   expect(data.highlights[2].value).toBe("Armature, scudi e armi");
+   expect(data.highlights[2].value).toBe("Tutte le armature, scudi, armi semplici e da guerra");
    expect(data.highlights[2].fullValue).toBe("tutte le armature, scudi, armi semplici e marziali");
    expect(data.dice).toBe("d10");
    expect(data.showDescriptionLabel).toBe(false);
-   expect(data.description).toBe(original);
+   expect(data.description).toBe(card.description);
+   expect(data.classLegacyText).toBe(original);
    expect(card.description).toContain("Dado Vita d10");
  });
  it("does not introduce fictitious class narrative when no legacy source exists",()=>{
@@ -216,7 +217,7 @@ describe("Class v40 compact printed values only",()=>{
      competenze:full,dado_vita:"d10"
    }};
    const data=buildFrontBlueprint(source);
-   expect(data.highlights.map(x=>x.value)).toEqual(["Forza o Destrezza","Forza, Costituzione","Armature, scudi e armi"]);
+   expect(data.highlights.map(x=>x.value)).toEqual(["Forza o Destrezza","Forza, Costituzione","Tutte le armature, scudi, armi semplici e da guerra"]);
    expect(data.highlights[2].fullValue).toBe(full);
    expect(source.attributes.competenze).toBe(full);
  });

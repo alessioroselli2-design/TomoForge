@@ -143,7 +143,7 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?(s.sprite==="guerriero-crest"?1.86:1.42):1.2)},
      {x:m.x,y:m.y,size:m.r*2},
      (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
  }
@@ -176,14 +176,29 @@ async function renderApprovedMaster(element,card) {
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
      ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
-     const left=cx-cellW/2+9;
-     if(icon)ctx.drawImage(icon,left,statY+44,19,19);
-     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
-     const width=cellW-(icon?35:14);
-     const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
+     // Class labels are engraved directly on the fixed master.
+     const left=cx-cellW/2+3;
+     if(icon)ctx.drawImage(icon,left,statY+34,20,20);
+     ctx.fillStyle="#1d140c";
+     const width=cellW-(icon?27:14);
+     // Optical fitting matches the preview's three cells. Never silently
+     // drop the last word of a printed proficiency (e.g. "da guerra").
+     let fontSize=it.label==="Competenze"?8.6:9.2;
+     let lines=[];
+     do{
+       ctx.font=`700 ${fontSize}px Georgia,serif`;
+       lines=wrapTextLines(ctx,it.value,width);
+       if(lines.length<=4)break;
+       fontSize-=.25;
+     }while(fontSize>=7.35);
+     if(lines.length>4){
+       lines=lines.slice(0,4);
+       let last=lines[3];
+       while(last.length&&ctx.measureText(last+"…").width>width)last=last.slice(0,-1);
+       lines[3]=last.trimEnd()+"…";
+     }
      ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+51+n*10,width));
+     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+39+n*10,width));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -226,11 +241,16 @@ async function renderApprovedMaster(element,card) {
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+27,detailW,11,2);
  });
- const desc=(data.type==="class"?data.fullDescription:data.description)||"I dettagli appariranno dopo la selezione di un record.";
+ // Preview and printable PNG/PDF must show the SAME last complete sentence.
+ // The Class DOM has already measured the exact number of sentences fitting
+ // inside the fixed parchment panel; never independently show extra text.
+ const onCardDescription=element.querySelector(".tf-v3-desc")?.textContent?.trim();
+ const desc=(data.type==="class"?(onCardDescription||data.fullDescription):data.description)
+   ||"I dettagli appariranno dopo la selezione di un record.";
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
+   const x=25,y=312,w=211,h=94,fontSize=9.7,lineHeight=11.25;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
@@ -239,7 +259,7 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,252,329,72,75);
+     if(jewel)ctx.drawImage(jewel,248,316,71,73);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

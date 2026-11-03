@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
+    expect(exporter).toContain('zoom:dragon?1.28:(data.type==="class"?(s.sprite==="guerriero-crest"?1.86:1.42):1.2)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
@@ -58,14 +58,17 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-approved-v4.webp"));
+   const master=readFileSync(resolve(root,"class-master-refined-v5.webp"));
    expect(master.subarray(0,4).toString()).toBe("RIFF");
    expect(master.subarray(8,12).toString()).toBe("WEBP");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-approved-v4.webp"');
+   expect(layouts).toContain('master:"/card-art/class-master-refined-v5.webp"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
+   expect(exporter).toContain('element.querySelector(".tf-v3-desc")?.textContent?.trim()');
+   expect(exporter).toContain('fontSize=9.7,lineHeight=11.25');
+   expect(exporter).toContain('it.label==="Competenze"?8.6:9.2');
    expect(layouts).not.toContain('class-interior-v17.webp');
  });
 
@@ -73,8 +76,8 @@ describe("Class v2: one static printable composition",()=>{
    expect(finalMaster).not.toContain("max-height:49%");
    expect(finalMaster).not.toContain("overflow-y:auto");
    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc');
-   expect(finalMaster).toContain("height:80%!important;");
-   expect(finalMaster).toContain("max-height:80%!important;");
+   expect(finalMaster).toContain("height:64%!important;");
+   expect(finalMaster).toContain("max-height:64%!important;");
    expect(finalMaster).toContain('data-stat-label="Competenze"');
    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-badge,');
  });
@@ -89,7 +92,7 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,252,329,72,75)");
+   expect(exporter).toContain("ctx.drawImage(jewel,248,316,71,73)");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
