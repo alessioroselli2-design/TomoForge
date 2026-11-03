@@ -82,7 +82,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
            <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
            <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
              backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
-         </> : <span className="tf-v3-fallback">✦</span>}
+         </> : data.type==="class" ? null : <span className="tf-v3-fallback">✦</span>}
        </div>
        <div className="tf-v3-titles">
          <h3 title={data.name}>{data.name}</h3>
@@ -94,12 +94,12 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.type==="class"&&(!hasArtwork||artworkError)
          ? <span data-testid="front-artwork-empty" aria-hidden="true"/>
          : <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>}
-       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       {editorMode&&!hasArtwork&&data.type!=="class"&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
        {data.highlights.length?data.highlights.map((item,i)=>{
-         const statIcon = getFrontStatIcon(item.label);
+         const statIcon = data.type==="class"&&!item.value ? null : getFrontStatIcon(item.label);
          return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
            <div className="tf-v6-stat-text">
@@ -124,7 +124,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
          {data.details.slice(0,2).map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
        </div>}
        {data.showDescriptionLabel&&<span className="tf-v7-description-label">Descrizione</span>}
-       <p ref={data.type==="class"?descriptionRef:undefined} className="tf-v3-desc">{(data.type==="class"?printedClassDescription:data.description)||"I dettagli appariranno dopo la selezione di un record."}</p>
+       <p ref={data.type==="class"?descriptionRef:undefined} className="tf-v3-desc">{(data.type==="class"?printedClassDescription:data.description)||(data.type==="class"?"":"I dettagli appariranno dopo la selezione di un record.")}</p>
        {data.dice&&(data.type==="spell"&&data.spellDieAsset
          ? <div className="tf-v3-spell-dice" data-die={data.spellDie} aria-label={`Danni ${data.dice}`}>
              <img src={data.spellDieAsset} alt="" aria-hidden="true" draggable={false}/>

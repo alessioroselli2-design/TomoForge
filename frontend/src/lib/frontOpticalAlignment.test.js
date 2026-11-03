@@ -58,14 +58,16 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-approved-v4.webp"));
-   expect(master.subarray(0,4).toString()).toBe("RIFF");
+   const master=readFileSync(resolve(root,"class-master-user-final-20261103.jpg"));
+   expect(master.subarray(0,3).toString("hex")).toBe("ffd8ff");
    expect(master.subarray(8,12).toString()).toBe("WEBP");
    expect(master.length).toBeGreaterThan(100000);
+   // Byte-for-byte fingerprint of the image supplied and approved by the user.
+   expect(require("crypto").createHash("sha256").update(master).digest("hex")).toBe("e0077e11a65cb716b951e56cdec86e4948074e4a55b01ea9b34183f7916c8b8b");
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-approved-v4.webp"');
+   expect(layouts).toContain('master:"/card-art/class-master-user-final-20261103.jpg"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
-   expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
+   expect(exporter).toContain('data.type==="class"?{x:13,y:86,w:314,h:135}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
  });
 
@@ -89,7 +91,7 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,252,329,72,75)");
+   expect(exporter).toContain("ctx.drawImage(jewel,249,327,76,80)");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
@@ -101,5 +103,16 @@ describe("shared Monster master across every front",()=>{
    expect(finalMaster).not.toContain("class-master-v50");
    expect(finalMaster).not.toContain("class-master-clean-v38");
    expect(finalMaster).toContain('data-front-category="class"');
+ });
+});
+
+describe("Originale immutabile carte Classe — campi indipendenti",()=>{
+ it("usa soltanto il JPEG approvato senza coprirlo con sfondi e nuove caselle",()=>{
+   const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
+   expect(layouts).toContain("class-master-user-final-20261103.jpg");
+   expect(finalMaster).toContain('data-front-category="class"] .tf-v3-stats');
+   expect(finalMaster).toContain("grid-template-columns:34% 31% 35%");
+   expect(finalMaster).toContain('data-front-category="class"] .tf-v3-picture::after{display:none!important}');
+   expect(component).toContain('data.type!=="class"');
  });
 });

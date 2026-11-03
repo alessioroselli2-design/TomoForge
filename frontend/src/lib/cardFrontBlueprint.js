@@ -114,7 +114,7 @@ export const buildFrontBlueprint = (card = {}) => {
     { label: "Abilità primaria", value: pick(attrs, ["abilita_primaria", "caratteristica_principale"]) },
     { label: "Tiri salvezza", value: pick(attrs, ["tiri_salvezza", "salvezze"]) },
     { label: "Competenze", value: classProficiencies },
-  ].filter(entry => entry.value) : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
+  ] : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
     label, value: pick(attrs, [first, second]),
   })).filter((entry) => entry.value).slice(0, 3);
   // Never fabricate statistics; empty cells are simply not displayed.
@@ -217,7 +217,8 @@ export const buildFrontBlueprint = (card = {}) => {
     : "";
   return {
     badge, emblem:getFrontEmblem(card),
-    type, heading, name: card.name || "Senza nome", subtitle, crest,
+    type, heading, name: card.name || (type === "class" ? "" : "Senza nome"),
+    subtitle: type === "class" && !String(card.name || "").trim() ? "" : subtitle, crest,
     ...THEMES[type], highlights:readableStats, abilities, details,
     dice: type === "class" ? classDie : (match ? match[0].replace(/\s+/g, "") : ""),
     classDieAsset: type === "class" ? classHitDieAsset(classDie) : "",

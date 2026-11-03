@@ -306,9 +306,9 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
    expect(c.dataset.categoryLayout).toBe("class-approved-v4");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-master-user-final-20261103.jpg");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-master-user-final-20261103.jpg");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
@@ -340,7 +340,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-master-user-final-20261103.jpg");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
@@ -357,5 +357,25 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(spell.mount.querySelector(".tf-v3-badge").textContent).toBe("LIV.3");
    expect(item.mount.querySelector(".tf-v3-badge").textContent).toBe("RARITÀRaro");
    await spell.close();await item.close();
+ });
+});
+
+describe("Classe / modello vuoto originale",()=>{
+ it("non inventa immagini, testi, emblemi o valori quando nessuna classe e' selezionata",async()=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   await act(async()=>root.render(<CardFront card={{type:"class",attributes:{}}} editorMode/>));
+   const front=mount.querySelector('[data-front-category="class"]');
+   expect(front).not.toBeNull();
+   expect(front.style.backgroundImage).toContain("/card-art/class-master-user-final-20261103.jpg");
+   expect(mount.querySelector('[data-testid="front-artwork-empty"]')).not.toBeNull();
+   expect(mount.querySelector(".tf-v3-art-hint")).toBeNull();
+   expect(mount.querySelector(".tf-v3-titles h3").textContent).toBe("");
+   expect(mount.querySelector(".tf-v3-titles p").textContent).toBe("");
+   expect(mount.querySelectorAll(".tf-v3-stat")).toHaveLength(3);
+   expect([...mount.querySelectorAll(".tf-v3-stat strong")].map(el=>el.textContent)).toEqual(["","",""]);
+   expect(mount.querySelector(".tf-v3-desc").textContent).toBe("");
+   expect(mount.querySelector(".tf-v3-dice")).toBeNull();
+   await act(async()=>root.unmount());mount.remove();
  });
 });
