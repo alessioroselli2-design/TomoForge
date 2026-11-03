@@ -60,7 +60,7 @@ describe("Class v2: one static printable composition",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
    const master=readFileSync(resolve(root,"class-master-user-final-20261103.jpg"));
    expect(master.subarray(0,3).toString("hex")).toBe("ffd8ff");
-   expect(master.subarray(8,12).toString()).toBe("WEBP");
+   expect(master.subarray(6,10).toString()).toBe("JFIF");
    expect(master.length).toBeGreaterThan(100000);
    // Byte-for-byte fingerprint of the image supplied and approved by the user.
    expect(require("crypto").createHash("sha256").update(master).digest("hex")).toBe("e0077e11a65cb716b951e56cdec86e4948074e4a55b01ea9b34183f7916c8b8b");
