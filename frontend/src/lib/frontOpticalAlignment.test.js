@@ -55,6 +55,16 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
   });
 });
 
+describe("Class v2: one static printable composition",()=>{
+ it("has one authoritative Class CSS block, no obsolete height cap and no scrolling",()=>{
+   expect(finalMaster).not.toContain("max-height:49%");
+   expect(finalMaster).not.toContain("overflow-y:auto");
+   expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc');
+   expect(finalMaster).toContain("height:90%!important;max-height:90%!important;");
+   expect(finalMaster).toContain('data-stat-label="Competenze"');
+   expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-badge{display:none!important}');
+ });
+});
 describe("shared Monster master across every front",()=>{
  it("does not import or render another class master",()=>{
    expect(component).toContain('data-front-layout="unified-monster-master-v17"');
