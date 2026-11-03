@@ -148,7 +148,7 @@ async function renderApprovedMaster(element,card) {
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
      {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
-     {x:data.type==="class"?50:m.x,y:data.type==="class"?48:m.y,size:m.r*2},
+     {x:data.type==="class"?52:m.x,y:data.type==="class"?47:m.y,size:m.r*2},
      (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
