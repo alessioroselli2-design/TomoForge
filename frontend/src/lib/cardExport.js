@@ -121,21 +121,11 @@ async function renderApprovedMaster(element,card) {
  const master=new Image();
  await new Promise((resolve,reject)=>{
    master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
-   master.src=FRONT_MASTER_URL;
+   master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
- // Independent interior layouts never replace or redraw the outer gold master.
  const layout=categoryFrontLayout(data.type);
- if(layout.interior){
-   const inner=new Image();
-   await new Promise((resolve,reject)=>{
-     inner.onload=resolve;inner.onerror=()=>reject(new Error("Layout interno non disponibile"));
-     inner.src=layout.interior;
-     if(inner.complete&&inner.naturalWidth>0)resolve();
-   });
-   ctx.drawImage(inner,0,height*layout.interiorY,width,height*layout.interiorHeight);
- }
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
  const g=MASTER_REGIONS.art;
@@ -153,9 +143,9 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?(s.sprite==="guerriero-crest"?1.38:1.23):1.2)},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
      {x:m.x,y:m.y,size:m.r*2},
-     dragon?.37:.35,dragon?.48:.48);
+     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
@@ -168,7 +158,7 @@ async function renderApprovedMaster(element,card) {
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
- const statY=MASTER_REGIONS.stats.y;
+ const statY=data.type==="class"?193:MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
    const src=getFrontStatIcon(it.label);
    if(!src)return null;
@@ -186,15 +176,14 @@ async function renderApprovedMaster(element,card) {
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
      ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+10,max,7.3,"Georgia,serif","700");
+     drawFittedText(ctx,it.label,cx,statY+19,max,9,"Georgia,serif","700");
      const left=cx-cellW/2+9;
-     if(icon)ctx.drawImage(icon,left,statY+20,14,14);
-     ctx.fillStyle="#1d140c";ctx.font="700 7.4px Georgia,serif";
-     const maxText=cellW-(icon?32:15);
-     const lines=wrapTextLines(ctx,it.value,maxText).slice(0,4);
-     const first=statY+23-(lines.length-1)*2.1;
+     if(icon)ctx.drawImage(icon,left,statY+34,19,19);
+     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
+     const width=cellW-(icon?35:14);
+     const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
      ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?17:0),first+n*7.9,maxText));
+     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+43+n*10,width));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -241,7 +230,7 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=32,y=260,w=195,h=169,fontSize=9,lineHeight=10.53;
+   const x=34,y=289,w=204,h=137,fontSize=9,lineHeight=10.53;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
@@ -250,7 +239,7 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,240,335,72,75);
+     if(jewel)ctx.drawImage(jewel,240,310,72,75);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
