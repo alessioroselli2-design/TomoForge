@@ -342,7 +342,7 @@
  background-repeat:no-repeat,no-repeat!important;
 }
 
-// Solo Classe: simbolo scelto dal record, grande e centrato; nessun dado in alto.
+/* Solo Classe: simbolo scelto dal record, grande e centrato; nessun dado in alto. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-badge{display:none!important}
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
  transform:scale(1.23)!important;transform-origin:center!important;
