@@ -3,7 +3,7 @@
 export const FRONT_OUTER_MASTER="/card-art/front-master-v17.webp";
 export const CATEGORY_FRONT_LAYOUTS=Object.freeze({
  monster:{id:"monster-v17",interior:null,showDetails:true},
- class:{id:"class-v1",interior:"/card-art/class-interior-v17.webp",interiorY:740/1484,interiorHeight:661/1484,showDetails:false},
+ class:{id:"class-approved-v4",master:"/card-art/class-master-approved-v4.webp",interior:null,showDetails:false},
  spell:{id:"spell-v17",interior:null,showDetails:true},
  subclass:{id:"subclass-v17",interior:null,showDetails:true},
  feature:{id:"feature-v17",interior:null,showDetails:true},
@@ -18,10 +18,7 @@ export const CATEGORY_FRONT_LAYOUTS=Object.freeze({
 export const categoryFrontLayout=(type)=>CATEGORY_FRONT_LAYOUTS[type]||CATEGORY_FRONT_LAYOUTS.custom;
 // The outer reference stays the same inline style for EVERY category.
 // Inner background layers are owned by each category CSS (not by the shell).
-export const frontBackground=(type)=>{
- const layout=categoryFrontLayout(type);
- return {
-  backgroundImage:`url(${FRONT_OUTER_MASTER})`,
-  ...(layout.interior?{"--tf-class-background":`url(${layout.interior}),url(${FRONT_OUTER_MASTER})`}:{})
- };
-};
+// One self-contained raster for each category. No layered pasted rectangles.
+export const frontBackground=(type)=>({
+ backgroundImage:`url(${categoryFrontLayout(type).master||FRONT_OUTER_MASTER})`,
+});

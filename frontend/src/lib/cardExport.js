@@ -3,6 +3,7 @@ import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
+import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -120,24 +121,14 @@ async function renderApprovedMaster(element,card) {
  const master=new Image();
  await new Promise((resolve,reject)=>{
    master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
-   master.src=FRONT_MASTER_URL;
+   master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
- // Independent interior layouts never replace or redraw the outer gold master.
  const layout=categoryFrontLayout(data.type);
- if(layout.interior){
-   const inner=new Image();
-   await new Promise((resolve,reject)=>{
-     inner.onload=resolve;inner.onerror=()=>reject(new Error("Layout interno non disponibile"));
-     inner.src=layout.interior;
-     if(inner.complete&&inner.naturalWidth>0)resolve();
-   });
-   ctx.drawImage(inner,0,height*layout.interiorY,width,height*layout.interiorHeight);
- }
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
- const g=MASTER_REGIONS.art;
+ const g=data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
@@ -152,9 +143,9 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:(data.type==="class"?1:1.2)},
-     {x:m.x,y:m.y,size:m.r*2*(s.sprite==="guerriero-crest"?1.08:(data.type==="class"?.9:1))},
-     dragon?.37:.35,dragon?.48:.48);
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
+     {x:m.x,y:m.y,size:m.r*2},
+     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
@@ -167,7 +158,7 @@ async function renderApprovedMaster(element,card) {
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
- const statY=MASTER_REGIONS.stats.y;
+ const statY=data.type==="class"?220:MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
    const src=getFrontStatIcon(it.label);
    if(!src)return null;
@@ -183,7 +174,19 @@ async function renderApprovedMaster(element,card) {
    const labelCenter=cx;
    const max=cellW-12;
    let valueCenter=cx,valueMaxWidth=max;
-   if(icon) {
+   if(data.type==="class"){
+     ctx.textAlign="center";ctx.fillStyle="#51301c";
+     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
+     const left=cx-cellW/2+9;
+     if(icon)ctx.drawImage(icon,left,statY+44,19,19);
+     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
+     const width=cellW-(icon?35:14);
+     const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
+     ctx.textAlign="left";
+     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+51+n*10,width));
+     return;
+   }
+   if(icon&&data.type!=="class"){
      // Exactly the same centered [rune + 5px gap + value] flex group as CSS.
      const runeSize=17,gap=5;
      ctx.font="700 14px Georgia,serif";
@@ -193,18 +196,6 @@ async function renderApprovedMaster(element,card) {
      ctx.drawImage(icon,runeLeft,statY+19,runeSize,runeSize);
      valueCenter=runeLeft+runeSize+gap+renderedTextWidth/2;
      valueMaxWidth=Math.max(12,renderedTextWidth);
-   }
-   if(data.type==="class"){
-     // The Monster's three real parchment cells provide the Class labels and
-     // concise values. No additional graphical panels are painted.
-     ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,labelCenter,statY+10,max,7.3,"Georgia,serif","700");
-     ctx.fillStyle="#1d140c";ctx.font="700 7px Georgia,serif";
-     const full=it.fullValue||it.value;
-     const lines=wrapTextLines(ctx,full,max-15).slice(0,4);
-     const first=statY+27-(lines.length-1)*3.6;
-     lines.forEach((line,n)=>ctx.fillText(line,labelCenter+6,first+n*7.3,max-15));
-     return;
    }
    ctx.textAlign="center";ctx.fillStyle="#51301c";
    drawFittedText(ctx,it.label,labelCenter,statY+11,max,it.label==="Vel."?7.5:9,"Georgia,serif","700");
@@ -237,23 +228,18 @@ async function renderApprovedMaster(element,card) {
  });
  const desc=(data.type==="class"?data.fullDescription:data.description)||"I dettagli appariranno dopo la selezione di un record.";
  if(data.type==="class"){
-   // Full class narrative: fit all available words instead of clipping it
-   // to an arbitrary sentence or character limit.
-   const x=32,y=263,w=195,h=164;
-   let lines=[],fontSize=9.4,lineHeight=11;
-   for(;fontSize>=4.3;fontSize-=.25){
-     ctx.font=`${fontSize}px Spectral,Georgia,serif`;
-     lines=wrapTextLines(ctx,desc,w);
-     lineHeight=fontSize*1.16;
-     if(lines.length*lineHeight<=h)break;
-   }
+   // Print exactly the maximum number of complete sentences that fit.
+   // No scrollable text and no sentence cut at an arbitrary character count.
+   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
+   ctx.font=`${fontSize}px Spectral,Georgia,serif`;
+   const fitted=fitClassDescription(desc,text=>
+     wrapTextLines(ctx,text,w).length*lineHeight<=h);
+   const lines=wrapTextLines(ctx,fitted,w);
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
-   lines.forEach((line,i)=>{
-     if(y+i*lineHeight<=y+h)ctx.fillText(line,x,y+i*lineHeight,w);
-   });
+   lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,240,335,72,75);
+     if(jewel)ctx.drawImage(jewel,252,329,72,75);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
