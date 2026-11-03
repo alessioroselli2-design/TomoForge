@@ -63,7 +63,7 @@ export const getFrontEmblem = (card = {}) => {
  if (type === "class" && index === 4) {
    return {
      sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-only-v1.svg",
+     src:"/emblemi/guerriero-crest-optical-v2.svg",
      width:512,height:512,cell:512,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };

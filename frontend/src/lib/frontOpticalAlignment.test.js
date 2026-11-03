@@ -58,12 +58,12 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-fixed-v1.webp"));
+   const master=readFileSync(resolve(root,"class-master-fixed-v2.webp"));
    expect(master.subarray(0,4).toString()).toBe("RIFF");
    expect(master.subarray(8,12).toString()).toBe("WEBP");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-fixed-v1.webp"');
+   expect(layouts).toContain('master:"/card-art/class-master-fixed-v2.webp"');
    expect(layouts).not.toContain('class-interior-v17.webp');
  });
 
