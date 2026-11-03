@@ -128,7 +128,7 @@ async function renderApprovedMaster(element,card) {
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
- const g=MASTER_REGIONS.art;
+ const g=data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
@@ -158,7 +158,7 @@ async function renderApprovedMaster(element,card) {
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
- const statY=data.type==="class"?193:MASTER_REGIONS.stats.y;
+ const statY=data.type==="class"?220:MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
    const src=getFrontStatIcon(it.label);
    if(!src)return null;
@@ -176,14 +176,14 @@ async function renderApprovedMaster(element,card) {
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
      ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+19,max,9,"Georgia,serif","700");
+     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
      const left=cx-cellW/2+9;
-     if(icon)ctx.drawImage(icon,left,statY+34,19,19);
+     if(icon)ctx.drawImage(icon,left,statY+44,19,19);
      ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
      const width=cellW-(icon?35:14);
      const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
      ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+43+n*10,width));
+     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+51+n*10,width));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -230,7 +230,7 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=34,y=289,w=204,h=137,fontSize=9,lineHeight=10.53;
+   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
@@ -239,7 +239,7 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,240,310,72,75);
+     if(jewel)ctx.drawImage(jewel,252,329,72,75);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
