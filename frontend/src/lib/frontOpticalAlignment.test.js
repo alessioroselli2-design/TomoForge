@@ -16,7 +16,7 @@ describe("TomoForge approved ornate master",()=>{
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
     expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
-    expect(exporter).toContain("size:m.r*2},");
+    expect(exporter).toContain('size:data.type==="class"?71:m.r*2},');
     expect(component).toContain('data.type==="class"&&(!hasArtwork||artworkError)');
     expect(component).toContain('editorMode&&!hasArtwork');
   });
