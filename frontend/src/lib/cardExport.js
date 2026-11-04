@@ -153,10 +153,15 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:data.type==="class"?1.08:1.2},
-     {x:data.type==="class"?47.5:m.x,y:data.type==="class"?46:m.y,size:data.type==="class"?71:m.r*2},
-     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
+   if(data.type==="class"){
+     // Same unmasked 256px emblem as CardFront. Do not draw a second rim.
+     ctx.drawImage(icon,0,0,s.cell,s.cell,6.46,5.24,82.96,82.96);
+   }else{
+     drawIntegratedMedallion(ctx,icon,
+       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
+       {x:m.x,y:m.y,size:m.r*2},
+       dragon?.37:.35,dragon?.48:.48);
+   }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,

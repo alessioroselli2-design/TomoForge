@@ -1,7 +1,8 @@
 import React from "react";
 import { CardFront } from "@/components/TradingCard";
 
-const CLASS_MASTER = "/card-art/class-master-user-final-20261103.jpg";
+const CLASS_MASTER = "/card-art/master-classe-pulito-v49.webp";
+const HIT_DIE=Object.freeze({Barbaro:"d12",Bardo:"d8",Chierico:"d8",Druido:"d8",Guerriero:"d10",Monaco:"d8",Paladino:"d10",Ranger:"d10",Ladro:"d8",Stregone:"d6",Warlock:"d8",Mago:"d6",Artefice:"d8"});
 const CLASS_NAMES = ["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco","Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
 
 // Standalone read-only acceptance preview: no API, login, drafts or records.
@@ -36,7 +37,7 @@ const EXAMPLES = {
 export default function ClassMasterPreview() {
   const [variant, setVariant] = React.useState("warrior");
   // Other classes exercise the real emblem mapper without inventing statistics.
-  const card = EXAMPLES[variant] || {type:"class",name:variant.replace(/^class:/,""),description:"",attributes:{}};
+  const card = EXAMPLES[variant] || {type:"class",name:variant.replace(/^class:/,""),description:"",attributes:{dado_vita:HIT_DIE[variant.replace(/^class:/,"")]}};
   return (
     <main className="min-h-screen bg-obsidian text-foreground px-3 py-7"
       data-testid="class-master-reference-20261103">
@@ -84,7 +85,7 @@ export default function ClassMasterPreview() {
             <img src={CLASS_MASTER} alt="Cornice originale approvata, vuota"
               className="block w-full h-auto" style={{ aspectRatio: "864 / 1210" }} />
             <figcaption className="text-gold text-xs mt-3 font-label">
-              Originale intatto
+              Master Classe pulito · senza dado inciso
             </figcaption>
           </figure>
           <figure className="w-[min(340px,92vw)]">

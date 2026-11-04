@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:data.type==="class"?1.08:1.2');
+    expect(exporter).toContain('ctx.drawImage(icon,0,0,s.cell,s.cell,6.46,5.24,82.96,82.96)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
@@ -65,7 +65,7 @@ describe("Class v2: one static printable composition",()=>{
    // Byte-for-byte fingerprint of the image supplied and approved by the user.
    expect(require("crypto").createHash("sha256").update(master).digest("hex")).toBe("e0077e11a65cb716b951e56cdec86e4948074e4a55b01ea9b34183f7916c8b8b");
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-user-final-20261103.jpg"');
+   expect(layouts).toContain('master:"/card-art/master-classe-pulito-v49.webp"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:13,y:86,w:314,h:135}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
@@ -109,7 +109,7 @@ describe("shared Monster master across every front",()=>{
 describe("Originale immutabile carte Classe — campi indipendenti",()=>{
  it("usa soltanto il JPEG approvato senza coprirlo con sfondi e nuove caselle",()=>{
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain("class-master-user-final-20261103.jpg");
+   expect(layouts).toContain("master-classe-pulito-v49.webp");
    expect(finalMaster).toContain('data-front-category="class"] .tf-v3-stats');
    expect(finalMaster).toContain("grid-template-columns:34% 31% 35%");
    expect(finalMaster).toContain('data-front-category="class"] .tf-v3-picture::after{display:none!important}');
@@ -119,16 +119,17 @@ describe("Originale immutabile carte Classe — campi indipendenti",()=>{
 describe("Classe: medaglione ottico al livello del Drago Rosso",()=>{
  it("uses the signed-off 168px Warrior shield instead of the rejected SVG",()=>{
    const mapping=readFileSync(resolve(__dirname,"./frontEmblems.js"),"utf8");
-   expect(mapping).toContain('/card-art/guerriero-reference-original-v36.webp');
+   expect(mapping).toContain("classe-originale-256");
+   expect(mapping).toContain("CLS-");
    expect(mapping).not.toContain('guerriero-crest-optical-v2.svg');
  });
  it("gives class icons the same 1.28 enlargement as Dragon without scaling the outer ring",()=>{
    const classBlock=finalMaster.slice(finalMaster.lastIndexOf('Master Classe firmato 03/11/2026'));
-   expect(classBlock).toContain('width:21.0%!important');
-   expect(classBlock).toContain('transform:scale(1.08)!important');
+   expect(finalMaster).toContain('width:24.4%!important');
+   expect(finalMaster).toContain('mask-image:none!important');
    expect(classBlock).toContain('background:transparent!important;border:0!important;box-shadow:none!important');
-   expect(exporter).toContain('zoom:dragon?1.28:data.type==="class"?1.08:1.2');
-   expect(exporter).toContain('x:data.type==="class"?47.5:m.x,y:data.type==="class"?46:m.y');
+   expect(exporter).toContain('ctx.drawImage(icon,0,0,s.cell,s.cell,6.46,5.24,82.96,82.96)');
+   expect(exporter).toContain('if(data.type==="class"){');
  });
 });
 
@@ -136,8 +137,9 @@ describe("Class v48: one source, one clean border, only dynamic content",()=>{
  it("prepares one clean background for browser and export without altering Monster",()=>{
    const builder=readFileSync(resolve(__dirname,"./classMasterImage.js"),"utf8");
    expect(builder).toContain('source.src=CLASS_MASTER_SOURCE');
-   expect(builder).toContain('ctx.drawImage(scratch,0,1100,w,50,0,1160,w,50)');
-   expect(builder).toContain('const left=606,top=799,sw=240,sh=252,sourceLeft=360;');
+   expect(builder).toContain('ctx.drawImage(source,0,0,CLASS_MASTER_WIDTH,CLASS_MASTER_HEIGHT)');
+   expect(builder).toContain('master-classe-pulito-v49.webp');
+   expect(builder).not.toContain('getImageData');
    expect(component).toContain('getPreparedClassMaster().then');
    expect(exporter).toContain('printedMaster=(await getPreparedClassMaster()).canvas');
  });
@@ -154,5 +156,19 @@ describe("Class v48: one source, one clean border, only dynamic content",()=>{
    expect(last).toContain('font-family:"EB Garamond","Spectral",Georgia,serif!important');
    expect(last).toContain('mix-blend-mode:multiply!important');
    expect(exporter).toContain('ctx.globalCompositeOperation="multiply"');
+ });
+});
+
+describe("Classe v49 — asset approvati, Mostro invariato",()=>{
+ it("usa il master pulito statico, i 13 emblemi 256px e il dado premium",()=>{
+  const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
+  const emblems=readFileSync(resolve(__dirname,"./frontEmblems.js"),"utf8");
+  const preparer=readFileSync(resolve(__dirname,"./classMasterImage.js"),"utf8");
+  expect(layouts).toContain("master-classe-pulito-v49.webp");
+  expect(emblems).toContain('sprite:"classe-originale-256"');
+  expect(emblems).toContain("cell:256");
+  expect(preparer).not.toContain("getImageData");
+  expect(finalMaster.slice(finalMaster.indexOf("Classe v49:"))).toContain("overflow:visible!important");
+  expect(component).toContain("data.classDieAsset");
  });
 });

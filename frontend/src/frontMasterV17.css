@@ -507,3 +507,24 @@
  width:76px!important;height:80px!important;background-size:contain!important;
  border:0!important;box-shadow:none!important;transform:none!important;
 }
+
+/* Classe v49: ORIGINAL approved 256px class medals over ONE static border.
+   Do not affect the approved Monster master. Other category styles unchanged. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ left:1.9%!important;top:1.1%!important;width:24.4%!important;
+ height:auto!important;aspect-ratio:1!important;
+ overflow:visible!important;border-radius:0!important;
+ border:0!important;outline:0!important;box-shadow:none!important;
+ background:transparent!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ width:100%!important;height:100%!important;border-radius:0!important;
+ transform:none!important;transform-origin:center!important;
+ -webkit-mask-image:none!important;mask-image:none!important;
+ background-size:100% 100%!important;background-position:center!important;
+ background-repeat:no-repeat!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
+ background-color:transparent!important;box-shadow:none!important;
+ border:0!important;outline:0!important;filter:none!important;
+}
