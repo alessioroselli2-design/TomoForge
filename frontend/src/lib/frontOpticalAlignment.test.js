@@ -11,12 +11,12 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
+    expect(exporter).toContain('ctx.drawImage(icon,0,0,s.cell,s.cell,6.46,5.24,82.96,82.96)');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
     expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
-    expect(exporter).toContain("size:m.r*2},");
+    expect(exporter).toContain('size:data.type==="class"?71:m.r*2},');
     expect(component).toContain('data.type==="class"&&(!hasArtwork||artworkError)');
     expect(component).toContain('editorMode&&!hasArtwork');
   });
@@ -58,14 +58,16 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-approved-v4.webp"));
-   expect(master.subarray(0,4).toString()).toBe("RIFF");
-   expect(master.subarray(8,12).toString()).toBe("WEBP");
+   const master=readFileSync(resolve(root,"class-master-user-final-20261103.jpg"));
+   expect(master.subarray(0,3).toString("hex")).toBe("ffd8ff");
+   expect(master.subarray(6,10).toString()).toBe("JFIF");
    expect(master.length).toBeGreaterThan(100000);
+   // Byte-for-byte fingerprint of the image supplied and approved by the user.
+   expect(require("crypto").createHash("sha256").update(master).digest("hex")).toBe("e0077e11a65cb716b951e56cdec86e4948074e4a55b01ea9b34183f7916c8b8b");
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-approved-v4.webp"');
+   expect(layouts).toContain('master:"/card-art/master-classe-pulito-v49.webp"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
-   expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
+   expect(exporter).toContain('data.type==="class"?{x:13,y:86,w:314,h:135}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
  });
 
@@ -89,7 +91,7 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,252,329,72,75)");
+   expect(exporter).toContain("ctx.drawImage(jewel,249,327,76,80)");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
@@ -101,5 +103,72 @@ describe("shared Monster master across every front",()=>{
    expect(finalMaster).not.toContain("class-master-v50");
    expect(finalMaster).not.toContain("class-master-clean-v38");
    expect(finalMaster).toContain('data-front-category="class"');
+ });
+});
+
+describe("Originale immutabile carte Classe — campi indipendenti",()=>{
+ it("usa soltanto il JPEG approvato senza coprirlo con sfondi e nuove caselle",()=>{
+   const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
+   expect(layouts).toContain("master-classe-pulito-v49.webp");
+   expect(finalMaster).toContain('data-front-category="class"] .tf-v3-stats');
+   expect(finalMaster).toContain("grid-template-columns:34% 31% 35%");
+   expect(finalMaster).toContain('data-front-category="class"] .tf-v3-picture::after{display:none!important}');
+   expect(component).toContain('data.type!=="class"');
+ });
+});
+describe("Classe: medaglione ottico al livello del Drago Rosso",()=>{
+ it("uses the signed-off 168px Warrior shield instead of the rejected SVG",()=>{
+   const mapping=readFileSync(resolve(__dirname,"./frontEmblems.js"),"utf8");
+   expect(mapping).toContain("classe-originale-256");
+   expect(mapping).toContain("CLS-");
+   expect(mapping).not.toContain('guerriero-crest-optical-v2.svg');
+ });
+ it("gives class icons the same 1.28 enlargement as Dragon without scaling the outer ring",()=>{
+   const classBlock=finalMaster.slice(finalMaster.lastIndexOf('Master Classe firmato 03/11/2026'));
+   expect(finalMaster).toContain('width:24.4%!important');
+   expect(finalMaster).toContain('mask-image:none!important');
+   expect(classBlock).toContain('background:transparent!important;border:0!important;box-shadow:none!important');
+   expect(exporter).toContain('ctx.drawImage(icon,0,0,s.cell,s.cell,6.46,5.24,82.96,82.96)');
+   expect(exporter).toContain('if(data.type==="class"){');
+ });
+});
+
+describe("Class v48: one source, one clean border, only dynamic content",()=>{
+ it("prepares one clean background for browser and export without altering Monster",()=>{
+   const builder=readFileSync(resolve(__dirname,"./classMasterImage.js"),"utf8");
+   expect(builder).toContain('source.src=CLASS_MASTER_SOURCE');
+   expect(builder).toContain('ctx.drawImage(source,0,0,CLASS_MASTER_WIDTH,CLASS_MASTER_HEIGHT)');
+   expect(builder).toContain('master-classe-pulito-v49.webp');
+   expect(builder).not.toContain('getImageData');
+   expect(component).toContain('getPreparedClassMaster().then');
+   expect(exporter).toContain('printedMaster=(await getPreparedClassMaster()).canvas');
+ });
+ it("has a single Class jewel and no synthetic corners or double front border",()=>{
+   const last=finalMaster.slice(finalMaster.indexOf("Class master v48"));
+   expect(last).toContain('.tf-front-master-v17[data-front-category="class"]::before');
+   expect(last).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-corner');
+   expect(last).toContain("border:0!important;border-radius:0!important;outline:0!important;");
+   expect(component).toContain('data.classDieAsset');
+ });
+ it("keeps the old title typeface, applies the new CSS only to secondary ink",()=>{
+   const last=finalMaster.slice(finalMaster.indexOf("Class master v48"));
+   expect(last).toContain('font-family:"Cormorant Garamond",Georgia,serif!important');
+   expect(last).toContain('font-family:"EB Garamond","Spectral",Georgia,serif!important');
+   expect(last).toContain('mix-blend-mode:multiply!important');
+   expect(exporter).toContain('ctx.globalCompositeOperation="multiply"');
+ });
+});
+
+describe("Classe v49 — asset approvati, Mostro invariato",()=>{
+ it("usa il master pulito statico, i 13 emblemi 256px e il dado premium",()=>{
+  const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
+  const emblems=readFileSync(resolve(__dirname,"./frontEmblems.js"),"utf8");
+  const preparer=readFileSync(resolve(__dirname,"./classMasterImage.js"),"utf8");
+  expect(layouts).toContain("master-classe-pulito-v49.webp");
+  expect(emblems).toContain('sprite:"classe-originale-256"');
+  expect(emblems).toContain("cell:256");
+  expect(preparer).not.toContain("getImageData");
+  expect(finalMaster.slice(finalMaster.indexOf("Classe v49:"))).toContain("overflow:visible!important");
+  expect(component).toContain("data.classDieAsset");
  });
 });

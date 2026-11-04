@@ -351,3 +351,180 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr canvas{
  width:18px!important;height:18px!important;
 }
+
+/*
+ * Master Classe firmato 03/11/2026: immagine 864 × 1210 originale,
+ * sfondo unico intoccabile. Solo dati nei riquadri esistenti; mai
+ * creare caselle, immagini segnaposto, bordi o sfondi aggiuntivi.
+ */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ left:7.1%!important;top:4.05%!important;width:16.47059%!important;height:auto!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ /* Same full-circle optical scale as the approved Red Dragon monster emblem. */
+ transform:scale(1.28)!important;transform-origin:center!important;
+ -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 61%,transparent 81%)!important;
+ mask-image:radial-gradient(circle closest-side,#000 0%,#000 61%,transparent 81%)!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles{
+ left:26%!important;top:3.2%!important;width:48%!important;height:11.5%!important;
+ gap:1px!important;justify-content:center!important;align-items:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+ font-size:clamp(14px,5.35cqw,18.2px)!important;line-height:1.07!important;
+ max-height:2.15em!important;text-align:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles p{
+ font-size:8px!important;top:0!important;line-height:1.1!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
+ left:3.7%!important;top:18.05%!important;width:92.6%!important;height:28.45%!important;
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ border-radius:7px!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture::after{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture img{
+ width:100%!important;height:100%!important;object-fit:cover!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-art-hint{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
+ left:3.55%!important;top:48.18%!important;width:92.9%!important;height:14.95%!important;
+ grid-template-columns:34% 31% 35%!important;gap:0!important;
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats > .tf-v3-stat{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ padding:0!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
+ left:50%!important;top:6%!important;transform:translateX(-50%)!important;
+ width:95%!important;max-width:95%!important;height:90%!important;
+ gap:11px!important;overflow:hidden!important;
+ align-items:center!important;justify-content:flex-start!important;text-align:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text > span{
+ font:700 9.5px/1.1 Georgia,serif!important;max-height:none!important;
+ white-space:normal!important;overflow:visible!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row{
+ width:100%!important;max-width:100%!important;min-height:0!important;
+ height:auto!important;max-height:43px!important;
+ gap:4px!important;padding:0 2px!important;margin:0!important;
+ justify-content:center!important;align-items:center!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row > strong{
+ font:700 8.7px/1.14 Georgia,serif!important;max-height:42px!important;
+ max-width:calc(100% - 24px)!important;overflow:hidden!important;
+ overflow-wrap:normal!important;white-space:normal!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats [data-stat-label="Competenze"] .tf-v6-stat-value-row > strong{
+ font-size:8.25px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment{
+ left:3.6%!important;top:63.18%!important;width:92.8%!important;height:29.35%!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
+ left:3.2%!important;top:11.5%!important;width:68%!important;max-width:68%!important;
+ height:77%!important;max-height:77%!important;overflow:hidden!important;
+ font:8.15px/1.16 "Spectral",Georgia,serif!important;color:#28190f!important;
+ background:transparent!important;margin:0!important;padding:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
+ left:auto!important;right:2.4%!important;top:17%!important;bottom:auto!important;
+ width:76px!important;height:80px!important;max-width:none!important;
+ background-size:contain!important;background-position:center!important;
+ background-repeat:no-repeat!important;background-color:transparent!important;
+ border:0!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-qr{
+ right:4%!important;top:83%!important;
+}
+
+
+/* Class master v48 — CSS styles apply to CONTENT only, not the approved art.
+ * The baked-in background is prepared once by classMasterImage.js.
+ * All rules are isolated to Classes: the approved Monster stays untouched. */
+.tf-front-master-v17[data-front-category="class"]{
+ border:0!important;border-radius:0!important;outline:0!important;
+ box-shadow:none!important;overflow:hidden!important;
+ background-repeat:no-repeat!important;background-size:100% 100%!important;
+}
+.tf-front-master-v17[data-front-category="class"]::before,
+.tf-front-master-v17[data-front-category="class"]::after,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-corner{
+ content:none!important;display:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-banner{
+ background:transparent!important;border:0!important;outline:0!important;
+ box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ /* The class shield fills the same optical well as the approved Dragon. */
+ left:3.3%!important;top:1.7%!important;width:21.0%!important;
+ aspect-ratio:1!important;height:auto!important;margin:0!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ border-radius:50%!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-underlay{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ width:100%!important;height:100%!important;border-radius:50%!important;
+ transform:scale(1.08)!important;transform-origin:center!important;
+ -webkit-mask-image:radial-gradient(circle closest-side,#000 0%,#000 68%,rgba(0,0,0,.9) 76%,transparent 89%)!important;
+ mask-image:radial-gradient(circle closest-side,#000 0%,#000 68%,rgba(0,0,0,.9) 76%,transparent 89%)!important;
+}
+/* Original title remains Cormorant Garamond; do not replace it with the
+ * experiment's body font and never apply ink-blending to the title. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+ font-family:"Cormorant Garamond",Georgia,serif!important;
+ mix-blend-mode:normal!important;filter:none!important;
+}
+/* The user's CSS experiment: only secondary text appears inked into the
+ * parchment. No text-box backgrounds, synthetic borders or filters. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles p,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>span,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>strong,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
+ font-family:"EB Garamond","Spectral",Georgia,serif!important;
+ color:#261a0f!important;mix-blend-mode:multiply!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ filter:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-value-row>strong{
+ font-family:"EB Garamond","Spectral",Georgia,serif!important;
+ color:#261a0f!important;mix-blend-mode:multiply!important;
+ background:transparent!important;filter:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
+ line-height:1.18!important;
+}
+/* ONE fully dynamic premium jewel. The original raster has no printed die. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
+ position:absolute!important;right:2.0%!important;top:17%!important;
+ width:76px!important;height:80px!important;background-size:contain!important;
+ border:0!important;box-shadow:none!important;transform:none!important;
+}
+
+/* Classe v49: ORIGINAL approved 256px class medals over ONE static border.
+   Do not affect the approved Monster master. Other category styles unchanged. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ left:1.9%!important;top:1.1%!important;width:24.4%!important;
+ height:auto!important;aspect-ratio:1!important;
+ overflow:visible!important;border-radius:0!important;
+ border:0!important;outline:0!important;box-shadow:none!important;
+ background:transparent!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ width:100%!important;height:100%!important;border-radius:0!important;
+ transform:none!important;transform-origin:center!important;
+ -webkit-mask-image:none!important;mask-image:none!important;
+ background-size:100% 100%!important;background-position:center!important;
+ background-repeat:no-repeat!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
+ background-color:transparent!important;box-shadow:none!important;
+ border:0!important;outline:0!important;filter:none!important;
+}

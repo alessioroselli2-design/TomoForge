@@ -4,6 +4,7 @@ import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
+import { getPreparedClassMaster } from "@/lib/classMasterImage";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -124,16 +125,26 @@ async function renderApprovedMaster(element,card) {
    master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
    if(master.complete&&master.naturalWidth>0)resolve();
  });
- ctx.drawImage(master,0,0,width,height);
+ // The Class JPG is a reference, not a printable layer: prepare its empty
+ // die well and flush bottom border first, just as in the React preview.
+ let printedMaster=master;
+ if(data.type==="class"){
+   try{printedMaster=(await getPreparedClassMaster()).canvas;}catch{}
+ }
+ ctx.drawImage(printedMaster,0,0,width,height);
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
- const g=data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art;
+ const g=data.type==="class"?{x:13,y:86,w:314,h:135}:MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
    const fit=Math.max(g.w/iw,g.h/ih),sw=g.w/fit,sh=g.h/fit;
+   // Never draw over the original ornate image-window corners.
+   const roundClassArt=data.type==="class"&&typeof ctx.roundRect==="function";
+   if(roundClassArt){ctx.save();ctx.beginPath();ctx.roundRect(g.x,g.y,g.w,g.h,7);ctx.clip();}
    ctx.drawImage(art,(iw-sw)/2,(ih-sh)/2,sw,sh,g.x,g.y,g.w,g.h);
+   if(roundClassArt)ctx.restore();
    artworkDrawn=true;
  } catch {}
  // The card image, header badge and stat icons all use the same engraved
@@ -142,10 +153,15 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
-     {x:m.x,y:m.y,size:m.r*2},
-     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
+   if(data.type==="class"){
+     // Same unmasked 256px emblem as CardFront. Do not draw a second rim.
+     ctx.drawImage(icon,0,0,s.cell,s.cell,6.46,5.24,82.96,82.96);
+   }else{
+     drawIntegratedMedallion(ctx,icon,
+       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
+       {x:m.x,y:m.y,size:m.r*2},
+       dragon?.37:.35,dragon?.48:.48);
+   }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
@@ -158,9 +174,10 @@ async function renderApprovedMaster(element,card) {
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
- const statY=data.type==="class"?220:MASTER_REGIONS.stats.y;
+ const statY=data.type==="class"?230:MASTER_REGIONS.stats.y;
+ if(data.type==="class"){ctx.save();ctx.globalCompositeOperation="multiply";}
  const statImages=await Promise.all(data.highlights.map(async it=>{
-   const src=getFrontStatIcon(it.label);
+   const src=data.type==="class"&&!it.value?null:getFrontStatIcon(it.label);
    if(!src)return null;
    const im=new Image();try {
      await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=src;
@@ -168,7 +185,8 @@ async function renderApprovedMaster(element,card) {
      return im;
    } catch {return null;}
  }));
- const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
+ const sx=data.type==="class"?12:MASTER_REGIONS.stats.x;
+ const widths=(data.type==="class"?[.34,.31,.35]:[.32,.35,.33]).map(f=>f*(data.type==="class"?316:MASTER_REGIONS.stats.w));
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    const labelCenter=cx;
@@ -176,10 +194,10 @@ async function renderApprovedMaster(element,card) {
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
      ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
+     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,'"EB Garamond",Spectral,Georgia,serif',"700");
      const left=cx-cellW/2+9;
      if(icon)ctx.drawImage(icon,left,statY+44,19,19);
-     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
+     ctx.fillStyle="#261a0f";ctx.font='700 9px "EB Garamond",Spectral,Georgia,serif';
      const width=cellW-(icon?35:14);
      const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
      ctx.textAlign="left";
@@ -210,6 +228,7 @@ async function renderApprovedMaster(element,card) {
      drawFittedText(ctx,it.value,valueCenter,statY+32,valueMaxWidth,icon?14:13,"Georgia,serif","700");
    }
  });
+ if(data.type==="class")ctx.restore();
  data.abilities.slice(0,6).forEach((it,i)=>{
    const cx=MASTER_REGIONS.abilities.x+(i+.5)*MASTER_REGIONS.abilities.w/6;
    ctx.fillStyle="#402418";ctx.textAlign="center";ctx.font="700 8px Georgia,serif";
@@ -226,20 +245,22 @@ async function renderApprovedMaster(element,card) {
    ctx.font="9px Spectral,Georgia,serif";
    drawWrappedText(ctx,d.value,x,MASTER_REGIONS.detail.y+27,detailW,11,2);
  });
- const desc=(data.type==="class"?data.fullDescription:data.description)||"I dettagli appariranno dopo la selezione di un record.";
+ const desc=(data.type==="class"?data.fullDescription:data.description)||(data.type==="class"?"":"I dettagli appariranno dopo la selezione di un record.");
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
-   ctx.font=`${fontSize}px Spectral,Georgia,serif`;
+   const x=22,y=319,w=214,h=101,fontSize=8.15,lineHeight=9.45;
+   ctx.font=`${fontSize}px "EB Garamond",Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
    const lines=wrapTextLines(ctx,fitted,w);
-   ctx.fillStyle="#2d190e";ctx.textAlign="left";
+   ctx.save();ctx.globalCompositeOperation="multiply";
+   ctx.fillStyle="#261a0f";ctx.textAlign="left";
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
+   ctx.restore();
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,252,329,72,75);
+     if(jewel)ctx.drawImage(jewel,249,327,76,80);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

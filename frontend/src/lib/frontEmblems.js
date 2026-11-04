@@ -58,15 +58,17 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // An independent 512px vector master replaces the blurry 44px atlas tile.
- // The existing gold circular card well stays entirely untouched.
- if (type === "class" && index === 4) {
-   return {
-     sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-optical-v2.svg",
-     width:512,height:512,cell:512,
-     backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
-   };
+
+ // Every Class icon is a separate 256px-lossless-origin original from the
+ // user's approved CLS-01...CLS-13 table (November 4). No 44px sprites,
+ // AI substitutes, additional framing or class-specific scale exceptions.
+ if(type==="class" && index>=0 && index<CLASSES.length){
+   const slug=CLASSES[index].toLowerCase();
+   const code=String(index+1).padStart(2,"0");
+   return {sprite:"classe-originale-256",index,col:0,row:0,label,
+     src:`/card-art/class-emblems/CLS-${code}-${slug}.webp`,
+     width:256,height:256,cell:256,
+     backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  // The original approved Dragon artwork is recropped symmetrically at 160px instead of the
  // 44px preview atlas. No AI substitution, no CSS upscaling of a tiny cell.
