@@ -4,6 +4,7 @@ import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
+import { getPreparedClassMaster } from "@/lib/classMasterImage";
 import { getApprovedBack } from "@/lib/cardBacks";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -124,7 +125,13 @@ async function renderApprovedMaster(element,card) {
    master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
    if(master.complete&&master.naturalWidth>0)resolve();
  });
- ctx.drawImage(master,0,0,width,height);
+ // The Class JPG is a reference, not a printable layer: prepare its empty
+ // die well and flush bottom border first, just as in the React preview.
+ let printedMaster=master;
+ if(data.type==="class"){
+   try{printedMaster=(await getPreparedClassMaster()).canvas;}catch{}
+ }
+ ctx.drawImage(printedMaster,0,0,width,height);
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
@@ -147,8 +154,8 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
-     {x:data.type==="class"?52:m.x,y:data.type==="class"?47:m.y,size:m.r*2},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:data.type==="class"?1.08:1.2},
+     {x:data.type==="class"?47.5:m.x,y:data.type==="class"?46:m.y,size:data.type==="class"?71:m.r*2},
      (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
@@ -163,6 +170,7 @@ async function renderApprovedMaster(element,card) {
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
  const statY=data.type==="class"?230:MASTER_REGIONS.stats.y;
+ if(data.type==="class"){ctx.save();ctx.globalCompositeOperation="multiply";}
  const statImages=await Promise.all(data.highlights.map(async it=>{
    const src=data.type==="class"&&!it.value?null:getFrontStatIcon(it.label);
    if(!src)return null;
@@ -181,10 +189,10 @@ async function renderApprovedMaster(element,card) {
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
      ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
+     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,'"EB Garamond",Spectral,Georgia,serif',"700");
      const left=cx-cellW/2+9;
      if(icon)ctx.drawImage(icon,left,statY+44,19,19);
-     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
+     ctx.fillStyle="#261a0f";ctx.font='700 9px "EB Garamond",Spectral,Georgia,serif';
      const width=cellW-(icon?35:14);
      const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
      ctx.textAlign="left";
@@ -215,6 +223,7 @@ async function renderApprovedMaster(element,card) {
      drawFittedText(ctx,it.value,valueCenter,statY+32,valueMaxWidth,icon?14:13,"Georgia,serif","700");
    }
  });
+ if(data.type==="class")ctx.restore();
  data.abilities.slice(0,6).forEach((it,i)=>{
    const cx=MASTER_REGIONS.abilities.x+(i+.5)*MASTER_REGIONS.abilities.w/6;
    ctx.fillStyle="#402418";ctx.textAlign="center";ctx.font="700 8px Georgia,serif";
@@ -236,12 +245,14 @@ async function renderApprovedMaster(element,card) {
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
    const x=22,y=319,w=214,h=101,fontSize=8.15,lineHeight=9.45;
-   ctx.font=`${fontSize}px Spectral,Georgia,serif`;
+   ctx.font=`${fontSize}px "EB Garamond",Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
    const lines=wrapTextLines(ctx,fitted,w);
-   ctx.fillStyle="#2d190e";ctx.textAlign="left";
+   ctx.save();ctx.globalCompositeOperation="multiply";
+   ctx.fillStyle="#261a0f";ctx.textAlign="left";
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
+   ctx.restore();
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
      if(jewel)ctx.drawImage(jewel,249,327,76,80);

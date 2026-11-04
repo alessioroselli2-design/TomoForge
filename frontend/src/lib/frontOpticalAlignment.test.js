@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
+    expect(exporter).toContain('zoom:dragon?1.28:data.type==="class"?1.08:1.2');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
@@ -124,10 +124,35 @@ describe("Classe: medaglione ottico al livello del Drago Rosso",()=>{
  });
  it("gives class icons the same 1.28 enlargement as Dragon without scaling the outer ring",()=>{
    const classBlock=finalMaster.slice(finalMaster.lastIndexOf('Master Classe firmato 03/11/2026'));
-   expect(classBlock).toContain('width:16.47059%!important');
-   expect(classBlock).toContain('transform:scale(1.28)!important');
+   expect(classBlock).toContain('width:21.0%!important');
+   expect(classBlock).toContain('transform:scale(1.08)!important');
    expect(classBlock).toContain('background:transparent!important;border:0!important;box-shadow:none!important');
-   expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
-   expect(exporter).toContain('x:data.type==="class"?52:m.x,y:data.type==="class"?47:m.y');
+   expect(exporter).toContain('zoom:dragon?1.28:data.type==="class"?1.08:1.2');
+   expect(exporter).toContain('x:data.type==="class"?47.5:m.x,y:data.type==="class"?46:m.y');
+ });
+});
+
+describe("Class v48: one source, one clean border, only dynamic content",()=>{
+ it("prepares one clean background for browser and export without altering Monster",()=>{
+   const builder=readFileSync(resolve(__dirname,"./classMasterImage.js"),"utf8");
+   expect(builder).toContain('source.src=CLASS_MASTER_SOURCE');
+   expect(builder).toContain('ctx.drawImage(scratch,0,1100,w,50,0,1160,w,50)');
+   expect(builder).toContain('const left=606,top=799,sw=240,sh=252,sourceLeft=360;');
+   expect(component).toContain('getPreparedClassMaster().then');
+   expect(exporter).toContain('printedMaster=(await getPreparedClassMaster()).canvas');
+ });
+ it("has a single Class jewel and no synthetic corners or double front border",()=>{
+   const last=finalMaster.slice(finalMaster.indexOf("Class master v48"));
+   expect(last).toContain('.tf-front-master-v17[data-front-category="class"]::before');
+   expect(last).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-corner');
+   expect(last).toContain("border:0!important;border-radius:0!important;outline:0!important;");
+   expect(component).toContain('data.classDieAsset');
+ });
+ it("keeps the old title typeface, applies the new CSS only to secondary ink",()=>{
+   const last=finalMaster.slice(finalMaster.indexOf("Class master v48"));
+   expect(last).toContain('font-family:"Cormorant Garamond",Georgia,serif!important');
+   expect(last).toContain('font-family:"EB Garamond","Spectral",Georgia,serif!important');
+   expect(last).toContain('mix-blend-mode:multiply!important');
+   expect(exporter).toContain('ctx.globalCompositeOperation="multiply"');
  });
 });
