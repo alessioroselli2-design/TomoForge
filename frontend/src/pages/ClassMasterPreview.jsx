@@ -37,7 +37,10 @@ export default function ClassMasterPreview() {
   const [selected,setSelected] = React.useState("Bardo");
   const [artwork,setArtwork] = React.useState(null);
   const [previewUrl,setPreviewUrl] = React.useState("");
+  const [approvedReference,setApprovedReference] = React.useState(null);
+  const [referenceUrl,setReferenceUrl] = React.useState("");
   const fileInput=React.useRef(null);
+  const referenceInput=React.useRef(null);
   const sample=CLASS_PREVIEW_FIXTURES.find(item=>item.name===selected)||CLASS_PREVIEW_FIXTURES[0];
   const card=React.useMemo(()=>makeDemoCard(sample),[sample]);
 
@@ -48,10 +51,19 @@ export default function ClassMasterPreview() {
     return ()=>URL.revokeObjectURL(url);
   },[artwork]);
 
+  React.useEffect(()=>{
+    if(!approvedReference){setReferenceUrl("");return undefined;}
+    const url=URL.createObjectURL(approvedReference);
+    setReferenceUrl(url);
+    return ()=>URL.revokeObjectURL(url);
+  },[approvedReference]);
+
   const onChooseClass=(name)=>{
     setSelected(name);
     setArtwork(null);
+    setApprovedReference(null);
     if(fileInput.current)fileInput.current.value="";
+    if(referenceInput.current)referenceInput.current.value="";
   };
 
   return (
@@ -84,6 +96,11 @@ export default function ClassMasterPreview() {
             <input ref={fileInput} type="file" accept="image/*" className="sr-only"
               onChange={e=>setArtwork(e.target.files?.[0]||null)}/>
           </label>
+          <label className="cursor-pointer px-4 py-2 border border-gold/70 rounded text-sm font-label">
+            Confronta con la carta approvata
+            <input ref={referenceInput} type="file" accept="image/*" className="sr-only"
+              onChange={e=>setApprovedReference(e.target.files?.[0]||null)}/>
+          </label>
           {artwork&&<button type="button" className="text-sm underline" onClick={()=>{
             setArtwork(null);
             if(fileInput.current)fileInput.current.value="";
@@ -95,6 +112,12 @@ export default function ClassMasterPreview() {
             <CardFront key={selected} card={card} imgUrl={previewUrl||undefined} />
           </div>
         </div>
+        {referenceUrl&&<div className="mt-8 mx-auto w-full max-w-lg text-center">
+          <h2 className="font-display text-lg mb-2">Immagine approvata · confronto locale</h2>
+          <img src={referenceUrl} alt={`Riferimento approvato per ${selected}`}
+            className="mx-auto w-full max-w-sm h-auto object-contain" />
+          <p className="font-body text-xs text-foreground/60 mt-2">Il riferimento rimane solo nel tuo dispositivo, non viene caricato sul server.</p>
+        </div>}
         <p className="font-body text-xs text-foreground/65 max-w-xl mx-auto mt-7">
           Prova isolata del master dell'app: le immagini delle schede approvate restano
           il riferimento visivo. L'anteprima non aggiorna Supabase e non pubblica carte.
