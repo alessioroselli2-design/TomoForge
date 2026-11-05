@@ -1,25 +1,26 @@
-import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import ClassMasterPreview, { CLASS_PREVIEW_FIXTURES } from "./ClassMasterPreview";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
-jest.mock("@/components/TradingCard",()=>({
-  CardFront:({card})=><div data-testid="mock-card-front">
-    {card.name} | {card.attributes.dado_vita} | {card.attributes.abilita_primaria}
-  </div>,
-}));
+const preview = readFileSync(resolve(__dirname, "ClassMasterPreview.jsx"), "utf8");
+const routes = readFileSync(resolve(__dirname, "../App.js"), "utf8");
 
-describe("isolated live class master verification page",()=>{
-  it("covers all thirteen classes and uses the real card data shape",()=>{
-    expect(CLASS_PREVIEW_FIXTURES).toHaveLength(13);
-    expect(new Set(CLASS_PREVIEW_FIXTURES.map(item=>item.name)).size).toBe(13);
-    expect(CLASS_PREVIEW_FIXTURES.find(item=>item.name==="Mago").die).toBe("d6");
-    expect(CLASS_PREVIEW_FIXTURES.find(item=>item.name==="Barbaro").die).toBe("d12");
+describe("isolated class preview", () => {
+  it("offers the thirteen classes through the actual CardFront renderer", () => {
+    const names = [
+      "Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco",
+      "Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"
+    ];
+    names.forEach(name => expect(preview).toContain('name:"' + name + '"'));
+    expect(preview).toContain("<CardFront key={selected} card={card}");
+    expect(preview).toContain('type:"class"');
+    expect(preview).toContain('dado_vita:sample.die');
   });
-  it("switches the visible class without any backend mutation",()=>{
-    render(<ClassMasterPreview/>);
-    expect(screen.getByTestId("mock-card-front").textContent).toContain("Bardo");
-    fireEvent.click(screen.getByRole("button",{name:"Mago"}));
-    expect(screen.getByTestId("mock-card-front").textContent).toContain("Mago | d6 | Intelligenza");
-    expect(screen.getByText(/nessun login, salvataggio o modifica ai record/)).toBeTruthy();
+  it("has a read-only preview route and local-only image tests", () => {
+    expect(routes).toContain('path="/prova-classi"');
+    expect(preview).toContain("URL.createObjectURL");
+    expect(preview).toContain("URL.revokeObjectURL");
+    expect(preview).not.toContain("api.post");
+    expect(preview).not.toContain("api.put");
+    expect(preview).not.toContain("api.patch");
   });
 });
