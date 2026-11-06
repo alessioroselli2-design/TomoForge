@@ -60,10 +60,13 @@ export const getFrontEmblem = (card = {}) => {
  if (index < 0) return null;
  // An independent 512px vector master replaces the blurry 44px atlas tile.
  // The existing gold circular card well stays entirely untouched.
- if (type === "class" && index === 4) {
+ if (type === "class") {
+   // The 13 user-approved *complete* medals; not the old low-resolution atlas.
+   // Keep the raster gold ring, gems and central symbol together.
+   const classKey = CLASSES[index];
    return {
-     sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-optical-v2.svg",
+     sprite:"class-approved-hd", index, col:0, row:0, label,
+     src:`/emblemi/classi-hd/${classKey}.webp`,
      width:512,height:512,cell:512,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
