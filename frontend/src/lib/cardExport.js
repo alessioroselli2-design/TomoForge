@@ -142,10 +142,19 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
-     {x:m.x,y:m.y,size:m.r*2},
-     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
+   if (data.type==="class" && s.sprite==="class-approved-hd") {
+     // Paint ONLY the approved central motif into the already engraved ring.
+     // Match CSS: 170% center-crop, no full medal / duplicated metal border.
+     drawIntegratedMedallion(ctx,icon,
+       {x:0,y:0,cell:512,zoom:1.7},
+       {x:m.x,y:m.y,size:m.r*2},
+       .37,.5);
+   } else {
+     drawIntegratedMedallion(ctx,icon,
+       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
+       {x:m.x,y:m.y,size:m.r*2},
+       (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
+   }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,

@@ -278,12 +278,12 @@
  min-width:0!important;overflow:hidden!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
- position:absolute!important;left:50%!important;top:12.5%!important;
+ position:absolute!important;left:50%!important;top:18.5%!important;
  transform:translateX(-50%)!important;
- width:98%!important;max-width:98%!important;height:85%!important;
+ width:98%!important;max-width:98%!important;height:79.5%!important;
  display:flex!important;flex-direction:column!important;
  justify-content:flex-start!important;align-items:center!important;
- gap:16px!important;text-align:center!important;overflow:hidden!important;
+ gap:14px!important;text-align:center!important;overflow:hidden!important;
  margin:0!important;padding:0!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>span{
@@ -350,4 +350,51 @@
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr canvas{
  width:18px!important;height:18px!important;
+}
+
+/* Class emblems use the SINGLE medallion engraved in the approved master.
+   Artwork is cropped to the high-resolution class MOTIF (not a second gold
+   frame): the existing master supplies all gold rings, gems and flourishes.
+   This restores the exact Monster master well: x=26, y=12, d=56 / 340x476.
+   Never position a complete medal with its own baked-in outer rings here. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+  left:7.64706%!important;
+  top:2.52101%!important;
+  width:16.47059%!important;
+  height:auto!important;
+  aspect-ratio:1!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  z-index:18!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::before{
+  content:none!important;
+  display:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-sprite{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  /* Crop at 1.7x: omit baked-in perimeter and side/top/bottom gems
+     while enlarging the central approved class motif to fill the well. */
+  background-size:170% 170%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  transform:none!important;
+  filter:none!important;
+  opacity:1!important;
+  -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 74%,rgba(0,0,0,.88) 88%,transparent 100%)!important;
+  mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 74%,rgba(0,0,0,.88) 88%,transparent 100%)!important;
+  clip-path:circle(50% at 50% 50%)!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-fallback{
+  display:none!important;
 }
