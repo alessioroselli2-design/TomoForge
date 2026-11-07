@@ -143,28 +143,12 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-approved-hd") {
-     // Match the class CSS layout: complete user-approved emblem, aligned
-     // to the frame's existing jewels. Conceal only the lower redundant ring.
-     const emblemSize=width*.2485;
-     const emblemX=width*.0347;
-     const emblemY=height*.002;
-     const coverX=emblemX+emblemSize*.08;
-     const coverY=emblemY+emblemSize*.08;
-     const coverSize=emblemSize*.84;
-     const coverR=coverSize/2;
-     const coverGradient=ctx.createRadialGradient(
-       coverX+coverR,coverY+coverR,0,
-       coverX+coverR,coverY+coverR,coverR);
-     coverGradient.addColorStop(0,"#350910");
-     coverGradient.addColorStop(.74,"#22060b");
-     coverGradient.addColorStop(1,"#160409");
-     ctx.save();
-     ctx.beginPath();
-     ctx.arc(coverX+coverR,coverY+coverR,coverR,0,Math.PI*2);
-     ctx.fillStyle=coverGradient;
-     ctx.fill();
-     ctx.restore();
-     ctx.drawImage(icon,emblemX,emblemY,emblemSize,emblemSize);
+     // Paint ONLY the approved central motif into the already engraved ring.
+     // Match CSS: 170% center-crop, no full medal / duplicated metal border.
+     drawIntegratedMedallion(ctx,icon,
+       {x:0,y:0,cell:512,zoom:1.7},
+       {x:m.x,y:m.y,size:m.r*2},
+       .37,.5);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
