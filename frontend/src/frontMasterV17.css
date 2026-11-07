@@ -352,34 +352,44 @@
  width:18px!important;height:18px!important;
 }
 
-/* 2026-11-07 correction: restore the 12 approved class medals; only the Fighter
-   receives a small optical size/vertical correction. Stat text stays lowered. */
-/* Signed-off 2026-11-06 Class emblems: self-contained complete transparent
-   medals. Preserve the single raster outer frame and approved dice unchanged.
-   Reference: Barbaro's subtle overlap, and the four-sword Guerriero. */
+/* Class symbols 2026-11-07: use only the INNER motif of the approved HD
+   medal, inside the EXISTING engraved upper-left well (the Monster master).
+   The gold rim, gems and scrollwork belong to the raster master; never paste
+   a second medal on top. This is shared by every one of the 13 classes. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
-  left:3.47%!important;top:1.1%!important;width:24.85%!important;
-  height:auto!important;aspect-ratio:1!important;
-  border-radius:0!important;overflow:visible!important;
-  background:transparent!important;box-shadow:none!important;
+  left:7.64706%!important;
+  top:2.52101%!important;
+  width:16.47059%!important;
+  height:auto!important;
+  aspect-ratio:1!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  box-shadow:none!important;
   z-index:18!important;
 }
-/* Fighter alone was oversized; keep its medal centred horizontally and
-   raised within the approved upper-left well, without affecting other classes. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Guerriero"],
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Fighter"]{
-  left:4.295%!important;top:0.7%!important;width:23.2%!important;
-}
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-sprite{
-  position:absolute!important;inset:0!important;
-  width:100%!important;height:100%!important;
-  border-radius:0!important;overflow:visible!important;
-  background-size:100% 100%!important;background-position:center!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  background-size:125% 125%!important;
+  background-position:50% 50%!important;
   background-repeat:no-repeat!important;
-  transform:none!important;transform-origin:center!important;
-  filter:none!important;opacity:1!important;
-  -webkit-mask-image:none!important;mask-image:none!important;
-  clip-path:none!important;
+  transform:none!important;
+  transform-origin:center!important;
+  filter:none!important;
+  opacity:1!important;
+  /* Feather away the medals' baked-in rim and extra gems, leaving just the
+     high-resolution central class artwork in the master circular recess. */
+  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%,#000 0%,#000 67%,rgba(0,0,0,.75) 78%,transparent 100%)!important;
+  mask-image:radial-gradient(circle closest-side at 50% 50%,#000 0%,#000 67%,rgba(0,0,0,.75) 78%,transparent 100%)!important;
+  clip-path:circle(50% at 50% 50%)!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-fallback{
   display:none!important;

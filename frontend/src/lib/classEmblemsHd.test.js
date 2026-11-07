@@ -11,16 +11,20 @@ describe("complete HD Class emblems from user-approved reference images",()=>{
    expect(asset.subarray(8,12).toString()).toBe("WEBP");
    expect(asset.length).toBeGreaterThan(8000);
  });
- it("keeps the other twelve medals at approved size and corrects only Fighter",()=>{
+ it("all 13 Class motifs fit the existing engraved Monster well, not a second medal",()=>{
    const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
-   expect(css).toContain("left:3.47%!important;top:1.1%!important;width:24.85%!important;");
-   expect(css).toContain(' .tf-v3-medallion[title="Guerriero"]');
-   expect(css).toContain(' .tf-v3-medallion[title="Fighter"]');
-   expect(css).toContain("left:4.295%!important;top:0.7%!important;width:23.2%!important;");
-   expect(exporter).toContain("fighter?0.232:0.2485");
-   expect(exporter).toContain("fighter?0.04295:0.0347");
-   expect(exporter).toContain("fighter?0.007:0.011");
+   const section=css.slice(css.lastIndexOf("/* Class symbols 2026-11-07:"));
+   expect(section).toContain("left:7.64706%!important;");
+   expect(section).toContain("top:2.52101%!important;");
+   expect(section).toContain("width:16.47059%!important;");
+   expect(section).toContain("overflow:hidden!important;");
+   expect(section).toContain("background-size:125% 125%!important;");
+   expect(section).toContain("mask-image:radial-gradient(");
+   expect(section).not.toContain(' .tf-v3-medallion[title="Guerriero"]');
+   expect(exporter).toContain("{x:0,y:0,cell:512,zoom:1.25}");
+   expect(exporter).toContain(".335,.5);");
+   expect(exporter).not.toContain("fighter?0.232:0.2485");
  });
  it("does not affect existing class life dice or nonclass symbols",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");

@@ -143,12 +143,12 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-approved-hd") {
-     // Match CardFront CSS exactly: restore the approved 12 medals; only
-     // Fighter is slightly smaller and higher to fit the original engraved well.
-     const fighter = /^(guerriero|fighter)$/i.test(String(data.name || "").trim());
-     const size=width*(fighter?0.232:0.2485);
-     ctx.drawImage(icon,width*(fighter?0.04295:0.0347),
-       height*(fighter?0.007:0.011),size,size);
+     // Exactly mirror the CSS preview: crop to the approved inner class symbol,
+     // feather away the baked-in second medal and reuse the existing Monster well.
+     drawIntegratedMedallion(ctx,icon,
+       {x:0,y:0,cell:512,zoom:1.25},
+       {x:m.x,y:m.y,size:m.r*2},
+       .335,.5);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
