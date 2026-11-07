@@ -143,10 +143,12 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-approved-hd") {
-     // Same full, unmasked medal as CardFront CSS: x=3.47%, y=1.1%,
-     // diameter=24.85% of the 340px card width.
-     const size=width*0.2485;
-     ctx.drawImage(icon,width*0.0347,height*0.011,size,size);
+     // Match CardFront CSS exactly: restore the approved 12 medals; only
+     // Fighter is slightly smaller and higher to fit the original engraved well.
+     const fighter = /^(guerriero|fighter)$/i.test(String(data.name || "").trim());
+     const size=width*(fighter?0.232:0.2485);
+     ctx.drawImage(icon,width*(fighter?0.04295:0.0347),
+       height*(fighter?0.007:0.011),size,size);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
