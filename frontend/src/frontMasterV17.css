@@ -352,44 +352,56 @@
  width:18px!important;height:18px!important;
 }
 
-/* Class symbols 2026-11-07: use only the INNER motif of the approved HD
-   medal, inside the EXISTING engraved upper-left well (the Monster master).
-   The gold rim, gems and scrollwork belong to the raster master; never paste
-   a second medal on top. This is shared by every one of the 13 classes. */
+/* Class medals: one complete 512px approved HD emblem for each class.
+   These medals carry their OWN rim and gems (as in the user's accepted cards).
+   Do not crop to a small inner icon. The underlying raster frame stays the
+   same; cover only its redundant old inner metal ring directly under the new
+   emblem, to prevent the visibly doubled medallion on iPhone.
+   The coordinates are shared with cardExport.js (340x476 master). */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
-  left:7.64706%!important;
-  top:2.52101%!important;
-  width:16.47059%!important;
+  left:3.47%!important;
+  top:0.2%!important;
+  width:24.85%!important;
   height:auto!important;
   aspect-ratio:1!important;
   margin:0!important;
   padding:0!important;
   border:0!important;
-  border-radius:50%!important;
-  overflow:hidden!important;
+  border-radius:0!important;
+  overflow:visible!important;
   background:transparent!important;
   box-shadow:none!important;
   z-index:18!important;
 }
+/* Make the pre-engraved circular ring invisible underneath the complete medal;
+   keep all surrounding gold scrollwork, title, and the main master intact. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"]::before{
+  content:"";
+  position:absolute;
+  inset:8%;
+  z-index:0;
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#350910 0%,#22060b 74%,#160409 100%);
+  pointer-events:none;
+}
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-sprite{
   position:absolute!important;
   inset:0!important;
+  z-index:1!important;
   width:100%!important;
   height:100%!important;
-  border-radius:50%!important;
-  overflow:hidden!important;
-  background-size:125% 125%!important;
-  background-position:50% 50%!important;
+  border-radius:0!important;
+  overflow:visible!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
   background-repeat:no-repeat!important;
   transform:none!important;
   transform-origin:center!important;
   filter:none!important;
   opacity:1!important;
-  /* Feather away the medals' baked-in rim and extra gems, leaving just the
-     high-resolution central class artwork in the master circular recess. */
-  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%,#000 0%,#000 67%,rgba(0,0,0,.75) 78%,transparent 100%)!important;
-  mask-image:radial-gradient(circle closest-side at 50% 50%,#000 0%,#000 67%,rgba(0,0,0,.75) 78%,transparent 100%)!important;
-  clip-path:circle(50% at 50% 50%)!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
+  clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-fallback{
   display:none!important;

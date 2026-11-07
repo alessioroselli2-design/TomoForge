@@ -11,20 +11,23 @@ describe("complete HD Class emblems from user-approved reference images",()=>{
    expect(asset.subarray(8,12).toString()).toBe("WEBP");
    expect(asset.length).toBeGreaterThan(8000);
  });
- it("all 13 Class motifs fit the existing engraved Monster well, not a second medal",()=>{
+ it("renders all 13 complete approved medals, aligned over one original ring",()=>{
    const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
-   const section=css.slice(css.lastIndexOf("/* Class symbols 2026-11-07:"));
-   expect(section).toContain("left:7.64706%!important;");
-   expect(section).toContain("top:2.52101%!important;");
-   expect(section).toContain("width:16.47059%!important;");
-   expect(section).toContain("overflow:hidden!important;");
-   expect(section).toContain("background-size:125% 125%!important;");
-   expect(section).toContain("mask-image:radial-gradient(");
-   expect(section).not.toContain(' .tf-v3-medallion[title="Guerriero"]');
-   expect(exporter).toContain("{x:0,y:0,cell:512,zoom:1.25}");
-   expect(exporter).toContain(".335,.5);");
-   expect(exporter).not.toContain("fighter?0.232:0.2485");
+   const section=css.slice(css.lastIndexOf("/* Class medals:"));
+   expect(section).toContain("left:3.47%!important;");
+   expect(section).toContain("top:0.2%!important;");
+   expect(section).toContain("width:24.85%!important;");
+   expect(section).toContain("inset:8%");
+   expect(section).toContain("background-size:100% 100%!important;");
+   expect(section).toContain("-webkit-mask-image:none!important;");
+   expect(section).toContain("clip-path:none!important;");
+   expect(section).not.toContain("background-size:125% 125%");
+   expect(exporter).toContain("const emblemSize=width*.2485;");
+   expect(exporter).toContain("const emblemX=width*.0347;");
+   expect(exporter).toContain("const emblemY=height*.002;");
+   expect(exporter).toContain("ctx.drawImage(icon,emblemX,emblemY,emblemSize,emblemSize);");
+   expect(exporter).not.toContain("{x:0,y:0,cell:512,zoom:1.25}");
  });
  it("does not affect existing class life dice or nonclass symbols",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");
