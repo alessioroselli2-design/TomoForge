@@ -352,69 +352,63 @@
  width:18px!important;height:18px!important;
 }
 
-/* Class emblems use the SINGLE medallion engraved in the approved master.
-   Artwork is cropped to the high-resolution class MOTIF (not a second gold
-   frame): the existing master supplies all gold rings, gems and flourishes.
-   This restores the exact Monster master well: x=26, y=12, d=56 / 340x476.
-   Never position a complete medal with its own baked-in outer rings here. */
+/* One canonical 512px Class medal per category in the SAME source well.
+   The approved photographic examples use the COMPLETE emblem, with gems,
+   at roughly x=3.2%, y=0.65%, w=25% of the card. DO NOT enlarge an inner
+   motif, use independent per-class zooms or paste reference screenshots.
+   The class master and its original border remain untouched. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
-  left:7.64706%!important;
-  top:2.52101%!important;
-  width:16.47059%!important;
+  position:absolute!important;
+  left:3.2%!important;
+  top:0.65%!important;
+  width:25%!important;
   height:auto!important;
-  aspect-ratio:1!important;
+  aspect-ratio:1 / 1!important;
+  min-width:0!important;
+  max-width:none!important;
   margin:0!important;
   padding:0!important;
   border:0!important;
-  border-radius:50%!important;
-  overflow:hidden!important;
+  border-radius:0!important;
+  overflow:visible!important;
   background:transparent!important;
   box-shadow:none!important;
+  filter:none!important;
+  isolation:isolate!important;
   z-index:18!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::before{
-  content:none!important;
-  display:none!important;
+/* Conceal the engraved duplicate ring BEHIND the complete medal.
+   The 95% circular matte is smaller than its outer gemstones, leaving
+   the card's connecting filigree and the rest of the master undisturbed. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"]::before{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  inset:2.5%!important;
+  z-index:0!important;
+  border-radius:50%!important;
+  background:radial-gradient(circle,#390d13 0%,#25080c 70%,#1b0709 100%)!important;
+  pointer-events:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-sprite{
   position:absolute!important;
   inset:0!important;
+  z-index:1!important;
   width:100%!important;
   height:100%!important;
-  border-radius:50%!important;
-  overflow:hidden!important;
-  /* Smaller 1.58x crop preserves the approved motif inside the single
-     engraved ring; specific busy emblems need slightly less cropping. */
-  background-size:158% 158%!important;
+  border-radius:0!important;
+  overflow:visible!important;
+  background-size:100% 100%!important;
   background-position:center!important;
   background-repeat:no-repeat!important;
   transform:none!important;
   filter:none!important;
   opacity:1!important;
-  -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 74%,rgba(0,0,0,.88) 88%,transparent 100%)!important;
-  mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 74%,rgba(0,0,0,.88) 88%,transparent 100%)!important;
-  clip-path:circle(50% at 50% 50%)!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
+  clip-path:none!important;
 }
+/* One identical rendered dimension for all 13 classes, including Warrior. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-fallback{
   display:none!important;
-}
-
-/* Optical crop adjustments for motifs with details near the perimeter.
-   Restrict to class images, not monster symbols or other card categories.
-   Positions, approved frame, dice, and stat layout stay untouched. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Guerriero"] .tf-v3-sprite,
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Fighter"] .tf-v3-sprite{
-  background-size:152% 152%!important;
-  background-position:center!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Stregone"] .tf-v3-sprite,
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Sorcerer"] .tf-v3-sprite{
-  background-size:154% 154%!important;
-  background-position:center!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Warlock"] .tf-v3-sprite,
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Ladro"] .tf-v3-sprite,
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Rogue"] .tf-v3-sprite{
-  background-size:156% 156%!important;
-  background-position:center!important;
 }

@@ -143,16 +143,24 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-approved-hd") {
-     // Match the iPhone preview: one engraved ring and restrained,
-     // class-specific optical crops, so no details are cut off.
-     const className=String(data.name||"").trim().toLowerCase();
-     const emblemZoom=/^(guerriero|fighter)$/.test(className)?1.52
-       :/^(stregone|sorcerer)$/.test(className)?1.54
-       :/^(warlock|ladro|rogue)$/.test(className)?1.56:1.58;
-     drawIntegratedMedallion(ctx,icon,
-       {x:0,y:0,cell:512,zoom:emblemZoom},
-       {x:m.x,y:m.y,size:m.r*2},
-       .37,.5);
+     // Same 512px source, size and alignment as the CSS preview; never crop
+     // or rescale one class differently from another.
+     const size=width*.25;
+     const x=width*.032;
+     const y=height*.0065;
+     const matteRadius=size*.475;
+     const centerX=x+size/2,centerY=y+size/2;
+     const matte=ctx.createRadialGradient(centerX,centerY,0,centerX,centerY,matteRadius);
+     matte.addColorStop(0,"#390d13");
+     matte.addColorStop(.7,"#25080c");
+     matte.addColorStop(1,"#1b0709");
+     ctx.save();
+     ctx.beginPath();
+     ctx.arc(centerX,centerY,matteRadius,0,Math.PI*2);
+     ctx.fillStyle=matte;
+     ctx.fill();
+     ctx.restore();
+     ctx.drawImage(icon,x,y,size,size);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
