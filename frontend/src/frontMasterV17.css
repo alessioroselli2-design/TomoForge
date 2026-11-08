@@ -383,9 +383,9 @@
   height:100%!important;
   border-radius:50%!important;
   overflow:hidden!important;
-  /* Crop at 1.7x: omit baked-in perimeter and side/top/bottom gems
-     while enlarging the central approved class motif to fill the well. */
-  background-size:170% 170%!important;
+  /* Smaller 1.58x crop preserves the approved motif inside the single
+     engraved ring; specific busy emblems need slightly less cropping. */
+  background-size:158% 158%!important;
   background-position:center!important;
   background-repeat:no-repeat!important;
   transform:none!important;
@@ -397,4 +397,24 @@
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-fallback{
   display:none!important;
+}
+
+/* Optical crop adjustments for motifs with details near the perimeter.
+   Restrict to class images, not monster symbols or other card categories.
+   Positions, approved frame, dice, and stat layout stay untouched. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Guerriero"] .tf-v3-sprite,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Fighter"] .tf-v3-sprite{
+  background-size:152% 152%!important;
+  background-position:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Stregone"] .tf-v3-sprite,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Sorcerer"] .tf-v3-sprite{
+  background-size:154% 154%!important;
+  background-position:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Warlock"] .tf-v3-sprite,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Ladro"] .tf-v3-sprite,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[title="Rogue"] .tf-v3-sprite{
+  background-size:156% 156%!important;
+  background-position:center!important;
 }

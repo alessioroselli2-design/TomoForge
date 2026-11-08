@@ -143,10 +143,14 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-approved-hd") {
-     // Paint ONLY the approved central motif into the already engraved ring.
-     // Match CSS: 170% center-crop, no full medal / duplicated metal border.
+     // Match the iPhone preview: one engraved ring and restrained,
+     // class-specific optical crops, so no details are cut off.
+     const className=String(data.name||"").trim().toLowerCase();
+     const emblemZoom=/^(guerriero|fighter)$/.test(className)?1.52
+       :/^(stregone|sorcerer)$/.test(className)?1.54
+       :/^(warlock|ladro|rogue)$/.test(className)?1.56:1.58;
      drawIntegratedMedallion(ctx,icon,
-       {x:0,y:0,cell:512,zoom:1.7},
+       {x:0,y:0,cell:512,zoom:emblemZoom},
        {x:m.x,y:m.y,size:m.r*2},
        .37,.5);
    } else {
