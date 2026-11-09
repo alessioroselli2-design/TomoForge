@@ -256,13 +256,8 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-badge,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
-/* Optical treatment of every Class emblem uses the approved Dragon's slot.
-   The underlying medallion, decorative ring and Monster CSS never change. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
- transform:scale(1.28)!important;transform-origin:center!important;
- -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
- mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
-}
+/* Class medallions are filled by a uniform transparent cutout.
+   No per-class zooming and no second CSS/masked gold ring. */
 /* Illustration takes the same large image field in every Class master. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
  top:15.49865%!important;height:30.99730%!important;
@@ -352,63 +347,33 @@
  width:18px!important;height:18px!important;
 }
 
-/* One canonical 512px Class medal per category in the SAME source well.
-   The approved photographic examples use the COMPLETE emblem, with gems,
-   at roughly x=3.2%, y=0.65%, w=25% of the card. DO NOT enlarge an inner
-   motif, use independent per-class zooms or paste reference screenshots.
-   The class master and its original border remain untouched. */
+/* Class emblem: one engraved circle, supplied by the unchanged Class master.
+   Each 512x512 cutout contains only the original central class motif. All
+   classes share the same position/size as the verified Monster medallion.
+   The transparent edge feathers into the original raster well. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
-  position:absolute!important;
-  left:3.2%!important;
-  top:0.65%!important;
-  width:25%!important;
-  height:auto!important;
-  aspect-ratio:1 / 1!important;
-  min-width:0!important;
-  max-width:none!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  overflow:visible!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  filter:none!important;
-  isolation:isolate!important;
-  z-index:18!important;
+ position:absolute!important;
+ left:7.64706%!important;top:2.52101%!important;
+ width:16.47059%!important;height:auto!important;aspect-ratio:1!important;
+ margin:0!important;padding:0!important;border:0!important;
+ border-radius:50%!important;overflow:hidden!important;
+ background:transparent!important;box-shadow:none!important;
+ z-index:18!important;
 }
-/* Conceal the engraved duplicate ring BEHIND the complete medal.
-   The 95% circular matte is smaller than its outer gemstones, leaving
-   the card's connecting filigree and the rest of the master undisturbed. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"]::before{
-  content:""!important;
-  display:block!important;
-  position:absolute!important;
-  inset:2.5%!important;
-  z-index:0!important;
-  border-radius:50%!important;
-  background:radial-gradient(circle,#390d13 0%,#25080c 70%,#1b0709 100%)!important;
-  pointer-events:none!important;
+/* The source master already owns every gem and gold ring. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::before,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::after{
+ content:none!important;display:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-sprite{
-  position:absolute!important;
-  inset:0!important;
-  z-index:1!important;
-  width:100%!important;
-  height:100%!important;
-  border-radius:0!important;
-  overflow:visible!important;
-  background-size:100% 100%!important;
-  background-position:center!important;
-  background-repeat:no-repeat!important;
-  transform:none!important;
-  filter:none!important;
-  opacity:1!important;
-  -webkit-mask-image:none!important;
-  mask-image:none!important;
-  clip-path:none!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-cutout"] .tf-v3-sprite{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;
+ border-radius:50%!important;overflow:hidden!important;
+ background-size:100% 100%!important;
+ background-position:center!important;background-repeat:no-repeat!important;
+ transform:none!important;filter:none!important;opacity:1!important;
+ -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
 }
-/* One identical rendered dimension for all 13 classes, including Warrior. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-hd"] .tf-v3-fallback{
-  display:none!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-cutout"] .tf-v3-fallback{
+ display:none!important;
 }

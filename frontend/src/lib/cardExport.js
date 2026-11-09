@@ -142,25 +142,10 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   if (data.type==="class" && s.sprite==="class-approved-hd") {
-     // Same 512px source, size and alignment as the CSS preview; never crop
-     // or rescale one class differently from another.
-     const size=width*.25;
-     const x=width*.032;
-     const y=height*.0065;
-     const matteRadius=size*.475;
-     const centerX=x+size/2,centerY=y+size/2;
-     const matte=ctx.createRadialGradient(centerX,centerY,0,centerX,centerY,matteRadius);
-     matte.addColorStop(0,"#390d13");
-     matte.addColorStop(.7,"#25080c");
-     matte.addColorStop(1,"#1b0709");
-     ctx.save();
-     ctx.beginPath();
-     ctx.arc(centerX,centerY,matteRadius,0,Math.PI*2);
-     ctx.fillStyle=matte;
-     ctx.fill();
-     ctx.restore();
-     ctx.drawImage(icon,x,y,size,size);
+   if (data.type==="class" && s.sprite==="class-approved-cutout") {
+     // Match the React preview: same 56x56px source well for every class.
+     // The asset is already alpha-feathered and contains no second metal ring.
+     ctx.drawImage(icon,m.x-m.r,m.y-m.r,m.r*2,m.r*2);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},

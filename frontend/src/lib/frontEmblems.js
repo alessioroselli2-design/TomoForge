@@ -58,15 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // An independent 512px vector master replaces the blurry 44px atlas tile.
- // The existing gold circular card well stays entirely untouched.
+ // Original 512px class artwork is centrally isolated once into a transparent
+ // cutout at the same dimensions for all 13 classes (see build_class_cutouts.py).
+ // The approved illustrated card master owns the only gold medallion frame.
  if (type === "class") {
-   // The 13 user-approved *complete* medals; not the old low-resolution atlas.
-   // Keep the raster gold ring, gems and central symbol together.
    const classKey = CLASSES[index];
    return {
-     sprite:"class-approved-hd", index, col:0, row:0, label,
-     src:`/emblemi/classi-hd/${classKey}.webp`,
+     sprite:"class-approved-cutout", index, col:0, row:0, label,
+     src:`/emblemi/classi-cutout/${classKey}.webp`,
      width:512,height:512,cell:512,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
