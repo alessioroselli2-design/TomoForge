@@ -347,33 +347,30 @@
  width:18px!important;height:18px!important;
 }
 
-/* Class emblem: one engraved circle, supplied by the unchanged Class master.
-   Each 512x512 cutout contains only the original central class motif. All
-   classes share the same position/size as the verified Monster medallion.
-   The transparent edge feathers into the original raster well. */
+/* A SINGLE complete approved 512px HD medal occupies the Class master well.
+   The master single-ring-v1 has the redundant ring digitally cleared below
+   this emblem. Position comes from one reference measurement on the raster:
+   original 1060x1484 art, x=29, y=-5, size=260. Same for all 13 classes. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
  position:absolute!important;
- left:7.64706%!important;top:2.52101%!important;
- width:16.47059%!important;height:auto!important;aspect-ratio:1!important;
+ left:2.73585%!important;top:-0.33693%!important;
+ width:24.5283%!important;height:auto!important;aspect-ratio:1!important;
  margin:0!important;padding:0!important;border:0!important;
- border-radius:50%!important;overflow:hidden!important;
+ border-radius:0!important;overflow:visible!important;
  background:transparent!important;box-shadow:none!important;
  z-index:18!important;
 }
-/* The source master already owns every gem and gold ring. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::before,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::after{
  content:none!important;display:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-cutout"] .tf-v3-sprite{
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-sprite{
  position:absolute!important;inset:0!important;
  width:100%!important;height:100%!important;
- border-radius:50%!important;overflow:hidden!important;
+ border-radius:0!important;overflow:visible!important;
  background-size:100% 100%!important;
  background-position:center!important;background-repeat:no-repeat!important;
  transform:none!important;filter:none!important;opacity:1!important;
  -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-cutout"] .tf-v3-fallback{
- display:none!important;
-}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-fallback{display:none!important;}

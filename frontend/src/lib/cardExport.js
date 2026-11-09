@@ -142,10 +142,13 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   if (data.type==="class" && s.sprite==="class-approved-cutout") {
-     // Match the React preview: same 56x56px source well for every class.
-     // The asset is already alpha-feathered and contains no second metal ring.
-     ctx.drawImage(icon,m.x-m.r,m.y-m.r,m.r*2,m.r*2);
+   if (data.type==="class" && s.sprite==="class-hd-single-ring") {
+     // Same pixel geometry as CSS and the cleaned Class master, without
+     // crop, extra ring, or category-specific zoom.
+     const medalSize=width*(260/1060);
+     const medalX=width*(29/1060);
+     const medalY=height*(-5/1484);
+     ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},

@@ -15,7 +15,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // A single original master supplies the gold rim; each class fills only
     // the same fixed-size circular well with a transparent HD motif.
-    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-approved-cutout"] .tf-v3-sprite');
+    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-sprite');
     expect(finalMaster).toContain("width:16.47059%!important;");
     expect(finalMaster).not.toContain('data-emblem-sprite="class-approved-hd"');
     expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
@@ -61,12 +61,14 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-approved-v4.webp"));
+   const original=readFileSync(resolve(root,"class-master-approved-v4.webp"));
+   expect(original.subarray(0,4).toString()).toBe("RIFF");
+   const master=readFileSync(resolve(root,"class-master-single-ring-v1.webp"));
    expect(master.subarray(0,4).toString()).toBe("RIFF");
    expect(master.subarray(8,12).toString()).toBe("WEBP");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-approved-v4.webp"');
+   expect(layouts).toContain('master:"/card-art/class-master-single-ring-v1.webp"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
