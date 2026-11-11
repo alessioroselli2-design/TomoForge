@@ -38,6 +38,9 @@ describe("single Class master with one complete HD medallion",()=>{
    expect(exporter).toContain("const medalX=width*(29/1060);");
    expect(exporter).toContain("const medalY=height*(-5/1484);");
    expect(exporter).toContain("ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);");
+   expect(exporter).toContain('data.type==="class"?22.5');
+   expect(exporter).toContain('data.type==="class"?9:7.7');
+   expect(exporter).toContain('fontSize=10.1,lineHeight=11.82');
    expect(exporter).not.toContain("matteRadius");
  });
  it("keeps stat records, dice, and Monster medallions unchanged",()=>{

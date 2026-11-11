@@ -158,10 +158,10 @@ async function renderApprovedMaster(element,card) {
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
-   Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
+   Math.min(MASTER_REGIONS.title.w,150),data.type==="class"?22.5:(data.name.length>=27?14:data.name.length>=17?16:17.25),"'Cormorant Garamond',Georgia,serif","700");
  ctx.fillStyle="#4a2b1a";
  drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,
-   Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
+   Math.min(MASTER_REGIONS.subtitle.w,142),data.type==="class"?9:7.7,"'Spectral',Georgia,serif","400");
  if(data.badge){
    ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
@@ -239,7 +239,7 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
+   const x=29,y=319,w=196,h=94,fontSize=10.1,lineHeight=11.82;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
