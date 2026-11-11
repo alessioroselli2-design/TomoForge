@@ -63,12 +63,12 @@ describe("Class v2: one static printable composition",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
    const original=readFileSync(resolve(root,"class-master-approved-v4.webp"));
    expect(original.subarray(0,4).toString()).toBe("RIFF");
-   const master=readFileSync(resolve(root,"class-master-single-ring-v1.webp"));
+   const master=readFileSync(resolve(root,"class-master-single-ring-parchment-v2.webp"));
    expect(master.subarray(0,4).toString()).toBe("RIFF");
    expect(master.subarray(8,12).toString()).toBe("WEBP");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-single-ring-v1.webp"');
+   expect(layouts).toContain('master:"/card-art/class-master-single-ring-parchment-v2.webp"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');

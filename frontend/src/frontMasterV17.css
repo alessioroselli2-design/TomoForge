@@ -374,3 +374,18 @@
  -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-fallback{display:none!important;}
+/* Approved Class references use a LARGE headline and a light blank
+   illustration parchment rather than the lava-backed Monster field.
+   All 13 classes share this exact typography and the common master. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+ font-size:clamp(18px,6.6cqw,22.5px)!important;
+ font-weight:700!important;line-height:1.03!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles p{
+ font-size:9px!important;top:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
+ font-size:10.1px!important;
+ line-height:1.17!important;
+}
+

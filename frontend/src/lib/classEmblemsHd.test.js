@@ -28,8 +28,8 @@ describe("single Class master with one complete HD medallion",()=>{
    expect(section).not.toContain("[title=");
    expect(section).not.toContain("background:radial-gradient(");
    expect(section).not.toContain("class-approved-cutout");
-   expect(layouts).toContain('/card-art/class-master-single-ring-v1.webp');
-   const clean=readFileSync(resolve(__dirname,"../../public/card-art/class-master-single-ring-v1.webp"));
+   expect(layouts).toContain('/card-art/class-master-single-ring-parchment-v2.webp');
+   const clean=readFileSync(resolve(__dirname,"../../public/card-art/class-master-single-ring-parchment-v2.webp"));
    expect(clean.subarray(0,4).toString()).toBe("RIFF");
    expect(clean.subarray(8,12).toString()).toBe("WEBP");
    expect(clean.length).toBeGreaterThan(100000);
