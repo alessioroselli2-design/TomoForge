@@ -374,3 +374,14 @@
  -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-fallback{display:none!important;}
+
+
+/* Bardo-only graphical proof on /prova-classi. The approved HD Bardo
+   emblem is composited ONCE into this preview master: no duplicate DOM medal.
+   All other 12 class cards, exports, and production remain unchanged. */
+.tf-bardo-proof .tf-front-master-v17[data-front-category="class"]{
+  background-image:var(--tf-bardo-proof-master)!important;
+}
+.tf-bardo-proof .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+  visibility:hidden!important;
+}
