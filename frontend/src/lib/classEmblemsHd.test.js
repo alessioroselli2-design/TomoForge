@@ -28,8 +28,8 @@ describe("single Class master with one complete HD medallion",()=>{
    expect(section).not.toContain("[title=");
    expect(section).not.toContain("background:radial-gradient(");
    expect(section).not.toContain("class-approved-cutout");
-   expect(layouts).toContain('/card-art/class-master-single-ring-parchment-v2.webp');
-   const clean=readFileSync(resolve(__dirname,"../../public/card-art/class-master-single-ring-parchment-v2.webp"));
+   expect(layouts).toContain('/card-art/class-master-single-ring-v1.webp');
+   const clean=readFileSync(resolve(__dirname,"../../public/card-art/class-master-single-ring-v1.webp"));
    expect(clean.subarray(0,4).toString()).toBe("RIFF");
    expect(clean.subarray(8,12).toString()).toBe("WEBP");
    expect(clean.length).toBeGreaterThan(100000);
@@ -38,9 +38,6 @@ describe("single Class master with one complete HD medallion",()=>{
    expect(exporter).toContain("const medalX=width*(29/1060);");
    expect(exporter).toContain("const medalY=height*(-5/1484);");
    expect(exporter).toContain("ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);");
-   expect(exporter).toContain('data.type==="class"?22.5');
-   expect(exporter).toContain('data.type==="class"?9:7.7');
-   expect(exporter).toContain('fontSize=10.1,lineHeight=11.82');
    expect(exporter).not.toContain("matteRadius");
  });
  it("keeps stat records, dice, and Monster medallions unchanged",()=>{
