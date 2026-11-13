@@ -58,13 +58,12 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // All 13 original approved complete medals render at exactly the same scale.
- // The dedicated single-ring Class master has its underlying engraved rim erased,
- // so the emblem adds the ONLY rim; no overlaid/double medallion.
+ // The user's approved Class master ALREADY contains the ornate ring.
+ // Only the center of each HD emblem is cropped into that fixed well.
  if (type === "class") {
    const classKey = CLASSES[index];
    return {
-     sprite:"class-hd-single-ring", index, col:0, row:0, label,
+     sprite:"class-inner-v1", index, col:0, row:0, label,
      src:`/emblemi/classi-hd/${classKey}.webp`,
      width:512,height:512,cell:512,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",

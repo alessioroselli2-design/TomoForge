@@ -26,16 +26,14 @@ describe("isolated class preview", () => {
 });
 
 
-describe("Bardo-only visual proof: one raster medallion on the real CardFront",()=>{
-  it("uses the original HD asset, no additional DOM emblem and leaves other classes untouched",()=>{
-    const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
-    expect(preview).toContain('className={selected==="Bardo"?"tf-bardo-proof":undefined}');
-    expect(preview).toContain("url(/card-art/bardo-integrated-proof-v1.webp)");
-    expect(css).toContain("background-image:var(--tf-bardo-proof-master)!important;");
-    expect(css).toContain("visibility:hidden!important;");
-    const asset=readFileSync(resolve(__dirname,"../../public/card-art/bardo-integrated-proof-v1.webp"));
-    expect(asset.subarray(0,4).toString()).toBe("RIFF");
-    expect(asset.subarray(8,12).toString()).toBe("WEBP");
-    expect(asset.length).toBeGreaterThan(100000);
-  });
+
+describe("one user master with no superimposed class ring",()=>{
+ it("shares the same class inner motif slot across all 13 Class selections",()=>{
+   const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
+   const layouts=readFileSync(resolve(__dirname,"../lib/frontCategoryLayouts.js"),"utf8");
+   expect(layouts).toContain("/card-art/class-master-user-reference-v1.webp");
+   expect(css).toContain('data-emblem-sprite="class-inner-v1"');
+   expect(css).toContain("left:6.25%!important;top:3.97135%!important;");
+   expect(preview).not.toContain("tf-bardo-proof");
+ });
 });

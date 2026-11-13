@@ -2,45 +2,40 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { getFrontEmblem } from "./frontEmblems";
 
-describe("single Class master with one complete HD medallion",()=>{
+describe("Class master with original gold well and only one dynamic inner motif",()=>{
  const names="barbaro bardo chierico druido guerriero monaco paladino ranger ladro stregone warlock mago artefice".split(" ");
- it.each(names)("%s uses the complete approved medal at a common scale",name=>{
+ it.each(names)("%s uses original HD asset without a separate gold ring overlay",name=>{
    const emblem=getFrontEmblem({type:"class",name});
-   expect(emblem.sprite).toBe("class-hd-single-ring");
+   expect(emblem.sprite).toBe("class-inner-v1");
    expect(emblem.src).toBe(`/emblemi/classi-hd/${name}.webp`);
    expect(emblem.width).toBe(512);
-   expect(emblem.height).toBe(512);
    const original=readFileSync(resolve(__dirname,`../../public${emblem.src}`));
    expect(original.subarray(0,4).toString()).toBe("RIFF");
    expect(original.subarray(8,12).toString()).toBe("WEBP");
-   expect(original.length).toBeGreaterThan(8000);
  });
- it("has one ring, identical placement for 13 classes and matching canvas export",()=>{
+ it("one fixed ring, one cropped center in CSS and in PNG/PDF export",()=>{
    const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   const section=css.slice(css.lastIndexOf("/* A SINGLE complete approved"));
-   expect(section).toContain("left:2.73585%!important;top:-0.33693%!important;");
-   expect(section).toContain("width:24.5283%!important;");
-   expect(section).toContain("background-size:100% 100%!important;");
-   expect(section).toContain("content:none!important;display:none!important;");
-   expect(section).toContain("mask-image:none!important;");
-   expect(section).not.toContain("[title=");
-   expect(section).not.toContain("background:radial-gradient(");
-   expect(section).not.toContain("class-approved-cutout");
-   expect(layouts).toContain('/card-art/class-master-single-ring-v1.webp');
-   const clean=readFileSync(resolve(__dirname,"../../public/card-art/class-master-single-ring-v1.webp"));
-   expect(clean.subarray(0,4).toString()).toBe("RIFF");
-   expect(clean.subarray(8,12).toString()).toBe("WEBP");
-   expect(clean.length).toBeGreaterThan(100000);
-   expect(exporter).toContain('s.sprite==="class-hd-single-ring"');
-   expect(exporter).toContain("const medalSize=width*(260/1060);");
-   expect(exporter).toContain("const medalX=width*(29/1060);");
-   expect(exporter).toContain("const medalY=height*(-5/1484);");
-   expect(exporter).toContain("ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);");
-   expect(exporter).not.toContain("matteRadius");
+   const section=css.slice(css.lastIndexOf("/* EXACT user Class master"));
+   expect(section).toContain("left:6.25%!important;top:3.97135%!important;");
+   expect(section).toContain("width:18.16406%!important;");
+   expect(section).toContain("background-size:169.5% 169.5%!important;");
+   expect(section).toContain("mask-image:radial-gradient(");
+   expect(section).not.toContain("tf-bardo-proof");
+   expect(layouts).toContain("/card-art/class-master-user-reference-v1.webp");
+   const master=readFileSync(resolve(__dirname,"../../public/card-art/class-master-user-reference-v1.webp"));
+   expect(master.subarray(0,4).toString()).toBe("RIFF");
+   expect(master.subarray(8,12).toString()).toBe("WEBP");
+   expect(master.length).toBeGreaterThan(100000);
+   expect(exporter).toContain('s.sprite==="class-inner-v1"');
+   expect(exporter).toContain("pctx.drawImage(icon,105,105,302,302,0,0,size,size)");
+   expect(exporter).toContain("const medalSize=width*(186/1024);");
+   expect(exporter).toContain("const medalX=width*(64/1024);");
+   expect(exporter).toContain("const medalY=height*(61/1536);");
+   expect(exporter).toContain("ctx.drawImage(off,medalX,medalY,medalSize,medalSize)");
  });
- it("keeps stat records, dice, and Monster medallions unchanged",()=>{
+ it("does not alter approved Monster medallion or Class dice",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");
    expect(readFileSync(resolve(__dirname,"./classHitDice.js"),"utf8")).toContain("premium-v29.webp");
  });

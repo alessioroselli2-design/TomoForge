@@ -128,7 +128,7 @@ async function renderApprovedMaster(element,card) {
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
- const g=data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art;
+ const g=data.type==="class"?{x:18,y:79,w:304,h:127}:MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
@@ -142,13 +142,23 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   if (data.type==="class" && s.sprite==="class-hd-single-ring") {
-     // Same pixel geometry as CSS and the cleaned Class master, without
-     // crop, extra ring, or category-specific zoom.
-     const medalSize=width*(260/1060);
-     const medalX=width*(29/1060);
-     const medalY=height*(-5/1484);
-     ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);
+   if (data.type==="class" && s.sprite==="class-inner-v1") {
+     // Crop only the central pictogram. The master owns the gold ring.
+     const size=256,off=document.createElement("canvas");
+     off.width=size;off.height=size;
+     const pctx=off.getContext("2d");
+     pctx.drawImage(icon,105,105,302,302,0,0,size,size);
+     pctx.globalCompositeOperation="destination-in";
+     const fade=pctx.createRadialGradient(128,128,0,128,128,128);
+     fade.addColorStop(0,"rgba(0,0,0,1)");
+     fade.addColorStop(.63,"rgba(0,0,0,1)");
+     fade.addColorStop(.75,"rgba(0,0,0,.98)");
+     fade.addColorStop(1,"rgba(0,0,0,0)");
+     pctx.fillStyle=fade;pctx.fillRect(0,0,size,size);
+     const medalSize=width*(186/1024);
+     const medalX=width*(64/1024);
+     const medalY=height*(61/1536);
+     ctx.drawImage(off,medalX,medalY,medalSize,medalSize);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
@@ -177,22 +187,19 @@ async function renderApprovedMaster(element,card) {
      return im;
    } catch {return null;}
  }));
- const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
+ const sx=MASTER_REGIONS.stats.x, widths=(data.type==="class"?[.33,.30,.37]:[.32,.35,.33]).map(f=>f*MASTER_REGIONS.stats.w);
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    const labelCenter=cx;
    const max=cellW-12;
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
-     ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
-     const left=cx-cellW/2+9;
-     if(icon)ctx.drawImage(icon,left,statY+44,19,19);
-     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
-     const width=cellW-(icon?35:14);
-     const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
+     // Titles and glyphs are printed in the user master, draw only values.
+     const left=cx-cellW/2+cellW*.40, valueWidth=cellW*.57;
+     ctx.fillStyle="#1d140c";ctx.font="700 8.9px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,valueWidth).slice(0,4);
      ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+51+n*10,width));
+     lines.forEach((line,n)=>ctx.fillText(line,left,statY+51+n*9.4,valueWidth));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -239,7 +246,7 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
+   const x=29,y=303,w=196,h=101,fontSize=8,lineHeight=9.04;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
@@ -248,7 +255,7 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,252,329,72,75);
+     if(jewel)ctx.drawImage(jewel,245,305,72,75);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

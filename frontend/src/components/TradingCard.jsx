@@ -99,7 +99,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
        {data.highlights.length?data.highlights.map((item,i)=>{
-         const statIcon = getFrontStatIcon(item.label);
+         const statIcon = data.type==="class" ? null : getFrontStatIcon(item.label);
          return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
            <div className="tf-v6-stat-text">

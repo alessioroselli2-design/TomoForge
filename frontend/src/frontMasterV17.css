@@ -347,41 +347,65 @@
  width:18px!important;height:18px!important;
 }
 
-/* A SINGLE complete approved 512px HD medal occupies the Class master well.
-   The master single-ring-v1 has the redundant ring digitally cleared below
-   this emblem. Position comes from one reference measurement on the raster:
-   original 1060x1484 art, x=29, y=-5, size=260. Same for all 13 classes. */
+
+/* EXACT user Class master: its gold circular ring and the three headings/icons
+   are part of the fixed artwork. Only one cropped INSIDE motif is dynamic. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- position:absolute!important;
- left:2.73585%!important;top:-0.33693%!important;
- width:24.5283%!important;height:auto!important;aspect-ratio:1!important;
- margin:0!important;padding:0!important;border:0!important;
- border-radius:0!important;overflow:visible!important;
- background:transparent!important;box-shadow:none!important;
- z-index:18!important;
+ position:absolute!important;left:6.25%!important;top:3.97135%!important;
+ width:18.16406%!important;height:auto!important;aspect-ratio:1!important;
+ border:0!important;padding:0!important;margin:0!important;
+ border-radius:50%!important;overflow:hidden!important;
+ background:transparent!important;box-shadow:none!important;z-index:18!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::before,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::after{
- content:none!important;display:none!important;
+ display:none!important;content:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-sprite{
- position:absolute!important;inset:0!important;
- width:100%!important;height:100%!important;
- border-radius:0!important;overflow:visible!important;
- background-size:100% 100%!important;
- background-position:center!important;background-repeat:no-repeat!important;
- transform:none!important;filter:none!important;opacity:1!important;
- -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-inner-v1"] .tf-v3-sprite{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ background-size:169.5% 169.5%!important;background-position:center!important;
+ background-repeat:no-repeat!important;transform:none!important;filter:none!important;
+ border:0!important;border-radius:50%!important;opacity:1!important;
+ -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0 63%,rgba(0,0,0,.98) 75%,transparent 100%)!important;
+ mask-image:radial-gradient(circle closest-side at center,#000 0 63%,rgba(0,0,0,.98) 75%,transparent 100%)!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-hd-single-ring"] .tf-v3-fallback{display:none!important;}
-
-
-/* Bardo-only graphical proof on /prova-classi. The approved HD Bardo
-   emblem is composited ONCE into this preview master: no duplicate DOM medal.
-   All other 12 class cards, exports, and production remain unchanged. */
-.tf-bardo-proof .tf-front-master-v17[data-front-category="class"]{
-  background-image:var(--tf-bardo-proof-master)!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-inner-v1"] .tf-v3-fallback{display:none!important;}
+/* The master already depicts three stat headings and icons; draw only values. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
+ left:4.90%!important;top:44.92%!important;width:90.20%!important;height:13.60%!important;
+ grid-template-columns:33% 30% 37%!important;
 }
-.tf-bardo-proof .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
-  visibility:hidden!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>span,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-icon{display:none!important;}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
+ position:absolute!important;left:40%!important;top:43%!important;
+ transform:none!important;width:57%!important;max-width:57%!important;height:56%!important;
+ display:block!important;overflow:hidden!important;margin:0!important;padding:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row{
+ width:100%!important;height:100%!important;display:block!important;overflow:hidden!important;
+ padding:0!important;margin:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>strong,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text>strong{
+ display:block!important;width:100%!important;max-width:100%!important;
+ color:#281809!important;font:700 8.9px/1.08 Georgia,serif!important;
+ text-align:left!important;white-space:normal!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
+ left:4.9%!important;top:16.70%!important;width:90.20%!important;height:26.80%!important;
+ border:0!important;background:transparent!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment{
+ left:4.8%!important;top:58.95%!important;width:90.4%!important;height:31.0%!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
+ left:4.0%!important;top:13.7%!important;width:64%!important;max-width:64%!important;height:78%!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles{
+ left:28.0%!important;top:3.6%!important;width:44%!important;height:9.2%!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+ font-size:clamp(16px,5.9cqw,20px)!important;
 }

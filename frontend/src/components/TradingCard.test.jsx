@@ -306,9 +306,9 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
    expect(c.dataset.categoryLayout).toBe("class-approved-v4");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-single-ring-v1.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-master-user-reference-v1.webp");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-single-ring-v1.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-master-user-reference-v1.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
@@ -340,7 +340,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-single-ring-v1.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/class-master-user-reference-v1.webp");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
