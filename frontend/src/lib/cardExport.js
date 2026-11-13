@@ -191,7 +191,7 @@ async function renderApprovedMaster(element,card) {
    if(data.type==="class"){
      // Titles and muscle/shield/sword icons already exist in the source art.
      // Only values are dynamic, never another pictogram or ornamental ring.
-     const valueX=[51,157,250][i]??51;
+     const valueX=[56,160,262][i]??56;
      const valueW=[60,62,70][i]??60;
      const fontSize=i===2?8.4:9.2;
      ctx.fillStyle="#20140d";ctx.font="700 "+fontSize+"px Georgia,serif";

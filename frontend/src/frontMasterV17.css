@@ -318,12 +318,9 @@
  height:100%!important;min-width:0!important;overflow:hidden!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
- position:absolute!important;left:50%!important;top:43%!important;
- transform:translateX(-50%)!important;
- width:100%!important;max-width:100%!important;height:55%!important;
- display:flex!important;flex-direction:column!important;
- justify-content:flex-start!important;align-items:flex-end!important;
- gap:0!important;overflow:hidden!important;
+ position:absolute!important;left:40%!important;top:43%!important;
+ transform:none!important;width:57%!important;max-width:57%!important;
+ height:56%!important;display:block!important;overflow:hidden!important;
  margin:0!important;padding:0!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text>span,
@@ -331,19 +328,16 @@
  display:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row{
- display:flex!important;align-items:flex-start!important;justify-content:flex-end!important;
- gap:0!important;width:100%!important;height:auto!important;max-height:100%!important;
- margin:0!important;padding:0!important;
+ width:100%!important;height:100%!important;display:block!important;
+ overflow:hidden!important;padding:0!important;margin:0!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>strong{
- display:block!important;flex:none!important;
- width:64%!important;max-width:64%!important;
- font:700 9.2px/1.12 Georgia,serif!important;
- text-align:left!important;color:#20120c!important;
- white-space:normal!important;overflow:hidden!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>strong,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text>strong{
+ display:block!important;width:100%!important;max-width:100%!important;
+ color:#20120c!important;font:700 9.2px/1.12 Georgia,serif!important;
+ text-align:left!important;white-space:normal!important;
  overflow-wrap:break-word!important;word-break:normal!important;
  text-overflow:clip!important;max-height:4.5em!important;
- margin:0!important;padding:0!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat[data-stat-label="Competenze"] .tf-v6-stat-value-row>strong{
  font-size:8.4px!important;
