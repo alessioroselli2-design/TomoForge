@@ -58,13 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // An independent 512px vector master replaces the blurry 44px atlas tile.
- // The existing gold circular card well stays entirely untouched.
- if (type === "class" && index === 4) {
+ // The master already contains a GOLD ring. Draw ONLY the class glyph
+ // inside the well, precisely as the Monster Dragon emblem is clipped.
+ if(type==="class"){
+   const classKey=CLASSES[index];
    return {
-     sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-optical-v2.svg",
-     width:512,height:512,cell:512,
+     sprite:"class-inner-on-original",index,col:0,row:0,label,
+     src:"/emblemi/classi-inner/"+classKey+".webp",
+     width:176,height:176,cell:176,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }
