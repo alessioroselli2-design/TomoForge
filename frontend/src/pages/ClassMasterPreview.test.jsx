@@ -26,14 +26,11 @@ describe("isolated class preview", () => {
 });
 
 
-
-describe("one user master with no superimposed class ring",()=>{
- it("shares the same class inner motif slot across all 13 Class selections",()=>{
-   const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
-   const layouts=readFileSync(resolve(__dirname,"../lib/frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain("/card-art/class-master-user-reference-v1.webp");
-   expect(css).toContain('data-emblem-sprite="class-inner-v1"');
-   expect(css).toContain("left:6.25%!important;top:3.97135%!important;");
-   expect(preview).not.toContain("tf-bardo-proof");
- });
+describe("all classes use the same original master, no Bardo-only patch",()=>{
+  it("renders the exact full Class card ratio",()=>{
+    expect(preview).toContain('aspectRatio:"2 / 3"');
+    expect(preview).not.toContain("tf-bardo-proof");
+    const layout=readFileSync(resolve(__dirname,"../lib/frontCategoryLayouts.js"),"utf8");
+    expect(layout).toContain("class-user-original-1024x1536");
+  });
 });

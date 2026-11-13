@@ -108,7 +108,7 @@ export default function ClassMasterPreview() {
         </div>
         <div className="flex flex-col items-center gap-3">
           <p className="font-label text-sm">{selected} · dado vita {sample.die}</p>
-          <div style={{width:"min(94vw, 440px)",aspectRatio:"2.5 / 3.5"}}>
+          <div style={{width:"min(94vw, 440px)",aspectRatio:"2 / 3"}}>
             <CardFront key={selected} card={card} imgUrl={previewUrl||undefined} />
           </div>
         </div>

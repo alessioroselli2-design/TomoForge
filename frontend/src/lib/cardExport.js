@@ -115,7 +115,10 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
 async function renderApprovedMaster(element,card) {
- const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
+ const data=buildFrontBlueprint(card);
+ const {width,height,scale}=data.type==="class"
+   ? {width:340,height:510,scale:CARD_CANVAS_SIZE.scale}
+   : CARD_CANVAS_SIZE;
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
  const master=new Image();
@@ -128,7 +131,10 @@ async function renderApprovedMaster(element,card) {
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
- const g=data.type==="class"?{x:18,y:79,w:304,h:127}:MASTER_REGIONS.art;
+ const g=data.type==="class"
+   ? {x:width*(52/1024),y:height*(252/1536),
+      w:width*(920/1024),h:height*(420/1536)}
+   : MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
@@ -142,23 +148,12 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   if (data.type==="class" && s.sprite==="class-inner-v1") {
-     // Crop only the central pictogram. The master owns the gold ring.
-     const size=256,off=document.createElement("canvas");
-     off.width=size;off.height=size;
-     const pctx=off.getContext("2d");
-     pctx.drawImage(icon,105,105,302,302,0,0,size,size);
-     pctx.globalCompositeOperation="destination-in";
-     const fade=pctx.createRadialGradient(128,128,0,128,128,128);
-     fade.addColorStop(0,"rgba(0,0,0,1)");
-     fade.addColorStop(.63,"rgba(0,0,0,1)");
-     fade.addColorStop(.75,"rgba(0,0,0,.98)");
-     fade.addColorStop(1,"rgba(0,0,0,0)");
-     pctx.fillStyle=fade;pctx.fillRect(0,0,size,size);
-     const medalSize=width*(186/1024);
-     const medalX=width*(64/1024);
-     const medalY=height*(61/1536);
-     ctx.drawImage(off,medalX,medalY,medalSize,medalSize);
+   if (data.type==="class" && s.sprite==="class-inner-on-original") {
+     // Match React: the original master paints the only medallion border.
+     const medalSize=width*(176/1024);
+     const medalX=width*(70/1024);
+     const medalY=height*(62/1536);
+     ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
@@ -187,19 +182,22 @@ async function renderApprovedMaster(element,card) {
      return im;
    } catch {return null;}
  }));
- const sx=MASTER_REGIONS.stats.x, widths=(data.type==="class"?[.33,.30,.37]:[.32,.35,.33]).map(f=>f*MASTER_REGIONS.stats.w);
+ const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    const labelCenter=cx;
    const max=cellW-12;
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
-     // Titles and glyphs are printed in the user master, draw only values.
-     const left=cx-cellW/2+cellW*.40, valueWidth=cellW*.57;
-     ctx.fillStyle="#1d140c";ctx.font="700 8.9px Georgia,serif";
-     const lines=wrapTextLines(ctx,it.value,valueWidth).slice(0,4);
+     // Titles and muscle/shield/sword icons already exist in the source art.
+     // Only values are dynamic, never another pictogram or ornamental ring.
+     const valueX=[51,157,250][i]??51;
+     const valueW=[60,62,70][i]??60;
+     const fontSize=i===2?8.4:9.2;
+     ctx.fillStyle="#20140d";ctx.font="700 "+fontSize+"px Georgia,serif";
+     const lines=wrapTextLines(ctx,it.value,valueW).slice(0,4);
      ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,left,statY+51+n*9.4,valueWidth));
+     lines.forEach((line,n)=>ctx.fillText(line,valueX,275+n*11,valueW));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -246,7 +244,7 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=29,y=303,w=196,h=101,fontSize=8,lineHeight=9.04;
+   const x=24,y=320,w=212,h=126,fontSize=9,lineHeight=10.62;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
@@ -255,7 +253,7 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,245,305,72,75);
+     if(jewel)ctx.drawImage(jewel,250,340,72,75);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

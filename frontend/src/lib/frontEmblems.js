@@ -58,14 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // The user's approved Class master ALREADY contains the ornate ring.
- // Only the center of each HD emblem is cropped into that fixed well.
- if (type === "class") {
-   const classKey = CLASSES[index];
+ // The master already contains a GOLD ring. Draw ONLY the class glyph
+ // inside the well, precisely as the Monster Dragon emblem is clipped.
+ if(type==="class"){
+   const classKey=CLASSES[index];
    return {
-     sprite:"class-inner-v1", index, col:0, row:0, label,
-     src:`/emblemi/classi-hd/${classKey}.webp`,
-     width:512,height:512,cell:512,
+     sprite:"class-inner-on-original",index,col:0,row:0,label,
+     src:"/emblemi/classi-inner/"+classKey+".webp",
+     width:176,height:176,cell:176,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }
