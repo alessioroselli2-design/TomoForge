@@ -87,7 +87,56 @@ def write_optical_proofs():
           "image_base64":base64.b64encode(stream.getvalue()).decode("ascii")}),encoding="utf8")
     print("Class v2: 13 coloured inner medals, 6 premium polyhedra, 1 original gold master")
 
+
+def build_full_approved_medals_proof():
+    """Compare the actual original full HD medallion and premium v29 die,
+    with no more artificial crop/masked/retouched polyhedra."""
+    import io, base64, json
+    master=Image.open(PUBLIC/"card-art"/"class-master-user-20261113.webp").convert("RGBA")
+    out=PUBLIC/"_class-art-proof"
+    out.mkdir(parents=True,exist_ok=True)
+    samples=(("barbaro","d12"),("bardo","d8"),("guerriero","d10"),("druido","d8"))
+    for name,die in samples:
+        medal=Image.open(PUBLIC/"emblemi"/"classi-hd"/f"{name}.webp").convert("RGBA")
+        dice=Image.open(PUBLIC/"card-art"/"class-dice"/f"{die}-premium-v29.webp").convert("RGBA")
+        medal=medal.resize((258,258),Image.Resampling.LANCZOS)
+        dice=dice.resize((232,232),Image.Resampling.LANCZOS)
+        before=master.copy()
+        before.alpha_composite(medal,(28,7))
+        before.alpha_composite(dice,(740,967))
+        # Remove only the old rings UNDER their replacements. The rest of the
+        # border, parchment, heading and stat panel are untouched.
+        cleaned=master.copy()
+        fill=Image.new("RGBA",cleaned.size,(0,0,0,0))
+        fill_draw=ImageDraw.Draw(fill)
+        fill_draw.ellipse((34,10,281,258),fill=(70,7,15,255))
+        fill_draw.ellipse((738,962,973,1210),fill=(85,10,18,255))
+        fade=fill.getchannel("A").filter(ImageFilter.GaussianBlur(2))
+        fill.putalpha(fade)
+        cleaned=Image.alpha_composite(cleaned,fill)
+        cleaned.alpha_composite(medal,(28,7))
+        cleaned.alpha_composite(dice,(740,967))
+        result=Image.new("RGB",(960,320))
+        for i,img in enumerate((master,before,cleaned)):
+            t=img.crop((0,0,320,300)).convert("RGB")
+            result.paste(t,(i*320,0))
+        stream=io.BytesIO()
+        result.save(stream,format="JPEG",quality=91,optimize=True)
+        (out/f"{name}-full-v3.json").write_text(json.dumps({
+            "name":name,"image_base64":base64.b64encode(stream.getvalue()).decode("ascii")
+        }),encoding="utf8")
+        diceproof=Image.new("RGB",(960,300))
+        for i,img in enumerate((master,before,cleaned)):
+            t=img.crop((704,929,1024,1229)).convert("RGB")
+            diceproof.paste(t,(i*320,0))
+        stream=io.BytesIO()
+        diceproof.save(stream,format="JPEG",quality=91,optimize=True)
+        (out/f"{name}-die-full-v3.json").write_text(json.dumps({
+            "name":name,"image_base64":base64.b64encode(stream.getvalue()).decode("ascii")
+        }),encoding="utf8")
+
 if __name__ == "__main__":
     for klass in CLASSES: build_class_emblem(klass)
     for die in DICE: build_die_polyhedron(die)
     write_optical_proofs()
+    build_full_approved_medals_proof()
