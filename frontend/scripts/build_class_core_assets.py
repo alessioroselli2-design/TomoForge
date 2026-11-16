@@ -5,7 +5,6 @@ Always derive from the existing 1024x1536 original Class master,
 13 approved 512x512 classi-hd sources and original premium-v29 dice.
 Never edit those approved input files or production DB records.
 """
-from math import hypot
 from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 

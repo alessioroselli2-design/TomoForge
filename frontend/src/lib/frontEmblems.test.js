@@ -22,7 +22,7 @@ describe("approved TomoForge front medal rules",()=>{
   const names=["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco","Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
   for(const name of names) {
     const emblem=getFrontEmblem({type:"class",name});
-    expect(emblem).toMatchObject({sprite:"class-visible-motif",cell:207,backgroundSize:"100% 100%"});
+    expect(emblem).toMatchObject({sprite:"class-visible-motif",cell:380,backgroundSize:"100% 100%"});
     expect(emblem.src).toBe(`/emblemi/classi-medal-inner-v2/${name.toLowerCase()}.webp`);
   }
   expect(getFrontEmblem({type:"subclass",attributes:{classe:"Druido"}}).sprite).toBe("core");
