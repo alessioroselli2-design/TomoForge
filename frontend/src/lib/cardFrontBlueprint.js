@@ -114,10 +114,11 @@ export const buildFrontBlueprint = (card = {}) => {
     { label: "Abilità primaria", value: pick(attrs, ["abilita_primaria", "caratteristica_principale"]) },
     { label: "Tiri salvezza", value: pick(attrs, ["tiri_salvezza", "salvezze"]) },
     { label: "Competenze", value: classProficiencies },
-  ].filter(entry => entry.value) : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
+  ] : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
     label, value: pick(attrs, [first, second]),
   })).filter((entry) => entry.value).slice(0, 3);
-  // Never fabricate statistics; empty cells are simply not displayed.
+  // Class wells have fixed engraved headings: retain empty cells in their positions.
+  // No stat value is invented; other categories still suppress empty fields.
   const highlights = highlighted.map((entry) => ({ ...entry, value: type === "class" ? entry.value : shortText(entry.value,22) }));
   const abilities = (type === "monster" || type === "character")
     ? ABILITY_KEYS.filter((key) => scalar(attrs[key])).map((key) => ({ label: key.toUpperCase(), value: formattedAbility(attrs[key]) }))
