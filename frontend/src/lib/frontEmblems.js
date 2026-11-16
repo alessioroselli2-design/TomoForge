@@ -65,7 +65,7 @@ export const getFrontEmblem = (card = {}) => {
    return {
      sprite:"class-inner-on-original",index,col:0,row:0,label,
      src:"/emblemi/classi-inner/"+classKey+".webp",
-     width:176,height:176,cell:176,
+     width:216,height:216,cell:216,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

@@ -6,7 +6,7 @@ gold circle and its ruby jewels. The 512px 'classi-hd' sources are full
 medallions, not transparent icon-only images. Cropping too wide (previous
 source radius 168) leaked a second engraved circle onto the master.
 
-Only rebuild the 13 176px internal assets. Never paint, cover, mask or alter
+Only rebuild the 13 216px internal assets. Never paint, cover, mask or alter
 the approved master or the card data, dice, headings or DOM/CSS positions.
 Requires Pillow solely when regenerating the image assets offline.
 """
@@ -20,8 +20,8 @@ NAMES = (
     "barbaro bardo chierico druido guerriero monaco paladino ranger ladro "
     "stregone warlock mago artefice"
 ).split()
-SOURCE_RADIUS = 145  # original oversized crop at 168 leaked a second gold ring
-OUTPUT_SIZE = 176
+SOURCE_RADIUS = 145  # radius used by the approved 216px motif example
+OUTPUT_SIZE = 216
 SOFT_EDGE_PX = 2
 
 def main():
