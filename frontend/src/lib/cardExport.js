@@ -156,7 +156,12 @@ async function renderApprovedMaster(element,card) {
      const medalY=height*(65.5/1536);
      const medalW=width*(207/1024);
      const medalH=height*(145/1536);
+     // Match the preview: remove the source emblem's dark plate without adding
+     // a second border around the already-engraved Class master ring.
+     ctx.save();
+     ctx.globalCompositeOperation="screen";
      ctx.drawImage(icon,medalX,medalY,medalW,medalH);
+     ctx.restore();
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
@@ -256,7 +261,8 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,250,340,72,75);
+     // Same source-coordinate center as the responsive CSS overlay.
+     if(jewel)ctx.drawImage(jewel,248,330,72,75);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
