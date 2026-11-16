@@ -153,9 +153,9 @@ async function renderApprovedMaster(element,card) {
      // at centered (158,138) on the 1024 x 1536 unmodified Class master.
      // Source WebP was alpha-trimmed and fitted WITHOUT distortion.
      const medalX=width*(54.5/1024);
-     const medalY=height*(65.5/1536);
+     const medalY=height*(54/1536);
      const medalW=width*(207/1024);
-     const medalH=height*(145/1536);
+     const medalH=height*(168/1536);
      // Class alpha-only motif; original master retains the single gold rim.
      ctx.drawImage(icon,medalX,medalY,medalW,medalH);
    } else {

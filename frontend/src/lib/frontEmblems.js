@@ -65,7 +65,7 @@ export const getFrontEmblem = (card = {}) => {
    return {
      sprite:"class-visible-motif",index,col:0,row:0,label,
      src:"/emblemi/classi-core-v1/"+classKey+".webp",
-     width:207,height:145,cell:207,
+     width:207,height:168,cell:207,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

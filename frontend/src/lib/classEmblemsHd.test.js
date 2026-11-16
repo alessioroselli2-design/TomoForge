@@ -11,7 +11,7 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(emblem.sprite).toBe("class-visible-motif");
    expect(emblem.src).toBe("/emblemi/classi-core-v1/"+name+".webp");
    expect(emblem.width).toBe(207);
-   expect(emblem.height).toBe(145);
+   expect(emblem.height).toBe(168);
    const art=read("../../public/emblemi/classi-hd/"+name+".webp");
    expect(art.subarray(0,4).toString()).toBe("RIFF");
    expect(art.subarray(8,12).toString()).toBe("WEBP");
@@ -27,7 +27,7 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(art.length).toBeGreaterThan(100000);
    expect(layout).toContain('/card-art/class-master-user-20261113.webp');
    const one=css.slice(css.lastIndexOf("/* CLASSI · SOURCE OF TRUTH:"));
-   expect(one).toContain("left:5.322265625%!important;top:4.2643229167%!important");
+   expect(one).toContain("left:5.322265625%!important;top:3.515625%!important");
    expect(one).toContain("width:20.21484375%!important");
    expect(one).toContain('data-emblem-sprite="class-visible-motif"');
    expect(one).toContain("content:none!important;display:none!important");
@@ -35,9 +35,9 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(one).not.toContain("background:radial-gradient(");
    expect(exporter).toContain('s.sprite==="class-visible-motif"');
    expect(exporter).toContain("const medalW=width*(207/1024);");
-   expect(exporter).toContain("const medalH=height*(145/1536);");
+   expect(exporter).toContain("const medalH=height*(168/1536);");
    expect(exporter).toContain("const medalX=width*(54.5/1024);");
-   expect(exporter).toContain("const medalY=height*(65.5/1536);");
+   expect(exporter).toContain("const medalY=height*(54/1536);");
  });
  it("leaves Monster Dragon and the approved Class dice untouched",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");

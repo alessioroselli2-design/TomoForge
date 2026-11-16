@@ -34,30 +34,41 @@ def save_icon(name):
     bounds=alpha.point(lambda v:255 if v>=28 else 0).getbbox()
     if not bounds:raise ValueError("No motif: "+name)
     src=src.crop(bounds)
-    out=Image.new("RGBA",(207,145))
-    scale=min(198/src.width,139/src.height)
+    out=Image.new("RGBA",(207,168))
+    scale=min(198/src.width,162/src.height)
     w,h=round(src.width*scale),round(src.height*scale)
-    out.alpha_composite(src.resize((w,h),Image.Resampling.LANCZOS),((207-w)//2,(145-h)//2))
+    out.alpha_composite(src.resize((w,h),Image.Resampling.LANCZOS),((207-w)//2,(168-h)//2))
     dest=P/"emblemi"/"classi-core-v1"/f"{name}.webp"
     dest.parent.mkdir(parents=True,exist_ok=True)
     out.save(dest,"WEBP",quality=97,method=6,exact=True)
 
 def save_die(name):
+    """Extract the actual coloured polyhedron, not its gold ornament.
+    Every source die retains its original numerals, facets and jewel colours.
+    """
+    from PIL import ImageDraw
     src=Image.open(P/"card-art"/"class-dice"/f"{name}-premium-v29.webp").convert("RGBA")
     w,h=src.size
-    alpha=Image.new("L",(w,h));a=alpha.load();p=src.load()
-    for y in range(h):
-        for x in range(w):
-            r,g,b,opacity=p[x,y]
-            rad=hypot((x+.5-w/2)/(w/2),(y+.5-h/2)/(h/2))
-            if rad<=.54: strength=1
-            else:
-                red=max(0,min(1,(r-g-17)/37,(r-b-17)/37))
-                strength=red*max(0,min(1,(.83-rad)/.15))
-            a[x,y]=round(opacity*strength)
-    alpha=alpha.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(.8))
-    src.putalpha(ImageChops.multiply(src.getchannel("A"),alpha))
-    src=src.resize((192,192),Image.Resampling.LANCZOS)
+    # Coordinates measured against the six approved 256x256 premium sources.
+    # No second circular ring is copied into the master socket.
+    outlines={
+        "d4":[(128,53),(196,168),(57,168)],
+        "d6":[(128,51),(186,84),(185,166),(128,199),(70,166),(70,84)],
+        "d8":[(128,55),(196,123),(128,200),(60,123)],
+        "d10":[(128,57),(193,89),(190,160),(128,201),(65,161),(62,90)],
+        "d12":[(128,58),(197,89),(192,162),(128,204),(63,162),(58,91)],
+        "d20":[(128,58),(195,85),(188,166),(128,205),(65,166),(58,85)],
+    }
+    sx,sy=w/256,h/256
+    polygon=[(round(x*sx),round(y*sy)) for x,y in outlines[name]]
+    mask=Image.new("L",(w,h),0)
+    ImageDraw.Draw(mask).polygon(polygon,fill=255)
+    mask=mask.filter(ImageFilter.GaussianBlur(1.4))
+    src.putalpha(ImageChops.multiply(src.getchannel("A"),mask))
+    # Crop the removed ornamental perimeter away. The jewel remains
+    # proportional and occupies the fixed 56x56 engraving on every Class card.
+    box=(round(45*sx),round(40*sy),round(211*sx),round(216*sy))
+    src=src.crop(box).resize((192,192),Image.Resampling.LANCZOS)
     dest=P/"card-art"/"class-dice-core-v1"/f"{name}.webp"
     dest.parent.mkdir(parents=True,exist_ok=True)
     src.save(dest,"WEBP",quality=97,method=6,exact=True)
@@ -74,7 +85,7 @@ def create_visual_proofs():
         img=master.copy()
         motif=Image.open(P/"emblemi"/"classi-core-v1"/f"{name}.webp").convert("RGBA")
         jewel=Image.open(P/"card-art"/"class-dice-core-v1"/f"{die}.webp").convert("RGBA")
-        img.alpha_composite(motif,(54,65))
+        img.alpha_composite(motif,(54,54))
         img.alpha_composite(jewel.resize((169,169),Image.Resampling.LANCZOS),(771,1018))
         emblem_area=img.crop((0,0,320,300)).convert("RGB")
         die_area=img.crop((694,922,1014,1222)).convert("RGB")
