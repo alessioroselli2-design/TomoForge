@@ -126,7 +126,15 @@ describe("approved class: source-faithful narrative with d10",()=>{
    const data=buildFrontBlueprint({type:"class",name:"Bardo",description:"Testo già disponibile.",attributes:{dado_vita:"d8"}});
    expect(data.description).toBe("Testo già disponibile.");
    expect(data.dice).toBe("d8");
-   expect(data.highlights).toHaveLength(0);
+   expect(data.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
+   expect(data.highlights.map(x=>x.value)).toEqual(["","",""]);
+ });
+ it("keeps empty class wells in their engraved position for preview and print",()=>{
+   const onlyProficiencies=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:"Armi semplici"}});
+   expect(onlyProficiencies.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
+   expect(onlyProficiencies.highlights.map(x=>x.value)).toEqual(["","","Armi semplici"]);
+   const onlySaves=buildFrontBlueprint({type:"class",name:"Prova",attributes:{tiri_salvezza:"Forza, Costituzione"}});
+   expect(onlySaves.highlights.map(x=>x.value)).toEqual(["","Forza, Costituzione",""]);
  });
 });
 
@@ -222,7 +230,7 @@ describe("Class v40 compact printed values only",()=>{
  });
  it("shortens unfamiliar class proficiencies at a word boundary rather than spilling over",()=>{
    const full="Strumenti artigianali specifici e una lunga serie di abilità specialistiche";
-   const item=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:full}}).highlights[0];
+   const item=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:full}}).highlights[2];
    expect(item.value.length).toBeLessThanOrEqual(36);
    expect(item.value.endsWith("…")).toBe(true);
    expect(item.fullValue).toBe(full);
