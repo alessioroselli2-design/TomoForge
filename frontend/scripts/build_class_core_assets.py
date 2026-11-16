@@ -135,8 +135,56 @@ def build_full_approved_medals_proof():
             "name":name,"image_base64":base64.b64encode(stream.getvalue()).decode("ascii")
         }),encoding="utf8")
 
+
+def build_clean_composition_proof():
+    """Alternative full original medals, no old gold layer beneath.
+    Parchment overprint masks ONLY the original die socket, and the card's
+    original approved outer frame is retained.
+    """
+    import io,base64,json,math
+    master=Image.open(PUBLIC/"card-art"/"class-master-user-20261113.webp").convert("RGBA")
+    parchment=master.crop((422,943,708,1229)).resize((280,280),Image.Resampling.LANCZOS)
+    texmask=Image.new("L",(280,280),0)
+    draw=ImageDraw.Draw(texmask)
+    draw.ellipse((9,8,270,272),fill=255)
+    texmask=texmask.filter(ImageFilter.GaussianBlur(5))
+    out=PUBLIC/"_class-art-proof";out.mkdir(parents=True,exist_ok=True)
+    for name,die in (("bardo","d8"),("barbaro","d12"),("guerriero","d10"),("druido","d8")):
+        full=master.copy()
+        red=Image.new("RGBA",full.size,(0,0,0,0))
+        draw=ImageDraw.Draw(red)
+        draw.ellipse((37,17,278,258),fill=(73,6,13,255))
+        red.putalpha(red.getchannel("A").filter(ImageFilter.GaussianBlur(2)))
+        full=Image.alpha_composite(full,red)
+        full.paste(parchment,(711,940),texmask)
+        medal=Image.open(PUBLIC/"emblemi"/"classi-hd"/f"{name}.webp").convert("RGBA")
+        jewel=Image.open(PUBLIC/"card-art"/"class-dice"/f"{die}-premium-v29.webp").convert("RGBA")
+        medal=medal.resize((280,280),Image.Resampling.LANCZOS)
+        jewel=jewel.resize((248,248),Image.Resampling.LANCZOS)
+        full.alpha_composite(medal,(18,-2))
+        full.alpha_composite(jewel,(733,959))
+        originals=master.copy()
+        originals.alpha_composite(medal,(18,-2))
+        originals.alpha_composite(jewel,(733,959))
+        for label,img,crop in (("medal",full,(0,0,320,300)),
+                              ("die",full,(704,929,1024,1229))):
+            piece=Image.new("RGB",(640,300))
+            piece.paste(master.crop(crop).convert("RGB"),(0,0))
+            piece.paste(img.crop(crop).convert("RGB"),(320,0))
+            data=io.BytesIO();piece.save(data,format="JPEG",quality=92,optimize=True)
+            (out/f"{name}-{label}-v4.json").write_text(json.dumps({
+               "name":name,"image_base64":base64.b64encode(data.getvalue()).decode("ascii")
+            }),encoding="utf8")
+        # Full card proof with actual original outer frame and dynamic-only slots
+        shot=full.resize((512,768),Image.Resampling.LANCZOS).convert("RGB")
+        data=io.BytesIO();shot.save(data,format="JPEG",quality=85,optimize=True)
+        (out/f"{name}-whole-v4.json").write_text(json.dumps({
+            "name":name,"image_base64":base64.b64encode(data.getvalue()).decode("ascii")
+        }),encoding="utf8")
+
 if __name__ == "__main__":
     for klass in CLASSES: build_class_emblem(klass)
     for die in DICE: build_die_polyhedron(die)
     write_optical_proofs()
     build_full_approved_medals_proof()
+    build_clean_composition_proof()
