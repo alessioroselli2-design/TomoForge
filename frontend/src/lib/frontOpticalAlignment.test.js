@@ -87,7 +87,7 @@ describe("Class v2: one static printable composition",()=>{
 describe("shared Monster master across every front",()=>{
  it("does not import or render another class master",()=>{
    expect(component).toContain('data-front-layout="unified-monster-master-v17"');
-   expect(component).toContain('...frontBackground(data.type)');
+   expect(component).toContain('...frontBackground(data.type,data.emblem,data.dice)');
    expect(component).not.toContain("class-master-v50");
    expect(component).not.toContain("tf-class-v40-master");
    expect(component).not.toContain('data-front-version="40"');
@@ -95,13 +95,13 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
    // Match the Class master's actual lower-right ring at all preview widths.
-   expect(exporter).toContain("width*(751/1024),height*(985/1536)");
-   expect(exporter).toContain("width*(218/1024),height*(218/1536)");
+   expect(exporter).toContain("frontMasterAsset(data.type,data.emblem,data.dice)");
+   expect(finalMaster).toContain(".tf-v3-dice.tf-class-hit-die{display:none!important;}");
    expect(finalMaster).toContain("right:1.07%!important");
    expect(finalMaster).toContain("top:14.71%!important");
    expect(finalMaster).toContain("width:23.34%!important;height:47.15%!important");
    expect(finalMaster).toContain("mix-blend-mode:normal!important");
-   expect(exporter).toContain('ctx.drawImage(icon,medalX,medalY,medalW,medalH)');
+   expect(exporter).toContain('const icon=data.type==="class"?null:await loadFrontEmblem(data.emblem)');
    expect(finalMaster).toContain("-webkit-mask-image:none!important;mask-image:none!important");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{

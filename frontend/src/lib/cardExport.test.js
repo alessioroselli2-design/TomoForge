@@ -150,13 +150,14 @@ describe("card export renderers", () => {
   });
 
   it.each(["d4","d6","d8","d10","d12","d20"])("uses the correct %s illustrated jewel in export canvas", async(die)=>{
-    const card={type:"class",name:"Classe",attributes:{dado_vita:die,abilita_primaria:"Forza"}};
+    const card={type:"class",name:"Guerriero",attributes:{dado_vita:die,abilita_primaria:"Forza"}};
     const element=makeExportElement();
     element.getAttribute=name=>name==="data-front-version"?"7":null;
     const canvas=await renderCardCanvas(element,card);
     const images=canvas.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
-    expect(images).toContain(`/card-art/class-dice-polyhedron-v2/${die}.webp`);
-    expect(canvas.operations.some(op=>op.name==="drawImage" && op.args[0]?.src===`/card-art/class-dice-polyhedron-v2/${die}.webp`)).toBe(true);
+    expect(images).toContain(`/card-art/class-composed-v5/guerriero-${die}.webp`);
+    expect(images.some(src=>src?.includes("/class-dice-polyhedron-v2/"))).toBe(false);
+    expect(images.some(src=>src?.includes("/classi-medal-inner-v2/"))).toBe(false);
     // The approved image contains the inscription; export must not overprint it.
     expect(canvas.operations.some(op=>op.name==="fillText" && op.text===die && op.y>335)).toBe(false);
     expect(images).not.toContain("/card-art/class-d10-gem-v26.svg");

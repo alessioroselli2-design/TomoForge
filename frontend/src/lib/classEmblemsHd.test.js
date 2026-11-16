@@ -33,11 +33,11 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(one).toContain("content:none!important;display:none!important");
    expect(one).not.toContain("tf-bardo-proof");
    expect(one).not.toContain("background:radial-gradient(");
-   expect(exporter).toContain('s.sprite==="class-visible-motif"');
-   expect(exporter).toContain("const medalW=width*(190/1024);");
-   expect(exporter).toContain("const medalH=height*(190/1536);");
-   expect(exporter).toContain("const medalX=width*(61/1024);");
-   expect(exporter).toContain("const medalY=height*(39/1536);");
+   expect(exporter).toContain("frontMasterAsset(data.type,data.emblem,data.dice)");
+   expect(layout).toContain("class-composed-v5");
+   expect(css).toContain(".tf-v3-medallion,");
+   expect(css).toContain(".tf-v3-dice.tf-class-hit-die{display:none!important;}");
+   expect(read("../../scripts/build_class_core_assets.py").toString()).toContain("build_embedded_class_masters");
  });
  it("leaves Monster Dragon and the approved Class dice untouched",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");
