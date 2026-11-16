@@ -97,8 +97,56 @@ def create_visual_proofs():
         (out/f"{name}.json").write_text(json.dumps({"name":name,
             "image_base64":base64.b64encode(memory.getvalue()).decode("ascii")}),encoding="utf-8")
 
+
+def create_candidate_proofs():
+    """Compare complete approved source medals with single-rim alternatives.
+    No changes to production assets or React renderer.
+    """
+    import io,base64,json
+    from PIL import ImageDraw
+    master=Image.open(P/"card-art"/"class-master-user-20261113.webp").convert("RGBA")
+    for name,die in (("bardo","d8"),("guerriero","d10"),("barbaro","d12")):
+        full=Image.open(P/"emblemi"/"classi-hd"/f"{name}.webp").convert("RGBA")
+        die_full=Image.open(P/"card-art"/"class-dice"/f"{die}-premium-v29.webp").convert("RGBA")
+        core=Image.open(P/"emblemi"/"classi-core-v1"/f"{name}.webp").convert("RGBA")
+        die_core=Image.open(P/"card-art"/"class-dice-core-v1"/f"{die}.webp").convert("RGBA")
+        variants={}
+        # A: keep the entire original HD emblems and original gold-rim premium die.
+        a=master.copy()
+        a.alpha_composite(full.resize((265,265),Image.Resampling.LANCZOS),(25,6))
+        a.alpha_composite(die_full.resize((252,252),Image.Resampling.LANCZOS),(734,956))
+        variants["full-approved"] = a
+        # B: single original card rim remains; its inner disk is filled with
+        # the original coloured art/background, not a transparent line drawing.
+        b=master.copy()
+        source=full.crop((98,98,414,414)).resize((190,190),Image.Resampling.LANCZOS)
+        m=Image.new("L",source.size,0)
+        ImageDraw.Draw(m).ellipse((2,2,188,188),fill=255)
+        source.putalpha(ImageChops.multiply(source.getchannel("A"),m.filter(ImageFilter.GaussianBlur(3))))
+        b.alpha_composite(source,(61,39))
+        b.alpha_composite(die_full.resize((225,225),Image.Resampling.LANCZOS),(748,970))
+        variants["single-rim-colour"] = b
+        # C: proportional enlargement of the current transparent alpha cores
+        # without any additional ring.
+        c=master.copy()
+        c.alpha_composite(core.resize((250,222),Image.Resampling.LANCZOS),(35,27))
+        c.alpha_composite(die_core.resize((230,230),Image.Resampling.LANCZOS),(745,978))
+        variants["large-cores"] = c
+        out=P/"_class-art-proof";out.mkdir(exist_ok=True)
+        for label,img in variants.items():
+            emblem=img.crop((0,0,320,300)).convert("RGB")
+            dice=img.crop((694,922,1014,1222)).convert("RGB")
+            result=Image.new("RGB",(640,300))
+            result.paste(emblem,(0,0));result.paste(dice,(320,0))
+            buf=io.BytesIO();result.save(buf,"JPEG",quality=88,optimize=True)
+            (out/f"{name}-{label}.json").write_text(json.dumps({
+              "name":name,"variant":label,
+              "image_base64":base64.b64encode(buf.getvalue()).decode("ascii")
+            }),encoding="utf-8")
+
 if __name__=="__main__":
     for name in CLASSES:save_icon(name)
     for name in DICE:save_die(name)
     create_visual_proofs()
+    create_candidate_proofs()
     print("Generated alpha-only Class motifs and Class die cores; approved originals unchanged")
