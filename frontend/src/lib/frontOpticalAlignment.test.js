@@ -63,14 +63,14 @@ describe("Class v2: one static printable composition",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
    const original=readFileSync(resolve(root,"class-master-approved-v4.webp"));
    expect(original.subarray(0,4).toString()).toBe("RIFF");
-   const master=readFileSync(resolve(root,"class-master-user-20261113.webp"));
+   const master=readFileSync(resolve(root,"references/approved-class-master-864x1210.webp"));
    expect(master.subarray(0,4).toString()).toBe("RIFF");
    expect(master.subarray(8,12).toString()).toBe("WEBP");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-user-20261113.webp"');
+   expect(layouts).toContain('master:"/card-art/references/approved-class-master-864x1210.webp"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
-   expect(exporter).toContain('? {x:width*(52/1024),y:height*(252/1536),');
+   expect(exporter).toContain("? {x:width*.055,y:height*.19,w:width*.89,h:height*.26}");
    expect(layouts).not.toContain('class-interior-v17.webp');
  });
 
@@ -96,12 +96,12 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).toContain("if(data.type===\"class\"){");
    // Match the Class master's actual lower-right ring at all preview widths.
    expect(exporter).toContain("frontMasterAsset(data.type,data.emblem,data.dice)");
-   expect(finalMaster).toContain(".tf-v3-dice.tf-class-hit-die{display:none!important;}");
+   expect(finalMaster).toContain("left:75%!important;top:28.38%!important");
    expect(finalMaster).toContain("right:1.07%!important");
    expect(finalMaster).toContain("top:14.71%!important");
-   expect(finalMaster).toContain("width:23.34%!important;height:47.15%!important");
+   expect(finalMaster).toContain("aspect-ratio:864/1210!important");
    expect(finalMaster).toContain("mix-blend-mode:normal!important");
-   expect(exporter).toContain('const icon=data.type==="class"?null:await loadFrontEmblem(data.emblem)');
+   expect(exporter).toContain("const icon=await loadFrontEmblem(data.emblem)");
    expect(finalMaster).toContain("-webkit-mask-image:none!important;mask-image:none!important");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{

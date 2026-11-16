@@ -3,7 +3,7 @@
 export const FRONT_OUTER_MASTER="/card-art/front-master-v17.webp";
 export const CATEGORY_FRONT_LAYOUTS=Object.freeze({
  monster:{id:"monster-v17",interior:null,showDetails:true},
- class:{id:"class-user-original-1024x1536",master:"/card-art/references/approved-class-master-864x1210.webp",interior:null,showDetails:false},
+ class:{id:"class-reference-864x1210",master:"/card-art/references/approved-class-master-864x1210.webp",interior:null,showDetails:false},
  spell:{id:"spell-v17",interior:null,showDetails:true},
  subclass:{id:"subclass-v17",interior:null,showDetails:true},
  feature:{id:"feature-v17",interior:null,showDetails:true},

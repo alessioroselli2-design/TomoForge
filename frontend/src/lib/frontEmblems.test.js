@@ -23,9 +23,7 @@ describe("approved TomoForge front medal rules",()=>{
   for(const name of names) {
     const emblem=getFrontEmblem({type:"class",name});
     expect(emblem).toMatchObject({sprite:"class-visible-motif",cell:380,backgroundSize:"100% 100%"});
-    expect(emblem.src).toBe(name==="Guerriero"
-      ? "/emblemi/classi-originali-da-prova/guerriero.png"
-      : `/emblemi/classi-medal-inner-v2/${name.toLowerCase()}.webp`);
+    expect(emblem.src).toBe(`/emblemi/classi-originali-da-prova/${name.toLowerCase()}.png`);
   }
   expect(getFrontEmblem({type:"subclass",attributes:{classe:"Druido"}}).sprite).toBe("core");
  });

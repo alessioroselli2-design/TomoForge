@@ -28,9 +28,9 @@ describe("isolated class preview", () => {
 
 describe("all classes use the same original master, no Bardo-only patch",()=>{
   it("renders the exact full Class card ratio",()=>{
-    expect(preview).toContain('aspectRatio:"2 / 3"');
+    expect(preview).toContain('aspectRatio:"340 / 476"');
     expect(preview).not.toContain("tf-bardo-proof");
     const layout=readFileSync(resolve(__dirname,"../lib/frontCategoryLayouts.js"),"utf8");
-    expect(layout).toContain("class-user-original-1024x1536");
+    expect(layout).toContain("class-reference-864x1210");
   });
 });

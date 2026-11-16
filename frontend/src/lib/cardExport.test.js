@@ -155,7 +155,9 @@ describe("card export renderers", () => {
     element.getAttribute=name=>name==="data-front-version"?"7":null;
     const canvas=await renderCardCanvas(element,card);
     const images=canvas.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
-    expect(images).toContain(`/card-art/class-composed-v5/guerriero-${die}.webp`);
+    expect(images).toContain("/card-art/references/approved-class-master-864x1210.webp");
+    expect(images).toContain("/emblemi/classi-originali-da-prova/guerriero.png");
+    expect(images).toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
     expect(images.some(src=>src?.includes("/class-dice-polyhedron-v2/"))).toBe(false);
     expect(images.some(src=>src?.includes("/classi-medal-inner-v2/"))).toBe(false);
     // The approved image contains the inscription; export must not overprint it.

@@ -74,7 +74,7 @@ describe("approved class preview",()=>{
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-class-hit-die")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice-polyhedron-v2/d10.webp");
+   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
    expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
@@ -305,10 +305,10 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.dataset.frontVersion).toBe("7");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.dataset.categoryLayout).toBe("class-user-original-1024x1536");
-   expect(c.style.backgroundImage).toContain("/card-art/class-composed-v5/guerriero-d10.webp");
+   expect(c.dataset.categoryLayout).toBe("class-reference-864x1210");
+   expect(c.style.backgroundImage).toContain("/card-art/references/approved-class-master-864x1210.webp");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-composed-v5/guerriero-d10.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/references/approved-class-master-864x1210.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
@@ -319,7 +319,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
-   expect(c.dataset.categoryLayout).toBe("class-user-original-1024x1536");
+   expect(c.dataset.categoryLayout).toBe("class-reference-864x1210");
    expect(c.querySelector(".tf-v3-badge")).toBeNull();
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
@@ -340,7 +340,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-composed-v5/druido-d8.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/references/approved-class-master-864x1210.webp");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
