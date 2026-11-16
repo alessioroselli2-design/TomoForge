@@ -148,12 +148,15 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
-   if (data.type==="class" && s.sprite==="class-inner-on-original") {
-     // Match React: the original master paints the only medallion border.
-     const medalSize=width*(216/1024);
-     const medalX=width*(50/1024);
-     const medalY=height*(42/1536);
-     ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);
+   if (data.type==="class" && s.sprite==="class-visible-motif") {
+     // Identical source-pixel area to the React preview: 207 x 145
+     // at centered (158,138) on the 1024 x 1536 unmodified Class master.
+     // Source WebP was alpha-trimmed and fitted WITHOUT distortion.
+     const medalX=width*(54.5/1024);
+     const medalY=height*(65.5/1536);
+     const medalW=width*(207/1024);
+     const medalH=height*(145/1536);
+     ctx.drawImage(icon,medalX,medalY,medalW,medalH);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},

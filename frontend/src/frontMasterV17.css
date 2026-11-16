@@ -271,19 +271,18 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-badge,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
-/* Same inner-only optical method as Dragon Rosso, measured on THIS master.
-   Original Class gold-rimmed well center=(158,150). The dynamic motif is
-   generated directly from each 512px HD symbol at source crop radius=145 and
-   presented at 216px (the approved larger Artificer test).
-   x=50/1024=4.8828125%; y=42/1536=2.734375%; size=216/1024=21.09375%.
-   The underlying master never changes: one identical layout for 13 classes. */
+/* CLASSI: approved master already provides the ONLY gold medal rim.
+   Source: 1024 x 1536, maximum visible motif area 207 x 145.
+   Optical center (158,138): x=54.5, y=65.5. All 13 motifs retain their
+   proportions because the original alpha bounds are fitted offline.
+   No enlarged ring, second badge, masked circle or class-specific offset. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
  position:absolute!important;
- left:4.8828125%!important;top:2.734375%!important;
- width:21.09375%!important;height:auto!important;
- aspect-ratio:1!important;
+ left:5.322265625%!important;top:4.2643229167%!important;
+ width:20.21484375%!important;height:9.4401041667%!important;
+ aspect-ratio:auto!important;
  margin:0!important;padding:0!important;border:0!important;
- border-radius:0!important;overflow:hidden!important;
+ border-radius:0!important;overflow:visible!important;
  background:transparent!important;box-shadow:none!important;filter:none!important;
  z-index:6!important;
 }
@@ -291,12 +290,12 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::after{
  content:none!important;display:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-inner-on-original"] .tf-v3-sprite{
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-visible-motif"] .tf-v3-sprite{
  position:absolute!important;inset:0!important;
  width:100%!important;height:100%!important;
  background-size:100% 100%!important;
  background-position:center!important;background-repeat:no-repeat!important;
- border:0!important;border-radius:0!important;overflow:hidden!important;
+ border:0!important;border-radius:0!important;overflow:visible!important;
  transform:none!important;filter:none!important;opacity:1!important;
  -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
 }

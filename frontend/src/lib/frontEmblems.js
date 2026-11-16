@@ -58,14 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // The master already contains a GOLD ring. Draw ONLY the class glyph
- // inside the well, precisely as the Monster Dragon emblem is clipped.
+ // Keep the original GOLD ring on the Class master: only the alpha-fitted
+ // internal motif is added. It is bounded by 207 x 145 and centered at (158,138).
  if(type==="class"){
    const classKey=CLASSES[index];
    return {
-     sprite:"class-inner-on-original",index,col:0,row:0,label,
-     src:"/emblemi/classi-inner/"+classKey+".webp",
-     width:216,height:216,cell:216,
+     sprite:"class-visible-motif",index,col:0,row:0,label,
+     src:"/emblemi/classi-visible/"+classKey+".webp",
+     width:207,height:145,cell:207,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

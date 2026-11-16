@@ -15,7 +15,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // A single original master supplies the gold rim; each class fills only
     // the same fixed-size circular well with a transparent HD motif.
-    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-inner-on-original"] .tf-v3-sprite');
+    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion[data-emblem-sprite="class-visible-motif"] .tf-v3-sprite');
     expect(finalMaster).toContain("width:16.47059%!important;");
     expect(finalMaster).not.toContain('data-emblem-sprite="class-approved-hd"');
     expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
