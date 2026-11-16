@@ -1,5 +1,6 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { getClassStatIcon } from "@/lib/classStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout, frontMasterAsset } from "@/lib/frontCategoryLayouts";
@@ -116,9 +117,7 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
    Legacy projects lacking a v7 preview still use the original safe renderer. */
 async function renderApprovedMaster(element,card) {
  const data=buildFrontBlueprint(card);
- const {width,height,scale}=data.type==="class"
-   ? {width:340,height:510,scale:CARD_CANVAS_SIZE.scale}
-   : CARD_CANVAS_SIZE;
+ const {width,height,scale}=CARD_CANVAS_SIZE;
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
  const master=new Image();
@@ -132,8 +131,7 @@ async function renderApprovedMaster(element,card) {
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
  const g=data.type==="class"
-   ? {x:width*(52/1024),y:height*(252/1536),
-      w:width*(920/1024),h:height*(420/1536)}
+   ? {x:width*.055,y:height*.19,w:width*.89,h:height*.26}
    : MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
@@ -144,19 +142,14 @@ async function renderApprovedMaster(element,card) {
  } catch {}
  // The card image, header badge and stat icons all use the same engraved
  // master coordinates as the CSS preview; never offset the source artwork.
- const icon=data.type==="class"?null:await loadFrontEmblem(data.emblem);
+ const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-visible-motif") {
-     // Exactly the same 190px inner-colour artwork shown in Safari.
-     // Original approved Class gold ring stays untouched underneath.
-     const medalX=width*(61/1024);
-     const medalY=height*(39/1536);
-     const medalW=width*(190/1024);
-     const medalH=height*(190/1536);
-     // Class alpha-only motif; original master retains the single gold rim.
-     ctx.drawImage(icon,medalX,medalY,medalW,medalH);
+     // Single original atlas emblem in the archived 864×1210 master well.
+     const iconSize=width*.174;
+     ctx.drawImage(icon,width*.07,height*.0425,iconSize,iconSize);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
@@ -165,19 +158,29 @@ async function renderApprovedMaster(element,card) {
    }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
- drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
-   Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
+ if(data.type==="class") {
+   drawFittedText(ctx,data.name,width*.5,height*.052+width*.0715,width*.44,
+      width*.0715,"'Cormorant Garamond',Georgia,serif","700");
+ }else{
+   drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
+      Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
+ }
  ctx.fillStyle="#4a2b1a";
- drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,
-   Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
+ if(data.type==="class") {
+   drawFittedText(ctx,data.subtitle,width*.5,height*.115+width*.0335,
+      width*.4,width*.0335,"'Cormorant Garamond',Georgia,serif","400");
+ }else{
+   drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,
+      Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
+ }
  if(data.badge){
    ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
- const statY=data.type==="class"?220:MASTER_REGIONS.stats.y;
+ const statY=data.type==="class"?height*.4915:MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
-   const src=getFrontStatIcon(it.label);
+   const src=data.type==="class"?getClassStatIcon(it.label):getFrontStatIcon(it.label);
    if(!src)return null;
    const im=new Image();try {
      await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=src;
@@ -192,15 +195,20 @@ async function renderApprovedMaster(element,card) {
    const max=cellW-12;
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
-     // Titles and muscle/shield/sword icons already exist in the source art.
-     // Only values are dynamic, never another pictogram or ornamental ring.
-     const valueX=[56,160,262][i]??56;
-     const valueW=[60,62,70][i]??60;
-     const fontSize=i===2?8.4:9.2;
-     ctx.fillStyle="#20140d";ctx.font="700 "+fontSize+"px Georgia,serif";
-     const lines=wrapTextLines(ctx,it.value,valueW).slice(0,4);
-     ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,valueX,275+n*11,valueW));
+     const centre=width*(.043+.914*(i+.5)/3);
+     const label=it.label==="Abilità primaria"?"Abilità Primaria":
+       it.label==="Tiri salvezza"?"Tiri Salvezza":"Competenze";
+     ctx.fillStyle="#211611";ctx.textAlign="center";
+     drawFittedText(ctx,label,centre,statY+14,width*.27,width*.0295,"Georgia,serif","700");
+     if(it.value){
+       const symbol=statImages[i];
+       if(symbol)ctx.drawImage(symbol,centre-width*.115,statY+26,width*.053,width*.053);
+       ctx.font=`600 ${width*.029}px 'EB Garamond',Georgia,serif`;
+       ctx.fillStyle="#261a0f";ctx.textAlign="center";
+       const lines=wrapTextLines(ctx,it.value,width*.18).slice(0,3);
+       const y=statY+31+(lines.length===1?8:lines.length===2?3:0);
+       lines.forEach((line,n)=>ctx.fillText(line,centre+width*.028,y+n*11,width*.18));
+     }
      return;
    }
    if(icon&&data.type!=="class"){
@@ -247,14 +255,19 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=24,y=320,w=212,h=126,fontSize=9,lineHeight=10.62;
+   const x=width*.08,y=height*.67+width*.031,w=width*.65,h=height*.241,fontSize=width*.031,lineHeight=width*.031*1.12;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
    const lines=wrapTextLines(ctx,fitted,w);
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
-   // Premium die is part of the exact same Class master image.
+   // A single complete premium-v29 die in the paper-only source master.
+   if(data.classDieAsset){
+     const jewel=await loadFrontEmblem({src:data.classDieAsset});
+     const dieSize=width*.20;
+     if(jewel)ctx.drawImage(jewel,width*.75,height*.735,dieSize,dieSize);
+   }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
    if(data.showDescriptionLabel)ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);
