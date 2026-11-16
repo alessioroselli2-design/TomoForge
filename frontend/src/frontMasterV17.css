@@ -272,13 +272,14 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
 /* Same inner-only optical method as Dragon Rosso, measured on THIS master.
-   Source circle center=(158,150), well radius=88.
-   x=70/1024=6.835938%; y=62/1536=4.036458%; size=176/1024=17.1875%.
-   One common geometry for ALL 13 classes; the image has no outer gold ring. */
+   Original gold-rimmed well center=(158,150), radius=88.
+   The inner-only motif is 132px, 22px in from each side of the 176px well.
+   x=92/1024=8.984375%; y=84/1536=5.46875%; size=132/1024=12.890625%.
+   The ORIGINAL border and ruby jewels remain completely visible for every class. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
  position:absolute!important;
- left:6.835938%!important;top:4.036458%!important;
- width:17.1875%!important;height:auto!important;
+ left:8.984375%!important;top:5.46875%!important;
+ width:12.890625%!important;height:auto!important;
  aspect-ratio:1!important;
  margin:0!important;padding:0!important;border:0!important;
  border-radius:0!important;overflow:hidden!important;

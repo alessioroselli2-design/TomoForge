@@ -150,9 +150,9 @@ async function renderApprovedMaster(element,card) {
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-inner-on-original") {
      // Match React: the original master paints the only medallion border.
-     const medalSize=width*(176/1024);
-     const medalX=width*(70/1024);
-     const medalY=height*(62/1536);
+     const medalSize=width*(132/1024);
+     const medalX=width*(92/1024);
+     const medalY=height*(84/1536);
      ctx.drawImage(icon,medalX,medalY,medalSize,medalSize);
    } else {
      drawIntegratedMedallion(ctx,icon,

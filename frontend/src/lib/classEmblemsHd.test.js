@@ -6,7 +6,7 @@ const names="barbaro bardo chierico druido guerriero monaco paladino ranger ladr
 const read=(p)=>readFileSync(resolve(__dirname,p));
 
 describe("the exact original user Class master and inner-only emblems",()=>{
- it.each(names)("%s is alpha-clipped with one common 176px geometry",name=>{
+ it.each(names)("%s uses a 176px source uniformly centered at 132px inside the original gold rim",name=>{
    const emblem=getFrontEmblem({type:"class",name});
    expect(emblem.sprite).toBe("class-inner-on-original");
    expect(emblem.src).toBe("/emblemi/classi-inner/"+name+".webp");
@@ -27,16 +27,16 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(art.length).toBeGreaterThan(100000);
    expect(layout).toContain('/card-art/class-master-user-20261113.webp');
    const one=css.slice(css.lastIndexOf("/* CLASSI · SOURCE OF TRUTH:"));
-   expect(one).toContain("left:6.835938%!important;top:4.036458%!important");
-   expect(one).toContain("width:17.1875%!important");
+   expect(one).toContain("left:8.984375%!important;top:5.46875%!important");
+   expect(one).toContain("width:12.890625%!important");
    expect(one).toContain('data-emblem-sprite="class-inner-on-original"');
    expect(one).toContain("content:none!important;display:none!important");
    expect(one).not.toContain("tf-bardo-proof");
    expect(one).not.toContain("background:radial-gradient(");
    expect(exporter).toContain('s.sprite==="class-inner-on-original"');
-   expect(exporter).toContain("const medalSize=width*(176/1024);");
-   expect(exporter).toContain("const medalX=width*(70/1024);");
-   expect(exporter).toContain("const medalY=height*(62/1536);");
+   expect(exporter).toContain("const medalSize=width*(132/1024);");
+   expect(exporter).toContain("const medalX=width*(92/1024);");
+   expect(exporter).toContain("const medalY=height*(84/1536);");
  });
  it("leaves Monster Dragon and the approved Class dice untouched",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");
