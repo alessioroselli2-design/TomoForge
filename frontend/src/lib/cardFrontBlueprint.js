@@ -2,7 +2,7 @@
 // source of game rules. One blueprint drives preview, PNG and both PDF modes.
 import { typeLabel, attrLabel } from "./cardTypes";
 import { getFrontEmblem } from "./frontEmblems";
-import { normalizeClassHitDie, classHitDieAsset } from "./classHitDice";
+import { normalizeClassHitDie, classHitDieCoreAsset } from "./classHitDice";
 
 const THEMES = {
   monster: { accent: "#b5534f", shadow: "#341b28" },
@@ -221,7 +221,7 @@ export const buildFrontBlueprint = (card = {}) => {
     type, heading, name: card.name || "Senza nome", subtitle, crest,
     ...THEMES[type], highlights:readableStats, abilities, details,
     dice: type === "class" ? classDie : (match ? match[0].replace(/\s+/g, "") : ""),
-    classDieAsset: type === "class" ? classHitDieAsset(classDie) : "",
+    classDieAsset: type === "class" ? classHitDieCoreAsset(classDie) : "",
     spellDie, spellDieAsset: type === "spell" && spellDie
       ? `/card-art/spell-dice/${spellDie}-${["d12","d20"].includes(spellDie)?"clean-v32":"blank-v31"}.webp` : "",
     description: type === "class"

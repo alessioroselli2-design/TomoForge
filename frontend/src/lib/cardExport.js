@@ -156,27 +156,8 @@ async function renderApprovedMaster(element,card) {
      const medalY=height*(65.5/1536);
      const medalW=width*(207/1024);
      const medalH=height*(145/1536);
-     // Match the CSS screen blend and elliptic 86%-100% edge feather.
-     // The source image is a motif, not an extra medallion border.
-     const motif=document.createElement("canvas");
-     motif.width=207;motif.height=145;
-     const motifCtx=motif.getContext("2d");
-     motifCtx.drawImage(icon,0,0,motif.width,motif.height);
-     motifCtx.save();
-     motifCtx.globalCompositeOperation="destination-in";
-     motifCtx.translate(motif.width/2,motif.height/2);
-     motifCtx.scale(motif.width/2,motif.height/2);
-     const feather=motifCtx.createRadialGradient(0,0,0,0,0,1);
-     feather.addColorStop(0,"#000");
-     feather.addColorStop(.86,"#000");
-     feather.addColorStop(1,"#0000");
-     motifCtx.fillStyle=feather;
-     motifCtx.fillRect(-1,-1,2,2);
-     motifCtx.restore();
-     ctx.save();
-     ctx.globalCompositeOperation="screen";
-     ctx.drawImage(motif,medalX,medalY,medalW,medalH);
-     ctx.restore();
+     // Class alpha-only motif; original master retains the single gold rim.
+     ctx.drawImage(icon,medalX,medalY,medalW,medalH);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
@@ -277,7 +258,7 @@ async function renderApprovedMaster(element,card) {
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
      // Same source-coordinate center as the responsive CSS overlay.
-     if(jewel)ctx.drawImage(jewel,248,330,72,75);
+     if(jewel)ctx.drawImage(jewel,256,338,56,56);
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

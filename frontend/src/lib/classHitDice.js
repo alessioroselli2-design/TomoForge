@@ -7,6 +7,11 @@ export const normalizeClassHitDie = (value) => {
   return match ? `d${match[1]}` : "";
 };
 
+export const classHitDieCoreAsset = (value) => {
+  const die=normalizeClassHitDie(value);
+  return die ? `/card-art/class-dice-core-v1/${die}.webp` : "";
+};
+
 export const classHitDieAsset = (value) => {
   const die=normalizeClassHitDie(value);
   return die ? `/card-art/class-dice/${die}-premium-v29.webp` : "";

@@ -65,7 +65,7 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "python3 -m pip install --quiet Pillow && python3 scripts/build_class_core_assets.py && craco build",
     "test": "craco test"
   },
   "proxy": "http://127.0.0.1:5001",

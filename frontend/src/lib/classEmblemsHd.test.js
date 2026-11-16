@@ -9,10 +9,10 @@ describe("the exact original user Class master and inner-only emblems",()=>{
  it.each(names)("%s uses a 207 x 145 alpha-fitted motif in a shared Class position",name=>{
    const emblem=getFrontEmblem({type:"class",name});
    expect(emblem.sprite).toBe("class-visible-motif");
-   expect(emblem.src).toBe("/emblemi/classi-visible/"+name+".webp");
+   expect(emblem.src).toBe("/emblemi/classi-core-v1/"+name+".webp");
    expect(emblem.width).toBe(207);
    expect(emblem.height).toBe(145);
-   const art=read("../../public"+emblem.src);
+   const art=read("../../public/emblemi/classi-hd/"+name+".webp");
    expect(art.subarray(0,4).toString()).toBe("RIFF");
    expect(art.subarray(8,12).toString()).toBe("WEBP");
    expect(art.length).toBeGreaterThan(5000);
@@ -41,6 +41,7 @@ describe("the exact original user Class master and inner-only emblems",()=>{
  });
  it("leaves Monster Dragon and the approved Class dice untouched",()=>{
    expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}}).sprite).toBe("drago-hd");
-   expect(read("./classHitDice.js").toString()).toContain("premium-v29.webp");
+   expect(read("./classHitDice.js").toString()).toContain("class-dice-core-v1");
+  expect(read("../../scripts/build_class_core_assets.py").toString()).toContain("class-dice");
  });
 });

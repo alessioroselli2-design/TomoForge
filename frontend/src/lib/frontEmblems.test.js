@@ -11,7 +11,7 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
-  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi-visible/guerriero.webp",cell:207,sprite:"class-visible-motif"});
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi-core-v1/guerriero.webp",cell:207,sprite:"class-visible-motif"});
  });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
   expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race",index:1});
@@ -23,7 +23,7 @@ describe("approved TomoForge front medal rules",()=>{
   for(const name of names) {
     const emblem=getFrontEmblem({type:"class",name});
     expect(emblem).toMatchObject({sprite:"class-visible-motif",cell:207,backgroundSize:"100% 100%"});
-    expect(emblem.src).toBe(`/emblemi/classi-visible/${name.toLowerCase()}.webp`);
+    expect(emblem.src).toBe(`/emblemi/classi-core-v1/${name.toLowerCase()}.webp`);
   }
   expect(getFrontEmblem({type:"subclass",attributes:{classe:"Druido"}}).sprite).toBe("core");
  });

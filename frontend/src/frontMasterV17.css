@@ -296,13 +296,10 @@
  background-size:100% 100%!important;
  background-position:center!important;background-repeat:no-repeat!important;
  border:0!important;border-radius:0!important;overflow:visible!important;
- /* Blend away the source's dark blue circular plate, retaining the gold motif.
-    This sprite is ART ONLY: the original Class raster owns the single rim. */
+ /* A real alpha-only Class motif. Master image owns the only gold rim. */
  transform:none!important;filter:none!important;opacity:1!important;
- mix-blend-mode:screen!important;isolation:auto!important;
- -webkit-mask-image:radial-gradient(ellipse closest-side at center,#000 0%,#000 86%,transparent 100%)!important;
- mask-image:radial-gradient(ellipse closest-side at center,#000 0%,#000 86%,transparent 100%)!important;
- clip-path:none!important;
+ mix-blend-mode:normal!important;isolation:auto!important;
+ -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-fallback{display:none!important}
 /* Central art well is intentionally EMPTY until the user selects an image. */
@@ -364,14 +361,12 @@
  overflow:hidden!important;overflow-y:hidden!important;
  -webkit-line-clamp:unset!important;line-clamp:unset!important;
 }
-/* Premium v29 die centred on the existing lower-right master well.
-   Ratios are relative to the Class parchment, so the approved die scales
-   with the card from iPhone preview to PNG/PDF (340 x 510 source box:
-   x=248,y=330,w=72,h=75). Never change or regenerate the premium image. */
+/* Only the approved polyhedron core, inside the one original gold die rim.
+   At 340x510 (canvas/PDF): x=256,y=338,w=56,h=56. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
- position:absolute!important;left:auto!important;right:1.63%!important;
- top:16.63%!important;bottom:auto!important;
- width:23.22%!important;height:48.86%!important;max-width:none!important;
+ position:absolute!important;left:auto!important;right:3.92%!important;
+ top:21.83%!important;bottom:auto!important;
+ width:18.06%!important;height:36.50%!important;max-width:none!important;
  margin:0!important;padding:0!important;border:0!important;
  border-radius:0!important;box-shadow:none!important;
  background-color:transparent!important;background-size:contain!important;
