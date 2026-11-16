@@ -380,3 +380,7 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr canvas{
  width:18px!important;height:18px!important;
 }
+
+/* Classes: both complete approved images are in the master already. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{display:none!important;}

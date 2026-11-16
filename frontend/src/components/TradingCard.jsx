@@ -68,7 +68,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  return <div ref={ref} data-testid="card-front" data-front-version="7"
    data-front-category={data.type} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
-   style={{"--tf-v3-accent":data.accent,...frontBackground(data.type)}}>
+   style={{"--tf-v3-accent":data.accent,...frontBackground(data.type,data.emblem,data.dice)}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>

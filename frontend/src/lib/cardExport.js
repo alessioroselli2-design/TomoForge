@@ -2,7 +2,7 @@ import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
-import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
+import { categoryFrontLayout, frontMasterAsset } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 
@@ -124,7 +124,7 @@ async function renderApprovedMaster(element,card) {
  const master=new Image();
  await new Promise((resolve,reject)=>{
    master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
-   master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
+   master.src=frontMasterAsset(data.type,data.emblem,data.dice);
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
@@ -144,7 +144,7 @@ async function renderApprovedMaster(element,card) {
  } catch {}
  // The card image, header badge and stat icons all use the same engraved
  // master coordinates as the CSS preview; never offset the source artwork.
- const icon=await loadFrontEmblem(data.emblem);
+ const icon=data.type==="class"?null:await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
@@ -254,12 +254,7 @@ async function renderApprovedMaster(element,card) {
    const lines=wrapTextLines(ctx,fitted,w);
    ctx.fillStyle="#2d190e";ctx.textAlign="left";
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
-   if(data.classDieAsset){
-     const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     // Same physical source-master rectangle as the responsive CSS overlay.
-     if(jewel)ctx.drawImage(jewel,width*(751/1024),height*(985/1536),
-       width*(218/1024),height*(218/1536));
-   }
+   // Premium die is part of the exact same Class master image.
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";
    if(data.showDescriptionLabel)ctx.fillText("Descrizione",MASTER_REGIONS.description.x+8,MASTER_REGIONS.description.y+11);

@@ -182,9 +182,49 @@ def build_clean_composition_proof():
             "name":name,"image_base64":base64.b64encode(data.getvalue()).decode("ascii")
         }),encoding="utf8")
 
+
+def build_embedded_class_masters():
+    """Bake the exact original full HD emblems and premium-v29 dice into one
+    unchanging class master; no CSS/Canvas duplicate decorative layers."""
+    import io, base64, json
+    base=Image.open(PUBLIC/"card-art"/"class-master-user-20261113.webp").convert("RGBA")
+    fill=Image.new("RGBA",base.size,(0,0,0,0))
+    ImageDraw.Draw(fill).ellipse((37,17,278,258),fill=(73,6,13,255))
+    fill.putalpha(fill.getchannel("A").filter(ImageFilter.GaussianBlur(2)))
+    clean=Image.alpha_composite(base,fill)
+    texture=base.crop((422,920,702,1250))
+    mask=Image.new("L",(280,330),0)
+    ImageDraw.Draw(mask).ellipse((8,6,272,324),fill=255)
+    mask=mask.filter(ImageFilter.GaussianBlur(6))
+    clean.paste(texture,(710,920),mask)
+    medals={name:Image.open(PUBLIC/"emblemi"/"classi-hd"/f"{name}.webp")
+      .convert("RGBA").resize((280,280),Image.Resampling.LANCZOS) for name in CLASSES}
+    gems={die:Image.open(PUBLIC/"card-art"/"class-dice"/f"{die}-premium-v29.webp")
+      .convert("RGBA").resize((248,248),Image.Resampling.LANCZOS) for die in DICE}
+    dest=PUBLIC/"card-art"/"class-composed-v5"
+    dest.mkdir(parents=True,exist_ok=True)
+    proofs=PUBLIC/"_class-art-proof"
+    proofs.mkdir(parents=True,exist_ok=True)
+    for name in CLASSES:
+        baseClass=clean.copy()
+        baseClass.alpha_composite(medals[name],(18,-2))
+        for die in [*DICE,"none"]:
+            composed=baseClass.copy()
+            if die!="none":composed.alpha_composite(gems[die],(733,959))
+            composed.save(dest/f"{name}-{die}.webp","WEBP",quality=95,method=6)
+            if (name,die) in (("bardo","d8"),("barbaro","d12"),("guerriero","d10"),("druido","d8")):
+                pic=composed.resize((512,768),Image.Resampling.LANCZOS).convert("RGB")
+                buffer=io.BytesIO();pic.save(buffer,"JPEG",quality=88,optimize=True)
+                (proofs/f"{name}-embedded-v5.json").write_text(json.dumps({
+                    "name":name,"die":die,
+                    "image_base64":base64.b64encode(buffer.getvalue()).decode("ascii")
+                }),encoding="utf8")
+    print("13 classes x 7 dice variants, one shared Class raster template")
+
 if __name__ == "__main__":
     for klass in CLASSES: build_class_emblem(klass)
     for die in DICE: build_die_polyhedron(die)
     write_optical_proofs()
     build_full_approved_medals_proof()
     build_clean_composition_proof()
+    build_embedded_class_masters()
