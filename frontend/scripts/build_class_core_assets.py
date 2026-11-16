@@ -62,7 +62,32 @@ def save_die(name):
     dest.parent.mkdir(parents=True,exist_ok=True)
     src.save(dest,"WEBP",quality=97,method=6,exact=True)
 
+def create_visual_proofs():
+    # Pixel-faithful diagnostic of the existing Class master with BOTH true
+    # transparent overlays. Static proof is not shipped as an app component.
+    import io,base64,json
+    master=Image.open(P/"card-art"/"class-master-user-20261113.webp").convert("RGBA")
+    pairs=[("bardo","d8"),("barbaro","d12"),("guerriero","d10"),("druido","d8")]
+    out=P/"_class-art-proof"
+    out.mkdir(parents=True,exist_ok=True)
+    for name,die in pairs:
+        img=master.copy()
+        motif=Image.open(P/"emblemi"/"classi-core-v1"/f"{name}.webp").convert("RGBA")
+        jewel=Image.open(P/"card-art"/"class-dice-core-v1"/f"{die}.webp").convert("RGBA")
+        img.alpha_composite(motif,(54,65))
+        img.alpha_composite(jewel.resize((169,169),Image.Resampling.LANCZOS),(771,1018))
+        emblem_area=img.crop((0,0,320,300)).convert("RGB")
+        die_area=img.crop((694,922,1014,1222)).convert("RGB")
+        combo=Image.new("RGB",(640,300))
+        combo.paste(emblem_area,(0,0))
+        combo.paste(die_area,(320,0))
+        memory=io.BytesIO()
+        combo.save(memory,format="JPEG",quality=86,optimize=True)
+        (out/f"{name}.json").write_text(json.dumps({"name":name,
+            "image_base64":base64.b64encode(memory.getvalue()).decode("ascii")}),encoding="utf-8")
+
 if __name__=="__main__":
     for name in CLASSES:save_icon(name)
     for name in DICE:save_die(name)
+    create_visual_proofs()
     print("Generated alpha-only Class motifs and Class die cores; approved originals unchanged")
