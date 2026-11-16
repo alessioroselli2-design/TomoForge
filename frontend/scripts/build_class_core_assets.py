@@ -206,6 +206,18 @@ def build_embedded_class_masters():
         return PUBLIC/"emblemi"/"classi-hd"/f"{name}.webp"
     medals={name:Image.open(approved_medal_path(name))
       .convert("RGBA").resize((280,280),Image.Resampling.LANCZOS) for name in CLASSES}
+    # Guard against the square dark plate in the older Warrior source.
+    # Keep a transparent, circular motif exactly centred on the 280px well,
+    # so it cannot cover the engraved master border or header parchment.
+    warrior=Image.open(approved_medal_path("guerriero")).convert("RGBA")
+    warrior=warrior.resize((220,220),Image.Resampling.LANCZOS)
+    circle=Image.new("L",(220,220),0)
+    ImageDraw.Draw(circle).ellipse((2,2,218,218),fill=255)
+    circle=circle.filter(ImageFilter.GaussianBlur(2))
+    warrior.putalpha(ImageChops.multiply(warrior.getchannel("A"),circle))
+    fit=Image.new("RGBA",(280,280),(0,0,0,0))
+    fit.alpha_composite(warrior,(30,30))
+    medals["guerriero"]=fit
     gems={die:Image.open(PUBLIC/"card-art"/"class-dice"/f"{die}-premium-v29.webp")
       .convert("RGBA").resize((248,248),Image.Resampling.LANCZOS) for die in DICE}
     dest=PUBLIC/"card-art"/"class-composed-v5"
