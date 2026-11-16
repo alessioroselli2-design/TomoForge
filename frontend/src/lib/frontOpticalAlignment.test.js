@@ -94,7 +94,14 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,250,340,72,75)");
+   // Match the Class master's actual lower-right ring at all preview widths.
+   expect(exporter).toContain("ctx.drawImage(jewel,248,330,72,75)");
+   expect(finalMaster).toContain("right:1.63%!important");
+   expect(finalMaster).toContain("top:16.63%!important");
+   expect(finalMaster).toContain("width:23.22%!important;height:48.86%!important");
+   expect(finalMaster).toContain("mix-blend-mode:screen!important");
+   expect(exporter).toContain('ctx.globalCompositeOperation="screen"');
+   expect(exporter).toContain("feather.addColorStop(.86");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
