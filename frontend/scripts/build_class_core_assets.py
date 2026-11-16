@@ -197,7 +197,14 @@ def build_embedded_class_masters():
     ImageDraw.Draw(mask).ellipse((8,6,272,324),fill=255)
     mask=mask.filter(ImageFilter.GaussianBlur(6))
     clean.paste(texture,(710,920),mask)
-    medals={name:Image.open(PUBLIC/"emblemi"/"classi-hd"/f"{name}.webp")
+    # Historical approved reference for the Warrior is the crossed-swords
+    # shield, NOT the compass-and-swords icon from the newer 512px sheet.
+    # This is read directly from the archived original iPhone proof.
+    def approved_medal_path(name):
+        if name=="guerriero":
+            return PUBLIC/"emblemi"/"classi-originali-da-prova"/"guerriero.png"
+        return PUBLIC/"emblemi"/"classi-hd"/f"{name}.webp"
+    medals={name:Image.open(approved_medal_path(name))
       .convert("RGBA").resize((280,280),Image.Resampling.LANCZOS) for name in CLASSES}
     gems={die:Image.open(PUBLIC/"card-art"/"class-dice"/f"{die}-premium-v29.webp")
       .convert("RGBA").resize((248,248),Image.Resampling.LANCZOS) for die in DICE}
