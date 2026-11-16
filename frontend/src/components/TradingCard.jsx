@@ -7,6 +7,7 @@ import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { getClassStatIcon } from "@/lib/classStatIcons";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
@@ -99,7 +100,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
        {data.highlights.length?data.highlights.map((item,i)=>{
-         const statIcon = data.type==="class" ? null : getFrontStatIcon(item.label);
+         const statIcon = data.type==="class" ? (item.value?getClassStatIcon(item.label):null) : getFrontStatIcon(item.label);
          return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
            <div className="tf-v6-stat-text">

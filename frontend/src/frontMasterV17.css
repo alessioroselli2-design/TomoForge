@@ -384,3 +384,107 @@
 /* Classes: both complete approved images are in the master already. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{display:none!important;}
+
+
+/* 04 NOV REFERENCE: pixel-based drawing ratios measured against 864×1210,
+   aligned to the shared 340×476 Monster card proportions. This source lacks
+   a lower-right ring, so only the FULL historical premium-v29 die is shown. */
+.tf-front-master-v17[data-front-category="class"]{
+ width:100%!important;height:auto!important;aspect-ratio:864/1210!important;
+ container-type:inline-size!important;border:0!important;outline:0!important;
+ border-radius:0!important;box-shadow:none!important;
+ background-size:100% 100%!important;background-repeat:no-repeat!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ display:block!important;left:7%!important;top:4.25%!important;
+ width:17.4%!important;height:auto!important;aspect-ratio:1!important;
+ margin:0!important;padding:0!important;border:0!important;
+ background:transparent!important;border-radius:50%!important;
+ overflow:hidden!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ background-size:100% 100%!important;background-position:center!important;
+ background-repeat:no-repeat!important;transform:none!important;filter:none!important;
+ -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles{
+ position:absolute!important;left:28%!important;top:5.2%!important;width:44%!important;
+ height:10%!important;display:block!important;transform:none!important;gap:0!important;
+ padding:0!important;margin:0!important;text-align:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+ font:700 7.15cqw/1 'Cormorant Garamond',Georgia,serif!important;
+ letter-spacing:-.045em!important;color:#261a0f!important;white-space:nowrap!important;
+ margin:0!important;padding:0!important;max-height:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles p{
+ font:400 3.35cqw/1.1 'Cormorant Garamond',Georgia,serif!important;
+ color:#261a0f!important;top:1.5cqw!important;margin:0!important;padding:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
+ left:5.5%!important;top:19%!important;width:89%!important;height:26%!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
+ left:4.3%!important;top:49.15%!important;width:91.4%!important;height:12.7%!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats>.tf-v3-stat{
+ width:100%!important;height:100%!important;display:block!important;flex:1 1 0!important;
+ position:relative!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
+ position:absolute!important;inset:0!important;left:0!important;top:0!important;
+ transform:none!important;display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:flex-start!important;
+ padding:0!important;margin:0!important;width:100%!important;max-width:100%!important;
+ height:100%!important;gap:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-text>span{
+ display:block!important;margin-top:2%!important;
+ font:700 2.95cqw/1 Georgia,serif!important;color:#211611!important;
+ white-space:nowrap!important;text-align:center!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-value-row{
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ justify-content:center!important;gap:1.2cqw!important;
+ width:100%!important;height:62%!important;max-width:100%!important;
+ padding:1.7cqw 2cqw 0!important;margin:0!important;overflow:hidden!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-value-row>.tf-v6-stat-icon{
+ display:block!important;position:static!important;transform:none!important;
+ width:5.3cqw!important;height:5.3cqw!important;min-width:5.3cqw!important;
+ max-width:5.3cqw!important;max-height:5.3cqw!important;flex:0 0 5.3cqw!important;
+ clip-path:none!important;opacity:1!important;object-fit:contain!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-value-row>strong,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-text>strong{
+ display:block!important;position:static!important;flex:0 1 auto!important;
+ font:600 2.9cqw/1.08 'EB Garamond',Georgia,serif!important;color:#261a0f!important;
+ max-height:3.3em!important;max-width:100%!important;min-width:0!important;
+ text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;
+ padding:0!important;margin:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment{
+ left:0!important;top:63%!important;width:100%!important;height:37%!important;
+ border:0!important;background:transparent!important;box-shadow:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
+ left:8%!important;top:10.81%!important;width:65%!important;max-width:65%!important;
+ height:65.14%!important;max-height:65.14%!important;padding:0!important;margin:0!important;
+ font:400 3.1cqw/1.12 'EB Garamond',Georgia,serif!important;
+ color:#261a0f!important;text-align:left!important;
+ overflow:hidden!important;overflow-y:hidden!important;
+ -webkit-line-clamp:unset!important;line-clamp:unset!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
+ display:block!important;position:absolute!important;left:75%!important;top:28.38%!important;
+ right:auto!important;bottom:auto!important;width:20%!important;height:auto!important;
+ aspect-ratio:1!important;z-index:6!important;overflow:visible!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ background-color:transparent!important;background-size:100% 100%!important;
+ background-position:center!important;background-repeat:no-repeat!important;
+ font-size:0!important;color:transparent!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-qr{right:5%!important;top:84%!important;}
