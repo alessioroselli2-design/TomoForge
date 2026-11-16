@@ -141,7 +141,7 @@ def build_clean_composition_proof():
     Parchment overprint masks ONLY the original die socket, and the card's
     original approved outer frame is retained.
     """
-    import io,base64,json,math
+    import io,base64,json
     master=Image.open(PUBLIC/"card-art"/"class-master-user-20261113.webp").convert("RGBA")
     parchment=master.crop((422,943,708,1229)).resize((280,280),Image.Resampling.LANCZOS)
     texmask=Image.new("L",(280,280),0)
