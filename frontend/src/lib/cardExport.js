@@ -156,11 +156,26 @@ async function renderApprovedMaster(element,card) {
      const medalY=height*(65.5/1536);
      const medalW=width*(207/1024);
      const medalH=height*(145/1536);
-     // Match the preview: remove the source emblem's dark plate without adding
-     // a second border around the already-engraved Class master ring.
+     // Match the CSS screen blend and elliptic 86%-100% edge feather.
+     // The source image is a motif, not an extra medallion border.
+     const motif=document.createElement("canvas");
+     motif.width=207;motif.height=145;
+     const motifCtx=motif.getContext("2d");
+     motifCtx.drawImage(icon,0,0,motif.width,motif.height);
+     motifCtx.save();
+     motifCtx.globalCompositeOperation="destination-in";
+     motifCtx.translate(motif.width/2,motif.height/2);
+     motifCtx.scale(motif.width/2,motif.height/2);
+     const feather=motifCtx.createRadialGradient(0,0,0,0,0,1);
+     feather.addColorStop(0,"#000");
+     feather.addColorStop(.86,"#000");
+     feather.addColorStop(1,"#0000");
+     motifCtx.fillStyle=feather;
+     motifCtx.fillRect(-1,-1,2,2);
+     motifCtx.restore();
      ctx.save();
      ctx.globalCompositeOperation="screen";
-     ctx.drawImage(icon,medalX,medalY,medalW,medalH);
+     ctx.drawImage(motif,medalX,medalY,medalW,medalH);
      ctx.restore();
    } else {
      drawIntegratedMedallion(ctx,icon,
