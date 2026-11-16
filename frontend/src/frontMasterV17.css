@@ -277,7 +277,7 @@
    proportions because the original alpha bounds are fitted offline.
    No enlarged ring, second badge, masked circle or class-specific offset. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- position:absolute!important;
+ position:absolute!important;isolation:auto!important;
  left:5.322265625%!important;top:4.2643229167%!important;
  width:20.21484375%!important;height:9.4401041667%!important;
  aspect-ratio:auto!important;
@@ -296,8 +296,13 @@
  background-size:100% 100%!important;
  background-position:center!important;background-repeat:no-repeat!important;
  border:0!important;border-radius:0!important;overflow:visible!important;
+ /* Blend away the source's dark blue circular plate, retaining the gold motif.
+    This sprite is ART ONLY: the original Class raster owns the single rim. */
  transform:none!important;filter:none!important;opacity:1!important;
- -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
+ mix-blend-mode:screen!important;isolation:auto!important;
+ -webkit-mask-image:radial-gradient(ellipse closest-side at center,#000 0%,#000 86%,transparent 100%)!important;
+ mask-image:radial-gradient(ellipse closest-side at center,#000 0%,#000 86%,transparent 100%)!important;
+ clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-fallback{display:none!important}
 /* Central art well is intentionally EMPTY until the user selects an image. */
@@ -359,10 +364,14 @@
  overflow:hidden!important;overflow-y:hidden!important;
  -webkit-line-clamp:unset!important;line-clamp:unset!important;
 }
+/* Premium v29 die centred on the existing lower-right master well.
+   Ratios are relative to the Class parchment, so the approved die scales
+   with the card from iPhone preview to PNG/PDF (340 x 510 source box:
+   x=248,y=330,w=72,h=75). Never change or regenerate the premium image. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
- position:absolute!important;left:auto!important;right:0%!important;
- top:9%!important;bottom:auto!important;
- width:72px!important;height:75px!important;max-width:none!important;
+ position:absolute!important;left:auto!important;right:1.63%!important;
+ top:16.63%!important;bottom:auto!important;
+ width:23.22%!important;height:48.86%!important;max-width:none!important;
  margin:0!important;padding:0!important;border:0!important;
  border-radius:0!important;box-shadow:none!important;
  background-color:transparent!important;background-size:contain!important;
