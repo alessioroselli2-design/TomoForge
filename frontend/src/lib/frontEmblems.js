@@ -64,7 +64,7 @@ export const getFrontEmblem = (card = {}) => {
    const classKey=CLASSES[index];
    return {
      sprite:"class-visible-motif",index,col:0,row:0,label,
-     src:"/emblemi/classi-medal-inner-v2/"+classKey+".webp",
+     src:classKey==="guerriero"?"/emblemi/classi-originali-da-prova/guerriero.png":"/emblemi/classi-medal-inner-v2/"+classKey+".webp",
      width:380,height:380,cell:380,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };

@@ -9,7 +9,7 @@ describe("the exact original user Class master and inner-only emblems",()=>{
  it.each(names)("%s uses the original colour artwork in exactly one Class rim",name=>{
    const emblem=getFrontEmblem({type:"class",name});
    expect(emblem.sprite).toBe("class-visible-motif");
-   expect(emblem.src).toBe("/emblemi/classi-medal-inner-v2/"+name+".webp");
+   expect(emblem.src).toBe(name==="guerriero" ? "/emblemi/classi-originali-da-prova/guerriero.png" : "/emblemi/classi-medal-inner-v2/"+name+".webp");
    expect(emblem.width).toBe(380);
    expect(emblem.height).toBe(380);
    const art=read("../../public/emblemi/classi-hd/"+name+".webp");

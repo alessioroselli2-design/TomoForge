@@ -21,7 +21,7 @@ export const categoryFrontLayout=(type)=>CATEGORY_FRONT_LAYOUTS[type]||CATEGORY_
 // One self-contained raster for each category. No layered pasted rectangles.
 export const frontMasterAsset=(type,emblem=null,dice="")=>{
  if(type==="class"){
-   const key=(String(emblem?.src||"").match(/\/([a-z]+)\.webp$/)||[])[1];
+   const key=(String(emblem?.src||"").match(/\/([a-z]+)\.(?:webp|png)$/)||[])[1];
    const names="barbaro bardo chierico druido guerriero monaco paladino ranger ladro stregone warlock mago artefice".split(" ");
    if(names.includes(key)){
      const die=["d4","d6","d8","d10","d12","d20"].includes(dice)?dice:"none";
