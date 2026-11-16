@@ -9,7 +9,7 @@ export const normalizeClassHitDie = (value) => {
 
 export const classHitDieCoreAsset = (value) => {
   const die=normalizeClassHitDie(value);
-  return die ? `/card-art/class-dice-core-v1/${die}.webp` : "";
+  return die ? `/card-art/class-dice-polyhedron-v2/${die}.webp` : "";
 };
 
 export const classHitDieAsset = (value) => {

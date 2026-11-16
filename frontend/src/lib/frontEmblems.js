@@ -58,14 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // Keep the original GOLD ring on the Class master: only the alpha-fitted
- // internal motif is added. It is bounded by 207 x 145 and centered at (158,138).
+ // The Class master retains exactly ONE engraved gold rim. The approved HD
+ // inner illustration (including its original colour) fills its red well.
  if(type==="class"){
    const classKey=CLASSES[index];
    return {
      sprite:"class-visible-motif",index,col:0,row:0,label,
-     src:"/emblemi/classi-core-v1/"+classKey+".webp",
-     width:207,height:168,cell:207,
+     src:"/emblemi/classi-medal-inner-v2/"+classKey+".webp",
+     width:380,height:380,cell:380,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

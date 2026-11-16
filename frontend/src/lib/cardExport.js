@@ -149,13 +149,12 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-visible-motif") {
-     // Identical source-pixel area to the React preview: 207 x 145
-     // at centered (158,138) on the 1024 x 1536 unmodified Class master.
-     // Source WebP was alpha-trimmed and fitted WITHOUT distortion.
-     const medalX=width*(54.5/1024);
-     const medalY=height*(54/1536);
-     const medalW=width*(207/1024);
-     const medalH=height*(168/1536);
+     // Exactly the same 190px inner-colour artwork shown in Safari.
+     // Original approved Class gold ring stays untouched underneath.
+     const medalX=width*(61/1024);
+     const medalY=height*(39/1536);
+     const medalW=width*(190/1024);
+     const medalH=height*(190/1536);
      // Class alpha-only motif; original master retains the single gold rim.
      ctx.drawImage(icon,medalX,medalY,medalW,medalH);
    } else {
@@ -257,8 +256,9 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     // Same source-coordinate center as the responsive CSS overlay.
-     if(jewel)ctx.drawImage(jewel,256,338,56,56);
+     // Same physical source-master rectangle as the responsive CSS overlay.
+     if(jewel)ctx.drawImage(jewel,width*(751/1024),height*(985/1536),
+       width*(218/1024),height*(218/1536));
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

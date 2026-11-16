@@ -95,10 +95,11 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
    // Match the Class master's actual lower-right ring at all preview widths.
-   expect(exporter).toContain("ctx.drawImage(jewel,256,338,56,56)");
-   expect(finalMaster).toContain("right:3.92%!important");
-   expect(finalMaster).toContain("top:21.83%!important");
-   expect(finalMaster).toContain("width:18.06%!important;height:36.50%!important");
+   expect(exporter).toContain("width*(751/1024),height*(985/1536)");
+   expect(exporter).toContain("width*(218/1024),height*(218/1536)");
+   expect(finalMaster).toContain("right:1.07%!important");
+   expect(finalMaster).toContain("top:14.71%!important");
+   expect(finalMaster).toContain("width:23.34%!important;height:47.15%!important");
    expect(finalMaster).toContain("mix-blend-mode:normal!important");
    expect(exporter).toContain('ctx.drawImage(icon,medalX,medalY,medalW,medalH)');
    expect(finalMaster).toContain("-webkit-mask-image:none!important;mask-image:none!important");

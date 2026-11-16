@@ -271,15 +271,15 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-badge,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
-/* CLASSI: approved master already provides the ONLY gold medal rim.
-   Source: 1024 x 1536, maximum visible motif area 207 x 145.
-   Optical center (158,138): x=54.5, y=65.5. All 13 motifs retain their
-   proportions because the original alpha bounds are fitted offline.
-   No enlarged ring, second badge, masked circle or class-specific offset. */
+/* CLASSI · v2. The full-colour approved 512px artwork is cropped
+   to the INSIDE of the sole gold ring already engraved in the Class master.
+   Source master 1024×1536, identical geometry for all thirteen classes.
+   Emblem source rect x=61,y=39,w=190,h=190, centre x=156,y=134.
+   No extra gold border, CSS disc, screen blend, or class-specific offset. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
  position:absolute!important;isolation:auto!important;
- left:5.322265625%!important;top:3.515625%!important;
- width:20.21484375%!important;height:10.9375%!important;
+ left:5.95703125%!important;top:2.5390625%!important;
+ width:18.5546875%!important;height:12.369791667%!important;
  aspect-ratio:auto!important;
  margin:0!important;padding:0!important;border:0!important;
  border-radius:0!important;overflow:visible!important;
@@ -361,12 +361,13 @@
  overflow:hidden!important;overflow-y:hidden!important;
  -webkit-line-clamp:unset!important;line-clamp:unset!important;
 }
-/* Only the approved polyhedron core, inside the one original gold die rim.
-   At 340x510 (canvas/PDF): x=256,y=338,w=56,h=56. */
+/* Only the original v29 faceted polyhedron, not its redundant gold rim.
+   The card master already provides ONE complete decorative gold ring.
+   Responsive geometry matches source master rect (751,985,218,218). */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
- position:absolute!important;left:auto!important;right:3.92%!important;
- top:21.83%!important;bottom:auto!important;
- width:18.06%!important;height:36.50%!important;max-width:none!important;
+ position:absolute!important;left:auto!important;right:1.07%!important;
+ top:14.71%!important;bottom:auto!important;
+ width:23.34%!important;height:47.15%!important;max-width:none!important;
  margin:0!important;padding:0!important;border:0!important;
  border-radius:0!important;box-shadow:none!important;
  background-color:transparent!important;background-size:contain!important;

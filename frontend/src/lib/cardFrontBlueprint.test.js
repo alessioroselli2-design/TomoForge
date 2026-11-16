@@ -146,7 +146,7 @@ describe("v27: one ornate die silhouette for each verified Hit Die",()=>{
   ])("%s uses its stored die %s",(name,die)=>{
     const bp=buildFrontBlueprint({type:"class",name,attributes:{dado_vita:die}});
     expect(bp.dice).toBe(die);
-    expect(bp.classDieAsset).toBe(`/card-art/class-dice-core-v1/${die}.webp`);
+    expect(bp.classDieAsset).toBe(`/card-art/class-dice-polyhedron-v2/${die}.webp`);
   });
   it("does not guess a die from a class name or its damage",()=>{
     const bp=buildFrontBlueprint({type:"class",name:"Barbaro",attributes:{danno:"2d12"}});
@@ -192,7 +192,7 @@ describe("clean d12 and d20 spell artworks",()=>{
     expect(disk.subarray(0,4).toString()).toBe("RIFF");
     expect(disk.subarray(8,12).toString()).toBe("WEBP");
     const klass=buildFrontBlueprint({type:"class",attributes:{dado_vita:die}});
-    expect(klass.classDieAsset).toBe(`/card-art/class-dice-core-v1/${die}.webp`);
+    expect(klass.classDieAsset).toBe(`/card-art/class-dice-polyhedron-v2/${die}.webp`);
   });
 });
 

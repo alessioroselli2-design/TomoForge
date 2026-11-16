@@ -74,7 +74,7 @@ describe("approved class preview",()=>{
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-class-hit-die")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice-core-v1/d10.webp");
+   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice-polyhedron-v2/d10.webp");
    expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
