@@ -74,7 +74,7 @@ describe("approved class preview",()=>{
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-class-hit-die")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
+   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice-core-v1/d10.webp");
    expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
@@ -315,7 +315,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
      .toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
    expect(c.querySelector('[data-stat-label="Competenze"]').title)
      .toBe("Tutte le armature, scudi, armi semplici e da guerra");
-   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10-premium-v29.webp");
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10.webp");
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
@@ -344,7 +344,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
-   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8-premium-v29.webp");
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8.webp");
    await close();
  });
  it("uses the same outer drawing in spells and magic items with their own badges",async()=>{

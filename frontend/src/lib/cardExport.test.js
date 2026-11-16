@@ -155,8 +155,8 @@ describe("card export renderers", () => {
     element.getAttribute=name=>name==="data-front-version"?"7":null;
     const canvas=await renderCardCanvas(element,card);
     const images=canvas.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
-    expect(images).toContain(`/card-art/class-dice/${die}-premium-v29.webp`);
-    expect(canvas.operations.some(op=>op.name==="drawImage" && op.args[0]?.src===`/card-art/class-dice/${die}-premium-v29.webp`)).toBe(true);
+    expect(images).toContain(`/card-art/class-dice-core-v1/${die}.webp`);
+    expect(canvas.operations.some(op=>op.name==="drawImage" && op.args[0]?.src===`/card-art/class-dice-core-v1/${die}.webp`)).toBe(true);
     // The approved image contains the inscription; export must not overprint it.
     expect(canvas.operations.some(op=>op.name==="fillText" && op.text===die && op.y>335)).toBe(false);
     expect(images).not.toContain("/card-art/class-d10-gem-v26.svg");
