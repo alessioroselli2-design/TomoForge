@@ -25,7 +25,7 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(art.subarray(0,4).toString()).toBe("RIFF");
    expect(art.subarray(8,12).toString()).toBe("WEBP");
    expect(art.length).toBeGreaterThan(100000);
-   expect(layout).toContain('/card-art/approved-class-master-864x1210.webp');
+   expect(layout).toContain('/card-art/references/approved-class-master-864x1210.webp');
    const one=css.slice(css.lastIndexOf("/* CLASSI · SOURCE OF TRUTH:"));
    expect(css).toContain("left:7%!important;top:4.25%!important");
    expect(css).toContain("width:17.4%!important");
