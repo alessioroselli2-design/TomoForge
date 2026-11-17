@@ -13,8 +13,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain("circle closest-side at center");
     expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
-    // On the shared raster class emblems scale independently, never the gold rim.
-    expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite');
+    // The class artwork is now the approved transparent PNG; monster remains untouched.
     expect(component).toContain('data-emblem-sprite={symbol?.sprite||"none"}');
     expect(exporter).toContain("size:m.r*2},");
     expect(component).toContain('data.type==="class"&&(!hasArtwork||artworkError)');
@@ -55,28 +54,36 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
   });
 });
 
-describe("Class v2: one static printable composition",()=>{
- it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
+describe("Class 5x7: one original master and 13 untouched PNG emblems",()=>{
+ it("loads the original 1024px PNG, leaving the Monster master intact",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"class-master-approved-v4.webp"));
-   expect(master.subarray(0,4).toString()).toBe("RIFF");
-   expect(master.subarray(8,12).toString()).toBe("WEBP");
+   const master=readFileSync(resolve(root,"master-classe-5x7.png"));
+   expect(master.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/class-master-approved-v4.webp"');
-   const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
-   expect(exporter).toContain('data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art');
+   expect(layouts).toContain('master:"/card-art/master-classe-5x7.png"');
+   expect(exporter).toContain("renderApprovedClass5x7");
    expect(layouts).not.toContain('class-interior-v17.webp');
  });
-
- it("has one authoritative Class CSS block, no obsolete height cap and no scrolling",()=>{
-   expect(finalMaster).not.toContain("max-height:49%");
-   expect(finalMaster).not.toContain("overflow-y:auto");
-   expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc');
-   expect(finalMaster).toContain("height:80%!important;");
-   expect(finalMaster).toContain("max-height:80%!important;");
-   expect(finalMaster).toContain('data-stat-label="Competenze"');
-   expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-badge,');
+ it("has exactly one class CSS block and no old Class master v4",()=>{
+   expect(finalMaster).not.toContain("Class master v4");
+   expect(finalMaster).toContain("Class master 5x7");
+   expect(finalMaster).toContain('data-front-category="class"] .tf-class-emblem-img');
+   expect(finalMaster).toContain("width:25.7%!important");
+   expect(finalMaster).toContain("height:25.5%!important");
+   expect(finalMaster).toContain("overflow-y:hidden!important");
+   expect(finalMaster).toContain("var(--tf-class-stat-size,8.5px)");
+   expect(finalMaster).not.toContain("max-height:80%!important;");
+ });
+ it("maps each class to its own transparent PNG",()=>{
+   const root=resolve(__dirname,"../../public/emblemi/classi");
+   const names="barbaro,bardo,chierico,druido,guerriero,monaco,paladino,ranger,ladro,stregone,warlock,mago,artefice".split(",");
+   names.forEach((name,i)=>{
+     const file="cls-"+String(i+1).padStart(2,"0")+"-"+name+".png";
+     const bytes=readFileSync(resolve(root,file));
+     expect(bytes.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
+     expect(bytes.length).toBeGreaterThan(10000);
+   });
  });
 });
 describe("shared Monster master across every front",()=>{
@@ -89,7 +96,7 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,252,329,72,75)");
+   expect(exporter).toContain("renderApprovedClass5x7(ctx,element,card,data,width,height)");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");

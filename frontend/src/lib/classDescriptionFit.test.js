@@ -11,8 +11,11 @@ describe("static printed Class description",()=>{
    const source="Descrizione intera senza punto finale";
    expect(fitClassDescription(source,t=>t.length<70)).toBe(source);
  });
- test("uses a complete QR notice when even the first sentence is too big",()=>{
-   expect(fitClassDescription("Una prima frase estremamente molto lunga. Altra frase.",t=>t.length<8))
-     .toBe("Descrizione completa disponibile tramite QR.");
+ test("truncates at the last comma or semicolon in an overlong first sentence",()=>{
+   const text="Una descrizione iniziale molto estesa, con una subordinata molto lunga; e una parte successiva. Seconda frase.";
+   expect(fitClassDescription(text,t=>t.length<=57)).toBe("Una descrizione iniziale molto estesa.");
+ });
+ test("never overflows by inserting a QR notice when no segment fits",()=>{
+   expect(fitClassDescription("Una prima frase estremamente molto lunga. Altra frase.",t=>t.length<8)).toBe("");
  });
 });
