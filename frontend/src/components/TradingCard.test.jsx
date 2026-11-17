@@ -80,6 +80,30 @@ describe("approved class preview",()=>{
    await act(async()=>root.unmount());mount.remove();
  });
 });
+describe("class dice and original ability PNGs: four regression samples",()=>{
+ test.each([
+   ["Guerriero","Forza o Destrezza","d10",["forza","destrezza"]],
+   ["Mago","Intelligenza","d6",["intelligenza"]],
+   ["Paladino","Forza e Carisma","d10",["forza","carisma"]],
+   ["Ranger","Destrezza e Saggezza","d10",["destrezza","saggezza"]],
+ ])("%s uses %s and %s",async(name,ability,die,icons)=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   await act(async()=>root.render(<CardFront card={{
+     type:"class",name,attributes:{dado_vita:die,abilita_primaria:ability}
+   }}/>));
+   const card=mount.querySelector('[data-front-category="class"]');
+   expect(card).not.toBeNull();
+   const primary=card.querySelector('[data-stat-label="Abilità primaria"]');
+   expect([...primary.querySelectorAll(".tf-class-primary-icons img")].map(x=>x.getAttribute("src")))
+     .toEqual(icons.map(x=>`/icone-caratteristiche/${x}.png`));
+   expect(primary.querySelector(".tf-class-primary-double")!==null).toBe(icons.length===2);
+   expect(primary.querySelector(".tf-class-primary-row strong")?.textContent).toBe(ability);
+   expect(card.querySelector(".tf-class-hit-die")?.style.backgroundImage)
+     .toContain(`/class-dice/${die}-premium-v29.webp`);
+   await act(async()=>root.unmount());mount.remove();
+ });
+});
 describe("CardFront artwork placeholder", () => {
   let container;
   let root;
