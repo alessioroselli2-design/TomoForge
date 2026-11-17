@@ -102,3 +102,33 @@ describe("shared Monster master across every front",()=>{
    expect(finalMaster).toContain('data-front-category="class"');
  });
 });
+
+describe("Class 5x7 regression: Guerriero and Mago layout",()=>{
+ it("uses exactly one 21%-wide class emblem, unmasked, and one 24%-wide die",()=>{
+   const medalRules=finalMaster.match(/\.tf-front-master-v17\[data-front-category="class"\] \.tf-v3-medallion\{/g)||[];
+   expect(medalRules).toHaveLength(1);
+   expect(finalMaster).toContain('left:5.3%!important;top:2.6%!important;width:21%!important;');
+   expect(finalMaster).toContain('left:83.3%!important;top:76.2%!important;');
+   expect(finalMaster).toContain('width:24%!important;height:auto!important;aspect-ratio:1;');
+   expect(finalMaster).toContain('-webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;');
+   expect(exporter).toContain('const badgeSize=width*.21;');
+   expect(exporter).toContain('const size=width*.24;');
+   expect(exporter).toContain('width*.833-size/2,height*.762-size/2');
+ });
+ it("keeps Guerriero's two 15px icons in a separate column with 3px vertical gap",()=>{
+   expect(finalMaster).toContain('width:15px!important;height:15px!important;');
+   expect(finalMaster).toContain('height:33px!important;gap:3px!important;');
+   expect(finalMaster).toContain('justify-content:flex-start!important;gap:6px!important;');
+   expect(finalMaster).toContain('flex:0 0 auto!important;flex-direction:column!important;');
+   expect(finalMaster).toContain('flex:1 1 0!important;min-width:0!important;');
+   expect(exporter).toContain('const iconSize=primary.length>1?15:20;');
+   expect(exporter).toContain('const y=primary.length>1?statY+27+j*18:statY+32;');
+   expect(exporter).toContain('const gap=6;');
+ });
+ it("keeps Mago's single icon at 20px without a second icon or shield",()=>{
+   expect(finalMaster).toContain('width:20px!important;height:20px!important;');
+   expect(component).toContain('const statIcon = isClass ? null : getFrontStatIcon(item.label)');
+   expect(exporter).toContain('const src=data.type==="class"?null:getFrontStatIcon(it.label)');
+   expect(component).toContain('getClassPrimaryAbilityIcons(item.fullValue || item.value)');
+ });
+});
