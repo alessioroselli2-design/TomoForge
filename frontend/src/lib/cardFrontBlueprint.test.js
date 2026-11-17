@@ -200,7 +200,7 @@ describe("final Class description sentence boundaries",()=>{
   it("avoids an incomplete excerpt when the source has no stop before the card capacity",()=>{
     const source="Questa descrizione non ha segni di interpunzione ".repeat(20);
     const bp=buildFrontBlueprint({type:"class",description:source});
-    expect(bp.description).toBe(source);
+    expect(bp.description).toBe(source.trim());
   });
   it("keeps non-class descriptions unchanged",()=>{
     const description="Questa prova non cambia il fronte del mostro.";
