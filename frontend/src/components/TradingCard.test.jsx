@@ -359,3 +359,36 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    await spell.close();await item.close();
  });
 });
+
+describe("Class primary ability PNGs do not overlap master symbols",()=>{
+  const mountClass=async (name,primary)=>{
+    const mount=document.createElement("div");document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async()=>root.render(<CardFront card={{type:"class",name,
+      attributes:{abilita_primaria:primary,tiri_salvezza:"Forza, Costituzione",
+        competenze:"Armature, scudi e armi",dado_vita:"d10"}}}/>));
+    return {mount,close:async()=>{await act(async()=>root.unmount());mount.remove();}};
+  };
+  it("Barbaro and Mago each render one correct icon",async()=>{
+    for(const [name,primary,file] of [["Barbaro","Forza","forza.png"],["Mago","INTELLIGÉNZA","intelligenza.png"]]){
+      const {mount,close}=await mountClass(name,primary);
+      const icons=[...mount.querySelectorAll('[data-stat-label="Abilità primaria"] .tf-class-primary-icons img')];
+      expect(icons).toHaveLength(1);
+      expect(icons[0].getAttribute("src")).toBe("/icone-caratteristiche/"+file);
+      expect(mount.querySelector('[data-stat-label="Tiri salvezza"] img')).toBeNull();
+      expect(mount.querySelector('[data-stat-label="Competenze"] img')).toBeNull();
+      expect(mount.querySelectorAll(".tf-class-hit-die")).toHaveLength(1);
+      await close();
+    }
+  });
+  it("Guerriero vertically stacks exactly two characteristic icons",async()=>{
+    const {mount,close}=await mountClass("Guerriero","Forza o Destrezza");
+    const row=mount.querySelector(".tf-class-primary-row");
+    expect(row.classList.contains("tf-class-primary-double")).toBe(true);
+    expect([...row.querySelectorAll("img")].map(x=>x.getAttribute("src")))
+      .toEqual(["/icone-caratteristiche/forza.png","/icone-caratteristiche/destrezza.png"]);
+    expect(row.querySelector("strong").textContent).toBe("Forza o Destrezza");
+    expect(mount.querySelectorAll(".tf-v6-stat-icon")).toHaveLength(0);
+    await close();
+  });
+});
