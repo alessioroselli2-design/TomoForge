@@ -323,16 +323,16 @@
  display:none!important; /* The approved master already prints all three titles. */
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-value-row{
- position:absolute!important;left:6%!important;top:46%!important;
- width:90%!important;max-width:90%!important;height:50%!important;
+ position:absolute!important;left:6%!important;top:34%!important;
+ width:90%!important;max-width:90%!important;height:64%!important;
  max-height:none!important;display:flex!important;flex-direction:row!important;
  align-items:center!important;justify-content:flex-start!important;gap:4px!important;
  margin:0!important;padding:0!important;overflow:visible!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-value-row>.tf-v6-stat-icon{
- position:static!important;flex:0 0 20px!important;display:block!important;
- width:20px!important;height:20px!important;min-width:20px!important;
- max-width:20px!important;max-height:20px!important;object-fit:contain!important;
+ position:static!important;flex:0 0 26px!important;display:block!important;
+ width:26px!important;height:26px!important;min-width:26px!important;
+ max-width:26px!important;max-height:26px!important;object-fit:contain!important;
  margin:0!important;transform:none!important;filter:none!important;
  border:0!important;border-radius:0!important;clip-path:none!important;
  -webkit-mask-image:none!important;mask-image:none!important;
@@ -342,7 +342,8 @@
  min-width:0!important;max-width:none!important;max-height:none!important;
  height:auto!important;overflow:visible!important;white-space:normal!important;
  word-break:normal!important;overflow-wrap:break-word!important;
- text-align:left!important;font:400 8.5px/1.08 Georgia,serif!important;
+ text-align:left!important;font-family:Georgia,serif!important;font-size:var(--tf-class-stat-size,8.5px)!important;
+ font-weight:400!important;line-height:1.08!important;
  color:#201409!important;margin:0!important;padding:0!important;
 }
 /* Save and proficiency icons already engraved in the master. Leave space for

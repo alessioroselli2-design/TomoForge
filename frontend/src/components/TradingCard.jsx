@@ -37,7 +37,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    const node=descriptionRef.current;
    if(!node)return undefined;
    let disposed=false;
-   const source=String(data.fullDescription||data.description||"").replace(/\\s+/g," ").trim();
+   const source=String(data.fullDescription||data.description||"").replace(/\s+/g," ").trim();
    const fits=()=>node.scrollHeight<=node.clientHeight+1&&node.scrollWidth<=node.clientWidth+1;
    const measure=()=>{
      if(disposed||node.clientWidth===0||node.clientHeight===0)return;
@@ -55,7 +55,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        node.style.fontSize="6.5px";
        chosen=fitClassDescription(source,text=>{node.textContent=text;return fits();});
      }
-     const firstEnd=source.search(/[.!?](?=\\s|$)/);
+     const firstEnd=source.search(/[.!?](?=\s|$)/);
      const firstSentence=firstEnd<0?source:source.slice(0,firstEnd+1);
      const fallback=!!source&&!!chosen&&!chosen.startsWith(firstSentence);
      node.textContent=original;
@@ -73,6 +73,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
 
  // The value is complete in the Class data model. Shrink each real stat
  // paragraph only until 6.5px; record unfit wells for test diagnostics.
+ const classHighlightSignature=data.highlights.map(item=>item.value).join("|");
  React.useLayoutEffect(()=>{
    if(data.type!=="class"||!highlightsRef.current)return undefined;
    let dead=false;
@@ -84,7 +85,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        if(!value||!row||!row.clientHeight)return;
        let size=8.5;
        for(;size>=6.5;size-=.5){
-         value.style.fontSize=`${size}px`;
+         value.style.setProperty("--tf-class-stat-size",`${size}px`);
          if(value.scrollHeight<=row.clientHeight+1&&value.scrollWidth<=value.clientWidth+1)break;
        }
        well.dataset.statOverflow=String(size<6.5);
@@ -95,7 +96,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    obs?.observe(highlightsRef.current);
    document.fonts?.ready?.then(measure).catch(()=>{});
    return ()=>{dead=true;obs?.disconnect();};
- },[data.type,data.highlights.map(item=>item.value).join("|")]);
+ },[data.type,classHighlightSignature]);
  // Every category shares the exact Monster v17 illustrated master.
  // Only data and inner content differ; never compose a second decorative plate.
  return <div ref={ref} data-testid="card-front" data-front-version="7"
