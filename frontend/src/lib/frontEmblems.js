@@ -1,6 +1,6 @@
 // Original approved TomoForge medals cropped from the user's final tables.
 // One 44px-cell atlas keeps the iPhone editor quick to load.
-const CLASSES = "barbaro,bardo,chierico,druido,guerriero,monaco,paladino,ranger,ladro,stregone,warlock,mago,artefice".split(",");
+export const CLASSES = "barbaro,bardo,chierico,druido,guerriero,monaco,paladino,ranger,ladro,stregone,warlock,mago,artefice".split(",");
 const MONSTERS = "aberrazione,bestia,celestiale,costrutto,drago,elementale,folletto,gigante,immondo,melma,mostruosita,non morto,pianta,umanoide".split(",");
 const SCHOOLS = "abiurazione,ammaliamento,divinazione,evocazione,illusione,invocazione,necromanzia,trasmutazione".split(",");
 const RACES = "umano,elfo,nano,halfling,gnomo,mezzelfo,mezzorco,dragonide,tiefling,aasimar,goliath,goblin,aarakocra,centauro,cangiante,coboldo,firbolg,forgiato,gith,kenku,orco,tortle,tritone,yuan-ti,genasi,tabaxi,leonin,minotauro,satiro,loxodon,vedalken,ibrido simic,morfico,kalashtar,verdan,hobgoblin,bugbear,lucertoloide,leporidion,owlin,fata,giff,plasmoide,thri-kreen,autognomo,kender,locathah,grung,dhampir,sangue strigo,rinato,hadozee".split(",");
@@ -9,7 +9,7 @@ const ALIASES = {
   eladrin:"elfo",drow:"elfo","shadar kai":"elfo","elfo astrale":"elfo","elfo del mare":"elfo",
   duergar:"nano",svirfneblin:"gnomo","gnomo delle profondita":"gnomo",
   githyanki:"gith",githzerai:"gith",tortuga:"tortle","yuan ti sanguepuro":"yuan-ti",
-  "orco di exandria":"orco","simic hybrid":"ibrido simic","shifter":"morfico",
+  esploratore:"ranger", "orco di exandria":"orco","simic hybrid":"ibrido simic","shifter":"morfico",
   harengon:"leporidion",fairy:"fata",hexblood:"sangue strigo",reborn:"rinato",warforged:"forgiato",
   "lucertola umanoide":"lucertoloide","mezz orco":"mezzorco", "mezz elfo":"mezzelfo",
   "non morto":"non morto",undead:"non morto",aberration:"aberrazione",beast:"bestia",
@@ -60,13 +60,13 @@ export const getFrontEmblem = (card = {}) => {
  if (index < 0) return null;
  // An independent 512px vector master replaces the blurry 44px atlas tile.
  // The existing gold circular card well stays entirely untouched.
- if (type === "class" && index === 4) {
-   return {
-     sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-optical-v2.svg",
-     width:512,height:512,cell:512,
-     backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
-   };
+ // Full-resolution, independent PNGs: original rim and gems are never cropped,
+ // feathered, transformed or overprinted by a second medallion layer.
+ if (type === "class" || type === "subclass" || type === "character") {
+   const file = `cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}.png`;
+   return {sprite:"class-original",index,col:0,row:0,label,
+     src:`/emblemi/classi/${file}`,width:320,height:320,cell:320,
+     backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  // The original approved Dragon artwork is recropped symmetrically at 160px instead of the
  // 44px preview atlas. No AI substitution, no CSS upscaling of a tiny cell.

@@ -53,6 +53,7 @@ const createContext = (operations, gradients) => ({
   }),
   save: jest.fn(),
   clip: jest.fn(),
+  rect: jest.fn(),
   restore: jest.fn(),
   translate: jest.fn(),
   rotate: jest.fn(),
@@ -149,6 +150,15 @@ describe("card export renderers", () => {
     expect(front.operations.some(op=>op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
   });
 
+  it("prints the supplied class master, the full original class emblem and only one die",async()=>{
+   const front=await renderCardCanvas(makeExportElement(),{type:"class",name:"Druido",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
+   const images=front.operations.filter(op=>op.name==="drawImage").map(op=>op.args[0]?.src);
+   expect(images[0]).toBe("/card-art/master-classe-5x7.png");
+   expect(images).toContain("/emblemi/classi/cls-04-druido.png");
+   expect(images.filter(name=>name==="/card-art/class-dice/d8-premium-v29.webp")).toHaveLength(1);
+   expect(images).toContain("/card-art/class-stats/primary-saggezza.svg");
+   expect(images).not.toContain("/card-art/class-master-approved-v4.webp");
+ });
   it.each(["d4","d6","d8","d10","d12","d20"])("uses the correct %s illustrated jewel in export canvas", async(die)=>{
     const card={type:"class",name:"Classe",attributes:{dado_vita:die,abilita_primaria:"Forza"}};
     const element=makeExportElement();

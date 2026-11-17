@@ -11,18 +11,22 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
-  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/guerriero-crest-optical-v2.svg",cell:512,sprite:"guerriero-crest"});
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
  });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
   expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race",index:1});
   expect(getFrontEmblem({type:"race",name:"Hadozee"})).toMatchObject({sprite:"race",index:51});
   expect(getFrontEmblem({type:"race",name:"Gnomo delle Profondità"})).toMatchObject({sprite:"race",index:4});
  });
- it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
+ it("loads the supplied warrior PNG with its complete ring and jewels",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
-     sprite:"guerriero-crest",src:"/emblemi/guerriero-crest-optical-v2.svg",cell:512
+     sprite:"class-original",src:"/emblemi/classi/cls-05-guerriero.png",cell:320
    });
-   expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("core");
+   expect(getFrontEmblem({type:"class",name:"Druido"})).toMatchObject({sprite:"class-original",src:"/emblemi/classi/cls-04-druido.png",cell:320});
+ });
+ it("resolves the same 13 originals for class, subclass and character",()=>{
+   expect(getFrontEmblem({type:"subclass",name:"Circolo delle Stelle",attributes:{classe:"Druido"}}).src).toBe("/emblemi/classi/cls-04-druido.png");
+   expect(getFrontEmblem({type:"character",name:"Personaggio",attributes:{classe:"Artefice"}}).src).toBe("/emblemi/classi/cls-13-artefice.png");
  });
  it("does not assign an incorrect medal when the type is unknown",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Sconosciuto"}})).toBeNull();

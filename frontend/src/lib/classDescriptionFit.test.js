@@ -7,12 +7,15 @@ describe("static printed Class description",()=>{
    expect(source.startsWith(result)).toBe(true);
    expect(result.endsWith(".")).toBe(true);
  });
- test("keeps full text when it fits, and never truncates a word",()=>{
+ test("keeps full text when it fits without cutting a word",()=>{
    const source="Descrizione intera senza punto finale";
    expect(fitClassDescription(source,t=>t.length<70)).toBe(source);
  });
- test("uses a complete QR notice when even the first sentence is too big",()=>{
-   expect(fitClassDescription("Una prima frase estremamente molto lunga. Altra frase.",t=>t.length<8))
-     .toBe("Descrizione completa disponibile tramite QR.");
+ test("uses the last comma when the first sentence is too long",()=>{
+   const source="Il druido osserva il cielo, protegge la foresta, e cura i compagni. Poi riposa.";
+   expect(fitClassDescription(source,t=>t.length<=42)).toBe("Il druido osserva il cielo.");
+ });
+ test("does not force oversized incomplete text without an internal punctuation break",()=>{
+   expect(fitClassDescription("Una prima frase estremamente molto lunga. Altra frase.",t=>t.length<8)).toBe("");
  });
 });
