@@ -143,7 +143,7 @@ async function renderApprovedMaster(element,card) {
  if(icon&&data.emblem) {
    if(data.type==="class"&&data.emblem.sprite==="class-original"){
      // No feather, atlas crop, mask or scaling: the transparent PNG is final art.
-     const badgeSize=width*.19;
+     const badgeSize=width*.21;
      ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);
    } else {
      const s=data.emblem,m=MASTER_REGIONS.emblem;
@@ -175,7 +175,7 @@ async function renderApprovedMaster(element,card) {
  }
  const statY=data.type==="class"?height*.483:MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
-   const src=getFrontStatIcon(it.label);
+   const src=data.type==="class"?null:getFrontStatIcon(it.label);
    if(!src)return null;
    const im=new Image();try {
      await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=src;
@@ -199,19 +199,19 @@ async function renderApprovedMaster(element,card) {
      // primary PNGs may be drawn. No baked-in shield/swords duplication.
      const primary=primaryImages[i]||[];
      const start=cx-cellW/2;
-     const x=start+(i===0?3:28);
+     const x=start+(i===0?5:28);
      const iconSize=primary.length>1?15:20;
-     const gap=4;
+     const gap=6;
      if(i===0){
        primary.forEach((asset,j)=>{
          if(!asset)return;
-         const y=primary.length>1?statY+27+j*17:statY+33;
+         const y=primary.length>1?statY+27+j*18:statY+32;
          ctx.drawImage(asset,x,y,iconSize,iconSize);
        });
      }
      const txtX=x+(i===0&&primary.length?iconSize+gap:0);
-     const textWidth=Math.max(36,cellW-(txtX-start)-6);
-     const fontSize=i===2?8.2:i===0&&primary.length>1?8.4:9;
+     const textWidth=Math.max(10,cellW-(txtX-start)-6);
+     const fontSize=i===2?8.2:i===0&&primary.length>1?8.2:i===0?8.6:9;
      ctx.textAlign="left";ctx.fillStyle="#23160d";
      ctx.font=`700 ${fontSize}px Georgia,serif`;
      const lines=wrapTextLines(ctx,it.value,textWidth).slice(0,4);
@@ -273,7 +273,7 @@ async function renderApprovedMaster(element,card) {
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
      if(jewel){
-       const size=width*.22;
+       const size=width*.24;
        ctx.drawImage(jewel,width*.833-size/2,height*.762-size/2,size,size);
      }
    }
