@@ -305,21 +305,21 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.dataset.frontVersion).toBe("7");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.dataset.categoryLayout).toBe("class-approved-5x7");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7.png");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7.png");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
-     .toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
+     .toEqual(["Abilità Primaria","Tiri Salvezza","Competenze"]);
    expect(c.querySelector('[data-stat-label="Competenze"]').title)
      .toBe("Tutte le armature, scudi, armi semplici e da guerra");
    expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10-premium-v29.webp");
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
+   expect(c.dataset.categoryLayout).toBe("class-approved-5x7");
    expect(c.querySelector(".tf-v3-badge")).toBeNull();
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
@@ -340,10 +340,12 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7.png");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
+   expect(c.querySelector(".tf-class-original-emblem")?.getAttribute("src")).toBe("/emblemi/classi/cls-04-druido.png");
+   expect(c.querySelector(".tf-class-primary-stamp img")?.getAttribute("src")).toBe("/card-art/class-stats/primary-saggezza.svg");
    expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8-premium-v29.webp");
    await close();
  });

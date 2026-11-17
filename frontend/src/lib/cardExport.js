@@ -1,5 +1,5 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
-import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { getFrontStatIcon, getClassAbilityIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
@@ -111,6 +111,113 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
   ctx.drawImage(tile,dest.x-dest.size/2,dest.y-dest.size/2,dest.size,dest.size);
 }
 
+
+/* Class-only canvas renderer. Coordinates are identical to the CSS percentages,
+   and the original 5x7 PNG is already painted onto ctx by the caller.
+   PNG and both PDF formats all use renderCardCanvas, so no second design. */
+async function drawClassMaster(ctx,element,card,data,width,height){
+ const pct=(n,base)=>n*base/100;
+ const art=element.querySelector(".tf-v3-picture img");
+ let artworkDrawn=false;
+ if(art?.complete&&art.naturalWidth>0&&!String(art.src||"").includes("artwork-placeholder")){
+   const area={x:pct(5.6,width),y:pct(17.7,height),w:pct(89.1,width),h:pct(28.9,height)};
+   const fit=Math.max(area.w/art.naturalWidth,area.h/art.naturalHeight);
+   const sourceW=area.w/fit,sourceH=area.h/fit;
+   ctx.save();ctx.beginPath();ctx.rect(area.x,area.y,area.w,area.h);ctx.clip();
+   ctx.drawImage(art,(art.naturalWidth-sourceW)/2,(art.naturalHeight-sourceH)/2,
+     sourceW,sourceH,area.x,area.y,area.w,area.h);
+   ctx.restore();artworkDrawn=true;
+ }
+ // One full-resolution file: its own ring and gems. No radial mask/crop/sprite.
+ const emblem=await loadFrontEmblem(data.emblem);
+ if(emblem){
+   const size=pct(25.7,width);
+   ctx.drawImage(emblem,pct(15.8,width)-size/2,pct(10.1,height)-size/2,size,size);
+ }
+ const titleX=pct(50,width);
+ ctx.textAlign="center";ctx.textBaseline="alphabetic";ctx.fillStyle="#231408";
+ drawFittedText(ctx,data.name,titleX,pct(10.1,height),pct(43,width)-6,
+   data.name.length>=17?16:21,"'Cormorant Garamond',Georgia,serif","700");
+ ctx.fillStyle="#422b1d";ctx.font="10px Spectral,Georgia,serif";
+ ctx.fillText(data.subtitle,titleX,pct(13.5,height),pct(40,width));
+
+ // The three headings/icons are part of the master: NEVER draw them twice.
+ const left=pct(5.6,width),span=pct(88.9,width),top=pct(48.3,height),h=pct(14,height);
+ const fractions=[.331,.326,.343];
+ let running=left;
+ for(let i=0;i<3;i++){
+   const entry=data.highlights[i],cellW=span*fractions[i],cellX=running;
+   running+=cellW;
+   if(!entry?.value)continue;
+   const textX=cellX+(i===2?.26:.30)*cellW;
+   const textW=cellW*(i===2?.71:.67);
+   const boxY=top+(i===2?.29:.30)*h;
+   const boxH=h*(i===2?.68:.67);
+   let size=i===2?8.5:9.5,lines=[];
+   const min=i===2?6.5:7.5;
+   for(let f=size;f>=min;f-=.25){
+     ctx.font=`700 ${f}px Georgia,serif`;
+     const proposed=wrapTextLines(ctx,entry.value,textW);
+     if(proposed.length*f*1.08<=boxH+.25){size=f;lines=proposed;break}
+   }
+   if(!lines.length){
+     ctx.font=`700 ${min}px Georgia,serif`;
+     size=min;lines=wrapTextLines(ctx,entry.value,textW);
+   }
+   ctx.fillStyle="#23160d";ctx.textAlign="left";
+   const lineHeight=size*1.08;
+   const blockHeight=lines.length*lineHeight;
+   const baseline=boxY+Math.max(0,(boxH-blockHeight)/2)+size;
+   lines.forEach((line,n)=>ctx.fillText(line,textX,baseline+n*lineHeight,textW));
+ }
+ // Primary icon: replace only the engraved Strength arm when appropriate.
+ const iconSrc=getClassAbilityIcon(data.highlights[0]?.value);
+ if(iconSrc){
+   const stamp=await loadFrontEmblem({src:iconSrc});
+   if(stamp){
+     const x=pct(6.8,width),y=pct(53.1,height),
+       w=pct(9.1,width),h=pct(6.4,height);
+     const ink=ctx.createRadialGradient(x+w/2,y+h/2,Math.min(w,h)*.18,
+       x+w/2,y+h/2,Math.max(w,h)*.58);
+     ink.addColorStop(0,"#f4dbaf");ink.addColorStop(.7,"#f3d6a3");ink.addColorStop(1,"rgba(244,214,161,0)");
+     ctx.fillStyle=ink;ctx.fillRect(x,y,w,h);
+     ctx.drawImage(stamp,x+w*.08,y+h*.03,w*.84,h*.94);
+   }
+ }
+ // Measured preview paragraph drives printing, preserving the same sentence.
+ const node=element.querySelector(".tf-v3-desc");
+ const complete=data.fullDescription||"";
+ const box={x:pct(7.8,width),y:pct(66,height),w:pct(62,width),h:pct(25.5,height)};
+ let size=node?Number.parseFloat(getComputedStyle(node).fontSize):8.5;
+ if(!Number.isFinite(size)||size<6.5||size>8.5)size=8.5;
+ let fitted=node?.textContent?.trim()||complete;
+ ctx.font=`${size}px Spectral,Georgia,serif`;
+ const fits=(candidate)=>wrapTextLines(ctx,candidate,box.w).length*size*1.13<=box.h+.5;
+ if(!fits(fitted)){
+   size=6.5;ctx.font=`${size}px Spectral,Georgia,serif`;
+   fitted=fitClassDescription(complete,fits);
+ }
+ ctx.textAlign="left";ctx.fillStyle="#28190f";
+ const lines=wrapTextLines(ctx,fitted,box.w);
+ const lineH=size*1.13;
+ lines.forEach((line,i)=>ctx.fillText(line,box.x,box.y+size+i*lineH,box.w));
+ // Only one pre-rendered class die, with no second digit or jewel.
+ if(data.classDieAsset){
+   const die=await loadFrontEmblem({src:data.classDieAsset});
+   if(die){
+     const size=pct(22,width);
+     ctx.drawImage(die,pct(83.3,width)-size/2,pct(76.2,height)-size/2,size,size);
+   }
+ }
+ const qr=element.querySelector("[data-card-qr] canvas");
+ if(card?.id&&qr){
+   const x=pct(84.5,width),y=pct(86.8,height),size=pct(7,width);
+   ctx.fillStyle="#ffffff";ctx.fillRect(x,y,size,size);
+   ctx.drawImage(qr,x+2,y+2,size-4,size-4);
+ }
+ return artworkDrawn;
+}
+
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
@@ -125,6 +232,10 @@ async function renderApprovedMaster(element,card) {
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
+ if(data.type==="class"){
+   canvas.artworkDrawn=await drawClassMaster(ctx,element,card,data,width,height);
+   return canvas;
+ }
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
@@ -143,9 +254,9 @@ async function renderApprovedMaster(element,card) {
    const s=data.emblem,m=MASTER_REGIONS.emblem;
    const dragon = s.sprite === "drago-hd";
    drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
+     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
      {x:m.x,y:m.y,size:m.r*2},
-     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
+     dragon?.37:.35,dragon?.48:.48);
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
  drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
