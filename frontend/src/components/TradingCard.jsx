@@ -142,9 +142,9 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
            <div className="tf-v6-stat-text">
              <span>{item.label}</span>
-             {statIcon
+             {statIcon||data.type==="class"
                ? <div className="tf-v6-stat-value-row">
-                   <img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>
+                   {statIcon&&<img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>}
                    <strong>{item.value}</strong>
                  </div>
                : <strong>{item.value}</strong>}
