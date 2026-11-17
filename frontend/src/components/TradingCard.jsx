@@ -34,6 +34,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
  const [proficiencySize,setProficiencySize]=React.useState(8.5);
  const [firstSentenceFallback,setFirstSentenceFallback]=React.useState(false);
  const primaryIcon=data.type==="class"?getClassAbilityIcon(data.highlights[0]?.value):"";
+ const proficiencyValue=data.highlights[2]?.value||"";
  // Measure the actual rendered paragraph, never a detached surrogate.
  // Perform the same pass after font loading and on card size changes.
  React.useLayoutEffect(()=>{
@@ -100,7 +101,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
    observer?.observe(node);
    document.fonts?.ready?.then(update).catch(()=>{});
    return ()=>{disposed=true;observer?.disconnect();};
- },[data.type,data.highlights[2]?.value]);
+ },[data.type,proficiencyValue]);
  // Every category shares the exact Monster v17 illustrated master.
  // Only data and inner content differ; never compose a second decorative plate.
  return <div ref={ref} data-testid="card-front" data-front-version="7"
