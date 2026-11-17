@@ -9,7 +9,7 @@ const ALIASES = {
   eladrin:"elfo",drow:"elfo","shadar kai":"elfo","elfo astrale":"elfo","elfo del mare":"elfo",
   duergar:"nano",svirfneblin:"gnomo","gnomo delle profondita":"gnomo",
   githyanki:"gith",githzerai:"gith",tortuga:"tortle","yuan ti sanguepuro":"yuan-ti",
-  esploratore:"ranger", "orco di exandria":"orco","simic hybrid":"ibrido simic","shifter":"morfico",
+  esploratore:"ranger", artificiere:"artefice",occultista:"warlock", "orco di exandria":"orco","simic hybrid":"ibrido simic","shifter":"morfico",
   harengon:"leporidion",fairy:"fata",hexblood:"sangue strigo",reborn:"rinato",warforged:"forgiato",
   "lucertola umanoide":"lucertoloide","mezz orco":"mezzorco", "mezz elfo":"mezzelfo",
   "non morto":"non morto",undead:"non morto",aberration:"aberrazione",beast:"bestia",
