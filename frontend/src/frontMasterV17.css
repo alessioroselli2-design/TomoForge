@@ -257,27 +257,6 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
 
-/* The complete PNG contains its own precious-metal ring and jewels.
-   Center 15.8% / 10.1%, full size 25.7% of the 5x7 card. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
-  position:absolute!important;
-  left:2.95%!important;top:.92%!important;
-  width:25.7%!important;height:auto!important;aspect-ratio:1;
-  min-width:0;min-height:0;margin:0!important;padding:0!important;
-  border:0!important;border-radius:0!important;
-  overflow:visible!important;
-  background:none!important;box-shadow:none!important;
-  -webkit-mask:none!important;mask:none!important;transform:none!important;
-  z-index:7;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::after{display:none!important}
-.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
-  display:block;width:100%;height:100%;
-  max-width:none;max-height:none;object-fit:contain;
-  border:0;border-radius:0;overflow:visible;
-  -webkit-mask:none;mask:none;transform:none;
-}
-
 /* Text overlays only: the parchment and ornamental border are in the master. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-titles{
   left:28.5%!important;top:4.2%!important;
@@ -381,11 +360,11 @@
   text-overflow:clip!important;
 }
 
-/* Single native v29 die. Center 83.3% / 76.2%; 22% card width. */
+/* A single die asset and its own rim; center 83.3% / 76.2%, 24% card width. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
   position:absolute!important;left:83.3%!important;top:76.2%!important;
   right:auto!important;bottom:auto!important;
-  width:22%!important;height:auto!important;aspect-ratio:1;
+  width:24%!important;height:auto!important;aspect-ratio:1;
   max-width:none!important;max-height:none!important;
   transform:translate(-50%,-50%)!important;
   margin:0!important;padding:0!important;
@@ -407,46 +386,9 @@
   display:block;width:100%!important;height:100%!important;
 }
 
-/* Class primary ability icons: transparent PNG, fixed-size, no circles/halos. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stat[data-stat-label="Abilità primaria"] .tf-v6-stat-text{gap:10px!important}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row{
-  justify-content:flex-start!important;padding:0 6px!important;min-height:32px!important;max-height:42px!important;gap:4px!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-class-primary-icons{
-  display:flex!important;flex:0 0 20px!important;flex-direction:column!important;
-  align-items:center!important;justify-content:center!important;gap:0!important;
-  width:20px!important;min-width:20px!important;height:22px!important;
-  padding:0!important;border:0!important;background:transparent!important;
-  box-shadow:none!important;filter:none!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-class-primary-icons img{
-  width:20px!important;height:20px!important;min-height:0!important;flex:none!important;
-  object-fit:contain!important;padding:0!important;margin:0!important;
-  border:0!important;background:transparent!important;box-shadow:none!important;filter:none!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons{
-  flex-basis:15px!important;width:15px!important;min-width:15px!important;height:32px!important;gap:2px!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons img{
-  width:15px!important;height:15px!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row>strong{
-  max-width:calc(100% - 24px)!important;flex:1 1 auto!important;overflow:visible!important;overflow-wrap:break-word!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double>strong{
-  max-width:calc(100% - 19px)!important;font-size:8.6px!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-static-row{
-  justify-content:flex-start!important;padding:0 5px 0 26px!important;gap:0!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-static-row>strong{
-  width:100%!important;max-width:100%!important;text-align:left!important;overflow:visible!important;
-}
-
-
-/* Class: 19% real transparent PNG, center x=15.8% / y=10.1%. */
+/* Class emblem: one 21% transparent PNG, center x=15.8% / y=10.1%. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- left:6.3%!important;top:3.31%!important;width:19%!important;
+ left:5.3%!important;top:2.6%!important;width:21%!important;
  aspect-ratio:1!important;overflow:visible!important;border-radius:0!important;
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
  background:transparent!important;box-shadow:none!important;transform:none!important;
@@ -495,4 +437,39 @@
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats [data-stat-label="Competenze"] .tf-class-static-row>strong{
  font-size:8.2px!important;
+}
+
+/* Class-only ability values: one fixed icon column, never underneath text. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:flex-start!important;gap:6px!important;
+  min-height:33px!important;padding:0 2px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-icons{
+  display:flex!important;flex:0 0 auto!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;
+  width:20px!important;min-width:20px!important;height:20px!important;gap:0!important;
+  padding:0!important;margin:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;filter:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-icons img{
+  display:block!important;flex:0 0 auto!important;
+  width:20px!important;height:20px!important;max-width:100%!important;
+  object-fit:contain!important;padding:0!important;margin:0!important;
+  border:0!important;box-shadow:none!important;filter:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons{
+  width:15px!important;min-width:15px!important;height:33px!important;gap:3px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons img{
+  width:15px!important;height:15px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row>strong{
+  position:static!important;flex:1 1 0!important;min-width:0!important;
+  width:auto!important;max-width:none!important;margin:0!important;padding:0!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;
+  font-size:8.6px!important;line-height:1.1!important;text-align:left!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double>strong{
+  font-size:8.2px!important;
 }
