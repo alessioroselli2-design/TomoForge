@@ -88,7 +88,7 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,width*.833-size/2,height*.762-size/2,size,size)");
+   expect(exporter).toContain("ctx.drawImage(jewel,sourceX,sourceY,sourceSide,sourceSide,");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
@@ -103,32 +103,34 @@ describe("shared Monster master across every front",()=>{
  });
 });
 
-describe("Class 5x7 regression: Guerriero and Mago layout",()=>{
- it("uses exactly one 21%-wide class emblem, unmasked, and one 24%-wide die",()=>{
+describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
+ it("preserves the 21% class emblem and clips the die inner 65% within the master ring",()=>{
    const medalRules=finalMaster.split('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{');
-   expect(medalRules).toHaveLength(2); // exactly one occurrence
+   expect(medalRules).toHaveLength(2);
    expect(finalMaster).toContain('left:5.3%!important;top:2.6%!important;width:21%!important;');
    expect(finalMaster).toContain('left:83.3%!important;top:76.2%!important;');
-   expect(finalMaster).toContain('width:24%!important;height:auto!important;aspect-ratio:1;');
+   expect(finalMaster).toContain('width:27.7%!important;height:auto!important;aspect-ratio:1;');
+   expect(finalMaster).toContain('clip-path:circle(32.5% at 50% 50%)!important;');
    expect(finalMaster).toContain('-webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;');
    expect(exporter).toContain('const badgeSize=width*.21;');
-   expect(exporter).toContain('const size=width*.24;');
-   expect(exporter).toContain('width*.833-size/2,height*.762-size/2');
+   expect(exporter).toContain('const diameter=width*.18,sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
+   expect(exporter).toContain('x-diameter/2,y-diameter/2,diameter,diameter');
  });
- it("keeps Guerriero's two 15px icons in a separate column with 3px vertical gap",()=>{
-   expect(finalMaster).toContain('width:15px!important;height:15px!important;');
-   expect(finalMaster).toContain('height:33px!important;gap:3px!important;');
-   expect(finalMaster).toContain('justify-content:flex-start!important;gap:6px!important;');
-   expect(finalMaster).toContain('flex:0 0 auto!important;flex-direction:column!important;');
-   expect(finalMaster).toContain('flex:1 1 0!important;min-width:0!important;');
-   expect(exporter).toContain('const iconSize=primary.length>1?15:20;');
-   expect(exporter).toContain('const y=primary.length>1?statY+27+j*18:statY+32;');
-   expect(exporter).toContain('const gap=6;');
+ it("places two original 22px PNGs side by side, with 6px between them and one line of text",()=>{
+   expect(finalMaster).toContain('width:22px!important;height:22px!important;');
+   expect(finalMaster).toContain('flex-direction:row!important;gap:6px!important;height:22px!important;');
+   expect(finalMaster).toContain('top:22%!important;min-height:49px!important;height:49px!important;');
+   expect(finalMaster).toContain('white-space:nowrap!important;overflow-wrap:normal!important;');
+   expect(exporter).toContain('const size=22,gap=6,items=primary.slice(0,2);');
+   expect(exporter).toContain('ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size)');
  });
- it("keeps Mago's single icon at 20px without a second icon or shield",()=>{
-   expect(finalMaster).toContain('width:20px!important;height:20px!important;');
+ it("uses Mago's original 26px PNG to the left of the ability text, without extra shield",()=>{
+   expect(finalMaster).toContain('width:26px!important;height:26px!important;');
+   expect(finalMaster).toContain('object-fit:contain!important;object-position:center!important;');
+   expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;clip-path:none!important;');
    expect(component).toContain('const statIcon = isClass ? null : getFrontStatIcon(item.label)');
    expect(exporter).toContain('const src=data.type==="class"?null:getFrontStatIcon(it.label)');
+   expect(exporter).toContain('const size=26,gap=6,text=String(it.value||"");');
    expect(component).toContain('getClassPrimaryAbilityIcons(item.fullValue || item.value)');
  });
 });
