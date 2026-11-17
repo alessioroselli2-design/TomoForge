@@ -105,8 +105,8 @@ describe("shared Monster master across every front",()=>{
 
 describe("Class 5x7 regression: Guerriero and Mago layout",()=>{
  it("uses exactly one 21%-wide class emblem, unmasked, and one 24%-wide die",()=>{
-   const medalRules=finalMaster.match(/\.tf-front-master-v17\[data-front-category="class"\] \.tf-v3-medallion\{/g)||[];
-   expect(medalRules).toHaveLength(1);
+   const medalRules=finalMaster.split('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{');
+   expect(medalRules).toHaveLength(2); // exactly one occurrence
    expect(finalMaster).toContain('left:5.3%!important;top:2.6%!important;width:21%!important;');
    expect(finalMaster).toContain('left:83.3%!important;top:76.2%!important;');
    expect(finalMaster).toContain('width:24%!important;height:auto!important;aspect-ratio:1;');
