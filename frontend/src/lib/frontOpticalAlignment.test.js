@@ -55,6 +55,15 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 });
 
 describe("Class 5x7: one original master and 13 untouched PNG emblems",()=>{
+ it("positions every class element as a percentage of the WHOLE card",()=>{
+   expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-layout');
+   expect(finalMaster).toContain('grid-template-rows:none!important;');
+   expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-v3-banner');
+   expect(finalMaster).toContain('position:static!important;display:block!important;height:0!important;');
+   expect(finalMaster).toContain('position:absolute!important;left:28.5%!important;top:4.2%!important;');
+   expect(finalMaster).toContain('position:absolute!important;left:5.6%!important;top:17.7%!important;');
+   expect(finalMaster).toContain('position:absolute!important;display:block!important;left:0!important;top:48.3%!important;');
+ });
  it("loads the original 1024px PNG, leaving the Monster master intact",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
    const master=readFileSync(resolve(root,"master-classe-5x7.png"));

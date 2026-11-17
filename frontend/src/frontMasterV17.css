@@ -248,6 +248,20 @@
 
 /* Class master 5x7 — one exact raster, one clean geometry definition.
    Non-Class categories keep all their historical CSS unchanged. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-layout{
+ position:absolute!important;inset:0!important;left:0!important;top:0!important;
+ width:100%!important;height:100%!important;display:block!important;
+ grid-template-rows:none!important;gap:0!important;
+ margin:0!important;padding:0!important;
+}
+/* The legacy header row is NOT the positioning context for the new 5x7
+   absolute children. Its decorative styling comes entirely from the PNG. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-banner{
+ position:static!important;display:block!important;height:0!important;
+ margin:0!important;padding:0!important;min-height:0!important;
+ background:transparent!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;
+}
 .tf-front-master-v17[data-front-category="class"]{
  background-size:100% 100%!important;
  background-position:center!important;
@@ -265,7 +279,7 @@
  width:25.7%!important;height:auto!important;aspect-ratio:1!important;
  overflow:visible!important;border-radius:0!important;
  background:transparent!important;border:0!important;box-shadow:none!important;
- padding:0!important;margin:0!important;
+ padding:0!important;margin:0!important;margin-left:0!important;
  transform:none!important;filter:none!important;clip-path:none!important;
  -webkit-mask-image:none!important;mask-image:none!important;
  z-index:6!important;
@@ -279,8 +293,8 @@
  -webkit-mask-image:none;mask-image:none;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-titles{
- left:28.5%!important;top:4.2%!important;width:43%!important;height:11.6%!important;
- transform:none!important;display:flex!important;
+ position:absolute!important;left:28.5%!important;top:4.2%!important;width:43%!important;height:11.6%!important;
+ transform:none!important;flex:none!important;display:flex!important;
  flex-direction:column;justify-content:center;align-items:center;gap:0!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
@@ -292,7 +306,7 @@
  color:#291708!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
- left:5.6%!important;top:17.7%!important;width:89.1%!important;height:28.9%!important;
+ position:absolute!important;left:5.6%!important;top:17.7%!important;width:89.1%!important;height:28.9%!important;
  border:0!important;border-radius:0!important;box-shadow:none!important;
  background:transparent!important;overflow:hidden!important;
 }
@@ -300,7 +314,7 @@
  display:block;width:100%;height:100%;object-fit:cover;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
- display:block!important;left:0!important;top:48.3%!important;
+ position:absolute!important;display:block!important;left:0!important;top:48.3%!important;
  width:100%!important;height:14%!important;overflow:visible!important;
  gap:0!important;background:transparent!important;
 }
@@ -391,3 +405,6 @@
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr canvas{
  width:17px!important;height:17px!important;
 }
+
+/* The blank illustration is the master parchment; no legacy editor prompt. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-art-hint{display:none!important;}
