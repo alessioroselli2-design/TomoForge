@@ -199,24 +199,36 @@ async function renderApprovedMaster(element,card) {
      // primary PNGs may be drawn. No baked-in shield/swords duplication.
      const primary=primaryImages[i]||[];
      const start=cx-cellW/2;
-     const x=start+(i===0?5:28);
-     const iconSize=primary.length>1?15:20;
-     const gap=6;
-     if(i===0){
-       primary.forEach((asset,j)=>{
-         if(!asset)return;
-         const y=primary.length>1?statY+27+j*18:statY+32;
-         ctx.drawImage(asset,x,y,iconSize,iconSize);
-       });
+     if(i===0&&primary.length>1){
+       // Same as the DOM: two original 22px PNGs side by side, 6px apart,
+       // with the unmodified one-line ability value centered underneath.
+       const size=22,gap=6,items=primary.slice(0,2);
+       const iconStart=cx-(items.length*size+(items.length-1)*gap)/2;
+       items.forEach((asset,j)=>{if(asset)ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size);});
+       ctx.textAlign="center";ctx.fillStyle="#23160d";
+       drawFittedText(ctx,it.value,cx,statY+53,cellW-6,8.2,"Georgia,serif","700");
+       return;
      }
-     const txtX=x+(i===0&&primary.length?iconSize+gap:0);
-     const textWidth=Math.max(10,cellW-(txtX-start)-6);
-     const fontSize=i===2?8.2:i===0&&primary.length>1?8.2:i===0?8.6:9;
+     if(i===0&&primary.length===1){
+       // Exactly one original 26px PNG; icon and value are one centered row.
+       const size=26,gap=6,text=String(it.value||"");
+       ctx.font="700 8.6px Georgia,serif";
+       const textMax=Math.max(12,cellW-size-gap-8);
+       const textActual=Math.min(ctx.measureText(text).width,textMax);
+       const iconX=cx-(size+gap+textActual)/2;
+       if(primary[0])ctx.drawImage(primary[0],iconX,statY+24,size,size);
+       ctx.textAlign="left";ctx.fillStyle="#23160d";
+       drawFittedText(ctx,text,iconX+size+gap,statY+41,textMax,8.6,"Georgia,serif","700");
+       return;
+     }
+     // The other Class cells are unchanged (their shield/swords are engraved).
+     const x=start+(i===0?5:28),textWidth=Math.max(10,cellW-(x-start)-6);
+     const fontSize=i===2?8.2:i===0?8.6:9;
      ctx.textAlign="left";ctx.fillStyle="#23160d";
      ctx.font=`700 ${fontSize}px Georgia,serif`;
      const lines=wrapTextLines(ctx,it.value,textWidth).slice(0,4);
      const top=statY+38;
-     lines.forEach((line,n)=>ctx.fillText(line,txtX,top+n*(fontSize*1.13),textWidth));
+     lines.forEach((line,n)=>ctx.fillText(line,x,top+n*(fontSize*1.13),textWidth));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -273,8 +285,16 @@ async function renderApprovedMaster(element,card) {
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
      if(jewel){
-       const size=width*.24;
-       ctx.drawImage(jewel,width*.833-size/2,height*.762-size/2,size,size);
+       // Crop to the inner 65% before the die's own metal ring; the master
+       // provides the only visible gold-and-ruby frame in both PNG and PDF.
+       const diameter=width*.18,sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;
+       const sourceX=(jewel.naturalWidth-sourceSide)/2,sourceY=(jewel.naturalHeight-sourceSide)/2;
+       const x=width*.833,y=height*.762;
+       ctx.save();
+       ctx.beginPath();ctx.arc(x,y,diameter/2,0,2*Math.PI);ctx.clip();
+       ctx.drawImage(jewel,sourceX,sourceY,sourceSide,sourceSide,
+         x-diameter/2,y-diameter/2,diameter,diameter);
+       ctx.restore();
      }
    }
  } else {
