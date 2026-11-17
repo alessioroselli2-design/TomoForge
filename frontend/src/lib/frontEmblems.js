@@ -64,8 +64,8 @@ export const getFrontEmblem = (card = {}) => {
    const classKey=CLASSES[index];
    return {
      sprite:"class-visible-motif",index,col:0,row:0,label,
-     src:"/emblemi/classi-originali-da-prova/"+classKey+".png",
-     width:380,height:380,cell:380,
+     src:"/emblemi/classi-hd/"+classKey+".webp",
+     width:512,height:512,cell:512,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

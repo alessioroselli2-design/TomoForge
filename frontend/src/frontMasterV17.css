@@ -488,3 +488,37 @@
  font-size:0!important;color:transparent!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr{right:5%!important;top:84%!important;}
+
+/* Classi — full-resolution class emblems from the photo reference.
+   No 148px atlas crops, gold-border regeneration, zoom, or masking.
+   The historical base raster contains NO embedded lower die ring:
+   the sole die is the full uncut premium-v29 image from classDieAsset. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ display:block!important;position:absolute!important;
+ left:2.25%!important;top:.50%!important;width:25%!important;
+ height:auto!important;aspect-ratio:1!important;
+ border:0!important;border-radius:0!important;
+ margin:0!important;padding:0!important;overflow:visible!important;
+ background:transparent!important;box-shadow:none!important;
+ transform:none!important;clip-path:none!important;filter:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
+ position:absolute!important;inset:0!important;display:block!important;
+ width:100%!important;height:100%!important;
+ background-repeat:no-repeat!important;background-position:center!important;
+ background-size:100% 100%!important;
+ border:0!important;border-radius:0!important;
+ transform:none!important;filter:none!important;opacity:1!important;
+ -webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::before,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion::after,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die::before,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die::after{
+ content:none!important;display:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
+ display:block!important;background-repeat:no-repeat!important;
+ background-color:transparent!important;background-size:100% 100%!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+}

@@ -148,8 +148,9 @@ async function renderApprovedMaster(element,card) {
    const dragon = s.sprite === "drago-hd";
    if (data.type==="class" && s.sprite==="class-visible-motif") {
      // Single original atlas emblem in the archived 864×1210 master well.
-     const iconSize=width*.174;
-     ctx.drawImage(icon,width*.07,height*.0425,iconSize,iconSize);
+     // The original full 512px image owns its entire ornate medal; no second rim.
+     const iconSize=width*.25;
+     ctx.drawImage(icon,width*.0225,height*.005,iconSize,iconSize);
    } else {
      drawIntegratedMedallion(ctx,icon,
        {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},

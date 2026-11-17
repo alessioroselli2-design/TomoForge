@@ -9,9 +9,9 @@ describe("the exact original user Class master and inner-only emblems",()=>{
  it.each(names)("%s uses the original colour artwork in exactly one Class rim",name=>{
    const emblem=getFrontEmblem({type:"class",name});
    expect(emblem.sprite).toBe("class-visible-motif");
-   expect(emblem.src).toBe("/emblemi/classi-originali-da-prova/"+name+".png");
-   expect(emblem.width).toBe(380);
-   expect(emblem.height).toBe(380);
+   expect(emblem.src).toBe("/emblemi/classi-hd/"+name+".webp");
+   expect(emblem.width).toBe(512);
+   expect(emblem.height).toBe(512);
    const art=read("../../public/emblemi/classi-hd/"+name+".webp");
    expect(art.subarray(0,4).toString()).toBe("RIFF");
    expect(art.subarray(8,12).toString()).toBe("WEBP");
@@ -27,8 +27,8 @@ describe("the exact original user Class master and inner-only emblems",()=>{
    expect(art.length).toBeGreaterThan(100000);
    expect(layout).toContain('/card-art/references/approved-class-master-864x1210.webp');
    const one=css.slice(css.lastIndexOf("/* CLASSI · SOURCE OF TRUTH:"));
-   expect(css).toContain("left:7%!important;top:4.25%!important");
-   expect(css).toContain("width:17.4%!important");
+   expect(css).toContain("left:2.25%!important;top:.50%!important");
+   expect(css).toContain("top:.50%!important;width:25%!important");
    expect(one).toContain('data-emblem-sprite="class-visible-motif"');
    expect(one).toContain("content:none!important;display:none!important");
    expect(one).not.toContain("tf-bardo-proof");

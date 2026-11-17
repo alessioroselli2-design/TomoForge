@@ -116,3 +116,18 @@ describe("shared Monster master across every front",()=>{
    expect(finalMaster).toContain('data-front-category="class"');
  });
 });
+
+describe("unstacked Class premium assets",()=>{
+ it("uses one 512px complete symbol and exactly one premium die",()=>{
+  const icons=readFileSync(resolve(__dirname,"./frontEmblems.js"),"utf8");
+  const blueprint=readFileSync(resolve(__dirname,"./cardFrontBlueprint.js"),"utf8");
+  const layout=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
+  expect(icons).toContain('src:"/emblemi/classi-hd/"+classKey+".webp"');
+  expect(blueprint).toContain("classHitDieAsset(classDie)");
+  expect(layout).toContain('approved-class-master-864x1210.webp');
+  expect(layout).not.toContain("class-composed-v5");
+  expect(finalMaster).toContain(".tf-v3-dice.tf-class-hit-die::after");
+  expect(exporter).toContain("ctx.drawImage(jewel,width*.75,height*.735,dieSize,dieSize)");
+  expect(exporter).toContain("ctx.drawImage(icon,width*.0225,height*.005,iconSize,iconSize)");
+ });
+});
