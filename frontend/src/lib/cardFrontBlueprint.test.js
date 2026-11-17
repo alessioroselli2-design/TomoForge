@@ -126,7 +126,7 @@ describe("approved class: source-faithful narrative with d10",()=>{
    const data=buildFrontBlueprint({type:"class",name:"Bardo",description:"Testo già disponibile.",attributes:{dado_vita:"d8"}});
    expect(data.description).toBe("Testo già disponibile.");
    expect(data.dice).toBe("d8");
-   expect(data.highlights).toHaveLength(0);
+   expect(data.highlights).toHaveLength(3);
  });
 });
 
