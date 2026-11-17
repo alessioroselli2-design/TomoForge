@@ -11,7 +11,7 @@ describe("TomoForge approved ornate master",()=>{
     expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
     expect(finalMaster).toContain("transform:scale(1.28)!important");
     expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:(dragon||data.type==="class")?1.28:1.2');
+    expect(exporter).toContain('zoom:dragon?1.28:1.2');
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem');
