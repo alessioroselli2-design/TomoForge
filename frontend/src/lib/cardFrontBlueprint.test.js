@@ -222,7 +222,7 @@ describe("Class v40 compact printed values only",()=>{
  });
  it("shortens unfamiliar class proficiencies at a word boundary rather than spilling over",()=>{
    const full="Strumenti artigianali specifici e una lunga serie di abilità specialistiche";
-   const item=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:full}}).highlights[0];
+   const item=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:full}}).highlights[2];
    expect(item.value).toBe(full);
    expect(item.value.endsWith("…")).toBe(false);
    expect(item.fullValue).toBe(full);

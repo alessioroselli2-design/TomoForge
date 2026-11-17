@@ -162,7 +162,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
          {data.details.slice(0,2).map((item,i)=><div className="tf-v5-detail-cell" key={item.key||i}><b>{item.label}</b><span>{item.value}</span></div>)}
        </div>}
        {data.showDescriptionLabel&&<span className="tf-v7-description-label">Descrizione</span>}
-       <p ref={data.type==="class"?descriptionRef:undefined} className="tf-v3-desc" data-first-sentence-fallback={data.type==="class"?String(firstSentenceFallback):undefined} style={data.type==="class"?{fontSize:`${classDescriptionSize}px`}:undefined}>{(data.type==="class"?printedClassDescription:data.description)}||"I dettagli appariranno dopo la selezione di un record."}</p>
+       <p ref={data.type==="class"?descriptionRef:undefined} className="tf-v3-desc" data-first-sentence-fallback={data.type==="class"?String(firstSentenceFallback):undefined} style={data.type==="class"?{fontSize:`${classDescriptionSize}px`}:undefined}>{(data.type==="class"?printedClassDescription:data.description)||"I dettagli appariranno dopo la selezione di un record."}</p>
        {data.dice&&(data.type==="spell"&&data.spellDieAsset
          ? <div className="tf-v3-spell-dice" data-die={data.spellDie} aria-label={`Danni ${data.dice}`}>
              <img src={data.spellDieAsset} alt="" aria-hidden="true" draggable={false}/>

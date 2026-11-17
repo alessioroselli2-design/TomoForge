@@ -53,6 +53,7 @@ const createContext = (operations, gradients) => ({
   }),
   save: jest.fn(),
   clip: jest.fn(),
+  rect: jest.fn(),
   restore: jest.fn(),
   translate: jest.fn(),
   rotate: jest.fn(),
