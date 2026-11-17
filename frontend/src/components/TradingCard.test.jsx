@@ -305,10 +305,10 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.dataset.frontVersion).toBe("7");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.dataset.categoryLayout).toBe("class-5x7-finale");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-finale.png");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-finale.png");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
@@ -319,7 +319,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
+   expect(c.dataset.categoryLayout).toBe("class-5x7-finale");
    expect(c.querySelector(".tf-v3-badge")).toBeNull();
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
@@ -340,7 +340,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-finale.png");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
@@ -391,4 +391,24 @@ describe("Class primary ability PNGs do not overlap master symbols",()=>{
     expect(mount.querySelectorAll(".tf-v6-stat-icon")).toHaveLength(0);
     await close();
   });
+});
+
+describe("Class 5x7 uses the master image and clean emblems",()=>{
+ it("uses a single master and has no illustration prompt on an empty Class",async()=>{
+  const m=document.createElement("div");document.body.appendChild(m);const root=createRoot(m);
+  await act(async()=>root.render(<CardFront editorMode card={{type:"class",name:"Mago",attributes:{
+   dado_vita:"d6",abilita_primaria:"Intelligenza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armi semplici"
+  }}}/>));
+  const front=m.querySelector('[data-front-category="class"]');
+  expect(front.style.backgroundImage).toContain("master-classe-5x7-finale.png");
+  expect(front.querySelector(".tf-v3-art-hint")).toBeNull();
+  expect(front.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
+  expect(front.querySelector(".tf-class-original-emblem")?.getAttribute("src"))
+   .toBe("/emblemi/classi/cls-12-mago.png");
+  expect(front.querySelectorAll(".tf-v3-sprite")).toHaveLength(0);
+  expect(front.querySelector('[data-stat-label="Abilità primaria"] .tf-v6-stat-text>span').textContent)
+   .toBe("Abilità Primaria");
+  expect(front.querySelectorAll('[data-stat-label="Abilità primaria"] .tf-class-primary-icons img')).toHaveLength(1);
+  await act(async()=>root.unmount());m.remove();
+ });
 });

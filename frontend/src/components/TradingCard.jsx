@@ -79,11 +79,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem"
          data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
-         {symbol ? <>
-           <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
-           <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
-             backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
-         </> : <span className="tf-v3-fallback">✦</span>}
+         {symbol?.sprite==="class-original"
+            ? <img className="tf-class-original-emblem" src={symbol.src} alt={symbol.label||""} draggable={false}/>
+            : symbol ? <>
+                <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
+                <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
+                  backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
+              </> : <span className="tf-v3-fallback">✦</span>}
        </div>
        <div className="tf-v3-titles">
          <h3 title={data.name}>{data.name}</h3>
@@ -95,7 +97,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.type==="class"&&(!hasArtwork||artworkError)
          ? <span data-testid="front-artwork-empty" aria-hidden="true"/>
          : <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>}
-       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       {editorMode&&data.type!=="class"&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
@@ -109,7 +111,7 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
          return <div className={`tf-v3-stat ${(statIcon||isClass)?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
            <div className="tf-v6-stat-text">
-             <span>{item.label}</span>
+             <span>{isClass ? ({ "Abilità primaria":"Abilità Primaria","Tiri salvezza":"Tiri Salvezza","Competenze":"Competenze" }[item.label] || item.label) : item.label}</span>
              {isClass
                ? <div className={`tf-v6-stat-value-row ${isClassPrimary?"tf-class-primary-row":"tf-class-static-row"} ${primaryIcons.length>1?"tf-class-primary-double":""}`}>
                    {primaryIcons.length>0&&<span className="tf-class-primary-icons" aria-hidden="true">
