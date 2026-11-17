@@ -58,13 +58,14 @@ export const getFrontEmblem = (card = {}) => {
     index = keyFor(label, RACES);
  }
  if (index < 0) return null;
- // An independent 512px vector master replaces the blurry 44px atlas tile.
- // The existing gold circular card well stays entirely untouched.
- if (type === "class" && index === 4) {
+ // Complete 288px transparent emblems supplied for all thirteen classes.
+ // The file already contains its metal rim and gems: no sprite, mask or zoom.
+ if (["class","subclass","character"].includes(type)) {
+   const filename=`cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}.png`;
    return {
-     sprite:"guerriero-crest",index:4,col:0,row:0,label,
-     src:"/emblemi/guerriero-crest-optical-v2.svg",
-     width:512,height:512,cell:512,
+     sprite:"class-png",index,col:0,row:0,label,
+     src:`/emblemi/classi/${filename}`,
+     width:288,height:288,cell:288,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%",
    };
  }

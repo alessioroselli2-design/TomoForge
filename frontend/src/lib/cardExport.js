@@ -1,5 +1,5 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
-import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { getFrontStatIcon, getClassPrimaryIcon } from "@/lib/frontStatIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
@@ -111,6 +111,114 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
   ctx.drawImage(tile,dest.x-dest.size/2,dest.y-dest.size/2,dest.size,dest.size);
 }
 
+
+/* Class-only 5x7 printer. The original 5x7 raster is the sole decorated
+   plate. Keep the other categories' existing canvas renderer untouched. */
+const CLASS_5X7 = Object.freeze({
+ art:{x:5.6,y:17.7,w:89.1,h:28.9},
+ desc:{x:7.8,y:66,w:62,h:25.5},
+ icon:{x:15.8,y:10.1,w:25.7},
+ columns:[{x:5.6,w:29.4},{x:35.4,w:28.9},{x:64.6,w:29.9}],
+ stats:{top:48.3,h:14},die:{x:83.3,y:76.2,w:22},
+});
+const percentRect=(r,w,h)=>({x:r.x*w/100,y:r.y*h/100,w:r.w*w/100,h:r.h*h/100});
+const fitClassValueCanvas=(ctx,value,maxWidth,maxHeight)=>{
+ for(let size=8.5;size>=6.5;size-=.5){
+   ctx.font="400 "+size+"px Georgia,serif";
+   const lines=wrapTextLines(ctx,value,maxWidth),lineH=size*1.08;
+   if(lines.length*lineH<=maxHeight+.5)return {size,lines,lineH,overflow:false};
+ }
+ ctx.font="400 6.5px Georgia,serif";
+ return {size:6.5,lines:wrapTextLines(ctx,value,maxWidth),lineH:6.5*1.08,overflow:true};
+};
+const renderApprovedClass5x7=async(ctx,element,card,data,width,height)=>{
+ const art=percentRect(CLASS_5X7.art,width,height);
+ const image=element.querySelector(".tf-v3-picture img");
+ let artworkDrawn=false;
+ if(image?.complete&&image.naturalWidth>0&&!image.getAttribute?.("src")?.includes("artwork-placeholder")){
+   const iw=image.naturalWidth,ih=image.naturalHeight||iw;
+   const fit=Math.max(art.w/iw,art.h/ih),sw=art.w/fit,sh=art.h/fit;
+   ctx.save();ctx.beginPath();ctx.rect(art.x,art.y,art.w,art.h);ctx.clip();
+   ctx.drawImage(image,(iw-sw)/2,(ih-sh)/2,sw,sh,art.x,art.y,art.w,art.h);
+   ctx.restore();artworkDrawn=true;
+ }
+ const emblem=await loadFrontEmblem(data.emblem);
+ if(emblem){
+   const w=CLASS_5X7.icon.w*width/100;
+   const cx=CLASS_5X7.icon.x*width/100,cy=CLASS_5X7.icon.y*height/100;
+   ctx.drawImage(emblem,cx-w/2,cy-w/2,w,w);
+ }
+ ctx.save();ctx.fillStyle="#291708";ctx.textAlign="center";
+ const middle=(28.5+43/2)*width/100;
+ drawFittedText(ctx,data.name,middle,50,43*width/100,
+   data.name.length>=17?20:25,"'Cormorant Garamond',Georgia,serif","700");
+ drawFittedText(ctx,data.subtitle,middle,63,43*width/100,9,"Spectral,Georgia,serif");
+ ctx.restore();
+ for(let i=0;i<3;i++){
+   const stat=data.highlights[i];
+   if(!stat?.value)continue;
+   const column=CLASS_5X7.columns[i],x=column.x*width/100,cw=column.w*width/100;
+   const top=CLASS_5X7.stats.top*height/100;
+   const rowTop=top+CLASS_5X7.stats.h*height*.34/100;
+   const rowHeight=CLASS_5X7.stats.h*height*.64/100;
+   const primary=i===0;
+   const iconW=primary?26:0;
+   const xText=x+cw*(primary?0.06:0.32)+iconW;
+   const valueW=cw*(primary?0.90:0.65)-iconW-3;
+   const fit=fitClassValueCanvas(ctx,stat.value,valueW,rowHeight);
+   ctx.save();
+   if(primary){
+     const icon=await loadFrontEmblem({src:getClassPrimaryIcon(stat.value)});
+     if(icon)ctx.drawImage(icon,x+cw*.06,rowTop+(rowHeight-26)/2,26,26);
+   }
+   ctx.textAlign="left";ctx.fillStyle="#201409";
+   ctx.font="400 "+fit.size+"px Georgia,serif";
+   const baseline=rowTop+(rowHeight-fit.lines.length*fit.lineH)/2+fit.size;
+   fit.lines.forEach((line,j)=>ctx.fillText(line,xText,baseline+j*fit.lineH,valueW));
+   ctx.restore();
+ }
+ const desc=percentRect(CLASS_5X7.desc,width,height);
+ const p=element.querySelector(".tf-v3-desc");
+ const source=String(data.fullDescription||data.description||"").replace(/\s+/g," ").trim();
+ let printed=String(p?.textContent||"").trim();
+ let size=Number.parseFloat(p?.style?.fontSize)||8.5;
+ const fits=(text,fontSize)=>{
+   ctx.font="400 "+fontSize+"px Spectral,Georgia,serif";
+   return wrapTextLines(ctx,text,desc.w).length*fontSize*1.1<=desc.h;
+ };
+ if(!printed||!fits(printed,size)){
+   let completeFits=false;
+   for(let testSize=8.5;testSize>=6.5;testSize-=.5){
+     if(fits(source,testSize)){printed=source;size=testSize;completeFits=true;break;}
+   }
+   if(!completeFits){
+     size=6.5;printed=fitClassDescription(source,t=>fits(t,size));
+   }
+ }
+ ctx.save();ctx.textAlign="left";ctx.fillStyle="#28190f";
+ ctx.font="400 "+size+"px Spectral,Georgia,serif";
+ wrapTextLines(ctx,printed,desc.w).forEach((line,i)=>
+   ctx.fillText(line,desc.x,desc.y+size+i*size*1.1,desc.w));
+ ctx.restore();
+ if(data.classDieAsset){
+   const jewel=await loadFrontEmblem({src:data.classDieAsset});
+   if(jewel){
+     const w=CLASS_5X7.die.w*width/100;
+     ctx.drawImage(jewel,CLASS_5X7.die.x*width/100-w/2,
+        CLASS_5X7.die.y*height/100-w/2,w,w);
+   }
+ }
+ const qr=element.querySelector('[data-card-qr] canvas');
+ if(card?.id&&qr){
+   const x=width*.816,y=height*.887,w=19;
+   ctx.save();ctx.fillStyle="#fff";ctx.fillRect(x,y,w,w);
+   ctx.drawImage(qr,x+1,y+1,w-2,w-2);
+   ctx.strokeStyle="#b37c38";ctx.lineWidth=.5;ctx.strokeRect(x,y,w,w);
+   ctx.restore();
+ }
+ return artworkDrawn;
+};
+
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
@@ -125,6 +233,10 @@ async function renderApprovedMaster(element,card) {
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
+ if(data.type==="class"){
+   canvas.artworkDrawn=await renderApprovedClass5x7(ctx,element,card,data,width,height);
+   return canvas;
+ }
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");

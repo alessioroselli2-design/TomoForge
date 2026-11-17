@@ -115,7 +115,7 @@ describe("approved class: source-faithful narrative with d10",()=>{
    expect(data.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
    expect(data.highlights[0].value).toBe("Forza o Destrezza");
    expect(data.highlights[1].value).toBe("Forza, Costituzione");
-   expect(data.highlights[2].value).toBe("Armature, scudi e armi");
+   expect(data.highlights[2].value).toBe("tutte le armature, scudi, armi semplici e marziali");
    expect(data.highlights[2].fullValue).toBe("tutte le armature, scudi, armi semplici e marziali");
    expect(data.dice).toBe("d10");
    expect(data.showDescriptionLabel).toBe(false);
@@ -126,7 +126,7 @@ describe("approved class: source-faithful narrative with d10",()=>{
    const data=buildFrontBlueprint({type:"class",name:"Bardo",description:"Testo già disponibile.",attributes:{dado_vita:"d8"}});
    expect(data.description).toBe("Testo già disponibile.");
    expect(data.dice).toBe("d8");
-   expect(data.highlights).toHaveLength(0);
+   expect(data.highlights).toHaveLength(3);
  });
 });
 
@@ -216,15 +216,15 @@ describe("Class v40 compact printed values only",()=>{
      competenze:full,dado_vita:"d10"
    }};
    const data=buildFrontBlueprint(source);
-   expect(data.highlights.map(x=>x.value)).toEqual(["Forza o Destrezza","Forza, Costituzione","Armature, scudi e armi"]);
+   expect(data.highlights.map(x=>x.value)).toEqual(["Forza o Destrezza","Forza, Costituzione",full]);
    expect(data.highlights[2].fullValue).toBe(full);
    expect(source.attributes.competenze).toBe(full);
  });
  it("shortens unfamiliar class proficiencies at a word boundary rather than spilling over",()=>{
    const full="Strumenti artigianali specifici e una lunga serie di abilità specialistiche";
-   const item=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:full}}).highlights[0];
-   expect(item.value.length).toBeLessThanOrEqual(36);
-   expect(item.value.endsWith("…")).toBe(true);
+   const item=buildFrontBlueprint({type:"class",name:"Prova",attributes:{competenze:full}}).highlights[2];
+   expect(item.value).toBe(full);
+   expect(item.value.endsWith("…")).toBe(false);
    expect(item.fullValue).toBe(full);
  });
 });
