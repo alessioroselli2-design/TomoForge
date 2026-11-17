@@ -26,7 +26,7 @@ describe("TomoForge v2 front blueprint", () => {
   it("displays no invented formula or empty stats on a placeholder card", () => {
     const data = buildFrontBlueprint({type:"monster",name:"Senza dati",attributes:{}});
     expect(data.dice).toBe("");
-    expect(data.highlights).toHaveLength(3);
+    expect(data.highlights).toHaveLength(0);
     expect(data.abilities).toHaveLength(0);
   });
   it.each(["class","subclass","feature","race","feat","weapon","armor","item","character","custom"])(
