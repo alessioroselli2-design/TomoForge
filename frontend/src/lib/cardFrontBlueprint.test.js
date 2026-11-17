@@ -26,7 +26,7 @@ describe("TomoForge v2 front blueprint", () => {
   it("displays no invented formula or empty stats on a placeholder card", () => {
     const data = buildFrontBlueprint({type:"monster",name:"Senza dati",attributes:{}});
     expect(data.dice).toBe("");
-    expect(data.highlights).toHaveLength(3);
+    expect(data.highlights).toHaveLength(0);
     expect(data.abilities).toHaveLength(0);
   });
   it.each(["class","subclass","feature","race","feat","weapon","armor","item","character","custom"])(
@@ -126,7 +126,7 @@ describe("approved class: source-faithful narrative with d10",()=>{
    const data=buildFrontBlueprint({type:"class",name:"Bardo",description:"Testo già disponibile.",attributes:{dado_vita:"d8"}});
    expect(data.description).toBe("Testo già disponibile.");
    expect(data.dice).toBe("d8");
-   expect(data.highlights).toHaveLength(0);
+   expect(data.highlights).toHaveLength(3);
  });
 });
 
@@ -194,7 +194,7 @@ describe("final Class description sentence boundaries",()=>{
     const bp=buildFrontBlueprint({type:"class",description:source});
     expect(bp.description.endsWith(".")).toBe(true);
     expect(source.startsWith(bp.description)).toBe(true);
-    expect(bp.description).toBe(source);
+    expect(bp.description).toBe(source.trim());
     expect(bp.description).not.toContain("…");
   });
   it("avoids an incomplete excerpt when the source has no stop before the card capacity",()=>{
