@@ -142,8 +142,8 @@ async function renderApprovedMaster(element,card) {
  const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    if(data.type==="class"&&data.emblem.sprite==="class-original"){
-     // No feather, atlas crop, mask or scaling: the transparent PNG is final art.
-     const badgeSize=width*.21;
+     // Use the complete original square PNG, at the same size and center as the CSS card.
+     const badgeSize=width*.275;
      ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);
    } else {
      const s=data.emblem,m=MASTER_REGIONS.emblem;
