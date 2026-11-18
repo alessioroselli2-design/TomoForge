@@ -62,7 +62,7 @@ describe("Class v2: one static printable composition",()=>{
    expect(master.subarray(1,4).toString()).toBe("PNG");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/master-classe-5x7-finale.png"');
+   expect(layouts).toContain('master:"/card-art/master-classe-5x7-finale.png?rev=20261118-senza-cornice-dado"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:19,y:84,w:303,h:138}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
