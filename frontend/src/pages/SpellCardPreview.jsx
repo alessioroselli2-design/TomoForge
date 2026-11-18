@@ -70,7 +70,8 @@ export const SpellCardPrototype=({card={},imgUrl="",editorMode=false})=>{
  const [bad,setBad]=React.useState(false);
  const src=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):"");
  const detailLink=publicDescriptionUrl(card);
- return <div className="tf-spell-prototype" data-testid="card-front" data-front-category="spell" data-front-layout="spell-prototype">
+ return <div className="tf-spell-prototype" data-testid="card-front" data-front-category="spell" data-front-layout="spell-prototype"
+    style={{backgroundImage:'url("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg")'}}>
    <div className="tf-spell-covers" aria-hidden="true"/>
    {icon&&<div className="tf-spell-school" title={"Scuola di "+view.school} aria-label={"Scuola di "+view.school}>
       <div className="tf-spell-school-sprite" style={{backgroundImage:"url("+icon.src+")",
