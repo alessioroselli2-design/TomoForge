@@ -24,6 +24,16 @@ describe("approved TomoForge front medal rules",()=>{
    });
    expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("class-original");
  });
+ it("maps all 13 classes to their original, distinct PNG symbols",()=>{
+   const classes=["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco",
+     "Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
+   classes.forEach((name,index)=>{
+     const expected=`/emblemi/classi/cls-${String(index+1).padStart(2,"0")}-${name.toLowerCase()}.png`;
+     expect(getFrontEmblem({type:"class",name})).toMatchObject({
+       index,sprite:"class-original",src:expected,
+     });
+   });
+ });
  it("does not assign an incorrect medal when the type is unknown",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Sconosciuto"}})).toBeNull();
  });
