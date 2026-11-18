@@ -341,7 +341,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
      .toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
    expect(c.querySelector('[data-stat-label="Competenze"]').title)
      .toBe("Tutte le armature, scudi, armi semplici e da guerra");
-   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10-premium-v29.webp");
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10.png");
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
@@ -370,7 +370,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
-   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8-premium-v29.webp");
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8.png");
    await close();
  });
  it("uses the same outer drawing in spells and magic items with their own badges",async()=>{
