@@ -9,5 +9,5 @@ export const normalizeClassHitDie = (value) => {
 
 export const classHitDieAsset = (value) => {
   const die=normalizeClassHitDie(value);
-  return die ? `/card-art/class-dice/${die}-premium-v29.webp` : "";
+  return die ? `/card-art/dadi-vita/${die}.png` : "";
 };

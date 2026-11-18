@@ -11,7 +11,7 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
-  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/guerriero-crest-optical-v2.svg",cell:512,sprite:"guerriero-crest"});
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
  });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
   expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race",index:1});
@@ -20,9 +20,19 @@ describe("approved TomoForge front medal rules",()=>{
  });
  it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
-     sprite:"guerriero-crest",src:"/emblemi/guerriero-crest-optical-v2.svg",cell:512
+     sprite:"class-original",src:"/emblemi/classi/cls-05-guerriero.png",cell:320
    });
-   expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("core");
+   expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("class-original");
+ });
+ it("maps all 13 classes to their original, distinct PNG symbols",()=>{
+   const classes=["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco",
+     "Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
+   classes.forEach((name,index)=>{
+     const expected=`/emblemi/classi/cls-${String(index+1).padStart(2,"0")}-${name.toLowerCase()}.png`;
+     expect(getFrontEmblem({type:"class",name})).toMatchObject({
+       index,sprite:"class-original",src:expected,
+     });
+   });
  });
  it("does not assign an incorrect medal when the type is unknown",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Sconosciuto"}})).toBeNull();

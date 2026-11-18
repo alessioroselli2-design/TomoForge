@@ -246,108 +246,247 @@
 
 
 
-/* Class master v4 — three fixed sections at the exact proportions approved
-   for the Class card. This is ONE raster background, no stacked panels. */
+/* Class 5x7 — sole category override. The uploaded master already contains
+   borders, titles and three engraved icons. No sprite/mask/optical scaling. */
 .tf-front-master-v17[data-front-category="class"]{
- background-size:100% 100%!important;
- background-position:center!important;
- background-repeat:no-repeat!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-badge,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-details,
 .tf-front-master-v17[data-front-category="class"] .tf-v3-abilities{display:none!important}
-/* Optical treatment of every Class emblem uses the approved Dragon's slot.
-   The underlying medallion, decorative ring and Monster CSS never change. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion .tf-v3-sprite{
- transform:scale(1.28)!important;transform-origin:center!important;
- -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
- mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
+
+/* Text overlays only: the parchment and ornamental border are in the master. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles{
+  left:28.5%!important;top:4.2%!important;
+  width:43%!important;height:11.6%!important;
+  padding:0!important;margin:0!important;
+  transform:none!important;gap:1px;
 }
-/* Illustration takes the same large image field in every Class master. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles h3{
+  max-height:none;white-space:normal;overflow:visible;text-overflow:clip;
+  font:700 clamp(15px,6cqw,22px)/1.04 'Cormorant Garamond',Georgia,serif!important;
+  text-align:center;color:#231408;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-titles p{
+  position:static!important;max-height:none;overflow:visible;
+  font:10px/1.07 'Spectral',Georgia,serif!important;
+}
 .tf-front-master-v17[data-front-category="class"] .tf-v3-picture{
- top:15.49865%!important;height:30.99730%!important;
+  position:absolute!important;left:5.6%!important;top:17.7%!important;
+  width:89.1%!important;height:28.9%!important;
+  background:transparent!important;border:0!important;
+  border-radius:0!important;box-shadow:none!important;
+  overflow:hidden;z-index:2;
 }
-/* Carved Class stats: fixed three equal-purpose bays (690–925 on 1484px). */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture::after{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-picture img{
+  width:100%;height:100%;object-fit:cover;
+}
+
+/* Printed headings: Abilità Primaria | Tiri Salvezza | Competenze.
+   The three data slots overlay ONLY their own text, with no extra headings,
+   icons, borders or panel backgrounds. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats{
- top:46.49596%!important;height:15.83558%!important;
- grid-template-columns:32% 35% 33%!important;
- overflow:hidden!important;
+  position:absolute!important;
+  left:5.6%!important;top:48.3%!important;
+  width:88.9%!important;height:14%!important;
+  display:grid!important;
+  grid-template-columns:33.1% 32.6% 34.3%!important;
+  gap:0!important;background:transparent!important;
+  border:0!important;box-shadow:none!important;
+  overflow:visible!important;z-index:3;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats>.tf-v3-stat{
- position:relative!important;display:block!important;height:100%!important;
- min-width:0!important;overflow:hidden!important;
+  position:relative!important;display:block!important;
+  min-width:0!important;width:100%!important;height:100%!important;
+  padding:0!important;margin:0!important;
+  border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+  overflow:visible!important;transform:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-text{
- position:absolute!important;left:50%!important;top:12.5%!important;
- transform:translateX(-50%)!important;
- width:98%!important;max-width:98%!important;height:85%!important;
- display:flex!important;flex-direction:column!important;
- justify-content:flex-start!important;align-items:center!important;
- gap:16px!important;text-align:center!important;overflow:hidden!important;
- margin:0!important;padding:0!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats>.tf-v3-stat::after{display:none!important}
+.tf-front-master-v17[data-front-category="class"] .tf-class-stat-value{
+  position:absolute;left:30%;top:30%;
+  width:67%;height:67%;
+  display:block;padding:0;margin:0;
+  overflow:visible;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-text>span{
- font:700 9.8px/1.06 Georgia,serif!important;
- white-space:normal!important;max-height:22px!important;overflow:hidden!important;
+.tf-front-master-v17[data-front-category="class"] .tf-class-stat-value>strong{
+  display:block;width:100%;height:100%;
+  min-width:0;min-height:0;
+  padding:0;margin:0;
+  font:700 9.5px/1.08 Georgia,serif!important;
+  text-align:left;white-space:normal!important;
+  overflow:visible!important;overflow-wrap:break-word;
+  word-break:normal;max-height:none!important;max-width:none!important;
+  text-overflow:clip!important;color:#23160d;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row{
- position:static!important;display:flex!important;flex-direction:row!important;
- justify-content:center!important;align-items:center!important;
- width:100%!important;max-width:100%!important;height:auto!important;
- max-height:42px!important;gap:4px!important;
- padding:0 3px!important;margin:0!important;box-sizing:border-box!important;
- overflow:hidden!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat[data-stat-label="Competenze"] .tf-class-stat-value{
+  left:26%;width:71%;top:29%;height:68%;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>.tf-v6-stat-icon{
- position:static!important;display:block!important;flex:0 0 19px!important;
- width:19px!important;min-width:19px!important;max-width:19px!important;
- height:19px!important;max-height:19px!important;object-fit:contain!important;
- margin:0!important;padding:0!important;transform:none!important;
- border:0!important;clip-path:none!important;filter:none!important;
- -webkit-mask-image:none!important;mask-image:none!important;
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat[data-stat-label="Competenze"] .tf-class-stat-value>strong{
+  font-size:var(--tf-class-proficiency-font,8.5px)!important;
+  line-height:1.07!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v3-stat .tf-v6-stat-value-row>strong{
- position:static!important;display:block!important;flex:0 1 auto!important;
- min-width:0!important;max-width:calc(100% - 23px)!important;
- max-height:42px!important;height:auto!important;overflow:hidden!important;
- font:700 9.1px/1.09 Georgia,serif!important;text-align:left!important;
- white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;
- text-overflow:clip!important;margin:0!important;padding:0!important;
-}
-.tf-front-master-v17[data-front-category="class"] .tf-v3-stats [data-stat-label="Competenze"] .tf-v6-stat-value-row>strong{
- font-size:8.5px!important;
-}
-/* The only description bay is the single uninterrupted parchment
-   between y=925 and y=1370; it cannot scroll or overlap the other bays. */
+
+/* Coordinates measured against the WHOLE card, not the small parchment div. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-parchment{
- top:62.33154%!important;height:29.98652%!important;
- overflow:hidden!important;background:transparent!important;
- border:0!important;box-shadow:none!important;
+  position:absolute!important;
+  left:0!important;top:0!important;
+  width:100%!important;height:100%!important;
+  margin:0!important;padding:0!important;
+  border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+  overflow:visible!important;z-index:4;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-parchment .tf-v3-desc{
- position:absolute!important;left:4.6%!important;top:14%!important;
- width:64%!important;max-width:64%!important;
- height:80%!important;max-height:80%!important;
- padding:0!important;margin:0!important;box-sizing:border-box!important;
- display:block!important;color:#28190f!important;background:transparent!important;
- font:8px/1.13 'Spectral',Georgia,serif!important;
- text-align:left!important;white-space:normal!important;
- overflow:hidden!important;overflow-y:hidden!important;
- -webkit-line-clamp:unset!important;line-clamp:unset!important;
+  position:absolute!important;
+  left:7.8%!important;top:66%!important;
+  width:62%!important;height:25.5%!important;
+  min-width:0!important;min-height:0!important;
+  max-width:none!important;max-height:none!important;
+  margin:0!important;padding:0!important;
+  box-sizing:border-box!important;
+  display:block!important;
+  color:#28190f!important;background:transparent!important;
+  font-family:'Spectral',Georgia,serif!important;
+  font-size:var(--tf-class-description-size,8.5px)!important;
+  font-weight:400!important;line-height:1.13!important;
+  text-align:left!important;white-space:normal!important;
+  overflow:visible!important;overflow-wrap:break-word;
+  -webkit-line-clamp:unset!important;line-clamp:unset!important;
+  text-overflow:clip!important;
 }
+
+/* Class: use the complete transparent, pre-framed PNG over the ring-free final master. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
- position:absolute!important;left:auto!important;right:-1%!important;
- top:26%!important;bottom:auto!important;
- width:72px!important;height:75px!important;max-width:none!important;
- margin:0!important;padding:0!important;border:0!important;
- border-radius:0!important;box-shadow:none!important;
- background-color:transparent!important;background-size:contain!important;
- background-position:center!important;background-repeat:no-repeat!important;
- font-size:0!important;overflow:hidden!important;
+  position:absolute!important;left:83.3%!important;top:76.2%!important;
+  right:auto!important;bottom:auto!important;
+  width:28.3%!important;height:auto!important;aspect-ratio:1;
+  max-width:none!important;max-height:none!important;
+  transform:translate(-50%,-50%)!important;
+  margin:0!important;padding:0!important;
+  border:0!important;border-radius:0!important;
+  background-color:transparent!important;
+  background-size:100% 100%!important;
+  background-position:center!important;background-repeat:no-repeat!important;
+  box-shadow:none!important;font-size:0!important;
+  overflow:visible!important;clip-path:none!important;
+  mask:none!important;-webkit-mask:none!important;filter:none!important;
+  z-index:6;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr{
- right:4%!important;top:83%!important;width:22px!important;height:22px!important;
+  position:absolute!important;
+  top:86.8%!important;left:84.5%!important;
+  right:auto!important;bottom:auto!important;
+  width:7%!important;height:auto!important;aspect-ratio:1;
+  padding:2px!important;box-sizing:border-box!important;z-index:8;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr canvas{
- width:18px!important;height:18px!important;
+  display:block;width:100%!important;height:100%!important;
+}
+
+/* Class emblem: original square PNG at 27.5% of card width, centered at 15.8% / 10.1%.
+   2.05% = 15.8% - 27.5%/2; 0.2786% = 10.1% - (27.5% * 5/7)/2. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ height:auto!important;aspect-ratio:1!important;z-index:14!important;
+ overflow:visible!important;border-radius:0!important;
+ mask:none!important;-webkit-mask:none!important;clip-path:none!important;
+ background:transparent!important;box-shadow:none!important;filter:none!important;transform:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
+ width:100%!important;height:100%!important;object-fit:contain!important;
+ overflow:visible!important;clip-path:none!important;
+ -webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;
+}
+/* New raster master prints ALL 3 full-width capitalized headings.
+   Hide the second visual heading to prevent text clipping/duplication. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-text{
+ position:absolute!important;left:0!important;top:0!important;width:100%!important;
+ height:100%!important;max-width:none!important;transform:none!important;
+ display:block!important;margin:0!important;padding:0!important;
+ overflow:visible!important;gap:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stat .tf-v6-stat-text>span{
+ position:absolute!important;width:1px!important;height:1px!important;
+ overflow:hidden!important;clip-path:inset(50%)!important;
+ white-space:nowrap!important;padding:0!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-value-row{
+ position:absolute!important;top:38%!important;left:5%!important;
+ width:91%!important;height:auto!important;min-height:30px!important;
+ max-height:none!important;max-width:none!important;transform:none!important;
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ justify-content:flex-start!important;margin:0!important;box-sizing:border-box!important;
+ background:transparent!important;border:0!important;overflow:visible!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row{
+ left:3%!important;width:94%!important;padding:0 2px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-static-row{
+ left:5%!important;width:92%!important;padding:0 2px 0 24px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-v6-stat-value-row>strong{
+ position:static!important;display:block!important;flex:1 1 auto!important;
+ min-width:0!important;max-width:none!important;height:auto!important;
+ max-height:none!important;overflow:visible!important;
+ white-space:normal!important;overflow-wrap:break-word!important;
+ font:700 9px/1.08 Georgia,serif!important;text-align:left!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double>strong{
+ font-size:8.4px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats [data-stat-label="Competenze"] .tf-class-static-row>strong{
+ font-size:8.2px!important;
+}
+
+/* Class only: original PNGs at their native proportions, no filter, mask or vectorization.
+   Single: [26px icon] 6px [text], vertically centered.
+   Double: [22px icon] 6px [22px icon], then 6px separation to one text line. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:center!important;gap:6px!important;
+  min-height:33px!important;padding:0 2px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-icons{
+  display:flex!important;flex:0 0 auto!important;flex-direction:row!important;
+  align-items:center!important;justify-content:center!important;
+  width:auto!important;min-width:0!important;height:auto!important;gap:6px!important;
+  padding:0!important;margin:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;filter:none!important;
+  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-icons img{
+  display:block!important;flex:0 0 auto!important;
+  width:26px!important;height:26px!important;min-width:26px!important;
+  min-height:26px!important;max-width:none!important;max-height:none!important;
+  object-fit:contain!important;object-position:center!important;
+  padding:0!important;margin:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;filter:none!important;
+  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double{
+  top:22%!important;min-height:49px!important;height:49px!important;
+  flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:6px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons{
+  flex-direction:row!important;gap:6px!important;height:22px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons img{
+  width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row>strong{
+  position:static!important;flex:0 1 auto!important;min-width:0!important;
+  width:auto!important;max-width:100%!important;margin:0!important;padding:0!important;
+  overflow-wrap:normal!important;word-break:normal!important;
+  font-size:8.6px!important;line-height:1.1!important;text-align:left!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double>strong{
+  flex:0 0 auto!important;align-self:stretch!important;
+  white-space:nowrap!important;overflow-wrap:normal!important;
+  font-size:8.2px!important;letter-spacing:-0.1px!important;text-align:center!important;
 }

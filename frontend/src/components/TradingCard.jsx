@@ -7,6 +7,7 @@ import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 
 export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
@@ -78,11 +79,13 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem"
          data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
-         {symbol ? <>
-           <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
-           <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
-             backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
-         </> : <span className="tf-v3-fallback">✦</span>}
+         {symbol?.sprite==="class-original"
+            ? <img className="tf-class-original-emblem" src={symbol.src} alt={symbol.label||""} draggable={false}/>
+            : symbol ? <>
+                <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
+                <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
+                  backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
+              </> : <span className="tf-v3-fallback">✦</span>}
        </div>
        <div className="tf-v3-titles">
          <h3 title={data.name}>{data.name}</h3>
@@ -94,22 +97,34 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
        {data.type==="class"&&(!hasArtwork||artworkError)
          ? <span data-testid="front-artwork-empty" aria-hidden="true"/>
          : <img src={img} data-artwork-src={img} data-is-placeholder={!hasArtwork||artworkError} alt={data.name} crossOrigin="anonymous" onError={handleError} draggable={false}/>}
-       {editorMode&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
+       {editorMode&&data.type!=="class"&&!hasArtwork&&<span className="tf-v3-art-hint">CARICA O GENERA L'ILLUSTRAZIONE</span>}
        {artworkError&&!exportMode&&<span role="alert" className="tf-v3-art-warning"><span aria-hidden="true">⚠</span> Artwork non disponibile</span>}
      </section>
      <div className="tf-v3-stats" data-testid="front-highlights">
        {data.highlights.length?data.highlights.map((item,i)=>{
-         const statIcon = getFrontStatIcon(item.label);
-         return <div className={`tf-v3-stat ${statIcon?"tf-v6-stat-with-icon":""}`}
+         const isClass = data.type === "class";
+         const isClassPrimary = isClass && item.label === "Abilità primaria";
+         const primaryIcons = isClassPrimary
+           ? getClassPrimaryAbilityIcons(item.fullValue || item.value) : [];
+         // Do not duplicate shield and swords, already printed on the Class raster.
+         const statIcon = isClass ? null : getFrontStatIcon(item.label);
+         return <div className={`tf-v3-stat ${(statIcon||isClass)?"tf-v6-stat-with-icon":""}`}
            key={i} title={item.fullValue||item.value} data-stat-label={item.label}>
            <div className="tf-v6-stat-text">
-             <span>{item.label}</span>
-             {statIcon
-               ? <div className="tf-v6-stat-value-row">
-                   <img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>
+             <span>{isClass ? ({ "Abilità primaria":"Abilità Primaria","Tiri salvezza":"Tiri Salvezza","Competenze":"Competenze" }[item.label] || item.label) : item.label}</span>
+             {isClass
+               ? <div className={`tf-v6-stat-value-row ${isClassPrimary?"tf-class-primary-row":"tf-class-static-row"} ${primaryIcons.length>1?"tf-class-primary-double":""}`}>
+                   {primaryIcons.length>0&&<span className="tf-class-primary-icons" aria-hidden="true">
+                     {primaryIcons.map(({name,src})=><img key={name} src={src} alt="" draggable={false}/>)}
+                   </span>}
                    <strong>{item.value}</strong>
                  </div>
-               : <strong>{item.value}</strong>}
+               : statIcon
+                 ? <div className="tf-v6-stat-value-row">
+                     <img className="tf-v6-stat-icon" src={statIcon} alt="" aria-hidden="true" draggable={false}/>
+                     <strong>{item.value}</strong>
+                   </div>
+                 : <strong>{item.value}</strong>}
            </div>
          </div>;
        }):<div className="tf-v3-stat tf-v3-empty">I DATI COMPARRANNO QUI</div>}

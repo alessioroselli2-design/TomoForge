@@ -1,5 +1,6 @@
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
+import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
@@ -128,7 +129,7 @@ async function renderApprovedMaster(element,card) {
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
- const g=data.type==="class"?{x:18,y:74,w:304,h:147}:MASTER_REGIONS.art;
+ const g=data.type==="class"?{x:19,y:84,w:303,h:138}:MASTER_REGIONS.art;
  let artworkDrawn=false;
  if (art?.complete&&art.naturalWidth>0&&!art.getAttribute?.("src")?.includes("artwork-placeholder")) try {
    const iw=art.naturalWidth,ih=art.naturalHeight||iw;
@@ -140,27 +141,41 @@ async function renderApprovedMaster(element,card) {
  // master coordinates as the CSS preview; never offset the source artwork.
  const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
-   const s=data.emblem,m=MASTER_REGIONS.emblem;
-   const dragon = s.sprite === "drago-hd";
-   drawIntegratedMedallion(ctx,icon,
-     {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:(dragon||data.type==="class")?1.28:1.2},
-     {x:m.x,y:m.y,size:m.r*2},
-     (dragon||data.type==="class")?.37:.35,(dragon||data.type==="class")?.48:.48);
+   if(data.type==="class"&&data.emblem.sprite==="class-original"){
+     // Use the complete original square PNG, at the same size and center as the CSS card.
+     const badgeSize=width*.275;
+     ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);
+   } else {
+     const s=data.emblem,m=MASTER_REGIONS.emblem;
+     const dragon=s.sprite==="drago-hd";
+     drawIntegratedMedallion(ctx,icon,
+       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
+       {x:m.x,y:m.y,size:m.r*2},
+       dragon?.37:.35,dragon?.48:.48);
+   }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
- drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
-   Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
- ctx.fillStyle="#4a2b1a";
- drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,
-   Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
+ if(data.type==="class"){
+   drawFittedText(ctx,data.name,width*.5,height*.088,146,
+     data.name.length>=17?16:19,"'Cormorant Garamond',Georgia,serif","700");
+   ctx.fillStyle="#4a2b1a";
+   drawFittedText(ctx,data.subtitle,width*.5,height*.117,142,10,
+     "'Spectral',Georgia,serif","400");
+ } else {
+   drawFittedText(ctx,data.name,MASTER_REGIONS.title.x,MASTER_REGIONS.title.y+5,
+     Math.min(MASTER_REGIONS.title.w,150),data.name.length>=27?14:data.name.length>=17?16:17.25,"'Cormorant Garamond',Georgia,serif","700");
+   ctx.fillStyle="#4a2b1a";
+   drawFittedText(ctx,data.subtitle,MASTER_REGIONS.subtitle.x,MASTER_REGIONS.subtitle.y-4,
+     Math.min(MASTER_REGIONS.subtitle.w,142),7.7,"'Spectral',Georgia,serif","400");
+ }
  if(data.badge){
    ctx.fillStyle="#fff2db";ctx.font="700 8px Georgia,serif";
    ctx.fillText(data.badge.top,MASTER_REGIONS.badge.x,37);
    drawFittedText(ctx,data.badge.value,MASTER_REGIONS.badge.x,51,44,22,"Georgia,serif","700");
  }
- const statY=data.type==="class"?220:MASTER_REGIONS.stats.y;
+ const statY=data.type==="class"?height*.483:MASTER_REGIONS.stats.y;
  const statImages=await Promise.all(data.highlights.map(async it=>{
-   const src=getFrontStatIcon(it.label);
+   const src=data.type==="class"?null:getFrontStatIcon(it.label);
    if(!src)return null;
    const im=new Image();try {
      await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=src;
@@ -168,22 +183,52 @@ async function renderApprovedMaster(element,card) {
      return im;
    } catch {return null;}
  }));
- const sx=MASTER_REGIONS.stats.x, widths=[.32,.35,.33].map(f=>f*MASTER_REGIONS.stats.w);
+ const sx=data.type==="class"?width*.056:MASTER_REGIONS.stats.x;
+ const statWidths=data.type==="class"?[.331,.326,.343]:[.32,.35,.33];
+ const widths=statWidths.map(f=>f*(data.type==="class"?width*.889:MASTER_REGIONS.stats.w));
+ const primaryImages=data.type==="class" ? await Promise.all(data.highlights.slice(0,3).map(async it=>
+   it.label==="Abilità primaria" ? Promise.all(getClassPrimaryAbilityIcons(it.fullValue||it.value).map(async info=>
+     loadFrontEmblem({src:info.src}).catch(()=>null))) : [])) : [];
  data.highlights.slice(0,3).forEach((it,i)=>{
    const cellW=widths[i]||widths[2],cx=sx+widths.slice(0,i).reduce((a,b)=>a+b,0)+cellW/2,icon=statImages[i];
    const labelCenter=cx;
    const max=cellW-12;
    let valueCenter=cx,valueMaxWidth=max;
    if(data.type==="class"){
-     ctx.textAlign="center";ctx.fillStyle="#51301c";
-     drawFittedText(ctx,it.label,cx,statY+15,max,9.8,"Georgia,serif","700");
-     const left=cx-cellW/2+9;
-     if(icon)ctx.drawImage(icon,left,statY+44,19,19);
-     ctx.fillStyle="#1d140c";ctx.font="700 9px Georgia,serif";
-     const width=cellW-(icon?35:14);
-     const lines=wrapTextLines(ctx,it.value,width).slice(0,3);
-     ctx.textAlign="left";
-     lines.forEach((line,n)=>ctx.fillText(line,left+(icon?23:0),statY+51+n*10,width));
+     // The new master has the headings printed; only values and selected
+     // primary PNGs may be drawn. No baked-in shield/swords duplication.
+     const primary=primaryImages[i]||[];
+     const start=cx-cellW/2;
+     if(i===0&&primary.length>1){
+       // Same as the DOM: two original 22px PNGs side by side, 6px apart,
+       // with the unmodified one-line ability value centered underneath.
+       const size=22,gap=6,items=primary.slice(0,2);
+       const iconStart=cx-(items.length*size+(items.length-1)*gap)/2;
+       items.forEach((asset,j)=>{if(asset)ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size);});
+       ctx.textAlign="center";ctx.fillStyle="#23160d";
+       drawFittedText(ctx,it.value,cx,statY+53,cellW-6,8.2,"Georgia,serif","700");
+       return;
+     }
+     if(i===0&&primary.length===1){
+       // Exactly one original 26px PNG; icon and value are one centered row.
+       const size=26,gap=6,text=String(it.value||"");
+       ctx.font="700 8.6px Georgia,serif";
+       const textMax=Math.max(12,cellW-size-gap-8);
+       const textActual=Math.min(ctx.measureText(text).width,textMax);
+       const iconX=cx-(size+gap+textActual)/2;
+       if(primary[0])ctx.drawImage(primary[0],iconX,statY+24,size,size);
+       ctx.textAlign="left";ctx.fillStyle="#23160d";
+       drawFittedText(ctx,text,iconX+size+gap,statY+41,textMax,8.6,"Georgia,serif","700");
+       return;
+     }
+     // The other Class cells are unchanged (their shield/swords are engraved).
+     const x=start+(i===0?5:28),textWidth=Math.max(10,cellW-(x-start)-6);
+     const fontSize=i===2?8.2:i===0?8.6:9;
+     ctx.textAlign="left";ctx.fillStyle="#23160d";
+     ctx.font=`700 ${fontSize}px Georgia,serif`;
+     const lines=wrapTextLines(ctx,it.value,textWidth).slice(0,4);
+     const top=statY+38;
+     lines.forEach((line,n)=>ctx.fillText(line,x,top+n*(fontSize*1.13),textWidth));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -230,7 +275,7 @@ async function renderApprovedMaster(element,card) {
  if(data.type==="class"){
    // Print exactly the maximum number of complete sentences that fit.
    // No scrollable text and no sentence cut at an arbitrary character count.
-   const x=29,y=319,w=196,h=94,fontSize=8,lineHeight=9.04;
+   const x=width*.078,y=height*.66+6,w=width*.62,h=height*.255-8,fontSize=8.5,lineHeight=9.6;
    ctx.font=`${fontSize}px Spectral,Georgia,serif`;
    const fitted=fitClassDescription(desc,text=>
      wrapTextLines(ctx,text,w).length*lineHeight<=h);
@@ -239,7 +284,12 @@ async function renderApprovedMaster(element,card) {
    lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineHeight,w));
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
-     if(jewel)ctx.drawImage(jewel,252,329,72,75);
+     if(jewel){
+       // The PNG already includes its entire gem, number and single metal rim.
+       // Never clip, mask, crop or draw a second ring around this Class die.
+       const diameter=width*.283,x=width*.833,y=height*.762;
+       ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);
+     }
    }
  } else {
    ctx.fillStyle="#2d190e";ctx.textAlign="left";ctx.font="700 10px Georgia,serif";

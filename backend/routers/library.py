@@ -2,7 +2,7 @@ import uuid
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from reference_library import (
     REFERENCE_TYPES,
     compact_text,
@@ -216,6 +216,41 @@ async def import_private_library(body: ReferenceImportInput, user: User = Depend
     except Exception as exc:
         logger.exception("Private manual import failed")
         raise HTTPException(status_code=502, detail="Importazione della biblioteca privata non riuscita") from exc
+
+
+
+@router.get("/library/class-preview-records")
+async def read_only_class_preview_records(
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: SupabaseDatabase = Depends(get_db),
+):
+    """Authenticated, read-only source values for the 13 Class card previews.
+    This endpoint never calls /apply, changes review state, or writes Supabase.
+    """
+    response.headers["Cache-Control"] = "private, no-store"
+    records = await private_reference_records(
+        user.user_id, db=db, reference_types={"class"}
+    )
+    classes = []
+    for record in records:
+        if record.get("reference_type") != "class":
+            continue
+        if not reference_is_trusted(record):
+            continue
+        attrs = record.get("attributes") or {}
+        # Preserve existing presentation fields and verified text, not raw OCR
+        # source pages or the imported manual itself.
+        desc = record.get("description") or record.get("full_text") or ""
+        classes.append({
+            "id": record["id"],
+            "name": record.get("name") or "",
+            "type": "class",
+            "description": str(desc)[:9000],
+            "attributes": attrs,
+            "review_status": record.get("review_status") or "verified",
+        })
+    return {"status": "sourced", "records": classes}
 
 
 @router.get("/library/{reference_id}")

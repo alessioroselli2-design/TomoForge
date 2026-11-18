@@ -74,9 +74,35 @@ describe("approved class preview",()=>{
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-class-hit-die")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
+   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/dadi-vita/d10.png");
    expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
+   await act(async()=>root.unmount());mount.remove();
+ });
+});
+describe("class dice and original ability PNGs: four regression samples",()=>{
+ test.each([
+   ["Guerriero","Forza o Destrezza","d10",["forza","destrezza"]],
+   ["Mago","Intelligenza","d6",["intelligenza"]],
+   ["Paladino","Forza e Carisma","d10",["forza","carisma"]],
+   ["Ranger","Destrezza e Saggezza","d10",["destrezza","saggezza"]],
+   ["Bardo","Carisma","d8",["carisma"]],
+   ["Barbaro","Forza","d12",["forza"]],
+ ])("%s uses %s and %s",async(name,ability,die,icons)=>{
+   const mount=document.createElement("div");document.body.appendChild(mount);
+   const root=createRoot(mount);
+   await act(async()=>root.render(<CardFront card={{
+     type:"class",name,attributes:{dado_vita:die,abilita_primaria:ability}
+   }}/>));
+   const card=mount.querySelector('[data-front-category="class"]');
+   expect(card).not.toBeNull();
+   const primary=card.querySelector('[data-stat-label="Abilità primaria"]');
+   expect([...primary.querySelectorAll(".tf-class-primary-icons img")].map(x=>x.getAttribute("src")))
+     .toEqual(icons.map(x=>`/icone-caratteristiche/${x}.png`));
+   expect(primary.querySelector(".tf-class-primary-double")!==null).toBe(icons.length===2);
+   expect(primary.querySelector(".tf-class-primary-row strong")?.textContent).toBe(ability);
+   expect(card.querySelector(".tf-class-hit-die")?.style.backgroundImage)
+     .toContain(`/dadi-vita/${die}.png`);
    await act(async()=>root.unmount());mount.remove();
  });
 });
@@ -305,21 +331,21 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.dataset.frontVersion).toBe("7");
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.dataset.categoryLayout).toBe("class-5x7-finale");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
      .toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
    expect(c.querySelector('[data-stat-label="Competenze"]').title)
      .toBe("Tutte le armature, scudi, armi semplici e da guerra");
-   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10-premium-v29.webp");
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d10.png");
    expect(c.querySelector(".tf-v3-desc").textContent)
      .toBe("Una frase completa. Una seconda frase completa.");
    expect(c.querySelector(".tf-v3-details")).toBeNull();
-   expect(c.dataset.categoryLayout).toBe("class-approved-v4");
+   expect(c.dataset.categoryLayout).toBe("class-5x7-finale");
    expect(c.querySelector(".tf-v3-badge")).toBeNull();
    expect([...m.querySelectorAll(".tf-v3-badge")].map(x=>x.textContent)).toEqual(["GS14"]);
    await warrior.close();await monster.close();
@@ -340,11 +366,11 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/class-master-approved-v4.webp");
+   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
-   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8-premium-v29.webp");
+   expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8.png");
    await close();
  });
  it("uses the same outer drawing in spells and magic items with their own badges",async()=>{
@@ -357,5 +383,58 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(spell.mount.querySelector(".tf-v3-badge").textContent).toBe("LIV.3");
    expect(item.mount.querySelector(".tf-v3-badge").textContent).toBe("RARITÀRaro");
    await spell.close();await item.close();
+ });
+});
+
+describe("Class primary ability PNGs do not overlap master symbols",()=>{
+  const mountClass=async (name,primary)=>{
+    const mount=document.createElement("div");document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async()=>root.render(<CardFront card={{type:"class",name,
+      attributes:{abilita_primaria:primary,tiri_salvezza:"Forza, Costituzione",
+        competenze:"Armature, scudi e armi",dado_vita:"d10"}}}/>));
+    return {mount,close:async()=>{await act(async()=>root.unmount());mount.remove();}};
+  };
+  it("Barbaro and Mago each render one correct icon",async()=>{
+    for(const [name,primary,file] of [["Barbaro","Forza","forza.png"],["Mago","INTELLIGÉNZA","intelligenza.png"]]){
+      const {mount,close}=await mountClass(name,primary);
+      const icons=[...mount.querySelectorAll('[data-stat-label="Abilità primaria"] .tf-class-primary-icons img')];
+      expect(icons).toHaveLength(1);
+      expect(icons[0].getAttribute("src")).toBe("/icone-caratteristiche/"+file);
+      expect(mount.querySelector('[data-stat-label="Tiri salvezza"] img')).toBeNull();
+      expect(mount.querySelector('[data-stat-label="Competenze"] img')).toBeNull();
+      expect(mount.querySelectorAll(".tf-class-hit-die")).toHaveLength(1);
+      await close();
+    }
+  });
+  it("Guerriero vertically stacks exactly two characteristic icons",async()=>{
+    const {mount,close}=await mountClass("Guerriero","Forza o Destrezza");
+    const row=mount.querySelector(".tf-class-primary-row");
+    expect(row.classList.contains("tf-class-primary-double")).toBe(true);
+    expect([...row.querySelectorAll("img")].map(x=>x.getAttribute("src")))
+      .toEqual(["/icone-caratteristiche/forza.png","/icone-caratteristiche/destrezza.png"]);
+    expect(row.querySelector("strong").textContent).toBe("Forza o Destrezza");
+    expect(mount.querySelectorAll(".tf-v6-stat-icon")).toHaveLength(0);
+    await close();
+  });
+});
+
+describe("Class 5x7 uses the master image and clean emblems",()=>{
+ it("uses a single master and has no illustration prompt on an empty Class",async()=>{
+  const m=document.createElement("div");document.body.appendChild(m);const root=createRoot(m);
+  await act(async()=>root.render(<CardFront editorMode card={{type:"class",name:"Mago",attributes:{
+   dado_vita:"d6",abilita_primaria:"Intelligenza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armi semplici"
+  }}}/>));
+  const front=m.querySelector('[data-front-category="class"]');
+  expect(front.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+  expect(front.querySelector(".tf-v3-art-hint")).toBeNull();
+  expect(front.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
+  expect(front.querySelector(".tf-class-original-emblem")?.getAttribute("src"))
+   .toBe("/emblemi/classi/cls-12-mago.png");
+  expect(front.querySelectorAll(".tf-v3-sprite")).toHaveLength(0);
+  expect(front.querySelector('[data-stat-label="Abilità primaria"] .tf-v6-stat-text>span').textContent)
+   .toBe("Abilità Primaria");
+  expect(front.querySelectorAll('[data-stat-label="Abilità primaria"] .tf-class-primary-icons img')).toHaveLength(1);
+  await act(async()=>root.unmount());m.remove();
  });
 });
