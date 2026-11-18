@@ -387,12 +387,14 @@
   display:block;width:100%!important;height:100%!important;
 }
 
-/* Class emblem: one 21% transparent PNG, center x=15.8% / y=10.1%. */
+/* Class emblem: original square PNG at 27.5% of card width, centered at 15.8% / 10.1%.
+   2.05% = 15.8% - 27.5%/2; 0.2786% = 10.1% - (27.5% * 5/7)/2. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- left:5.3%!important;top:2.6%!important;width:21%!important;
- aspect-ratio:1!important;overflow:visible!important;border-radius:0!important;
+ left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ height:auto!important;aspect-ratio:1!important;z-index:14!important;
+ overflow:visible!important;border-radius:0!important;
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
- background:transparent!important;box-shadow:none!important;transform:none!important;
+ background:transparent!important;box-shadow:none!important;filter:none!important;transform:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
  width:100%!important;height:100%!important;object-fit:contain!important;
