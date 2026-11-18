@@ -16,6 +16,7 @@ import Admin from "@/pages/Admin";
 import ReferenceReview from "@/pages/ReferenceReview";
 import DiceMasterPreview from "@/pages/DiceMasterPreview";
 import ClassAbilityPreview from "@/pages/ClassAbilityPreview";
+import SpellCardPreview from "@/pages/SpellCardPreview";
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
 
@@ -41,6 +42,7 @@ function AppRouter() {
       <Route path="/d/:id" element={<PublicDescription />} />
       <Route path="/prova-dadi-v29" element={<DiceMasterPreview />} />
       <Route path="/prova-classi" element={<ClassAbilityPreview />} />
+      <Route path="/prova-incantesimi" element={<SpellCardPreview />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />
