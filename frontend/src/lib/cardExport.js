@@ -285,16 +285,10 @@ async function renderApprovedMaster(element,card) {
    if(data.classDieAsset){
      const jewel=await loadFrontEmblem({src:data.classDieAsset});
      if(jewel){
-       // Crop to the inner 65% before the die's own metal ring; the master
-       // provides the only visible gold-and-ruby frame in both PNG and PDF.
-       const diameter=width*.18,sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;
-       const sourceX=(jewel.naturalWidth-sourceSide)/2,sourceY=(jewel.naturalHeight-sourceSide)/2;
-       const x=width*.833,y=height*.762;
-       ctx.save();
-       ctx.beginPath();ctx.arc(x,y,diameter/2,0,2*Math.PI);ctx.clip();
-       ctx.drawImage(jewel,sourceX,sourceY,sourceSide,sourceSide,
-         x-diameter/2,y-diameter/2,diameter,diameter);
-       ctx.restore();
+       // The PNG already includes its entire gem, number and single metal rim.
+       // Never clip, mask, crop or draw a second ring around this Class die.
+       const diameter=width*.283,x=width*.833,y=height*.762;
+       ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);
      }
    }
  } else {

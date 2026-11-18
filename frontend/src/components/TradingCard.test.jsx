@@ -74,7 +74,7 @@ describe("approved class preview",()=>{
    expect(mount.querySelector('[data-front-category="class"]')).not.toBeNull();
    expect(mount.querySelector(".tf-v7-description-label")).toBeNull();
    expect(mount.querySelector(".tf-class-hit-die")?.textContent).toBe("d10");
-   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/class-dice/d10-premium-v29.webp");
+   expect(mount.querySelector(".tf-class-hit-die")?.style.backgroundImage).toContain("/dadi-vita/d10.png");
    expect(mount.querySelector(".tf-v3-desc")?.textContent).toContain("Un’umana");
    expect([...mount.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel)).not.toContain("Dado vita");
    await act(async()=>root.unmount());mount.remove();
@@ -86,6 +86,8 @@ describe("class dice and original ability PNGs: four regression samples",()=>{
    ["Mago","Intelligenza","d6",["intelligenza"]],
    ["Paladino","Forza e Carisma","d10",["forza","carisma"]],
    ["Ranger","Destrezza e Saggezza","d10",["destrezza","saggezza"]],
+   ["Bardo","Carisma","d8",["carisma"]],
+   ["Barbaro","Forza","d12",["forza"]],
  ])("%s uses %s and %s",async(name,ability,die,icons)=>{
    const mount=document.createElement("div");document.body.appendChild(mount);
    const root=createRoot(mount);
@@ -100,7 +102,7 @@ describe("class dice and original ability PNGs: four regression samples",()=>{
    expect(primary.querySelector(".tf-class-primary-double")!==null).toBe(icons.length===2);
    expect(primary.querySelector(".tf-class-primary-row strong")?.textContent).toBe(ability);
    expect(card.querySelector(".tf-class-hit-die")?.style.backgroundImage)
-     .toContain(`/class-dice/${die}-premium-v29.webp`);
+     .toContain(`/dadi-vita/${die}.png`);
    await act(async()=>root.unmount());mount.remove();
  });
 });

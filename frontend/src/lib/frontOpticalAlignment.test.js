@@ -58,11 +58,11 @@ describe("v25 small subtitle raise — no ornament overlap",()=>{
 describe("Class v2: one static printable composition",()=>{
  it("stores a SINGLE full-size fixed raster with no class overlays",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
-   const master=readFileSync(resolve(root,"master-classe-5x7-con-cornice-dado.png"));
+   const master=readFileSync(resolve(root,"master-classe-5x7-finale.png"));
    expect(master.subarray(1,4).toString()).toBe("PNG");
    expect(master.length).toBeGreaterThan(100000);
    const layouts=readFileSync(resolve(__dirname,"./frontCategoryLayouts.js"),"utf8");
-   expect(layouts).toContain('master:"/card-art/master-classe-5x7-con-cornice-dado.png"');
+   expect(layouts).toContain('master:"/card-art/master-classe-5x7-finale.png"');
    const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
    expect(exporter).toContain('data.type==="class"?{x:19,y:84,w:303,h:138}:MASTER_REGIONS.art');
    expect(layouts).not.toContain('class-interior-v17.webp');
@@ -88,7 +88,7 @@ describe("shared Monster master across every front",()=>{
    expect(exporter).not.toContain("renderClassApprovedV40");
    expect(exporter).not.toContain("class-master-v50");
    expect(exporter).toContain("if(data.type===\"class\"){");
-   expect(exporter).toContain("ctx.drawImage(jewel,sourceX,sourceY,sourceSide,sourceSide,");
+   expect(exporter).toContain("ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);");
  });
  it("keeps the Monster's approved raster as the sole active front art master",()=>{
    const root=resolve(__dirname,"../../public/card-art/");
@@ -112,12 +112,14 @@ describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
    expect(finalMaster).toContain('overflow:visible!important;border-radius:0!important;');
    expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;clip-path:none!important;');
    expect(finalMaster).toContain('left:83.3%!important;top:76.2%!important;');
-   expect(finalMaster).toContain('width:27.7%!important;height:auto!important;aspect-ratio:1;');
-   expect(finalMaster).toContain('clip-path:circle(32.5% at 50% 50%)!important;');
+   expect(finalMaster).toContain('width:28.3%!important;height:auto!important;aspect-ratio:1;');
+   expect(finalMaster).toContain('overflow:visible!important;clip-path:none!important;');
+   expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;filter:none!important;');
    expect(finalMaster).toContain('-webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;');
    expect(exporter).toContain('const badgeSize=width*.275;');
-   expect(exporter).toContain('const diameter=width*.18,sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
-   expect(exporter).toContain('x-diameter/2,y-diameter/2,diameter,diameter');
+   expect(exporter).toContain('const diameter=width*.283,x=width*.833,y=height*.762;');
+   expect(exporter).toContain('ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);');
+   expect(exporter).not.toContain('sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
  });
  it("places two original 22px PNGs side by side, with 6px between them and one line of text",()=>{
    expect(finalMaster).toContain('width:22px!important;height:22px!important;');

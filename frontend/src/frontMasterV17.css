@@ -360,11 +360,11 @@
   text-overflow:clip!important;
 }
 
-/* Class: the master contains the ONLY gold rim. Clip the original die artwork to its central 65%. */
+/* Class: use the complete transparent, pre-framed PNG over the ring-free final master. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-dice.tf-class-hit-die{
   position:absolute!important;left:83.3%!important;top:76.2%!important;
   right:auto!important;bottom:auto!important;
-  width:27.7%!important;height:auto!important;aspect-ratio:1;
+  width:28.3%!important;height:auto!important;aspect-ratio:1;
   max-width:none!important;max-height:none!important;
   transform:translate(-50%,-50%)!important;
   margin:0!important;padding:0!important;
@@ -373,7 +373,8 @@
   background-size:100% 100%!important;
   background-position:center!important;background-repeat:no-repeat!important;
   box-shadow:none!important;font-size:0!important;
-  overflow:visible!important;clip-path:circle(32.5% at 50% 50%)!important;
+  overflow:visible!important;clip-path:none!important;
+  mask:none!important;-webkit-mask:none!important;filter:none!important;
   z-index:6;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-qr{
