@@ -104,15 +104,18 @@ describe("shared Monster master across every front",()=>{
 });
 
 describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
- it("preserves the 21% class emblem and clips the die inner 65% within the master ring",()=>{
+ it("centers the 27.5% original class emblem above the master ring",()=>{
    const medalRules=finalMaster.split('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{');
    expect(medalRules).toHaveLength(2);
-   expect(finalMaster).toContain('left:5.3%!important;top:2.6%!important;width:21%!important;');
+   expect(finalMaster).toContain('left:2.05%!important;top:0.2786%!important;width:27.5%!important;');
+   expect(finalMaster).toContain('height:auto!important;aspect-ratio:1!important;z-index:14!important;');
+   expect(finalMaster).toContain('overflow:visible!important;border-radius:0!important;');
+   expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;clip-path:none!important;');
    expect(finalMaster).toContain('left:83.3%!important;top:76.2%!important;');
    expect(finalMaster).toContain('width:27.7%!important;height:auto!important;aspect-ratio:1;');
    expect(finalMaster).toContain('clip-path:circle(32.5% at 50% 50%)!important;');
    expect(finalMaster).toContain('-webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;');
-   expect(exporter).toContain('const badgeSize=width*.21;');
+   expect(exporter).toContain('const badgeSize=width*.275;');
    expect(exporter).toContain('const diameter=width*.18,sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
    expect(exporter).toContain('x-diameter/2,y-diameter/2,diameter,diameter');
  });
