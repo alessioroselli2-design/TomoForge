@@ -299,8 +299,7 @@ describe("approved premium spell dice",()=>{
       .toBe("/card-art/spell-dice/d6-blank-v31.webp");
     expect(mount.querySelector(".tf-spell-damage strong")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-spell-damage")?.textContent).toBe("8d6");
-    expect(mount.querySelector(".tf-spell-school-emblem")?.getAttribute("src"))
-      .toBe("/emblemi/scuole/scl-06-invocazione.png");
+    expect(mount.querySelector(".tf-spell-school-emblem")?.getAttribute("src")).toBe("/emblemi/scuole/scl-06-invocazione.png");
     expect(mount.querySelector(".tf-class-hit-die")).toBeNull();
     await act(async()=>root.unmount());mount.remove();
   });
@@ -374,7 +373,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(c.querySelector(".tf-class-hit-die").style.backgroundImage).toContain("d8.png");
    await close();
  });
- it("uses the approved Spell front and preserves the Magic Item master",async()=>{
+ it("uses the approved Spell master while preserving the Magic Item master",async()=>{
    const spell=await mountCard({type:"spell",name:"Palla di Fuoco",attributes:{livello:"3",scuola:"Invocazione"}});
    const item=await mountCard({type:"item",name:"Anello",attributes:{rarita:"Raro"}});
    const approved=spell.mount.querySelector("[data-testid='card-front']");
@@ -387,4 +386,78 @@ describe("One Monster master for all cards, with category-specific data",()=>{
      .toContain("/card-art/front-master-v17.webp");
    expect(item.mount.querySelector(".tf-v3-badge").textContent).toBe("RARITÀRaro");
    await spell.close();await item.close();
+ });
+});
+
+describe("Class primary ability PNGs do not overlap master symbols",()=>{
+  const mountClass=async (name,primary)=>{
+    const mount=document.createElement("div");document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async()=>root.render(<CardFront card={{type:"class",name,
+      attributes:{abilita_primaria:primary,tiri_salvezza:"Forza, Costituzione",
+        competenze:"Armature, scudi e armi",dado_vita:"d10"}}}/>));
+    return {mount,close:async()=>{await act(async()=>root.unmount());mount.remove();}};
+  };
+  it("Barbaro and Mago each render one correct icon",async()=>{
+    for(const [name,primary,file] of [["Barbaro","Forza","forza.png"],["Mago","INTELLIGÉNZA","intelligenza.png"]]){
+      const {mount,close}=await mountClass(name,primary);
+      const icons=[...mount.querySelectorAll('[data-stat-label="Abilità primaria"] .tf-class-primary-icons img')];
+      expect(icons).toHaveLength(1);
+      expect(icons[0].getAttribute("src")).toBe("/icone-caratteristiche/"+file);
+      expect(mount.querySelector('[data-stat-label="Tiri salvezza"] img')).toBeNull();
+      expect(mount.querySelector('[data-stat-label="Competenze"] img')).toBeNull();
+      expect(mount.querySelectorAll(".tf-class-hit-die")).toHaveLength(1);
+      await close();
+    }
   });
+  it("Guerriero vertically stacks exactly two characteristic icons",async()=>{
+    const {mount,close}=await mountClass("Guerriero","Forza o Destrezza");
+    const row=mount.querySelector(".tf-class-primary-row");
+    expect(row.classList.contains("tf-class-primary-double")).toBe(true);
+    expect([...row.querySelectorAll("img")].map(x=>x.getAttribute("src")))
+      .toEqual(["/icone-caratteristiche/forza.png","/icone-caratteristiche/destrezza.png"]);
+    expect(row.querySelector("strong").textContent).toBe("Forza o Destrezza");
+    expect(mount.querySelectorAll(".tf-v6-stat-icon")).toHaveLength(0);
+    await close();
+  });
+});
+
+describe("Class 5x7 uses the master image and clean emblems",()=>{
+ it("uses a single master and has no illustration prompt on an empty Class",async()=>{
+  const m=document.createElement("div");document.body.appendChild(m);const root=createRoot(m);
+  await act(async()=>root.render(<CardFront editorMode card={{type:"class",name:"Mago",attributes:{
+   dado_vita:"d6",abilita_primaria:"Intelligenza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armi semplici"
+  }}}/>));
+  const front=m.querySelector('[data-front-category="class"]');
+  expect(front.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+  expect(front.querySelector(".tf-v3-art-hint")).toBeNull();
+  expect(front.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
+  expect(front.querySelector(".tf-class-original-emblem")?.getAttribute("src"))
+   .toBe("/emblemi/classi/cls-12-mago.png");
+  expect(front.querySelectorAll(".tf-v3-sprite")).toHaveLength(0);
+  expect(front.querySelector('[data-stat-label="Abilità primaria"] .tf-v6-stat-text>span').textContent)
+   .toBe("Abilità Primaria");
+  expect(front.querySelectorAll('[data-stat-label="Abilità primaria"] .tf-class-primary-icons img')).toHaveLength(1);
+  await act(async()=>root.unmount());m.remove();
+ });
+});
+
+describe("approved Incantesimo integration", () => {
+  it("uses the same school master in the editor, detail and export DOM", async () => {
+    const mount=document.createElement("div");
+    document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async () => root.render(<CardFront card={{
+      type:"spell",name:"Scudo",attributes:{scuola:"Abiurazione",livello:"1"}
+    }} editorMode />));
+    const front=mount.querySelector('[data-front-category="spell"]');
+    expect(front).not.toBeNull();
+    expect(front.getAttribute("data-front-layout")).toBe("spell-5x7-v1");
+    expect(front.querySelector(".tf-spell-school-emblem").getAttribute("src"))
+      .toBe("/emblemi/scuole/scl-01-abiurazione.png");
+    expect(front.querySelector(".tf-spell-school-medallion")).not.toBeNull();
+    expect(front.querySelector(".tf-v3-medallion")).toBeNull();
+    await act(async () => root.unmount());
+    mount.remove();
+  });
+});
