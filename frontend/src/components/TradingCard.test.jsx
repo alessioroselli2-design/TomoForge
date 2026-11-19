@@ -438,3 +438,23 @@ describe("Class 5x7 uses the master image and clean emblems",()=>{
   await act(async()=>root.unmount());m.remove();
  });
 });
+
+describe("approved Incantesimo integration", () => {
+  it("uses the same school master in the editor, detail and export DOM", async () => {
+    const mount=document.createElement("div");
+    document.body.appendChild(mount);
+    const root=createRoot(mount);
+    await act(async () => root.render(<CardFront card={{
+      type:"spell",name:"Scudo",attributes:{scuola:"Abiurazione",livello:"1"}
+    }} editorMode />));
+    const front=mount.querySelector('[data-front-category="spell"]');
+    expect(front).not.toBeNull();
+    expect(front.getAttribute("data-front-layout")).toBe("spell-5x7-v1");
+    expect(front.querySelector(".tf-spell-school-emblem").getAttribute("src"))
+      .toBe("/emblemi/scuole/scl-01-abiurazione.png");
+    expect(front.querySelector(".tf-spell-school-medallion")).not.toBeNull();
+    expect(front.querySelector(".tf-v3-medallion")).toBeNull();
+    await act(async () => root.unmount());
+    mount.remove();
+  });
+});

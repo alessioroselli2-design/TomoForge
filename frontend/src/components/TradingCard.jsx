@@ -9,8 +9,9 @@ import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
+import { SpellCardFront } from "@/components/SpellCardFront";
 
-export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
+const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
  const data=buildFrontBlueprint(card);
  const layout=categoryFrontLayout(data.type);
  const [artworkError,setArtworkError]=React.useState(false);
@@ -162,6 +163,15 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
 
  </div>;
 });
+LegacyCardFront.displayName="LegacyCardFront";
+//
+// All app surfaces (editor, detail, saved cards and print-sheet previews) now
+// use exactly the approved Spell master. Other categories retain their renderer.
+export const CardFront = React.forwardRef((props, ref) =>
+  props.card?.type === "spell"
+    ? <SpellCardFront {...props} ref={ref} />
+    : <LegacyCardFront {...props} ref={ref} />
+);
 CardFront.displayName="CardFront";
 
 export const CardBack=React.forwardRef(({card,exportMode},ref)=>{

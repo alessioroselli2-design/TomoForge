@@ -6,6 +6,7 @@ import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
+import html2canvas from "html2canvas";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
@@ -346,12 +347,48 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
   ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
   ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
 };
-// All cards, including legacy records without a preview version tag, now
-// render with the SAME approved Monster v17 raster. No procedural fallback.
+// Take the approved Spell DOM as the source of truth, not the old v17 raster.
+// Clone into a fixed 5:7 box so exports work even when the source is offscreen.
+// All other categories stay on their existing dedicated canvas renderer.
+async function renderApprovedSpell(element, card) {
+ const source=element.querySelector('[data-front-category="spell"]');
+ if(!source)throw new Error("Anteprima Incantesimo non disponibile");
+ const {width,height,scale}=CARD_CANVAS_SIZE;
+ const stage=document.createElement("div");
+ Object.assign(stage.style,{
+   position:"fixed",left:"0",top:"0",width:`${width}px`,height:`${height}px`,
+   pointerEvents:"none",zIndex:"-2147483647",
+ });
+ const clone=source.cloneNode(true);
+ Object.assign(clone.style,{width:"100%",height:"100%"});
+ // cloneNode does not preserve canvas pixels (the QR code) on its own.
+ const originalCanvas=source.querySelectorAll("canvas");
+ const clonedCanvas=clone.querySelectorAll("canvas");
+ originalCanvas.forEach((original,i)=>{
+   const destination=clonedCanvas[i];
+   if(!destination)return;
+   destination.width=original.width;destination.height=original.height;
+   destination.getContext("2d")?.drawImage(original,0,0);
+ });
+ stage.appendChild(clone);
+ document.body.appendChild(stage);
+ try {
+   await waitForImages(clone);
+   if(document.fonts?.ready)await document.fonts.ready;
+   const canvas=await html2canvas(clone,{
+     scale,width,height,backgroundColor:null,useCORS:true,logging:false,
+     scrollX:0,scrollY:0,
+   });
+   canvas.artworkDrawn=!!(card?.artwork_path && clone.querySelector(".tf-spell-picture img"));
+   return canvas;
+ } finally {stage.remove();}
+}
+// Existing renderer remains untouched for Class, Monster and all other types.
 export async function renderCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
  await waitForImages(element);
  if(document.fonts?.ready)await document.fonts.ready;
+ if(card?.type==="spell")return renderApprovedSpell(element,card);
  return renderApprovedMaster(element,card);
 }
 
