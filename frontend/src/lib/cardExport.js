@@ -141,7 +141,8 @@ async function renderApprovedMaster(element,card) {
  // master coordinates as the CSS preview; never offset the source artwork.
  const icon=await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
-   if(data.type==="class"&&data.emblem.sprite==="class-original"){
+   if((data.type==="class"&&data.emblem.sprite==="class-original")||
+      (data.type==="spell"&&data.emblem.sprite==="school-original")){
      // Use the complete original square PNG, at the same size and center as the CSS card.
      const badgeSize=width*.275;
      ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);

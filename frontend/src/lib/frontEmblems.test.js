@@ -1,4 +1,6 @@
 import { getFrontEmblem } from "./frontEmblems";
+import {readFileSync} from "fs";
+import {resolve} from "path";
 describe("approved TomoForge front medal rules",()=>{
  it("uses unique Beholder and Dragon monster medals",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Aberrazione"}}).index).toBe(13);
@@ -21,6 +23,15 @@ describe("approved TomoForge front medal rules",()=>{
      .toBe("/emblemi/scuole/scl-06-invocazione.png");
    expect(getFrontEmblem({type:"spell",attributes:{school:"Conjuration"}}).src)
      .toBe("/emblemi/scuole/scl-04-evocazione.png");
+ });
+ it("renders the full school PNG with the same Class geometry in the legacy preview and export",()=>{
+   const component=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
+   const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
+   const exporter=readFileSync(resolve(__dirname,"cardExport.js"),"utf8");
+   expect(component).toContain('symbol?.sprite==="school-original"');
+   expect(css).toContain('[data-front-category="spell"] .tf-v3-medallion[data-emblem-sprite="school-original"]');
+   expect(css).toContain('[data-front-category="spell"] .tf-school-original-emblem');
+   expect(exporter).toContain('data.type==="spell"&&data.emblem.sprite==="school-original"');
  });
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
