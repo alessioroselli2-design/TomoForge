@@ -612,6 +612,49 @@ def test_spell_payload_derives_damage_and_card_action_from_imported_text():
     assert payload["story"] == payload["description"]
 
 
+def test_spell_payload_extracts_higher_level_rule_from_full_text_not_short_description():
+    record = make_reference(
+        "Palla di Fuoco",
+        reference_type="spell",
+        description="Una scia di luce ...",
+        full_text=(
+            "Invocazione di 3° livello. Una scia di luce parte dall'indice. "
+            "Al Livelli Superiori. Quando si usa uno slot dal 4° livello, "
+            "i danni aumentano di 1d6 per ogni livello oltre il 3°."
+        ),
+        attributes={"livello": "3", "scuola": "Invocazione"},
+    )
+    payload = reference_to_card_payload(record)
+    assert payload["description"] == "Una scia di luce ..."
+    assert payload["attributes"]["aumento_livello"].startswith("Quando si usa uno slot")
+    assert "+1d6" not in payload["description"]
+    assert "1d6 per ogni livello oltre il 3°" in payload["attributes"]["aumento_livello"]
+    assert "full_text" not in payload
+
+
+@pytest.mark.parametrize(
+    "header",
+    ["Ai Livelli Superiori:", "A livelli superiori.", "Al Livelli Superiori.",
+     "Agli livelli superiori:", "Ai livelli più alti:"],
+)
+def test_spell_payload_accepts_italian_upcasting_headings(header):
+    record = make_reference(
+        "Magia di prova", reference_type="spell",
+        description="Un effetto breve.",
+        full_text=f"Un effetto breve. {header} Aumenta di 1d8.",
+    )
+    assert reference_to_card_payload(record)["attributes"]["aumento_livello"] == "Aumenta di 1d8."
+
+
+def test_spell_payload_does_not_invent_higher_level_rules():
+    record = make_reference(
+        "Incantesimo senza crescita", reference_type="spell",
+        description="Un effetto normale.",
+        full_text="Un effetto normale. Nessun aumento dichiarato.",
+    )
+    assert "aumento_livello" not in reference_to_card_payload(record)["attributes"]
+
+
 def test_reference_card_payload_maps_feat_without_inventing_rules():
     payload = reference_to_card_payload(make_reference("Tiratore Scelto"))
 

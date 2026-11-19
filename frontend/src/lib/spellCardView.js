@@ -36,7 +36,7 @@ export const spellSchoolAsset = raw => {
 // This parser changes only presentation: imported source remains unmodified.
 export const splitSpellDescription = source => {
  const original=simple(source).replace(/\s+/g,' ').trim();
- const higher=/\b(?:Ai|A|Agli)\s+Livelli\s+Superiori\s*[:.]\s*/i;
+ const higher=/\b(?:Agli|Ai|Al|A)\s+Livelli\s+(?:Superiori|Pi[uù]\s+Alti)\s*[:.]\s*/i;
  const upcastAt=original.search(higher);
  const upcast=upcastAt<0?'':original.slice(upcastAt).replace(higher,'').trim();
  const unscaled=upcastAt<0?original:original.slice(0,upcastAt).trim();

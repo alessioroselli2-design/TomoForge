@@ -1117,6 +1117,20 @@ def search_reference_records(
     return [record for _, record in sorted(ranked, key=lambda item: (-item[0], item[1]["name"]))[:limit]]
 
 
+def _spell_higher_level_from_full_text(source: str) -> str:
+    """Read the printed upcasting rule, including a known OCR heading variant.
+
+    Extract only an explicitly labelled rule; never infer from a spell name.
+    The private manual text itself must not be sent back to card clients.
+    """
+    match = re.search(
+        r"\b(?:agli|ai|al|a)\s+livelli\s+(?:superiori|pi[uù]\s+alti)\s*[:.]\s*",
+        source or "",
+        flags=re.IGNORECASE,
+    )
+    return (source[match.end():].strip() if match else "")
+
+
 def reference_to_card_payload(record: dict) -> dict:
     reference_type = record.get("reference_type", "other")
     attributes = dict(record.get("attributes") or {})
@@ -1160,8 +1174,19 @@ def reference_to_card_payload(record: dict) -> dict:
         # Earlier imports stored the core spell metadata but did not extract
         # damage. Re-read the private text when applying a record so existing
         # cards receive that field too, without altering the source material.
-        extracted_attributes = _attributes("spell", record.get("full_text", ""))
+        full_text = record.get("full_text") or ""
+        extracted_attributes = _attributes("spell", full_text)
         attributes = {**extracted_attributes, **attributes}
+        # The short description can be cut off before 'Ai livelli superiori'.
+        # Supply only that mechanic from the original full_text; no DB write.
+        scaling_keys = (
+            "aumento_livello", "livelli_superiori", "ai_livelli_superiori",
+            "a_livelli_superiori", "potenziamento", "higher_levels", "scaling",
+        )
+        if not any(attributes.get(key) for key in scaling_keys):
+            upcast = _spell_higher_level_from_full_text(full_text)
+            if upcast:
+                attributes["aumento_livello"] = upcast
         attributes = {
             "livello": attributes.get("livello", ""),
             "scuola": attributes.get("scuola", ""),
