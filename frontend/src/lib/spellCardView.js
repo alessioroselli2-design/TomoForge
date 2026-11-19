@@ -89,7 +89,7 @@ export const compactSpellUpcast = raw => {
   if(!text)return '';
   const increment=text.match(/\b(?:aumentano|aumenta|incrementano|incrementa)\s+(?:di\s+)?(\d+d(?:4|6|8|10|12|20))\b/i);
   const perLevel=/\bper\s+(?:ogni|ciascun)\s+[^.!?]{0,50}\blivello\b/i.test(text);
-  const threshold=text.match(/\b(?:oltre|sopra|superiore)\s+(?:(?:al|a|il|lo|del|di)\s+)?(\d+)\s*[°º]?\b?/i);
+  const threshold=text.match(/\b(?:oltre|sopra|superiore)\s+(?:(?:al|a|il|lo|del|di)\s+)?(\d+)\s*[°º]?/i);
   if(increment && perLevel && /\bdann[oi]\b/i.test(text)){
     return `+${increment[1]} danni per livello dello slot${threshold?' oltre il '+threshold[1]+'°':''}`;
   }
