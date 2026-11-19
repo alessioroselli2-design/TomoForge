@@ -351,7 +351,8 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
 // Clone into a fixed 5:7 box so exports work even when the source is offscreen.
 // All other categories stay on their existing dedicated canvas renderer.
 async function renderApprovedSpell(element, card) {
- const source=element.querySelector('[data-front-category="spell"]');
+ const source=element.matches?.('[data-front-category="spell"]')
+   ? element : element.querySelector?.('[data-front-category="spell"]');
  if(!source)throw new Error("Anteprima Incantesimo non disponibile");
  const {width,height,scale}=CARD_CANVAS_SIZE;
  const stage=document.createElement("div");
@@ -388,7 +389,11 @@ export async function renderCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
  await waitForImages(element);
  if(document.fonts?.ready)await document.fonts.ready;
- if(card?.type==="spell")return renderApprovedSpell(element,card);
+ // Old callers/fixtures without the new DOM keep the legacy safe path.
+ // Every live Spell card is rendered from the approved DOM through html2canvas.
+ if(card?.type==="spell" && (element.matches?.('[data-front-category="spell"]') ||
+   element.querySelector?.('[data-front-category="spell"]')))
+   return renderApprovedSpell(element,card);
  return renderApprovedMaster(element,card);
 }
 
