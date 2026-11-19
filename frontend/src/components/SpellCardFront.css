@@ -7,11 +7,9 @@
   font-family:'Spectral',Georgia,serif;
 }
 .tf-spell-master *{box-sizing:border-box;}
-/* Medaglione Incantesimo: la stessa gabbia quadrata della Classe (Guerriero).
-   Il PNG corretto ha 24px trasparenti per lato su una tela 384x384.
-   Un ingombro visivo di 300/320 (come Guerriero) richiede 107.142857%
-   dell'immagine: 336/384 * 15/14 = 300/320.
-   Correzione ottica SENZA distorsioni, maschere, crop o transform. */
+/* Emblemi delle 8 scuole RICREATI come PNG quadrati 320x320.
+   Stesso box della Classe (Guerriero), nessun ingrandimento ottico:
+   centro 15.8%/10.1%, larghezza 27.5% della carta. */
 .tf-spell-school-medallion{
   position:absolute;left:2.05%;top:.2786%;width:27.5%;height:auto;
   aspect-ratio:1 / 1;z-index:14;display:block;
@@ -22,8 +20,8 @@
 }
 .tf-spell-school-emblem{
   position:absolute;display:block;
-  left:-3.5714286%;top:-3.5714286%;
-  width:107.142857%;height:107.142857%;aspect-ratio:1 / 1;
+  left:0;top:0;
+  width:100%;height:100%;aspect-ratio:1 / 1;
   object-fit:contain;max-width:none;max-height:none;
   margin:0;padding:0;box-sizing:border-box;overflow:visible;
   border:0;border-radius:0;background:transparent;outline:none;
