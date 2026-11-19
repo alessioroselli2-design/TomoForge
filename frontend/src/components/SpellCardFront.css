@@ -7,9 +7,14 @@
   font-family:'Spectral',Georgia,serif;
 }
 .tf-spell-master *{box-sizing:border-box;}
+/* Exact approved Class emblem footprint: 27.5% of width, center 15.8%/10.1%.
+   The school source fills its 320px canvas more tightly than the approved Class PNG;
+   transparent image padding normalizes the *visible artwork* without changing size,
+   cropping, masking, stretching or shifting the medallion. */
 .tf-spell-school-emblem{
   position:absolute;left:2.05%;top:.2786%;width:27.5%;height:auto;
   aspect-ratio:1;object-fit:contain;z-index:9;
+  padding:2.15%;box-sizing:border-box;
   border:0;border-radius:0;overflow:visible;
   mask:none;-webkit-mask:none;clip-path:none;transform:none;box-shadow:none;
 }
@@ -20,9 +25,10 @@
   margin:0;overflow-wrap:break-word;max-width:100%;color:#251206;}
 .tf-spell-header p{font:500 clamp(8px,2.85cqw,11px)/1.08 'Spectral',Georgia,serif;
   margin:0;color:#4b2a18;}
-.tf-spell-level{position:absolute;left:76%;top:4.2%;width:16%;height:12.1%;
+/* Opposite Class-aligned well: symmetrical center at 84.2% / 10.1%. */
+.tf-spell-level{position:absolute;left:74.6%;top:3.95%;width:19.2%;height:12.3%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;color:#ffecc3;text-shadow:0 1px 3px #300b07;}
+  text-align:center;color:#ffecc3;text-shadow:0 1px 3px #300b07;z-index:8;}
 .tf-spell-level strong{font:700 clamp(24px,9.5cqw,35px)/.9 Georgia,serif;}
 .tf-spell-level span{font:700 clamp(7px,2.6cqw,10px)/1.1 Georgia,serif;}
 .tf-spell-picture{position:absolute;left:4.8%;top:18.8%;width:90.4%;height:27.6%;
@@ -32,6 +38,7 @@
   justify-content:center;text-align:center;color:#805a36;font:italic 11px Georgia,serif;}
 .tf-spell-basic-grid,.tf-spell-combat-grid{position:absolute;left:4.4%;width:91.2%;display:grid;
   align-items:stretch;gap:0;}
+/* Four primary cells and three tactical cells locked to their master engravings. */
 .tf-spell-basic-grid{top:47.8%;height:10.2%;grid-template-columns:repeat(4,minmax(0,1fr));}
 .tf-spell-combat-grid{top:58.6%;height:7.7%;grid-template-columns:repeat(3,minmax(0,1fr));}
 .tf-spell-cell{min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;
@@ -50,6 +57,13 @@
 .tf-spell-cell-combat .tf-spell-cell-copy strong{font-size:clamp(7px,2.45cqw,10px);}
 .tf-spell-description{position:absolute;left:7.3%;top:68.3%;width:84%;height:14.5%;}
 .tf-spell-description-with-die{width:63%;}
+.tf-spell-description-with-quick{display:flex;flex-direction:column;gap:4px;}
+.tf-spell-quick-effect{display:flex;flex-direction:column;gap:1px;max-width:100%;
+  font:700 clamp(8px,2.65cqw,10.5px)/1.12 'Spectral',Georgia,serif;color:#291506;}
+.tf-spell-quick-effect b{font:700 clamp(8px,2.5cqw,10px)/1 Georgia,serif;color:#763719;}
+.tf-spell-quick-effect span{display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:break-word;}
+.tf-spell-description-with-quick p{-webkit-line-clamp:6;line-clamp:6;}
 .tf-spell-description p{margin:0;color:#281710;
   font:500 clamp(9px,2.9cqw,12px)/1.12 'Spectral',Georgia,serif;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:10;line-clamp:10;

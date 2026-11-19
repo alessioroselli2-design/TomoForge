@@ -48,7 +48,9 @@ const saveOutcome = (raw,desc) => {
   if (/\b(?:nessun effetto|non subisce|evita completamente)\b/i.test(desc)&&/tiro\s+salvezza/i.test(desc))return 'nega';
   return '';
 };
-export const buildSpellCardView = (card={}) => {
+// Personal casting values come only from an explicit character context or preview input,
+ // never from a generic spell record; spell names do not imply a fixed save DC.
+export const buildSpellCardView = (card={},spellcasting=null) => {
   const a=card.attributes||{};
   const school=spellSchool(pick(a,['scuola','school']));
   const level=pick(a,['livello','level','livello_incantesimo'])||'';
@@ -61,7 +63,16 @@ export const buildSpellCardView = (card={}) => {
   const save=normalSave(pick(a,['tiro_salvezza','tipo_tiro_salvezza','caratteristica_tiro_salvezza','ts','saving_throw','salvezza']));
   const outcome=saveOutcome(pick(a,['esito_tiro_salvezza','effetto_tiro_salvezza','esito_ts','effetto_ts','salvezza_riuscita','successo_ts','save_success']),desc);
   const attack=pick(a,['tipo_attacco','attacco_incantesimo','attacco_magico','spell_attack','attacco']);
-  const saveOrAttack=save?`TS ${save}${outcome?' · '+outcome:''}`:attack?`Att. ${shrink(attack,17)}`:'—';
+  const pb=spellcasting?.bonusCompetenza, ability=spellcasting?.modificatoreIncantatore;
+  const hasCasting=Number.isInteger(Number(pb))&&Number.isInteger(Number(ability))
+    &&pb!=null&&ability!=null&&Number(pb)>=1&&Number(pb)<=6
+    &&Number(ability)>=-5&&Number(ability)<=10;
+  const spellDC=hasCasting?8+Number(pb)+Number(ability):null;
+  const attackBonus=hasCasting?Number(pb)+Number(ability):null;
+  const attackText=attackBonus===null?'':` ${attackBonus>=0?'+':''}${attackBonus}`;
+  const saveOrAttack=save?`TS ${save}${spellDC===null?'':' CD '+spellDC}${outcome?' · '+outcome:''}`
+    :attack?`Att. ${shrink(attack,17)}${attackText}`:'—';
+  const quickEffect=pick(a,['effetto_rapido','effetto_breve','sintesi_effetto','quick_effect']);
   const area=pick(a,['area_effetto','area','forma_area','area_di_effetto','bersagli','bersaglio','target'])||'—';
   const dtype=pick(a,['tipo_danno','damage_type','tipo_di_danno','condizione','effetto_tipo'])||'—';
   const damageSource=pick(a,['formula_danno','danno','danni','damage'])||desc;
@@ -87,7 +98,7 @@ export const buildSpellCardView = (card={}) => {
     name:simple(card.name)||'Incantesimo',school,
     subtitle:school?`Incantesimo di ${school}`:'Incantesimo',
     level:level === '0'?'0':level,levelLabel:level==='0'?'TRUC.':'LIV.',
-    schoolAsset:spellSchoolAsset(school),basics,combat,description:desc,
-    concentration,ritual,footTitle,footText,damageFormula:dice,dieAsset,
+    schoolAsset:spellSchoolAsset(school),basics,combat,description:desc,quickEffect,
+    concentration,ritual,spellDC,attackBonus,footTitle,footText,damageFormula:dice,dieAsset,
   };
 };

@@ -56,3 +56,32 @@ describe('new independent Incantesimo master — source-data presentation',()=>{
     expect(file.byteLength).toBeGreaterThan(100000);
   });
 });
+// New character-context rule: no generic spell ever invents a fixed CD.
+describe('spell DC and quick effect without changes to approved Class renderer',()=>{
+ it('never invents a default save DC for a generic spell',()=>{
+   const v=buildSpellCardView({type:'spell',attributes:{tiro_salvezza:'Saggezza',esito_ts:'nega'}});
+   expect(v.spellDC).toBeNull();
+   expect(v.combat[0].value).toBe('TS Sag · nega');
+ });
+ it('calculates DC only when a character context is supplied',()=>{
+   const card={type:'spell',attributes:{tiro_salvezza:'Saggezza',esito_ts:'nega',effetto_rapido:'Paralizzato se fallisce'}};
+   const v=buildSpellCardView(card,{bonusCompetenza:3,modificatoreIncantatore:4});
+   expect(v.spellDC).toBe(15);
+   expect(v.combat[0].value).toBe('TS Sag CD 15 · nega');
+   expect(v.quickEffect).toBe('Paralizzato se fallisce');
+   expect(buildSpellCardView(card,{bonusCompetenza:4,modificatoreIncantatore:5}).spellDC).toBe(17);
+ });
+ it('preserves non-damaging quick effects without displaying damage dice',()=>{
+   const v=buildSpellCardView({type:'spell',name:'Scudo',attributes:{effetto_rapido:'+5 CA fino al prossimo turno'}});
+   expect(v.quickEffect).toContain('+5 CA');
+   expect(v.dieAsset).toBe('');
+   expect(v.damageFormula).toBe('');
+ });
+ it('keeps the approved Class emblem geometry while optically matching school artwork',()=>{
+   const css=readFileSync(resolve(__dirname,'../components/SpellCardFront.css'),'utf8');
+   expect(css).toContain('left:2.05%;top:.2786%;width:27.5%');
+   expect(css).toContain('padding:2.15%;box-sizing:border-box');
+   expect(css).toContain('left:74.6%;top:3.95%;width:19.2%;height:12.3%');
+   expect(css).toContain('height:10.2%;grid-template-columns:repeat(4');
+ });
+});

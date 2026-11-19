@@ -17,8 +17,8 @@ const Info = ({item,kind}) => {
   </div>;
 };
 
-export const SpellCardFront=React.forwardRef(({card={},imgUrl,editorMode,exportMode},ref)=>{
-  const v=buildSpellCardView(card);
+export const SpellCardFront=React.forwardRef(({card={},imgUrl,editorMode,exportMode,spellcasting},ref)=>{
+  const v=buildSpellCardView(card,spellcasting);
   const [imageError,setImageError]=React.useState(false);
   const hasArtwork=Boolean(imgUrl||card.artwork_path);
   const src=imgUrl||(card.artwork_path?artworkUrl(card.artwork_path):'');
@@ -47,7 +47,8 @@ export const SpellCardFront=React.forwardRef(({card={},imgUrl,editorMode,exportM
     <section className="tf-spell-combat-grid" aria-label="Dati tattici">
       {v.combat.map(item=><Info item={item} kind="combat" key={item.label}/>)}
     </section>
-    <section className={`tf-spell-description ${v.damageFormula?'tf-spell-description-with-die':''}`}>
+    <section className={`tf-spell-description ${v.damageFormula?'tf-spell-description-with-die':''} ${v.quickEffect?'tf-spell-description-with-quick':''}`}>
+      {v.quickEffect&&<div className="tf-spell-quick-effect"><b>Effetto rapido</b><span>{v.quickEffect}</span></div>}
       <p>{v.description||'La descrizione dell’incantesimo non è presente nel record.'}</p>
     </section>
     {v.dieAsset&&<div className="tf-spell-damage" data-die={v.damageFormula}
