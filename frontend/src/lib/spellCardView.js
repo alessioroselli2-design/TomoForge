@@ -101,7 +101,7 @@ const saveOutcome = (raw,desc) => {
   if (/nega|annull|evita|nessun|no effect|negat/.test(s))return 'nega';
   if (s)return shrink(raw,28);
   // Infer only when the verified description explicitly states the outcome.
-  if (/\b(?:la\s+)?metà\b/i.test(desc)&&/\b(?:tiro\s+(?:salvezza|riuscito|superato)|se\s+lo\s+supera|tiro\s+fallito)\b/i.test(desc))return 'metà';
+  if (/\b(?:la\s+)?metà(?=\s|[.,;]|$)/i.test(desc)&&/\b(?:tiro\s+(?:salvezza|riuscito|superato)|se\s+lo\s+supera|tiro\s+fallito)\b/i.test(desc))return 'metà';
   if (/\b(?:nessun effetto|non subisce|evita completamente)\b/i.test(desc)&&/tiro\s+salvezza/i.test(desc))return 'nega';
   return '';
 };
