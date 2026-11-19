@@ -151,7 +151,7 @@ export const buildSpellCardView = (card={},spellcasting=null) => {
   const combat=[
     {label:'TS / Attacco',value:saveOrAttack,icon:'tiro'},
     {label:'Area / Bersaglio',value:shrink(area,37),icon:'area'},
-    {label:'Danno / Effetto',value:shrink(dtype==='—'&&dice?dice:dtype,33),icon:'danno'},
+    {label:'Danno / Effetto',value:shrink(dtype!=='—'?dtype:quickEffect||dice||'—',33),icon:'danno'},
   ];
   return {
     name:simple(card.name)||'Incantesimo',school,
