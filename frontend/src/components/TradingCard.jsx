@@ -79,9 +79,11 @@ export const CardFront = React.forwardRef(({ card, exportMode, editorMode, imgUr
      <header className="tf-v3-banner">
        <div className="tf-v3-medallion" data-testid="front-emblem"
          data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
-         {(symbol?.sprite==="class-original" || symbol?.sprite==="school-original")
-            ? <img className={symbol.sprite==="school-original"?"tf-school-original-emblem":"tf-class-original-emblem"}
-                src={symbol.src} alt={symbol.label||""} draggable={false}/>
+         {symbol?.sprite==="class-original"
+            ? <img className="tf-class-original-emblem" src={symbol.src} alt={symbol.label||""} draggable={false}/>
+            : symbol?.sprite==="school-original"
+              ? <div className="tf-school-original-emblem" style={{backgroundImage:`url(${symbol.src})`}}
+                  role="img" aria-label={symbol.label||""}/>
             : symbol ? <>
                 <span className="tf-v3-fallback tf-v3-underlay" aria-hidden="true">✦</span>
                 <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,

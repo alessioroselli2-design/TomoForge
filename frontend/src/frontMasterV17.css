@@ -390,7 +390,19 @@
 
 /* Class emblem: original square PNG at 27.5% of card width, centered at 15.8% / 10.1%.
    2.05% = 15.8% - 27.5%/2; 0.2786% = 10.1% - (27.5% * 5/7)/2. */
-.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion,
+.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
+ left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ height:auto!important;aspect-ratio:1!important;z-index:14!important;
+ overflow:visible!important;border-radius:0!important;
+ mask:none!important;-webkit-mask:none!important;clip-path:none!important;
+ background:transparent!important;box-shadow:none!important;filter:none!important;transform:none!important;
+}
+.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
+ width:100%!important;height:100%!important;object-fit:contain!important;
+ overflow:visible!important;clip-path:none!important;
+ -webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;
+}
+/* A standalone school medal matches Class geometry without changing any Class rule. */
 .tf-front-master-v17[data-front-category="spell"] .tf-v3-medallion[data-emblem-sprite="school-original"]{
  left:2.05%!important;top:0.2786%!important;width:27.5%!important;
  height:auto!important;aspect-ratio:1!important;z-index:14!important;
@@ -398,11 +410,11 @@
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
  background:transparent!important;box-shadow:none!important;filter:none!important;transform:none!important;
 }
-.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem,
 .tf-front-master-v17[data-front-category="spell"] .tf-school-original-emblem{
- width:100%!important;height:100%!important;object-fit:contain!important;
- overflow:visible!important;clip-path:none!important;
- -webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;
+ width:100%!important;height:100%!important;aspect-ratio:1!important;
+ background-size:100% 100%!important;background-position:center!important;background-repeat:no-repeat!important;
+ overflow:visible!important;border:0!important;border-radius:0!important;clip-path:none!important;
+ -webkit-mask:none!important;mask:none!important;box-shadow:none!important;filter:none!important;transform:none!important;
 }
 /* New raster master prints ALL 3 full-width capitalized headings.
    Hide the second visual heading to prevent text clipping/duplication. */
