@@ -28,8 +28,10 @@ export const SpellCardFront=React.forwardRef(({card={},imgUrl,editorMode,exportM
     data-front-category="spell" data-front-layout="spell-5x7-v1" data-category-layout="spell-5x7-v1"
     className={`tf-spell-master ${exportMode?'tf-export-card':''}`}
     style={{backgroundImage:`url("${SPELL_PREVIEW_MASTER}")`}}>
-    {v.schoolAsset&&<img className="tf-spell-school-emblem" src={v.schoolAsset}
-      alt={`Scuola di ${v.school}`} draggable={false} data-testid="front-emblem"/>}
+    {v.schoolAsset&&<div className="tf-spell-school-medallion" data-testid="front-emblem" data-emblem-sprite="school-original">
+      <img className="tf-spell-school-emblem" src={v.schoolAsset}
+        alt={`Scuola di ${v.school}`} draggable={false}/>
+    </div>}
     <header className="tf-spell-header">
       <h3 title={v.name}>{v.name}</h3><p>{v.subtitle}</p>
     </header>

@@ -7,16 +7,28 @@
   font-family:'Spectral',Georgia,serif;
 }
 .tf-spell-master *{box-sizing:border-box;}
-/* Exact approved Class footprint: 27.5% of card width, center 15.8% / 10.1%.
-   No internal padding: the full original school emblem covers the master
-   medallion just like the approved Class emblem. */
-.tf-spell-school-emblem{
+/* Medaglione Incantesimo: la stessa gabbia quadrata della Classe (Guerriero).
+   Il PNG corretto ha 24px trasparenti per lato su una tela 384x384.
+   Un ingombro visivo di 300/320 (come Guerriero) richiede 107.142857%
+   dell'immagine: 336/384 * 15/14 = 300/320.
+   Correzione ottica SENZA distorsioni, maschere, crop o transform. */
+.tf-spell-school-medallion{
   position:absolute;left:2.05%;top:.2786%;width:27.5%;height:auto;
-  aspect-ratio:1;object-fit:contain;z-index:9;
-  padding:0;box-sizing:border-box;
-  border:0;border-radius:0;overflow:visible;
-  mask:none;-webkit-mask:none;clip-path:none;transform:none;box-shadow:none;
-  filter:none;-webkit-filter:none;outline:none;text-shadow:none;
+  aspect-ratio:1 / 1;z-index:14;display:block;
+  margin:0;padding:0;box-sizing:border-box;overflow:visible;
+  border:0;border-radius:0;background:transparent;
+  transform:none;box-shadow:none;filter:none;
+  mask:none;-webkit-mask:none;clip-path:none;
+}
+.tf-spell-school-emblem{
+  position:absolute;display:block;
+  left:-3.5714286%;top:-3.5714286%;
+  width:107.142857%;height:107.142857%;aspect-ratio:1 / 1;
+  object-fit:contain;max-width:none;max-height:none;
+  margin:0;padding:0;box-sizing:border-box;overflow:visible;
+  border:0;border-radius:0;background:transparent;outline:none;
+  mask:none;-webkit-mask:none;clip-path:none;transform:none;
+  box-shadow:none;filter:none;-webkit-filter:none;text-shadow:none;
 }
 .tf-spell-header{position:absolute;left:28%;top:4%;height:11%;width:44%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
