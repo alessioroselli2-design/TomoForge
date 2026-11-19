@@ -80,8 +80,12 @@ describe('spell DC and quick effect without changes to approved Class renderer',
  it('keeps the approved Class emblem geometry while optically matching school artwork',()=>{
    const css=readFileSync(resolve(__dirname,'../components/SpellCardFront.css'),'utf8');
    expect(css).toContain('left:2.05%;top:.2786%;width:27.5%');
-   expect(css).toContain('padding:2.15%;box-sizing:border-box');
+   expect(css).toContain('padding:0;box-sizing:border-box');
+   expect(css).not.toContain('padding:2.15%');
    expect(css).toContain('left:74.6%;top:3.95%;width:19.2%;height:12.3%');
+   expect(css).toContain('font:700 clamp(22px,8cqw,30px)/1 Georgia,serif;');
+   expect(css).toContain('transform:translateY(-2px)');
+   expect(css).toContain('gap:4px;');
    expect(css).toContain('height:10.2%;grid-template-columns:repeat(4');
  });
 });
