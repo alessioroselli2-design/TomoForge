@@ -1,4 +1,6 @@
 import { getFrontEmblem } from "./frontEmblems";
+import {readFileSync} from "fs";
+import {resolve} from "path";
 describe("approved TomoForge front medal rules",()=>{
  it("uses unique Beholder and Dragon monster medals",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Aberrazione"}}).index).toBe(13);
@@ -7,6 +9,29 @@ describe("approved TomoForge front medal rules",()=>{
  it("uses school-specific medals rather than a generic magic icon",()=>{
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Invocazione"}}).index).toBe(32);
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Necromanzia"}}).index).toBe(33);
+ });
+ it("uses all eight original transparent school PNGs, including English aliases",()=>{
+   const schools=["abiurazione","ammaliamento","divinazione","evocazione",
+     "illusione","invocazione","necromanzia","trasmutazione"];
+   schools.forEach((school,i)=>{
+     expect(getFrontEmblem({type:"spell",attributes:{scuola:school}})).toMatchObject({
+       index:27+i,sprite:"school-original",cell:384,
+       src:`/emblemi/scuole/scl-${String(i+1).padStart(2,"0")}-${school}.png`
+     });
+   });
+   expect(getFrontEmblem({type:"spell",attributes:{school:"Evocation"}}).src)
+     .toBe("/emblemi/scuole/scl-06-invocazione.png");
+   expect(getFrontEmblem({type:"spell",attributes:{school:"Conjuration"}}).src)
+     .toBe("/emblemi/scuole/scl-04-evocazione.png");
+ });
+ it("renders the full school PNG with the same Class geometry in the legacy preview and export",()=>{
+   const component=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
+   const css=readFileSync(resolve(__dirname,"../frontMasterV17.css"),"utf8");
+   const exporter=readFileSync(resolve(__dirname,"cardExport.js"),"utf8");
+   expect(component).toContain('symbol?.sprite==="school-original"');
+   expect(css).toContain('[data-front-category="spell"] .tf-v3-medallion[data-emblem-sprite="school-original"]');
+   expect(css).toContain('[data-front-category="spell"] .tf-school-original-emblem');
+   expect(exporter).toContain('data.type==="spell"&&data.emblem.sprite==="school-original"');
  });
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);

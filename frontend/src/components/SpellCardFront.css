@@ -1,0 +1,103 @@
+/* Spell master is independent from Class/Monster selectors and layers. The
+   uploaded school medals are complete artworks, not masked sprites. */
+.tf-spell-master{
+  width:100%;height:100%;position:relative;overflow:hidden;isolation:isolate;
+  box-sizing:border-box;background-size:100% 100%;background-repeat:no-repeat;
+  background-position:center;container-type:inline-size;color:#29170e;
+  font-family:'Spectral',Georgia,serif;
+}
+.tf-spell-master *{box-sizing:border-box;}
+/* Emblemi delle 8 scuole RICREATI come PNG quadrati 320x320.
+   Stesso box della Classe (Guerriero), nessun ingrandimento ottico:
+   centro 15.8%/10.1%, larghezza 27.5% della carta. */
+.tf-spell-school-medallion{
+  position:absolute;left:2.05%;top:.2786%;width:27.5%;height:auto;
+  aspect-ratio:1 / 1;z-index:14;display:block;
+  margin:0;padding:0;box-sizing:border-box;overflow:visible;
+  border:0;border-radius:0;background:transparent;
+  transform:none;box-shadow:none;filter:none;
+  mask:none;-webkit-mask:none;clip-path:none;
+}
+.tf-spell-school-emblem{
+  position:absolute;display:block;
+  left:0;top:0;
+  width:100%;height:100%;aspect-ratio:1 / 1;
+  object-fit:contain;max-width:none;max-height:none;
+  margin:0;padding:0;box-sizing:border-box;overflow:visible;
+  border:0;border-radius:0;background:transparent;outline:none;
+  mask:none;-webkit-mask:none;clip-path:none;transform:none;
+  box-shadow:none;filter:none;-webkit-filter:none;text-shadow:none;
+}
+.tf-spell-header{position:absolute;left:28%;top:4%;height:11%;width:44%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  text-align:center;}
+.tf-spell-header h3{font:700 clamp(15px,6.1cqw,22px)/1.04 'Cormorant Garamond',Georgia,serif;
+  margin:0;overflow-wrap:break-word;max-width:100%;color:#251206;}
+.tf-spell-header p{font:500 clamp(8px,2.85cqw,11px)/1.08 'Spectral',Georgia,serif;
+  margin:0;color:#4b2a18;}
+/* Opposite Class-aligned well: symmetrical center at 84.2% / 10.1%. */
+.tf-spell-level{position:absolute;left:74.6%;top:3.95%;width:19.2%;height:12.3%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:#ffecc3;text-shadow:0 1px 3px #300b07;
+  gap:4px;z-index:8;}
+/* Raise and shrink the level numeral, with a clear gap before the LIV. label. */
+.tf-spell-level strong{font:700 clamp(22px,8cqw,30px)/1 Georgia,serif;
+  transform:translateY(-2px);}
+.tf-spell-level span{font:700 clamp(7px,2.45cqw,9px)/1.1 Georgia,serif;
+  transform:translateY(1px);}
+.tf-spell-picture{position:absolute;left:4.8%;top:18.8%;width:90.4%;height:27.6%;
+  overflow:hidden;border-radius:4px;background:transparent;}
+.tf-spell-picture img{display:block;width:100%;height:100%;object-fit:cover;}
+.tf-spell-art-hint{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;text-align:center;color:#805a36;font:italic 11px Georgia,serif;}
+.tf-spell-basic-grid,.tf-spell-combat-grid{position:absolute;left:4.4%;width:91.2%;display:grid;
+  align-items:stretch;gap:0;}
+/* Four primary cells and three tactical cells locked to their master engravings. */
+.tf-spell-basic-grid{top:47.8%;height:10.2%;grid-template-columns:repeat(4,minmax(0,1fr));}
+.tf-spell-combat-grid{top:58.6%;height:7.7%;grid-template-columns:repeat(3,minmax(0,1fr));}
+.tf-spell-cell{min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;
+  padding:2px 3px;color:#301a0c;}
+.tf-spell-field-icon{flex:0 0 auto;width:14px;height:14px;color:#422919;}
+.tf-spell-cell-copy{min-width:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;gap:5px;}
+.tf-spell-cell-copy span{font:700 clamp(7px,2.4cqw,9px)/1 Georgia,serif;
+  white-space:nowrap;}
+.tf-spell-cell-copy strong{font:700 clamp(8px,2.8cqw,11px)/1.05 'Spectral',Georgia,serif;
+  overflow-wrap:break-word;max-width:100%;}
+.tf-spell-cell-combat{gap:3px;padding:0 3px;}
+.tf-spell-cell-combat .tf-spell-field-icon{width:12px;height:12px;}
+.tf-spell-cell-combat .tf-spell-cell-copy{gap:3px;}
+.tf-spell-cell-combat .tf-spell-cell-copy span{font-size:clamp(7px,2.2cqw,9px);}
+.tf-spell-cell-combat .tf-spell-cell-copy strong{font-size:clamp(7px,2.45cqw,10px);}
+.tf-spell-description{position:absolute;left:7.3%;top:68.3%;width:84%;height:14.5%;}
+.tf-spell-description-with-die{width:63%;}
+.tf-spell-description-with-quick{display:flex;flex-direction:column;gap:4px;}
+.tf-spell-quick-effect{display:flex;flex-direction:column;gap:1px;max-width:100%;
+  font:700 clamp(8px,2.65cqw,10.5px)/1.12 'Spectral',Georgia,serif;color:#291506;}
+.tf-spell-quick-effect b{font:700 clamp(8px,2.5cqw,10px)/1 Georgia,serif;color:#763719;}
+.tf-spell-quick-effect span{display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:break-word;}
+.tf-spell-description-with-quick p{-webkit-line-clamp:6;line-clamp:6;}
+.tf-spell-description p{margin:0;color:#281710;
+  font:500 clamp(9px,2.9cqw,12px)/1.12 'Spectral',Georgia,serif;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:10;line-clamp:10;
+  overflow:hidden;overflow-wrap:break-word;}
+/* Short game-effect summary takes the first lines; do not overflow the parchment. */
+.tf-spell-description.tf-spell-description-with-quick p{
+  -webkit-line-clamp:4;line-clamp:4;
+}
+.tf-spell-damage{position:absolute;left:72.3%;top:68.5%;width:24%;aspect-ratio:1;
+  overflow:visible;display:grid;place-items:center;}
+.tf-spell-damage img{display:block;width:100%;height:100%;object-fit:contain;}
+.tf-spell-damage strong{position:absolute;inset:0;display:grid;place-items:center;
+  font:700 clamp(14px,5cqw,21px)/1 Georgia,serif;color:#fff2d6;
+  text-shadow:0 1px 3px #310808;}
+.tf-spell-footnote{position:absolute;left:7.6%;top:85.8%;width:79%;height:8%;
+  overflow:hidden;color:#2d190e;}
+.tf-spell-footnote strong{display:block;font:700 clamp(10px,3.1cqw,13px)/1.1 Georgia,serif;}
+.tf-spell-footnote p{margin:5px 0 0;font:500 clamp(8px,2.55cqw,10px)/1.09 'Spectral',Georgia,serif;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;
+  overflow:hidden;overflow-wrap:break-word;}
+.tf-spell-qr{position:absolute;left:87%;top:87.8%;width:7.4%;aspect-ratio:1;
+  display:block;background:#fff;padding:1px;z-index:5;}
+.tf-spell-qr canvas{display:block;width:100%!important;height:100%!important;}

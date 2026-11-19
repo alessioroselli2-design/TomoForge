@@ -62,6 +62,15 @@ export const getFrontEmblem = (card = {}) => {
  // The existing gold circular card well stays entirely untouched.
  // Full-resolution, independent PNGs: original rim and gems are never cropped,
  // feathered, transformed or overprinted by a second medallion layer.
+ if (type === "spell") {
+   // The 8 complete, transparent original school PNGs supersede the 44px atlas.
+   // Keep the legacy atlas index for consumers that track it.
+   const schoolIndex = index - CLASSES.length - MONSTERS.length;
+   const file = `scl-${String(schoolIndex+1).padStart(2,"0")}-${SCHOOLS[schoolIndex]}.png`;
+   return {sprite:"school-original",index,col:0,row:0,label,
+     src:`/emblemi/scuole/${file}`,width:384,height:384,cell:384,
+     backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
+ }
  if (type === "class" || type === "subclass" || type === "character") {
    const file = `cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}.png`;
    return {sprite:"class-original",index,col:0,row:0,label,
