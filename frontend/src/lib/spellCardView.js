@@ -76,7 +76,8 @@ const inferredSave = text => {
 };
 const inferredArea = text => {
  const m=text.match(/\b(sfera|cono|cubo|cilindro)\b.{0,65}?\b(raggio|lato|lunghezza|altezza)\s+(?:di\s+)?(\d+(?:[.,]\d+)?)\s*(?:metri|metro|m)\b/i);
- return m?m[1][0].toUpperCase()+m[1].slice(1).toLowerCase()+', '+m[2].toLowerCase()+' '+m[3]+' m':'';
+ const fallback=m||text.match(/\b(sfera|cono|cubo|cilindro)\s+(?:di\s+)?(\d+(?:[.,]\d+)?)\s*(?:metri|metro|m)\s+di\s+(raggio|lato|lunghezza|altezza)\b/i);
+ return fallback?fallback[1][0].toUpperCase()+fallback[1].slice(1).toLowerCase()+', '+(m?fallback[2]:fallback[3]).toLowerCase()+' '+(m?fallback[3]:fallback[2])+' m':'';
 };
 const inferredDamageType = text => {
  const m=text.match(/\bdanni?\s+(?:da|di)\s+(fuoco|freddo|acido|fulmine|tuono|veleno|forza|radiosi?|necrotici?|psichici?|perforanti|contundenti|taglienti)\b/i);
@@ -100,7 +101,7 @@ const saveOutcome = (raw,desc) => {
   if (/nega|annull|evita|nessun|no effect|negat/.test(s))return 'nega';
   if (s)return shrink(raw,28);
   // Infer only when the verified description explicitly states the outcome.
-  if (/\bmetà\s+(?:dei\s+)?danni\b/i.test(desc)&&/tiro\s+(?:salvezza|riuscito|superato)/i.test(desc))return 'metà';
+  if (/\b(?:la\s+)?metà\b/i.test(desc)&&/\b(?:tiro\s+(?:salvezza|riuscito|superato)|se\s+lo\s+supera|tiro\s+fallito)\b/i.test(desc))return 'metà';
   if (/\b(?:nessun effetto|non subisce|evita completamente)\b/i.test(desc)&&/tiro\s+salvezza/i.test(desc))return 'nega';
   return '';
 };
@@ -114,7 +115,7 @@ export const buildSpellCardView = (card={},spellcasting=null) => {
   const parsed=splitSpellDescription(source);
   const fullEffect=parsed.fullEffect||source;
   const duration=pick(a,['durata','duration'])||parsed.fields.durata||'—';
-  const concentration=flag(a.concentrazione)||/concentrazion|concentration/i.test(duration);
+  const concentration=flag(a.concentrazione)||/concentrazion|concentration/i.test(duration)||/\brichiede\s+concentrazione\b/i.test(fullEffect);
   const ritual=flag(a.rituale)||flag(a.ritual);
   const durationClean=duration.replace(/^(?:concentrazione[,;:]?\s*(?:fino\s+a\s*)?|concentration[,;:]?\s*(?:up\s+to\s*)?)/i,'').trim();
   const shownDuration=(concentration?'Conc. ':'')+(durationClean||'—');
