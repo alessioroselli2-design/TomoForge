@@ -111,6 +111,20 @@ describe('technical headers and visual effect of imported spells',()=>{
   expect(v.footText).toContain('1d6');
   expect(v.spellDC).toBeNull();
  });
+ it('finds upcasting in the original Italian OCR heading when present',()=>{
+  const full="Una scia di luce colpisce il bersaglio. Al Livelli Superiori. I danni aumentano di 1d6 per ogni slot sopra il 3°.";
+  const v=buildSpellCardView({type:'spell',name:'Palla di Fuoco',description:full,attributes:{livello:'3'}});
+  expect(v.description).toBe('Una scia di luce colpisce il bersaglio.');
+  expect(v.footTitle).toBe('Aumento di livello');
+  expect(v.footText).toContain('1d6');
+ });
+ it('reads the derived full-text mechanic supplied by the private library',()=>{
+  const v=buildSpellCardView({type:'spell',name:'Palla di Fuoco',
+    description:"Una scia di luce colpisce il bersaglio.",
+    attributes:{livello:'3',aumento_livello:"I danni aumentano di 1d6 per ogni livello dello slot oltre il 3°."}});
+  expect(v.footTitle).toBe('Aumento di livello');
+  expect(v.footText).toContain('oltre il 3°');
+ });
  it('does not invent tactics or CD from the name',()=>{
   const v=buildSpellCardView({type:'spell',name:'Palla di Fuoco',description:'Una scia di luce.'});
   expect(v.combat.map(x=>x.value)).toEqual(['—','—','—']);
