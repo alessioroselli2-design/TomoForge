@@ -202,6 +202,8 @@ export default function CardEditor() {
     name: "", description: "", full_text: "", attributes: "{}",
   });
   const [coverageRefreshKey, setCoverageRefreshKey] = useState(0);
+  const [spellCastingPb,setSpellCastingPb]=useState("");
+  const [spellCastingAbility,setSpellCastingAbility]=useState("");
   const [characterReferences, setCharacterReferences] = useState([]);
   const [referenceUpdates, setReferenceUpdates] = useState([]);
   const [refreshingReferenceId, setRefreshingReferenceId] = useState(null);
@@ -1058,6 +1060,53 @@ export default function CardEditor() {
                </section>
              )}
 
+              {card.type === "spell" && (
+                <section data-testid="spell-rules-controls" className="border border-gold-deep/40 bg-card px-4 py-4 space-y-4">
+                  <h2 className="font-label text-xs tracking-widest text-gold">REGOLE INCANTESIMO</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      {key:"concentrazione",label:"Concentrazione"},
+                      {key:"rituale",label:"Rituale"},
+                    ].map(({key,label})=>(
+                      <div key={key} className="flex justify-between items-center gap-3">
+                        <Label htmlFor={"spell-"+key} className="font-body text-sm">{label}</Label>
+                        <Switch id={"spell-"+key} data-testid={"spell-"+key+"-switch"}
+                          checked={card.attributes?.[key] === true || /^(?:sì|si|yes|true|1)$/i.test(String(card.attributes?.[key]||""))}
+                          onCheckedChange={checked=>set({attributes:{...card.attributes,[key]:checked?"sì":"no"}})}
+                          className="data-[state=checked]:bg-gold" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="font-body text-xs text-muted-foreground">
+                    CD = 8 + bonus competenza + modificatore di incantamento.
+                    La CD dipende dal personaggio, non è un valore fisso dell’incantesimo.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="font-body text-xs text-foreground/80">Competenza
+                      <select data-testid="spell-casting-pb" aria-label="Bonus competenza incantesimi"
+                        className="block mt-1 w-full bg-obsidian border border-gold-deep p-2"
+                        value={spellCastingPb} onChange={ev=>setSpellCastingPb(ev.target.value)}>
+                        <option value="">—</option>
+                        {[2,3,4,5,6].map(value=><option key={value} value={value}>{"+"+value}</option>)}
+                      </select>
+                    </label>
+                    <label className="font-body text-xs text-foreground/80">Mod. incantatore
+                      <select data-testid="spell-casting-ability" aria-label="Modificatore incantatore"
+                        className="block mt-1 w-full bg-obsidian border border-gold-deep p-2"
+                        value={spellCastingAbility} onChange={ev=>setSpellCastingAbility(ev.target.value)}>
+                        <option value="">—</option>
+                        {Array.from({length:16},(_,i)=>i-5).map(value=><option key={value} value={value}>{(value>=0?"+":"")+value}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <p className="font-body text-sm text-gold" data-testid="spell-casting-dc">
+                    {spellCastingPb!==""&&spellCastingAbility!==""?
+                      "CD di prova: "+(8+Number(spellCastingPb)+Number(spellCastingAbility)):
+                      "CD di prova: seleziona competenza e modificatore"}
+                  </p>
+                </section>
+              )}
+
               {user?.is_premium && (
                  <ManualPreloadDashboard
                    manuals={libraryManuals}
@@ -1504,7 +1553,8 @@ export default function CardEditor() {
             <div className="lg:sticky lg:top-24 h-fit lg:max-h-[calc(100vh-7rem)]">
             <p className="font-label text-xs tracking-widest text-gold/70 mb-3 text-center">ANTEPRIMA</p>
             <motion.div layout className="mx-auto" style={{ width: 280, aspectRatio: "2.5/3.5" }}>
-              {showBack ? <CardBack card={card} /> : <CardFront card={card} editorMode />}
+              {showBack ? <CardBack card={card} /> : <CardFront card={card} editorMode spellcasting={card.type==="spell" && spellCastingPb!=="" && spellCastingAbility!==""?
+                {bonusCompetenza:Number(spellCastingPb),modificatoreIncantatore:Number(spellCastingAbility)}:undefined} />}
             </motion.div>
             <div className="flex justify-center mt-4">
               <button data-testid="preview-flip" onClick={() => setShowBack((s) => !s)}
