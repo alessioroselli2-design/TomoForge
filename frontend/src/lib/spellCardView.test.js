@@ -7,10 +7,10 @@ describe('new independent Incantesimo master — source-data presentation',()=>{
     expect(SPELL_SCHOOLS).toHaveLength(8);
     SPELL_SCHOOLS.forEach((name,i)=>{
       const path=spellSchoolAsset(name);
-      expect(path).toBe(`/emblemi/scuole/scl-${String(i+1).padStart(2,'0')}-${name.toLowerCase()}.webp`);
+      expect(path).toBe(`/emblemi/scuole/scl-${String(i+1).padStart(2,'0')}-${name.toLowerCase()}.png`);
       const file=readFileSync(resolve(__dirname,`../../public${path}`));
-      expect(file.subarray(0,4).toString()).toBe('RIFF');
-      expect(file.subarray(8,12).toString()).toBe('WEBP');
+      expect(file.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+      expect(file.byteLength).toBeGreaterThan(200000);
     });
   });
   it('uses Invocazione for fireball, school-only subtitle, damage and a half-save',()=>{
@@ -19,7 +19,7 @@ describe('new independent Incantesimo master — source-data presentation',()=>{
       componenti:'V, S, M',tiro_salvezza:'Destrezza',esito_ts:'metà',
       area_effetto:'Sfera, raggio 6 m',tipo_danno:'Fuoco',danno:'8d6',aumento_livello:'+1d6'}});
     expect(view.subtitle).toBe('Incantesimo di Invocazione');
-    expect(view.schoolAsset).toContain('scl-06-invocazione.webp');
+    expect(view.schoolAsset).toContain('scl-06-invocazione.png');
     expect(view.level).toBe('3');
     expect(view.basics.map(x=>x.value)).toEqual(['1 azione','45 m','Istantanea','V, S, M']);
     expect(view.combat[0].value).toBe('TS Des · metà');
@@ -81,6 +81,7 @@ describe('spell DC and quick effect without changes to approved Class renderer',
    const css=readFileSync(resolve(__dirname,'../components/SpellCardFront.css'),'utf8');
    expect(css).toContain('left:2.05%;top:.2786%;width:27.5%');
    expect(css).toContain('padding:0;box-sizing:border-box');
+   expect(css).toContain('filter:none;-webkit-filter:none');
    expect(css).not.toContain('padding:2.15%');
    expect(css).toContain('left:74.6%;top:3.95%;width:19.2%;height:12.3%');
    expect(css).toContain('font:700 clamp(22px,8cqw,30px)/1 Georgia,serif;');

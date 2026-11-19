@@ -30,7 +30,7 @@ export const spellSchool = (raw) => {
 };
 export const spellSchoolAsset = raw => {
   const index=SCHOOLS.indexOf(spellSchool(raw));
-  return index<0?'':`/emblemi/scuole/scl-${String(index+1).padStart(2,'0')}-${slug(SCHOOLS[index])}.webp`;
+  return index<0?'':`/emblemi/scuole/scl-${String(index+1).padStart(2,'0')}-${slug(SCHOOLS[index])}.png`;
 };
 const normalSave = value => {
   const s=slug(value);

@@ -8,6 +8,20 @@ describe("approved TomoForge front medal rules",()=>{
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Invocazione"}}).index).toBe(32);
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Necromanzia"}}).index).toBe(33);
  });
+ it("uses all eight original transparent school PNGs, including English aliases",()=>{
+   const schools=["abiurazione","ammaliamento","divinazione","evocazione",
+     "illusione","invocazione","necromanzia","trasmutazione"];
+   schools.forEach((school,i)=>{
+     expect(getFrontEmblem({type:"spell",attributes:{scuola:school}})).toMatchObject({
+       index:27+i,sprite:"school-original",cell:384,
+       src:`/emblemi/scuole/scl-${String(i+1).padStart(2,"0")}-${school}.png`
+     });
+   });
+   expect(getFrontEmblem({type:"spell",attributes:{school:"Evocation"}}).src)
+     .toBe("/emblemi/scuole/scl-06-invocazione.png");
+   expect(getFrontEmblem({type:"spell",attributes:{school:"Conjuration"}}).src)
+     .toBe("/emblemi/scuole/scl-04-evocazione.png");
+ });
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"}).index).toBe(38);
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
