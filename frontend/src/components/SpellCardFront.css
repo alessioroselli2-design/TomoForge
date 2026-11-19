@@ -101,3 +101,21 @@
 .tf-spell-qr{position:absolute;left:87%;top:87.8%;width:7.4%;aspect-ratio:1;
   display:block;background:#fff;padding:1px;z-index:5;}
 .tf-spell-qr canvas{display:block;width:100%!important;height:100%!important;}
+/* Solo contenuto: limiti di righe dentro le caselle già incise sul master. */
+.tf-spell-basic-grid .tf-spell-cell,.tf-spell-combat-grid .tf-spell-cell{
+ height:100%;overflow:hidden;align-items:center;
+}
+.tf-spell-basic-grid .tf-spell-cell-copy,.tf-spell-combat-grid .tf-spell-cell-copy{
+ width:100%;min-height:0;gap:2px;
+}
+.tf-spell-basic-grid .tf-spell-cell-copy strong,
+.tf-spell-combat-grid .tf-spell-cell-copy strong{
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+ overflow:hidden;overflow-wrap:anywhere;text-align:center;line-height:1.1;
+}
+.tf-spell-description{overflow:hidden;}
+.tf-spell-description p{
+ font-size:clamp(8px,2.55cqw,10px);line-height:1.15;
+ -webkit-line-clamp:5;line-clamp:5;
+}
+.tf-spell-footnote{overflow:hidden;}

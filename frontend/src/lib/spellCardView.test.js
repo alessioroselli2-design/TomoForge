@@ -93,3 +93,40 @@ describe('spell DC and quick effect without changes to approved Class renderer',
    expect(css).toContain('height:10.2%;grid-template-columns:repeat(4');
  });
 });
+
+
+describe('technical headers and visual effect of imported spells',()=>{
+ it('extracts Palla di Fuoco from a real-style Italian source without altering it',()=>{
+  const raw="Invocazione di 3° livello Tempo di Lancio: 1 azione Gittata: 45 metri Componenti: V, S, M (una piccola sfera di sterco di pipistrello e zolfo) Durata: Istantanea Una scia di luce parte dall'indice dell'incantatore e sfreccia fino a un punto a sua scelta entro gittata, dove detona con un profondo boato generando un'esplosione di fiamme. Ogni creatura situata entro una sfera del raggio di 6 metri centrata su quel punto deve effettuare un tiro salvezza su Destrezza. Una creatura subisce 8d6 danni da fuoco se fallisce il tiro salvezza, o la metà se lo supera. Ai Livelli Superiori: I danni aumentano di 1d6 per ogni slot sopra il 3°.";
+  const v=buildSpellCardView({type:'spell',name:'Palla di Fuoco',description:raw,attributes:{scuola:'Invocazione',livello:'3'}});
+  expect(v.fullDescription).toBe(raw);
+  expect(v.description).toMatch(/^Una scia di luce/);
+  expect(v.description).not.toMatch(/Tempo di Lancio|Gittata:|Componenti:|8d6|Ai Livelli Superiori/i);
+  expect(v.basics.map(x=>x.value)).toEqual(['1 azione','45 metri','Istantanea','V, S, M']);
+  expect(v.combat[0].value).toBe('TS Des · metà');
+  expect(v.combat[1].value).toBe('Sfera, raggio 6 m');
+  expect(v.combat[2].value).toBe('Fuoco');
+  expect(v.damageFormula).toBe('8d6');
+  expect(v.footTitle).toBe('Aumento di livello');
+  expect(v.footText).toContain('1d6');
+  expect(v.spellDC).toBeNull();
+ });
+ it('does not invent tactics or CD from the name',()=>{
+  const v=buildSpellCardView({type:'spell',name:'Palla di Fuoco',description:'Una scia di luce.'});
+  expect(v.combat.map(x=>x.value)).toEqual(['—','—','—']);
+  expect(v.damageFormula).toBe('');
+  expect(v.spellDC).toBeNull();
+ });
+ it('keeps source booleans and computes CD only in an explicit character preview',()=>{
+  const c={type:'spell',attributes:{concentrazione:'sì',rituale:'sì',durata:'1 minuto',tiro_salvezza:'Saggezza'}};
+  const v=buildSpellCardView(c,{bonusCompetenza:3,modificatoreIncantatore:4});
+  expect(v.concentration).toBe(true);
+  expect(v.ritual).toBe(true);
+  expect(v.basics[2].value).toBe('Conc. 1 minuto');
+  expect(v.combat[0].value).toContain('CD 15');
+ });
+ it('does not copy the long material description into the tiny component box',()=>{
+  const v=buildSpellCardView({type:'spell',description:"Il mago crea una fiamma.",attributes:{componenti:"V, S, M (una piccola sfera di sterco di pipistrello e zolfo)"}});
+  expect(v.basics[3].value).toBe('V, S, M');
+ });
+});

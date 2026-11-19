@@ -49,8 +49,7 @@ export const SpellCardFront=React.forwardRef(({card={},imgUrl,editorMode,exportM
     <section className="tf-spell-combat-grid" aria-label="Dati tattici">
       {v.combat.map(item=><Info item={item} kind="combat" key={item.label}/>)}
     </section>
-    <section className={`tf-spell-description ${v.damageFormula?'tf-spell-description-with-die':''} ${v.quickEffect?'tf-spell-description-with-quick':''}`}>
-      {v.quickEffect&&<div className="tf-spell-quick-effect"><b>Effetto rapido</b><span>{v.quickEffect}</span></div>}
+    <section className={`tf-spell-description ${v.damageFormula?'tf-spell-description-with-die':''}`}>
       <p>{v.description||'La descrizione dell’incantesimo non è presente nel record.'}</p>
     </section>
     {v.dieAsset&&<div className="tf-spell-damage" data-die={v.damageFormula}
