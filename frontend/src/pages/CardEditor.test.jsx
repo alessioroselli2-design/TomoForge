@@ -1370,5 +1370,9 @@ describe("CardEditor spell apply guard", () => {
     });
 
     expect(api.post).toHaveBeenCalledWith("/library/spell-trusted-1/apply");
+    expect(container.querySelector('[data-testid="spell-concentrazione-switch"]')).toBeNull();
+    expect(container.querySelector('[data-testid="spell-rituale-switch"]')).toBeNull();
+    expect(container.querySelector('[data-testid="spell-auto-traits"]')).not.toBeNull();
+
   });
 });

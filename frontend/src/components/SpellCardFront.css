@@ -92,12 +92,15 @@
 .tf-spell-damage strong{position:absolute;inset:0;display:grid;place-items:center;
   font:700 clamp(14px,5cqw,21px)/1 Georgia,serif;color:#fff2d6;
   text-shadow:0 1px 3px #310808;}
-.tf-spell-footnote{position:absolute;left:7.6%;top:85.8%;width:79%;height:8%;
-  overflow:hidden;color:#2d190e;}
-.tf-spell-footnote strong{display:block;font:700 clamp(10px,3.1cqw,13px)/1.1 Georgia,serif;}
-.tf-spell-footnote p{margin:5px 0 0;font:500 clamp(8px,2.55cqw,10px)/1.09 'Spectral',Georgia,serif;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;
-  overflow:hidden;overflow-wrap:break-word;}
+/* Short game mechanic only: keep both lines inside the lower parchment,
+   above the already approved bottom engraving and gem. */
+.tf-spell-footnote{position:absolute;left:9%;top:85.6%;width:78%;height:7.3%;
+  overflow:hidden;color:#2d190e;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;text-align:center;}
+.tf-spell-footnote strong{display:block;font:700 clamp(8px,2.45cqw,10px)/1.1 Georgia,serif;}
+.tf-spell-footnote p{margin:0;font:600 clamp(7px,2.35cqw,9px)/1.1 'Spectral',Georgia,serif;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+  overflow:hidden;overflow-wrap:break-word;max-width:100%;}
 .tf-spell-qr{position:absolute;left:87%;top:87.8%;width:7.4%;aspect-ratio:1;
   display:block;background:#fff;padding:1px;z-index:5;}
 .tf-spell-qr canvas{display:block;width:100%!important;height:100%!important;}

@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Switch } from "@/components/ui/switch";
+import { buildSpellCardView } from "@/lib/spellCardView";
 
 const DEFAULT_ATTRS = {
   spell: { livello: "", scuola: "", azione: "", tempo_lancio: "", gittata: "", area: "", componenti: "", durata: "", concentrazione: "", danno: "", effetto: "" },
@@ -382,14 +382,16 @@ export default function CardEditor() {
     setApplyingSpell(spellId);
     try {
       const res = await api.post(`/library/${spellId}/apply`);
+      // Choosing a different spell must not inherit the previous spell's
+      // concentration, ritual, duration, damage or upcasting rule.
       set({
-        name: card.name || res.data.name,
-        description: card.description || res.data.description,
-        story: card.story || res.data.story,
-        attributes: mergeMissingValues(card.attributes, { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) }),
-        reference_ids: Array.from(new Set([...(card.reference_ids || []), res.data.reference_id || spellId])),
-        rule_sources: mergeRuleSources(card.rule_sources, [res.data.rule_source]),
-        source_refs: mergeSourceReferences(card.source_refs, res.data.source_refs || []),
+        name: res.data.name || card.name,
+        description: res.data.description || "",
+        story: res.data.story || "",
+        attributes: { ...DEFAULT_ATTRS.spell, ...(res.data.attributes || {}) },
+        reference_ids: [res.data.reference_id || spellId],
+        rule_sources: [res.data.rule_source].filter(Boolean),
+        source_refs: res.data.source_refs || [],
       });
       setSpellQuery(res.data.name || "");
       setSpellResults([]);
@@ -1063,20 +1065,11 @@ export default function CardEditor() {
               {card.type === "spell" && (
                 <section data-testid="spell-rules-controls" className="border border-gold-deep/40 bg-card px-4 py-4 space-y-4">
                   <h2 className="font-label text-xs tracking-widest text-gold">REGOLE INCANTESIMO</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      {key:"concentrazione",label:"Concentrazione"},
-                      {key:"rituale",label:"Rituale"},
-                    ].map(({key,label})=>(
-                      <div key={key} className="flex justify-between items-center gap-3">
-                        <Label htmlFor={"spell-"+key} className="font-body text-sm">{label}</Label>
-                        <Switch id={"spell-"+key} data-testid={"spell-"+key+"-switch"}
-                          checked={card.attributes?.[key] === true || /^(?:sì|si|yes|true|1)$/i.test(String(card.attributes?.[key]||""))}
-                          onCheckedChange={checked=>set({attributes:{...card.attributes,[key]:checked?"sì":"no"}})}
-                          className="data-[state=checked]:bg-gold" />
-                      </div>
-                    ))}
-                  </div>
+                  <p className="font-body text-xs text-muted-foreground" data-testid="spell-auto-traits">
+                    Durata e concentrazione: {buildSpellCardView(card).basics[2].value}.
+                    {buildSpellCardView(card).ritual?" Rituale previsto dal manuale.":""}
+                    {" "}Concentrazione e Rituale sono rilevati automaticamente dai dati dell'incantesimo.
+                  </p>
                   <p className="font-body text-xs text-muted-foreground">
                     CD = 8 + bonus competenza + modificatore di incantamento.
                     La CD dipende dal personaggio, non è un valore fisso dell’incantesimo.

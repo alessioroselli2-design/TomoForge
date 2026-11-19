@@ -56,7 +56,8 @@ export const SpellCardFront=React.forwardRef(({card={},imgUrl,editorMode,exportM
        aria-label={`Danno ${v.damageFormula}`}>
        <img src={v.dieAsset} alt="" draggable={false}/><strong>{v.damageFormula}</strong>
     </div>}
-    {v.footTitle&&<section className="tf-spell-footnote">
+    {v.footTitle&&<section className="tf-spell-footnote" data-testid="spell-upcast"
+      title={v.footTextFull} aria-label={`${v.footTitle}: ${v.footTextFull}`}>
       <strong>{v.footTitle}</strong><p>{v.footText}</p>
     </section>}
     {detailsLink&&<a className="tf-spell-qr" data-card-qr href={detailsLink}

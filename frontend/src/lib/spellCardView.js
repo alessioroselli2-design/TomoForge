@@ -83,6 +83,21 @@ const inferredDamageType = text => {
  const m=text.match(/\bdanni?\s+(?:da|di)\s+(fuoco|freddo|acido|fulmine|tuono|veleno|forza|radiosi?|necrotici?|psichici?|perforanti|contundenti|taglienti)\b/i);
  return m?m[1][0].toUpperCase()+m[1].slice(1).toLowerCase():'';
 };
+// Compact display line only; the full upcasting rule stays in the source and QR.
+export const compactSpellUpcast = raw => {
+  const text=simple(raw).replace(/\s+/g,' ').trim();
+  if(!text)return '';
+  const increment=text.match(/\b(?:aumentano|aumenta|incrementano|incrementa)\s+(?:di\s+)?(\d+d(?:4|6|8|10|12|20))\b/i);
+  const perLevel=/\bper\s+(?:ogni|ciascun)\s+[^.!?]{0,50}\blivello\b/i.test(text);
+  const threshold=text.match(/\b(?:oltre|sopra|superiore)\s+(?:(?:al|a|il|lo|del|di)\s+)?(\d+)\s*[°º]?\b?/i);
+  if(increment && perLevel && /\bdann[oi]\b/i.test(text)){
+    return `+${increment[1]} danni per livello dello slot${threshold?' oltre il '+threshold[1]+'°':''}`;
+  }
+  // When a rule cannot be summarized without guessing, retain source words.
+  const essential=text.match(/\b(?:aumentano?|aggiung[ei]|ottien[ei]|puo(?:i|nno)|può)\b.{0,85}/i);
+  return shrink((essential?.[0]||text).replace(/[.;, ]+$/,''),67);
+};
+
 const compactComponents = value => {
  const text=simple(value);
  const m=text.match(/^\s*([VSM](?:\s*,\s*[VSM]){0,2})(?:\s|,|\(|$)/i);
@@ -116,7 +131,8 @@ export const buildSpellCardView = (card={},spellcasting=null) => {
   const fullEffect=parsed.fullEffect||source;
   const duration=pick(a,['durata','duration'])||parsed.fields.durata||'—';
   const concentration=flag(a.concentrazione)||/concentrazion|concentration/i.test(duration)||/\brichiede\s+concentrazione\b/i.test(fullEffect);
-  const ritual=flag(a.rituale)||flag(a.ritual);
+  const ritual=flag(a.rituale)||flag(a.ritual)||
+    /\(\s*rituale\s*\)/i.test(source.slice(0,180));
   const durationClean=duration.replace(/^(?:concentrazione[,;:]?\s*(?:fino\s+a\s*)?|concentration[,;:]?\s*(?:up\s+to\s*)?)/i,'').trim();
   const shownDuration=(concentration?'Conc. ':'')+(durationClean||'—');
   const desc=parsed.narrative;
@@ -141,9 +157,11 @@ export const buildSpellCardView = (card={},spellcasting=null) => {
   const dieAsset=die?`/card-art/spell-dice/${die}-${['d12','d20'].includes(die)?'clean-v32':'blank-v31'}.webp`:'';
   const upcast=pick(a,['aumento_livello','livelli_superiori','ai_livelli_superiori','a_livelli_superiori','potenziamento','livelli_piu_alti','higher_levels','scaling'])||parsed.upcast;
   const footTitle=upcast?'Aumento di livello':'';
-  const footText=upcast;
+  const footText=compactSpellUpcast(upcast);
+  const footTextFull=upcast;
+  const castTime=pick(a,['tempo_lancio','tempo_di_lancio','casting_time','azione'])||parsed.fields['tempo di lancio']||'—';
   const basics=[
-    {label:'Tempo',value:pick(a,['tempo_lancio','tempo_di_lancio','casting_time','azione'])||parsed.fields['tempo di lancio']||'—',icon:'tempo'},
+    {label:'Tempo',value:ritual?(castTime==='—'?'Rituale':castTime+' · Rit.'):castTime,icon:'tempo'},
     {label:'Gittata',value:pick(a,['gittata','range','raggio_azione'])||parsed.fields.gittata||'—',icon:'gittata'},
     {label:'Durata',value:shownDuration||'—',icon:'durata'},
     {label:'Componenti',value:compactComponents(pick(a,['componenti','components'])||parsed.fields.componenti)||'—',icon:'componenti'},
@@ -158,6 +176,6 @@ export const buildSpellCardView = (card={},spellcasting=null) => {
     subtitle:school?`Incantesimo di ${school}`:'Incantesimo',
     level:level === '0'?'0':level,levelLabel:level==='0'?'TRUC.':'LIV.',
     schoolAsset:spellSchoolAsset(school),basics,combat,description:desc,fullDescription:source,quickEffect,
-    concentration,ritual,spellDC,attackBonus,footTitle,footText,damageFormula:dice,dieAsset,
+    concentration,ritual,spellDC,attackBonus,footTitle,footText,footTextFull,damageFormula:dice,dieAsset,
   };
 };
