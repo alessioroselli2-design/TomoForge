@@ -94,7 +94,7 @@
   text-shadow:0 1px 3px #310808;}
 /* Short game mechanic only: keep both lines inside the lower parchment,
    above the already approved bottom engraving and gem. */
-.tf-spell-footnote{position:absolute;left:9%;top:85.6%;width:78%;height:7.3%;
+.tf-spell-footnote{position:absolute;left:9%;top:84.2%;width:78%;height:7.3%;
   overflow:hidden;color:#2d190e;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:2px;text-align:center;}
 .tf-spell-footnote strong{display:block;font:700 clamp(8px,2.45cqw,10px)/1.1 Georgia,serif;}
