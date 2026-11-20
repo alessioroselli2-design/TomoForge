@@ -384,6 +384,40 @@ async function renderApprovedSpell(element, card) {
    return canvas;
  } finally {stage.remove();}
 }
+// Privilegi use their own approved DOM composition. Capture the real card
+// for PNG, single PDF, A4 and duplex, exactly as for Incantesimi.
+async function renderApprovedFeature(element, card) {
+ const source=element.matches?.('[data-front-category="feature"]')
+   ? element : element.querySelector?.('[data-front-category="feature"]');
+ if(!source)throw new Error("Anteprima Privilegio di classe non disponibile");
+ const {width,height,scale}=CARD_CANVAS_SIZE;
+ const stage=document.createElement("div");
+ Object.assign(stage.style,{
+   position:"fixed",left:"0",top:"0",width:String(width)+"px",height:String(height)+"px",
+   pointerEvents:"none",zIndex:"-2147483647",
+ });
+ const clone=source.cloneNode(true);
+ Object.assign(clone.style,{width:"100%",height:"100%"});
+ const originalCanvas=source.querySelectorAll("canvas");
+ const clonedCanvas=clone.querySelectorAll("canvas");
+ originalCanvas.forEach((original,i)=>{
+   const destination=clonedCanvas[i];
+   if(!destination)return;
+   destination.width=original.width;destination.height=original.height;
+   destination.getContext("2d")?.drawImage(original,0,0);
+ });
+ stage.appendChild(clone);document.body.appendChild(stage);
+ try {
+   await waitForImages(clone);
+   if(document.fonts?.ready)await document.fonts.ready;
+   const canvas=await html2canvas(clone,{
+     scale,width,height,backgroundColor:null,useCORS:true,logging:false,
+     scrollX:0,scrollY:0,
+   });
+   canvas.artworkDrawn=!!(clone.querySelector(".tf-feature-artwork img"));
+   return canvas;
+ } finally {stage.remove();}
+}
 // Existing renderer remains untouched for Class, Monster and all other types.
 export async function renderCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
@@ -394,6 +428,9 @@ export async function renderCardCanvas(element,card){
  if(card?.type==="spell" && (element.matches?.('[data-front-category="spell"]') ||
    element.querySelector?.('[data-front-category="spell"]')))
    return renderApprovedSpell(element,card);
+ if(card?.type==="feature" && (element.matches?.('[data-front-category="feature"]') ||
+   element.querySelector?.('[data-front-category="feature"]')))
+   return renderApprovedFeature(element,card);
  return renderApprovedMaster(element,card);
 }
 
