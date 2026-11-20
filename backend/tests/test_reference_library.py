@@ -4886,3 +4886,29 @@ def test_review_cannot_verify_a_record_without_complete_text():
 
     assert error.value.status_code == 422
     assert test_db.private_reference_review_history.rows == []
+
+def test_spell_payload_infers_ritual_from_header_and_concentration_from_duration():
+    record = make_reference(
+        "Divinazione di prova", reference_type="spell",
+        full_text=(
+            "Divinazione di 2° livello (rituale) Tempo di Lancio: 1 azione "
+            "Gittata: 9 metri Componenti: V, S Durata: Concentrazione, fino a 1 minuto "
+            "Una luce illumina una creatura."
+        ),
+        attributes={"tempo_lancio": "1 azione", "durata": "Concentrazione, fino a 1 minuto"},
+    )
+    payload = reference_to_card_payload(record)
+    assert payload["attributes"]["rituale"] == "Sì"
+    assert payload["attributes"]["concentrazione"] == "Sì"
+
+
+def test_spell_payload_leaves_ordinary_spell_without_manual_flags():
+    record = make_reference(
+        "Raggio normale", reference_type="spell",
+        full_text="Invocazione di 1° livello Tempo di Lancio: 1 azione Durata: Istantanea",
+        attributes={"tempo_lancio": "1 azione", "durata": "Istantanea"},
+    )
+    payload = reference_to_card_payload(record)
+    assert not payload["attributes"].get("rituale")
+    assert not payload["attributes"].get("concentrazione")
+

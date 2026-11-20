@@ -1,4 +1,4 @@
-import {buildSpellCardView, SPELL_SCHOOLS, spellSchoolAsset} from './spellCardView';
+import {buildSpellCardView, compactSpellUpcast, SPELL_SCHOOLS, spellSchoolAsset} from './spellCardView';
 import {readFileSync} from 'fs';
 import {resolve} from 'path';
 
@@ -142,5 +142,32 @@ describe('technical headers and visual effect of imported spells',()=>{
  it('does not copy the long material description into the tiny component box',()=>{
   const v=buildSpellCardView({type:'spell',description:"Il mago crea una fiamma.",attributes:{componenti:"V, S, M (una piccola sfera di sterco di pipistrello e zolfo)"}});
   expect(v.basics[3].value).toBe('V, S, M');
+ });
+});
+
+describe('compact upcasting and automatic ritual/concentration',()=>{
+ it('fits the real Palla di Fuoco scaling into one short sentence',()=>{
+  const source="Quando l’incantatore lancia questo incantesimo usando uno slot incantesimo di 4° livello o superiore, i danni aumentano di 1d6 per ogni slot di livello superiore al 3°.";
+  expect(compactSpellUpcast(source)).toBe('+1d6 danni per livello dello slot oltre il 3°');
+  const view=buildSpellCardView({type:'spell',attributes:{livello:'3',aumento_livello:source}});
+  expect(view.footText).toBe('+1d6 danni per livello dello slot oltre il 3°');
+  expect(view.footTextFull).toBe(source);
+ });
+ it('keeps a brief source-based fallback and hides the footer without a rule',()=>{
+  expect(compactSpellUpcast('')).toBe('');
+  expect(buildSpellCardView({type:'spell',attributes:{}}).footTitle).toBe('');
+  expect(compactSpellUpcast('Quando usi uno slot più alto, puoi scegliere un bersaglio aggiuntivo.').length).toBeLessThanOrEqual(68);
+ });
+ it('automatically reads concentration from duration and ritual from the imported header',()=>{
+  const ritual=buildSpellCardView({type:'spell',description:'Divinazione di 2° livello (rituale) Tempo di Lancio: 1 azione. La magia rivela segreti.',attributes:{durata:'Concentrazione, fino a 1 minuto',tempo_lancio:'1 azione'}});
+  expect(ritual.ritual).toBe(true);
+  expect(ritual.concentration).toBe(true);
+  expect(ritual.basics[0].value).toBe('1 azione · Rit.');
+  expect(ritual.basics[2].value).toBe('Conc. 1 minuto');
+  const plain=buildSpellCardView({type:'spell',attributes:{tempo_lancio:'1 azione',durata:'Istantanea'}});
+  expect(plain.ritual).toBe(false);
+  expect(plain.concentration).toBe(false);
+  expect(plain.basics[0].value).toBe('1 azione');
+  expect(plain.basics[2].value).toBe('Istantanea');
  });
 });

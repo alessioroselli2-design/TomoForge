@@ -1177,6 +1177,23 @@ def reference_to_card_payload(record: dict) -> dict:
         full_text = record.get("full_text") or ""
         extracted_attributes = _attributes("spell", full_text)
         attributes = {**extracted_attributes, **attributes}
+        # Flags belong to the imported rule, not to a manual editor switch.
+        # Recognize ritual only in the casting/header section, not in narrative
+        # examples about a character performing another ritual.
+        header = re.split(
+            r"\b(?:Tempo\s+di\s+Lancio|Gittata|Componenti|Durata)\s*:",
+            full_text, maxsplit=1, flags=re.IGNORECASE,
+        )[0][:220]
+        if not any(attributes.get(k) for k in ("rituale", "ritual")):
+            if re.search(r"\britual(?:e)?\b", header, flags=re.IGNORECASE):
+                if not re.search(r"\bnon\s+(?:[èe]\s+)?rituale\b", header, flags=re.IGNORECASE):
+                    attributes["rituale"] = "Sì"
+        duration_field = str(attributes.get("durata") or "")
+        if not attributes.get("concentrazione") and re.search(
+            r"\b(?:concentrazione|concentraci[oó]n|concentration)\b",
+            duration_field, flags=re.IGNORECASE,
+        ):
+            attributes["concentrazione"] = "Sì"
         # The short description can be cut off before 'Ai livelli superiori'.
         # Supply only that mechanic from the original full_text; no DB write.
         scaling_keys = (
