@@ -62,6 +62,12 @@ export const getFrontEmblem = (card = {}) => {
  // The existing gold circular card well stays entirely untouched.
  // Full-resolution, independent PNGs: original rim and gems are never cropped,
  // feathered, transformed or overprinted by a second medallion layer.
+ if (type === "feature") {
+   // Exact approved sapphire-and-gold user artwork; never upscale atlas tile 38.
+   return {sprite:"feature-original",index:38,col:0,row:0,label:"Privilegi",
+     src:"/emblemi/privilegi-originale-v2.webp",width:128,height:128,cell:128,
+     backgroundPosition:"center",backgroundSize:"100% 100%"};
+ }
  if (type === "spell") {
    // The 8 complete, transparent original school PNGs supersede the 44px atlas.
    // Keep the legacy atlas index for consumers that track it.
