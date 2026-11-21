@@ -1,30 +1,31 @@
-import { buildFeatureCardView, featureSentenceExcerpt } from "./featureCardView";
-describe("feature card: live verified attributes",()=>{
- it("maps activation, uses, recovery, level and progression",()=>{
-  const attrs={classe:"Druido",livello:2,tipo_attivazione:"Azione",
-    utilizzi_disponibili:2,recupero_utilizzi:"Riposo breve",
-    progressione:"Il GS massimo aumenta ai livelli superiori."};
-  const card={type:"feature",name:"Forma Selvatica",attributes:attrs,
-    description:"Puoi trasformarti in una bestia."};
-  const v=buildFeatureCardView(card);
-  expect([v.activation,v.uses,v.recovery]).toEqual(["Azione","2","Riposo breve"]);
-  expect(v.progression).toBe(attrs.progressione);
-  expect(v.improvement).toBe(v.progression);
+import {buildFeatureCardView,featureSentences} from "./featureCardView";
+describe("privilege fields reflect actual TomoForge metadata",()=>{
+ it("uses typed record attributes when present",()=>{
+  const v=buildFeatureCardView({type:"feature",name:"Forma Selvatica",description:"Come azione, puoi trasformarti.",
+   attributes:{classe_genitore:"Druido",livello:2,utilizzi_per_riposo:2,
+    recupero_utilizzi:"Riposo breve o lungo",limiti_forma_selvatica:[
+     {livello:2,gs_max:"1/4"},{livello:4,gs_max:"1/2"},{livello:8,gs_max:"1"}
+    ]}});
+  expect(v.subtitle).toBe("Druido • Privilegio di Classe");
   expect(v.level).toBe("2");
-  expect(attrs.livello).toBe(2);
+  expect(v.uses).toBe("2");
+  expect(v.activation).toBe("Azione");
+  expect(v.recovery).toBe("Riposo breve o lungo");
+  expect(v.progression).toContain("8° livello: GS 1");
  });
- it("keeps absent fields and progression empty; never invents usage limits",()=>{
-  const v=buildFeatureCardView({type:"feature",name:"Un tratto",description:"Un effetto passivo."});
+ it("does not fabricate empty stats",()=>{
+  const v=buildFeatureCardView({type:"feature",description:"Fornisce una competenza.",attributes:{}});
   expect(v.activation).toBe("");
   expect(v.uses).toBe("");
   expect(v.recovery).toBe("");
   expect(v.progression).toBe("");
  });
- it("derives action only when explicitly stated in the description",()=>{
-  expect(buildFeatureCardView({description:"Come azione, puoi farlo."}).activation).toBe("Azione");
-  expect(buildFeatureCardView({description:"Usi la tua magia."}).activation).toBe("");
+ it("keeps sentence boundaries for measured text",()=>{
+  expect(featureSentences("Prima. Seconda completa.")).toEqual(["Prima.","Prima. Seconda completa."]);
  });
- it("never cuts a printed sentence halfway",()=>{
-  expect(featureSentenceExcerpt("Prima frase. Seconda frase molto lunga.",20)).toBe("Prima frase.");
+ it("reads parent from the reference payload when attributes lack classe",()=>{
+  const v=buildFeatureCardView({parent_class:"Paladino",level:3,attributes:{}});
+  expect(v.subtitle).toBe("Paladino • Privilegio di Classe");
+  expect(v.level).toBe("3");
  });
 });

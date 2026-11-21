@@ -1,123 +1,189 @@
-/* Privilegi: authentic approved Class-family frame with ONLY legacy inner
-   ink/die removed inside the dedicated master asset. No glued CSS panels. */
-.tf-feature-master {
- position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;
- box-sizing:border-box;container-type:inline-size;
- background-image:url("../../public/card-art/master-privilegi-5x7-v4.svg");
- background-size:100% 100%;background-position:center;background-repeat:no-repeat;
- font-family:'Spectral',Georgia,serif;color:#291709;
+/* The feature category has its OWN single approved raster master.
+   Every rule is scoped to data-front-category="feature"; no overrides from
+   class/spell/monster CSS and no legacy feature-specific !important patches. */
+[data-front-category="feature"] {
+ position:relative;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ box-sizing:border-box;
+ isolation:isolate;
+ container-type:inline-size;
+ background-image:url("/card-art/master-privilegi-5x7.png");
+ background-position:center;
+ background-repeat:no-repeat;
+ background-size:100% 100%;
+ color:#281609;
+ font-family:"Spectral",Georgia,serif;
 }
-.tf-feature-master *{box-sizing:border-box;}
-/* Exactly the same unmasked 27.5% medal geometry as approved Spell schools:
-   center x=15.8%, center y=10.1%. No secondary gold ring or crop. */
-.tf-feature-medallion {
- position:absolute;left:2.05%;top:.2786%;width:27.5%;aspect-ratio:1;z-index:14;
- overflow:visible;border:0;border-radius:0;background:transparent;
- box-shadow:none;filter:none;clip-path:none;mask:none;-webkit-mask:none;
- /* Black from the original square must disappear into the approved red/gold
-    medallion below. Blend the WHOLE layer, not the nested image: the parent is
-    a z-index stacking context, so blending only the child kept a black square. */
+[data-front-category="feature"] * {box-sizing:border-box;}
+/* Emblem entirely visible, with no crop, dark square, masking or CSS effects. */
+[data-front-category="feature"] .tf-feature-medallion {
+ position:absolute;
+ left:2.75%;
+ top:0%;
+ width:25.7%;
+ aspect-ratio:1;
+ z-index:14;
+ overflow:visible;
+ background:transparent;
+ border:0;
+ border-radius:0;
 }
-.tf-feature-original-emblem {
- display:block;width:100%;height:100%;object-fit:contain;
- border:0;border-radius:0;transform:none;filter:none;
- clip-path:none;
- /* Remove the square black outer background without blending gold/blue
-    into the red socket or altering the original approved emblem colors. */
- -webkit-mask-image:radial-gradient(circle closest-side, #000 90%, transparent 100%);
- mask-image:radial-gradient(circle closest-side, #000 90%, transparent 100%);
+[data-front-category="feature"] .tf-feature-original-emblem {
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:contain;
+ max-width:none;
+ max-height:none;
+ border:0;
+ border-radius:0;
 }
-.tf-feature-heading {
- position:absolute;left:28.2%;top:3.75%;width:43.6%;height:11.2%;
- display:flex;flex-direction:column;align-items:center;justify-content:center;
- gap:2px;text-align:center;z-index:5;
+[data-front-category="feature"] .tf-feature-heading {
+ position:absolute;
+ left:28.5%;
+ top:4.2%;
+ width:44.3%;
+ height:9.8%;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:2px;
+ text-align:center;
+ z-index:5;
 }
-.tf-feature-heading h3 {
- margin:0;max-width:100%;font:700 clamp(14px,5.7cqw,21px)/1.04 'Cormorant Garamond',Georgia,serif;
- color:#271608;overflow-wrap:break-word;text-wrap:balance;
+[data-front-category="feature"] .tf-feature-title {
+ width:100%;
+ max-width:100%;
+ height:25px;
+ margin:0;
+ overflow:hidden;
+ white-space:nowrap;
+ text-overflow:ellipsis;
+ font:700 21px/1.05 "Cormorant Garamond",Georgia,serif;
 }
-.tf-feature-heading p {
- margin:0;max-width:100%;font:500 clamp(7.3px,2.58cqw,9.7px)/1.09 'Spectral',Georgia,serif;
- color:#452d1c;overflow-wrap:break-word;
+[data-front-category="feature"] .tf-feature-subtitle {
+ max-width:100%;
+ width:100%;
+ height:13px;
+ margin:0;
+ overflow:hidden;
+ white-space:nowrap;
+ text-overflow:ellipsis;
+ font:500 10px/1.05 "Spectral",Georgia,serif;
 }
-.tf-feature-level {
- position:absolute;left:75.0%;top:2.25%;width:19.2%;height:13.0%;
- display:flex;flex-direction:column;align-items:center;justify-content:center;
- text-align:center;gap:2px;z-index:5;color:#fff0d3;text-shadow:0 1px 3px #1d020b;
+[data-front-category="feature"] .tf-feature-level {
+ position:absolute;
+ left:76.1%;
+ top:2.35%;
+ width:17%;
+ height:13.3%;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex-direction:column;
+ gap:2px;
+ color:#fff2d5;
+ text-align:center;
+ text-shadow:0 1px 3px #260708;
+ z-index:9;
 }
-.tf-feature-level strong {font:700 clamp(23px,7.8cqw,30px)/1 Georgia,serif;}
-.tf-feature-level span {font:700 clamp(7px,2.45cqw,9px)/1 Georgia,serif;}
-/* User-selected image ONLY; leave the exact original central parchment empty. */
-.tf-feature-artwork {
- position:absolute;left:5.5%;top:16.9%;width:89%;height:27.7%;
- background:transparent;border:0;overflow:hidden;z-index:2;
+[data-front-category="feature"] .tf-feature-level strong{
+ font:700 clamp(17px,8.7cqw,34px)/1 Georgia,serif;
 }
-.tf-feature-artwork img {width:100%;height:100%;display:block;object-fit:cover;}
-/* Three printed wells from the approved master. Only live icon, label and
-   value are placed here; no borders, backing panels, or extra ornaments. */
-/* The master engraves all three wells. Dynamic data must remain inside
-   those wells at 340px editor size AND in PNG/PDF captures. */
-.tf-feature-stats {
- position:absolute;left:4.9%;top:45.35%;width:90.2%;height:12.5%;
- display:grid;grid-template-columns:35.1% 29.5% 35.4%;
- gap:0;background:transparent;z-index:5;
+[data-front-category="feature"] .tf-feature-level span{
+ font:700 clamp(6px,2.7cqw,10px)/1 Georgia,serif;
 }
-.tf-feature-stat {
- position:relative;display:flex;flex-direction:column;align-items:center;
- justify-content:flex-start;min-width:0;min-height:0;height:100%;
- overflow:hidden;padding:2px 2px 3px;text-align:center;gap:0;
+[data-front-category="feature"] .tf-feature-artwork{
+ position:absolute;
+ left:6.6%;
+ top:16.4%;
+ width:87.8%;
+ height:27.3%;
+ overflow:hidden;
+ background:transparent;
+ z-index:2;
 }
-.tf-feature-stat-title {
- display:flex;align-items:center;justify-content:center;flex:0 0 35%;
- width:98%;max-width:98%;min-width:0;
- font:700 clamp(6.8px,2.18cqw,8.2px)/1.05 'Spectral',Georgia,serif;
- letter-spacing:-.12px;color:#321b0d;
- white-space:normal;overflow-wrap:normal;word-break:normal;text-wrap:balance;
+[data-front-category="feature"] .tf-feature-artwork img{
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:cover;
 }
-.tf-feature-stat-body {
- display:flex;flex:1 1 65%;min-height:0;flex-direction:row;
- align-items:center;justify-content:center;gap:3px;
- width:100%;min-width:0;overflow:hidden;
+[data-front-category="feature"] .tf-feature-stats{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ z-index:6;
 }
-.tf-feature-stat-body img {
- display:block;width:23%;max-width:26px;min-width:20px;
- height:auto;max-height:34px;aspect-ratio:1;object-fit:contain;
- flex:0 0 auto;
+[data-front-category="feature"] .tf-feature-stat-value{
+ position:absolute;
+ top:48.9%;
+ height:4.9%;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ overflow:hidden;
+ padding:0 1px;
+ text-align:center;
 }
-.tf-feature-stat-body strong {
- display:-webkit-box;min-width:0;max-width:74%;max-height:100%;
- font:700 clamp(7px,2.25cqw,8.6px)/1.08 'Spectral',Georgia,serif;
- color:#241308;white-space:normal;overflow:hidden;overflow-wrap:break-word;
- word-break:normal;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
- text-align:left;
+[data-front-category="feature"] .tf-feature-stat-text{
+ display:block;
+ max-width:100%;
+ max-height:100%;
+ width:100%;
+ overflow:hidden;
+ font:600 8.5px/1.11 "Spectral",Georgia,serif;
+ white-space:normal;
+ overflow-wrap:break-word;
+ word-break:normal;
+ text-align:center;
 }
-.tf-feature-parchment{
- position:absolute;left:7.9%;top:63.6%;width:84.2%;height:16.1%;
- z-index:5;background:transparent;border:0;box-shadow:none;overflow:hidden;
+[data-front-category="feature"] .tf-feature-description-area{
+ position:absolute;
+ left:8%;
+ top:58.5%;
+ width:84%;
+ height:22.3%;
+ overflow:hidden;
+ z-index:5;
 }
-.tf-feature-description{
- margin:0;max-height:100%;font:500 clamp(9px,2.9cqw,11px)/1.17 'Spectral',Georgia,serif;
- color:#2a170c;white-space:normal;overflow-wrap:break-word;
- display:-webkit-box;-webkit-box-orient:vertical;
- -webkit-line-clamp:9;line-clamp:9;overflow:hidden;
+[data-front-category="feature"] .tf-feature-description{
+ display:block;
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ text-align:center;
+ color:#2d1a0e;
+ font:500 11px/1.17 "Spectral",Georgia,serif;
+ overflow-wrap:break-word;
+ word-break:normal;
+ white-space:normal;
 }
-.tf-feature-progression{
- position:absolute;left:8.2%;top:82.8%;width:83.2%;height:7.7%;
- z-index:5;text-align:center;display:flex;flex-direction:column;
- justify-content:center;align-items:center;gap:2px;
- overflow:hidden;background:transparent;border:0;
+[data-front-category="feature"] .tf-feature-progression {
+ position:absolute;
+ top:87.3%;
+ left:9%;
+ width:82%;
+ height:6.2%;
+ z-index:5;
+ overflow:hidden;
+ display:flex;
+ align-items:flex-start;
+ justify-content:center;
+ text-align:center;
 }
-.tf-feature-progression strong{
- font:700 clamp(10px,3.5cqw,14px)/1.07 'Cormorant Garamond',Georgia,serif;
- color:#42210e;
+[data-front-category="feature"] .tf-feature-progression-text {
+ display:block;
+ width:100%;
+ max-height:100%;
+ margin:0;
+ overflow:hidden;
+ font:500 10px/1.15 "Spectral",Georgia,serif;
+ color:#34190f;
+ overflow-wrap:break-word;
+ text-align:center;
 }
-.tf-feature-progression p{
- margin:0;max-width:100%;font:500 clamp(8px,2.65cqw,10px)/1.14 'Spectral',Georgia,serif;
- color:#2c190c;display:-webkit-box;-webkit-box-orient:vertical;
- -webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:break-word;
-}
-.tf-feature-qr{
- position:absolute;left:87%;top:84.5%;width:6.2%;aspect-ratio:1;z-index:9;
- padding:1px;background:#fff;border:1px solid #a56b37;
-}
-.tf-feature-qr canvas{display:block;width:100%!important;height:100%!important;}

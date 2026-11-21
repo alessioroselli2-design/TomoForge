@@ -65,7 +65,7 @@ export const getFrontEmblem = (card = {}) => {
  if (type === "feature") {
    // Exact approved sapphire-and-gold user artwork; never upscale atlas tile 38.
    return {sprite:"feature-original",index:38,col:0,row:0,label:"Privilegi",
-     src:"/emblemi/privilegi-originale-v2.webp",width:128,height:128,cell:128,
+     src:"/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png",width:640,height:640,cell:640,
      backgroundPosition:"center",backgroundSize:"100% 100%"};
  }
  if (type === "spell") {
