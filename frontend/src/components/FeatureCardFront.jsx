@@ -17,18 +17,13 @@ export const FeatureCardFront = React.forwardRef(
   const src = imgUrl || (card.artwork_path ? artworkUrl(card.artwork_path) : "");
   React.useEffect(() => setArtError(false), [src]);
   const detailsLink = publicDescriptionUrl(card);
-  const symbolStyle = emblem ? {
-   backgroundImage: "url(" + JSON.stringify(emblem.src) + ")",
-   backgroundPosition: emblem.backgroundPosition,
-   backgroundSize: emblem.backgroundSize,
-  } : undefined;
   return <div ref={ref} data-testid="card-front" data-front-version="7"
    data-front-category="feature" data-front-layout="feature-5x7-v1"
    data-category-layout="feature-5x7-v1"
    className={"tf-feature-master" + (exportMode ? " tf-export-card" : "")}>
    <div className="tf-feature-medallion" data-testid="front-emblem"
      data-emblem-sprite={emblem?.sprite || "none"} aria-label="Simbolo dei privilegi di classe">
-     {emblem && <span className="tf-feature-emblem-icon" style={symbolStyle}/>}
+     {emblem && <img className="tf-feature-original-emblem" src={emblem.src} alt="" draggable={false}/> }
    </div>
    <header className="tf-feature-heading">
     <h3 title={view.name}>{view.name}</h3>
@@ -59,7 +54,6 @@ export const FeatureCardFront = React.forwardRef(
      <QRCodeCanvas value={detailsLink} size={46} level="M" marginSize={1}
        bgColor="#ffffff" fgColor="#10131c"/>
    </a>}
-   <footer className="tf-feature-footer"><span>PRIVILEGI</span></footer>
   </div>;
  });
 FeatureCardFront.displayName = "FeatureCardFront";
