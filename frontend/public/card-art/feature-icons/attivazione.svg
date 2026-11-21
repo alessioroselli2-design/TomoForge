@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+<defs>
+ <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+  <stop stop-color="#4e210c"/><stop offset=".24" stop-color="#d47e25"/><stop offset=".47" stop-color="#fff1a4"/><stop offset=".7" stop-color="#bc6c1a"/><stop offset="1" stop-color="#562408"/>
+ </linearGradient>
+ <linearGradient id="shiny" x1="0" y1="0" x2="0.9" y2="1">
+  <stop stop-color="#fff8c1"/><stop offset=".25" stop-color="#ffc25e"/><stop offset=".55" stop-color="#d27f1e"/><stop offset="1" stop-color="#77330f"/>
+ </linearGradient>
+ <radialGradient id="ruby" cx=".32" cy=".24" r=".85">
+  <stop stop-color="#fff2c6"/><stop offset=".19" stop-color="#ff7774"/><stop offset=".48" stop-color="#d6143a"/><stop offset=".74" stop-color="#851024"/><stop offset="1" stop-color="#330510"/>
+ </radialGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="170%" height="170%">
+  <feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-color="#2b1207" flood-opacity=".7"/>
+ </filter>
+</defs><g filter="url(#shadow)" stroke-linejoin="round" stroke-linecap="round">
+ <path d="M41 162 Q30 148 30 130 L29 86 Q30 78 37 78Q46 78 47 86 L48 50Q48 39 58 39Q69 39 69 51L70 33Q70 22 81 22Q92 22 92 34L94 24Q96 13 107 15Q117 16 117 27L121 51Q126 43 134 40Q144 37 151 44Q158 51 151 63L137 97Q153 88 160 97Q166 105 157 118L130 158Z" fill="url(#metal)" stroke="#3d1a08" stroke-width="7"/>
+ <path d="M47 104L47 129M69 55L69 93M92 36L94 88M119 55L119 91" stroke="#ffdd83" stroke-width="3.5" opacity=".85"/>
+ <path d="M94 71L103 87L124 85L110 100L115 121L96 111L80 124L82 104L65 95L87 90Z" fill="url(#shiny)" stroke="#fff2b3" stroke-width="3"/>
+ <path d="M96 56L99 86L132 94L101 100L94 132L89 102L60 94L89 88Z" fill="#fff8d0" opacity=".75"/>
+</g></svg>

@@ -1,28 +1,30 @@
 import { buildFeatureCardView, featureSentenceExcerpt } from "./featureCardView";
-
-describe("privilege card — uses the actual record", () => {
- it("maps class, level, description and improvements without invented values", () => {
-   const card = {
-     type:"feature", name:"Forma Selvatica",
-     description:"Puoi assumere una forma animale a te nota.",
-     attributes:{classe:"Druido",livello:2,miglioramenti:"La trasformazione migliora ai livelli successivi."},
-   };
-   const view=buildFeatureCardView(card);
-   expect(view.name).toBe("Forma Selvatica");
-   expect(view.subtitle).toBe("Druido • Privilegio di Classe");
-   expect(view.level).toBe("2");
-   expect(view.description).toBe(card.description);
-   expect(view.improvement).toBe(card.attributes.miglioramenti);
-   expect(card.attributes.livello).toBe(2);
+describe("feature card: live verified attributes",()=>{
+ it("maps activation, uses, recovery, level and progression",()=>{
+  const attrs={classe:"Druido",livello:2,tipo_attivazione:"Azione",
+    utilizzi_disponibili:2,recupero_utilizzi:"Riposo breve",
+    progressione:"Il GS massimo aumenta ai livelli superiori."};
+  const card={type:"feature",name:"Forma Selvatica",attributes:attrs,
+    description:"Puoi trasformarti in una bestia."};
+  const v=buildFeatureCardView(card);
+  expect([v.activation,v.uses,v.recovery]).toEqual(["Azione","2","Riposo breve"]);
+  expect(v.progression).toBe(attrs.progressione);
+  expect(v.improvement).toBe(v.progression);
+  expect(v.level).toBe("2");
+  expect(attrs.livello).toBe(2);
  });
- it("never invents a level or upgrades when absent", () => {
-   const view=buildFeatureCardView({type:"feature",name:"Privilegio",attributes:{}});
-   expect(view.level).toBe("");
-   expect(view.improvement).toBe("");
-   expect(view.subtitle).toBe("Privilegio di Classe");
+ it("keeps absent fields and progression empty; never invents usage limits",()=>{
+  const v=buildFeatureCardView({type:"feature",name:"Un tratto",description:"Un effetto passivo."});
+  expect(v.activation).toBe("");
+  expect(v.uses).toBe("");
+  expect(v.recovery).toBe("");
+  expect(v.progression).toBe("");
  });
- it("does not cut a sentence halfway", () => {
-   expect(featureSentenceExcerpt("Prima frase. Seconda frase molto lunga.",20))
-     .toBe("Prima frase.");
+ it("derives action only when explicitly stated in the description",()=>{
+  expect(buildFeatureCardView({description:"Come azione, puoi farlo."}).activation).toBe("Azione");
+  expect(buildFeatureCardView({description:"Usi la tua magia."}).activation).toBe("");
+ });
+ it("never cuts a printed sentence halfway",()=>{
+  expect(featureSentenceExcerpt("Prima frase. Seconda frase molto lunga.",20)).toBe("Prima frase.");
  });
 });
