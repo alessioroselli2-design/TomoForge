@@ -1,0 +1,56 @@
+name: Import approved Privilegi images
+on:
+  push:
+    branches: ["feat/privilegi-master-5x7-20261121"]
+    paths:
+      - "TomoForge-Privilegi-master-e-simbolo.zip"
+      - ".github/workflows/import-privilegi-assets.yml"
+permissions:
+  contents: write
+jobs:
+  import-privilegi-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Extract only the approved images from uploaded ZIP
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib, struct, zipfile
+          root=pathlib.Path.cwd()
+          archive=root/"TomoForge-Privilegi-master-e-simbolo.zip"
+          if not archive.is_file():
+              print("No uploaded ZIP yet. Waiting for the approved file.")
+              raise SystemExit(0)
+          targets={
+             "frontend/public/card-art/master-privilegi-5x7.png",
+             "frontend/public/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png",
+          }
+          with zipfile.ZipFile(archive) as zipf:
+              for target in sorted(targets):
+                  data=zipf.read(target)
+                  assert data[:8]==b"\x89PNG\r\n\x1a\n", f"Not PNG: {target}"
+                  width,height=struct.unpack(">II",data[16:24])
+                  color_type=data[25]
+                  if "master" in target:
+                      assert width==1024 and height in {1434,1536},(target,width,height)
+                  else:
+                      assert width>=320 and height>=320 and color_type==6, (target,width,height,color_type)
+                  p=root/target
+                  p.parent.mkdir(parents=True,exist_ok=True)
+                  p.write_bytes(data)
+                  print(f"Installed {target} ({width} x {height}, {len(data)} bytes)")
+          archive.unlink()
+          PY
+      - name: Commit original images and remove transfer ZIP
+        run: |
+          if [ ! -e frontend/public/card-art/master-privilegi-5x7.png ]; then
+            echo "Original image ZIP not uploaded yet"; exit 0
+          fi
+          git add frontend/public/card-art/master-privilegi-5x7.png frontend/public/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png
+          git add -u -- TomoForge-Privilegi-master-e-simbolo.zip
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "assets(feature): import original approved master and emblem"
+          git push origin HEAD:feat/privilegi-master-5x7-20261121
