@@ -10,11 +10,6 @@ const FORMA_SELVATICA={
   progressione:"Il limite del grado di sfida aumenta ai livelli successivi.",
  }
 };
-const icons=[
- ["Attivazione","/card-art/feature-icons/attivazione.svg"],
- ["Utilizzi disponibili","/card-art/feature-icons/utilizzi.svg"],
- ["Recupero degli utilizzi","/card-art/feature-icons/recupero.svg"],
-];
 export default function FeatureCardPreview(){
  const [withProgression,setWithProgression]=React.useState(true);
  const card=React.useMemo(()=>({...FORMA_SELVATICA,attributes:{
@@ -28,12 +23,6 @@ export default function FeatureCardPreview(){
     <p className="text-sm text-foreground/75 mt-2 mb-4">
       Anteprima dedicata senza login e senza merge. È il renderer reale del ramo di prova.
     </p>
-    <section className="grid grid-cols-3 gap-2 mb-5" aria-label="Simboli dei privilegi">
-      {icons.map(([label,src])=><div key={label} className="flex flex-col items-center gap-1 border border-gold-deep/40 rounded p-2">
-        <img src={src} alt={label} className="h-12 w-12 object-contain"/>
-        <span className="text-xs text-foreground/85">{label}</span>
-      </div>)}
-    </section>
     <div className="mx-auto" style={{width:"min(100%,360px)",aspectRatio:"5 / 7"}}>
       <CardFront card={card} editorMode />
     </div>
