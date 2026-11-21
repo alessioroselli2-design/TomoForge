@@ -34,7 +34,7 @@ describe("approved TomoForge front medal rules",()=>{
    expect(exporter).toContain('data.type==="spell"&&data.emblem.sprite==="school-original"');
  });
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
-  expect(getFrontEmblem({type:"feature"}).index).toBe(38);
+  expect(getFrontEmblem({type:"feature"})).toMatchObject({index:38,sprite:"feature-original",src:"/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png"});
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
   expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
  });

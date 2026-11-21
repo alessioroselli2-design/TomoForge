@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="980" viewBox="0 0 700 980">
+<defs>
+<linearGradient id="gold" x1="0" x2=".8" y1="0" y2="1"><stop stop-color="#58260a"/><stop offset=".12" stop-color="#cc7d25"/><stop offset=".29" stop-color="#fff5aa"/><stop offset=".47" stop-color="#ae5a17"/><stop offset=".65" stop-color="#ffdc71"/><stop offset=".85" stop-color="#8d3e12"/><stop offset="1" stop-color="#40200a"/></linearGradient>
+<linearGradient id="bright" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff7b4"/><stop offset=".35" stop-color="#e5ab41"/><stop offset=".55" stop-color="#783b0e"/><stop offset=".79" stop-color="#efc05b"/><stop offset="1" stop-color="#fff2ad"/></linearGradient>
+<radialGradient id="paper"><stop stop-color="#fff5d9"/><stop offset=".69" stop-color="#f8e6c4"/><stop offset="1" stop-color="#ebcc9d"/></radialGradient>
+<radialGradient id="ruby" cx=".3" cy=".25"><stop stop-color="#ffebe0"/><stop offset=".22" stop-color="#ff6a5b"/><stop offset=".48" stop-color="#c81230"/><stop offset=".75" stop-color="#620b1f"/><stop offset="1" stop-color="#25061b"/></radialGradient>
+<radialGradient id="dark"><stop stop-color="#55203a"/><stop offset=".63" stop-color="#230e21"/><stop offset="1" stop-color="#080a12"/></radialGradient>
+<g id="gem"><path d="M0-19 18 0 0 19-18 0Z" fill="url(#gold)" stroke="#391b0b" stroke-width="2.6"/><path d="M0-13 12 0 0 13-12 0Z" fill="url(#ruby)" stroke="#ffeb8d" stroke-width="1.4"/><path d="M0-11 2-1 0 10-2-1Z" fill="#fff4c3" opacity=".65"/></g>
+<g id="corner"><path d="M-38 0Q-6-13 0-41Q8-10 38 0Q7 11 0 41Q-8 12-38 0Z" fill="url(#gold)" stroke="#4d2209" stroke-width="4"/><path d="M-26 0Q-5-7 0-28Q5-7 26 0Q5 7 0 28Q-5 7-26 0Z" fill="url(#ruby)" stroke="#ffdd6a" stroke-width="2"/><circle r="4" fill="#fff3cb"/></g>
+<g id="sprig" fill="none" stroke="url(#bright)" stroke-width="4" stroke-linecap="round"><path d="M0 0Q45-35 85-4M25-15Q28-40 50-49M49-18Q62-35 79-35"/><path d="M16-10Q12-22 17-35M47-21Q39-34 40-47" stroke-width="2"/></g>
+</defs>
+<rect width="700" height="980" fill="#080910"/>
+<rect x="9" y="11" width="682" height="957" rx="9" fill="url(#gold)" stroke="#180a09" stroke-width="2"/>
+<rect x="18" y="20" width="664" height="940" rx="10" fill="url(#dark)" stroke="url(#bright)" stroke-width="4"/>
+<rect x="25" y="28" width="650" height="926" rx="10" fill="url(#paper)" stroke="#612e0e" stroke-width="4"/>
+<!-- Header, artwork well, parchment and outer frame are ONE raster master, not overlays. -->
+<path d="M29 160V44Q29 28 46 28H654Q670 28 670 44V160" stroke="url(#gold)" stroke-width="10" fill="none"/>
+<path d="M32 504V175Q32 164 45 164H655Q668 164 668 178V501Q668 512 655 512H45Q32 512 32 501Z" fill="url(#paper)" stroke="url(#gold)" stroke-width="10"/>
+<path d="M40 496V184Q40 174 51 174H648Q660 174 660 185V494Q660 503 650 503H50Q40 503 40 494Z" fill="none" stroke="#7b461e" stroke-width="2"/>
+<path d="M32 529Q32 516 45 516H655Q668 516 668 530V933Q668 944 655 944H45Q32 944 32 931Z" fill="url(#paper)" stroke="url(#gold)" stroke-width="11"/>
+<path d="M42 538V922Q42 935 53 935H648Q659 935 659 923V538Q659 527 647 527H53Q42 527 42 538Z" fill="none" stroke="#87501d" stroke-width="2"/>
+<path d="M195 40Q216 32 235 37H465Q489 32 507 45V128Q490 143 464 138H234Q212 143 195 128Z" fill="url(#paper)" stroke="url(#gold)" stroke-width="8"/>
+<path d="M209 48Q224 43 238 43H461Q479 43 493 49M209 127Q225 134 239 132H462Q479 131 493 126" fill="none" stroke="#9a5e2b" stroke-width="2"/>
+<!-- One dark neutral socket for the APPROVED standalone emblem, without a second golden ring. -->
+<circle cx="115" cy="89" r="80" fill="#071020"/>
+<circle cx="582" cy="89" r="81" fill="#210a18" stroke="url(#gold)" stroke-width="8"/>
+<circle cx="582" cy="89" r="72" fill="url(#ruby)" stroke="#5e2709" stroke-width="1.5"/>
+<circle cx="582" cy="89" r="76" fill="none" stroke="#fff0b8" stroke-width="1.8"/>
+<path d="M39 512H662" stroke="#4a1b09" stroke-width="13"/>
+<path d="M42 512H660" stroke="url(#bright)" stroke-width="6"/>
+<path d="M44 518H658" stroke="#fce4a1" stroke-width="1.3"/>
+<path d="M32 190Q18 171 33 155M668 190Q682 171 668 155M32 603Q9 579 31 565M668 603Q691 579 668 565" stroke="url(#gold)" stroke-width="4" fill="none"/>
+<g fill="none" stroke="url(#bright)" stroke-width="3" stroke-linecap="round">
+<path d="M45 211Q78 175 65 211Q47 229 47 203M654 211Q621 175 634 211Q652 229 652 203"/>
+<path d="M45 473Q79 502 64 469Q49 455 47 479M654 473Q620 502 635 469Q650 455 652 479"/>
+<path d="M44 565Q78 538 64 564Q49 580 46 561M655 565Q622 538 635 564Q650 580 653 561"/>
+<path d="M44 904Q79 946 64 900Q53 882 46 907M655 904Q621 946 635 900Q648 882 653 907"/>
+</g>
+<use href="#sprig" transform="translate(201 37) scale(.43)"/>
+<use href="#sprig" transform="translate(497 37) scale(-.43 .43)"/>
+<use href="#sprig" transform="translate(36 158) rotate(93) scale(.35)"/>
+<use href="#sprig" transform="translate(665 160) rotate(87) scale(-.35 .35)"/>
+<use href="#gem" transform="translate(350 26) scale(0.64)"/><use href="#gem" transform="translate(350 153) scale(0.68)"/><use href="#gem" transform="translate(350 512) scale(0.88)"/><use href="#gem" transform="translate(350 945) scale(0.63)"/><use href="#gem" transform="translate(27 512) scale(0.64)"/><use href="#gem" transform="translate(673 512) scale(0.64)"/><use href="#corner" transform="translate(31 31) scale(.67)"/><use href="#corner" transform="translate(669 31) scale(.67)"/><use href="#corner" transform="translate(31 945) scale(.67)"/><use href="#corner" transform="translate(669 945) scale(.67)"/></svg>

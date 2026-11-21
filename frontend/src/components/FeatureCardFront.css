@@ -1,0 +1,188 @@
+/* The feature category has its OWN single approved raster master.
+   Every rule is scoped to data-front-category="feature"; no overrides from
+   class/spell/monster CSS and no legacy feature-specific !important patches. */
+[data-front-category="feature"] {
+ position:relative;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ box-sizing:border-box;
+ isolation:isolate;
+ container-type:inline-size;
+ background-position:center;
+ background-repeat:no-repeat;
+ background-size:100% 100%;
+ color:#281609;
+ font-family:"Spectral",Georgia,serif;
+}
+[data-front-category="feature"] * {box-sizing:border-box;}
+/* Emblem entirely visible, with no crop, dark square, masking or CSS effects. */
+[data-front-category="feature"] .tf-feature-medallion {
+ position:absolute;
+ left:2.75%;
+ top:0%;
+ width:25.7%;
+ aspect-ratio:1;
+ z-index:14;
+ overflow:visible;
+ background:transparent;
+ border:0;
+ border-radius:0;
+}
+[data-front-category="feature"] .tf-feature-original-emblem {
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:contain;
+ max-width:none;
+ max-height:none;
+ border:0;
+ border-radius:0;
+}
+[data-front-category="feature"] .tf-feature-heading {
+ position:absolute;
+ left:28.5%;
+ top:4.2%;
+ width:44.3%;
+ height:9.8%;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:2px;
+ text-align:center;
+ z-index:5;
+}
+[data-front-category="feature"] .tf-feature-title {
+ width:100%;
+ max-width:100%;
+ height:25px;
+ margin:0;
+ overflow:hidden;
+ white-space:nowrap;
+ text-overflow:ellipsis;
+ font:700 21px/1.05 "Cormorant Garamond",Georgia,serif;
+}
+[data-front-category="feature"] .tf-feature-subtitle {
+ max-width:100%;
+ width:100%;
+ height:13px;
+ margin:0;
+ overflow:hidden;
+ white-space:nowrap;
+ text-overflow:ellipsis;
+ font:500 10px/1.05 "Spectral",Georgia,serif;
+}
+[data-front-category="feature"] .tf-feature-level {
+ position:absolute;
+ left:76.1%;
+ top:2.35%;
+ width:17%;
+ height:13.3%;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex-direction:column;
+ gap:2px;
+ color:#fff2d5;
+ text-align:center;
+ text-shadow:0 1px 3px #260708;
+ z-index:9;
+}
+[data-front-category="feature"] .tf-feature-level strong{
+ font:700 clamp(17px,8.7cqw,34px)/1 Georgia,serif;
+}
+[data-front-category="feature"] .tf-feature-level span{
+ font:700 clamp(6px,2.7cqw,10px)/1 Georgia,serif;
+}
+[data-front-category="feature"] .tf-feature-artwork{
+ position:absolute;
+ left:6.6%;
+ top:16.4%;
+ width:87.8%;
+ height:27.3%;
+ overflow:hidden;
+ background:transparent;
+ z-index:2;
+}
+[data-front-category="feature"] .tf-feature-artwork img{
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:cover;
+}
+[data-front-category="feature"] .tf-feature-stats{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ z-index:6;
+}
+[data-front-category="feature"] .tf-feature-stat-value{
+ position:absolute;
+ top:48.9%;
+ height:4.9%;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ overflow:hidden;
+ padding:0 1px;
+ text-align:center;
+}
+[data-front-category="feature"] .tf-feature-stat-text{
+ display:block;
+ max-width:100%;
+ max-height:100%;
+ width:100%;
+ overflow:hidden;
+ font:600 8.5px/1.11 "Spectral",Georgia,serif;
+ white-space:normal;
+ overflow-wrap:break-word;
+ word-break:normal;
+ text-align:center;
+}
+[data-front-category="feature"] .tf-feature-description-area{
+ position:absolute;
+ left:8%;
+ top:58.5%;
+ width:84%;
+ height:22.3%;
+ overflow:hidden;
+ z-index:5;
+}
+[data-front-category="feature"] .tf-feature-description{
+ display:block;
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ text-align:center;
+ color:#2d1a0e;
+ font:500 11px/1.17 "Spectral",Georgia,serif;
+ overflow-wrap:break-word;
+ word-break:normal;
+ white-space:normal;
+}
+[data-front-category="feature"] .tf-feature-progression {
+ position:absolute;
+ top:87.3%;
+ left:9%;
+ width:82%;
+ height:6.2%;
+ z-index:5;
+ overflow:hidden;
+ display:flex;
+ align-items:flex-start;
+ justify-content:center;
+ text-align:center;
+}
+[data-front-category="feature"] .tf-feature-progression-text {
+ display:block;
+ width:100%;
+ max-height:100%;
+ margin:0;
+ overflow:hidden;
+ font:500 10px/1.15 "Spectral",Georgia,serif;
+ color:#34190f;
+ overflow-wrap:break-word;
+ text-align:center;
+}
