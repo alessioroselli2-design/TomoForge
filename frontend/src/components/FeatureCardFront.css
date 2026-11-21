@@ -1,107 +1,88 @@
-/* Privilegi — the SAME carved 5:7 frame as Class, with a feature-only
-   parchment interior. Nothing in this file affects any other category. */
+/* Privilegi: one standalone 5:7 illustrated SVG master. NO Class raster,
+   NO glued parchment panel, NO category footer. Text and image are live. */
 .tf-feature-master {
- position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;
- background-image:url("../../public/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
- background-size:100% 100%;background-position:center;background-repeat:no-repeat;
- box-sizing:border-box;container-type:inline-size;
- color:#2b190d;font-family:'Spectral',Georgia,serif;
+  position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;
+  box-sizing:border-box;container-type:inline-size;
+  background-image:url("/card-art/master-privilegi-5x7-v2.svg");
+  background-size:100% 100%;background-position:center;background-repeat:no-repeat;
+  font-family:'Spectral',Georgia,serif;color:#291709;
 }
 .tf-feature-master *{box-sizing:border-box;}
-/* A single approved emblem, never a second generic disk/ring. The original
-   privilege art is atlas tile 38, also shared by the old front renderer. */
-.tf-feature-medallion{
- position:absolute;left:2.05%;top:.2786%;width:27.5%;aspect-ratio:1;
- background:transparent;z-index:14;overflow:visible;
+/* The approved art includes the only ring. Circle clips square black backdrop
+   ONLY, not the jewel or gold emblem. Same optical centre as Class. */
+.tf-feature-medallion {
+  position:absolute;left:3.55%;top:1.35%;width:24.5%;aspect-ratio:1;
+  z-index:10;overflow:hidden;border-radius:50%;background:#071020;
 }
-.tf-feature-emblem-icon{
- display:block;width:100%;height:100%;background-repeat:no-repeat;
- image-rendering:auto;transform:none;filter:none;
+.tf-feature-original-emblem {
+  display:block;width:100%;height:100%;object-fit:contain;
+  image-rendering:auto;transform:none;filter:none;
 }
-.tf-feature-heading{
- position:absolute;left:28%;top:3.7%;width:44%;height:11%;
- display:flex;flex-direction:column;align-items:center;justify-content:center;
- gap:2px;text-align:center;z-index:4;
+.tf-feature-heading {
+  position:absolute;left:29.2%;top:4.2%;width:41.7%;height:10.6%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;text-align:center;z-index:5;
 }
-.tf-feature-heading h3{
- margin:0;font:700 clamp(14px,5.7cqw,21px)/1.05 'Cormorant Garamond',Georgia,serif;
- color:#251609;overflow-wrap:break-word;max-width:100%;text-wrap:balance;
+.tf-feature-heading h3 {
+  margin:0;max-width:100%;color:#241607;
+  font:700 clamp(14px,5.8cqw,21px)/1.04 'Cormorant Garamond',Georgia,serif;
+  overflow-wrap:break-word;text-wrap:balance;
 }
-.tf-feature-heading p{
- margin:0;font:500 clamp(7.8px,2.7cqw,10.2px)/1.1 'Spectral',Georgia,serif;
- color:#443021;max-width:100%;text-wrap:balance;
+.tf-feature-heading p {
+  margin:0;max-width:100%;color:#432c1c;
+  font:500 clamp(7.5px,2.75cqw,10px)/1.07 'Spectral',Georgia,serif;
+  overflow-wrap:break-word;
 }
-.tf-feature-level{
- position:absolute;left:74.6%;top:3.85%;width:19.2%;height:12.3%;
- display:flex;flex-direction:column;align-items:center;justify-content:center;
- text-align:center;gap:3px;z-index:5;color:#fff4d6;
- text-shadow:0 1px 3px #260c1b;
+.tf-feature-level {
+  position:absolute;left:73.0%;top:2.05%;width:20.5%;height:14.3%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:2px;z-index:6;color:#fff1d6;text-shadow:0 1px 3px #1c0308;
 }
-.tf-feature-level strong{font:700 clamp(22px,8cqw,31px)/1 Georgia,serif;}
-.tf-feature-level span{font:700 clamp(7px,2.45cqw,9px)/1 Georgia,serif;}
-/* The underlying Class master has an EMPTY parchment image well.
-   No placeholder image is inserted; user chooses their own in TomoForge. */
-.tf-feature-artwork{
- position:absolute;left:5.6%;top:17.7%;width:89.1%;height:28.9%;
- background:transparent;overflow:hidden;z-index:2;
+.tf-feature-level strong {font:700 clamp(22px,8cqw,31px)/1 Georgia,serif;}
+.tf-feature-level span {font:700 clamp(7px,2.45cqw,9px)/1 Georgia,serif;}
+/* The illustration remains bare master parchment until user selects one. */
+.tf-feature-artwork {
+  position:absolute;left:5.7%;top:18%;width:88.6%;height:32.9%;
+  overflow:hidden;z-index:2;background:transparent;border:0;
 }
-.tf-feature-artwork img{
- display:block;width:100%;height:100%;object-fit:cover;
+.tf-feature-artwork img {
+  width:100%;height:100%;display:block;object-fit:cover;
 }
-/* With no uploaded illustration, keep only the bare parchment of the
-   approved master: no hint text, icon, or default illustration. */
-.tf-feature-art-hint{display:none;}
-/* Cover ONLY the Class-only baked-in fields under the art. One parchment
-   with an optional separator, as in the approved Forma Selvatica example. */
-.tf-feature-parchment{
- position:absolute;left:5.6%;top:48.3%;width:88.9%;height:44.5%;
- padding:15px 12px 10px;overflow:hidden;z-index:5;
- background:linear-gradient(146deg,#fff4d2 0%,#f8e5bb 45%,#f1d6a4 100%);
- border:1px solid #9b5d2c;border-radius:10px;
- box-shadow:inset 0 0 0 2px rgba(255,229,174,.72),inset 0 0 7px rgba(150,81,24,.2);
+.tf-feature-art-hint {display:none;}
+/* Text-only inside the lower part of the ONE carved master: there is no
+   CSS background, box-shadow or panel/border to paste on top. */
+.tf-feature-parchment {
+  position:absolute;left:7.8%;top:55.3%;width:84.4%;height:38.2%;
+  overflow:hidden;background:transparent!important;border:0!important;
+  padding:0;margin:0;box-shadow:none!important;z-index:3;
 }
-.tf-feature-description{
- margin:0;max-height:100%;overflow:hidden;
- font:500 clamp(9px,2.95cqw,11px)/1.16 'Spectral',Georgia,serif;
- color:#2a180d;white-space:normal;overflow-wrap:break-word;
- display:-webkit-box;-webkit-box-orient:vertical;
- -webkit-line-clamp:15;line-clamp:15;
+.tf-feature-description {
+  margin:0;width:100%;max-height:100%;overflow:hidden;
+  font:500 clamp(9px,2.85cqw,11px)/1.18 'Spectral',Georgia,serif;
+  text-align:left;color:#2b1a0e;white-space:normal;overflow-wrap:break-word;
+  display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:23;line-clamp:23;
 }
-.tf-feature-parchment.has-improvement .tf-feature-description{
- max-height:63%;-webkit-line-clamp:10;line-clamp:10;
+.tf-feature-parchment.has-improvement .tf-feature-description {
+  max-height:70%;-webkit-line-clamp:16;line-clamp:16;
 }
-.tf-feature-improvement{
- position:absolute;left:11px;right:11px;bottom:9px;height:31%;
- border-top:1px solid #aa7644;padding-top:8px;overflow:hidden;
- color:#291708;
+.tf-feature-improvement {
+  position:absolute;left:0;right:0;bottom:0;height:27%;
+  margin:0;padding:6px 0 0;overflow:hidden;background:transparent;border:0;
+  border-top:1px solid #a66c30;color:#291709;
 }
-.tf-feature-improvement::before,.tf-feature-improvement::after{
- content:"✦";position:absolute;top:-7px;font-size:8px;color:#a1672c;
+.tf-feature-improvement strong {
+  display:block;font:700 clamp(11px,3.6cqw,14px)/1.05 'Cormorant Garamond',Georgia,serif;
+  color:#3e220f;
 }
-.tf-feature-improvement::before{left:0;}
-.tf-feature-improvement::after{right:0;}
-.tf-feature-improvement strong{
- display:block;font:700 clamp(11px,3.7cqw,14px)/1.1 'Cormorant Garamond',Georgia,serif;
+.tf-feature-improvement p {
+  margin:3px 0 0;
+  font:500 clamp(8px,2.6cqw,10px)/1.12 'Spectral',Georgia,serif;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;
+  line-clamp:3;overflow:hidden;overflow-wrap:break-word;
 }
-.tf-feature-improvement p{
- margin:3px 0 0;
- font:500 clamp(8px,2.65cqw,10px)/1.15 'Spectral',Georgia,serif;
- display:-webkit-box;-webkit-box-orient:vertical;
- -webkit-line-clamp:3;line-clamp:3;overflow:hidden;overflow-wrap:break-word;
+.tf-feature-qr {
+  position:absolute;left:87%;top:88%;width:6.7%;aspect-ratio:1;z-index:8;
+  padding:1px;background:#fff;border:1px solid #ab7231;
 }
-.tf-feature-qr{
- position:absolute;right:6.4%;top:86.3%;width:6.4%;aspect-ratio:1;
- display:block;padding:1px;background:#fff;border:1px solid #ae7d43;z-index:9;
-}
-.tf-feature-qr canvas{display:block;width:100%!important;height:100%!important;}
-/* Replace only the old Class footer lettering, keeping the master corner art. */
-.tf-feature-footer{
- position:absolute;left:16%;width:68%;bottom:2.0%;height:5.6%;
- display:grid;place-items:center;z-index:11;
- background:linear-gradient(#3f1a0a,#231008 75%);
- border:1px solid #e8ad4e;border-radius:8px;
- box-shadow:inset 0 0 0 1px #57290e;
- color:#fff2d0;text-shadow:0 1px 2px #000;
- font:700 clamp(14px,5.2cqw,19px)/1 'Cinzel',Georgia,serif;
- letter-spacing:.03em;
-}
+.tf-feature-qr canvas {display:block;width:100%!important;height:100%!important;}
