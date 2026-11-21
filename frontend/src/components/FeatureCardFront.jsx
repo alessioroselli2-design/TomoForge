@@ -102,7 +102,7 @@ export const FeatureCardFront=React.forwardRef(
     </div>)}
    </section>
    <section className="tf-feature-description-area" aria-label="Descrizione del privilegio">
-    <FittedText as="p" className="tf-feature-description" value={view.description}
+    <FittedText as="p" className="tf-feature-description" value={view.displayDescription}
      title={view.description} settings={{max:11,min:6.5,step:.5,completeSentences:true}}/>
    </section>
    <section className="tf-feature-progression" data-testid="feature-progression"
