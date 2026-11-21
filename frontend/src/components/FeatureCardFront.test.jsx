@@ -19,13 +19,14 @@ describe("privilege cards use the dedicated approved master", () => {
    try {
     expect(v.el.querySelector('[data-front-layout="feature-5x7-v1"]')).not.toBeNull();
     expect(v.el.querySelector(".tf-feature-artwork img")).toBeNull();
-    expect(v.el.querySelector('[data-testid="front-emblem"]').dataset.emblemSprite).toBe("core");
+    expect(v.el.querySelector('[data-testid="front-emblem"]').dataset.emblemSprite).toBe("feature-original");
     expect(v.el.querySelector(".tf-feature-heading").textContent)
       .toContain("Druido • Privilegio di Classe");
     expect(v.el.querySelector(".tf-feature-level").textContent).toContain("2");
     expect(v.el.querySelector('[data-testid="feature-improvements"]').textContent)
       .toContain("Miglioramenti");
-    expect(v.el.querySelector(".tf-feature-footer").textContent).toBe("PRIVILEGI");
+    expect(v.el.querySelector(".tf-feature-footer")).toBeNull();
+    expect(v.el.querySelector(".tf-feature-original-emblem")?.getAttribute("src")).toBe("/emblemi/privilegi-originale-v2.webp");
     expect(v.el.querySelector(".tf-feature-art-hint")).not.toBeNull();
    } finally {await v.close();}
  });
