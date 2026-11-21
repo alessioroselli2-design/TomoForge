@@ -37,6 +37,39 @@ const wildShapeProgression = a => {
    .map(x=>x.level+"° livello: GS "+x.gs)
    .join(" · ");
 };
+// Remove GS/level pairs from the PRINTED description only when the exact
+// same pairs are already present in the card's Progressione field.
+// Different source books can have different data: never borrow a pair from
+// another record, and never alter the original card.description.
+export const stripFeatureProgressionDuplicates=(description,progression)=>{
+ const original=String(description||"").trim();
+ if(!original||!progression)return original;
+ const gsPairs=new Set(
+  [...String(progression).matchAll(/(\d+)\s*[°º]?\s*livello\s*:\s*GS\s*(\d+(?:\s*\/\s*\d+)?)/gi)]
+    .map(m=>m[1]+"|"+m[2].replace(/\s/g,""))
+ );
+ if(!gsPairs.size)return original;
+ // Support "GS 1/4 al 2° livello, GS 1/2 al 4°, GS 1 all'8°".
+ // Preserve all other restrictions, effects, and timing in the same sentence.
+ const pair=/GS\s*(\d+(?:\s*\/\s*\d+)?)\s+al(?:l['’])?\s*(\d+)\s*[°º]?(?:\s+livello)?/gi;
+ const list=new RegExp("(?:"+pair.source+")(?:\\s*[,·]\\s*(?:"+pair.source+"))*","gi");
+ let changed=false;
+ const cleaned=original.replace(list,match=>{
+  const keys=[...match.matchAll(pair)].map(m=>m[2]+"|"+m[1].replace(/\s/g,""));
+  if(!keys.length||!keys.every(key=>gsPairs.has(key)))return match;
+  changed=true;
+  return "";
+ });
+ if(!changed)return original;
+ return cleaned
+  .replace(/:\s*;\s*/g,"; ")
+  .replace(/:\s*([.!?])/g,"$1")
+  .replace(/\s+([,;:.])/g,"$1")
+  .replace(/[,;]\s*([.!?])/g,"$1")
+  .replace(/\s{2,}/g," ")
+  .trim();
+};
+
 export const buildFeatureCardView=(card={})=>{
  const a=card.attributes||{};
  const parent=first(a,["classe","classe_genitore","parent_class","class_name","classe_origine"])
@@ -53,8 +86,8 @@ export const buildFeatureCardView=(card={})=>{
   name:text(card.name)||"Privilegio di classe",
   subtitle:[parent,"Privilegio di Classe"].filter(Boolean).join(" • "),
   level,description,activation:metadata.activation,uses:metadata.uses,recovery:metadata.recovery,progression,
-  displayDescription:metadata.cleanDescription,
-  excerpt:metadata.cleanDescription,
+  displayDescription:stripFeatureProgressionDuplicates(metadata.cleanDescription,progression),
+  excerpt:stripFeatureProgressionDuplicates(metadata.cleanDescription,progression),
   progressionExcerpt:progression,
   improvement:progression,improvementExcerpt:progression,
  };
