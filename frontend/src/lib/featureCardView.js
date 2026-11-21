@@ -1,3 +1,4 @@
+import {extractFeatureMetadata} from "./featureMetadata";
 // Privilegi: values are read from the selected TomoForge reference, never from
 // class rules guessed by the renderer. The source description is not mutated.
 const text = value => {
@@ -43,13 +44,7 @@ export const buildFeatureCardView=(card={})=>{
  const level=first(a,["livello","livello_richiesto","level","livello_classe","livello_acquisizione"])
    ||text(card.level);
  const description=text(card.description)||first(a,["descrizione","description","effetto","benefici"]);
- const activation=first(a,["tipo_attivazione","attivazione","tempo_attivazione",
-  "action_type","tipo_azione","activation","activation_type","azione"])
-  ||explicitAction(description);
- const uses=first(a,["utilizzi_disponibili","numero_utilizzi","numero_di_utilizzi",
-  "utilizzi_per_riposo","utilizzi","usi","uses","cariche","charges"]);
- const recovery=first(a,["recupero_utilizzi","recupero_degli_utilizzi","recupero",
-  "ricarica","ripristino_utilizzi","ripristino","recharge","recovery"]);
+ const metadata=extractFeatureMetadata(a,description);
  const progression=first(a,["progressione","miglioramenti","progressione_livelli",
   "aumento_grado_sfida","aumento_gs","aumento_livello",
   "aumento_al_livello_superiore","livelli_successivi"])
@@ -57,8 +52,9 @@ export const buildFeatureCardView=(card={})=>{
  return {
   name:text(card.name)||"Privilegio di classe",
   subtitle:[parent,"Privilegio di Classe"].filter(Boolean).join(" • "),
-  level,description,activation,uses,recovery,progression,
-  excerpt:description,
+  level,description,activation:metadata.activation,uses:metadata.uses,recovery:metadata.recovery,progression,
+  displayDescription:metadata.cleanDescription,
+  excerpt:metadata.cleanDescription,
   progressionExcerpt:progression,
   improvement:progression,improvementExcerpt:progression,
  };
