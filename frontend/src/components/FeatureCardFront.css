@@ -14,6 +14,10 @@
  position:absolute;left:2.05%;top:.2786%;width:27.5%;aspect-ratio:1;z-index:14;
  overflow:visible;border:0;border-radius:0;background:transparent;
  box-shadow:none;filter:none;clip-path:none;mask:none;-webkit-mask:none;
+ /* Black from the original square must disappear into the approved red/gold
+    medallion below. Blend the WHOLE layer, not the nested image: the parent is
+    a z-index stacking context, so blending only the child kept a black square. */
+ mix-blend-mode:screen;
 }
 .tf-feature-original-emblem {
  display:block;width:100%;height:100%;object-fit:contain;
@@ -48,32 +52,41 @@
 .tf-feature-artwork img {width:100%;height:100%;display:block;object-fit:cover;}
 /* Three printed wells from the approved master. Only live icon, label and
    value are placed here; no borders, backing panels, or extra ornaments. */
+/* The master engraves all three wells. Dynamic data must remain inside
+   those wells at 340px editor size AND in PNG/PDF captures. */
 .tf-feature-stats {
- position:absolute;left:4.9%;top:45.7%;width:90.2%;height:12.3%;
+ position:absolute;left:4.9%;top:45.35%;width:90.2%;height:12.5%;
  display:grid;grid-template-columns:35.1% 29.5% 35.4%;
  gap:0;background:transparent;z-index:5;
 }
 .tf-feature-stat {
  position:relative;display:flex;flex-direction:column;align-items:center;
- justify-content:flex-start;min-width:0;height:100%;overflow:hidden;
- padding:2px 4px 1px;text-align:center;
+ justify-content:flex-start;min-width:0;min-height:0;height:100%;
+ overflow:hidden;padding:2px 2px 3px;text-align:center;gap:0;
 }
-.tf-feature-stat-title{
- display:block;min-height:23%;max-width:100%;
- font:700 clamp(8px,2.8cqw,10px)/1.07 'Cormorant Garamond',Georgia,serif;
- color:#321b0d;overflow-wrap:normal;text-wrap:balance;
+.tf-feature-stat-title {
+ display:flex;align-items:center;justify-content:center;flex:0 0 35%;
+ width:98%;max-width:98%;min-width:0;
+ font:700 clamp(6.8px,2.18cqw,8.2px)/1.05 'Spectral',Georgia,serif;
+ letter-spacing:-.12px;color:#321b0d;
+ white-space:normal;overflow-wrap:normal;word-break:normal;text-wrap:balance;
 }
 .tf-feature-stat-body {
- display:flex;flex:1;flex-direction:row;align-items:center;
- justify-content:center;gap:3px;width:100%;min-width:0;
+ display:flex;flex:1 1 65%;min-height:0;flex-direction:row;
+ align-items:center;justify-content:center;gap:3px;
+ width:100%;min-width:0;overflow:hidden;
 }
-.tf-feature-stat-body img{
- display:block;width:30%;max-width:43px;min-width:27px;
- height:auto;aspect-ratio:1;object-fit:contain;flex:0 0 auto;
+.tf-feature-stat-body img {
+ display:block;width:23%;max-width:26px;min-width:20px;
+ height:auto;max-height:34px;aspect-ratio:1;object-fit:contain;
+ flex:0 0 auto;
 }
-.tf-feature-stat-body strong{
- display:block;max-width:66%;font:700 clamp(7px,2.65cqw,10px)/1.1 'Spectral',Georgia,serif;
- color:#241308;overflow-wrap:break-word;white-space:normal;
+.tf-feature-stat-body strong {
+ display:-webkit-box;min-width:0;max-width:74%;max-height:100%;
+ font:700 clamp(7px,2.25cqw,8.6px)/1.08 'Spectral',Georgia,serif;
+ color:#241308;white-space:normal;overflow:hidden;overflow-wrap:break-word;
+ word-break:normal;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
+ text-align:left;
 }
 .tf-feature-parchment{
  position:absolute;left:7.9%;top:60%;width:84.2%;height:19.1%;
