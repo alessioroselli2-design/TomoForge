@@ -23,7 +23,7 @@ export const raceTraits=(card={})=>{
   const entries=raw.map(traitEntry).filter(Boolean);
   if(entries.length)return entries;
  }
- if(raw&&typeof raw==="object"){
+ if(raw&&typeof raw==="object"&&!Array.isArray(raw)){
   const entry=traitEntry(raw);
   if(entry)return [entry];
   return Object.entries(raw).map(([name,value])=>({name,description:plain(value)})).filter(x=>x.description);
