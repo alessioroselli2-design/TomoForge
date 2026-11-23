@@ -18,6 +18,7 @@ import DiceMasterPreview from "@/pages/DiceMasterPreview";
 import ClassAbilityPreview from "@/pages/ClassAbilityPreview";
 import SpellCardPreview from "@/pages/SpellCardPreview";
 import FeatureCardPreview from "@/pages/FeatureCardPreview";
+import RaceCardPreview from "@/pages/RaceCardPreview";
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
 
@@ -45,6 +46,7 @@ function AppRouter() {
       <Route path="/prova-classi" element={<ClassAbilityPreview />} />
       <Route path="/prova-incantesimi" element={<SpellCardPreview />} />
       <Route path="/prova-privilegi" element={<FeatureCardPreview />} />
+      <Route path="/prova-razze" element={<RaceCardPreview />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />

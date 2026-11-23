@@ -39,9 +39,22 @@ describe("approved TomoForge front medal rules",()=>{
   expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
  });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
-  expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race",index:1});
-  expect(getFrontEmblem({type:"race",name:"Hadozee"})).toMatchObject({sprite:"race",index:51});
-  expect(getFrontEmblem({type:"race",name:"Gnomo delle Profondità"})).toMatchObject({sprite:"race",index:4});
+  expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race-original",index:1,src:"/emblemi/razze/rz-02-elfo.png"});
+  expect(getFrontEmblem({type:"race",name:"Hadozee"})).toMatchObject({sprite:"race-original",index:51,src:"/emblemi/razze/rz-52-hadozee.png"});
+  expect(getFrontEmblem({type:"race",name:"Gnomo delle Profondità"})).toMatchObject({sprite:"race-original",index:4,src:"/emblemi/razze/rz-05-gnomo.png"});
+ });
+ it("resolves original race PNGs and aliases for all requested spot checks",()=>{
+   const files=[
+     ["Umano","rz-01-umano.png"],["Elfo","rz-02-elfo.png"],
+     ["Nano","rz-03-nano.png"],["Dragonide","rz-08-dragonide.png"],
+     ["Goblin","rz-12-goblin.png"],["Tabaxi","rz-26-tabaxi.png"],
+     ["Shifter","rz-33-morfico.png"],["Hadozee","rz-52-hadozee.png"],
+     ["Simic Hybrid","rz-32-ibrido-simic.png"],["Hexblood","rz-50-sangue-strigo.png"],
+     ["Drow","rz-02-elfo.png"],["Duergar","rz-03-nano.png"],
+   ];
+   files.forEach(([name,file])=>expect(getFrontEmblem({type:"race",name}))
+     .toMatchObject({sprite:"race-original",src:"/emblemi/razze/"+file,cell:640}));
+   expect(getFrontEmblem({type:"race",name:"Razza sconosciuta"})).toBeNull();
  });
  it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({

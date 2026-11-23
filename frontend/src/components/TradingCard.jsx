@@ -11,6 +11,7 @@ import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { SpellCardFront } from "@/components/SpellCardFront";
 import { FeatureCardFront } from "@/components/FeatureCardFront";
+import { RaceCardFront } from "@/components/RaceCardFront";
 
 const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
  const data=buildFrontBlueprint(card);
@@ -173,7 +174,9 @@ export const CardFront = React.forwardRef((props, ref) =>
     ? <SpellCardFront {...props} ref={ref} />
     : props.card?.type === "feature"
       ? <FeatureCardFront {...props} ref={ref} />
-      : <LegacyCardFront {...props} ref={ref} />
+      : props.card?.type === "race"
+        ? <RaceCardFront {...props} ref={ref} />
+        : <LegacyCardFront {...props} ref={ref} />
 );
 CardFront.displayName="CardFront";
 

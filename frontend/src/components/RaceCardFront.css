@@ -1,0 +1,79 @@
+/* A single scoped race layout; the raster owns every border, icon and heading.
+   No existing rules are overridden and nothing in another category is touched. */
+[data-front-category="race"].tf-race-master {
+ position:relative;
+ width:100%;height:100%;overflow:hidden;isolation:isolate;
+ box-sizing:border-box;container-type:inline-size;
+ background-repeat:no-repeat;background-position:center;background-size:100% 100%;
+ color:#2b160e;font-family:"Spectral",Georgia,serif;
+}
+[data-front-category="race"] * {box-sizing:border-box;}
+[data-front-category="race"] .tf-race-medallion {
+ position:absolute;left:2.15%;top:-0.6%;width:27.1%;aspect-ratio:1;
+ background:transparent;border:0;overflow:visible;z-index:12;
+}
+[data-front-category="race"] .tf-race-emblem {
+ display:block;width:100%;height:100%;object-fit:contain;
+ border:0;max-height:none;max-width:none;
+}
+[data-front-category="race"] .tf-race-heading {
+ position:absolute;left:29.1%;top:4.3%;width:43.4%;height:9.7%;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ text-align:center;gap:2px;z-index:4;
+}
+[data-front-category="race"] .tf-race-title {
+ width:100%;height:25px;margin:0;overflow:hidden;white-space:nowrap;
+ font:700 21px/1.05 "Cormorant Garamond",Georgia,serif;
+}
+[data-front-category="race"] .tf-race-subtitle {
+ font:500 10px/1.05 "Spectral",Georgia,serif;
+}
+[data-front-category="race"] .tf-race-size {
+ position:absolute;left:76.1%;top:2.93%;width:17%;aspect-ratio:1;
+ display:flex;flex-direction:column;justify-content:center;align-items:center;
+ text-align:center;gap:3px;color:#fff1d2;text-shadow:0 1px 2px #270509;z-index:5;
+}
+[data-front-category="race"] .tf-race-size>span {
+ font:700 clamp(6px,2.35cqw,9px)/1 Georgia,serif;
+}
+[data-front-category="race"] .tf-race-size-value {
+ display:block;width:90%;max-height:20px;overflow:hidden;white-space:nowrap;
+ font:700 13px/1.1 "Spectral",Georgia,serif;
+}
+[data-front-category="race"] .tf-race-illustration {
+ position:absolute;left:7.1%;top:16.5%;width:87.2%;height:27.2%;
+ background:transparent;
+}
+[data-front-category="race"] .tf-race-stats {
+ position:absolute;inset:0;pointer-events:none;z-index:4;
+}
+[data-front-category="race"] .tf-race-stat {
+ position:absolute;top:48.9%;height:4.9%;display:flex;
+ align-items:center;justify-content:center;text-align:center;overflow:hidden;
+}
+[data-front-category="race"] .tf-race-stat-text {
+ display:block;width:100%;height:100%;overflow:hidden;
+ font:600 8.5px/1.11 "Spectral",Georgia,serif;
+ white-space:normal;overflow-wrap:anywhere;align-content:center;text-align:center;
+}
+[data-front-category="race"] .tf-race-traits {
+ position:absolute;left:8%;top:62%;width:84%;height:19%;
+ overflow:hidden;z-index:4;font-family:"Spectral",Georgia,serif;
+}
+[data-front-category="race"] .tf-race-traits-inner {
+ width:100%;line-height:1.15;font-weight:500;overflow-wrap:break-word;
+}
+[data-front-category="race"] .tf-race-trait {
+ margin:0 0 2px;white-space:normal;overflow-wrap:break-word;
+}
+[data-front-category="race"] .tf-race-trait strong {font-weight:700;}
+[data-front-category="race"] .tf-race-lineages {
+ position:absolute;left:9%;top:87.3%;width:82%;height:6.2%;
+ display:flex;align-items:center;justify-content:center;
+ overflow:hidden;z-index:4;
+}
+[data-front-category="race"] .tf-race-lineages-text {
+ display:block;width:100%;height:100%;margin:0;overflow:hidden;
+ font:500 9px/1.12 "Spectral",Georgia,serif;
+ text-align:center;white-space:normal;overflow-wrap:break-word;align-content:center;
+}
