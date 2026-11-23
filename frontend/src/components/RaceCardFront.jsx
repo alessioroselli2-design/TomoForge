@@ -4,27 +4,35 @@ import { raceCardView } from "@/lib/raceCardView";
 import "./RaceCardFront.css";
 
 const afterFrame=fn=>typeof requestAnimationFrame==="function"?requestAnimationFrame(fn):Promise.resolve().then(fn);
+const cancelFrame=id=>typeof id==="number"&&typeof cancelAnimationFrame==="function"&&cancelAnimationFrame(id);
 const fits=el=>el.scrollHeight<=el.clientHeight+1&&el.scrollWidth<=el.clientWidth+1;
+// React owns the text nodes. Never replace textContent in a layout effect:
+// subsequent edits in the real card editor can otherwise reconcile detached
+// text nodes and crash the entire React tree (a black screen on mobile).
 const useFit=(ref,value,{min=6,max=8.5,step=.5}={})=>{
  React.useLayoutEffect(()=>{
   const el=ref.current;if(!el)return;
   let active=true;let raf;
   const update=()=>{
    if(!active)return;
+   cancelFrame(raf);
    raf=afterFrame(()=>{
-    if(!active)return;
-    el.textContent=String(value??"");
-    if(!el.clientWidth||!el.clientHeight)return;
+    if(!active||!el.isConnected||!el.clientWidth||!el.clientHeight)return;
+    // Always restart at the intended maximum on a new value or card size.
+    // Only the CSS font size changes; the React-rendered text stays intact.
     for(let px=max;px>=min-.001;px-=step){
      el.style.fontSize=px+"px";
      if(fits(el))break;
     }
    });
   };
-  update();document.fonts?.ready?.then(update);
+  update();
+  document.fonts?.ready?.then(update);
+  // Watching the parent avoids ResizeObserver loops caused by resizing the
+  // text node itself while adapting font size in Safari/iOS.
   const resize=typeof ResizeObserver!=="undefined"?new ResizeObserver(update):null;
-  resize?.observe(el);
-  return()=>{active=false;resize?.disconnect();if(typeof raf==="number"&&typeof cancelAnimationFrame==="function")cancelAnimationFrame(raf)};
+  resize?.observe(el.parentElement||el);
+  return()=>{active=false;resize?.disconnect();cancelFrame(raf)};
  },[ref,value,min,max,step]);
 };
 const Fitted=({value,as:Tag="span",settings,className,...props})=>{
@@ -97,9 +105,29 @@ const COLS=[
  {field:"darkvision",start:35.5,end:64.5},
  {field:"languages",start:65.3,end:94.9},
 ];
+// A race-only safety boundary keeps the card editor usable if a future
+// race record contains data that crashes this preview. Other card types are
+// deliberately outside this boundary.
+export class RaceCardErrorBoundary extends React.Component {
+ constructor(props){super(props);this.state={hasError:false};}
+ static getDerivedStateFromError(){return {hasError:true};}
+ componentDidCatch(error){console.error("Errore nell'anteprima della carta Razza:",error);}
+ render(){
+  if(!this.state.hasError)return this.props.children;
+  return <div data-front-category="race" className="tf-race-master"
+   data-testid="race-preview-recovery"
+   style={{backgroundImage:'url("/card-art/master-razze-5x7.png")'}}>
+   <div style={{position:"absolute",left:"9%",top:"58%",width:"82%",
+    textAlign:"center",fontSize:"12px",color:"#40210f",zIndex:10}}>
+    Anteprima Razza momentaneamente non disponibile.
+    Seleziona un altro tipo di carta e torna su Razza per riprovare.
+   </div>
+  </div>;
+ }
+}
 export const RaceCardFront=React.forwardRef(({card={}},ref)=>{
- const view=raceCardView(card);
- const emblem=getFrontEmblem({...card,type:"race"});
+ const view=React.useMemo(()=>raceCardView(card),[card]);
+ const emblem=React.useMemo(()=>getFrontEmblem({...card,type:"race"}),[card]);
  return <div ref={ref} data-testid="card-front" data-front-version="7"
   data-front-category="race" data-front-layout="race-5x7-v1"
   className="tf-race-master" style={{backgroundImage:'url("/card-art/master-razze-5x7.png")'}}>

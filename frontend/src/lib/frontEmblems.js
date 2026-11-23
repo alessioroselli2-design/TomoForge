@@ -59,6 +59,10 @@ export const getFrontEmblem = (card = {}) => {
  }
  if (index < 0) return null;
  if(type === "race") {
+   // The editor initially selects a category with no race name. keyFor("")
+   // returns null, which is NOT caught by the legacy index < 0 guard.
+   // Never build a PNG path from an absent/invalid key.
+   if(!Number.isInteger(index)||index<0||index>=RACES.length)return null;
    // One original 640px transparent PNG per race. Preserve the existing
    // RACES order, keyFor normalization and subrace aliases.
    const key = RACES[index];
