@@ -1331,7 +1331,7 @@ def subclass_card_payload(record: dict, class_records: list[dict]) -> dict:
         "tiri_salvezza": ("tiri_salvezza", "salvezze"),
         "competenze": ("competenze", "competenza_armature", "proficiencies"),
     }
-    for field, aliases in field_aliases.items():
+    for field_name, aliases in field_aliases.items():
         if any(attrs.get(alias) for alias in aliases):
             continue
         values = []
@@ -1341,7 +1341,7 @@ def subclass_card_payload(record: dict, class_records: list[dict]) -> dict:
             if value is not None and value not in values:
                 values.append(value)
         if len(values) == 1:
-            attrs[field] = values[0]
+            attrs[field_name] = values[0]
     return payload
 
 
