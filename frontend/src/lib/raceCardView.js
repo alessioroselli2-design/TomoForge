@@ -19,7 +19,10 @@ const traitEntry=(trait)=>{
 export const raceTraits=(card={})=>{
  const attrs=card.attributes||{};
  const raw=attrs.tratti_razza??attrs.tratti_razziali??attrs.tratti??attrs.traits;
- if(Array.isArray(raw))return raw.map(traitEntry).filter(Boolean);
+ if(Array.isArray(raw)){
+  const entries=raw.map(traitEntry).filter(Boolean);
+  if(entries.length)return entries;
+ }
  if(raw&&typeof raw==="object"){
   const entry=traitEntry(raw);
   if(entry)return [entry];
