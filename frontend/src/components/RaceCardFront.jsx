@@ -106,8 +106,8 @@ const COLS=[
  {field:"languages",start:65.3,end:94.9},
 ];
 export const RaceCardFront=React.forwardRef(({card={}},ref)=>{
- const view=React.useMemo(()=>raceCardView(card),[card.name,card.description,card.attributes]);
- const emblem=React.useMemo(()=>getFrontEmblem({...card,type:"race"}),[card.name,card.attributes]);
+ const view=React.useMemo(()=>raceCardView(card),[card]);
+ const emblem=React.useMemo(()=>getFrontEmblem({...card,type:"race"}),[card]);
  return <div ref={ref} data-testid="card-front" data-front-version="7"
   data-front-category="race" data-front-layout="race-5x7-v1"
   className="tf-race-master" style={{backgroundImage:'url("/card-art/master-razze-5x7.png")'}}>
