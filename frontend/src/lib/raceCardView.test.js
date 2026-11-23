@@ -27,7 +27,7 @@ describe("race 5x7: real data only",()=>{
   });
  });
  it("falls back to the full plain description when no trait array exists",()=>{
-  const view=raceCardView({type:"race",name:"Genasi",description:"Testo attestato nell'archivio."});
+  const view=raceCardView({type:"race",name:"Genasi",description:"Testo attestato nell'archivio.",attributes:{tratti:[]}});
   expect(view.traits).toEqual([{name:"",description:"Testo attestato nell'archivio."}]);
  });
 });
