@@ -105,6 +105,26 @@ const COLS=[
  {field:"darkvision",start:35.5,end:64.5},
  {field:"languages",start:65.3,end:94.9},
 ];
+// A race-only safety boundary keeps the card editor usable if a future
+// race record contains data that crashes this preview. Other card types are
+// deliberately outside this boundary.
+export class RaceCardErrorBoundary extends React.Component {
+ constructor(props){super(props);this.state={hasError:false};}
+ static getDerivedStateFromError(){return {hasError:true};}
+ componentDidCatch(error){console.error("Errore nell'anteprima della carta Razza:",error);}
+ render(){
+  if(!this.state.hasError)return this.props.children;
+  return <div data-front-category="race" className="tf-race-master"
+   data-testid="race-preview-recovery"
+   style={{backgroundImage:'url("/card-art/master-razze-5x7.png")'}}>
+   <div style={{position:"absolute",left:"9%",top:"58%",width:"82%",
+    textAlign:"center",fontSize:"12px",color:"#40210f",zIndex:10}}>
+    Anteprima Razza momentaneamente non disponibile.
+    Seleziona un altro tipo di carta e torna su Razza per riprovare.
+   </div>
+  </div>;
+ }
+}
 export const RaceCardFront=React.forwardRef(({card={}},ref)=>{
  const view=React.useMemo(()=>raceCardView(card),[card]);
  const emblem=React.useMemo(()=>getFrontEmblem({...card,type:"race"}),[card]);
