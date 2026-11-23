@@ -38,6 +38,14 @@ describe("approved TomoForge front medal rules",()=>{
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
   expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
  });
+ it("keeps the race medal empty until a real race is selected",()=>{
+   expect(getFrontEmblem({type:"race",name:"",attributes:{}})).toBeNull();
+   expect(getFrontEmblem({type:"race",attributes:{}})).toBeNull();
+   expect(getFrontEmblem({type:"race",name:"Razza inesistente"})).toBeNull();
+   expect(getFrontEmblem({type:"race",name:"Umano"})).toMatchObject({
+     sprite:"race-original",src:"/emblemi/razze/rz-01-umano.png"
+   });
+ });
  it("uses the approved 52 race table and normalizes subrace labels",()=>{
   expect(getFrontEmblem({type:"race",name:"Eladrin"})).toMatchObject({sprite:"race-original",index:1,src:"/emblemi/razze/rz-02-elfo.png"});
   expect(getFrontEmblem({type:"race",name:"Hadozee"})).toMatchObject({sprite:"race-original",index:51,src:"/emblemi/razze/rz-52-hadozee.png"});
