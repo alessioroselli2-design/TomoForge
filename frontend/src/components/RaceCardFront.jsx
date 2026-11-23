@@ -54,7 +54,7 @@ const useCompleteTraits=(ref,traits)=>{
     try{
      const nodes=traits.map(trait=>{
        const p=document.createElement("p");p.style.margin="0 0 2px";
-       if(trait.name){const b=document.createElement("strong");b.textContent=trait.name+".";p.append(b);if(trait.description)p.append(document.createTextNode(" "));}
+       if(trait.name){const b=document.createElement("strong");b.textContent=trait.name+(/[.!?]$/.test(trait.name)?"":".");p.append(b);if(trait.description)p.append(document.createTextNode(" "));}
        p.append(document.createTextNode(trait.description||""));probe.append(p);return p;
      });
      let best={size:6.5,count:0};
