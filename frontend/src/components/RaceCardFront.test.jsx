@@ -85,5 +85,6 @@ describe("race-only 5x7 front",()=>{
   expect(css).toContain('[data-front-category="race"] .tf-race-emblem');
   expect(css).toContain('width:27.1%');
   expect(css).toContain('top:62%');
+  expect(css).toMatch(/\.tf-race-subtitle\s*\{[^}]*top:-5px/);
  });
 });

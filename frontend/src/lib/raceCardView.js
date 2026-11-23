@@ -33,6 +33,13 @@ export const raceTraits=(card={})=>{
  const fallback=plain(card.description);
  return fallback?[{name:"",description:fallback}]:[];
 };
+// Keep manual citations in the source record, but remove the SCAG publication
+// reference from the tiny on-card lineage label. "Duergar" remains visible.
+export const raceLineagesForCard=(value)=>String(value||"")
+ .replace(/,\s*SCAG\s+2015(?=\s*\))/gi,"")
+ .replace(/\(\s*SCAG\s+2015\s*\)/gi,"")
+ .replace(/\s{2,}/g," ").trim();
+
 export const raceCardView=(card={})=>{
  const attrs=card.attributes||{};
  const traits=raceTraits(card);
@@ -45,6 +52,6 @@ export const raceCardView=(card={})=>{
   darkvision:directDark||(fromTrait?.description||"—"),
   languages:first(attrs,["linguaggi","lingue","languages","language"])||"—",
   traits,
-  lineages:first(attrs,["sottorazze","sottorazza","lignaggi","lignaggio","subraces","subrace","lineages","lineage"]),
+  lineages:raceLineagesForCard(first(attrs,["sottorazze","sottorazza","lignaggi","lignaggio","subraces","subrace","lineages","lineage"])),
  };
 };

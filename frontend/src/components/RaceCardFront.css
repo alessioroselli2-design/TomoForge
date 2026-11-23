@@ -26,6 +26,8 @@
  font:700 21px/1.05 "Cormorant Garamond",Georgia,serif;
 }
 [data-front-category="race"] .tf-race-subtitle {
+ /* Lift only the subtitle away from the title frame's engraved lower edge. */
+ position:relative;top:-5px;
  font:500 10px/1.05 "Spectral",Georgia,serif;
 }
 [data-front-category="race"] .tf-race-size {
