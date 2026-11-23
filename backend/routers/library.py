@@ -10,6 +10,7 @@ from reference_library import (
     reference_is_trusted,
     reference_review_state,
     reference_to_card_payload,
+    subclass_card_payload,
 )
 
 from core.auth import get_current_user, require_premium
@@ -283,6 +284,9 @@ async def apply_private_reference(reference_id: str, user: User = Depends(get_cu
             status_code=409,
             detail="Questo contenuto è da verificare e non può essere usato come dato certo.",
         )
+    if record.get("reference_type") == "subclass":
+        classes = await private_reference_records(user.user_id, db=db, reference_types={"class"})
+        return {**subclass_card_payload(record, classes), "reference_id": record["id"]}
     return {**reference_to_card_payload(record), "reference_id": record["id"]}
 
 

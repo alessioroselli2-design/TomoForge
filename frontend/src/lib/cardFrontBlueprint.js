@@ -106,15 +106,22 @@ const classExcerpt=(original,limit=410)=>{
 };
 
 export const buildFrontBlueprint = (card = {}) => {
-  const type = THEMES[card.type] ? card.type : "custom";
-  const attrs = card.attributes || {};
+  // Subclasses use the exact Class presentation in both the DOM and canvas.
+  // Keep the underlying card type, name and reference data intact.
+  const isSubclass = card.type === "subclass";
+  const type = isSubclass ? "class" : (THEMES[card.type] ? card.type : "custom");
+  const originalAttrs = card.attributes || {};
+  const parent = isSubclass ? (pick(originalAttrs, ["classe", "parent_class", "classe_genitore", "class_name"])
+    || readable(card.parent_class)
+    || readable((card.reference_snapshots || []).find(s => s.reference_type === "subclass")?.parent_class)) : "";
+  const attrs = isSubclass ? {...originalAttrs, classe: parent} : originalAttrs;
   const classProficiencies = pick(attrs, ["competenze", "competenza_armature", "proficiencies"])
-    || ((String(card.description || "").match(/Competenza in ([^.]+)\./i) || [])[1] || "").trim();
+    || (!isSubclass ? ((String(card.description || "").match(/Competenza in ([^.]+)\./i) || [])[1] || "").trim() : "");
   const highlighted = type === "class" ? [
     { label: "Abilità primaria", value: pick(attrs, ["abilita_primaria", "caratteristica_principale"]) },
     { label: "Tiri salvezza", value: pick(attrs, ["tiri_salvezza", "salvezze"]) },
     { label: "Competenze", value: classProficiencies },
-  ].filter(entry => entry.value) : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
+  ].filter(entry => isSubclass || entry.value).map(entry => isSubclass ? {...entry, value:entry.value || "—"} : entry) : (KEYS[type] || KEYS.custom).map(([first, second, label]) => ({
     label, value: pick(attrs, [first, second]),
   })).filter((entry) => entry.value).slice(0, 3);
   // Never fabricate statistics; empty cells are simply not displayed.
@@ -149,7 +156,7 @@ export const buildFrontBlueprint = (card = {}) => {
       pick(attrs, ["classe", "parent_class"]),
       "Privilegio di Classe",
     ];
-    if (type === "subclass") return [pick(attrs, ["classe", "parent_class"]), "Sottoclasse"];
+    if (isSubclass) return [parent, "Sottoclasse"];
     if (type === "character") return [
       pick(attrs, ["classe", "class"]),
       pick(attrs, ["sottoclasse", "subclass"]),
@@ -216,7 +223,8 @@ export const buildFrontBlueprint = (card = {}) => {
     ? normalizeClassHitDie((match[0].match(/d(4|6|8|10|12|20)\b/i) || [])[0])
     : "";
   return {
-    badge, emblem:getFrontEmblem(card),
+    badge, emblem:isSubclass ? (parent ? getFrontEmblem({...card, attributes:attrs}) : null) : getFrontEmblem(card),
+    ...(isSubclass ? {recordType:"subclass"} : {}),
     type, heading, name: card.name || "Senza nome", subtitle, crest,
     ...THEMES[type], highlights:readableStats, abilities, details,
     dice: type === "class" ? classDie : (match ? match[0].replace(/\s+/g, "") : ""),
