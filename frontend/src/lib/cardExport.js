@@ -418,6 +418,27 @@ async function renderApprovedFeature(element, card) {
    return canvas;
  } finally {stage.remove();}
 }
+// Race uses the actual same DOM layout for preview, PNG, PDF and A4.
+async function renderApprovedRace(element,card){
+ const source=element.matches?.('[data-front-category="race"]')
+  ? element : element.querySelector?.('[data-front-category="race"]');
+ if(!source)throw new Error("Anteprima Razza non disponibile");
+ const {width,height,scale}=CARD_CANVAS_SIZE;
+ const stage=document.createElement("div");
+ Object.assign(stage.style,{position:"fixed",left:"0",top:"0",
+  width:width+"px",height:height+"px",pointerEvents:"none",zIndex:"-2147483647"});
+ const clone=source.cloneNode(true);
+ Object.assign(clone.style,{width:"100%",height:"100%"});
+ stage.appendChild(clone);document.body.appendChild(stage);
+ try{
+  await waitForImages(clone);
+  if(document.fonts?.ready)await document.fonts.ready;
+  const canvas=await html2canvas(clone,{scale,width,height,backgroundColor:null,
+    useCORS:true,logging:false,scrollX:0,scrollY:0});
+  canvas.artworkDrawn=false;
+  return canvas;
+ }finally{stage.remove();}
+}
 // Existing renderer remains untouched for Class, Monster and all other types.
 export async function renderCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
@@ -431,6 +452,9 @@ export async function renderCardCanvas(element,card){
  if(card?.type==="feature" && (element.matches?.('[data-front-category="feature"]') ||
    element.querySelector?.('[data-front-category="feature"]')))
    return renderApprovedFeature(element,card);
+ if(card?.type==="race" && (element.matches?.('[data-front-category="race"]') ||
+   element.querySelector?.('[data-front-category="race"]')))
+   return renderApprovedRace(element,card);
  return renderApprovedMaster(element,card);
 }
 
