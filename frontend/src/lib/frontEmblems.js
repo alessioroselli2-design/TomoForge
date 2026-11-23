@@ -62,7 +62,7 @@ export const getFrontEmblem = (card = {}) => {
    // One original 640px transparent PNG per race. Preserve the existing
    // RACES order, keyFor normalization and subrace aliases.
    const key = RACES[index];
-   const file = `rz-${String(index+1).padStart(2,"0")}-${key.replace(/\\s+/g,"-")}.png`;
+   const file = `rz-${String(index+1).padStart(2,"0")}-${key.replace(/\s+/g,"-")}.png`;
    return {sprite:"race-original",index,col:0,row:0,label,
      src:"/emblemi/razze/"+file,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
