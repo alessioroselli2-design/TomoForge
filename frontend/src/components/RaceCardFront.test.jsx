@@ -38,6 +38,47 @@ describe("race-only 5x7 front",()=>{
    expect([...view.host.querySelectorAll("[data-race-field]")].map(x=>x.textContent)).toEqual(["—","—","—"]);
   }finally{await view.close()}
  });
+ it("keeps React text nodes intact when layout fitting runs in the editor",async()=>{
+  const view=await renderRace({type:"race",name:"",attributes:{tratti:[]}});
+  try{
+   const title=view.host.querySelector(".tf-race-title");
+   const stat=view.host.querySelector('[data-race-field="speed"] .tf-race-stat-text');
+   const titleNode=title.firstChild;
+   const statNode=stat.firstChild;
+   await act(async()=>{await Promise.resolve();await Promise.resolve()});
+   expect(title.firstChild).toBe(titleNode);
+   expect(stat.firstChild).toBe(statNode);
+   expect(title.textContent).toBe("Senza nome");
+   expect(stat.textContent).toBe("—");
+  }finally{await view.close()}
+ });
+ it("switches from the editor's default spell to an empty race and updates it safely",async()=>{
+  const host=document.createElement("div");document.body.appendChild(host);
+  const root=createRoot(host);
+  const Harness=()=>{
+   const [card,setCard]=React.useState({type:"spell",name:"",attributes:{}});
+   return <div>
+    <button data-testid="select-race" onClick={()=>setCard({type:"race",name:"",attributes:{
+     velocita:"",taglia:"",linguaggi:"",tratti:[]}})}>Razza</button>
+    <button data-testid="select-elf" onClick={()=>setCard({type:"race",name:"Elfo",attributes:{
+     velocita:"9 m",taglia:"Media",linguaggi:"Comune",tratti:[
+      {nome:"Sensi Acuti",descrizione:"Competenza in Percezione."}]}})}>Elfo</button>
+    <button data-testid="select-spell" onClick={()=>setCard({type:"spell",name:"",attributes:{}})}>Incantesimo</button>
+    <CardFront card={card} editorMode/>
+   </div>;
+  };
+  try{
+   await act(async()=>root.render(<Harness/>));
+   await act(async()=>{host.querySelector('[data-testid="select-race"]').click();await Promise.resolve()});
+   expect(host.querySelector('[data-front-category="race"]')).not.toBeNull();
+   expect(host.querySelector(".tf-race-title").textContent).toBe("Senza nome");
+   await act(async()=>{host.querySelector('[data-testid="select-elf"]').click();await Promise.resolve()});
+   expect(host.querySelector(".tf-race-title").textContent).toBe("Elfo");
+   expect(host.querySelector('[data-race-field="speed"]').textContent).toBe("9 m");
+   await act(async()=>{host.querySelector('[data-testid="select-spell"]').click();await Promise.resolve()});
+   expect(host.querySelector('[data-front-category="race"]')).toBeNull();
+  }finally{await act(async()=>root.unmount());host.remove()}
+ });
  it("isolates race styles without important patches or extra raster art",()=>{
   const css=readFileSync(resolve(__dirname,"RaceCardFront.css"),"utf8");
   expect(css).not.toMatch(/!important|mask:|filter:|box-shadow:/);
