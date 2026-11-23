@@ -1293,6 +1293,58 @@ def reference_to_card_payload(record: dict) -> dict:
     }
 
 
+def subclass_card_payload(record: dict, class_records: list[dict]) -> dict:
+    """Inherit only missing base-class fields from matching trusted sources.
+
+    Prefer a class record from the same manual. If several candidate class
+    records disagree, leave the disputed field empty rather than guessing
+    between editions. The original records are never changed.
+    """
+    payload = reference_to_card_payload(record)
+    if payload["card_type"] != "subclass":
+        return payload
+    attrs = payload["attributes"]
+    parent = (attrs.get("classe") or attrs.get("parent_class")
+              or record.get("parent_class") or attrs.get("classe_genitore") or "")
+    if not isinstance(parent, str) or not parent.strip():
+        return payload
+    attrs["classe"] = parent
+    key = normalize_reference_name(parent)
+    candidates = [
+        item for item in class_records
+        if item.get("reference_type") == "class"
+        and item.get("user_id") == record.get("user_id")
+        and normalize_reference_name(item.get("name", "")) == key
+        and reference_is_trusted(item)
+    ]
+    source_files = {ref.get("filename") for ref in record.get("source_refs") or [] if ref.get("filename")}
+    same_manual = [
+        item for item in candidates
+        if source_files.intersection(
+            ref.get("filename") for ref in item.get("source_refs") or []
+        )
+    ]
+    candidates = same_manual or candidates
+    field_aliases = {
+        "dado_vita": ("dado_vita", "dadi_vita"),
+        "abilita_primaria": ("abilita_primaria", "caratteristica_principale"),
+        "tiri_salvezza": ("tiri_salvezza", "salvezze"),
+        "competenze": ("competenze", "competenza_armature", "proficiencies"),
+    }
+    for field, aliases in field_aliases.items():
+        if any(attrs.get(alias) for alias in aliases):
+            continue
+        values = []
+        for item in candidates:
+            base_attrs = item.get("attributes") or {}
+            value = next((base_attrs.get(alias) for alias in aliases if base_attrs.get(alias)), None)
+            if value is not None and value not in values:
+                values.append(value)
+        if len(values) == 1:
+            attrs[field] = values[0]
+    return payload
+
+
 def reference_content_checksum(record: dict) -> str:
     """Return a stable rendered-content revision for a private reference record.
 

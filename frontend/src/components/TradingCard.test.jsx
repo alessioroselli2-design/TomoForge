@@ -461,3 +461,27 @@ describe("approved Incantesimo integration", () => {
     mount.remove();
   });
 });
+
+describe("subclass shares the approved class renderer",()=>{
+ it("renders the real Class master and parent symbol, while keeping the subclass identity",async()=>{
+  const host=document.createElement("div");document.body.appendChild(host);
+  const root=createRoot(host);
+  try{
+   await act(async()=>root.render(<CardFront editorMode card={{type:"subclass",name:"Campione",description:"Descrizione specifica.",attributes:{parent_class:"Guerriero",dado_vita:"d10",abilita_primaria:"Forza",tiri_salvezza:"Forza, Costituzione",competenze:"Armature, scudi e armi"}}}/>));
+   const node=host.querySelector('[data-record-category="subclass"]');
+   expect(node.getAttribute("data-front-category")).toBe("class");
+   expect(node.getAttribute("data-category-layout")).toBe("class-5x7-finale");
+   expect(node.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(node.querySelector("h3").textContent).toBe("Campione");
+   expect(node.querySelector(".tf-v3-titles p").textContent).toBe("Guerriero • Sottoclasse");
+   expect(node.querySelector(".tf-class-original-emblem").getAttribute("src")).toBe("/emblemi/classi/cls-05-guerriero.png");
+   expect(node.querySelector(".tf-class-hit-die").getAttribute("data-die")).toBe("d10");
+   expect(node.querySelector('[data-testid="front-artwork-empty"]')).not.toBeNull();
+   expect(node.querySelector(".tf-v3-desc").textContent).toBe("Descrizione specifica.");
+   await act(async()=>root.render(<CardFront editorMode card={{type:"subclass",name:"",attributes:{}}}/>));
+   expect(host.querySelector('[data-record-category="subclass"]')).not.toBeNull();
+   expect(host.querySelector(".tf-class-original-emblem")).toBeNull();
+   expect(host.querySelectorAll(".tf-v3-stat")).toHaveLength(3);
+  }finally{await act(async()=>root.unmount());host.remove()}
+ });
+});

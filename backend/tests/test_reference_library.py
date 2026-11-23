@@ -21,6 +21,7 @@ from reference_library import (
     reference_snapshot_changed,
     reference_to_card_payload,
     search_reference_records,
+    subclass_card_payload,
 )
 
 
@@ -4912,3 +4913,40 @@ def test_spell_payload_leaves_ordinary_spell_without_manual_flags():
     assert not payload["attributes"].get("rituale")
     assert not payload["attributes"].get("concentrazione")
 
+
+
+def test_subclass_card_inherits_missing_fields_from_verified_parent_only():
+    sub = make_reference("Circolo delle Stelle", "subclass", parent_class="Druido",
+                         attributes={"competenze": "Competenza specifica"})
+    druid = make_reference("Druido", "class", review_status="verified",
+                           attributes={"dado_vita": "d8", "abilita_primaria": "Saggezza",
+                                       "tiri_salvezza": "Intelligenza, Saggezza",
+                                       "competenze": "Armi semplici"})
+    wrong = make_reference("Guerriero", "class", review_status="verified",
+                           attributes={"dado_vita": "d10"})
+    payload = subclass_card_payload(sub, [druid, wrong])
+    assert payload["card_type"] == "subclass"
+    assert payload["name"] == sub["name"]
+    assert payload["description"] == sub["description"]
+    assert payload["attributes"]["classe"] == "Druido"
+    assert payload["attributes"]["dado_vita"] == "d8"
+    assert payload["attributes"]["abilita_primaria"] == "Saggezza"
+    assert payload["attributes"]["tiri_salvezza"] == "Intelligenza, Saggezza"
+    assert payload["attributes"]["competenze"] == "Competenza specifica"
+    assert sub["attributes"] == {"competenze": "Competenza specifica"}
+
+
+def test_subclass_card_rejects_untrusted_foreign_and_conflicting_parent_values():
+    sub = make_reference("Circolo", "subclass", parent_class="Druido", source_refs=[])
+    first = make_reference("Druido", "class", review_status="verified",
+                           attributes={"dado_vita": "d8"})
+    other = make_reference("Druido", "class", review_status="verified",
+                           attributes={"dado_vita": "d10"})
+    pending = make_reference("Druido", "class", review_status="needs_review",
+                             attributes={"abilita_primaria": "Saggezza"})
+    foreign = make_reference("Druido", "class", user_id="other-owner",
+                             review_status="verified", attributes={"tiri_salvezza": "Saggezza"})
+    attrs = subclass_card_payload(sub, [first, other, pending, foreign])["attributes"]
+    assert attrs["dado_vita"] == ""
+    assert attrs["abilita_primaria"] == ""
+    assert attrs["tiri_salvezza"] == ""

@@ -70,7 +70,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
  // Every category shares the exact Monster v17 illustrated master.
  // Only data and inner content differ; never compose a second decorative plate.
  return <div ref={ref} data-testid="card-front" data-front-version="7"
-   data-front-category={data.type} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
+   data-front-category={data.type} data-record-category={data.recordType || undefined} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,...frontBackground(data.type)}}>
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>

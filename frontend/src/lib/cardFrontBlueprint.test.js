@@ -35,7 +35,7 @@ describe("TomoForge v2 front blueprint", () => {
       expect(data.heading).toBeTruthy();
       expect(data.highlights.length).toBeLessThanOrEqual(3);
       expect(data.details.length).toBeLessThanOrEqual(3);
-      expect(data.dice).toBe(type === "class" ? "" : "1d8+2");
+      expect(data.dice).toBe(["class","subclass"].includes(type) ? "" : "1d8+2");
     }
   );
   it("ignores previous color, foil, motto and custom front style settings", () => {
@@ -256,5 +256,36 @@ describe("One master: medallion values from each verified category",()=>{
    expect(buildFrontBlueprint({type:"feat",name:"Esperto"}).badge).toBeNull();
    expect(buildFrontBlueprint({type:"class",name:"Guerriero"}).badge).toBeNull();
    expect(buildFrontBlueprint({type:"weapon",attributes:{danno:"variabile"}}).badge).toBeNull();
+ });
+});
+
+describe("subclass uses the approved class presentation",()=>{
+ it("preserves its name and description, using the parent class medal and verified values",()=>{
+  const card={type:"subclass",name:"Circolo delle Stelle",description:"Descrizione della sottoclasse.",attributes:{
+   parent_class:"Druido",dado_vita:"d8",abilita_primaria:"Saggezza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armature e scudi"
+  }};
+  const bp=buildFrontBlueprint(card);
+  expect(bp.type).toBe("class");
+  expect(bp.recordType).toBe("subclass");
+  expect(bp.name).toBe(card.name);
+  expect(bp.subtitle).toBe("Druido • Sottoclasse");
+  expect(bp.emblem.src).toBe("/emblemi/classi/cls-04-druido.png");
+  expect(bp.classDieAsset).toBe("/card-art/dadi-vita/d8.png");
+  expect(bp.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
+  expect(bp.fullDescription).toBe(card.description);
+  expect(bp.badge).toBeNull();
+  expect(card.type).toBe("subclass");
+ });
+ it("does not invent inherited statistics or invalid icons for an empty subclass",()=>{
+  const bp=buildFrontBlueprint({type:"subclass",name:"",attributes:{}});
+  expect(bp.subtitle).toBe("Sottoclasse");
+  expect(bp.emblem).toBeNull();
+  expect(bp.classDieAsset).toBe("");
+  expect(bp.highlights.map(x=>x.value)).toEqual(["—","—","—"]);
+ });
+ it("uses the parent from a saved reference snapshot if absent from the attributes",()=>{
+  const bp=buildFrontBlueprint({type:"subclass",name:"Campione",attributes:{},reference_snapshots:[{reference_type:"subclass",parent_class:"Guerriero"}]});
+  expect(bp.subtitle).toBe("Guerriero • Sottoclasse");
+  expect(bp.emblem.src).toBe("/emblemi/classi/cls-05-guerriero.png");
  });
 });
