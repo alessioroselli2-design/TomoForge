@@ -9,7 +9,7 @@ test("Bastone del Guardiano: retains rarity and attunement from attributes",()=>
 });
 test("weapon: dice, type, range, complete properties and mastery",()=>{
  const v=categoryCardView({type:"weapon",name:"Spada",attributes:{danno:"1d8",categoria:"Da guerra",tipo_danno:"Tagliente",proprieta:["Versatile (1d10)","Accurata"],maestria:"Dati di prova",costo:"15 mo",peso:"1 kg"}});
- expect(v.badge).toBe("1d8");expect(v.values).toEqual(["Da guerra","Tagliente","—"]);expect(v.body).toEqual(["Versatile (1d10)","Accurata","Maestria: Dati di prova"]);
+ expect(v.badge).toBe("1d8");expect(v.values).toEqual(["Da guerra","Tagliente","—"]);expect(v.body).toEqual(["Versatile: 1d10 a due mani","Accurata","Maestria: Dati di prova"]);
 });
 test("armor and shield keep base vs bonus, and unknown stealth blank",()=>{
  const a=categoryCardView({type:"armor",name:"Cotta di maglia",attributes:{classe_armatura:"16",forza_minima:"13",svantaggio_furtivita:"Sì",categoria:"Pesante"}});
@@ -34,4 +34,21 @@ test("real schema aliases: equipment and magic item",()=>{
  const i=categoryCardView({type:"item",attributes:{tipo:"Bastone",rarita:"raro",sintonia:"richiede sintonia con un druido",cariche_massime:10,recupero_cariche:"1d6+4 all’alba"}});
  expect(i.badge).toBe("Raro");expect(i.values).toEqual(["Bastone","Sì · con un druido","10 · Recupero: 1d6+4 all’alba"]);
  expect(categoryCardView({type:"feat",description:"Il suo punteggio di Forza o di Destrezza aumenta di 1, fino a un massimo di 20."}).values[2]).toBe("+1 Forza o Destrezza");
+});
+
+test("fixed armor AC only in medallion, preserve real details",()=>{
+ const v=categoryCardView({type:"armor",attributes:{categoria_armatura:"pesante",classe_armatura:"16",forza_minima:13,svantaggio_furtivita:true,peso_kg:27.5,costo:"75 mo"},description:"Armatura pesante (2014). CA 16; peso 27,5 kg; costo 75 mo; svantaggio alle prove di Furtività; Forza minima 13. La maglia è realizzata in anelli metallici."});
+ expect(v.badge).toBe("16");expect(v.body).toEqual(["CA fissa: non si aggiunge il modificatore di Destrezza.","La maglia è realizzata in anelli metallici."]);
+});
+test("medium armor shows modifier, not base AC twice",()=>{
+ const v=categoryCardView({type:"armor",attributes:{categoria_armatura:"media",classe_armatura:"14 + Des (max 2)"}});
+ expect(v.badge).toBe("14");expect(v.body).toEqual(["Modificatore alla CA: + Des (max 2)"]);
+});
+test("shield does not repeat bonus",()=>{
+ const v=categoryCardView({type:"armor",attributes:{categoria_armatura:"scudo",classe_armatura:"+2 alla CA"},description:"Bonus +2 alla CA. Lo scudo è di legno."});
+ expect(v.body).toEqual(["Lo scudo è di legno."]);
+});
+test("weapon retains prose and distinct two-handed damage",()=>{
+ const v=categoryCardView({type:"weapon",attributes:{danno:"1d8",tipo_danno:"tagliente",proprieta:"Versatile (1d10)",costo:"15 mo"},description:"Danni: 1d8 taglienti. Costo: 15 mo. Una lama lunga a doppio filo."});
+ expect(v.body).toEqual(["Versatile: 1d10 a due mani","Una lama lunga a doppio filo."]);
 });

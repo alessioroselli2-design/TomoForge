@@ -22,18 +22,25 @@ function Fitted({value,units,as:Tag="div",className,min=6,max=8.5,lines,mode="te
     const css=getComputedStyle(el);
     const probe=document.createElement("div");
     Object.assign(probe.style,{position:"fixed",left:"-10000px",top:"0",visibility:"hidden",pointerEvents:"none",
-      width:el.clientWidth+"px",boxSizing:"border-box",fontFamily:css.fontFamily,fontWeight:css.fontWeight,
-      lineHeight:mode==="body"?"1.15":"1.1",whiteSpace:mode==="body"?"pre-line":"normal",overflowWrap:"anywhere",margin:"0",padding:"0"});
+      width:el.clientWidth+"px",boxSizing:"border-box",fontFamily:css.fontFamily,fontWeight:css.fontWeight,fontStyle:css.fontStyle,letterSpacing:css.letterSpacing,textTransform:css.textTransform,
+      lineHeight:mode==="body"?"1.15":"1.1",whiteSpace:mode==="body"?"pre-line":"normal",overflowWrap:mode==="heading"?"normal":"anywhere",wordBreak:"normal",margin:"0",padding:"0"});
     document.body.appendChild(probe);
     try{
-     const fits=(s,size)=>{
-      probe.style.fontSize=size+"px";probe.textContent=s;
-      const limit=Math.min(el.clientHeight,lines?lines*size*1.1+.5:el.clientHeight);
-      return probe.scrollHeight<=limit+1&&probe.scrollWidth<=el.clientWidth+1;
+     const fits=(s,size,oneLine=false)=>{
+      probe.style.fontSize=size+"px";
+      probe.style.whiteSpace=oneLine?"nowrap":mode==="body"?"pre-line":"normal";
+      probe.textContent=s;
+      const limit=Math.min(el.clientHeight-(mode==="heading"?2:0),lines?lines*size*1.1+.5:el.clientHeight);
+      return probe.getBoundingClientRect().height<=limit+.1&&probe.scrollWidth<=el.clientWidth;
      };
      let next={text:full,size:min};
      let found=false;
-     for(let n=max;n>=min-.01;n-=.5){if(fits(full,n)){next={text:full,size:n};found=true;break;}}
+     if(mode==="heading"){
+      for(let n=max;n>=Math.max(min,12)-.01;n-=.5){
+       if(fits(full,n,true)){next={text:full,size:n};found=true;break;}
+      }
+     }
+     if(!found)for(let n=max;n>=min-.01;n-=.5){if(fits(full,n)){next={text:full,size:n};found=true;break;}}
      if(!found){
       const entries=units||completeUnits(full);
       // For headings, try a smaller font, not a clipped name.
@@ -76,7 +83,7 @@ export const CategoryCardFront=React.forwardRef(({card={},imgUrl,exportMode},ref
    <img src={"/emblemi/categorie/"+config.symbol} alt={"Emblema "+config.subtitle} draggable={false}/>
   </div>
   <header className="tf-category-heading">
-   <Fitted as="h3" className="tf-category-name" value={view.name} mode="heading" min={6.5} max={21} lines={2}/>
+   <Fitted as="h3" className="tf-category-name" value={view.name} mode="heading" min={6.5} max={20} lines={2}/>
    <Fitted as="p" className="tf-category-subtitle" value={view.subtitle} mode="heading" min={6} max={10} lines={1}/>
   </header>
   {view.badge&&<div className="tf-category-badge" aria-label={view.badgeLabel+" "+view.badge}>

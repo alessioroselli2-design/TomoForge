@@ -42,6 +42,28 @@ function explicitIncrease(description){
  const m=description.match(/punteggio (?:di|in) ((?:Forza|Destrezza|Costituzione|Intelligenza|Saggezza|Carisma)(?:(?:\s*,\s*|\s+o\s+(?:di\s+)?|\s+e\s+(?:di\s+)?)(?:Forza|Destrezza|Costituzione|Intelligenza|Saggezza|Carisma))*)\s+aumenta di\s+(\d+)/i);
  return m?"+"+m[2]+" "+m[1].replace(/\s+di\s+/gi," ").trim():"";
 }
+// Only discard metadata already shown elsewhere, never gameplay effects.
+const keyText=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[’']/g,"'").replace(/[.!?;:]+$/,"").replace(/\s+/g," ").trim();
+const stripMeta=(units,metadata,extra=[])=>{
+ const keys=new Set(extra.map(keyText));
+ for(const [label,value] of metadata){
+  if(value&&value!=="—"){
+   keys.add(keyText(value));keys.add(keyText(label+": "+value));keys.add(keyText(label+" "+value));
+  }
+ }
+ return units.flatMap(unit=>{
+  const parts=unit.split(/;\s+|(?=\s+-\s+)/).map(s=>s.trim()).filter(Boolean);
+  const kept=parts.filter(part=>!keys.has(keyText(part)));
+  return kept.length===parts.length?[unit]:kept.length?[kept.join("; ")]:[];
+ });
+};
+const armorModifier=(formula,badge)=>{
+ if(!formula||!badge||!formula.startsWith(badge))return "";
+ const remainder=formula.slice(badge.length).trim();
+ if(!/\b(?:Des(?:trezza)?|Dex(?:terity)?)\b/i.test(remainder))return "";
+ return "Modificatore alla CA: "+remainder.replace(/^\+\s*/,"+ ");
+};
+const clarifyWeaponProperty=unit=>unit.replace(/\bVersatile\s*\(\s*(\d+d\d+(?:\s*[+-]\s*\d+)?)\s*\)/gi,(_,dice)=>"Versatile: "+dice+" a due mani");
 export function categoryCardView(card={}){
  const a=card.attributes||{}, config=CATEGORY_MASTERS[card.type];
  if(!config)return null;
@@ -59,6 +81,17 @@ export function categoryCardView(card={}){
   badgeLabel=badge?"LIV.":"";
   values=[pick(a,"categoria","feat_category"),prerequisite,pick(a,"aumento_caratteristica","bonus_caratteristiche","bonus_caratteristica","ability_score_increase")||explicitIncrease(description)];
   body=completeUnits(firstRaw(a,"benefici","benefits")??description);
+  if(values[2])body=body.map(unit=>{
+   const increase=explicitIncrease(unit);
+   if(!increase||keyText(increase)!==keyText(values[2]))return unit;
+   if(/^\s*(?:[-•]\s*)?(?:il suo |il )?punteggio/i.test(unit)){
+    const max=unit.match(/fino a un massimo di (\d+)\s*[.!]?$/i);
+    if(max)return "Limite dell'aumento: "+max[1]+".";
+    if(/aumenta di \d+\s*[.!]?$/i.test(unit))return "";
+   }
+   return unit;
+  }).filter(Boolean);
+  body=stripMeta(body,[["Prerequisito",prerequisite],["Categoria",values[0]],["Bonus caratteristica",values[2]],["Livello",badge]]);
   const repeat=yesno(firstRaw(a,"ripetibile","repeatable"));
   footer=join(named("Ripetibile",repeat),note);
   break;
@@ -79,6 +112,7 @@ export function categoryCardView(card={}){
   body=completeUnits(props??firstRaw(a,"effetto","effetti","effects")??description);
   if(props){const effects=completeUnits(firstRaw(a,"effetto","effetti","effects")??description);body=[...body,...effects.filter(s=>!body.includes(s))];}
   footer=join(named("Maledizioni",pick(a,"maledizioni","maledizione","curse")||yesno(firstRaw(a,"maledetto"))),note);
+  body=stripMeta(body,[["Rarità",badge],["Tipo",type],["Sintonia",attunement],["Cariche",charges],["Recupero",recovery]],[charges?charges+" cariche":"",recovery?"ricarica "+recovery:""]);
   break;
  }
  case "weapon":{
@@ -89,7 +123,15 @@ export function categoryCardView(card={}){
   const category=weaponCategories[rawCategory]||rawCategory.replace(/_/g," ")||generic(pick(a,"categoria","weapon_category"),/^arma$/i);
   const kind=rawCategory?"":pick(a,"tipo_arma","tipo","weapon_type");
   values=[[...new Set([category,kind].filter(Boolean))].join(" · "),pick(a,"tipo_danno","damage_type"),pick(a,"gittata","portata","range")||[metric(a.gittata_normale_m,"m"),metric(a.gittata_lunga_m,"m")].filter(Boolean).join(" / ")];
-  body=completeUnits(props??description);
+  body=completeUnits(props);
+  const damageType=values[1];
+  const allDescription=stripMeta(completeUnits(description),[["Danno",damage],["Danni",damage],["Tipo di danno",damageType],["Gittata",values[2]],["Costo",pick(a,"costo","cost")],["Peso",pick(a,"peso","weight")||metric(a.peso_kg,"kg")],["Proprietà",text(props)]],[
+    "Danni: "+badge+" "+damageType,
+    "Danni: "+badge+" "+damageType.replace(/e$/i,"i"),
+    "Danno: "+badge+" "+damageType,
+    "Danno: "+badge+" "+damageType.replace(/e$/i,"i"),
+  ]).filter(unit=>!/^Elenco armi\b/i.test(unit));
+  body=[...body,...allDescription.filter(unit=>!body.some(p=>keyText(p)===keyText(unit)))].map(clarifyWeaponProperty);
   const mastery=pick(a,"maestria","proprieta_maestria","mastery");
   if(mastery)body.push("Maestria: "+mastery);
   footer=costWeight;
@@ -109,7 +151,17 @@ export function categoryCardView(card={}){
   values=[shield?"Scudo":cap(generic(category,/^armatura$/i)),
    shield?pick(a,"competenza_scudi","competenze","requisiti","shield_proficiency"):pick(a,"forza_minima","forza","strength_requirement"),
    /^(s[iì]|svantaggio)$/i.test(stealth)?"Svantaggio":/^(no|false|nessuno)$/i.test(stealth)?"":stealth];
-  body=[named("CA",formula),...completeUnits(firstRaw(a,"dettagli","proprieta","properties")??description),...completeUnits(note)].filter(Boolean);
+  const modifier=armorModifier(formula,badge);
+  const cost=pick(a,"costo","cost"),weight=pick(a,"peso","weight")||metric(a.peso_kg,"kg");
+  const details=completeUnits(firstRaw(a,"dettagli","proprieta","properties")??description);
+  const repeats=[badge?"CA "+badge:"",badge?"CA: "+badge:"",badge?"Bonus "+badge+" alla CA":"",badge?badge+" alla CA":"",
+   values[1]?"Forza minima "+values[1]:"",values[2]==="Svantaggio"?"svantaggio alle prove di Furtività":"",
+   "Armatura "+category+" (2014)","Armatura "+category+" (2024)","Armatura "+category,
+   shield?"Scudo 2014: bonus "+badge+" alla CA":"",shield?"Scudo 2024: bonus "+badge+" alla CA":""];
+  body=[modifier,...stripMeta(details,[["CA",ac],["CA",formula],["Costo",cost],["Peso",weight],["Categoria",values[0]],["Requisiti",values[1]],["Furtività",values[2]]],repeats),...completeUnits(note)].filter(Boolean);
+  if(!shield&&!modifier&&badge&&/^(?:pesante|armatura pesante)$/i.test(category)&&/^\d+$/.test(formula)){
+   body.unshift("CA fissa: non si aggiunge il modificatore di Destrezza.");
+  }
   footer=join(costWeight,named("Vestizione",pick(a,"vestizione","tempo_vestizione","tempo_indossare","donning")),named("Rimozione",pick(a,"tempo_togliere","doffing")));
   break;
  }
