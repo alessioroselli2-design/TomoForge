@@ -6,6 +6,7 @@ import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { backImageStyle, frontMasterSlices, frontMasterSliceStyle } from "@/lib/cardPrintGeometry";
+import { getFrontExteriorMask } from "@/lib/frontExterior";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
@@ -186,9 +187,23 @@ const ApprovedCardFront = React.forwardRef((props, ref) =>
 );
 ApprovedCardFront.displayName="ApprovedCardFront";
 
-export const CardFront=React.forwardRef((props,ref)=>
- <ApprovedCardFront {...props} ref={ref}/>
-);
+export const CardFront=React.forwardRef((props,ref)=>{
+ const type=props.card?.type;
+ const [mask,setMask]=React.useState(null);
+ React.useEffect(()=>{
+  let alive=true;setMask(null);
+  // The offscreen exporter applies the same mask after rendering.
+  if(!props.exportMode)getFrontExteriorMask(type).then(c=>{
+   if(alive&&c)setMask(c.toDataURL("image/png"));
+  }).catch(()=>{});
+  return()=>{alive=false;};
+ },[type,props.exportMode]);
+ return <div className="relative w-full h-full overflow-hidden" data-front-edge="black-exterior-only">
+  <ApprovedCardFront {...props} ref={ref}/>
+  {mask&&<img src={mask} alt="" aria-hidden="true" draggable={false}
+    style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>}
+ </div>;
+});
 CardFront.displayName="CardFront";
 
 export const CardBack=React.forwardRef(({card,exportMode},ref)=>{

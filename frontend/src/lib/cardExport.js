@@ -7,6 +7,7 @@ import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
+import { blackenFrontExterior } from "@/lib/frontExterior";
 import html2canvas from "html2canvas";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -488,7 +489,7 @@ async function renderRawCardCanvas(element,card){
 }
 
 export async function renderCardCanvas(element,card){
- return renderRawCardCanvas(element,card);
+ return blackenFrontExterior(await renderRawCardCanvas(element,card),card?.type);
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back

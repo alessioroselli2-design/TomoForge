@@ -30,7 +30,7 @@ export default function PrintPressPreview(){
    try{
     const front=await createCardPng(ref.current,card);
     const back=await createCardBackPng(card);
-    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png")});
+    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height});
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
@@ -63,7 +63,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 3 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 4 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -73,6 +73,10 @@ export default function PrintPressPreview(){
     <div className="min-w-0"><p className="text-xs mb-2">FRONTE</p><div style={{width:"100%",aspectRatio:"5/7"}}>{proof?<img src={proof.front} alt="Fronte realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
     <div className="min-w-0"><p className="text-xs mb-2">RETRO</p><div style={{width:"100%",aspectRatio:"5/7"}}>{proof?<img src={proof.back} alt="Retro realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
    </div>
+   {proof&&<p className="mt-3 text-xs" data-testid="proof-dimensions">
+    Fronte: {proof.frontW} × {proof.frontH} px · Retro: {proof.backW} × {proof.backH} px
+    {proof.frontW===proof.backW&&proof.frontH===proof.backH?" · Misure identiche":" · ATTENZIONE: misure diverse"}
+   </p>}
    <div className="flex flex-wrap justify-center gap-3 mt-6">
     <button disabled={busy} onClick={()=>download(true)} className="border border-gold bg-gold text-obsidian px-4 py-3 text-sm">SCARICA PDF TIPOGRAFIA</button>
     <button disabled={busy} onClick={()=>download(false)} className="border border-gold px-4 py-3 text-sm">SCARICA PDF A4</button>
