@@ -20,3 +20,9 @@ export function setPressPageBoxes(pdf) {
   context.bleedBox = box(0,0,w,h);
   context.trimBox = box(b,b,w-b,h-b);
 }
+
+// CSS elliptical percentages correspond to a physically circular 3 mm
+// corner on a 63.5 x 88.9 mm card, at any preview scale.
+export function getCornerPreviewRadius(spec=PRESS_SPEC) {
+ return `${100*spec.cornerRadius/spec.trimWidth}% / ${100*spec.cornerRadius/spec.trimHeight}%`;
+}

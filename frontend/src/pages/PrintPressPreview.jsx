@@ -1,6 +1,7 @@
 import React from "react";
 import jsPDF from "jspdf";
 import { CardFront } from "@/components/TradingCard";
+import { getCornerPreviewRadius } from "@/lib/pressGeometry";
 import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib/cardExport";
 
@@ -22,6 +23,8 @@ export default function PrintPressPreview(){
  const [busy,setBusy]=React.useState(false);
  const [feedback,setFeedback]=React.useState("");
  const [proof,setProof]=React.useState(null);
+ const [rounded,setRounded]=React.useState(true);
+ const previewStyle={width:"100%",aspectRatio:"5/7",overflow:"hidden",borderRadius:rounded?getCornerPreviewRadius():0};
  const ref=React.useRef(null);
  const card=React.useMemo(()=>({...SAMPLES[index],description:"Carta dimostrativa per il confronto del fronte e del retro. Nessun dato viene salvato."}),[index]);
  React.useEffect(()=>{
@@ -63,15 +66,19 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 4 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 5 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
     </select>
    </label>
+   <label className="flex items-center justify-center gap-2 my-3 text-xs">
+    <input type="checkbox" checked={rounded} onChange={e=>setRounded(e.target.checked)} data-testid="rounded-corners-toggle"/>
+    Simula il taglio arrotondato (R 3 mm)
+   </label>
    <div className="grid grid-cols-2 gap-2 max-w-[690px] mx-auto">
-    <div className="min-w-0"><p className="text-xs mb-2">FRONTE</p><div style={{width:"100%",aspectRatio:"5/7"}}>{proof?<img src={proof.front} alt="Fronte realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
-    <div className="min-w-0"><p className="text-xs mb-2">RETRO</p><div style={{width:"100%",aspectRatio:"5/7"}}>{proof?<img src={proof.back} alt="Retro realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
+    <div className="min-w-0"><p className="text-xs mb-2">FRONTE</p><div style={previewStyle}>{proof?<img src={proof.front} alt="Fronte realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
+    <div className="min-w-0"><p className="text-xs mb-2">RETRO</p><div style={previewStyle}>{proof?<img src={proof.back} alt="Retro realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
    </div>
    {proof&&<p className="mt-3 text-xs" data-testid="proof-dimensions">
     Fronte: {proof.frontW} × {proof.frontH} px · Retro: {proof.backW} × {proof.backH} px
@@ -84,7 +91,7 @@ export default function PrintPressPreview(){
     <button disabled={busy} onClick={()=>downloadPng(true)} className="border border-gold px-4 py-3 text-sm">PNG RETRO</button>
    </div>
    <p role="status" className="mt-3 text-sm">{feedback}</p>
-   <p className="mt-3 text-xs text-foreground/70">PDF tipografia: taglio 63,5 × 88,9 mm, 3 mm abbondanza. PDF A4: riferimenti di taglio esterni da 1,05 mm; stampa al 100%, fronte-retro sul lato lungo.</p>
+   <p className="mt-3 text-xs text-foreground/70">PDF tipografia: taglio 63,5 × 88,9 mm, 3 mm abbondanza, raggio angoli richiesto 3 mm. Il PDF conserva la grafica rettangolare completa per la fustellatura. PDF A4: riferimenti esterni da 1,05 mm; stampa al 100%, fronte-retro sul lato lungo; arrotondare dopo il taglio con una fustella R 3 mm.</p>
    <div aria-hidden="true" style={{position:"fixed",left:-99999,top:0,width:340,height:476}} ref={ref}><CardFront card={card} exportMode/></div>
   </div>
  </main>;
