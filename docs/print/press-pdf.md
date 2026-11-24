@@ -13,3 +13,5 @@ Revisione 5: lo spazio esterno del solo fronte riprende una tonalità oro antica
 Revisione 6: al posto del colore oro uniforme, il riempimento esterno del fronte usa i colori locali del rilievo originale, con un'ombreggiatura metallica verso l'esterno. Nessuna modifica alle dimensioni, al retro, alle maschere interne, alle guide di taglio o al raggio degli angoli.
 
 Revisione 7: patina metallica bidimensionale tenue, con palette campionata dalla cornice originale; eliminata la propagazione lineare dei pixel che produceva striature. L'esterno del solo fronte conserva la maschera esistente. Il retro e le misure restano invariati.
+
+Revisione 8: eliminato il riempimento cromatico sintetico. Il nuovo algoritmo traccia il rilievo dorato originale e rimappa geometricamente solo la fascia periferica del fronte verso il perimetro di taglio, campionando i pixel reali del master. La regione centrale, i dorsi, le misure e le guide di stampa rimangono invariati. Verificare visivamente la continuità dei rilievi e le gemme prima del merge.

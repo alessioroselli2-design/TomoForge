@@ -198,7 +198,7 @@ export const CardFront=React.forwardRef((props,ref)=>{
   }).catch(()=>{});
   return()=>{alive=false;};
  },[type,props.exportMode]);
- return <div className="relative w-full h-full overflow-hidden" data-front-edge="antique-gold-exterior-only">
+ return <div className="relative w-full h-full overflow-hidden" data-front-edge="expanded-original-rail">
   <ApprovedCardFront {...props} ref={ref}/>
   {mask&&<img src={mask} alt="" aria-hidden="true" draggable={false}
     style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>}

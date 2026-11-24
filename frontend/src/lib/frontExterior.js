@@ -8,78 +8,77 @@ import {frontMasterSlices} from "./cardPrintGeometry";
 // and illustration window cannot be recoloured. The original master remains.
 const W=1020,H=1428;
 const gold=(p,i)=>p[i]>105 && p[i+1]>75 && p[i+1]>=p[i]*.55 && p[i+2]<p[i+1]*.88;
-// Use actual warm metallic samples from the original perimeter. The palette
-// is shared by all four edges: no row/column extrapolation or streaking.
-export function framePalette(p,indices) {
- const samples=[];
- for(const i of indices)if(gold(p,i))samples.push([p[i],p[i+1],p[i+2]]);
- samples.sort((a,b)=>(a[0]*.2126+a[1]*.7152+a[2]*.0722)-(b[0]*.2126+b[1]*.7152+b[2]*.0722));
- if(!samples.length)return {shadow:[100,58,22],mid:[157,102,45],light:[192,139,67]};
- const q=(v)=>samples[Math.round((samples.length-1)*v)];
- return {shadow:q(.10),mid:q(.38),light:q(.68)};
+// Geometric extension of the original engraving. Each ray from the card
+// centre meets the rectangular cut line. Locate the first real gold pixel
+// on that ray and expand the narrow original outer rail to the cut line.
+// All pixels inside the fixed inner contour are untouched. No invented
+// colours, texture, second frame, or scaling of the entire card.
+const INNER=.90, SEARCH=.82;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+export function perimeterPoint(k,w,h){
+ const a=w-1,b=h-1, len=2*(a+b);
+ k=((k%len)+len)%len;
+ if(k<a)return [k,0];
+ k-=a;if(k<b)return [a,k];
+ k-=b;if(k<a)return [a-k,b];
+ k-=a;return [0,b-k];
 }
-const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
-function hash(x,y){
- let n=Math.imul(x+101,374761393)^Math.imul(y+103,668265263);
- n=Math.imul(n^(n>>>13),1274126177);
- return ((n^(n>>>16))>>>0)/4294967295;
+export function traceOuterRail(p,w,h){
+ const cx=(w-1)/2,cy=(h-1)/2,len=2*(w+h-2);
+ const ray=new Float32Array(len);
+ for(let k=0;k<len;k++){
+  const [ex,ey]=perimeterPoint(k,w,h);
+  const dx=ex-cx,dy=ey-cy,steps=Math.max(Math.abs(dx),Math.abs(dy));
+  let found=0;
+  for(let n=0;n<=Math.ceil(steps*(1-SEARCH));n++){
+   const t=1-n/steps, x=Math.round(cx+dx*t),y=Math.round(cy+dy*t);
+   if(gold(p,4*(y*w+x))){found=t;break;}
+  }
+  ray[k]=found;
+ }
+ // Fill tiny gaps in the trace from adjoining portions of the same rail.
+ // Use the actual sampled ray whenever available; do not invent a palette.
+ for(let k=0;k<len;k++){
+  if(ray[k])continue;
+  let v=0;
+  for(let d=1;d<=Math.round(Math.min(w,h)*.06);d++){
+   const a=ray[(k-d+len)%len],b=ray[(k+d)%len];
+   if(a||b){v=a&&b?(a+b)/2:a||b;break;}
+  }
+  ray[k]=v||.96;
+ }
+ return ray;
 }
-function noise(x,y,size){
- const u=x/size,v=y/size,ix=Math.floor(u),iy=Math.floor(v);
- const smooth=t=>t*t*(3-2*t);
- const a=smooth(u-ix),b=smooth(v-iy);
- const p=hash(ix,iy)*(1-a)+hash(ix+1,iy)*a;
- const q=hash(ix,iy+1)*(1-a)+hash(ix+1,iy+1)*a;
- return p*(1-b)+q*b;
+function readPixel(p,w,h,x,y,out,i){
+ x=clamp(x,0,w-1);y=clamp(y,0,h-1);
+ const x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(w-1,x0+1),y1=Math.min(h-1,y0+1);
+ const fx=x-x0,fy=y-y0;
+ for(let q=0;q<3;q++){
+  const a=p[4*(y0*w+x0)+q]*(1-fx)+p[4*(y0*w+x1)+q]*fx;
+  const b=p[4*(y1*w+x0)+q]*(1-fx)+p[4*(y1*w+x1)+q]*fx;
+  out[i+q]=Math.round(a*(1-fy)+b*fy);
+ }
+ out[i+3]=255;
 }
-// Fine, isotropic antique-metal patina. The mottling is deliberately subtle
-// and two-dimensional, not copied down columns. A narrow warm highlight and
-// shadow at the edge suggest the existing gilded relief, without another rail.
-export function patinaPixel(palette,x,y,w,h,distance){
- const scale=w/1020;
- const n=.55*noise(x,y,22*scale)+.30*noise(x,y,7*scale)+.15*noise(x,y,2.6*scale);
- const tone=mix(palette.shadow,palette.mid,.68+.28*n);
- const detail=mix(tone,palette.light,.10+.19*n);
- const outer=Math.min(x,y,w-1-x,h-1-y)/scale;
- const edgeShade=.78+.22*Math.min(1,outer/4.5);
- const near=.12*Math.exp(-Math.max(0,distance)/Math.max(1,3*scale));
- const shade=edgeShade*(.97+.10*(n-.5));
- return mix(detail,palette.shadow,near).map(v=>Math.max(0,Math.min(255,Math.round(v*shade))));
-}
-export function exteriorAlpha(p,w,h) {
- const left=new Int32Array(h),right=new Int32Array(h),
-  top=new Int32Array(w),bottom=new Int32Array(w);
- const side=Math.ceil(w*.075),upper=Math.ceil(h*.055),lower=Math.ceil(h*.14);
- const isGold=(x,y)=>gold(p,4*(y*w+x));
- for(let y=0;y<h;y++){
-   left[y]=Math.floor(w*.008);right[y]=w-1-Math.floor(w*.008);
-   for(let x=0;x<side;x++)if(isGold(x,y)){left[y]=x;break;}
-   for(let x=w-1;x>=w-side;x--)if(isGold(x,y)){right[y]=x;break;}
- }
- for(let x=0;x<w;x++){
-   top[x]=Math.floor(h*.003);bottom[x]=h-1-Math.floor(h*.003);
-   for(let y=0;y<upper;y++)if(isGold(x,y)){top[x]=y;break;}
-   for(let y=h-1;y>=h-lower;y--)if(isGold(x,y)){bottom[x]=y;break;}
- }
- const indices=[];
- // Sample short strips inside the already detected original gold contour.
- const dx=Math.max(2,Math.round(w*.009)),dy=Math.max(2,Math.round(h*.009));
- for(let y=0;y<h;y+=2)for(let j=0;j<dx;j++){
-  if(left[y]+j<w)indices.push(4*(y*w+left[y]+j));
-  if(right[y]-j>=0)indices.push(4*(y*w+right[y]-j));
- }
- for(let x=0;x<w;x+=2)for(let j=0;j<dy;j++){
-  if(top[x]+j<h)indices.push(4*((top[x]+j)*w+x));
-  if(bottom[x]-j>=0)indices.push(4*((bottom[x]-j)*w+x));
- }
- const palette=framePalette(p,indices);
+export function exteriorAlpha(p,w,h){
+ const cx=(w-1)/2,cy=(h-1)/2,a=w-1,b=h-1;
+ const trace=traceOuterRail(p,w,h),len=trace.length;
  const result=new Uint8ClampedArray(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-   const i=4*(y*w+x);
-   const distance=Math.max(left[y]-x,x-right[y],top[x]-y,y-bottom[x]);
-   if(distance<=0||gold(p,i))continue;
-   const rgb=patinaPixel(palette,x,y,w,h,distance);
-   result.set([...rgb,255],i);
+  const dx=x-cx,dy=y-cy,t=Math.max(Math.abs(dx)/cx,Math.abs(dy)/cy);
+  if(t<=INNER)continue;
+  const ex=clamp(cx+dx/t,0,a),ey=clamp(cy+dy/t,0,b);
+  let k;
+  if(Math.abs(dy)/cy>=Math.abs(dx)/cx)k=dy<0?ex:a+b+(a-ex);
+  else k=dx>0?a+ey:2*a+b+(b-ey);
+  const k0=Math.floor(k)%len,k1=(k0+1)%len;
+  const edge=trace[k0]+(trace[k1]-trace[k0])*(k-Math.floor(k));
+  // Anchor the inside of the outer rail; widen only its original pixels.
+  const inner=Math.min(INNER,edge-.035);
+  const u=clamp((t-inner)/(1-inner),0,1);
+  const sourceT=inner+(edge-inner)*u;
+  const i=4*(y*w+x);
+  readPixel(p,w,h,cx+dx/t*sourceT,cy+dy/t*sourceT,result,i);
  }
  return result;
 }
