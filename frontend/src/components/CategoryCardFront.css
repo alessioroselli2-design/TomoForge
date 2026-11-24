@@ -1,6 +1,6 @@
 /* Fresh, isolated renderer for feat / item / weapon / armor. No legacy classes or overrides. */
 .tf-category-master {
- position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;
+ position:relative;width:100%;height:100%;overflow:visible;isolation:isolate;
  box-sizing:border-box;container-type:inline-size;
  background-repeat:no-repeat;background-position:center;background-size:100% 100%;
  color:#2b160e;font-family:"Spectral",Georgia,serif;
@@ -26,3 +26,5 @@
 .tf-category-master .tf-category-body-text {width:100%;height:100%;font:500 11px/1.15 "Spectral",Georgia,serif;white-space:pre-line;overflow-wrap:anywhere;}
 .tf-category-master .tf-category-footer {position:absolute;left:8%;top:87.3%;width:84%;height:6.2%;z-index:5;}
 .tf-category-master .tf-category-footer-text {width:100%;height:100%;text-align:center;align-content:center;font:500 9px/1.1 "Spectral",Georgia,serif;overflow-wrap:anywhere;}
+
+.tf-category-master .tf-category-name,.tf-category-master .tf-category-subtitle,.tf-category-master .tf-category-badge-value,.tf-category-master .tf-category-stat-value,.tf-category-master .tf-category-body-text,.tf-category-master .tf-category-footer-text {overflow:hidden;overflow-wrap:anywhere;}

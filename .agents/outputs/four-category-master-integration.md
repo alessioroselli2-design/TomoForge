@@ -9,5 +9,7 @@ Percorsi esatti:
 - frontend/public/emblemi/categorie/simbolo-oggetti-magici.png
 - frontend/public/emblemi/categorie/simbolo-armi-armature.png
 Il connettore non dispone di trasferimento diretto dei byte dai file allegati. Non sostituire con immagini inventate o altri master.
-Verificare anche la dicitura stampata Forza Minima del master Armatura quando si visualizza uno scudo.
+Il master Armatura allegato riporta correttamente Requisiti.
 I test del mapper usano fixture sintetiche e non certificano i record reali della biblioteca.
+
+Lettura SELECT su private_reference_records: confermati categoria_arma, categoria_armatura, peso_kg, tempo_indossare, tempo_togliere, aumento_caratteristica, cariche_massime, prerequisito_sintonia, recupero_cariche. Campioni: Maestro D’Armi, Spada Lunga, Cotta di Maglia, Scudo, Bastone dei Boschi. Nessun Bastone del Guardiano trovato con ricerca per nome. Nessuna scrittura al database.

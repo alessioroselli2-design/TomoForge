@@ -9,7 +9,7 @@ const COLS=[{left:14,width:19.2},{left:43.5,width:19.5},{left:73.3,width:20.1}];
 function Fitted({value,units,as:Tag="div",className,min=6,max=8.5,lines,mode="text",...props}){
  const ref=React.useRef(null);
  const full=units?units.join("\n"):String(value??"");
- const [fit,setFit]=React.useState({text:full,size:max});
+ const [fit,setFit]=React.useState({source:full,text:full,size:max});
  React.useLayoutEffect(()=>{
   const el=ref.current;if(!el)return;
   let alive=true;
@@ -50,7 +50,7 @@ function Fitted({value,units,as:Tag="div",className,min=6,max=8.5,lines,mode="te
        if(!next.text&&mode!=="body"&&full)next={text:"…",size:min};
       }
      }
-     setFit(old=>old.text===next.text&&old.size===next.size?old:next);
+     setFit(old=>old.source===full&&old.text===next.text&&old.size===next.size?old:{...next,source:full});
     }finally{probe.remove();}
    };
    if(typeof requestAnimationFrame==="function")frame=requestAnimationFrame(measure);else measure();
@@ -60,8 +60,8 @@ function Fitted({value,units,as:Tag="div",className,min=6,max=8.5,lines,mode="te
   observer?.observe(el);
   return()=>{alive=false;observer?.disconnect();if(typeof frame==="number"&&typeof cancelAnimationFrame==="function")cancelAnimationFrame(frame);};
  },[full,units,min,max,lines,mode]);
- const shown=fit.text===full||full.startsWith(fit.text)?fit.text:full;
- return <Tag ref={ref} className={className} title={full} style={{fontSize:fit.size+"px"}} {...props}>{fit.text==="…"?"…":shown}</Tag>;
+ const shown=fit.source===full?fit.text:full;
+ return <Tag ref={ref} className={className} title={full} style={{fontSize:fit.size+"px"}} {...props}>{shown}</Tag>;
 }
 export const CategoryCardFront=React.forwardRef(({card={},imgUrl,exportMode},ref)=>{
  const view=React.useMemo(()=>categoryCardView(card),[card]);

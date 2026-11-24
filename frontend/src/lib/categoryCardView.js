@@ -35,50 +35,60 @@ export const completeUnits=value=>{
  return sentenceUnits(text(value));
 };
 const generic=(value,pattern)=>pattern.test(value)? "":value;
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):"";
+const metric=(value,unit)=>text(value)?text(value).replace(".",",")+" "+unit:"";
+const weaponCategories={guerra_mischia:"Da guerra · Mischia",guerra_distanza:"Da guerra · Distanza",semplice_mischia:"Semplice · Mischia",semplice_distanza:"Semplice · Distanza"};
+function explicitIncrease(description){
+ const m=description.match(/punteggio (?:di|in) ((?:Forza|Destrezza|Costituzione|Intelligenza|Saggezza|Carisma)(?:(?:\s*,\s*|\s+o\s+(?:di\s+)?|\s+e\s+(?:di\s+)?)(?:Forza|Destrezza|Costituzione|Intelligenza|Saggezza|Carisma))*)\s+aumenta di\s+(\d+)/i);
+ return m?"+"+m[2]+" "+m[1].replace(/\s+di\s+/gi," ").trim():"";
+}
 export function categoryCardView(card={}){
  const a=card.attributes||{}, config=CATEGORY_MASTERS[card.type];
  if(!config)return null;
  const description=text(card.description);
  const note=pick(a,"note","notes");
  const props=firstRaw(a,"proprieta","proprietà","properties");
- const costWeight=join(named("Costo",pick(a,"costo","cost")),named("Peso",pick(a,"peso","weight")));
+ const costWeight=join(named("Costo",pick(a,"costo","cost")),named("Peso",pick(a,"peso","weight")||metric(a.peso_kg,"kg")));
  let badgeLabel="",badge="",values=[],body=[],footer="",subtitle=config.subtitle;
  switch(card.type){
  case "feat":{
-  const prerequisite=pick(a,"prerequisito","prerequisiti","prerequisite");
+  const prerequisite=pick(a,"prerequisito","prerequisiti","requisito","prerequisite");
   const rawLevel=pick(a,"livello_minimo","livello_richiesto","livello","min_level");
   const match=rawLevel.match(/^\d+$/)||prerequisite.match(/(?:livello\s+(\d+)|(\d+)[°º]?\s+livello)/i);
   badge=match?(match[1]||match[2]||match[0]):"";
   badgeLabel=badge?"LIV.":"";
-  values=[pick(a,"categoria","feat_category"),prerequisite,pick(a,"bonus_caratteristiche","bonus_caratteristica","ability_score_increase")];
+  values=[pick(a,"categoria","feat_category"),prerequisite,pick(a,"aumento_caratteristica","bonus_caratteristiche","bonus_caratteristica","ability_score_increase")||explicitIncrease(description)];
   body=completeUnits(firstRaw(a,"benefici","benefits")??description);
   const repeat=yesno(firstRaw(a,"ripetibile","repeatable"));
   footer=join(named("Ripetibile",repeat),note);
   break;
  }
  case "item":{
-  badge=pick(a,"rarita","rarità","rarity");
+  badge=cap(pick(a,"rarita","rarità","rarity"));
   const type=pick(a,"tipo","tipo_oggetto","item_type")||generic(pick(a,"categoria"),/^oggetto(?: magico)?$/i);
-  let attunement=yesno(firstRaw(a,"sintonia","richiede_sintonia","attunement"));
+  let attunement=yesno(firstRaw(a,"sintonia","richiede_sintonia","requires_attunement","attunement"));
   if(/^richiede sintonia$/i.test(attunement))attunement="Sì";
   if(/^non richiede sintonia$/i.test(attunement))attunement="No";
-  const requirement=pick(a,"requisito_sintonia","requisiti_sintonia","attunement_requirement");
+  else if(/^richiede sintonia\s+/i.test(attunement))attunement=attunement.replace(/^richiede sintonia\s+/i,"Sì · ");
+  const requirement=pick(a,"prerequisito_sintonia","requisito_sintonia","requisiti_sintonia","attunement_requirement");
   if(requirement&&attunement==="Sì")attunement+=" · "+requirement;
-  const charges=pick(a,"cariche","charges");
-  const recovery=pick(a,"recupero_cariche","charge_recovery");
+  else if(attunement&&!/^(?:Sì|No|—)/i.test(attunement)&&!/^non /i.test(attunement))attunement="Sì · "+attunement;
+  const charges=pick(a,"cariche_massime","max_cariche","cariche","charges");
+  const recovery=pick(a,"recupero_cariche","ricarica","recupero","recupero_cariche_formula","charge_recovery");
   values=[type,attunement,join(charges,named("Recupero",recovery))];
   body=completeUnits(props??firstRaw(a,"effetto","effetti","effects")??description);
-  if(props){const effects=completeUnits(firstRaw(a,"effetto","effetti","effects"));body=[...body,...effects.filter(s=>!body.includes(s))];}
-  footer=join(named("Maledizioni",pick(a,"maledizioni","maledizione","curse")),note);
+  if(props){const effects=completeUnits(firstRaw(a,"effetto","effetti","effects")??description);body=[...body,...effects.filter(s=>!body.includes(s))];}
+  footer=join(named("Maledizioni",pick(a,"maledizioni","maledizione","curse")||yesno(firstRaw(a,"maledetto"))),note);
   break;
  }
  case "weapon":{
   const damage=pick(a,"danno","danni","formula_danno","damage");
   badge=(damage.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i)||[])[0]?.replace(/\s+/g,"")||(/^\d+$/.test(damage)?damage:"");
   badgeLabel=badge?"DANNI":"";
-  const category=generic(pick(a,"categoria","weapon_category"),/^arma$/i);
-  const kind=pick(a,"tipo_arma","tipo","weapon_type");
-  values=[[...new Set([category,kind].filter(Boolean))].join(" · "),pick(a,"tipo_danno","damage_type"),pick(a,"gittata","portata","range")];
+  const rawCategory=pick(a,"categoria_arma");
+  const category=weaponCategories[rawCategory]||rawCategory.replace(/_/g," ")||generic(pick(a,"categoria","weapon_category"),/^arma$/i);
+  const kind=rawCategory?"":pick(a,"tipo_arma","tipo","weapon_type");
+  values=[[...new Set([category,kind].filter(Boolean))].join(" · "),pick(a,"tipo_danno","damage_type"),pick(a,"gittata","portata","range")||[metric(a.gittata_normale_m,"m"),metric(a.gittata_lunga_m,"m")].filter(Boolean).join(" / ")];
   body=completeUnits(props??description);
   const mastery=pick(a,"maestria","proprieta_maestria","mastery");
   if(mastery)body.push("Maestria: "+mastery);
@@ -86,7 +96,7 @@ export function categoryCardView(card={}){
   break;
  }
  case "armor":{
-  const category=pick(a,"categoria","tipo","armor_category");
+  const category=pick(a,"categoria_armatura","categoria","tipo","armor_category");
   const shield=/\bscud[oi]\b/i.test(category)||card.reference_type==="shield"||
    (Array.isArray(card.reference_snapshots)&&card.reference_snapshots.some(s=>s?.reference_type==="shield"));
   if(shield)subtitle="Scudo";
@@ -96,11 +106,11 @@ export function categoryCardView(card={}){
   badge=shield&&base&&!base.startsWith("+")?"+"+base:base;
   badgeLabel=badge?"CA":"";
   const stealth=yesno(firstRaw(a,"svantaggio_furtivita","furtivita","stealth_disadvantage"));
-  values=[shield?"Scudo":generic(category,/^armatura$/i),
+  values=[shield?"Scudo":cap(generic(category,/^armatura$/i)),
    shield?pick(a,"competenza_scudi","competenze","requisiti","shield_proficiency"):pick(a,"forza_minima","forza","strength_requirement"),
    /^(s[iì]|svantaggio)$/i.test(stealth)?"Svantaggio":/^(no|false|nessuno)$/i.test(stealth)?"":stealth];
   body=[named("CA",formula),...completeUnits(firstRaw(a,"dettagli","proprieta","properties")??description),...completeUnits(note)].filter(Boolean);
-  footer=join(costWeight,named("Vestizione",pick(a,"vestizione","tempo_vestizione","donning")));
+  footer=join(costWeight,named("Vestizione",pick(a,"vestizione","tempo_vestizione","tempo_indossare","donning")),named("Rimozione",pick(a,"tempo_togliere","doffing")));
   break;
  }
  default:break;
