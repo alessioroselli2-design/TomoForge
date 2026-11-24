@@ -28,6 +28,7 @@ export function backImageStyle(file) {
     top: -100 * crop.y / crop.h + "%",
     width: 100 * SOURCE_WIDTH / crop.w + "%",
     height: 100 * SOURCE_HEIGHT / crop.h + "%",
+    maxWidth: "none", // Tailwind preflight must not shrink the calibrated crop.
     objectFit: "contain",
   };
 }
