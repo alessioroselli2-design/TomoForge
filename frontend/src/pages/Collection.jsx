@@ -68,12 +68,9 @@ export default function Collection() {
     const { w: cardW, h: cardH, cols, rows } = PRINT_FORMATS[format];
     const perPage = cols * rows;
     const drawCut = (pdf, x, y) => {
-      // faint card boundary
-      pdf.setDrawColor(120, 100, 50);
-      pdf.setLineWidth(0.1);
-      pdf.rect(x, y, cardW, cardH);
-      // corner crop/trim marks (L-shaped, pointing outward) for precise cutting
-      const L = 3, o = 0.6;
+      // With a 3 mm inter-card gap each mark must stay under half the gap.
+      // Never draw a line across a neighbouring card or on finished artwork.
+      const L = 0.8, o = 0.5;
       pdf.setDrawColor(60, 50, 25);
       pdf.setLineWidth(0.2);
       const marks = [
@@ -102,7 +99,7 @@ export default function Collection() {
         for (let i = 0; i < group.length; i++) {
           step += 1; setProgress(step);
           const el = cardRefs.current[group[i].id];
-          if (!el) continue;
+          if (!el) throw new Error("Anteprima di stampa non disponibile");
            const { x, y } = getPrintSheetPositions(format, group.length)[i];
            await addPrintSheetCard(pdf, el, group[i], { x, y, w: cardW, h: cardH });
            drawCut(pdf, x, y);

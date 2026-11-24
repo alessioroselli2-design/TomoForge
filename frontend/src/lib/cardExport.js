@@ -6,6 +6,7 @@ import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
+import { applyCardPrintEdge, getBackCrop } from "@/lib/cardPrintGeometry";
 import html2canvas from "html2canvas";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -462,7 +463,7 @@ async function renderApprovedCategory(element){
  }finally{stage.remove();}
 }
 // Existing renderer remains untouched for Class, Monster and all other types.
-export async function renderCardCanvas(element,card){
+async function renderRawCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
  await waitForImages(element);
  if(document.fonts?.ready)await document.fonts.ready;
@@ -481,6 +482,10 @@ export async function renderCardCanvas(element,card){
    (element.matches?.('[data-category-master="approved"]')||element.querySelector?.('[data-category-master="approved"]')))
    return renderApprovedCategory(element);
  return renderApprovedMaster(element,card);
+}
+
+export async function renderCardCanvas(element,card){
+ return applyCardPrintEdge(await renderRawCardCanvas(element,card));
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back
@@ -511,8 +516,13 @@ export async function renderCardBackCanvas(card) {
   const drawHeight = Math.min(canvas.height, naturalHeight * fit);
   ctx.fillStyle = "#101019";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
-  return canvas;
+  const crop = getBackCrop(art.file, naturalWidth, naturalHeight);
+  if (crop) {
+    ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, 0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
+  }
+  return applyCardPrintEdge(canvas);
 }
 
 // These adapters keep the user-facing export routes on the same dedicated

@@ -51,6 +51,7 @@ const createContext = (operations, gradients) => ({
   createRadialGradient: () => ({
     addColorStop: jest.fn(),
   }),
+  setTransform: jest.fn(),
   save: jest.fn(),
   clip: jest.fn(),
   restore: jest.fn(),
@@ -252,6 +253,22 @@ describe("card export renderers", () => {
     expect(x).toBeGreaterThan(0);
     expect(y).toBe(0);
     expect(w / h).toBeCloseTo(750 / 1200);
+  });
+
+  it("normalizes the Class reverse and applies the same final edge to front and back", async () => {
+    const card = { type: "class", name: "Druido", attributes: {} };
+    const front = await renderCardCanvas(makeExportElement(), card);
+    const back = await renderCardBackCanvas(card);
+    const crop = back.operations.find(op => op.name === "drawImage");
+    expect(crop.args.slice(1)).toEqual([0, 16, 725, 1015, 0, 0, 1020, 1428]);
+    [front, back].forEach(canvas => {
+      const lastDraw = canvas.operations.filter(op => op.name === "drawImage").at(-1);
+      expect(lastDraw.args[0]).toBe(canvas);
+      expect(lastDraw.args[1]).toBeCloseTo(canvas.width * .02);
+      expect(lastDraw.args[2]).toBeCloseTo(canvas.height * .02);
+      expect(lastDraw.args[3]).toBeCloseTo(canvas.width * .96);
+      expect(lastDraw.args[4]).toBeCloseTo(canvas.height * .96);
+    });
   });
 
   it("shares one renderer between PNG, card PDF, duplex sheet, and A4 PDF", async () => {
