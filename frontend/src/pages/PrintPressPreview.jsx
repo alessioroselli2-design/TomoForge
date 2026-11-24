@@ -66,7 +66,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 8 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 9 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
