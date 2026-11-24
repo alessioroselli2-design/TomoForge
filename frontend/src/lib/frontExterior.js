@@ -8,15 +8,49 @@ import {frontMasterSlices} from "./cardPrintGeometry";
 // and illustration window cannot be recoloured. The original master remains.
 const W=1020,H=1428;
 const gold=(p,i)=>p[i]>105 && p[i+1]>75 && p[i+1]>=p[i]*.55 && p[i+2]<p[i+1]*.88;
-// Sample the actual engraved gold, not the red lava or parchment. The
-// lower-middle luminance percentile picks an antique-gold mid-shadow.
-// A single sampled tone avoids striped or stretched edge pixels.
-export function sampleAntiqueGold(p,indices) {
- const samples=[];
- for(const i of indices)if(gold(p,i))samples.push([p[i],p[i+1],p[i+2]]);
- if(!samples.length)return [151,103,47];
- samples.sort((a,b)=>(.2126*a[0]+.7152*a[1]+.0722*a[2])-(.2126*b[0]+.7152*b[1]+.0722*b[2]));
- return samples[Math.floor((samples.length-1)*.35)];
+// Pick the dark bronze and gold relief immediately INSIDE the outer rail,
+// rather than a single colour sampled from the entire master. Average a
+// small neighbourhood along the rail to avoid repeating sharp streaks.
+export function localRailColors(p,w,h,edge,side) {
+ const vertical=side==="left"||side==="right";
+ const count=vertical?h:w, depth=vertical?w:h;
+ const sign=side==="left"||side==="top"?1:-1;
+ const raw=new Float32Array(count*3);
+ for(let t=0;t<count;t++){
+  let r=0,g=0,b=0,weight=0;
+  for(let j=0;j<Math.max(5,Math.round(depth*.012));j++){
+   const d=edge[t]+sign*j;
+   if(d<0||d>=depth)continue;
+   const i=4*(vertical?t*w+d:d*w+t);
+   // Keep the warm brown shadows and gold highlights; reject saturated lava,
+   // ruby jewels and neutral black pixels.
+   if(p[i]<45||p[i+1]<p[i]*.43||p[i+2]>p[i+1]*.93)continue;
+   const k=j===0?2:1;
+   r+=p[i]*k;g+=p[i+1]*k;b+=p[i+2]*k;weight+=k;
+  }
+  raw.set(weight?[r/weight,g/weight,b/weight]:[92,56,23],t*3);
+ }
+ const result=new Float32Array(count*3);
+ const radius=Math.max(1,Math.round(count*.006));
+ for(let t=0;t<count;t++){
+  let sum=[0,0,0],weights=0;
+  for(let j=-radius;j<=radius;j++){
+   const pos=Math.max(0,Math.min(count-1,t+j));
+   const k=radius+1-Math.abs(j);weights+=k;
+   for(let q=0;q<3;q++)sum[q]+=raw[pos*3+q]*k;
+  }
+  for(let q=0;q<3;q++)result[t*3+q]=sum[q]/weights;
+ }
+ return result;
+}
+
+// Subtle warm metallic bevel: the frame's local hue continues outwards,
+// with shadow in the outermost area and soft relief, never a flat gold band.
+export function railPixel(color,fraction,x,y) {
+ const u=Math.max(0,Math.min(1,fraction));
+ const shade=.46+.48*Math.pow(1-u,.8)+.12*Math.exp(-Math.pow((u-.72)/.12,2));
+ const grain=1+.026*Math.sin(x*1.37+y*.83)+.014*Math.sin(x*.39-y*1.61);
+ return color.map(v=>Math.max(0,Math.min(255,Math.round(v*shade*grain))));
 }
 export function exteriorAlpha(p,w,h) {
  const left=new Int32Array(h),right=new Int32Array(h),
@@ -33,20 +67,31 @@ export function exteriorAlpha(p,w,h) {
    for(let y=0;y<upper;y++)if(isGold(x,y)){top[x]=y;break;}
    for(let y=h-1;y>=h-lower;y--)if(isGold(x,y)){bottom[x]=y;break;}
  }
- const indices=[];
- for(let y=0;y<h;y++){
-   indices.push(4*(y*w+left[y]),4*(y*w+right[y]));
- }
- for(let x=0;x<w;x++){
-   indices.push(4*(top[x]*w+x),4*(bottom[x]*w+x));
- }
- const [r,g,b]=sampleAntiqueGold(p,indices);
+ const rails=[
+  {edge:left,colors:localRailColors(p,w,h,left,"left"),side:"left"},
+  {edge:right,colors:localRailColors(p,w,h,right,"right"),side:"right"},
+  {edge:top,colors:localRailColors(p,w,h,top,"top"),side:"top"},
+  {edge:bottom,colors:localRailColors(p,w,h,bottom,"bottom"),side:"bottom"},
+ ];
  const result=new Uint8ClampedArray(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
    const i=4*(y*w+x);
-   if((x<left[y]||x>right[y]||y<top[x]||y>bottom[x])&&!gold(p,i)){
-     result[i]=r;result[i+1]=g;result[i+2]=b;result[i+3]=255;
+   const distances=[left[y]-x,x-right[y],top[x]-y,y-bottom[x]];
+   if(Math.max(...distances)<=0||gold(p,i))continue;
+   // Blend adjacent rails smoothly at the corners. Preserve every existing
+   // gold pixel and every pixel inside the engraved contour.
+   const spans=[left[y],w-1-right[y],top[x],h-1-bottom[x]];
+   const t=[y,y,x,x];let rgb=[0,0,0],total=0;
+   for(let k=0;k<4;k++){
+    if(distances[k]<=0)continue;
+    const f=distances[k]/Math.max(1,spans[k]);
+    const col=rails[k].colors.subarray(t[k]*3,t[k]*3+3);
+    const sample=railPixel(Array.from(col),f,x,y);
+    const weight=distances[k];total+=weight;
+    for(let q=0;q<3;q++)rgb[q]+=sample[q]*weight;
    }
+   for(let q=0;q<3;q++)result[i+q]=Math.round(rgb[q]/total);
+   result[i+3]=255;
  }
  return result;
 }
