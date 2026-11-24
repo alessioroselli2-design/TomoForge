@@ -255,20 +255,27 @@ describe("card export renderers", () => {
     expect(w / h).toBeCloseTo(750 / 1200);
   });
 
-  it("normalizes the Class reverse and applies the same final edge to front and back", async () => {
+  it("retains Class top and bottom and adds the matching final physical edge", async () => {
     const card = { type: "class", name: "Druido", attributes: {} };
-    const front = await renderCardCanvas(makeExportElement(), card);
     const back = await renderCardBackCanvas(card);
     const crop = back.operations.find(op => op.name === "drawImage");
-    expect(crop.args.slice(1)).toEqual([0, 16, 725, 1015, 0, 0, 1020, 1428]);
-    [front, back].forEach(canvas => {
-      const lastDraw = canvas.operations.filter(op => op.name === "drawImage").at(-1);
-      expect(lastDraw.args[0]).toBe(canvas);
-      expect(lastDraw.args[1]).toBeCloseTo(canvas.width * .02);
-      expect(lastDraw.args[2]).toBeCloseTo(canvas.height * .02);
-      expect(lastDraw.args[3]).toBeCloseTo(canvas.width * .96);
-      expect(lastDraw.args[4]).toBeCloseTo(canvas.height * .96);
-    });
+    expect(crop.args.slice(1,5)).toEqual([0,0,725,1050]);
+    const front=await renderCardCanvas(makeExportElement(),card);
+    const shifted=front.operations.filter(op=>op.name==="drawImage").at(-1);
+    expect(shifted.args[0]).toBe(front);
+    expect(shifted.args[4]).toBeCloseTo(front.height*.992);
+    const edge=back.operations.filter(op=>op.name==="drawImage").at(-1);
+    expect(edge.args[0]).toBe(back);
+    expect(edge.args[1]).toBeCloseTo(back.width*.02);
+    expect(edge.args[2]).toBeCloseTo(back.height*.02);
+  });
+
+  it("reconstructs the upper Monster cap from the original bottom ornament",async()=>{
+    const back=await renderCardBackCanvas({type:"monster"});
+    const draws=back.operations.filter(op=>op.name==="drawImage");
+    expect(draws[0].args[0].src).toBe("/dorsi/mostro.jpg");
+    expect(draws[1].args.slice(1,5)).toEqual([339,1026,72,24]);
+    expect(back.operations.some(op=>op.name==="scale"&&op.x===1&&op.y===-1)).toBe(true);
   });
 
   it("shares one renderer between PNG, card PDF, duplex sheet, and A4 PDF", async () => {

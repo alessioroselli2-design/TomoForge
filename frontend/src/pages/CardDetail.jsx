@@ -14,7 +14,7 @@ import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
 import { CardHistoryPanel } from "@/components/CardHistoryPanel";
-import { addCharacterSheetPdfPages, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
+import { addCharacterSheetPdfPages, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng, createCardBackPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -336,6 +336,20 @@ export default function CardDetail() {
     finally { setBusy(false); }
   };
 
+  const shareBackImage = async () => {
+    setBusy(true);
+    try {
+      const canvas=await createCardBackPng(card);
+      const link=document.createElement("a");
+      link.download=`${card.name || "carta"}-retro.png`;
+      link.href=canvas.toDataURL("image/png");
+      link.click();
+      setExportFeedback("PNG del retro scaricato.");
+      toast.success("Retro esportato");
+    } catch(e) { toast.error("Esportazione retro fallita"); }
+    finally { setBusy(false); }
+  };
+
   const exportPDF = async () => {
     if (!exportFrontRef.current) return;
     setBusy(true);
@@ -522,7 +536,11 @@ export default function CardDetail() {
               <div className="mt-3 grid grid-cols-1 gap-2">
                 <Button data-testid="share-btn" onClick={shareImage} disabled={busy} variant="outline"
                   className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
-                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG
+                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG FRONTE
+                </Button>
+                <Button data-testid="share-back-btn" onClick={shareBackImage} disabled={busy} variant="outline"
+                  className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide">
+                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG RETRO
                 </Button>
                 <Button data-testid="pdf-btn" onClick={exportPDF} disabled={busy} variant="outline"
                   className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">

@@ -6,7 +6,7 @@ import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
-import { applyCardPrintEdge, getBackCrop } from "@/lib/cardPrintGeometry";
+import { applyCardPrintEdge, getBackComposition, frontOpticalShift } from "@/lib/cardPrintGeometry";
 import html2canvas from "html2canvas";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -485,7 +485,7 @@ async function renderRawCardCanvas(element,card){
 }
 
 export async function renderCardCanvas(element,card){
- return applyCardPrintEdge(await renderRawCardCanvas(element,card));
+ return applyCardPrintEdge(await renderRawCardCanvas(element,card),frontOpticalShift(card?.type));
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back
@@ -506,21 +506,26 @@ export async function renderCardBackCanvas(card) {
     image.src = art.src;
     if (image.complete && image.naturalWidth > 0) resolve();
   });
-  // Do not stretch any original frame, oval, wordmark or book. A back that
-  // already has the print ratio fills the entire canvas; otherwise the entire
-  // drawing is letterboxed, never cropped.
-  const naturalWidth = image.naturalWidth || canvas.width;
-  const naturalHeight = image.naturalHeight || naturalWidth * (canvas.height / canvas.width);
-  const fit = Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
-  const drawWidth = Math.min(canvas.width, naturalWidth * fit);
-  const drawHeight = Math.min(canvas.height, naturalHeight * fit);
-  ctx.fillStyle = "#101019";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const crop = getBackCrop(art.file, naturalWidth, naturalHeight);
-  if (crop) {
-    ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, 0, 0, canvas.width, canvas.height);
-  } else {
-    ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
+  const iw=image.naturalWidth||canvas.width;
+  const ih=image.naturalHeight||iw*canvas.height/canvas.width;
+  // Normalize non-5:7 fallback assets with a uniform contain fit.
+  const layout=getBackComposition(art.file,iw,ih);
+  const fit=Math.min(canvas.width/iw,canvas.height/ih);
+  const ox=(canvas.width-iw*fit)/2,oy=(canvas.height-ih*fit)/2;
+  const {crop,x,y,w,h,tip}=layout;
+  ctx.fillStyle="#101019";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  if(crop.x||crop.y||crop.w!==iw||crop.h!==ih)
+    ctx.drawImage(image,crop.x,crop.y,crop.w,crop.h,ox+x*fit,oy+y*fit,w*fit,h*fit);
+  else ctx.drawImage(image,ox+x*fit,oy+y*fit,w*fit,h*fit);
+  if(tip){
+    const tx=ox+tip.x*fit,ty=oy+tip.y*fit,tw=tip.w*fit,th=tip.h*fit;
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(tx+tw/2,ty);ctx.lineTo(tx+tw,ty+th);
+    ctx.lineTo(tx,ty+th);ctx.closePath();ctx.clip();
+    ctx.translate(tx,ty+th);ctx.scale(1,-1);
+    ctx.drawImage(image,tip.sx,tip.sy,tip.sw,tip.sh,0,0,tw,th);
+    ctx.restore();
   }
   return applyCardPrintEdge(canvas);
 }
@@ -528,6 +533,7 @@ export async function renderCardBackCanvas(card) {
 // These adapters keep the user-facing export routes on the same dedicated
 // canvas path as the regression tests, rather than reintroducing DOM capture.
 export const createCardPng = (element, card) => renderCardCanvas(element, card);
+export const createCardBackPng = (card) => renderCardBackCanvas(card);
 
 export async function addSingleCardPdfPages(pdf, element, card) {
   const [front, back] = await Promise.all([

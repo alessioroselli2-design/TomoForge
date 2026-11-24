@@ -5,7 +5,7 @@ import { categoryFrontLayout, frontBackground } from "@/lib/frontCategoryLayouts
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
-import { CARD_EDGE_COLOR, CARD_ART_SCALE, backImageStyle } from "@/lib/cardPrintGeometry";
+import { CARD_EDGE_COLOR, CARD_ART_SCALE, backImageStyle, backTipStyles, frontOpticalShift } from "@/lib/cardPrintGeometry";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
@@ -187,26 +187,28 @@ ApprovedCardFront.displayName="ApprovedCardFront";
 
 // Scaling the artwork layer (rather than its layout box) preserves all
 // existing container measurements, text fitting and approved medallions.
-function CardPrintSurface({children}){
+function CardPrintSurface({children,shift=0}){
  return <div data-card-print-surface="v1" className="relative h-full w-full overflow-hidden"
    style={{backgroundColor:CARD_EDGE_COLOR}}>
    <div className="absolute inset-0 overflow-hidden"
      style={{transform:`scale(${CARD_ART_SCALE})`,transformOrigin:"center"}}>
-     {children}
+     <div className="absolute inset-0" style={{transform:shift?`translateY(${shift*100}%)`:undefined}}>{children}</div>
    </div>
  </div>;
 }
 export const CardFront=React.forwardRef((props,ref)=>
- <CardPrintSurface><ApprovedCardFront {...props} ref={ref}/></CardPrintSurface>
+ <CardPrintSurface shift={frontOpticalShift(props.card?.type)}><ApprovedCardFront {...props} ref={ref}/></CardPrintSurface>
 );
 CardFront.displayName="CardFront";
 
 export const CardBack=React.forwardRef(({card,exportMode},ref)=>{
  const back=getApprovedBack(card);
+ const tip=backTipStyles(back.file);
  return <CardPrintSurface><div ref={ref} data-testid="card-back" data-back-asset={back.file}
    className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode?"tf-export-card":""}`}>
     <img src={back.src} alt={`Retro ufficiale TomoForge: ${back.label}`}
     className="absolute block" style={backImageStyle(back.file)} draggable={false}/>
+    {tip&&<div aria-hidden="true" style={tip.box}><img src={back.src} alt="" draggable={false} style={tip.image}/></div>}
  </div></CardPrintSurface>;
 });
 CardBack.displayName="CardBack";
