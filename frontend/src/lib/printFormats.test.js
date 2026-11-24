@@ -27,6 +27,20 @@ describe("A4 print formats", () => {
     expect(backs.map(({ y }) => y)).toEqual(fronts.map(({ y }) => y));
   });
 
+  it.each(["mini", "standard", "grande"])("matches every front to its reverse on partial %s sheets", format => {
+    const { cols, rows } = PRINT_FORMATS[format];
+    for (let count = 1; count <= cols * rows; count++) {
+      const front = getPrintSheetPositions(format, count);
+      const back = getPrintSheetPositions(format, count, true);
+      front.forEach((f, i) => {
+        expect(f.x + f.w + back[i].x).toBeCloseTo(A4_SIZE.w);
+        expect(f.y).toBeCloseTo(back[i].y);
+        expect(f.w).toBe(back[i].w);
+        expect(f.h).toBe(back[i].h);
+      });
+    }
+  });
+
   it("rejects an unknown physical format instead of silently producing a clipped sheet", () => {
     expect(() => getPrintSheetPositions("unknown", 1)).toThrow("Unknown print format");
   });
