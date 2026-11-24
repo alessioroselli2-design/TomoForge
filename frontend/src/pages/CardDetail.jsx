@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import {
   ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2, ImageDown, Link2,
 } from "lucide-react";
@@ -349,6 +350,20 @@ export default function CardDetail() {
     finally { setBusy(false); }
   };
 
+  const exportPress = async () => {
+    if (!exportFrontRef.current) return;
+    setBusy(true);
+    try {
+      const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],compress:true});
+      const result = await addPressCardPages(pdf,exportFrontRef.current,card);
+      warnIfArtworkMissing(result.front);
+      pdf.save(`${card.name || "carta"}-tipografia.pdf`);
+      setExportFeedback("PDF tipografia: 2 pagine, taglio 63,5 × 88,9 mm e abbondanza 3 mm.");
+      toast.success("PDF tipografia generato");
+    } catch (e) { toast.error("Generazione PDF tipografia fallita"); }
+    finally { setBusy(false); }
+  };
+
   const exportSheet = async () => {
     if (!exportFrontRef.current) return;
     setBusy(true);
@@ -513,6 +528,10 @@ export default function CardDetail() {
                   className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
                   <Download className="w-3.5 h-3.5 mr-2 text-gold" /> PDF FRONTE / RETRO
                 </Button>
+                <Button data-testid="press-pdf-btn" onClick={exportPress} disabled={busy} variant="outline"
+                  className="justify-start rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[11px] tracking-wide">
+                  <FileText className="w-3.5 h-3.5 mr-2" /> PDF TIPOGRAFIA
+                </Button>
                 <Button data-testid="sheet-btn" onClick={exportSheet} disabled={busy}
                   className="justify-start rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-wide transition-colors">
                   {busy ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-2" />} FOGLIO A4 FRONTE / RETRO
@@ -532,6 +551,7 @@ export default function CardDetail() {
               </div>
               <p className="mt-3 font-body text-[11px] leading-relaxed text-muted-foreground">
                 Il foglio A4 mantiene la dimensione Standard e il retro allineato per la stampa fronte/retro.
+                Il PDF tipografia contiene due pagine RGB con abbondanza 3 mm, taglio 63,5 × 88,9 mm e margine di sicurezza: verificare il profilo colore e gli angoli con lo stampatore.
               </p>
               <p aria-live="polite" className="mt-2 min-h-4 font-body text-[11px] text-gold/90">
                 {busy ? "Preparazione dell’export in corso…" : exportFeedback}

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2, Wand2, Sparkles, FileText } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import { api } from "@/lib/api";
 import { CARD_TYPES } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -30,6 +31,7 @@ export default function Collection() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [exportingPress, setExportingPress] = useState(false);
   const [progress, setProgress] = useState(0);
   const [format, setFormat] = useState("standard");
   const [includeBack, setIncludeBack] = useState(false);
@@ -48,7 +50,7 @@ export default function Collection() {
   };
 
   const chosenCards = cards.filter((c) => selected.includes(c.id));
-  const totalSteps = chosenCards.length * (includeBack ? 2 : 1);
+  const totalSteps = chosenCards.length * (exportingPress || includeBack ? 2 : 1);
   const perPage = PRINT_FORMATS[format].cols * PRINT_FORMATS[format].rows;
 
   const openCoverageReviews = (types, sourceFilename) => {
@@ -57,6 +59,26 @@ export default function Collection() {
       ...(sourceFilename ? { source: sourceFilename } : {}),
     });
     navigate(`/revisioni?${params.toString()}`);
+  };
+
+  const exportPressDeck = async () => {
+    if (!chosenCards.length || exporting) return;
+    setExporting(true);
+    setExportingPress(true);
+    setProgress(0);
+    try {
+      const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],compress:true});
+      for (let i=0;i<chosenCards.length;i++) {
+        const card=chosenCards[i], el=cardRefs.current[card.id];
+        if (!el) throw new Error("Anteprima di stampa non disponibile");
+        await addPressCardPages(pdf,el,card,{first:i===0});
+        setProgress((i+1)*2);
+      }
+      pdf.save("tomeforge-mazzo-tipografia.pdf");
+      toast.success(`PDF tipografia: ${chosenCards.length} carte`);
+      exitSelectMode();
+    } catch (e) { toast.error("Generazione mazzo tipografia fallita"); }
+    finally { setExporting(false); setExportingPress(false); setProgress(0); }
   };
 
   const exportPrintSheet = async () => {
@@ -278,6 +300,13 @@ export default function Collection() {
                 className={`mt-2 flex items-center gap-2 px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${includeBack ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
                 <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "RETRO INCLUSO (F/R)" : "INCLUDI RETRO (F/R)"}
               </button>
+            </div>
+            <div className="border-t border-border/40 pt-3 space-y-2">
+              <Button data-testid="export-press-deck-btn" onClick={exportPressDeck} disabled={exporting || !chosenCards.length} variant="outline"
+                className="w-full justify-start rounded-none border-gold-deep/50 text-gold font-label text-[11px]">
+                <FileText className="w-4 h-4 mr-2" /> {exportingPress ? `TIPOGRAFIA ${progress}/${totalSteps}` : "ESPORTA MAZZO PER TIPOGRAFIA"}
+              </Button>
+              <p className="font-body text-xs text-muted-foreground">PDF RGB, una pagina per faccia, fronte/retro in coppia. Taglio Standard 63,5 × 88,9 mm, abbondanza 3 mm; indipendente dalle impostazioni A4. Confermare profilo colore, raggio angoli e specifiche con la tipografia.</p>
             </div>
             <p className="font-body text-xs text-muted-foreground/80 border-t border-border/40 pt-2">
               Il PDF mantiene le dimensioni fisiche selezionate: {PRINT_FORMATS[format].cols}×{PRINT_FORMATS[format].rows} carte per A4.
