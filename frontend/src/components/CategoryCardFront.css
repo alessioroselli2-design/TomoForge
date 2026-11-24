@@ -1,0 +1,32 @@
+/* Fresh, isolated renderer for feat / item / weapon / armor. No legacy classes or overrides. */
+.tf-category-master {
+ position:relative;width:100%;height:100%;overflow:visible;isolation:isolate;
+ box-sizing:border-box;container-type:inline-size;
+ background-repeat:no-repeat;background-position:center;background-size:100% 100%;
+ color:#2b160e;font-family:"Spectral",Georgia,serif;
+}
+.tf-category-master * {box-sizing:border-box;}
+.tf-category-master .tf-category-emblem {position:absolute;left:2.15%;top:-0.5986%;width:27.1%;aspect-ratio:1;overflow:visible;z-index:12;}
+.tf-category-master .tf-category-emblem img {display:block;width:100%;height:100%;object-fit:contain;max-width:none;max-height:none;border:0;}
+.tf-category-master .tf-category-heading {
+ position:absolute;left:29.1%;top:3.9%;width:43.5%;height:9.8%;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-align:center;z-index:5;
+}
+.tf-category-master .tf-category-name {margin:0;width:100%;height:68%;flex:0 0 68%;min-height:0;font:700 20px/1.1 "Cormorant Garamond",Georgia,serif;align-content:center;}
+.tf-category-master .tf-category-subtitle {margin:0;width:100%;height:24%;flex:0 0 24%;min-height:0;font:500 10px/1.1 "Spectral",Georgia,serif;align-content:center;}
+.tf-category-master .tf-category-badge {position:absolute;left:76.1%;top:2.9286%;width:17%;aspect-ratio:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;text-align:center;color:#fff1d2;z-index:6;}
+.tf-category-master .tf-category-badge>span {font:700 8px/1.1 Georgia,serif;}
+.tf-category-master .tf-category-badge-value {width:82%;height:48%;font:700 13px/1.1 "Spectral",Georgia,serif;align-content:center;white-space:normal;overflow-wrap:anywhere;}
+.tf-category-master .tf-category-artwork {position:absolute;left:7.1%;top:16.5%;width:87.2%;height:27.2%;overflow:hidden;}
+.tf-category-master .tf-category-artwork img {display:block;width:100%;height:100%;object-fit:cover;}
+.tf-category-master .tf-category-stats {position:absolute;inset:0;pointer-events:none;z-index:5;}
+.tf-category-master .tf-category-stat {position:absolute;top:48.9%;height:4.9%;display:flex;align-items:center;justify-content:center;}
+.tf-category-master .tf-category-stat-value {width:100%;height:100%;text-align:center;align-content:center;font:600 8.5px/1.1 "Spectral",Georgia,serif;overflow-wrap:anywhere;}
+.tf-category-master .tf-category-body {position:absolute;left:8%;top:62%;width:84%;height:19%;z-index:5;}
+.tf-category-master .tf-category-body-text {width:100%;height:100%;font:500 11px/1.15 "Spectral",Georgia,serif;white-space:pre-line;overflow-wrap:anywhere;}
+.tf-category-master .tf-category-footer {position:absolute;left:8%;top:87.3%;width:84%;height:6.2%;z-index:5;}
+.tf-category-master .tf-category-footer-text {width:100%;height:100%;text-align:center;align-content:center;font:500 9px/1.1 "Spectral",Georgia,serif;overflow-wrap:anywhere;}
+
+.tf-category-master .tf-category-name,.tf-category-master .tf-category-subtitle,.tf-category-master .tf-category-badge-value,.tf-category-master .tf-category-stat-value,.tf-category-master .tf-category-body-text,.tf-category-master .tf-category-footer-text {overflow:hidden;overflow-wrap:anywhere;}
+
+.tf-category-master .tf-category-name,.tf-category-master .tf-category-subtitle {overflow-wrap:normal;word-break:normal;letter-spacing:normal;}

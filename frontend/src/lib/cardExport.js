@@ -439,6 +439,28 @@ async function renderApprovedRace(element,card){
   return canvas;
  }finally{stage.remove();}
 }
+// Capture the same dedicated DOM for these four categories; no legacy atlas or QR.
+async function renderApprovedCategory(element){
+ const selector='[data-category-master="approved"]';
+ const source=element.matches?.(selector)?element:element.querySelector?.(selector);
+ if(!source)throw new Error("Anteprima categoria non disponibile");
+ const {width,height,scale}=CARD_CANVAS_SIZE;
+ const sourceWidth=source.clientWidth||width,sourceHeight=source.clientHeight||height;
+ const stage=document.createElement("div");
+ Object.assign(stage.style,{position:"fixed",left:"0",top:"0",width:sourceWidth+"px",height:sourceHeight+"px",pointerEvents:"none",zIndex:"-2147483647"});
+ const clone=source.cloneNode(true);
+ Object.assign(clone.style,{width:"100%",height:"100%"});
+ stage.appendChild(clone);document.body.appendChild(stage);
+ try{
+  await waitForImages(clone);
+  if(document.fonts?.ready)await document.fonts.ready;
+  const capture=await html2canvas(clone,{scale:width*scale/sourceWidth,width:sourceWidth,height:sourceHeight,backgroundColor:null,useCORS:true,logging:false,scrollX:0,scrollY:0});
+  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
+  canvas.getContext("2d").drawImage(capture,0,0,canvas.width,canvas.height);
+  canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");
+  return canvas;
+ }finally{stage.remove();}
+}
 // Existing renderer remains untouched for Class, Monster and all other types.
 export async function renderCardCanvas(element,card){
  if(!element)throw new Error("Card render unavailable");
@@ -455,6 +477,9 @@ export async function renderCardCanvas(element,card){
  if(card?.type==="race" && (element.matches?.('[data-front-category="race"]') ||
    element.querySelector?.('[data-front-category="race"]')))
    return renderApprovedRace(element,card);
+ if(["feat","item","weapon","armor"].includes(card?.type) &&
+   (element.matches?.('[data-category-master="approved"]')||element.querySelector?.('[data-category-master="approved"]')))
+   return renderApprovedCategory(element);
  return renderApprovedMaster(element,card);
 }
 

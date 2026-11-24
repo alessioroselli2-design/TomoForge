@@ -12,6 +12,8 @@ import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { SpellCardFront } from "@/components/SpellCardFront";
 import { FeatureCardFront } from "@/components/FeatureCardFront";
 import { RaceCardFront, RaceCardErrorBoundary } from "@/components/RaceCardFront";
+import { CategoryCardFront } from "@/components/CategoryCardFront";
+import { isCategoryMaster } from "@/lib/categoryCardView";
 
 const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
  const data=buildFrontBlueprint(card);
@@ -176,7 +178,9 @@ export const CardFront = React.forwardRef((props, ref) =>
       ? <FeatureCardFront {...props} ref={ref} />
       : props.card?.type === "race"
         ? <RaceCardErrorBoundary><RaceCardFront {...props} ref={ref} /></RaceCardErrorBoundary>
-        : <LegacyCardFront {...props} ref={ref} />
+        : isCategoryMaster(props.card?.type)
+          ? <CategoryCardFront {...props} ref={ref} />
+          : <LegacyCardFront {...props} ref={ref} />
 );
 CardFront.displayName="CardFront";
 
