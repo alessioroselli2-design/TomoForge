@@ -1,5 +1,3 @@
-import { CARD_ART_SCALE } from "./cardPrintGeometry";
-
 // Default press preset, independent of the existing A4 print options.
 // Confirm bleed, corner radius and colour requirements with the print vendor.
 export const PRESS_SPEC = Object.freeze({
@@ -8,11 +6,8 @@ export const PRESS_SPEC = Object.freeze({
 });
 
 export function getPressLayout() {
-  const { trimWidth:w, trimHeight:h, bleed:b, safe:s } = PRESS_SPEC;
-  // Existing card raster includes a common 2% outer edge. Reduce only enough
-  // to keep the original decorated rectangle inside the 3 mm safe rectangle.
-  const scale = Math.min(1, (w-2*s)/(w*CARD_ART_SCALE), (h-2*s)/(h*CARD_ART_SCALE));
-  return { x:b+(w-w*scale)/2, y:b+(h-h*scale)/2, w:w*scale, h:h*scale };
+  const { trimWidth:w, trimHeight:h, bleed:b } = PRESS_SPEC;
+  return {x:b,y:b,w,h};
 }
 
 export function setPressPageBoxes(pdf) {

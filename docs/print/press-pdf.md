@@ -1,9 +1,7 @@
 # TomoForge — PDF per tipografia
 
-Preset iniziale: formato finito 63,5 × 88,9 mm, pagina 69,5 × 94,9 mm con 3 mm di abbondanza per lato. TrimBox e BleedBox espliciti, nessun segno di taglio interno e nessuna specchiatura. Sequenza fronte 1, retro 1, fronte 2, retro 2. Il bordo scuro comune continua attraverso l'abbondanza; la grafica mantiene le proporzioni e viene centrata nell'area sicura di 3 mm.
+Formato finito 63,5 × 88,9 mm; pagina 69,5 × 94,9 mm, abbondanza 3 mm per lato. TrimBox e BleedBox espliciti. Ogni faccia usa l'intero formato finito, senza bordo artificiale; l'abbondanza è generata estendendo i pixel di bordo all'esterno del taglio. Fronte/retro alternati e non specchiati.
 
-Dal dettaglio carta: PDF TIPOGRAFIA. Dalla Collezione: seleziona le carte, ESPORTA MAZZO PER TIPOGRAFIA. PDF normale e A4 restano invariati.
+La stampa A4 usa otto brevi riferimenti tratteggiati esterni, allineati al taglio, lunghi 1,05 mm. Nessun riferimento sul PNG o sul PDF tipografico. La revisione mantiene le grafiche dinamiche non deformate: sui master legacy estende solo una fascia inferiore del fondale e riposiziona l'ornamento inferiore. I dorsi sono ritagliati sulla cornice rettangolare con rapporto 5:7.
 
-Il PDF è RGB, non PDF/X certificato. Le sorgenti raster determinano la nitidezza effettiva; non si promette che tutte le immagini originali abbiano 300 dpi nativi. Angoli: raggio suggerito 3 mm, tagliato fisicamente dal fornitore, non mascherato nel PDF. Confermare dimensioni, abbondanza, area sicura, profilo ICC/CMYK, ordine delle facce e supporto con la tipografia prima della tiratura. Richiedere prova fisica e autorizzazioni per illustrazioni, testi, marchi e altri materiali prima della vendita.
-
-Nessun cambiamento al database o alle grafiche approvate.
+La cornice a vivo riduce la tolleranza estetica al disallineamento di taglio. I 3 mm di zona sicura per testi e dettagli critici sono un obiettivo da verificare, non una certificazione. PDF RGB, non PDF/X. Confermare formato, profilo ICC, tolleranze, angoli, supporto e diritti commerciali con la tipografia. Richiedere prova fisica prima della tiratura. Nessuna modifica al database.

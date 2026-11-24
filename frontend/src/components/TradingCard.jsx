@@ -5,7 +5,7 @@ import { categoryFrontLayout, frontBackground } from "@/lib/frontCategoryLayouts
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
-import { CARD_EDGE_COLOR, CARD_ART_SCALE, backImageStyle, backTipStyles, frontOpticalShift } from "@/lib/cardPrintGeometry";
+import { backImageStyle, frontMasterSlices, frontMasterSliceStyle } from "@/lib/cardPrintGeometry";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
@@ -76,6 +76,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    data-front-category={data.type} data-record-category={data.recordType || undefined} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,...frontBackground(data.type)}}>
+   {frontMasterSlices(data.type).map((slice,i)=><div key={i} aria-hidden="true" style={frontMasterSliceStyle(layout.master||"/card-art/front-master-v17.webp",slice)}/>)}
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
@@ -185,30 +186,17 @@ const ApprovedCardFront = React.forwardRef((props, ref) =>
 );
 ApprovedCardFront.displayName="ApprovedCardFront";
 
-// Scaling the artwork layer (rather than its layout box) preserves all
-// existing container measurements, text fitting and approved medallions.
-function CardPrintSurface({children,shift=0}){
- return <div data-card-print-surface="v1" className="relative h-full w-full overflow-hidden"
-   style={{backgroundColor:CARD_EDGE_COLOR}}>
-   <div className="absolute inset-0 overflow-hidden"
-     style={{transform:`scale(${CARD_ART_SCALE})`,transformOrigin:"center"}}>
-     <div className="absolute inset-0" style={{transform:shift?`translateY(${shift*100}%)`:undefined}}>{children}</div>
-   </div>
- </div>;
-}
 export const CardFront=React.forwardRef((props,ref)=>
- <CardPrintSurface shift={frontOpticalShift(props.card?.type)}><ApprovedCardFront {...props} ref={ref}/></CardPrintSurface>
+ <ApprovedCardFront {...props} ref={ref}/>
 );
 CardFront.displayName="CardFront";
 
 export const CardBack=React.forwardRef(({card,exportMode},ref)=>{
  const back=getApprovedBack(card);
- const tip=backTipStyles(back.file);
- return <CardPrintSurface><div ref={ref} data-testid="card-back" data-back-asset={back.file}
-   className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode?"tf-export-card":""}`}>
+ return <div ref={ref} data-testid="card-back" data-back-asset={back.file}
+   className={`relative h-full w-full overflow-hidden ${exportMode?"tf-export-card":""}`}>
     <img src={back.src} alt={`Retro ufficiale TomoForge: ${back.label}`}
-    className="absolute block" style={backImageStyle(back.file)} draggable={false}/>
-    {tip&&<div aria-hidden="true" style={tip.box}><img src={back.src} alt="" draggable={false} style={tip.image}/></div>}
- </div></CardPrintSurface>;
+     className="block" style={backImageStyle(back.file)} draggable={false}/>
+ </div>;
 });
 CardBack.displayName="CardBack";

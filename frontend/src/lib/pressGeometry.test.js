@@ -1,17 +1,15 @@
 import jsPDF from "jspdf";
-import { CARD_ART_SCALE } from "./cardPrintGeometry";
 import { PRESS_SPEC, getPressLayout, setPressPageBoxes } from "./pressGeometry";
 
 describe("professional PDF geometry",()=>{
-  it("keeps the original artwork undistorted and at least 3 mm inside trim",()=>{
+  it("keeps artwork at full trim size without added margins",()=>{
     const p=PRESS_SPEC, r=getPressLayout();
     expect(p.pageWidth).toBe(p.trimWidth+2*p.bleed);
     expect(p.pageHeight).toBeCloseTo(p.trimHeight+2*p.bleed);
     expect(r.w/r.h).toBeCloseTo(5/7);
     expect(r.x+r.w/2).toBeCloseTo(p.pageWidth/2);
     expect(r.y+r.h/2).toBeCloseTo(p.pageHeight/2);
-    expect(r.x+(1-CARD_ART_SCALE)*r.w/2-p.bleed).toBeGreaterThanOrEqual(p.safe-1e-9);
-    expect(r.y+(1-CARD_ART_SCALE)*r.h/2-p.bleed).toBeGreaterThanOrEqual(p.safe-1e-9);
+    expect(r).toEqual({x:3,y:3,w:63.5,h:88.9});
   });
   it("writes real TrimBox and BleedBox metadata on every PDF page",()=>{
     const p=PRESS_SPEC, pdf=new jsPDF({unit:"mm",format:[p.pageWidth,p.pageHeight]});

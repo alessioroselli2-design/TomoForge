@@ -89,24 +89,6 @@ export default function Collection() {
     setExporting(true);
     const { w: cardW, h: cardH, cols, rows } = PRINT_FORMATS[format];
     const perPage = cols * rows;
-    const drawCut = (pdf, x, y) => {
-      // With a 3 mm inter-card gap each mark must stay under half the gap.
-      // Never draw a line across a neighbouring card or on finished artwork.
-      const L = 0.8, o = 0.5;
-      pdf.setDrawColor(60, 50, 25);
-      pdf.setLineWidth(0.2);
-      const marks = [
-        // top-left
-        [x - o - L, y, x - o, y], [x, y - o - L, x, y - o],
-        // top-right
-        [x + cardW + o, y, x + cardW + o + L, y], [x + cardW, y - o - L, x + cardW, y - o],
-        // bottom-left
-        [x - o - L, y + cardH, x - o, y + cardH], [x, y + cardH + o, x, y + cardH + o + L],
-        // bottom-right
-        [x + cardW + o, y + cardH, x + cardW + o + L, y + cardH], [x + cardW, y + cardH + o, x + cardW, y + cardH + o + L],
-      ];
-      marks.forEach(([x1, y1, x2, y2]) => pdf.line(x1, y1, x2, y2));
-    };
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pages = Math.ceil(chosenCards.length / perPage);
@@ -124,7 +106,6 @@ export default function Collection() {
           if (!el) throw new Error("Anteprima di stampa non disponibile");
            const { x, y } = getPrintSheetPositions(format, group.length)[i];
            await addPrintSheetCard(pdf, el, group[i], { x, y, w: cardW, h: cardH });
-           drawCut(pdf, x, y);
         }
         // Mirrored back page for duplex printing
         if (includeBack) {
@@ -133,7 +114,6 @@ export default function Collection() {
             step += 1; setProgress(step);
              const { x, y } = getPrintSheetPositions(format, group.length, true)[i];
              await addPrintSheetCard(pdf, null, group[i], { x, y, w: cardW, h: cardH }, true);
-            drawCut(pdf, x, y);
           }
         }
       }

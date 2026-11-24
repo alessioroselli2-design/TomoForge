@@ -242,46 +242,35 @@ describe("card export renderers", () => {
     expect(back.operations.some((entry) => entry.name === "fillText")).toBe(false);
   });
 
-  it("letterboxes a nonstandard back instead of stretching its artwork", async () => {
-    global.Image = class TallBackMock {
-      complete = false; naturalWidth = 750; naturalHeight = 1200;
-      set src(value) { this._src = value; this.complete = true; this.onload?.(); }
-      get src() { return this._src; }
+  it("uses an undistorted full-card crop on a nonstandard reverse", async()=>{
+    global.Image=class TallBackMock{
+      complete=false;naturalWidth=750;naturalHeight=1200;
+      set src(value){this._src=value;this.complete=true;this.onload?.();}
+      get src(){return this._src;}
     };
-    const back = await renderCardBackCanvas({ type: "spell" });
-    const [, x, y, w, h] = back.operations.find((op) => op.name === "drawImage").args;
-    expect(x).toBeGreaterThan(0);
-    expect(y).toBe(0);
-    expect(w / h).toBeCloseTo(750 / 1200);
+    const back=await renderCardBackCanvas({type:"spell"});
+    expect(back.operations.find(op=>op.name==="drawImage").args.slice(1)).toEqual([0,75,750,1050,0,0,1020,1428]);
   });
-
-  it("retains Class top and bottom and adds the matching final physical edge", async () => {
-    const card = { type: "class", name: "Druido", attributes: {} };
-    const back = await renderCardBackCanvas(card);
-    const crop = back.operations.find(op => op.name === "drawImage");
-    expect(crop.args.slice(1,5)).toEqual([0,0,725,1050]);
-    const front=await renderCardCanvas(makeExportElement(),card);
-    const shifted=front.operations.filter(op=>op.name==="drawImage").at(-1);
-    expect(shifted.args[0]).toBe(front);
-    expect(shifted.args[4]).toBeCloseTo(front.height*.992);
-    const edge=back.operations.filter(op=>op.name==="drawImage").at(-1);
-    expect(edge.args[0]).toBe(back);
-    expect(edge.args[1]).toBeCloseTo(back.width*.02);
-    expect(edge.args[2]).toBeCloseTo(back.height*.02);
+  it("fills the full Class and Monster reverse without a black surround",async()=>{
+    for(const [type,expected] of [["class",[8,27,708,991.2]],["monster",[6,7,738,1033.2]]]){
+      const back=await renderCardBackCanvas({type});
+      const op=back.operations.find(o=>o.name==="drawImage");
+      expect(op.args.slice(1,5)).toEqual(expected);
+      expect(op.args.slice(5)).toEqual([0,0,1020,1428]);
+      expect(back.operations.filter(o=>o.name==="drawImage")).toHaveLength(1);
+    }
   });
-
-  it("reconstructs the upper Monster cap from the original bottom ornament",async()=>{
-    const back=await renderCardBackCanvas({type:"monster"});
-    const draws=back.operations.filter(op=>op.name==="drawImage");
-    expect(draws[0].args[0].src).toBe("/dorsi/mostro.jpg");
-    expect(draws[1].args.slice(1,5)).toEqual([339,1026,72,24]);
-    expect(back.operations.some(op=>op.name==="scale"&&op.x===1&&op.y===-1)).toBe(true);
+  it("extends the blank master before drawing dynamic contents",async()=>{
+    const front=await renderCardCanvas(makeExportElement(),{type:"monster",name:"Drago",attributes:{}});
+    const draws=front.operations.filter(o=>o.name==="drawImage"&&o.args[0]?.src==="/card-art/front-master-v17.webp");
+    expect(draws).toHaveLength(3);
+    expect(draws[2].args.at(-3)+draws[2].args.at(-1)).toBeCloseTo(476);
   });
 
   it("shares one renderer between PNG, card PDF, duplex sheet, and A4 PDF", async () => {
     const card = { id: "person", type: "character", name: "Thalion",
       attributes: { ...abilities, classe: "Druido", livello: "5" }, back: { variant: "silver" } };
-    const pdf = { addImage: jest.fn(), addPage: jest.fn() };
+    const pdf = { addImage: jest.fn(), addPage: jest.fn(), setDrawColor:jest.fn(), setLineWidth:jest.fn(), setLineDashPattern:jest.fn(), line:jest.fn() };
     const element = makeExportElement();
     const png = await createCardPng(element, card);
     const single = await addSingleCardPdfPages(pdf, element, card);

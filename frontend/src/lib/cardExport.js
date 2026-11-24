@@ -6,7 +6,7 @@ import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
-import { applyCardPrintEdge, getBackComposition, frontOpticalShift } from "@/lib/cardPrintGeometry";
+import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
 import html2canvas from "html2canvas";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -128,6 +128,9 @@ async function renderApprovedMaster(element,card) {
    if(master.complete&&master.naturalWidth>0)resolve();
  });
  ctx.drawImage(master,0,0,width,height);
+ // Stretch ONLY a blank master strip, not the rendered card or its contents.
+ const mw=master.naturalWidth||width,mh=master.naturalHeight||mw*7/5;
+ frontMasterSlices(data.type).forEach(s=>ctx.drawImage(master,0,s.sourceY*mh,mw,s.sourceH*mh,0,s.y*height,width,s.h*height));
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
@@ -485,7 +488,7 @@ async function renderRawCardCanvas(element,card){
 }
 
 export async function renderCardCanvas(element,card){
- return applyCardPrintEdge(await renderRawCardCanvas(element,card),frontOpticalShift(card?.type));
+ return renderRawCardCanvas(element,card);
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back
@@ -506,28 +509,10 @@ export async function renderCardBackCanvas(card) {
     image.src = art.src;
     if (image.complete && image.naturalWidth > 0) resolve();
   });
-  const iw=image.naturalWidth||canvas.width;
-  const ih=image.naturalHeight||iw*canvas.height/canvas.width;
-  // Normalize non-5:7 fallback assets with a uniform contain fit.
-  const layout=getBackComposition(art.file,iw,ih);
-  const fit=Math.min(canvas.width/iw,canvas.height/ih);
-  const ox=(canvas.width-iw*fit)/2,oy=(canvas.height-ih*fit)/2;
-  const {crop,x,y,w,h,tip}=layout;
-  ctx.fillStyle="#101019";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  if(crop.x||crop.y||crop.w!==iw||crop.h!==ih)
-    ctx.drawImage(image,crop.x,crop.y,crop.w,crop.h,ox+x*fit,oy+y*fit,w*fit,h*fit);
-  else ctx.drawImage(image,ox+x*fit,oy+y*fit,w*fit,h*fit);
-  if(tip){
-    const tx=ox+tip.x*fit,ty=oy+tip.y*fit,tw=tip.w*fit,th=tip.h*fit;
-    ctx.save();
-    ctx.beginPath();ctx.moveTo(tx+tw/2,ty);ctx.lineTo(tx+tw,ty+th);
-    ctx.lineTo(tx,ty+th);ctx.closePath();ctx.clip();
-    ctx.translate(tx,ty+th);ctx.scale(1,-1);
-    ctx.drawImage(image,tip.sx,tip.sy,tip.sw,tip.sh,0,0,tw,th);
-    ctx.restore();
-  }
-  return applyCardPrintEdge(canvas);
+  const iw=image.naturalWidth||canvas.width,ih=image.naturalHeight||iw*7/5;
+  const crop=getBackCrop(art.file,iw,ih);
+  ctx.drawImage(image,crop.x,crop.y,crop.w,crop.h,0,0,canvas.width,canvas.height);
+  return canvas;
 }
 
 // These adapters keep the user-facing export routes on the same dedicated
@@ -551,6 +536,7 @@ export async function addPrintSheetCard(pdf, element, card, bounds, back = false
     ? await renderCardBackCanvas(card)
     : await renderCardCanvas(element, card);
   pdf.addImage(canvas.toDataURL("image/png"), "PNG", bounds.x, bounds.y, bounds.w, bounds.h);
+  drawCutGuides(pdf,bounds);
   return canvas;
 }
 
