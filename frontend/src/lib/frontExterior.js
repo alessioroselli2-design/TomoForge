@@ -8,49 +8,43 @@ import {frontMasterSlices} from "./cardPrintGeometry";
 // and illustration window cannot be recoloured. The original master remains.
 const W=1020,H=1428;
 const gold=(p,i)=>p[i]>105 && p[i+1]>75 && p[i+1]>=p[i]*.55 && p[i+2]<p[i+1]*.88;
-// Pick the dark bronze and gold relief immediately INSIDE the outer rail,
-// rather than a single colour sampled from the entire master. Average a
-// small neighbourhood along the rail to avoid repeating sharp streaks.
-export function localRailColors(p,w,h,edge,side) {
- const vertical=side==="left"||side==="right";
- const count=vertical?h:w, depth=vertical?w:h;
- const sign=side==="left"||side==="top"?1:-1;
- const raw=new Float32Array(count*3);
- for(let t=0;t<count;t++){
-  let r=0,g=0,b=0,weight=0;
-  for(let j=0;j<Math.max(5,Math.round(depth*.012));j++){
-   const d=edge[t]+sign*j;
-   if(d<0||d>=depth)continue;
-   const i=4*(vertical?t*w+d:d*w+t);
-   // Keep the warm brown shadows and gold highlights; reject saturated lava,
-   // ruby jewels and neutral black pixels.
-   if(p[i]<45||p[i+1]<p[i]*.43||p[i+2]>p[i+1]*.93)continue;
-   const k=j===0?2:1;
-   r+=p[i]*k;g+=p[i+1]*k;b+=p[i+2]*k;weight+=k;
-  }
-  raw.set(weight?[r/weight,g/weight,b/weight]:[92,56,23],t*3);
- }
- const result=new Float32Array(count*3);
- const radius=Math.max(1,Math.round(count*.006));
- for(let t=0;t<count;t++){
-  let sum=[0,0,0],weights=0;
-  for(let j=-radius;j<=radius;j++){
-   const pos=Math.max(0,Math.min(count-1,t+j));
-   const k=radius+1-Math.abs(j);weights+=k;
-   for(let q=0;q<3;q++)sum[q]+=raw[pos*3+q]*k;
-  }
-  for(let q=0;q<3;q++)result[t*3+q]=sum[q]/weights;
- }
- return result;
+// Use actual warm metallic samples from the original perimeter. The palette
+// is shared by all four edges: no row/column extrapolation or streaking.
+export function framePalette(p,indices) {
+ const samples=[];
+ for(const i of indices)if(gold(p,i))samples.push([p[i],p[i+1],p[i+2]]);
+ samples.sort((a,b)=>(a[0]*.2126+a[1]*.7152+a[2]*.0722)-(b[0]*.2126+b[1]*.7152+b[2]*.0722));
+ if(!samples.length)return {shadow:[100,58,22],mid:[157,102,45],light:[192,139,67]};
+ const q=(v)=>samples[Math.round((samples.length-1)*v)];
+ return {shadow:q(.10),mid:q(.38),light:q(.68)};
 }
-
-// Subtle warm metallic bevel: the frame's local hue continues outwards,
-// with shadow in the outermost area and soft relief, never a flat gold band.
-export function railPixel(color,fraction,x,y) {
- const u=Math.max(0,Math.min(1,fraction));
- const shade=.46+.48*Math.pow(1-u,.8)+.12*Math.exp(-Math.pow((u-.72)/.12,2));
- const grain=1+.026*Math.sin(x*1.37+y*.83)+.014*Math.sin(x*.39-y*1.61);
- return color.map(v=>Math.max(0,Math.min(255,Math.round(v*shade*grain))));
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+function hash(x,y){
+ let n=Math.imul(x+101,374761393)^Math.imul(y+103,668265263);
+ n=Math.imul(n^(n>>>13),1274126177);
+ return ((n^(n>>>16))>>>0)/4294967295;
+}
+function noise(x,y,size){
+ const u=x/size,v=y/size,ix=Math.floor(u),iy=Math.floor(v);
+ const smooth=t=>t*t*(3-2*t);
+ const a=smooth(u-ix),b=smooth(v-iy);
+ const p=hash(ix,iy)*(1-a)+hash(ix+1,iy)*a;
+ const q=hash(ix,iy+1)*(1-a)+hash(ix+1,iy+1)*a;
+ return p*(1-b)+q*b;
+}
+// Fine, isotropic antique-metal patina. The mottling is deliberately subtle
+// and two-dimensional, not copied down columns. A narrow warm highlight and
+// shadow at the edge suggest the existing gilded relief, without another rail.
+export function patinaPixel(palette,x,y,w,h,distance){
+ const scale=w/1020;
+ const n=.55*noise(x,y,22*scale)+.30*noise(x,y,7*scale)+.15*noise(x,y,2.6*scale);
+ const tone=mix(palette.shadow,palette.mid,.68+.28*n);
+ const detail=mix(tone,palette.light,.10+.19*n);
+ const outer=Math.min(x,y,w-1-x,h-1-y)/scale;
+ const edgeShade=.78+.22*Math.min(1,outer/4.5);
+ const near=.12*Math.exp(-Math.max(0,distance)/Math.max(1,3*scale));
+ const shade=edgeShade*(.97+.10*(n-.5));
+ return mix(detail,palette.shadow,near).map(v=>Math.max(0,Math.min(255,Math.round(v*shade))));
 }
 export function exteriorAlpha(p,w,h) {
  const left=new Int32Array(h),right=new Int32Array(h),
@@ -67,31 +61,25 @@ export function exteriorAlpha(p,w,h) {
    for(let y=0;y<upper;y++)if(isGold(x,y)){top[x]=y;break;}
    for(let y=h-1;y>=h-lower;y--)if(isGold(x,y)){bottom[x]=y;break;}
  }
- const rails=[
-  {edge:left,colors:localRailColors(p,w,h,left,"left"),side:"left"},
-  {edge:right,colors:localRailColors(p,w,h,right,"right"),side:"right"},
-  {edge:top,colors:localRailColors(p,w,h,top,"top"),side:"top"},
-  {edge:bottom,colors:localRailColors(p,w,h,bottom,"bottom"),side:"bottom"},
- ];
+ const indices=[];
+ // Sample short strips inside the already detected original gold contour.
+ const dx=Math.max(2,Math.round(w*.009)),dy=Math.max(2,Math.round(h*.009));
+ for(let y=0;y<h;y+=2)for(let j=0;j<dx;j++){
+  if(left[y]+j<w)indices.push(4*(y*w+left[y]+j));
+  if(right[y]-j>=0)indices.push(4*(y*w+right[y]-j));
+ }
+ for(let x=0;x<w;x+=2)for(let j=0;j<dy;j++){
+  if(top[x]+j<h)indices.push(4*((top[x]+j)*w+x));
+  if(bottom[x]-j>=0)indices.push(4*((bottom[x]-j)*w+x));
+ }
+ const palette=framePalette(p,indices);
  const result=new Uint8ClampedArray(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
    const i=4*(y*w+x);
-   const distances=[left[y]-x,x-right[y],top[x]-y,y-bottom[x]];
-   if(Math.max(...distances)<=0||gold(p,i))continue;
-   // Blend adjacent rails smoothly at the corners. Preserve every existing
-   // gold pixel and every pixel inside the engraved contour.
-   const spans=[left[y],w-1-right[y],top[x],h-1-bottom[x]];
-   const t=[y,y,x,x];let rgb=[0,0,0],total=0;
-   for(let k=0;k<4;k++){
-    if(distances[k]<=0)continue;
-    const f=distances[k]/Math.max(1,spans[k]);
-    const col=rails[k].colors.subarray(t[k]*3,t[k]*3+3);
-    const sample=railPixel(Array.from(col),f,x,y);
-    const weight=distances[k];total+=weight;
-    for(let q=0;q<3;q++)rgb[q]+=sample[q]*weight;
-   }
-   for(let q=0;q<3;q++)result[i+q]=Math.round(rgb[q]/total);
-   result[i+3]=255;
+   const distance=Math.max(left[y]-x,x-right[y],top[x]-y,y-bottom[x]);
+   if(distance<=0||gold(p,i))continue;
+   const rgb=patinaPixel(palette,x,y,w,h,distance);
+   result.set([...rgb,255],i);
  }
  return result;
 }
