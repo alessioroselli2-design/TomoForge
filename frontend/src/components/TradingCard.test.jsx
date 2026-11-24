@@ -122,7 +122,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("uses the SVG placeholder as img src when artwork_path is null", async () => {
-    const card = { id: "c1", type: "item", name: "Magia Oscura", artwork_path: null };
+    const card = { id: "c1", type: "custom", name: "Magia Oscura", artwork_path: null };
     await act(async () => {
       root.render(<CardFront card={card} exportMode />);
     });
@@ -134,7 +134,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("uses the SVG placeholder as img src when artwork_path is undefined", async () => {
-    const card = { id: "c2", type: "item", name: "Incantesimo" };
+    const card = { id: "c2", type: "custom", name: "Incantesimo" };
     await act(async () => {
       root.render(<CardFront card={card} exportMode />);
     });
@@ -144,7 +144,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("does NOT show the editor hint overlay in exportMode even when artwork is absent", async () => {
-    const card = { id: "c3", type: "item", name: "Ombra Silenziosa", artwork_path: null };
+    const card = { id: "c3", type: "custom", name: "Ombra Silenziosa", artwork_path: null };
     await act(async () => {
       root.render(<CardFront card={card} exportMode />);
     });
@@ -153,7 +153,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("uses the artworkUrl helper when artwork_path is provided", async () => {
-    const card = { id: "c4", type: "item", name: "Raggio Ardente", artwork_path: "uploads/spell.jpg" };
+    const card = { id: "c4", type: "custom", name: "Raggio Ardente", artwork_path: "uploads/spell.jpg" };
     await act(async () => {
       root.render(<CardFront card={card} exportMode />);
     });
@@ -164,7 +164,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("does not loop if the artwork placeholder also fails to load", async () => {
-    const card = { id: "c5", type: "item", name: "Eco Spezzata", artwork_path: "uploads/spell.jpg" };
+    const card = { id: "c5", type: "custom", name: "Eco Spezzata", artwork_path: "uploads/spell.jpg" };
     await act(async () => {
       root.render(<CardFront card={card} exportMode />);
     });
@@ -193,7 +193,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("exposes artwork failures as alerts without announcing the warning glyph", async () => {
-    const card = { id: "c7", type: "item", name: "Segnale Perduto", artwork_path: "uploads/broken.jpg" };
+    const card = { id: "c7", type: "custom", name: "Segnale Perduto", artwork_path: "uploads/broken.jpg" };
     await act(async () => {
       root.render(<CardFront card={card} editorMode imgUrl="https://cdn.example.com/broken.jpg" />);
     });
@@ -212,7 +212,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("keeps artwork failure alerts out of exported cards while using the placeholder", async () => {
-    const card = { id: "c8", type: "item", name: "Faglia Silenziosa", artwork_path: "uploads/broken.jpg" };
+    const card = { id: "c8", type: "custom", name: "Faglia Silenziosa", artwork_path: "uploads/broken.jpg" };
     await act(async () => {
       root.render(<CardFront card={card} editorMode exportMode imgUrl="https://cdn.example.com/broken.jpg" />);
     });
@@ -228,7 +228,7 @@ describe("CardFront artwork placeholder", () => {
   });
 
   it("resets the artwork fallback guard when a new image URL is assigned", async () => {
-    const card = { id: "c6", type: "item", name: "Rinascita", artwork_path: "uploads/broken.jpg" };
+    const card = { id: "c6", type: "custom", name: "Rinascita", artwork_path: "uploads/broken.jpg" };
     await act(async () => {
       root.render(<CardFront card={card} editorMode imgUrl="https://cdn.example.com/broken.jpg" />);
     });
@@ -382,9 +382,8 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(approved.querySelector(".tf-spell-level")?.textContent).toContain("3");
    expect(approved.querySelector(".tf-spell-school-emblem")?.getAttribute("src"))
      .toBe("/emblemi/scuole/scl-06-invocazione.png");
-   expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage)
-     .toContain("/card-art/front-master-v17.webp");
-   expect(item.mount.querySelector(".tf-v3-badge").textContent).toBe("RARITÀRaro");
+   expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage).toContain("master-oggetto-magico-5x7.png");
+   expect(item.mount.querySelector(".tf-category-badge").textContent).toBe("Raro");
    await spell.close();await item.close();
  });
 });
