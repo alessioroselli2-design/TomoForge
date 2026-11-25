@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/context/AuthContext";
 import { addPrintSheetCard } from "@/lib/cardExport";
-import { getPrintSheetPositions, PRINT_FORMATS } from "@/lib/printFormats";
+import { getPrintSheetPositions, PRINT_FORMATS, setA4PrintPreferences } from "@/lib/printFormats";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -34,7 +34,7 @@ export default function Collection() {
   const [exportingPress, setExportingPress] = useState(false);
   const [progress, setProgress] = useState(0);
   const [format, setFormat] = useState("standard");
-  const [includeBack, setIncludeBack] = useState(false);
+  const [includeBack, setIncludeBack] = useState(true);
   const cardRefs = useRef({});
   const sheetContainerRef = useRef(null);
 
@@ -91,6 +91,7 @@ export default function Collection() {
     const perPage = cols * rows;
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      setA4PrintPreferences(pdf,includeBack);
       const pages = Math.ceil(chosenCards.length / perPage);
       let step = 0;
       let firstPage = true;
@@ -117,7 +118,7 @@ export default function Collection() {
           }
         }
       }
-      pdf.save(`tomeforge-foglio-stampa.pdf`);
+      pdf.save(includeBack?"tomeforge-a4-fronte-retro.pdf":"tomeforge-a4-solo-fronte.pdf");
       toast.success(`Foglio pronto: ${chosenCards.length} carte`);
       exitSelectMode();
     } catch (e) {
@@ -278,7 +279,7 @@ export default function Collection() {
               </div>
               <button data-testid="include-back-toggle" onClick={() => setIncludeBack((v) => !v)}
                 className={`mt-2 flex items-center gap-2 px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${includeBack ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
-                <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "RETRO INCLUSO (F/R)" : "INCLUDI RETRO (F/R)"}
+                <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "FRONTE/RETRO ATTIVO" : "SOLO FRONTE"}
               </button>
             </div>
             <div className="border-t border-border/40 pt-3 space-y-2">
@@ -291,7 +292,7 @@ export default function Collection() {
             <p className="font-body text-xs text-muted-foreground/80 border-t border-border/40 pt-2">
               Il PDF mantiene le dimensioni fisiche selezionate: {PRINT_FORMATS[format].cols}×{PRINT_FORMATS[format].rows} carte per A4.
               {selected.length < perPage && " Le posizioni non selezionate restano bianche: seleziona altre carte per riempire la griglia."}
-              {includeBack && " Per allineare fronte e retro, stampa in modalità fronte/retro con ribaltamento sul lato lungo."}
+              {includeBack && " Stampa sullo stesso foglio: fronte/retro, lato lungo, scala 100% (dimensioni effettive), senza adattamento alla pagina. Le pagine sono accoppiate e le posizioni dei dorsi speculari; verifica la registrazione della stampante con una prova."}
             </p>
           </div>
         )}

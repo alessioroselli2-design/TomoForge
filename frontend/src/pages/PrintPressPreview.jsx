@@ -68,7 +68,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 12 · titoli completi in esportazione · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 13 · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -99,12 +99,12 @@ export default function PrintPressPreview(){
    </div>}
    <div className="flex flex-wrap justify-center gap-3 mt-6">
     <button disabled={busy} onClick={()=>download(true)} className="border border-gold bg-gold text-obsidian px-4 py-3 text-sm">SCARICA PDF TIPOGRAFIA</button>
-    <button disabled={busy} onClick={()=>download(false)} className="border border-gold px-4 py-3 text-sm">SCARICA PDF A4</button>
+    <button disabled={busy} onClick={()=>download(false)} className="border border-gold px-4 py-3 text-sm">SCARICA PDF A4 FRONTE/RETRO</button>
     <button disabled={busy} onClick={()=>downloadPng(false)} className="border border-gold px-4 py-3 text-sm">PNG FRONTE</button>
     <button disabled={busy} onClick={()=>downloadPng(true)} className="border border-gold px-4 py-3 text-sm">PNG RETRO</button>
    </div>
    <p role="status" className="mt-3 text-sm">{feedback}</p>
-   <p className="mt-3 text-xs text-foreground/70">PDF tipografia: taglio 63,5 × 88,9 mm, 3 mm abbondanza, raggio angoli richiesto 3 mm. Il PDF conserva la grafica rettangolare completa per la fustellatura. PDF A4: riferimenti esterni da 1,05 mm; stampa al 100%, fronte-retro sul lato lungo; arrotondare dopo il taglio con una fustella R 3 mm.</p>
+   <p className="mt-3 text-xs text-foreground/70">PDF tipografia: taglio 63,5 × 88,9 mm, 3 mm abbondanza, raggio angoli richiesto 3 mm. Il PDF conserva la grafica rettangolare completa per la fustellatura. PDF A4: due pagine sovrapponibili sullo stesso foglio, riferimenti esterni da 1,05 mm. Nelle opzioni stampante scegliere fronte/retro, lato lungo e 100% (senza adattamento); arrotondare dopo il taglio con una fustella R 3 mm.</p>
    <div aria-hidden="true" style={{position:"fixed",left:-99999,top:0,width:340,height:476}} ref={ref}><CardFront card={card} exportMode/></div>
   </div>
  </main>;

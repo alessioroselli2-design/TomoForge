@@ -9,6 +9,7 @@ import { getApprovedBack } from "@/lib/cardBacks";
 import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
 import { colorFrontExterior , prepareFrontBackground} from "@/lib/frontExterior";
 import html2canvas from "html2canvas";
+import { setA4PrintPreferences } from "@/lib/printFormats";
 import {captureExportHeading,paintExportHeading} from "@/lib/exportHeading";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -555,6 +556,7 @@ export async function addPrintSheetCard(pdf, element, card, bounds, back = false
 }
 
 export async function addSingleCardA4PdfPages(pdf, element, card) {
+  setA4PrintPreferences(pdf,true);
   const front = await addPrintSheetCard(pdf, element, card, SINGLE_CARD_A4_BOUNDS);
   pdf.addPage();
   const back = await addPrintSheetCard(pdf, null, card, SINGLE_CARD_A4_BOUNDS, true);

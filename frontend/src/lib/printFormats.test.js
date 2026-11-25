@@ -1,4 +1,4 @@
-import { A4_SIZE, getPrintSheetPositions, PRINT_FORMATS } from "./printFormats";
+import { A4_SIZE, getPrintSheetPositions, PRINT_FORMATS, setA4PrintPreferences } from "./printFormats";
 
 describe("A4 print formats", () => {
   it.each([
@@ -44,4 +44,11 @@ describe("A4 print formats", () => {
   it("rejects an unknown physical format instead of silently producing a clipped sheet", () => {
     expect(() => getPrintSheetPositions("unknown", 1)).toThrow("Unknown print format");
   });
+});
+it("requests actual-size long-edge duplex printing without changing page geometry",()=>{
+ const pdf={viewerPreferences:jest.fn()};
+ setA4PrintPreferences(pdf,true);
+ expect(pdf.viewerPreferences).toHaveBeenLastCalledWith({PrintScaling:"None",Duplex:"DuplexFlipLongEdge"});
+ setA4PrintPreferences(pdf,false);
+ expect(pdf.viewerPreferences).toHaveBeenLastCalledWith({PrintScaling:"None",Duplex:"Simplex"});
 });

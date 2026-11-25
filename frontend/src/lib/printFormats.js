@@ -29,3 +29,8 @@ export const getPrintSheetPositions = (format, count, mirror = false) => {
     };
   });
 };
+
+// A PDF viewer may honor these hints; the printer dialog remains authoritative.
+export function setA4PrintPreferences(pdf,duplex=true){
+ if(typeof pdf.viewerPreferences==="function")pdf.viewerPreferences({PrintScaling:"None",Duplex:duplex?"DuplexFlipLongEdge":"Simplex"});
+}

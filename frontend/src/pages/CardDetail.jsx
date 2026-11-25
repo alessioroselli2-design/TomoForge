@@ -386,7 +386,7 @@ export default function CardDetail() {
       const exportResult = await addSingleCardA4PdfPages(pdf, exportFrontRef.current, card);
       warnIfArtworkMissing(exportResult?.front);
       pdf.save(`carta-${card.name || "personaggio"}-a4-fronte-retro.pdf`);
-      setExportFeedback("Foglio A4 fronte/retro generato.");
+      setExportFeedback("PDF A4 pronto: stampa fronte/retro sul lato lungo, al 100%, senza adattamento alla pagina.");
       toast.success("Carta A4 generata");
     } catch (e) { toast.error("Generazione carta A4 fallita"); }
     finally { setBusy(false); }
@@ -568,7 +568,7 @@ export default function CardDetail() {
                 )}
               </div>
               <p className="mt-3 font-body text-[11px] leading-relaxed text-muted-foreground">
-                Il foglio A4 mantiene la dimensione Standard e il retro allineato per la stampa fronte/retro.
+                Il foglio A4 dispone fronte e retro sulle due facce dello stesso foglio. Stampa fronte/retro, lato lungo, dimensioni effettive (100%), senza adattamento. Verifica l’allineamento fisico con una prova.
                 Il PDF tipografia contiene due pagine RGB con abbondanza 3 mm, taglio 63,5 × 88,9 mm e margine di sicurezza: verificare il profilo colore e gli angoli con lo stampatore.
               </p>
               <p aria-live="polite" className="mt-2 min-h-4 font-body text-[11px] text-gold/90">
