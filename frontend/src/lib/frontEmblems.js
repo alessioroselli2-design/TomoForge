@@ -89,25 +89,25 @@ export const getFrontEmblem = (card = {}) => {
    const schoolIndex = index - CLASSES.length - MONSTERS.length;
    const file = `scl-${String(schoolIndex+1).padStart(2,"0")}-${SCHOOLS[schoolIndex]}.png`;
    return {sprite:"school-original",index,col:0,row:0,label,
-     src:`/emblemi/scuole/${file}`,width:384,height:384,cell:384,
+     src:`/emblemi/scuole/${file}`,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  if (type === "class" || type === "subclass" || type === "character") {
    const file = `cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}.png`;
    return {sprite:"class-original",index,col:0,row:0,label,
-     src:`/emblemi/classi/${file}`,width:320,height:320,cell:320,
+     src:`/emblemi/classi/${file}`,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
- // The original approved Dragon artwork is recropped symmetrically at 160px instead of the
- // 44px preview atlas. No AI substitution, no CSS upscaling of a tiny cell.
+ // The approved Dragon artwork is resampled from its existing 160px file to 640px instead of the
+ // 44px preview atlas. The source detail remains limited; no recrop or AI substitution.
  if (type === "monster" && index === CLASSES.length + 4) {
    return {
      sprite:"drago-hd", index:0, col:0, row:0, label,
-     src:"/emblemi/drago-originale-hd-v2.webp", width:160, height:160,
-     cell:160, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
+     src:"/emblemi/drago-originale-hd-v2.webp", width:640, height:640,
+     cell:640, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
    };
  }
- // All other creature types use independent original transparent WebP files (280px, quality 90).
+ // All other creature types use independent transparent WebP files resampled from the approved 280px sources (640px, lossless).
  // Keep the existing integrated well and export geometry; no tiny atlas tile.
  if (type === "monster") {
    const monsterIndex=index-CLASSES.length;
@@ -115,7 +115,7 @@ export const getFrontEmblem = (card = {}) => {
    if (!key) return null;
    const file=`mst-${String(monsterIndex+1).padStart(2,"0")}-${key.replace(/\s+/g,"-")}.webp`;
    return {sprite:"monster-original",index,col:0,row:0,label,
-     src:"/emblemi/mostri/"+file,width:280,height:280,cell:280,
+     src:"/emblemi/mostri/"+file,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  const col = index % 8, row = Math.floor(index / 8);

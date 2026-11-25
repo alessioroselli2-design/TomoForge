@@ -4,7 +4,7 @@ import {resolve} from "path";
 describe("approved TomoForge front medal rules",()=>{
  it("uses unique Beholder and Dragon monster medals",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Aberrazione"}}).index).toBe(13);
-  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/drago-originale-hd-v2.webp", cell:160});
+  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/drago-originale-hd-v2.webp", cell:640});
  });
  it("uses school-specific medals rather than a generic magic icon",()=>{
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Invocazione"}}).index).toBe(32);
@@ -15,7 +15,7 @@ describe("approved TomoForge front medal rules",()=>{
      "illusione","invocazione","necromanzia","trasmutazione"];
    schools.forEach((school,i)=>{
      expect(getFrontEmblem({type:"spell",attributes:{scuola:school}})).toMatchObject({
-       index:27+i,sprite:"school-original",cell:384,
+       index:27+i,sprite:"school-original",cell:640,
        src:`/emblemi/scuole/scl-${String(i+1).padStart(2,"0")}-${school}.png`
      });
    });
@@ -36,7 +36,7 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"})).toMatchObject({index:38,sprite:"feature-original",src:"/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png"});
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
-  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:640,sprite:"class-original"});
  });
  it("keeps the race medal empty until a real race is selected",()=>{
    expect(getFrontEmblem({type:"race",name:"",attributes:{}})).toBeNull();
@@ -66,7 +66,7 @@ describe("approved TomoForge front medal rules",()=>{
  });
  it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
-     sprite:"class-original",src:"/emblemi/classi/cls-05-guerriero.png",cell:320
+     sprite:"class-original",src:"/emblemi/classi/cls-05-guerriero.png",cell:640
    });
    expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("class-original");
  });
@@ -85,20 +85,22 @@ describe("approved TomoForge front medal rules",()=>{
  });
 });
 
- it("maps every creature type to an individual HD file, without changing Dragon",()=>{
+ it("maps every creature type to an individual 640px file, with unchanged Dragon framing",()=>{
   const types=["aberrazione","bestia","celestiale","costrutto","drago","elementale","folletto","gigante","immondo","melma","mostruosita","non morto","pianta","umanoide"], aliases=["aberration","beast","celestial","construct","dragon","elemental","fey","giant","fiend","ooze","monstrosity","undead","plant","humanoid"];
   types.forEach((name,i)=>{
     const em=getFrontEmblem({type:"monster",attributes:{tipo_creatura:name}});
     expect(getFrontEmblem({type:"monster",attributes:{creature_type:aliases[i]}}).src).toBe(em.src);
     if(i===4){expect(em.src).toBe("/emblemi/drago-originale-hd-v2.webp");return;}
-    expect(em).toMatchObject({sprite:"monster-original",index:13+i,cell:280,width:280,height:280,col:0,row:0});
+    expect(em).toMatchObject({sprite:"monster-original",index:13+i,cell:640,width:640,height:640,col:0,row:0});
     expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".webp");
     const webp=readFileSync(resolve(__dirname,"../../public"+em.src));
     expect(webp.toString("ascii",0,4)).toBe("RIFF");
-    expect(webp.toString("ascii",8,16)).toBe("WEBPVP8X");
-    expect(webp[20]&16).toBe(16);
-    expect(webp.readUIntLE(24,3)+1).toBe(280);
-    expect(webp.readUIntLE(27,3)+1).toBe(280);
+    expect(webp.toString("ascii",8,16)).toBe("WEBPVP8L");
+    expect(webp[20]).toBe(0x2f);
+    const packed=webp.readUInt32LE(21);
+    expect((packed>>>28)&1).toBe(1);
+    expect((packed&0x3fff)+1).toBe(640);
+    expect(((packed>>>14)&0x3fff)+1).toBe(640);
   });
   expect(getFrontEmblem({type:"monster",attributes:{}})).toBeNull();
  });
