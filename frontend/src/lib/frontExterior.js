@@ -9,8 +9,8 @@ import {frontMasterSlices} from "./cardPrintGeometry";
 const W=1020,H=1428;
 const gold=(p,i)=>p[i]>105 && p[i+1]>75 && p[i+1]>=p[i]*.55 && p[i+2]<p[i+1]*.88;
 // Keep every original engraved pixel in its original coordinate. Extend
-// ONLY the space outside the silhouette with a small real straight-rail
-// section sampled from the master. Never radially stretch the jewels,
+// ONLY the space outside the silhouette with a continuous rail cross-section
+// sampled from the master. Never radially stretch the jewels,
 // medallions, scrollwork or parchment.
 const SEARCH=.82;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -44,102 +44,69 @@ export function traceOuterRail(p,w,h){
  }
  return ray;
 }
-// A side is parameterised by position along the edge and inward depth.
-function sideIndex(side,t,d,w,h){
- const x=side===0||side===2?t:side===1?w-1-d:d;
- const y=side===1||side===3?t:side===0?d:h-1-d;
- return 4*(clamp(Math.round(y),0,h-1)*w+clamp(Math.round(x),0,w-1));
-}
-function warm(p,i){
- return p[i]>50&&p[i+1]>=p[i]*.48&&p[i+2]<p[i+1]*.92;
-}
-function ruby(p,i){
- return p[i]>95&&p[i+1]<p[i]*.42&&p[i+2]<p[i]*.68;
-}
-// Find a real, quiet section of each rail, not a gem or a corner. The
-// source patch is deliberately narrow across the rail. All four patches
-// retain their actual gold relief and shadow; there is no generated colour.
-export function chooseRailPatch(p,w,h,side){
- const horizontal=side===0||side===2;
- const length=horizontal?w:h,depth=horizontal?h:w;
- const thickness=Math.max(2,Math.round(Math.min(w,h)*.010));
- const span=Math.max(4,Math.round(length*.035));
- const search=Math.max(3,Math.round(depth*.12));
- const first=new Int32Array(length).fill(-1);
- for(let t=0;t<length;t++)for(let d=0;d<search;d++){
-  if(gold(p,sideIndex(side,t,d,w,h))){first[t]=d;break;}
- }
+// Median cross-section from an actual continuous side of the master.
+const median=a=>{a.sort((x,y)=>x-y);return a[Math.floor(a.length/2)];};
+export function sampleRailProfile(p,w,h){
+ const thickness=Math.max(3,Math.round(w*.019)),search=Math.max(3,Math.round(w*.085));
+ const span=Math.max(5,Math.round(h*.10)),stride=Math.max(1,Math.round(span/5));
  let best=null;
- const stride=Math.max(1,Math.round(span/4));
- for(let t=Math.round(length*.09);t+span<length*.91;t+=stride){
-  let score=0,mean=0,valid=0,rough=0,last=-1;
-  for(let j=t;j<t+span;j++){
-   const d=first[j];
-   if(d<0){score-=thickness*8;continue;}
-   mean+=d;valid++;
-   if(last>=0)rough+=Math.abs(d-last);
-   last=d;
-   for(let q=0;q<thickness;q++){
-    const i=sideIndex(side,j,d+q,w,h);
-    score+=gold(p,i)?3:warm(p,i)?1:ruby(p,i)?-9:-2;
+ for(const side of [0,1]){
+  const first=new Int32Array(h).fill(-1);
+  const at=(y,d)=>4*(y*w+(side?w-1-d:d));
+  for(let y=0;y<h;y++)for(let d=0;d<search;d++){if(gold(p,at(y,d))){first[y]=d;break;}}
+  for(let y=Math.round(h*.20);y+span<h*.88;y+=stride){
+   const valid=[];for(let j=y;j<y+span;j++)if(first[j]>=0)valid.push(first[j]);
+   if(valid.length<span*.95)continue;
+   const d=median(valid);let score=0;
+   for(let j=y;j<y+span;j++){
+    score-=Math.abs(first[j]-d)*8;
+    for(let q=0;q<thickness;q++){
+     const i=at(j,d+q);score+=gold(p,i)?2:(p[i]>100&&p[i+1]<p[i]*.32?-5:0);
+    }
    }
+   score+=span*(y/h>.68?1:0);
+   if(!best||score>best.score)best={y,d,side,score};
   }
-  if(!valid)continue;
-  score-=rough*4;
-  const candidate={start:t,length:span,depth:Math.round(mean/valid),thickness,score};
-  if(!best||score>best.score)best=candidate;
  }
- // Fall back to a real gold pixel, not an invented colour, on very small
- // or unusual masters. The original central content is still protected.
- if(!best){
-  const t=first.findIndex(v=>v>=0);
-  best={start:Math.max(0,t),length:1,depth:t<0?0:first[t],thickness:1,score:0};
+ if(!best)return [[183,113,35],[238,185,83],[99,48,12],[44,17,6]];
+ const profile=[];
+ for(let q=0;q<thickness;q++){
+  const channels=[[],[],[]];
+  for(let y=best.y;y<best.y+span;y++){
+   const x=best.side?w-1-best.d-q:best.d+q,i=4*(y*w+clamp(x,0,w-1));
+   for(let j=0;j<3;j++)channels[j].push(p[i+j]);
+  }
+  profile.push(channels.map(median));
  }
- return {...best,first};
+ return profile;
 }
-function patchPixel(p,w,h,side,patch,t,fraction,out,i){
- // Mirror-repeat only the short undecorated source strip along the rail.
- // This changes no original gem or ornament and avoids repeating diamonds.
- const span=patch.length,period=Math.max(1,2*span-2);
- const k=((Math.floor(t)%period)+period)%period;
- const pos=patch.start+(k<span?k:period-k);
- const d0=patch.first[pos]>=0?patch.first[pos]:patch.depth;
- let d=d0+Math.round(clamp(fraction,0,1)*(patch.thickness-1));
- let src=sideIndex(side,pos,d,w,h);
- // Do not copy red jewels or lava into the extension, even if a source
- // patch is imperfect. Choose the nearest actual metallic source pixel.
- if(!warm(p,src)){
-  for(let delta=0;delta<patch.thickness;delta++){
-   const q=sideIndex(side,pos,d0+delta,w,h);
-   if(gold(p,q)){src=q;break;}
-  }
- }
- out[i]=p[src];out[i+1]=p[src+1];out[i+2]=p[src+2];out[i+3]=255;
+export function roundedTrimDistance(x,y,w,h){
+ const r=w*3/63.5,cx=(w-1)/2,cy=(h-1)/2;
+ const qx=Math.abs(x-cx)-(cx-r),qy=Math.abs(y-cy)-(cy-r);
+ const d=r-Math.hypot(Math.max(qx,0),Math.max(qy,0))-Math.min(Math.max(qx,qy),0);
+ return Math.abs(d)<1e-8?0:d;
 }
 export function exteriorAlpha(p,w,h){
  const cx=(w-1)/2,cy=(h-1)/2,a=w-1,b=h-1;
- const trace=traceOuterRail(p,w,h),len=trace.length;
- const patches=[0,1,2,3].map(side=>chooseRailPatch(p,w,h,side));
+ const trace=traceOuterRail(p,w,h),len=trace.length,profile=sampleRailProfile(p,w,h);
+ const width=Math.max(2,w*.009),shadow=[44,17,6];
  const result=new Uint8ClampedArray(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
   const dx=x-cx,dy=y-cy,t=Math.max(Math.abs(dx)/cx,Math.abs(dy)/cy);
   if(t<=SEARCH)continue;
   const ex=clamp(cx+dx/t,0,a),ey=clamp(cy+dy/t,0,b);
-  let k,side,along;
-  if(Math.abs(dy)/cy>=Math.abs(dx)/cx){
-   side=dy<0?0:2;along=x;k=dy<0?ex:a+b+(a-ex);
-  }else{
-   side=dx>0?1:3;along=y;k=dx>0?a+ey:2*a+b+(b-ey);
-  }
+  const k=Math.abs(dy)/cy>=Math.abs(dx)/cx?(dy<0?ex:a+b+(a-ex)):(dx>0?a+ey:2*a+b+(b-ey));
   const k0=Math.floor(k)%len,k1=(k0+1)%len;
   const edge=trace[k0]+(trace[k1]-trace[k0])*(k-Math.floor(k));
-  const i=4*(y*w+x);
-  // Crucial: no resampling at all on the original engraving or inside it.
-  // A one-pixel guard preserves antialiased tips and the ruby outline.
-  const guard=1/Math.max(Math.abs(ex-cx),Math.abs(ey-cy));
+  const i=4*(y*w+x),guard=1/Math.max(Math.abs(ex-cx),Math.abs(ey-cy));
+  // No original pixels within the traced ornament contour are resampled.
   if(t<=edge+guard||gold(p,i))continue;
-  const fraction=1-clamp((t-edge)/Math.max(1e-6,1-edge),0,1);
-  patchPixel(p,w,h,side,patches[side],along,fraction,result,i);
+  const d=roundedTrimDistance(x,y,w,h);
+  const z=clamp(d/Math.max(1,width-1),0,1)*(profile.length-1),j=Math.floor(z),frac=z-j;
+  const col=profile[j].map((v,q)=>v*(1-frac)+profile[Math.min(j+1,profile.length-1)][q]*frac);
+  const blend=d<0?0:clamp(width-d,0,1);
+  for(let q=0;q<3;q++)result[i+q]=Math.round(shadow[q]*(1-blend)+col[q]*blend);
+  result[i+3]=255;
  }
  return result;
 }

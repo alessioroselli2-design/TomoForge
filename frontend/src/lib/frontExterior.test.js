@@ -1,4 +1,4 @@
-import {exteriorAlpha,frontMaskSource,traceOuterRail,perimeterPoint,chooseRailPatch} from "./frontExterior";
+import {exteriorAlpha,frontMaskSource,traceOuterRail,perimeterPoint,sampleRailProfile,roundedTrimDistance} from "./frontExterior";
 
 function sample(){
  const w=201,h=281,p=new Uint8ClampedArray(w*h*4);
@@ -20,20 +20,24 @@ it("keeps every original diamond pixel in the same location and shape",()=>{
  for(const [x,y] of gem)expect(a[4*(y*w+x)+3]).toBe(0);
  expect(a[4*(140*w+100)+3]).toBe(0);
 });
-it("extends an undecorated original gold rail to the trim without moving existing gold",()=>{
+it("extends a continuous rail to the trim without moving existing gold",()=>{
  const {w,h,p}=sample(),a=exteriorAlpha(p,w,h);
  const at=(x,y)=>Array.from(a.slice(4*(y*w+x),4*(y*w+x)+4));
  for(const [x,y] of [[0,70],[200,70],[100,0],[100,280]])expect(at(x,y)).toEqual([220,160,45,255]);
+ expect(at(0,70)).toEqual(at(0,100));
+ expect(at(3,70)).toEqual([44,17,6,255]);
  expect(at(6,70)).toEqual([0,0,0,0]);
  expect(at(100,140)).toEqual([0,0,0,0]);
  expect(a.length).toBe(w*h*4);
 });
-it("selects a quiet metallic rail section and keeps the complete perimeter",()=>{
- const {w,h,p}=sample(),trace=traceOuterRail(p,w,h),patch=chooseRailPatch(p,w,h,3);
+it("samples a rail cross-section and keeps the complete perimeter",()=>{
+ const {w,h,p}=sample(),trace=traceOuterRail(p,w,h),profile=sampleRailProfile(p,w,h);
  expect(trace.length).toBe(2*(w+h-2));
  expect(perimeterPoint(0,w,h)).toEqual([0,0]);
  expect(perimeterPoint(w-1,w,h)).toEqual([w-1,0]);
- expect(patch.start+patch.length<128||patch.start>152).toBe(true);
+ expect(profile[0]).toEqual([220,160,45]);
+ expect(roundedTrimDistance(0,0,w,h)).toBeLessThan(0);
+ expect(roundedTrimDistance(0,140,w,h)).toBeCloseTo(0);
 });
 it("uses each original master and shares the class master with subclasses",()=>{
  expect(frontMaskSource("subclass")).toEqual(frontMaskSource("class"));
