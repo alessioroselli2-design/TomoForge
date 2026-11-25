@@ -107,13 +107,13 @@ export const getFrontEmblem = (card = {}) => {
      cell:160, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
    };
  }
- // All other creature types use independent original transparent PNGs.
+ // All other creature types use independent original transparent WebP files (280px, quality 90).
  // Keep the existing integrated well and export geometry; no tiny atlas tile.
  if (type === "monster") {
    const monsterIndex=index-CLASSES.length;
    const key=MONSTERS[monsterIndex];
    if (!key) return null;
-   const file=`mst-${String(monsterIndex+1).padStart(2,"0")}-${key.replace(/\s+/g,"-")}.png`;
+   const file=`mst-${String(monsterIndex+1).padStart(2,"0")}-${key.replace(/\s+/g,"-")}.webp`;
    return {sprite:"monster-original",index,col:0,row:0,label,
      src:"/emblemi/mostri/"+file,width:280,height:280,cell:280,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};

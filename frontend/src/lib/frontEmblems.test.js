@@ -92,10 +92,13 @@ describe("approved TomoForge front medal rules",()=>{
     expect(getFrontEmblem({type:"monster",attributes:{creature_type:aliases[i]}}).src).toBe(em.src);
     if(i===4){expect(em.src).toBe("/emblemi/drago-originale-hd-v2.webp");return;}
     expect(em).toMatchObject({sprite:"monster-original",index:13+i,cell:280,width:280,height:280,col:0,row:0});
-    expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".png");
-    const png=readFileSync(resolve(__dirname,"../../public"+em.src));
-    expect(png.readUInt32BE(16)).toBe(280);expect(png.readUInt32BE(20)).toBe(280);
-    expect(png[25]).toBe(6);
+    expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".webp");
+    const webp=readFileSync(resolve(__dirname,"../../public"+em.src));
+    expect(webp.toString("ascii",0,4)).toBe("RIFF");
+    expect(webp.toString("ascii",8,16)).toBe("WEBPVP8X");
+    expect(webp[20]&16).toBe(16);
+    expect(webp.readUIntLE(24,3)+1).toBe(280);
+    expect(webp.readUIntLE(27,3)+1).toBe(280);
   });
   expect(getFrontEmblem({type:"monster",attributes:{}})).toBeNull();
  });
