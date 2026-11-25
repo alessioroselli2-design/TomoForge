@@ -13,6 +13,7 @@ const SAMPLES=[
  {type:"race",name:"Elfo",attributes:{taglia:"Media",velocita:"9 m"}},
  {type:"feature",name:"Forma Selvatica",attributes:{classe:"Druido",livello:"2"}},
  {type:"feat",name:"Maestro d'Armi",attributes:{bonus_caratteristica:"+1 Forza o Destrezza"}},
+ {type:"item",name:"Spada del Sole della Fiamma Eterna",attributes:{tipo:"Arma",rarita:"Molto raro"}},
  {type:"item",name:"Bastone dei Boschi",attributes:{tipo:"Bastone",rarita:"Raro"}},
  {type:"weapon",name:"Spada Lunga",attributes:{danno:"1d8",tipo_danno:"Tagliente",proprieta:"Versatile (1d10)"}},
  {type:"armor",name:"Cotta di Maglia",attributes:{categoria_armatura:"pesante",classe_armatura:"16"}},
@@ -34,7 +35,7 @@ export default function PrintPressPreview(){
    try{
     const front=await createCardPng(ref.current,card);
     const back=await createCardBackPng(card);
-    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements});
+    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading});
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
@@ -67,7 +68,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 11 · misura dei fregi originali · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 12 · titoli completi in esportazione · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -85,6 +86,7 @@ export default function PrintPressPreview(){
     Fronte: {proof.frontW} × {proof.frontH} px · Retro: {proof.backW} × {proof.backH} px
     {proof.frontW===proof.backW&&proof.frontH===proof.backH?" · Misure identiche":" · ATTENZIONE: misure diverse"}
    </p>}
+   {proof?.heading&&<p className="mt-2 text-xs" data-testid="export-heading-proof">Titolo rasterizzato: {proof.heading.title} · {proof.heading.subtitle}</p>}
    {proof?.frame&&<div className="mt-4 text-xs" data-testid="ornamental-frame-measurements">
     <p className="font-semibold">Distanza del fregio originale dal taglio (mm)</p>
     <div className="overflow-x-auto"><table className="mx-auto mt-2 text-left"><thead><tr><th className="p-1">Lato</th><th className="p-1">Prima</th><th className="p-1">Ora</th><th className="p-1">Mostro</th></tr></thead><tbody>
