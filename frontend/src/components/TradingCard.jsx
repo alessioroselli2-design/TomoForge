@@ -194,13 +194,13 @@ export const CardFront=React.forwardRef((props,ref)=>{
   let alive=true;setMask(null);
   // The offscreen exporter applies the same mask after rendering.
   if(!props.exportMode)getFrontExteriorMask(type).then(c=>{
-   if(alive&&c)setMask(c.toDataURL("image/png"));
+   if(alive&&c)setMask({src:c.toDataURL("image/png"),background:c.frameBackground});
   }).catch(()=>{});
   return()=>{alive=false;};
  },[type,props.exportMode]);
- return <div className="relative w-full h-full overflow-hidden" data-front-edge="expanded-original-rail">
+ return <div className={"relative w-full h-full overflow-hidden"+(mask?.background?" tf-frame-corrected":"")} style={mask?.background?{"--tf-print-master":`url("${mask.background}")`}:undefined} data-front-edge="expanded-original-rail">
   <ApprovedCardFront {...props} ref={ref}/>
-  {mask&&<img src={mask} alt="" aria-hidden="true" draggable={false}
+  {mask&&<img src={mask.src} alt="" aria-hidden="true" draggable={false}
     style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>}
  </div>;
 });

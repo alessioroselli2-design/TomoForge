@@ -1,4 +1,4 @@
-import {exteriorAlpha,frontMaskSource,traceOuterRail,perimeterPoint,sampleRailProfile,roundedTrimDistance} from "./frontExterior";
+import {exteriorAlpha,frontMaskSource,traceOuterRail,perimeterPoint,sampleRailProfile,roundedTrimDistance,measureFrameRails,bottomRailPlan} from "./frontExterior";
 
 function sample(){
  const w=201,h=281,p=new Uint8ClampedArray(w*h*4);
@@ -44,4 +44,19 @@ it("uses each original master and shares the class master with subclasses",()=>{
  expect(frontMaskSource("monster").src).toBe("/card-art/front-master-v17.webp");
  expect(frontMaskSource("spell").legacy).toBe(false);
  expect(frontMaskSource("feat").src).toBe("/card-art/master-talento-5x7.png");
+});
+
+it("measures the ornamental rails rather than the canvas and extends only a blank lower band",()=>{
+ const w=200,h=280,p=new Uint8ClampedArray(w*h*4);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  const rail=(y>=8&&y<=11)||(y>=263&&y<=266)||(y>=8&&y<=266&&((x>=6&&x<=9)||(x>=190&&x<=193)));
+  const col=rail?[230,155,40]:y>=12&&y<263&&x>9&&x<190?[245,225,180]:[40,15,10];
+  p.set([...col,255],4*(y*w+x));
+ }
+ const m=measureFrameRails(p,w,h);
+ expect(m).toEqual({top:8,bottom:13,left:6,right:6});
+ const plan=bottomRailPlan(p,w,h,m,{...m,bottom:5});
+ expect(plan.delta).toBe(8);
+ expect(plan.y+plan.band).toBeLessThan(263);
+ expect(bottomRailPlan(p,w,h,m,m)).toBeNull();
 });

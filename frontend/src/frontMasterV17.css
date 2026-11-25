@@ -504,3 +504,6 @@
   white-space:nowrap!important;overflow-wrap:normal!important;
   font-size:8.2px!important;letter-spacing:-0.1px!important;text-align:center!important;
 }
+
+/* Only dedicated, calibrated master backgrounds; editor content stays in place. */
+.tf-frame-corrected [data-front-category] { background-image:var(--tf-print-master) !important; }

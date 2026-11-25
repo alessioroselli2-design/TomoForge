@@ -8,6 +8,7 @@ import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib
 const SAMPLES=[
  {type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",taglia:"Enorme",allineamento:"Caotico Malvagio",grado_sfida:"17",classe_armatura:"19",punti_ferita:"256",velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}},
  {type:"class",name:"Druido",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armature leggere, scudi"}},
+ {type:"subclass",name:"Circolo delle Stelle",attributes:{classe:"Druido"}},
  {type:"spell",name:"Palla di Fuoco",attributes:{livello:"3",scuola:"Invocazione",tempo_lancio:"1 azione",gittata:"45 m",danno:"8d6 fuoco"}},
  {type:"race",name:"Elfo",attributes:{taglia:"Media",velocita:"9 m"}},
  {type:"feature",name:"Forma Selvatica",attributes:{classe:"Druido",livello:"2"}},
@@ -33,7 +34,7 @@ export default function PrintPressPreview(){
    try{
     const front=await createCardPng(ref.current,card);
     const back=await createCardBackPng(card);
-    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height});
+    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements});
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
@@ -66,7 +67,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 10 · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione cornici 11 · misura dei fregi originali · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -84,6 +85,16 @@ export default function PrintPressPreview(){
     Fronte: {proof.frontW} × {proof.frontH} px · Retro: {proof.backW} × {proof.backH} px
     {proof.frontW===proof.backW&&proof.frontH===proof.backH?" · Misure identiche":" · ATTENZIONE: misure diverse"}
    </p>}
+   {proof?.frame&&<div className="mt-4 text-xs" data-testid="ornamental-frame-measurements">
+    <p className="font-semibold">Distanza del fregio originale dal taglio (mm)</p>
+    <div className="overflow-x-auto"><table className="mx-auto mt-2 text-left"><thead><tr><th className="p-1">Lato</th><th className="p-1">Prima</th><th className="p-1">Ora</th><th className="p-1">Mostro</th></tr></thead><tbody>
+    {["top","bottom","left","right"].map((side,i)=>{
+      const mm=v=>v===null||v===undefined?"—":(v*(i<2?88.9/proof.frame.height:63.5/proof.frame.width)).toFixed(2).replace(".",",");
+      return <tr key={side}><th className="p-1">{["Alto","Basso","Sinistra","Destra"][i]}</th><td className="p-1">{mm(proof.frame.before[side])}</td><td className="p-1">{mm(proof.frame.after[side])}</td><td className="p-1">{mm(proof.frame.reference[side])}</td></tr>;
+    })}
+    </tbody></table></div>
+    <p className="mt-2">Misura del tratto dorato rettilineo, non del filetto aggiunto. Gemme inferiori spostate intere, senza ingrandimento.</p>
+   </div>}
    <div className="flex flex-wrap justify-center gap-3 mt-6">
     <button disabled={busy} onClick={()=>download(true)} className="border border-gold bg-gold text-obsidian px-4 py-3 text-sm">SCARICA PDF TIPOGRAFIA</button>
     <button disabled={busy} onClick={()=>download(false)} className="border border-gold px-4 py-3 text-sm">SCARICA PDF A4</button>

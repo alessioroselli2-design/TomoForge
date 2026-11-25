@@ -7,7 +7,7 @@ import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
-import { colorFrontExterior } from "@/lib/frontExterior";
+import { colorFrontExterior , prepareFrontBackground} from "@/lib/frontExterior";
 import html2canvas from "html2canvas";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
@@ -379,6 +379,7 @@ async function renderApprovedSpell(element, card) {
  stage.appendChild(clone);
  document.body.appendChild(stage);
  try {
+   await prepareFrontBackground(clone,"spell");
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const canvas=await html2canvas(clone,{
@@ -413,6 +414,7 @@ async function renderApprovedFeature(element, card) {
  });
  stage.appendChild(clone);document.body.appendChild(stage);
  try {
+   await prepareFrontBackground(clone,"feature");
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const canvas=await html2canvas(clone,{
@@ -436,7 +438,8 @@ async function renderApprovedRace(element,card){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  await waitForImages(clone);
+  await prepareFrontBackground(clone,"race");
+   await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
   const canvas=await html2canvas(clone,{scale,width,height,backgroundColor:null,
     useCORS:true,logging:false,scrollX:0,scrollY:0});
@@ -457,7 +460,8 @@ async function renderApprovedCategory(element){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  await waitForImages(clone);
+  await prepareFrontBackground(clone,clone.getAttribute("data-front-category"));
+   await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
   const capture=await html2canvas(clone,{scale:width*scale/sourceWidth,width:sourceWidth,height:sourceHeight,backgroundColor:null,useCORS:true,logging:false,scrollX:0,scrollY:0});
   const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;

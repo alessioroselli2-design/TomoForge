@@ -111,6 +111,79 @@ export function exteriorAlpha(p,w,h){
  return result;
 }
 
+
+// Measure the existing straight engraved rails, not the synthetic trim line.
+// Use several central spans, away from the corner and centre jewels. A majority
+// vote rejects isolated highlights in the lava outside the original frame.
+const railGold=(p,i)=>p[i]>130&&p[i+1]>85&&p[i]-p[i+1]>18&&p[i+2]<p[i+1]*.65;
+export function measureFrameRails(p,w,h){
+ const scan=(vertical,reverse)=>{
+  const length=vertical?h:w, across=vertical?w:h;
+  const samples=[];
+  for(let j=Math.round(across*.28);j<across*.72;j+=Math.max(1,Math.round(across/200))){
+   if(j>across*.43&&j<across*.57)continue;
+   samples.push(j);
+  }
+  for(let d=0;d<Math.round(length*.12);d++){
+   const a=reverse?length-1-d:d;
+   let hits=0;
+   for(const b of samples){const i=4*(vertical?a*w+b:b*w+a);if(railGold(p,i))hits++;}
+   if(hits>=samples.length*.36)return d;
+  }
+  return null;
+ };
+ return {top:scan(true,false),bottom:scan(true,true),left:scan(false,false),right:scan(false,true)};
+}
+// Keep the lower ornamental block at original pixel size. Only a narrow
+// straight parchment/side-rail strip is lengthened, below the last divider.
+export function bottomRailPlan(p,w,h,before,reference){
+ if(before.bottom===null||reference.bottom===null)return null;
+ let delta=Math.min(Math.round(h*.045),Math.max(0,before.bottom-reference.bottom));
+ if(delta<3)return null;
+ const rail=h-1-before.bottom;
+ // Keep the central diamond's entire tip within the trim.
+ let tip=rail;
+ for(let y=rail;y<Math.min(h,rail+Math.round(h*.035));y++){
+  let n=0;for(let x=Math.round(w*.465);x<w*.535;x++)if(railGold(p,4*(y*w+x)))n++;
+  if(n>=3)tip=y;
+ }
+ delta=Math.min(delta,Math.max(0,h-2-tip));
+ if(delta<3)return null;
+ const band=Math.max(6,Math.round(h*.009));
+ let best=null;
+ // Prefer a late blank band so all internal dividers and content stay put.
+ for(let y=Math.round(rail-h*.095);y+band<=rail-h*.058;y+=2){
+  if(y<0)continue;
+  let score=0;
+  for(let yy=y;yy<y+band;yy++){
+   for(let x=Math.round(w*.16);x<w*.84;x+=4){
+    const i=4*(yy*w+x);
+    // Penalize gold strokes, red gems, dark rules and non-parchment.
+    if(railGold(p,i)||p[i]<165||p[i+1]<120||p[i+2]<85)score+=1;
+   }
+   for(const x of [Math.round(w*.03),Math.round(w*.97)]){
+    const i=4*(yy*w+x);
+    if(p[i]>110&&p[i+1]<p[i]*.40)score+=10;
+   }
+  }
+  score+=(rail-y)/h;
+  if(!best||score<best.score)best={y,band,delta,score};
+ }
+ // No suitable blank band: leave the approved master unchanged.
+ if(!best||best.score>band*w*.025)return null;
+ return {y:best.y,band,delta};
+}
+function extendBottomMaster(master,plan){
+ const w=master.width,h=master.height,{y,band,delta}=plan;
+ const output=document.createElement("canvas");output.width=w;output.height=h;
+ const ctx=output.getContext("2d");
+ ctx.drawImage(master,0,0);
+ ctx.drawImage(master,0,y,w,band,0,y,w,band+delta);
+ const start=y+band,remaining=h-start-delta;
+ ctx.drawImage(master,0,start,w,remaining,0,start+delta,w,remaining);
+ return output;
+}
+
 export function frontMaskSource(type) {
  const dedicated={spell:"master-incantesimo-5x7-v1.webp",feature:"master-privilegi-5x7.png",race:"master-razze-5x7.png"};
  const asset=dedicated[type]||CATEGORY_MASTERS[type]?.master;
@@ -137,9 +210,25 @@ export function getFrontExteriorMask(type) {
      frontMasterSlices(spec.type).forEach(s=>ctx.drawImage(image,0,s.sourceY*ih,iw,s.sourceH*ih,0,s.y*H,W,s.h*H));
    }
    const rgba=ctx.getImageData(0,0,W,H);
+   const before=measureFrameRails(rgba.data,W,H);
+   let corrected=master, reference=before, plan=null;
+   if(spec.type!=="monster"){
+     const monster=await getFrontExteriorMask("monster");
+     reference=monster?.frameMeasurements?.after||before;
+   }
+   // Legacy Monster/Class already move their lower rail via frontMasterSlices.
+   // Dedicated masters get a calibrated correction, without modifying assets.
+   if(!spec.legacy){
+     plan=bottomRailPlan(rgba.data,W,H,before,reference);
+     if(plan)corrected=extendBottomMaster(master,plan);
+   }
+   const correctedPixels=corrected===master?rgba:corrected.getContext("2d").getImageData(0,0,W,H);
+   const after=measureFrameRails(correctedPixels.data,W,H);
    const mask=document.createElement("canvas");mask.width=W;mask.height=H;
    const out=mask.getContext("2d"),data=out.createImageData(W,H);
-   data.data.set(exteriorAlpha(rgba.data,W,H));out.putImageData(data,0,0);
+   data.data.set(exteriorAlpha(correctedPixels.data,W,H));out.putImageData(data,0,0);
+   mask.frameBackground=plan?corrected.toDataURL("image/png"):null;
+   mask.frameMeasurements={before,after,reference,delta:plan?.delta||0,width:W,height:H};
    return mask;
  })();
  cache.set(key,pending);
@@ -155,5 +244,14 @@ export async function colorFrontExterior(canvas,type) {
  ctx.save();ctx.setTransform(1,0,0,1,0,0);
  ctx.globalCompositeOperation="source-over";
  ctx.drawImage(mask,0,0,canvas.width,canvas.height);ctx.restore();
+ canvas.frameMeasurements=mask.frameMeasurements;
  return canvas;
+}
+
+// Dedicated DOM export clones are detached from the editor's CSS variables.
+export async function prepareFrontBackground(clone,type){
+ const probe=document.createElement("canvas").getContext("2d");
+ if(!probe||typeof probe.getImageData!=="function")return;
+ const mask=await getFrontExteriorMask(type);
+ if(mask?.frameBackground)clone.style.backgroundImage='url("'+mask.frameBackground+'")';
 }
