@@ -1,0 +1,37 @@
+name: Import original monster emblems
+on:
+  push:
+    branches: ["feat/print-press-pdf-20261124"]
+    paths: ["TomoForge-simboli-mostri-13.zip"]
+permissions:
+  contents: write
+jobs:
+  import-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate and import only the 13 original PNG files
+        run: |
+          python3 - <<'PY'
+          import pathlib, struct, zipfile
+          archive=pathlib.Path("TomoForge-simboli-mostri-13.zip")
+          targets=["frontend/public/emblemi/mostri/mst-01-aberrazione.png","frontend/public/emblemi/mostri/mst-02-bestia.png","frontend/public/emblemi/mostri/mst-03-celestiale.png","frontend/public/emblemi/mostri/mst-04-costrutto.png","frontend/public/emblemi/mostri/mst-06-elementale.png","frontend/public/emblemi/mostri/mst-07-folletto.png","frontend/public/emblemi/mostri/mst-08-gigante.png","frontend/public/emblemi/mostri/mst-09-immondo.png","frontend/public/emblemi/mostri/mst-10-melma.png","frontend/public/emblemi/mostri/mst-11-mostruosita.png","frontend/public/emblemi/mostri/mst-12-non-morto.png","frontend/public/emblemi/mostri/mst-13-pianta.png","frontend/public/emblemi/mostri/mst-14-umanoide.png"]
+          with zipfile.ZipFile(archive) as z:
+              for path in targets:
+                  info=z.getinfo(path)
+                  assert 0 < info.file_size < 1000000, path
+                  data=z.read(path)
+                  assert data[:8]==b"\x89PNG\r\n\x1a\n", path
+                  assert struct.unpack(">II",data[16:24])==(280,280), path
+                  assert data[25]==6, path
+                  dest=pathlib.Path(path)
+                  dest.parent.mkdir(parents=True,exist_ok=True)
+                  dest.write_bytes(data)
+          archive.unlink()
+          PY
+      - name: Commit assets to the preview branch only
+        run: |
+          git add frontend/public/emblemi/mostri
+          git add -u -- TomoForge-simboli-mostri-13.zip
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "assets: install original HD creature emblems"
+          git push origin HEAD:feat/print-press-pdf-20261124

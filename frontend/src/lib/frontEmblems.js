@@ -40,7 +40,8 @@ export const getFrontEmblem = (card = {}) => {
  if (type === "monster") {
    label = attrs.tipo_creatura || attrs.tipo || attrs.creature_type || "";
    index = keyFor(label, MONSTERS);
-   if (index >= 0) index += CLASSES.length;
+   if (!Number.isInteger(index) || index < 0) return null;
+   index += CLASSES.length;
  } else if (type === "spell") {
    label = attrs.scuola || attrs.school || "";
    index = keyFor(label, SCHOOLS);
@@ -105,6 +106,17 @@ export const getFrontEmblem = (card = {}) => {
      src:"/emblemi/drago-originale-hd-v2.webp", width:160, height:160,
      cell:160, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
    };
+ }
+ // All other creature types use independent original transparent PNGs.
+ // Keep the existing integrated well and export geometry; no tiny atlas tile.
+ if (type === "monster") {
+   const monsterIndex=index-CLASSES.length;
+   const key=MONSTERS[monsterIndex];
+   if (!key) return null;
+   const file=`mst-${String(monsterIndex+1).padStart(2,"0")}-${key.replace(/\s+/g,"-")}.png`;
+   return {sprite:"monster-original",index,col:0,row:0,label,
+     src:"/emblemi/mostri/"+file,width:280,height:280,cell:280,
+     backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  const col = index % 8, row = Math.floor(index / 8);
  return {

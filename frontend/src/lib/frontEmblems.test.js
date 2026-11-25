@@ -84,3 +84,18 @@ describe("approved TomoForge front medal rules",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Sconosciuto"}})).toBeNull();
  });
 });
+
+ it("maps every creature type to an individual HD file, without changing Dragon",()=>{
+  const types=["aberrazione","bestia","celestiale","costrutto","drago","elementale","folletto","gigante","immondo","melma","mostruosita","non morto","pianta","umanoide"], aliases=["aberration","beast","celestial","construct","dragon","elemental","fey","giant","fiend","ooze","monstrosity","undead","plant","humanoid"];
+  types.forEach((name,i)=>{
+    const em=getFrontEmblem({type:"monster",attributes:{tipo_creatura:name}});
+    expect(getFrontEmblem({type:"monster",attributes:{creature_type:aliases[i]}}).src).toBe(em.src);
+    if(i===4){expect(em.src).toBe("/emblemi/drago-originale-hd-v2.webp");return;}
+    expect(em).toMatchObject({sprite:"monster-original",index:13+i,cell:280,width:280,height:280,col:0,row:0});
+    expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".png");
+    const png=readFileSync(resolve(__dirname,"../../public"+em.src));
+    expect(png.readUInt32BE(16)).toBe(280);expect(png.readUInt32BE(20)).toBe(280);
+    expect(png[25]).toBe(6);
+  });
+  expect(getFrontEmblem({type:"monster",attributes:{}})).toBeNull();
+ });
