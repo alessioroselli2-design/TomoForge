@@ -7,6 +7,7 @@ import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib
 
 const SAMPLES=[
  {type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",taglia:"Enorme",allineamento:"Caotico Malvagio",grado_sfida:"17",classe_armatura:"19",punti_ferita:"256",velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}},
+ ...[["Aberrazione","Aboleth"],["Bestia","Lupo"],["Celestiale","Deva"],["Costrutto","Golem di Pietra"],["Elementale","Elementale del Fuoco"],["Folletto","Pixie"],["Gigante","Gigante delle Colline"],["Immondo","Balor"],["Melma","Cubo Gelatinoso"],["Mostruosità","Manticora"],["Non Morto","Scheletro"],["Pianta","Treant"],["Umanoide","Goblin"]].map(([tipo_creatura,name])=>({type:"monster",name,attributes:{tipo_creatura,taglia:"Media",grado_sfida:"1",classe_armatura:"12",punti_ferita:"10"}})),
  {type:"class",name:"Druido",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armature leggere, scudi"}},
  {type:"subclass",name:"Circolo delle Stelle",attributes:{classe:"Druido"}},
  {type:"spell",name:"Palla di Fuoco",attributes:{livello:"3",scuola:"Invocazione",tempo_lancio:"1 azione",gittata:"45 m",danno:"8d6 fuoco"}},
@@ -35,7 +36,7 @@ export default function PrintPressPreview(){
    try{
     const front=await createCardPng(ref.current,card);
     const back=await createCardBackPng(card);
-    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading});
+    if(active)setProof({front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge});
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
@@ -68,7 +69,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 13 · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 14 · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -87,6 +88,7 @@ export default function PrintPressPreview(){
     {proof.frontW===proof.backW&&proof.frontH===proof.backH?" · Misure identiche":" · ATTENZIONE: misure diverse"}
    </p>}
    {proof?.heading&&<p className="mt-2 text-xs" data-testid="export-heading-proof">Titolo rasterizzato: {proof.heading.title} · {proof.heading.subtitle}</p>}
+   {proof?.badge&&<p className="mt-2 text-xs" data-testid="export-badge-proof">Medaglione rasterizzato: {proof.badge.label} {proof.badge.value}</p>}
    {proof?.frame&&<div className="mt-4 text-xs" data-testid="ornamental-frame-measurements">
     <p className="font-semibold">Distanza del fregio originale dal taglio (mm)</p>
     <div className="overflow-x-auto"><table className="mx-auto mt-2 text-left"><thead><tr><th className="p-1">Lato</th><th className="p-1">Prima</th><th className="p-1">Ora</th><th className="p-1">Mostro</th></tr></thead><tbody>

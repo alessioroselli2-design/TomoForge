@@ -122,3 +122,7 @@
  -webkit-line-clamp:5;line-clamp:5;
 }
 .tf-spell-footnote{overflow:hidden;}
+
+.tf-spell-level {top:3.15%;gap:2px;}
+.tf-spell-level strong {font-size:clamp(16px,6.8cqw,25px);line-height:1.08;transform:none;}
+.tf-spell-level span {transform:none;}

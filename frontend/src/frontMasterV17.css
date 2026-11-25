@@ -507,3 +507,6 @@
 
 /* Only dedicated, calibrated master backgrounds; editor content stays in place. */
 .tf-frame-corrected [data-front-category] { background-image:var(--tf-print-master) !important; }
+
+/* Legacy monster GS: remove the former downward text offset. */
+.tf-front-master-v17 .tf-v3-badge small,.tf-front-master-v17 .tf-v3-badge strong {top:0;}

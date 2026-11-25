@@ -11,6 +11,7 @@ import { colorFrontExterior , prepareFrontBackground} from "@/lib/frontExterior"
 import html2canvas from "html2canvas";
 import { setA4PrintPreferences } from "@/lib/printFormats";
 import {captureExportHeading,paintExportHeading} from "@/lib/exportHeading";
+import {captureExportBadge,paintExportBadge} from "@/lib/exportBadge";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
@@ -385,11 +386,13 @@ async function renderApprovedSpell(element, card) {
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
    const canvas=await html2canvas(clone,{
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
    paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
    canvas.artworkDrawn=!!(card?.artwork_path && clone.querySelector(".tf-spell-picture img"));
    return canvas;
  } finally {stage.remove();}
@@ -422,11 +425,13 @@ async function renderApprovedFeature(element, card) {
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
    const canvas=await html2canvas(clone,{
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
    paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
    canvas.artworkDrawn=!!(clone.querySelector(".tf-feature-artwork img"));
    return canvas;
  } finally {stage.remove();}
@@ -448,9 +453,11 @@ async function renderApprovedRace(element,card){
    await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
   const canvas=await html2canvas(clone,{scale,width,height,backgroundColor:null,
     useCORS:true,logging:false,scrollX:0,scrollY:0});
   paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
    canvas.artworkDrawn=false;
   return canvas;
  }finally{stage.remove();}
@@ -472,10 +479,12 @@ async function renderApprovedCategory(element){
    await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
   const capture=await html2canvas(clone,{scale:width*scale/sourceWidth,width:sourceWidth,height:sourceHeight,backgroundColor:null,useCORS:true,logging:false,scrollX:0,scrollY:0});
   const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
   canvas.getContext("2d").drawImage(capture,0,0,canvas.width,canvas.height);
   paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
    canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");
   return canvas;
  }finally{stage.remove();}

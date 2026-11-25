@@ -79,3 +79,6 @@
  font:500 9px/1.12 "Spectral",Georgia,serif;
  text-align:center;white-space:normal;overflow-wrap:break-word;align-content:center;
 }
+
+[data-front-category="race"] .tf-race-size {top:2.50%;gap:2px;}
+[data-front-category="race"] .tf-race-size-value {width:76%;max-height:none;height:38%;display:grid;place-items:center;line-height:1.12;}

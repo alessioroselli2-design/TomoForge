@@ -30,3 +30,7 @@
 .tf-category-master .tf-category-name,.tf-category-master .tf-category-subtitle,.tf-category-master .tf-category-badge-value,.tf-category-master .tf-category-stat-value,.tf-category-master .tf-category-body-text,.tf-category-master .tf-category-footer-text {overflow:hidden;overflow-wrap:anywhere;}
 
 .tf-category-master .tf-category-name,.tf-category-master .tf-category-subtitle {overflow-wrap:normal;word-break:normal;letter-spacing:normal;}
+
+/* Keep the entire badge inside the original red well. */
+.tf-category-master .tf-category-badge {top:2.50%;gap:1px;}
+.tf-category-master .tf-category-badge-value {width:76%;height:52%;line-height:1.1;display:grid;place-items:center;}

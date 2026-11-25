@@ -186,3 +186,6 @@
  overflow-wrap:break-word;
  text-align:center;
 }
+
+[data-front-category="feature"] .tf-feature-level {top:1.65%;gap:2px;}
+[data-front-category="feature"] .tf-feature-level strong {font-size:clamp(16px,6.8cqw,25px);line-height:1.08;}
