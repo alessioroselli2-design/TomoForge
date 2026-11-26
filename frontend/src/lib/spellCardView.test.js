@@ -3,7 +3,7 @@ import {readFileSync} from 'fs';
 import {resolve} from 'path';
 
 describe('new independent Incantesimo master — source-data presentation',()=>{
-  it('maps eight recreated circular school medals at the Class native 320px size',()=>{
+  it('maps eight recreated circular school medals at the normalized 640px size',()=>{
     expect(SPELL_SCHOOLS).toHaveLength(8);
     SPELL_SCHOOLS.forEach((name,i)=>{
       const path=spellSchoolAsset(name);
@@ -11,9 +11,9 @@ describe('new independent Incantesimo master — source-data presentation',()=>{
       const file=readFileSync(resolve(__dirname,`../../public${path}`));
       expect(file.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
       // PNG ottimizzati: i byte non sono una misura della risoluzione.
-      // Stessa tela quadrata 320x320 dei simboli delle Classi.
-      expect(file.readUInt32BE(16)).toBe(320);
-      expect(file.readUInt32BE(20)).toBe(320);
+      // Tela quadrata 640x640 già normalizzata nella PR #704.
+      expect(file.readUInt32BE(16)).toBe(640);
+      expect(file.readUInt32BE(20)).toBe(640);
     });
   });
   it('uses Invocazione for fireball, school-only subtitle, damage and a half-save',()=>{

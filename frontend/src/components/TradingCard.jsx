@@ -93,7 +93,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
-       {!hasMonsterEmblem && <div className="tf-v3-medallion" data-testid="front-emblem"
+       {data.type!=="monster" && <div className="tf-v3-medallion" data-testid="front-emblem"
          data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
          {symbol?.sprite==="class-original"
             ? <img className="tf-class-original-emblem" src={symbol.src} alt={symbol.label||""} draggable={false}/>

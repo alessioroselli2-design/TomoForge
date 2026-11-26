@@ -269,6 +269,25 @@ describe("new front integration",()=>{
  });
 });
 
+describe("Monster full PNG emblem selection",()=>{
+  it("switches all fourteen creature types and shows no fallback for unknown types",async()=>{
+    const container=document.createElement("div");document.body.appendChild(container);
+    const root=createRoot(container);
+    const types=["aberrazione","bestia","celestiale","costrutto","drago","elementale","folletto","gigante","immondo","melma","mostruosita","non morto","pianta","umanoide"];
+    try {
+      for (const [index,type] of types.entries()) {
+        await act(async()=>root.render(<CardFront card={{type:"monster",name:"Mostro",attributes:{tipo_creatura:type}}}/>));
+        const emblem=container.querySelector('[data-testid="front-emblem"]');
+        expect(emblem.getAttribute("src")).toBe("/emblemi/mostri/mst-"+String(index+1).padStart(2,"0")+"-"+type.replace(/ /g,"-")+".png");
+        expect(emblem.style.width).toBe("26.5%");
+        expect(container.querySelector(".tf-v3-sprite, .tf-v3-medallion")).toBeNull();
+      }
+      await act(async()=>root.render(<CardFront card={{type:"monster",name:"Mostro",attributes:{tipo_creatura:"sconosciuto"}}}/>));
+      expect(container.querySelector('[data-testid="front-emblem"]')).toBeNull();
+    } finally {await act(async()=>root.unmount());container.remove();}
+  });
+});
+
 describe("v10: approved dragon high resolution and readable senses",()=>{
   it("uses an original-size separate Dragon medal and preserves all senses",async()=>{
     const container=document.createElement("div");document.body.appendChild(container);
