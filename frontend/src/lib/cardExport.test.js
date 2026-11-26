@@ -176,14 +176,17 @@ describe("card export renderers", () => {
         velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}};
     const front=await renderCardCanvas(el,card);
     const drawings=front.operations.filter(op=>op.name==="drawImage");
-    const embedded=canvases.slice(1).flatMap(c=>c.operations.filter(op=>op.name==="drawImage"));
     expect(drawings[0].args[0].src).toBe("/card-art/front-master-v17.webp");
     expect(drawings.map(op=>op.args[0]?.src)).not.toContain("/card-art/front-detail-repair-v8.webp");
     expect(written(front)).toContain("Drago Rosso Adulto");
-    const dragonDraw=embedded.find(op=>op.args[0]?.src==="/emblemi/drago-originale-hd-v2.webp");
-    expect(dragonDraw).toBeDefined();
-    const dragonOnMaster=drawings.find(op=>op.args[0]?.operations?.some(op=>op.args?.[0]?.src==="/emblemi/drago-originale-hd-v2.webp"));
-    expect(dragonOnMaster.args.slice(-2)).toEqual([56,56]);
+    const dragonDraw=drawings.at(-1).args;
+    expect(dragonDraw[0].src).toBe("/emblemi/mostri/mst-05-drago.png");
+    expect(dragonDraw).toHaveLength(5); // entire image, destination rectangle only
+    const [,left,top,width,height]=dragonDraw;
+    expect(width).toBeCloseTo(340*.265);
+    expect(height).toBeCloseTo(width);
+    expect(left+width/2).toBeCloseTo(54);
+    expect(top+height/2).toBeCloseTo(476*.09);
 
     const statDraws=drawings.filter(op=>/stat-(ca|pf)-clean-v24\.svg$/.test(op.args[0]?.src||""));
     expect(statDraws).toHaveLength(2);
@@ -193,10 +196,6 @@ describe("card export renderers", () => {
     expect(statDraws[0].args.at(-3)).toBeCloseTo(195+19);
     expect(statDraws[1].args.at(-3)).toBeCloseTo(195+19);
     expect(statDraws[1].args.at(-4)-statDraws[0].args.at(-4)).toBeGreaterThan(90);
-    expect(embedded.map(op=>op.args[0]?.src).filter(Boolean))
-      .toEqual(expect.arrayContaining(["/emblemi/drago-originale-hd-v2.webp"]));
-    expect(canvases.slice(1).some(c=>c.operations.some(op=>op.name==="fillRect")))
-      .toBe(true);
     expect(written(front)).toContain("17");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);

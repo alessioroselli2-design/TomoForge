@@ -2,6 +2,7 @@ import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
 import { categoryFrontLayout, frontBackground } from "@/lib/frontCategoryLayouts";
+import { MONSTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -17,7 +18,13 @@ import { RaceCardFront, RaceCardErrorBoundary } from "@/components/RaceCardFront
 import { CategoryCardFront } from "@/components/CategoryCardFront";
 import { isCategoryMaster } from "@/lib/categoryCardView";
 
-const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
+const monsterEmblemStyle = {
+ left: `${MONSTER_EMBLEM_BOUNDS.left * 100}%`,
+ top: `${MONSTER_EMBLEM_BOUNDS.top * 100}%`,
+ width: `${MONSTER_EMBLEM_BOUNDS.width * 100}%`,
+};
+
+const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl, monsterFrame }, ref) => {
  const data=buildFrontBlueprint(card);
  const layout=categoryFrontLayout(data.type);
  const [artworkError,setArtworkError]=React.useState(false);
@@ -34,6 +41,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    }
  },[hasArtwork]);
  const symbol=data.emblem;
+ const hasMonsterEmblem = symbol?.sprite === "monster-original";
  const detailsLink=publicDescriptionUrl(card);
  const descriptionRef=React.useRef(null);
  const [printedClassDescription,setPrintedClassDescription]=React.useState(data.description);
@@ -85,7 +93,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
-       <div className="tf-v3-medallion" data-testid="front-emblem"
+       {!hasMonsterEmblem && <div className="tf-v3-medallion" data-testid="front-emblem"
          data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
          {symbol?.sprite==="class-original"
             ? <img className="tf-class-original-emblem" src={symbol.src} alt={symbol.label||""} draggable={false}/>
@@ -97,7 +105,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
                 <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
                   backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
               </> : <span className="tf-v3-fallback">✦</span>}
-       </div>
+       </div>}
        <div className="tf-v3-titles">
          <h3 title={data.name}>{data.name}</h3>
          <p>{data.subtitle}</p>
@@ -167,7 +175,10 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
        </a>}
      </section>
    </div>
-
+   {monsterFrame}
+   {hasMonsterEmblem && <img className="tf-monster-original-emblem" data-testid="front-emblem"
+     data-emblem-sprite={symbol.sprite} src={symbol.src} alt={symbol.label} title={symbol.label}
+     style={monsterEmblemStyle} draggable={false}/>}
  </div>;
 });
 LegacyCardFront.displayName="LegacyCardFront";
@@ -198,10 +209,11 @@ export const CardFront=React.forwardRef((props,ref)=>{
   }).catch(()=>{});
   return()=>{alive=false;};
  },[type,props.exportMode]);
+ const frame = mask && <img src={mask.src} alt="" aria-hidden="true" draggable={false}
+   style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>;
  return <div className={"relative w-full h-full overflow-hidden"+(mask?.background?" tf-frame-corrected":"")} style={mask?.background?{"--tf-print-master":`url("${mask.background}")`}:undefined} data-front-edge="expanded-original-rail">
-  <ApprovedCardFront {...props} ref={ref}/>
-  {mask&&<img src={mask.src} alt="" aria-hidden="true" draggable={false}
-    style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>}
+  <ApprovedCardFront {...props} ref={ref} monsterFrame={type==="monster" ? frame : undefined}/>
+  {type!=="monster" && frame}
  </div>;
 });
 CardFront.displayName="CardFront";

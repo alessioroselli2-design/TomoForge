@@ -275,10 +275,12 @@ describe("v10: approved dragon high resolution and readable senses",()=>{
     const root=createRoot(container);
     await act(async()=>root.render(<CardFront card={{type:"monster",name:"Drago Rosso Adulto",
       attributes:{tipo_creatura:"Drago",grado_sfida:"17",sensi:"Percezione passiva 23, scurovisione 36 m, vista cieca 18 m"}}}/>));
-    const emblem=container.querySelector(".tf-v3-sprite");
-    expect(emblem.style.backgroundImage).toContain("drago-originale-hd-v2.webp");
-    expect(emblem.style.backgroundSize).toBe("100% 100%");
-    expect(container.querySelector('[data-testid="front-emblem"]').dataset.emblemSprite).toBe("drago-hd");
+    const emblem=container.querySelector('[data-testid="front-emblem"]');
+    expect(emblem.tagName).toBe("IMG");
+    expect(emblem.getAttribute("src")).toBe("/emblemi/mostri/mst-05-drago.png");
+    expect(emblem.dataset.emblemSprite).toBe("monster-original");
+    expect(emblem.style.width).toBe("26.5%");
+    expect(container.querySelector(".tf-v3-sprite, .tf-v3-medallion")).toBeNull();
     expect(container.querySelector("[data-front-layout]")?.className).toContain("tf-v6-long-title");
     expect(container.textContent).toContain("vista cieca 18 m");
     await act(async()=>root.unmount());container.remove();

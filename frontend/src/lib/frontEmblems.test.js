@@ -4,7 +4,7 @@ import {resolve} from "path";
 describe("approved TomoForge front medal rules",()=>{
  it("uses unique Beholder and Dragon monster medals",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Aberrazione"}}).index).toBe(13);
-  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/drago-originale-hd-v2.webp", cell:640});
+  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/mostri/mst-05-drago.png", cell:640});
  });
  it("uses school-specific medals rather than a generic magic icon",()=>{
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Invocazione"}}).index).toBe(32);
@@ -85,22 +85,18 @@ describe("approved TomoForge front medal rules",()=>{
  });
 });
 
- it("maps every creature type to an individual 640px file, with unchanged Dragon framing",()=>{
+ it("maps all fourteen creature types and their English aliases to full 640px RGBA PNGs",()=>{
   const types=["aberrazione","bestia","celestiale","costrutto","drago","elementale","folletto","gigante","immondo","melma","mostruosita","non morto","pianta","umanoide"], aliases=["aberration","beast","celestial","construct","dragon","elemental","fey","giant","fiend","ooze","monstrosity","undead","plant","humanoid"];
   types.forEach((name,i)=>{
     const em=getFrontEmblem({type:"monster",attributes:{tipo_creatura:name}});
     expect(getFrontEmblem({type:"monster",attributes:{creature_type:aliases[i]}}).src).toBe(em.src);
-    if(i===4){expect(em.src).toBe("/emblemi/drago-originale-hd-v2.webp");return;}
     expect(em).toMatchObject({sprite:"monster-original",index:13+i,cell:640,width:640,height:640,col:0,row:0});
-    expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".webp");
-    const webp=readFileSync(resolve(__dirname,"../../public"+em.src));
-    expect(webp.toString("ascii",0,4)).toBe("RIFF");
-    expect(webp.toString("ascii",8,16)).toBe("WEBPVP8L");
-    expect(webp[20]).toBe(0x2f);
-    const packed=webp.readUInt32LE(21);
-    expect((packed>>>28)&1).toBe(1);
-    expect((packed&0x3fff)+1).toBe(640);
-    expect(((packed>>>14)&0x3fff)+1).toBe(640);
+    expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".png");
+    const png=readFileSync(resolve(__dirname,"../../public"+em.src));
+    expect(png.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect(png.readUInt32BE(16)).toBe(640);
+    expect(png.readUInt32BE(20)).toBe(640);
+    expect(png[25]).toBe(6); // truecolour with alpha
   });
   expect(getFrontEmblem({type:"monster",attributes:{}})).toBeNull();
  });

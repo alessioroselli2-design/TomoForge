@@ -41,7 +41,11 @@ export const getFrontEmblem = (card = {}) => {
    label = attrs.tipo_creatura || attrs.tipo || attrs.creature_type || "";
    index = keyFor(label, MONSTERS);
    if (!Number.isInteger(index) || index < 0) return null;
-   index += CLASSES.length;
+   const slug = MONSTERS[index].replace(/\s+/g, "-");
+   const number = String(index + 1).padStart(2, "0");
+   return {sprite:"monster-original",index:index+CLASSES.length,col:0,row:0,label,
+     src:`/emblemi/mostri/mst-${number}-${slug}.png`,width:640,height:640,cell:640,
+     backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  } else if (type === "spell") {
    label = attrs.scuola || attrs.school || "";
    index = keyFor(label, SCHOOLS);
@@ -96,26 +100,6 @@ export const getFrontEmblem = (card = {}) => {
    const file = `cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}.png`;
    return {sprite:"class-original",index,col:0,row:0,label,
      src:`/emblemi/classi/${file}`,width:640,height:640,cell:640,
-     backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
- }
- // The approved Dragon artwork is resampled from its existing 160px file to 640px instead of the
- // 44px preview atlas. The source detail remains limited; no recrop or AI substitution.
- if (type === "monster" && index === CLASSES.length + 4) {
-   return {
-     sprite:"drago-hd", index:0, col:0, row:0, label,
-     src:"/emblemi/drago-originale-hd-v2.webp", width:640, height:640,
-     cell:640, backgroundPosition:"0% 0%", backgroundSize:"100% 100%",
-   };
- }
- // All other creature types use independent transparent WebP files resampled from the approved 280px sources (640px, lossless).
- // Keep the existing integrated well and export geometry; no tiny atlas tile.
- if (type === "monster") {
-   const monsterIndex=index-CLASSES.length;
-   const key=MONSTERS[monsterIndex];
-   if (!key) return null;
-   const file=`mst-${String(monsterIndex+1).padStart(2,"0")}-${key.replace(/\s+/g,"-")}.webp`;
-   return {sprite:"monster-original",index,col:0,row:0,label,
-     src:"/emblemi/mostri/"+file,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  const col = index % 8, row = Math.floor(index / 8);

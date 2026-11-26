@@ -2,7 +2,8 @@ import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
-import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
+import { FRONT_MASTER_URL, MASTER_REGIONS, MONSTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
+import { getFrontEmblem } from "@/lib/frontEmblems";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
@@ -148,7 +149,7 @@ async function renderApprovedMaster(element,card) {
  } catch {}
  // The card image, header badge and stat icons all use the same engraved
  // master coordinates as the CSS preview; never offset the source artwork.
- const icon=await loadFrontEmblem(data.emblem);
+ const icon=data.type==="monster" ? null : await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    if((data.type==="class"&&data.emblem.sprite==="class-original")||
       (data.type==="spell"&&data.emblem.sprite==="school-original")){
@@ -157,11 +158,10 @@ async function renderApprovedMaster(element,card) {
      ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);
    } else {
      const s=data.emblem,m=MASTER_REGIONS.emblem;
-     const dragon=s.sprite==="drago-hd";
      drawIntegratedMedallion(ctx,icon,
-       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
+       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:1.2},
        {x:m.x,y:m.y,size:m.r*2},
-       dragon?.37:.35,dragon?.48:.48);
+       .35,.48);
    }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
@@ -512,7 +512,20 @@ async function renderRawCardCanvas(element,card){
 }
 
 export async function renderCardCanvas(element,card){
- return colorFrontExterior(await renderRawCardCanvas(element,card),card?.type);
+ const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card),card?.type);
+ if (card?.type === "monster") {
+   const emblem = getFrontEmblem(card);
+   if (emblem) {
+     const image = await loadFrontEmblem(emblem);
+     if (!image) throw new Error(`Simbolo Mostro non disponibile: ${emblem.label}`);
+     // The master context is already scaled for print. Paint above the exterior rail.
+     const {width, height} = CARD_CANVAS_SIZE;
+     const bounds = MONSTER_EMBLEM_BOUNDS;
+     const size = width * bounds.width;
+     canvas.getContext("2d").drawImage(image, width * bounds.left, height * bounds.top, size, size);
+   }
+ }
+ return canvas;
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back

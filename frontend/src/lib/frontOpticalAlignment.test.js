@@ -8,11 +8,7 @@ const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
 const component=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
 
 describe("TomoForge approved ornate master",()=>{
-  it("preserves the signed-off dragon medallion and title parchment",()=>{
-    expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
-    expect(finalMaster).toContain("transform:scale(1.28)!important");
-    expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:1.2');
+  it("preserves the title parchment and the original class emblem",()=>{
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem');
