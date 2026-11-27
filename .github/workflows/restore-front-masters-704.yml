@@ -1,0 +1,48 @@
+name: Restore approved front masters for print preview
+on:
+  push:
+    branches: ["feat/print-press-pdf-20261124"]
+    paths: [".github/workflows/restore-front-masters-704.yml"]
+permissions:
+  contents: write
+jobs:
+  restore:
+    if: github.repository == 'alessioroselli2-design/TomoForge' && github.ref == 'refs/heads/feat/print-press-pdf-20261124'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/print-press-pdf-20261124
+      - name: Restore original art without moving any element
+        run: |
+          python3 -m pip install --quiet Pillow==11.3.0
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageFilter, ImageChops, ImageStat
+          root = Path('frontend/public/card-art')
+          output = root / 'front-restored-v18'
+          output.mkdir(exist_ok=True)
+          names = ['front-master-v17.webp', 'master-classe-5x7-senza-muscolo-e-anello-20261118.jpg', 'master-incantesimo-5x7-v1.webp', 'master-privilegi-5x7.png', 'master-razze-5x7.png', 'master-talento-5x7.png', 'master-oggetto-magico-5x7.png', 'master-arma-5x7.png', 'master-armatura-5x7.png']
+          for name in names:
+              with Image.open(root / name) as im:
+                  original = im.convert('RGB')
+                  assert abs(original.width / original.height - 5 / 7) < .005
+                  restored = original.filter(ImageFilter.UnsharpMask(radius=.85, percent=85, threshold=4))
+                  restored = restored.resize((2040, 2856), Image.Resampling.LANCZOS)
+                  restored = restored.filter(ImageFilter.UnsharpMask(radius=1.15, percent=38, threshold=4))
+                  target = output / (Path(name).stem + '.webp')
+                  restored.save(target, 'WEBP', quality=96, method=4)
+                  with Image.open(target) as result:
+                      assert result.size == (2040, 2856)
+                      diff = ImageChops.difference(original, result.convert('RGB').resize(original.size, Image.Resampling.LANCZOS))
+                      assert max(ImageStat.Stat(diff).mean) < 6, name
+                  print(name, original.size, '->', restored.size, target.stat().st_size)
+          assert len(list(output.glob('*.webp'))) == 9
+          PY
+      - name: Commit only nine restored masters and remove one-time workflow
+        run: |
+          git add frontend/public/card-art/front-restored-v18/
+          git rm .github/workflows/restore-front-masters-704.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Restore nine approved front master images at 2040x2856"
+          git push origin HEAD:feat/print-press-pdf-20261124
