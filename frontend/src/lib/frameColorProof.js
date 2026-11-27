@@ -37,18 +37,29 @@ function bronzeTrim(original) {
   return trim;
 }
 
-export async function getArmorProofLayers() {
+export const METAL_PROOF_TYPES=Object.freeze(["monster","class","subclass","character","spell","feature","race","feat","item","weapon","armor"]);
+export function metalProofUrl(type){
+ if(!METAL_PROOF_TYPES.includes(type))throw new Error("Categoria di prova non supportata");
+ if(type==="armor")return ARMOR_METAL_LAYER;
+ // frontMaskSource is the authoritative master selection, including aliases.
+ const name=restoredFrontMaster(frontMaskSource(type).src).split("/").pop();
+ return "/card-art/proofs/metal-v26/"+name;
+}
+export async function getMetalProofLayers(type) {
   const [master, metal, exterior] = await Promise.all([
-    loadMaster(restoredFrontMaster(frontMaskSource("armor").src)),
-    loadMaster(ARMOR_METAL_LAYER),
-    getFrontExteriorMask("armor"),
+    loadMaster(restoredFrontMaster(frontMaskSource(type).src)),
+    loadMaster(metalProofUrl(type)),
+    getFrontExteriorMask(type),
   ]);
   if (!exterior || master.naturalWidth!==2040 || master.naturalHeight!==2856 ||
       metal.naturalWidth!==master.naturalWidth || metal.naturalHeight!==master.naturalHeight) {
-    throw new Error("Master e maschera della Cotta di Maglia incompatibili");
+    throw new Error("Master e maschera della categoria incompatibili");
   }
   return {
+    type,
     background: prepareNativeMaster(master, exterior.bottomPlan, metal),
     trim: bronzeTrim(exterior),
   };
 }
+
+export const getArmorProofLayers=()=>getMetalProofLayers("armor");

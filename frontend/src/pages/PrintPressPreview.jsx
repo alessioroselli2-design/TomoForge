@@ -4,7 +4,7 @@ import { CardFront } from "@/components/TradingCard";
 import { getCornerPreviewRadius } from "@/lib/pressGeometry";
 import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib/cardExport";
-import { getArmorProofLayers } from "@/lib/frameColorProof";
+import { getMetalProofLayers } from "@/lib/frameColorProof";
 
 const SAMPLES=[
  {type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",taglia:"Enorme",allineamento:"Caotico Malvagio",grado_sfida:"17",classe_armatura:"19",punti_ferita:"256",velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}},
@@ -73,9 +73,9 @@ export default function PrintPressPreview(){
     const back=await createCardBackPng(card);
     if(!active)return;
     const original={front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge};
-    if(card.name==="Cotta di Maglia"){
+    {
      try{
-      const layers=await getArmorProofLayers();
+      const layers=await getMetalProofLayers(card.type);
       if(!active)return;
       const variant=await createCardPng(ref.current,card,layers);
       if(active)setProof({...original,layers,matched:variant.toDataURL("image/png")});
@@ -85,7 +85,7 @@ export default function PrintPressPreview(){
        setFeedback("Disponibile il fronte originale. Errore nella prova brunita: "+error.message);
       }
      }
-    }else setProof(original);
+    }
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
@@ -124,8 +124,8 @@ export default function PrintPressPreview(){
  }
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-6xl mx-auto">
-   <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-sm">Tocca una carta per ingrandirla e controllare i dettagli.</p>
+   <h1 className="font-display text-2xl">TomoForge · Collaudo stampa · revisione 26</h1>
+   <p className="my-3 text-sm">Confronto oro brunito su tutte le categorie. Tocca una carta per ingrandirla e controllare i dettagli. Editor e produzione invariati.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setProof(null);setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}

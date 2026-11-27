@@ -123,12 +123,12 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
-async function renderApprovedMaster(element,card) {
+async function renderApprovedMaster(element,card,proofMaster=null) {
  const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- const master=new Image();
- await new Promise((resolve,reject)=>{
+ const master=proofMaster||new Image();
+ if(!proofMaster)await new Promise((resolve,reject)=>{
    master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
    master.src=restoredFrontMaster(categoryFrontLayout(data.type).master||FRONT_MASTER_URL);
    if(master.complete&&master.naturalWidth>0)resolve();
@@ -136,7 +136,7 @@ async function renderApprovedMaster(element,card) {
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
  ctx.drawImage(master,0,0,width,height);
  // Stretch ONLY a blank master strip, not the rendered card or its contents.
- const mw=master.naturalWidth||width,mh=master.naturalHeight||mw*7/5;
+ const mw=master.naturalWidth||master.width||width,mh=master.naturalHeight||master.height||mw*7/5;
  frontMasterSlices(data.type).forEach(s=>ctx.drawImage(master,0,s.sourceY*mh,mw,s.sourceH*mh,0,s.y*height,width,s.h*height));
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
@@ -361,7 +361,7 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
 // Take the approved Spell DOM as the source of truth, not the old v17 raster.
 // Clone into a fixed 5:7 box so exports work even when the source is offscreen.
 // All other categories stay on their existing dedicated canvas renderer.
-async function renderApprovedSpell(element, card) {
+async function renderApprovedSpell(element, card,proofBackground=null) {
  const source=element.matches?.('[data-front-category="spell"]')
    ? element : element.querySelector?.('[data-front-category="spell"]');
  if(!source)throw new Error("Anteprima Incantesimo non disponibile");
@@ -385,7 +385,8 @@ async function renderApprovedSpell(element, card) {
  stage.appendChild(clone);
  document.body.appendChild(stage);
  try {
-   const background=await prepareFrontBackground(clone,"spell");
+   const background=proofBackground||await prepareFrontBackground(clone,"spell");
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -405,7 +406,7 @@ async function renderApprovedSpell(element, card) {
 }
 // Privilegi use their own approved DOM composition. Capture the real card
 // for PNG, single PDF, A4 and duplex, exactly as for Incantesimi.
-async function renderApprovedFeature(element, card) {
+async function renderApprovedFeature(element, card,proofBackground=null) {
  const source=element.matches?.('[data-front-category="feature"]')
    ? element : element.querySelector?.('[data-front-category="feature"]');
  if(!source)throw new Error("Anteprima Privilegio di classe non disponibile");
@@ -427,7 +428,8 @@ async function renderApprovedFeature(element, card) {
  });
  stage.appendChild(clone);document.body.appendChild(stage);
  try {
-   const background=await prepareFrontBackground(clone,"feature");
+   const background=proofBackground||await prepareFrontBackground(clone,"feature");
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -444,7 +446,7 @@ async function renderApprovedFeature(element, card) {
  } finally {stage.remove();}
 }
 // Race uses the actual same DOM layout for preview, PNG, PDF and A4.
-async function renderApprovedRace(element,card){
+async function renderApprovedRace(element,card,proofBackground=null){
  const source=element.matches?.('[data-front-category="race"]')
   ? element : element.querySelector?.('[data-front-category="race"]');
  if(!source)throw new Error("Anteprima Razza non disponibile");
@@ -456,7 +458,8 @@ async function renderApprovedRace(element,card){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  const background=await prepareFrontBackground(clone,"race");
+  const background=proofBackground||await prepareFrontBackground(clone,"race");
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
    await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -512,21 +515,21 @@ async function renderRawCardCanvas(element,card,frontLayers){
  // Every live Spell card is rendered from the approved DOM through html2canvas.
  if(card?.type==="spell" && (element.matches?.('[data-front-category="spell"]') ||
    element.querySelector?.('[data-front-category="spell"]')))
-   return renderApprovedSpell(element,card);
+   return renderApprovedSpell(element,card,frontLayers?.background);
  if(card?.type==="feature" && (element.matches?.('[data-front-category="feature"]') ||
    element.querySelector?.('[data-front-category="feature"]')))
-   return renderApprovedFeature(element,card);
+   return renderApprovedFeature(element,card,frontLayers?.background);
  if(card?.type==="race" && (element.matches?.('[data-front-category="race"]') ||
    element.querySelector?.('[data-front-category="race"]')))
-   return renderApprovedRace(element,card);
+   return renderApprovedRace(element,card,frontLayers?.background);
  if(["feat","item","weapon","armor"].includes(card?.type) &&
    (element.matches?.('[data-category-master="approved"]')||element.querySelector?.('[data-category-master="approved"]')))
    return renderApprovedCategory(element,frontLayers?.background);
- return renderApprovedMaster(element,card);
+ return renderApprovedMaster(element,card,frontLayers?.background);
 }
 
 export async function renderCardCanvas(element,card,frontLayers){
- if(frontLayers && (card?.type!=="armor" || card.name!=="Cotta di Maglia"))throw new Error("Prova riservata alla Cotta di Maglia");
+ if(frontLayers && frontLayers.type!==card?.type)throw new Error("Master di prova incompatibile con la categoria");
  const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card,frontLayers),card?.type,frontLayers?.trim);
  if (["monster","character"].includes(card?.type)) {
    const emblem = getFrontEmblem(card);
