@@ -403,7 +403,6 @@
 .tf-front-master-v17[data-front-category="character"] .tf-v3-medallion[data-emblem-sprite="class-original"]{
  left:2.882353%!important;top:-0.882353%!important;
 }
-.tf-front-master-v17[data-front-category="character"] .tf-class-original-emblem,
 .tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
  width:100%!important;height:100%!important;object-fit:contain!important;
  overflow:visible!important;clip-path:none!important;
@@ -517,3 +516,16 @@
 
 /* Legacy monster GS: remove the former downward text offset. */
 .tf-front-master-v17 .tf-v3-badge small,.tf-front-master-v17 .tf-v3-badge strong {top:0;}
+
+/* Character HD art sits above the exterior rail, like the Monster PNG. */
+.tf-front-master-v17[data-front-category="character"] > .tf-character-original-emblem {
+ position:absolute;z-index:101;display:block;height:auto!important;pointer-events:none;
+ max-width:none!important;max-height:none!important;object-fit:contain!important;
+ border:0!important;border-radius:0!important;overflow:visible!important;
+ mask:none!important;-webkit-mask:none!important;clip-path:none!important;transform:none!important;
+ filter:none!important;box-shadow:none!important;
+}
+/* Leave a clear gap after the shield/swords printed in the Class master. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-static-row{
+ padding-left:30px!important;padding-right:4px!important;
+}

@@ -126,7 +126,7 @@ describe("card export renderers", () => {
   it.each([
     ["class", "Druido", {}, "classi-hd/cls-04-druido", .26, 340*.158, 476*.101],
     ["subclass", "Circolo delle Stelle", {parent_class:"Druid"}, "classi-hd/cls-04-druido", .26, 340*.158, 476*.101],
-    ["character", "Alba", {classe:"Druid"}, "classi-hd/cls-04-druido", .26, 54, 40],
+    ["character", "Alba", {classe:"Druid"}, "classi-hd/cls-04-druido", .26, 54, 476*.09],
     ["spell", "Luce", {school:"Evocation"}, "scuole-hd/scl-06-invocazione", .255, 340*.158, 476*.101],
   ])("prints the full HD %s emblem at its original center", async (type,name,attributes,asset,ratio,cx,cy) => {
     const front = await createCardPng(makeExportElement(), {type,name,attributes});

@@ -8,9 +8,14 @@ import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib
 const SAMPLES=[
  {type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",taglia:"Enorme",allineamento:"Caotico Malvagio",grado_sfida:"17",classe_armatura:"19",punti_ferita:"256",velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}},
  ...[["Aberrazione","Aboleth"],["Bestia","Lupo"],["Celestiale","Deva"],["Costrutto","Golem di Pietra"],["Elementale","Elementale del Fuoco"],["Folletto","Pixie"],["Gigante","Gigante delle Colline"],["Immondo","Balor"],["Melma","Cubo Gelatinoso"],["Mostruosità","Manticora"],["Non Morto","Scheletro"],["Pianta","Treant"],["Umanoide","Goblin"]].map(([tipo_creatura,name])=>({type:"monster",name,attributes:{tipo_creatura,taglia:"Media",grado_sfida:"1",classe_armatura:"12",punti_ferita:"10"}})),
+ {type:"class",name:"Guerriero",attributes:{dado_vita:"d10",abilita_primaria:"Forza o Destrezza",tiri_salvezza:"Forza, Costituzione",competenze:"Armature e scudi"}},
+ {type:"class",name:"Mago",attributes:{dado_vita:"d6",abilita_primaria:"Intelligenza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armi semplici"}},
  {type:"class",name:"Druido",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armature leggere, scudi"}},
  {type:"subclass",name:"Circolo delle Stelle",attributes:{classe:"Druido"}},
  {type:"spell",name:"Palla di Fuoco",attributes:{livello:"3",scuola:"Invocazione",tempo_lancio:"1 azione",gittata:"45 m",danno:"8d6 fuoco"}},
+ {type:"spell",name:"Benedizione",attributes:{livello:"1",scuola:"Ammaliamento",tempo_lancio:"1 azione",gittata:"9 m",durata:"Concentrazione, fino a 1 minuto",componenti:"V, S, M"}},
+ {type:"spell",name:"Scudo",attributes:{livello:"1",scuola:"Abiurazione",tempo_lancio:"1 reazione",gittata:"Personale",durata:"1 round",componenti:"V, S"}},
+ {type:"spell",name:"Animare Morti",attributes:{livello:"3",scuola:"Necromanzia",tempo_lancio:"1 minuto",gittata:"3 m",durata:"Istantanea",componenti:"V, S, M"}},
  {type:"race",name:"Elfo",attributes:{taglia:"Media",velocita:"9 m"}},
  {type:"feature",name:"Forma Selvatica",attributes:{classe:"Druido",livello:"2"}},
  {type:"feat",name:"Maestro d'Armi",attributes:{bonus_caratteristica:"+1 Forza o Destrezza"}},
@@ -69,7 +74,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 15 · simboli Mostro HD · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 16 · simboli HD e leggibilità · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}

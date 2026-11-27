@@ -16,3 +16,10 @@ export const MONSTER_EMBLEM_BOUNDS = Object.freeze({
   top: 0.09 - (monsterEmblemWidth * 340 / 476) / 2,
   width: monsterEmblemWidth,
 });
+
+// Character shares the Monster well and exterior rail; retain the approved 26% class PNG.
+export const CHARACTER_EMBLEM_BOUNDS = Object.freeze({
+  left: MASTER_REGIONS.emblem.x / 340 - .26 / 2,
+  top: .09 - (.26 * 340 / 476) / 2,
+  width: .26,
+});

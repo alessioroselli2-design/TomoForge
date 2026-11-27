@@ -124,3 +124,9 @@
 .tf-spell-level {top:3.15%;gap:2px;}
 .tf-spell-level strong {font-size:clamp(16px,6.8cqw,25px);line-height:1.08;transform:none;}
 .tf-spell-level span {transform:none;}
+
+/* Keep dynamic fields inside their cells in the editor too. */
+.tf-spell-cell-copy{flex:1 1 0;min-width:0;max-height:100%;}
+.tf-spell-cell-copy span{white-space:normal;text-align:center;line-height:1.12;}
+.tf-spell-cell-copy strong{line-height:1.12;}
+.tf-spell-basic-grid .tf-spell-cell-copy,.tf-spell-combat-grid .tf-spell-cell-copy{gap:2px;}

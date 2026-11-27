@@ -2,7 +2,7 @@ import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
-import { FRONT_MASTER_URL, MASTER_REGIONS, MONSTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
+import { FRONT_MASTER_URL, MASTER_REGIONS, MONSTER_EMBLEM_BOUNDS, CHARACTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
 import { getFrontEmblem } from "@/lib/frontEmblems";
 import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
@@ -13,6 +13,7 @@ import html2canvas from "html2canvas";
 import { setA4PrintPreferences } from "@/lib/printFormats";
 import {captureExportHeading,paintExportHeading} from "@/lib/exportHeading";
 import {captureExportBadge,paintExportBadge} from "@/lib/exportBadge";
+import {captureExportBody,paintExportBody,fitBodyText} from "@/lib/exportBody";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
@@ -149,7 +150,7 @@ async function renderApprovedMaster(element,card) {
  } catch {}
  // The card image, header badge and stat icons all use the same engraved
  // master coordinates as the CSS preview; never offset the source artwork.
- const icon=data.type==="monster" ? null : await loadFrontEmblem(data.emblem);
+ const icon=(data.type==="monster" || data.type==="character") ? null : await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
    if(data.emblem.sprite==="class-original"||
       (data.type==="spell"&&data.emblem.sprite==="school-original")){
@@ -233,13 +234,13 @@ async function renderApprovedMaster(element,card) {
        return;
      }
      // The other Class cells are unchanged (their shield/swords are engraved).
-     const x=start+(i===0?5:28),textWidth=Math.max(10,cellW-(x-start)-6);
+     const x=start+(i===0?5:34),textWidth=Math.max(10,cellW-(x-start)-5);
      const fontSize=i===2?8.2:i===0?8.6:9;
      ctx.textAlign="left";ctx.fillStyle="#23160d";
-     ctx.font=`700 ${fontSize}px Georgia,serif`;
-     const lines=wrapTextLines(ctx,it.value,textWidth).slice(0,4);
-     const top=statY+38;
-     lines.forEach((line,n)=>ctx.fillText(line,x,top+n*(fontSize*1.13),textWidth));
+     const fit=fitBodyText(ctx,it.value,textWidth,31,"Georgia,serif","700",fontSize,5,3);
+     ctx.font=`700 ${fit.size}px Georgia,serif`;
+     const top=statY+40-(fit.lines.length-1)*fit.lineHeight/2;
+     fit.lines.forEach((line,n)=>ctx.fillText(line,x,top+n*fit.lineHeight,textWidth));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -388,12 +389,14 @@ async function renderApprovedSpell(element, card) {
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
    const badge=captureExportBadge(clone);
+   const body=captureExportBody(clone,"spell");
    const canvas=await html2canvas(clone,{
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
    paintExportHeading(canvas,heading);
    paintExportBadge(canvas,badge);
+   paintExportBody(canvas,body);
    canvas.artworkDrawn=!!(card?.artwork_path && clone.querySelector(".tf-spell-picture img"));
    return canvas;
  } finally {stage.remove();}
@@ -481,11 +484,13 @@ async function renderApprovedCategory(element){
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
    const badge=captureExportBadge(clone);
+   const body=captureExportBody(clone,"category");
   const capture=await html2canvas(clone,{scale:width*scale/sourceWidth,width:sourceWidth,height:sourceHeight,backgroundColor:null,useCORS:true,logging:false,scrollX:0,scrollY:0});
   const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
   canvas.getContext("2d").drawImage(capture,0,0,canvas.width,canvas.height);
   paintExportHeading(canvas,heading);
    paintExportBadge(canvas,badge);
+   paintExportBody(canvas,body);
    canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");
   return canvas;
  }finally{stage.remove();}
@@ -514,14 +519,14 @@ async function renderRawCardCanvas(element,card){
 
 export async function renderCardCanvas(element,card){
  const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card),card?.type);
- if (card?.type === "monster") {
+ if (["monster","character"].includes(card?.type)) {
    const emblem = getFrontEmblem(card);
    if (emblem) {
      const image = await loadFrontEmblem(emblem);
-     if (!image) throw new Error(`Simbolo Mostro non disponibile: ${emblem.label}`);
+     if (!image) throw new Error(`Simbolo non disponibile: ${emblem.label}`);
      // The master context is already scaled for print. Paint above the exterior rail.
      const {width, height} = CARD_CANVAS_SIZE;
-     const bounds = MONSTER_EMBLEM_BOUNDS;
+     const bounds = card.type==="character" ? CHARACTER_EMBLEM_BOUNDS : MONSTER_EMBLEM_BOUNDS;
      const size = width * bounds.width;
      canvas.getContext("2d").drawImage(image, width * bounds.left, height * bounds.top, size, size);
    }
