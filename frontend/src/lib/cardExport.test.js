@@ -141,6 +141,24 @@ describe("card export renderers", () => {
     expect(y+h/2).toBeCloseTo(cy);
   });
 
+  it("keeps both Fighter primary icons below the heading and above their value", async () => {
+    const front = await createCardPng(makeExportElement(), {
+      type:"class",name:"Guerriero",attributes:{abilita_primaria:"Forza o Destrezza",tiri_salvezza:"Forza, Costituzione",competenze:"Armature e scudi",dado_vita:"d10"}
+    });
+    const icons=front.operations.filter(op=>op.name==="drawImage" && /\/icone-caratteristiche\/(forza|destrezza)\.png$/.test(op.args[0]?.src||""));
+    expect(icons).toHaveLength(2);
+    const start=476*.483, end=start+476*.14;
+    const value=front.operations.find(op=>op.name==="fillText"&&op.text==="Forza o Destrezza");
+    expect(value).toBeDefined();
+    for(const {args:[,x,y,w,h]} of icons){
+      expect(y-start).toBeCloseTo(26);
+      expect(w).toBeCloseTo(18);
+      expect(h).toBeCloseTo(w);
+      expect(value.y-(y+h)).toBeGreaterThan(8);
+      expect(value.y).toBeLessThan(end-5);
+    }
+  });
+
   it("renders new monster front with its six abilities, sourced stats and actual dice formula", async () => {
     const card = {
       id: "drago", type: "monster", name: "Drago Cremisi",

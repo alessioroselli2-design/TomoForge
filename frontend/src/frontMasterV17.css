@@ -465,7 +465,7 @@
 
 /* Class only: original PNGs at their native proportions, no filter, mask or vectorization.
    Single: [26px icon] 6px [text], vertically centered.
-   Double: [22px icon] 6px [22px icon], then 6px separation to one text line. */
+   Double: [18px icon] 6px [18px icon], below the engraved heading. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row{
   display:flex!important;flex-direction:row!important;align-items:center!important;
   justify-content:center!important;gap:6px!important;
@@ -489,15 +489,15 @@
   mask:none!important;-webkit-mask:none!important;clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double{
-  top:22%!important;min-height:49px!important;height:49px!important;
-  flex-direction:column!important;align-items:center!important;justify-content:center!important;
-  gap:6px!important;
+  top:39%!important;min-height:0!important;height:34px!important;
+  flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+  gap:5px!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons{
-  flex-direction:row!important;gap:6px!important;height:22px!important;
+  flex-direction:row!important;gap:6px!important;height:18px!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons img{
-  width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;
+  width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row>strong{
   position:static!important;flex:0 1 auto!important;min-width:0!important;

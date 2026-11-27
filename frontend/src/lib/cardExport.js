@@ -212,13 +212,13 @@ async function renderApprovedMaster(element,card) {
      const primary=primaryImages[i]||[];
      const start=cx-cellW/2;
      if(i===0&&primary.length>1){
-       // Same as the DOM: two original 22px PNGs side by side, 6px apart,
+       // Same as the DOM: two 18px originals below the engraved heading,
        // with the unmodified one-line ability value centered underneath.
-       const size=22,gap=6,items=primary.slice(0,2);
+       const size=18,gap=6,items=primary.slice(0,2);
        const iconStart=cx-(items.length*size+(items.length-1)*gap)/2;
-       items.forEach((asset,j)=>{if(asset)ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size);});
+       items.forEach((asset,j)=>{if(asset)ctx.drawImage(asset,iconStart+j*(size+gap),statY+26,size,size);});
        ctx.textAlign="center";ctx.fillStyle="#23160d";
-       drawFittedText(ctx,it.value,cx,statY+53,cellW-6,8.2,"Georgia,serif","700");
+       drawFittedText(ctx,it.value,cx,statY+57,cellW-6,8.2,"Georgia,serif","700");
        return;
      }
      if(i===0&&primary.length===1){
