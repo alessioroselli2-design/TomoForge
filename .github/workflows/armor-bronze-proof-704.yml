@@ -1,0 +1,31 @@
+name: Build isolated bronze armor proof
+on:
+  push:
+    branches: ["feat/print-press-pdf-20261124"]
+    paths: [".github/workflows/armor-bronze-proof-704.yml"]
+permissions:
+  contents: write
+jobs:
+  proof:
+    if: github.repository == 'alessioroselli2-design/TomoForge' && github.ref == 'refs/heads/feat/print-press-pdf-20261124'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/print-press-pdf-20261124
+      - name: Build and verify the isolated full-resolution bronze artwork
+        run: |
+          python3 -m pip install --quiet Pillow==11.3.0 numpy==2.2.6 opencv-python-headless==4.12.0.88
+          mkdir -p /tmp/armor-proof
+          cp frontend/public/card-art/front-restored-v18/master-armatura-5x7.webp /tmp/armor-proof/front.webp
+          cp frontend/public/dorsi/armi-armature.jpg /tmp/armor-proof/back.jpg
+          cp frontend/public/card-art/proofs/armor-paper-protection-v22.png /tmp/armor-proof/mask.png
+          python3 frontend/scripts/makeArmorBronzeProof.py /tmp/armor-proof
+          cp /tmp/armor-proof/armor-bronze-v23.webp frontend/public/card-art/proofs/
+      - name: Commit only new proof artwork and remove one-time workflow
+        run: |
+          git add frontend/public/card-art/proofs/armor-bronze-v23.webp
+          git rm .github/workflows/armor-bronze-proof-704.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Add isolated lossless bronze armor master v23"
+          git push origin HEAD:feat/print-press-pdf-20261124
