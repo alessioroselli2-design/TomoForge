@@ -1,22 +1,17 @@
-import {sampleBackGold,isMetalGold,traceArmorMetal,tintArmorMetal} from "./frameColorProof";
-test("samples the gold of the reverse edge, not the central illustration",()=>{
+import {sampleBackGold,tintArmorMetal} from "./frameColorProof";
+test("samples only the edges of the reverse",()=>{
  const w=100,h=140,p=new Uint8ClampedArray(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++)p.set(x<8||x>92?[181,115,49,255]:[250,210,40,255],4*(y*w+x));
  expect(sampleBackGold(p,w,h).v).toBe(181);
 });
-test("traced engraved contour excludes paper, rubies and medallions",()=>{
- const w=200,h=280,p=new Uint8ClampedArray(w*h*4);
- const gold=[252,235,54,255],paper=[254,210,95,255],dark=[30,15,3,255],ruby=[220,15,25,255];
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-  p.set(x<7||x>w-8?gold:x<10||x>w-11?dark:paper,4*(y*w+x));
- }
- const at=(x,y)=>4*(y*w+x);
- p.set(ruby,at(4,140));p.set(gold,at(32,20));p.set(gold,at(165,20));
- const orig=p.slice(),mask=traceArmorMetal(orig,w,h);
- expect(mask(4,170)).toBe(true);expect(mask(12,170)).toBe(false);
- expect(isMetalGold(...ruby)).toBe(false);
- const count=tintArmorMetal(p,orig,w,h,{h:32,s:.73,v:181});
- expect(count).toBeGreaterThan(0);
- expect(p[at(4,170)]).toBeLessThan(200);
- for(const [x,y] of [[4,140],[12,170],[32,20],[165,20],[100,120]])expect(Array.from(p.slice(at(x,y),at(x,y)+4))).toEqual(Array.from(orig.slice(at(x,y),at(x,y)+4)));
+test("darkens metal without modifying protected parchment, gems or medallion pixels",()=>{
+ const gold=[252,235,54,255],paper=[254,210,95,255],ruby=[220,15,25,255];
+ const p=new Uint8ClampedArray([...gold,...paper,...ruby,...gold,...gold]);
+ const before=p.slice(),protection=new Uint8ClampedArray([0,0,0,255,255,255,255,255,0,0,0,255,255,255,255,255,255,255,255,255]);
+ const exterior=new Uint8ClampedArray(20);exterior[19]=255;
+ const count=tintArmorMetal(p,before,protection,exterior,{h:32,s:.73,v:181});
+ expect(count).toBe(2);
+ expect(p[0]).toBeLessThan(200);
+ expect(p[16]).toBeLessThan(200);
+ expect(Array.from(p.slice(4,16))).toEqual(Array.from(before.slice(4,16)));
 });
