@@ -4,11 +4,11 @@ import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
 import { FRONT_MASTER_URL, MASTER_REGIONS, MONSTER_EMBLEM_BOUNDS, CHARACTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
 import { getFrontEmblem } from "@/lib/frontEmblems";
-import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
+import { categoryFrontLayout, restoredFrontMaster } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
-import { colorFrontExterior , prepareFrontBackground} from "@/lib/frontExterior";
+import { colorFrontExterior , prepareFrontBackground, paintNativeFrontBackground} from "@/lib/frontExterior";
 import html2canvas from "html2canvas";
 import { setA4PrintPreferences } from "@/lib/printFormats";
 import {captureExportHeading,paintExportHeading} from "@/lib/exportHeading";
@@ -130,9 +130,10 @@ async function renderApprovedMaster(element,card) {
  const master=new Image();
  await new Promise((resolve,reject)=>{
    master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
-   master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
+   master.src=restoredFrontMaster(categoryFrontLayout(data.type).master||FRONT_MASTER_URL);
    if(master.complete&&master.naturalWidth>0)resolve();
  });
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
  ctx.drawImage(master,0,0,width,height);
  // Stretch ONLY a blank master strip, not the rendered card or its contents.
  const mw=master.naturalWidth||width,mh=master.naturalHeight||mw*7/5;
@@ -384,7 +385,7 @@ async function renderApprovedSpell(element, card) {
  stage.appendChild(clone);
  document.body.appendChild(stage);
  try {
-   await prepareFrontBackground(clone,"spell");
+   const background=await prepareFrontBackground(clone,"spell");
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -394,6 +395,7 @@ async function renderApprovedSpell(element, card) {
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
+   paintNativeFrontBackground(canvas,background);
    paintExportHeading(canvas,heading);
    paintExportBadge(canvas,badge);
    paintExportBody(canvas,body);
@@ -425,7 +427,7 @@ async function renderApprovedFeature(element, card) {
  });
  stage.appendChild(clone);document.body.appendChild(stage);
  try {
-   await prepareFrontBackground(clone,"feature");
+   const background=await prepareFrontBackground(clone,"feature");
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -434,6 +436,7 @@ async function renderApprovedFeature(element, card) {
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
+   paintNativeFrontBackground(canvas,background);
    paintExportHeading(canvas,heading);
    paintExportBadge(canvas,badge);
    canvas.artworkDrawn=!!(clone.querySelector(".tf-feature-artwork img"));
@@ -453,14 +456,15 @@ async function renderApprovedRace(element,card){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  await prepareFrontBackground(clone,"race");
+  const background=await prepareFrontBackground(clone,"race");
    await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
    const badge=captureExportBadge(clone);
   const canvas=await html2canvas(clone,{scale,width,height,backgroundColor:null,
     useCORS:true,logging:false,scrollX:0,scrollY:0});
-  paintExportHeading(canvas,heading);
+  paintNativeFrontBackground(canvas,background);
+   paintExportHeading(canvas,heading);
    paintExportBadge(canvas,badge);
    canvas.artworkDrawn=false;
   return canvas;
@@ -479,7 +483,7 @@ async function renderApprovedCategory(element){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  await prepareFrontBackground(clone,clone.getAttribute("data-front-category"));
+  const background=await prepareFrontBackground(clone,clone.getAttribute("data-front-category"));
    await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -488,7 +492,8 @@ async function renderApprovedCategory(element){
   const capture=await html2canvas(clone,{scale:width*scale/sourceWidth,width:sourceWidth,height:sourceHeight,backgroundColor:null,useCORS:true,logging:false,scrollX:0,scrollY:0});
   const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
   canvas.getContext("2d").drawImage(capture,0,0,canvas.width,canvas.height);
-  paintExportHeading(canvas,heading);
+  paintNativeFrontBackground(canvas,background);
+   paintExportHeading(canvas,heading);
    paintExportBadge(canvas,badge);
    paintExportBody(canvas,body);
    canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");

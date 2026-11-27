@@ -1,4 +1,4 @@
-import {categoryFrontLayout,FRONT_OUTER_MASTER} from "./frontCategoryLayouts";
+import {categoryFrontLayout,FRONT_OUTER_MASTER,restoredFrontMaster} from "./frontCategoryLayouts";
 import {CATEGORY_MASTERS} from "./categoryCardView";
 import {frontMasterSlices} from "./cardPrintGeometry";
 
@@ -192,6 +192,12 @@ export function frontMaskSource(type) {
  return {src:categoryFrontLayout(normalized).master||FRONT_OUTER_MASTER,legacy:true,type:normalized};
 }
 const cache=new Map();
+function loadMaster(src){
+ return new Promise((resolve,reject)=>{
+  const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error("Cornice fronte non disponibile: "+src));
+  image.src=src;if(image.complete&&image.naturalWidth)resolve(image);
+ });
+}
 export function getFrontExteriorMask(type) {
  const spec=frontMaskSource(type), key=spec.src+"|"+(spec.legacy?spec.type:"dom");
  if(cache.has(key))return cache.get(key);
@@ -227,7 +233,17 @@ export function getFrontExteriorMask(type) {
    const mask=document.createElement("canvas");mask.width=W;mask.height=H;
    const out=mask.getContext("2d"),data=out.createImageData(W,H);
    data.data.set(exteriorAlpha(correctedPixels.data,W,H));out.putImageData(data,0,0);
-   mask.frameBackground=plan?corrected.toDataURL("image/png"):null;
+   // Measure and trace the ORIGINAL at the established trim resolution;
+   // apply the identical correction to the restored double-resolution source.
+   mask.frameBackground=null;
+   if(plan){
+     const restored=await loadMaster(restoredFrontMaster(spec.src));
+     const hi=document.createElement("canvas");hi.width=2*W;hi.height=2*H;
+     const hc=hi.getContext("2d");hc.imageSmoothingEnabled=true;hc.imageSmoothingQuality="high";
+     hc.drawImage(restored,0,0,hi.width,hi.height);
+     const high=extendBottomMaster(hi,{y:plan.y*2,band:plan.band*2,delta:plan.delta*2});
+     mask.frameBackground=high.toDataURL("image/png");
+   }
    mask.frameMeasurements={before,after,reference,delta:plan?.delta||0,width:W,height:H};
    return mask;
  })();
@@ -248,10 +264,24 @@ export async function colorFrontExterior(canvas,type) {
  return canvas;
 }
 
-// Dedicated DOM export clones are detached from the editor's CSS variables.
+// html2canvas can resample a CSS background to the small DOM size before
+// applying its export scale. Capture only the transparent foreground and draw
+// the complete restored master directly at the final canvas resolution.
 export async function prepareFrontBackground(clone,type){
  const probe=document.createElement("canvas").getContext("2d");
- if(!probe||typeof probe.getImageData!=="function")return;
+ if(!probe||typeof probe.getImageData!=="function")return null;
  const mask=await getFrontExteriorMask(type);
- if(mask?.frameBackground)clone.style.backgroundImage='url("'+mask.frameBackground+'")';
+ const image=await loadMaster(mask?.frameBackground||restoredFrontMaster(frontMaskSource(type).src));
+ clone.style.backgroundImage="none";
+ clone.style.backgroundColor="transparent";
+ return image;
+}
+export function paintNativeFrontBackground(canvas,image){
+ if(!image)return;
+ const ctx=canvas.getContext("2d");
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);
+ ctx.globalCompositeOperation="destination-over";
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+ ctx.drawImage(image,0,0,canvas.width,canvas.height);
+ ctx.restore();
 }

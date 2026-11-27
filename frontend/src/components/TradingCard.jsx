@@ -1,7 +1,7 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { categoryFrontLayout, frontBackground } from "@/lib/frontCategoryLayouts";
+import { categoryFrontLayout, frontBackground, restoredFrontMaster } from "@/lib/frontCategoryLayouts";
 import { MONSTER_EMBLEM_BOUNDS, CHARACTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
@@ -88,7 +88,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    data-front-category={data.type} data-record-category={data.recordType || undefined} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,...frontBackground(data.type)}}>
-   {frontMasterSlices(data.type).map((slice,i)=><div key={i} aria-hidden="true" style={frontMasterSliceStyle(layout.master||"/card-art/front-master-v17.webp",slice)}/>)}
+   {frontMasterSlices(data.type).map((slice,i)=><div key={i} aria-hidden="true" style={frontMasterSliceStyle(restoredFrontMaster(layout.master||"/card-art/front-master-v17.webp"),slice)}/>)}
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>

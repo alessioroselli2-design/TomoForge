@@ -2,7 +2,7 @@ import React from 'react';
 import {QRCodeCanvas} from 'qrcode.react';
 import {Hourglass, Crosshair, Clock3, Shapes, ShieldCheck, Scan, Sparkles} from 'lucide-react';
 import {buildSpellCardView} from '@/lib/spellCardView';
-const SPELL_PREVIEW_MASTER = '/card-art/master-incantesimo-5x7-v1.webp';
+const SPELL_PREVIEW_MASTER = '/card-art/front-restored-v18/master-incantesimo-5x7-v1.webp';
 import {publicDescriptionUrl} from '@/lib/cardDescription';
 import {artworkUrl} from '@/lib/api';
 import './SpellCardFront.css';

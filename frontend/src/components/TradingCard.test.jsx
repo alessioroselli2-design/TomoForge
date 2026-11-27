@@ -353,9 +353,9 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
    expect(c.dataset.categoryLayout).toBe("class-5x7-finale");
-   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/front-restored-v18/master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/front-restored-v18/master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
@@ -387,7 +387,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/front-restored-v18/master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
@@ -399,11 +399,11 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const item=await mountCard({type:"item",name:"Anello",attributes:{rarita:"Raro"}});
    const approved=spell.mount.querySelector("[data-testid='card-front']");
    expect(approved.dataset.frontLayout).toBe("spell-5x7-v1");
-   expect(approved.style.backgroundImage).toContain("/card-art/master-incantesimo-5x7-v1.webp");
+   expect(approved.style.backgroundImage).toContain("/card-art/front-restored-v18/master-incantesimo-5x7-v1.webp");
    expect(approved.querySelector(".tf-spell-level")?.textContent).toContain("3");
    expect(approved.querySelector(".tf-spell-school-emblem")?.getAttribute("src"))
      .toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
-   expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage).toContain("master-oggetto-magico-5x7.png");
+   expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage).toContain("master-oggetto-magico-5x7.webp");
    expect(item.mount.querySelector(".tf-category-badge").textContent).toBe("Raro");
    await spell.close();await item.close();
  });
@@ -449,7 +449,7 @@ describe("Class 5x7 uses the master image and clean emblems",()=>{
    dado_vita:"d6",abilita_primaria:"Intelligenza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armi semplici"
   }}}/>));
   const front=m.querySelector('[data-front-category="class"]');
-  expect(front.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+  expect(front.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
   expect(front.querySelector(".tf-v3-art-hint")).toBeNull();
   expect(front.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
   expect(front.querySelector(".tf-class-original-emblem")?.getAttribute("src"))
@@ -491,7 +491,7 @@ describe("subclass shares the approved class renderer",()=>{
    const node=host.querySelector('[data-record-category="subclass"]');
    expect(node.getAttribute("data-front-category")).toBe("class");
    expect(node.getAttribute("data-category-layout")).toBe("class-5x7-finale");
-   expect(node.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(node.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(node.querySelector("h3").textContent).toBe("Campione");
    expect(node.querySelector(".tf-v3-titles p").textContent).toBe("Guerriero • Sottoclasse");
    expect(node.querySelector(".tf-class-original-emblem").getAttribute("src")).toBe("/emblemi/classi-hd/cls-05-guerriero-hd.png");

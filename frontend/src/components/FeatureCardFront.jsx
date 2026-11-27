@@ -74,7 +74,7 @@ export const FeatureCardFront=React.forwardRef(
   React.useEffect(()=>setArtError(false),[src]);
   return <div ref={ref} data-testid="card-front" data-front-version="7"
    data-front-category="feature" data-front-layout="feature-5x7-v5"
-   className={"tf-feature-master"+(exportMode?" tf-export-card":"")} style={{backgroundImage:'url("/card-art/master-privilegi-5x7.png")'}}>
+   className={"tf-feature-master"+(exportMode?" tf-export-card":"")} style={{backgroundImage:'url("/card-art/front-restored-v18/master-privilegi-5x7.webp")'}}>
    <div className="tf-feature-medallion" data-testid="front-emblem">
     {emblem&&<img className="tf-feature-original-emblem" src={emblem.src}
       alt="Emblema dei privilegi" draggable={false}/>}

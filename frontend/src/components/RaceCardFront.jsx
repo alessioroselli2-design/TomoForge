@@ -116,7 +116,7 @@ export class RaceCardErrorBoundary extends React.Component {
   if(!this.state.hasError)return this.props.children;
   return <div data-front-category="race" className="tf-race-master"
    data-testid="race-preview-recovery"
-   style={{backgroundImage:'url("/card-art/master-razze-5x7.png")'}}>
+   style={{backgroundImage:'url("/card-art/front-restored-v18/master-razze-5x7.webp")'}}>
    <div style={{position:"absolute",left:"9%",top:"58%",width:"82%",
     textAlign:"center",fontSize:"12px",color:"#40210f",zIndex:10}}>
     Anteprima Razza momentaneamente non disponibile.
@@ -130,7 +130,7 @@ export const RaceCardFront=React.forwardRef(({card={}},ref)=>{
  const emblem=React.useMemo(()=>getFrontEmblem({...card,type:"race"}),[card]);
  return <div ref={ref} data-testid="card-front" data-front-version="7"
   data-front-category="race" data-front-layout="race-5x7-v1"
-  className="tf-race-master" style={{backgroundImage:'url("/card-art/master-razze-5x7.png")'}}>
+  className="tf-race-master" style={{backgroundImage:'url("/card-art/front-restored-v18/master-razze-5x7.webp")'}}>
   <div className="tf-race-medallion" data-testid="front-emblem">
    {emblem?.src&&<img className="tf-race-emblem" src={emblem.src} alt={emblem.label||""} draggable={false}/>}
   </div>

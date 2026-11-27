@@ -183,7 +183,7 @@ describe("card export renderers", () => {
     expect(text).not.toContain("MOSTRO");
     // Every recorded movement mode is preserved by the print renderer.
     expect(text).toContain("12 m");
-    expect(front.operations.some(op=>op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
+    expect(front.operations.some(op=>op.name==="drawImage" && op.args[0]?.src==="/card-art/front-restored-v18/front-master-v17.webp")).toBe(true);
   });
 
   it.each(["d4","d6","d8","d10","d12","d20"])("uses the correct %s illustrated jewel in export canvas", async(die)=>{
@@ -212,7 +212,7 @@ describe("card export renderers", () => {
         velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}};
     const front=await renderCardCanvas(el,card);
     const drawings=front.operations.filter(op=>op.name==="drawImage");
-    expect(drawings[0].args[0].src).toBe("/card-art/front-master-v17.webp");
+    expect(drawings[0].args[0].src).toBe("/card-art/front-restored-v18/front-master-v17.webp");
     expect(drawings.map(op=>op.args[0]?.src)).not.toContain("/card-art/front-detail-repair-v8.webp");
     expect(written(front)).toContain("Drago Rosso Adulto");
     const dragonDraw=drawings.at(-1).args;
@@ -267,7 +267,7 @@ describe("card export renderers", () => {
     const text = written(front);
     ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "Lancio", "Gittata"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
-    expect(front.operations.some(op => op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
+    expect(front.operations.some(op => op.name==="drawImage" && op.args[0]?.src==="/card-art/front-restored-v18/front-master-v17.webp")).toBe(true);
   });
 
   it("keeps unchanged official backs, including the silver Personaggio variant", async () => {
@@ -297,7 +297,7 @@ describe("card export renderers", () => {
   });
   it("extends the blank master before drawing dynamic contents",async()=>{
     const front=await renderCardCanvas(makeExportElement(),{type:"monster",name:"Drago",attributes:{}});
-    const draws=front.operations.filter(o=>o.name==="drawImage"&&o.args[0]?.src==="/card-art/front-master-v17.webp");
+    const draws=front.operations.filter(o=>o.name==="drawImage"&&o.args[0]?.src==="/card-art/front-restored-v18/front-master-v17.webp");
     expect(draws).toHaveLength(3);
     expect(draws[2].args.at(-3)+draws[2].args.at(-1)).toBeCloseTo(476);
   });
@@ -389,7 +389,7 @@ describe("card export renderers", () => {
     const element = {querySelectorAll: () => [artwork], querySelector: sel => (sel === "img" || sel === ".tf-v3-picture img") ? artwork : null};
     const front = await renderCardCanvas(element, { type: "item", name: "Spada", description: "Oggetto arcano." });
     expect(front.artworkDrawn).toBe(false);
-    expect(front.operations.some(op => op.name === "drawImage" && op.args[0]?.src === "/card-art/front-master-v17.webp")).toBe(true);
+    expect(front.operations.some(op => op.name === "drawImage" && op.args[0]?.src === "/card-art/front-restored-v18/front-master-v17.webp")).toBe(true);
     expect(written(front)).toContain("Spada");
   });
 });

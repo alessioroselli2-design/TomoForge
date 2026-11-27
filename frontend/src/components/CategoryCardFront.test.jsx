@@ -10,7 +10,7 @@ describe("dedicated category DOM",()=>{
  test.each([["feat","talento","talenti"],["item","oggetto-magico","oggetti-magici"],["weapon","arma","armi-armature"],["armor","armatura","armi-armature"]])("%s has one raster and emblem, no QR",async(type,master,symbol)=>{
   await act(async()=>root.render(<CategoryCardFront card={{type,name:"Nome di prova",attributes:{}}}/>));
   const front=mount.querySelector("[data-category-master]");
-  expect(front.style.backgroundImage).toContain("master-"+master+"-5x7.png");
+  expect(front.style.backgroundImage).toContain("master-"+master+"-5x7.webp");
   expect(front.querySelectorAll(".tf-category-emblem img")).toHaveLength(1);
   expect(front.querySelector(".tf-category-emblem img").getAttribute("src")).toBe("/emblemi/categorie/simbolo-"+symbol+".png");
   expect(front.querySelectorAll("[data-category-field]")).toHaveLength(3);
