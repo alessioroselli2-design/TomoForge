@@ -44,7 +44,7 @@ export default function PrintPressPreview(){
     const front=await createCardPng(ref.current,card);
     const back=await createCardBackPng(card);
     if(!active)return;
-    const variant=card.name==="Cotta di Maglia"?createFrameColorProof(front,back):null;
+    const variant=card.name==="Cotta di Maglia"?await createFrameColorProof(front,back):null;
     if(active)setProof({matched:variant?.canvas.toDataURL("image/png"),color:variant?.color,changed:variant?.changed,front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge});
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
@@ -78,7 +78,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 20 · prova oro scuro della cornice (Cotta di Maglia) · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 21 · metallo brunito con contorno inciso (Cotta di Maglia) · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -95,7 +95,7 @@ export default function PrintPressPreview(){
      <button type="button" aria-pressed={matched} onClick={()=>setMatched(true)} className={"border border-gold px-3 py-2 "+(matched?"bg-gold text-obsidian":"")}>Oro del retro · prova</button>
     </div>
     {proof?.color&&matched&&<p className="mt-2 flex justify-center items-center gap-2 text-xs"><span aria-hidden="true" style={{display:"inline-block",width:18,height:18,borderRadius:3,background:proof.color}}/>Oro campionato dal fregio del retro</p>}
-    <p className="mt-2 text-xs">Cambia solo l’oro dei fregi esterni. Rubini e contenuti restano invariati. Le esportazioni scaricano ancora la versione originale; la prova è soltanto visiva.</p>
+    <p className="mt-2 text-xs">La prova segue il contorno inciso del master: oro brunito nei fregi, senza fascia colorata sulla pergamena. Rubini e medaglioni protetti. Esportazioni originali, prova soltanto visiva.</p>
    </div>}
    <div className="grid grid-cols-2 gap-2 max-w-[690px] mx-auto">
     <div className="min-w-0"><p className="text-xs mb-2">{matched&&proof?.matched?"FRONTE · ORO SCURO":"FRONTE · ORIGINALE"}</p><div style={previewStyle}>{proof?<img src={matched&&proof.matched?proof.matched:proof.front} alt="Fronte della carta campione" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
