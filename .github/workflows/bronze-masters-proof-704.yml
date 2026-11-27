@@ -1,0 +1,27 @@
+name: Build nine isolated bronze masters
+on:
+  push:
+    branches: ["feat/print-press-pdf-20261124"]
+    paths: [".github/workflows/bronze-masters-proof-704.yml"]
+permissions:
+  contents: write
+jobs:
+  proof:
+    if: github.repository == 'alessioroselli2-design/TomoForge' && github.ref == 'refs/heads/feat/print-press-pdf-20261124'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/print-press-pdf-20261124
+      - name: Render and verify all nine original masters
+        run: |
+          python3 -m pip install --quiet Pillow==11.3.0 numpy==2.2.6 opencv-python-headless==4.12.0.88
+          python3 frontend/scripts/makeBronzeMastersProof.py frontend/public/card-art/front-restored-v18 frontend/public/card-art/proofs/bronze-v24 frontend/public/dorsi/armi-armature.jpg
+          test "$(find frontend/public/card-art/proofs/bronze-v24 -name '*.webp' | wc -l)" -eq 9
+      - name: Commit only isolated proof artwork and remove one-time workflow
+        run: |
+          git add frontend/public/card-art/proofs/bronze-v24
+          git rm .github/workflows/bronze-masters-proof-704.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Add nine lossless bronze master comparisons"
+          git push origin HEAD:feat/print-press-pdf-20261124
