@@ -471,7 +471,7 @@ async function renderApprovedRace(element,card){
  }finally{stage.remove();}
 }
 // Capture the same dedicated DOM for these four categories; no legacy atlas or QR.
-async function renderApprovedCategory(element){
+async function renderApprovedCategory(element,proofBackground=null){
  const selector='[data-category-master="approved"]';
  const source=element.matches?.(selector)?element:element.querySelector?.(selector);
  if(!source)throw new Error("Anteprima categoria non disponibile");
@@ -483,7 +483,10 @@ async function renderApprovedCategory(element){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  const background=await prepareFrontBackground(clone,clone.getAttribute("data-front-category"));
+  // Isolated proof path: the regular editor and every normal export still use
+  // the approved master and exterior geometry. The proof is a separate asset.
+  const background=proofBackground||await prepareFrontBackground(clone,clone.getAttribute("data-front-category"));
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
    await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
    const heading=captureExportHeading(clone);
@@ -499,6 +502,11 @@ async function renderApprovedCategory(element){
    canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");
   return canvas;
  }finally{stage.remove();}
+}
+// Only the read-only armour comparison page uses this alternate artwork.
+export function renderArmorMasterProof(element,background){
+ if(!background||!element?.querySelector?.('[data-front-category="armor"]'))throw new Error("Prova Armatura non disponibile");
+ return renderApprovedCategory(element,background);
 }
 // Existing renderer remains untouched for Class, Monster and all other types.
 async function renderRawCardCanvas(element,card){

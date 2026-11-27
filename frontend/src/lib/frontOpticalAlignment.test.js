@@ -121,13 +121,13 @@ describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
    expect(exporter).toContain('ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);');
    expect(exporter).not.toContain('sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
  });
- it("places two original 22px PNGs side by side, with 6px between them and one line of text",()=>{
-   expect(finalMaster).toContain('width:22px!important;height:22px!important;');
-   expect(finalMaster).toContain('flex-direction:row!important;gap:6px!important;height:22px!important;');
-   expect(finalMaster).toContain('top:22%!important;min-height:49px!important;height:49px!important;');
+ it("places the approved 18px PNGs below the heading, side by side with 6px spacing",()=>{
+   expect(finalMaster).toContain('width:18px!important;height:18px!important;');
+   expect(finalMaster).toContain('flex-direction:row!important;gap:6px!important;height:18px!important;');
+   expect(finalMaster).toContain('top:39%!important;min-height:0!important;height:34px!important;');
    expect(finalMaster).toContain('white-space:nowrap!important;overflow-wrap:normal!important;');
-   expect(exporter).toContain('const size=22,gap=6,items=primary.slice(0,2);');
-   expect(exporter).toContain('ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size)');
+   expect(exporter).toContain('const size=18,gap=6,items=primary.slice(0,2);');
+   expect(exporter).toContain('ctx.drawImage(asset,iconStart+j*(size+gap),statY+26,size,size)');
  });
  it("uses Mago's original 26px PNG to the left of the ability text, without extra shield",()=>{
    expect(finalMaster).toContain('width:26px!important;height:26px!important;');
