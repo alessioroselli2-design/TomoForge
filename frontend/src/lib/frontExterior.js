@@ -192,11 +192,22 @@ export function frontMaskSource(type) {
  return {src:categoryFrontLayout(normalized).master||FRONT_OUTER_MASTER,legacy:true,type:normalized};
 }
 const cache=new Map();
-function loadMaster(src){
+export function loadMaster(src){
  return new Promise((resolve,reject)=>{
   const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error("Cornice fronte non disponibile: "+src));
   image.src=src;if(image.complete&&image.naturalWidth)resolve(image);
  });
+}
+// Transform the HD artwork with the trim-resolution plan measured on the approved
+// source. Any colour separation belongs on the master before the same slices.
+export function prepareNativeMaster(image, plan, metalLayer=null) {
+ const hi=document.createElement("canvas");
+ hi.width=2*W;hi.height=2*H;
+ const ctx=hi.getContext("2d");
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+ ctx.drawImage(image,0,0,hi.width,hi.height);
+ if(metalLayer)ctx.drawImage(metalLayer,0,0);
+ return plan?extendBottomMaster(hi,{y:2*plan.y,band:2*plan.band,delta:2*plan.delta}):hi;
 }
 export function getFrontExteriorMask(type) {
  const spec=frontMaskSource(type), key=spec.src+"|"+(spec.legacy?spec.type:"dom");
@@ -238,12 +249,10 @@ export function getFrontExteriorMask(type) {
    mask.frameBackground=null;
    if(plan){
      const restored=await loadMaster(restoredFrontMaster(spec.src));
-     const hi=document.createElement("canvas");hi.width=2*W;hi.height=2*H;
-     const hc=hi.getContext("2d");hc.imageSmoothingEnabled=true;hc.imageSmoothingQuality="high";
-     hc.drawImage(restored,0,0,hi.width,hi.height);
-     const high=extendBottomMaster(hi,{y:plan.y*2,band:plan.band*2,delta:plan.delta*2});
+     const high=prepareNativeMaster(restored,plan);
      mask.frameBackground=high.toDataURL("image/png");
    }
+   mask.bottomPlan=plan;
    mask.frameMeasurements={before,after,reference,delta:plan?.delta||0,width:W,height:H};
    return mask;
  })();
@@ -251,11 +260,11 @@ export function getFrontExteriorMask(type) {
  pending.catch(()=>cache.delete(key));
  return pending;
 }
-export async function colorFrontExterior(canvas,type) {
+export async function colorFrontExterior(canvas,type,proofTrim=null) {
  const ctx=canvas.getContext("2d");
  // Minimal canvas mocks do not expose pixel APIs; production canvases do.
  if(typeof ctx.getImageData!=="function")return canvas;
- const mask=await getFrontExteriorMask(type);
+ const mask=proofTrim||await getFrontExteriorMask(type);
  if(!mask)throw new Error("Maschera cornice non disponibile");
  ctx.save();ctx.setTransform(1,0,0,1,0,0);
  ctx.globalCompositeOperation="source-over";

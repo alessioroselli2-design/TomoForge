@@ -32,8 +32,8 @@ export function addPressFace(pdf, canvas) {
 
 // Ordered pages: front, corresponding upright back, then the next card.
 // A missing renderer aborts the entire file rather than producing a broken pair.
-export async function addPressCardPages(pdf, element, card, {first=true}={}) {
-  const front=await renderCardCanvas(element,card);
+export async function addPressCardPages(pdf, element, card, {first=true,frontLayers}={}) {
+  const front=await renderCardCanvas(element,card,frontLayers);
   const back=await renderCardBackCanvas(card);
   if(!first)pdf.addPage([PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],"portrait");
   addPressFace(pdf,front);

@@ -4,7 +4,7 @@ import { CardFront } from "@/components/TradingCard";
 import { getCornerPreviewRadius } from "@/lib/pressGeometry";
 import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib/cardExport";
-import { createFrameColorProof } from "@/lib/frameColorProof";
+import { getArmorProofLayers } from "@/lib/frameColorProof";
 
 const SAMPLES=[
  {type:"monster",name:"Drago Rosso Adulto",attributes:{tipo_creatura:"Drago",taglia:"Enorme",allineamento:"Caotico Malvagio",grado_sfida:"17",classe_armatura:"19",punti_ferita:"256",velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}},
@@ -27,6 +27,32 @@ const SAMPLES=[
  {type:"character",name:"Personaggio · Luce",back:{variant:"luminous"},attributes:{classe:"Druido",livello:"5"}},
  {type:"character",name:"Personaggio · Argento",back:{variant:"silver"},attributes:{classe:"Druido",livello:"5"}},
 ];
+function FaceZoom({face,onClose}) {
+ const modal=React.useRef(null);
+ const [scale,setScale]=React.useState(0);
+ React.useEffect(()=>{
+  modal.current.showModal();
+ },[]);
+ const control="border border-gold-deep rounded px-3 py-2";
+ return <dialog ref={modal} onClose={onClose} aria-label={face.label}
+  className="bg-obsidian text-foreground border border-gold-deep p-3 rounded"
+  style={{width:"min(96vw, 1120px)",maxWidth:"96vw",maxHeight:"95dvh"}}>
+  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+   <strong>{face.label}</strong>
+   <div className="flex gap-1">
+    {[[0,"Adatta"],[1,"100%"],[2,"200%"]].map(([value,label])=>
+     <button key={value} className={control} aria-pressed={scale===value} onClick={()=>setScale(value)}>{label}</button>)}
+    <button className={control} onClick={()=>modal.current.close()}>Chiudi</button>
+   </div>
+  </div>
+  <div style={{maxHeight:"76dvh",overflow:"auto",overscrollBehavior:"contain"}}>
+   <img src={face.src} alt={face.label} style={scale?
+    {display:"block",width:1020*scale,maxWidth:"none",height:"auto"}:
+    {display:"block",maxWidth:"100%",maxHeight:"75dvh",margin:"auto"}}/>
+  </div>
+ </dialog>;
+}
+
 export default function PrintPressPreview(){
  const [index,setIndex]=React.useState(()=>SAMPLES.findIndex(s=>s.name==="Cotta di Maglia"));
  const [busy,setBusy]=React.useState(false);
@@ -34,6 +60,7 @@ export default function PrintPressPreview(){
  const [proof,setProof]=React.useState(null);
  const [rounded,setRounded]=React.useState(true);
  const [matched,setMatched]=React.useState(true);
+ const [zoom,setZoom]=React.useState(null);
  const previewStyle={width:"100%",aspectRatio:"5/7",overflow:"hidden",borderRadius:rounded?getCornerPreviewRadius():0};
  const ref=React.useRef(null);
  const card=React.useMemo(()=>({...SAMPLES[index],description:"Carta dimostrativa per il confronto del fronte e del retro. Nessun dato viene salvato."}),[index]);
@@ -42,23 +69,43 @@ export default function PrintPressPreview(){
   (async()=>{
    try{
     const front=await createCardPng(ref.current,card);
+    if(!active)return;
     const back=await createCardBackPng(card);
     if(!active)return;
-    const variant=card.name==="Cotta di Maglia"?await createFrameColorProof(ref.current,front):null;
-    if(active)setProof({matched:variant?.canvas.toDataURL("image/png"),color:variant?.color,changed:variant?.changed,front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge});
+    const original={front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge};
+    if(card.name==="Cotta di Maglia"){
+     try{
+      const layers=await getArmorProofLayers();
+      if(!active)return;
+      const variant=await createCardPng(ref.current,card,layers);
+      if(active)setProof({...original,layers,matched:variant.toDataURL("image/png")});
+     }catch(error){
+      if(active){
+       setMatched(false);setProof(original);
+       setFeedback("Disponibile il fronte originale. Errore nella prova brunita: "+error.message);
+      }
+     }
+    }else setProof(original);
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
  },[card]);
+ const selectedLayers=matched?proof?.layers:undefined;
+ const variantName=selectedLayers?"oro-brunito":"v18";
+ const faces=proof?[
+  {label:"Fronte originale · v18",src:proof.front},
+  ...(proof.matched?[{label:"Fronte · oro brunito",src:proof.matched}]:[]),
+  {label:"Retro approvato",src:proof.back},
+ ]:[];
  async function download(press){
   if(!ref.current||busy)return;
   setBusy(true);setFeedback("Preparazione del PDF…");
   try{
    const format=press?[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight]:"a4";
    const pdf=new jsPDF({orientation:"portrait",unit:"mm",format,compress:true});
-   if(press)await addPressCardPages(pdf,ref.current,card);
-   else await addSingleCardA4PdfPages(pdf,ref.current,card);
-   pdf.save("tomeforge-prova-"+(press?"tipografia":"a4")+"-"+card.type+".pdf");
+   if(press)await addPressCardPages(pdf,ref.current,card,{frontLayers:selectedLayers});
+   else await addSingleCardA4PdfPages(pdf,ref.current,card,selectedLayers);
+   pdf.save("tomeforge-prova-"+(press?"tipografia":"a4")+"-"+card.type+"-"+variantName+".pdf");
    setFeedback("PDF generato. Aprilo da File e controlla entrambe le pagine.");
   }catch(error){setFeedback("Errore di esportazione: "+(error?.message||"riprova"));}
   finally{setBusy(false);}
@@ -67,20 +114,20 @@ export default function PrintPressPreview(){
   if(!ref.current||busy)return;
   setBusy(true);setFeedback("Preparazione PNG…");
   try{
-   const canvas=back?await createCardBackPng(card):await createCardPng(ref.current,card);
+   const url=back?proof.back:(selectedLayers?proof.matched:proof.front);
    const link=document.createElement("a");
-   link.download="tomeforge-prova-"+card.type+"-"+(back?"retro":"fronte")+".png";
-   link.href=canvas.toDataURL("image/png");link.click();
+   link.download="tomeforge-prova-"+card.type+"-"+(back?"retro":"fronte-"+variantName)+".png";
+   link.href=url;link.click();
    setFeedback("PNG generato.");
   }catch(error){setFeedback("Errore PNG: "+(error?.message||"riprova"));}
   finally{setBusy(false);}
  }
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
-  <div className="max-w-3xl mx-auto">
+  <div className="max-w-6xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 23 · master grafico autonomo in oro brunito (Cotta di Maglia) · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-sm">Tocca una carta per ingrandirla e controllare i dettagli.</p>
    <label className="block my-4 text-sm">Scegli una carta
-    <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
+    <select disabled={busy} value={index} onChange={e=>{setProof(null);setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
     </select>
    </label>
@@ -88,19 +135,17 @@ export default function PrintPressPreview(){
     <input type="checkbox" checked={rounded} onChange={e=>setRounded(e.target.checked)} data-testid="rounded-corners-toggle"/>
     Simula il taglio arrotondato (R 3 mm)
    </label>
-   {card.name==="Cotta di Maglia"&&<div className="my-4 p-3 border border-gold-deep rounded text-sm">
-    <p className="font-semibold mb-2">Prova oro scuro · gemme rosse originali</p>
-    <div className="flex flex-wrap justify-center gap-2">
-     <button type="button" aria-pressed={!matched} onClick={()=>setMatched(false)} className={"border border-gold px-3 py-2 "+(!matched?"bg-gold text-obsidian":"")}>Originale · rev. 18</button>
-     <button type="button" aria-pressed={matched} onClick={()=>setMatched(true)} className={"border border-gold px-3 py-2 "+(matched?"bg-gold text-obsidian":"")}>Oro del retro · prova</button>
-    </div>
-    {proof?.color&&matched&&<p className="mt-2 flex justify-center items-center gap-2 text-xs"><span aria-hidden="true" style={{display:"inline-block",width:18,height:18,borderRadius:3,background:proof.color}}/>Oro campionato dal fregio del retro</p>}
-    <p className="mt-2 text-xs">Nuovo master grafico separato, a risoluzione piena, con l’oro brunito ricavato dal dorso. Nessun filtro sulla carta finita. Esportazioni originali, prova soltanto visiva.</p>
-   </div>}
-   <div className="grid grid-cols-2 gap-2 max-w-[690px] mx-auto">
-    <div className="min-w-0"><p className="text-xs mb-2">{matched&&proof?.matched?"FRONTE · ORO SCURO":"FRONTE · ORIGINALE"}</p><div style={previewStyle}>{proof?<img src={matched&&proof.matched?proof.matched:proof.front} alt="Fronte della carta campione" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
-    <div className="min-w-0"><p className="text-xs mb-2">RETRO</p><div style={previewStyle}>{proof?<img src={proof.back} alt="Retro realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
+   <div className={"grid grid-cols-2 gap-3 mx-auto "+(faces.length===3?"md:grid-cols-3":"max-w-[690px]")}>
+    {faces.map(face=><figure key={face.label} className="min-w-0">
+     <figcaption className="text-sm mb-2">{face.label}</figcaption>
+     <button type="button" aria-label={"Ingrandisci "+face.label} onClick={()=>setZoom(face)}
+      style={{...previewStyle,display:"block",cursor:"zoom-in"}}>
+      <img src={face.src} alt={face.label} className="block w-full h-full"/>
+     </button>
+    </figure>)}
    </div>
+   {!proof&&!feedback&&<p role="status" className="my-4">Preparazione delle carte…</p>}
+   {zoom&&<FaceZoom face={zoom} onClose={()=>setZoom(null)}/>}
    {proof&&<p className="mt-3 text-xs" data-testid="proof-dimensions">
     Fronte: {proof.frontW} × {proof.frontH} px · Retro: {proof.backW} × {proof.backH} px
     {proof.frontW===proof.backW&&proof.frontH===proof.backH?" · Misure identiche":" · ATTENZIONE: misure diverse"}
@@ -117,6 +162,13 @@ export default function PrintPressPreview(){
     </tbody></table></div>
     <p className="mt-2">Misura del tratto dorato rettilineo, non del filetto aggiunto. Gemme inferiori spostate intere, senza ingrandimento.</p>
    </div>}
+   {proof?.matched&&<fieldset className="mt-6">
+    <legend className="mx-auto text-sm mb-2">Fronte da esportare in PNG e PDF</legend>
+    {[["Originale v18",false],["Oro brunito",true]].map(([label,value])=>
+     <label key={label} className="mx-2 inline-flex items-center gap-2 text-sm">
+      <input type="radio" name="export-finish" checked={matched===value} disabled={busy} onChange={()=>setMatched(value)}/>{label}
+     </label>)}
+   </fieldset>}
    <div className="flex flex-wrap justify-center gap-3 mt-6">
     <button disabled={busy||!proof} onClick={()=>download(true)} className="border border-gold bg-gold text-obsidian px-4 py-3 text-sm">SCARICA PDF TIPOGRAFIA</button>
     <button disabled={busy||!proof} onClick={()=>download(false)} className="border border-gold px-4 py-3 text-sm">SCARICA PDF A4 FRONTE/RETRO</button>

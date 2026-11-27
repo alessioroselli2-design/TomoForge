@@ -1,17 +1,18 @@
 import fs from "fs";
 import path from "path";
-import {BRONZE_MASTER_URL,bronzeTrimColor} from "./frameColorProof";
-test("standalone proof artwork is a full-size lossless WebP",()=>{
- const b=fs.readFileSync(path.resolve(process.cwd(),"public"+BRONZE_MASTER_URL));
- expect(b.toString("ascii",0,4)).toBe("RIFF");
- expect(b.toString("ascii",8,16)).toBe("WEBPVP8L");
- const packed=b.readUInt32LE(21);
- expect((packed&16383)+1).toBe(2040);
- expect(((packed>>>14)&16383)+1).toBe(2856);
+import {ARMOR_METAL_LAYER, bronzeTrimColor} from "./frameColorProof";
+import palette from "./armorProofPalette.json";
+
+test("armour colour separation is a native-size lossless layer with alpha",()=>{
+ const bytes=fs.readFileSync(path.resolve(process.cwd(),"public"+ARMOR_METAL_LAYER));
+ expect(bytes.toString("ascii",8,16)).toBe("WEBPVP8L");
+ const packed=bytes.readUInt32LE(21);
+ expect([(packed&16383)+1,((packed>>>14)&16383)+1]).toEqual([2040,2856]);
+ expect((packed>>>28)&1).toBe(1);
 });
-test("synthetic trim maps continuously from black to warm bronze",()=>{
- expect(bronzeTrimColor(0,0,0)).toEqual([0,0,0]);
- expect(bronzeTrimColor(255,255,255)).toEqual([250,201,119]);
- const a=bronzeTrimColor(180,180,180);
- expect(a).toEqual([203,133,53]);
+
+test("the exterior trim uses the same shadow, midtone and highlight samples as the engraving",()=>{
+ palette.knots.forEach((value,i)=>{
+  expect(bronzeTrimColor(value,value,value)).toEqual(palette.colors[i]);
+ });
 });

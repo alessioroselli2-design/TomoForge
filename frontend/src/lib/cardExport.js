@@ -503,13 +503,8 @@ async function renderApprovedCategory(element,proofBackground=null){
   return canvas;
  }finally{stage.remove();}
 }
-// Only the read-only armour comparison page uses this alternate artwork.
-export function renderArmorMasterProof(element,background){
- if(!background||!element?.querySelector?.('[data-front-category="armor"]'))throw new Error("Prova Armatura non disponibile");
- return renderApprovedCategory(element,background);
-}
 // Existing renderer remains untouched for Class, Monster and all other types.
-async function renderRawCardCanvas(element,card){
+async function renderRawCardCanvas(element,card,frontLayers){
  if(!element)throw new Error("Card render unavailable");
  await waitForImages(element);
  if(document.fonts?.ready)await document.fonts.ready;
@@ -526,12 +521,13 @@ async function renderRawCardCanvas(element,card){
    return renderApprovedRace(element,card);
  if(["feat","item","weapon","armor"].includes(card?.type) &&
    (element.matches?.('[data-category-master="approved"]')||element.querySelector?.('[data-category-master="approved"]')))
-   return renderApprovedCategory(element);
+   return renderApprovedCategory(element,frontLayers?.background);
  return renderApprovedMaster(element,card);
 }
 
-export async function renderCardCanvas(element,card){
- const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card),card?.type);
+export async function renderCardCanvas(element,card,frontLayers){
+ if(frontLayers && (card?.type!=="armor" || card.name!=="Cotta di Maglia"))throw new Error("Prova riservata alla Cotta di Maglia");
+ const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card,frontLayers),card?.type,frontLayers?.trim);
  if (["monster","character"].includes(card?.type)) {
    const emblem = getFrontEmblem(card);
    if (emblem) {
@@ -573,7 +569,7 @@ export async function renderCardBackCanvas(card) {
 
 // These adapters keep the user-facing export routes on the same dedicated
 // canvas path as the regression tests, rather than reintroducing DOM capture.
-export const createCardPng = (element, card) => renderCardCanvas(element, card);
+export const createCardPng = renderCardCanvas;
 export const createCardBackPng = (card) => renderCardBackCanvas(card);
 
 export async function addSingleCardPdfPages(pdf, element, card) {
@@ -587,18 +583,18 @@ export async function addSingleCardPdfPages(pdf, element, card) {
   return { front, back };
 }
 
-export async function addPrintSheetCard(pdf, element, card, bounds, back = false) {
+export async function addPrintSheetCard(pdf, element, card, bounds, back = false, frontLayers) {
   const canvas = back
     ? await renderCardBackCanvas(card)
-    : await renderCardCanvas(element, card);
+    : await renderCardCanvas(element, card, frontLayers);
   pdf.addImage(canvas.toDataURL("image/png"), "PNG", bounds.x, bounds.y, bounds.w, bounds.h);
   drawCutGuides(pdf,bounds);
   return canvas;
 }
 
-export async function addSingleCardA4PdfPages(pdf, element, card) {
+export async function addSingleCardA4PdfPages(pdf, element, card, frontLayers) {
   setA4PrintPreferences(pdf,true);
-  const front = await addPrintSheetCard(pdf, element, card, SINGLE_CARD_A4_BOUNDS);
+  const front = await addPrintSheetCard(pdf, element, card, SINGLE_CARD_A4_BOUNDS, false, frontLayers);
   pdf.addPage();
   const back = await addPrintSheetCard(pdf, null, card, SINGLE_CARD_A4_BOUNDS, true);
   return { front, back };
