@@ -16,13 +16,13 @@ describe("approved TomoForge front medal rules",()=>{
    schools.forEach((school,i)=>{
      expect(getFrontEmblem({type:"spell",attributes:{scuola:school}})).toMatchObject({
        index:27+i,sprite:"school-original",cell:640,
-       src:`/emblemi/scuole/scl-${String(i+1).padStart(2,"0")}-${school}.png`
+       src:`/emblemi/scuole-hd/scl-${String(i+1).padStart(2,"0")}-${school}-hd.png`
      });
    });
    expect(getFrontEmblem({type:"spell",attributes:{school:"Evocation"}}).src)
-     .toBe("/emblemi/scuole/scl-06-invocazione.png");
+     .toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
    expect(getFrontEmblem({type:"spell",attributes:{school:"Conjuration"}}).src)
-     .toBe("/emblemi/scuole/scl-04-evocazione.png");
+     .toBe("/emblemi/scuole-hd/scl-04-evocazione-hd.png");
  });
  it("renders the full school PNG with the same Class geometry in the legacy preview and export",()=>{
    const component=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
@@ -36,7 +36,7 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"})).toMatchObject({index:38,sprite:"feature-original",src:"/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png"});
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
-  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:640,sprite:"class-original"});
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi-hd/cls-05-guerriero-hd.png",cell:640,sprite:"class-original"});
  });
  it("keeps the race medal empty until a real race is selected",()=>{
    expect(getFrontEmblem({type:"race",name:"",attributes:{}})).toBeNull();
@@ -66,7 +66,7 @@ describe("approved TomoForge front medal rules",()=>{
  });
  it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
-     sprite:"class-original",src:"/emblemi/classi/cls-05-guerriero.png",cell:640
+     sprite:"class-original",src:"/emblemi/classi-hd/cls-05-guerriero-hd.png",cell:640
    });
    expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("class-original");
  });
@@ -74,7 +74,7 @@ describe("approved TomoForge front medal rules",()=>{
    const classes=["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco",
      "Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
    classes.forEach((name,index)=>{
-     const expected=`/emblemi/classi/cls-${String(index+1).padStart(2,"0")}-${name.toLowerCase()}.png`;
+     const expected=`/emblemi/classi-hd/cls-${String(index+1).padStart(2,"0")}-${name.toLowerCase()}-hd.png`;
      expect(getFrontEmblem({type:"class",name})).toMatchObject({
        index,sprite:"class-original",src:expected,
      });

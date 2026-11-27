@@ -1,3 +1,5 @@
+import { getFrontEmblem } from "./frontEmblems";
+
 // Presentation-only model for the independent Incantesimo card.
 // Never mutate imported records or infer a saving throw from a spell name.
 const SCHOOLS = [
@@ -29,8 +31,8 @@ export const spellSchool = (raw) => {
   return SCHOOLS.find(s=>slug(s)===key) || '';
 };
 export const spellSchoolAsset = raw => {
-  const index=SCHOOLS.indexOf(spellSchool(raw));
-  return index<0?'':`/emblemi/scuole/scl-${String(index+1).padStart(2,'0')}-${slug(SCHOOLS[index])}.png`;
+  const school = spellSchool(raw);
+  return school ? getFrontEmblem({type:"spell", attributes:{scuola:school}}).src : '';
 };
 // Library records may contain a printed rule block before the actual effect.
 // This parser changes only presentation: imported source remains unmodified.

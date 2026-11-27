@@ -320,7 +320,7 @@ describe("approved premium spell dice",()=>{
       .toBe("/card-art/spell-dice/d6-blank-v31.webp");
     expect(mount.querySelector(".tf-spell-damage strong")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-spell-damage")?.textContent).toBe("8d6");
-    expect(mount.querySelector(".tf-spell-school-emblem")?.getAttribute("src")).toBe("/emblemi/scuole/scl-06-invocazione.png");
+    expect(mount.querySelector(".tf-spell-school-emblem")?.getAttribute("src")).toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
     expect(mount.querySelector(".tf-class-hit-die")).toBeNull();
     await act(async()=>root.unmount());mount.remove();
   });
@@ -402,7 +402,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(approved.style.backgroundImage).toContain("/card-art/master-incantesimo-5x7-v1.webp");
    expect(approved.querySelector(".tf-spell-level")?.textContent).toContain("3");
    expect(approved.querySelector(".tf-spell-school-emblem")?.getAttribute("src"))
-     .toBe("/emblemi/scuole/scl-06-invocazione.png");
+     .toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
    expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage).toContain("master-oggetto-magico-5x7.png");
    expect(item.mount.querySelector(".tf-category-badge").textContent).toBe("Raro");
    await spell.close();await item.close();
@@ -453,7 +453,7 @@ describe("Class 5x7 uses the master image and clean emblems",()=>{
   expect(front.querySelector(".tf-v3-art-hint")).toBeNull();
   expect(front.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
   expect(front.querySelector(".tf-class-original-emblem")?.getAttribute("src"))
-   .toBe("/emblemi/classi/cls-12-mago.png");
+   .toBe("/emblemi/classi-hd/cls-12-mago-hd.png");
   expect(front.querySelectorAll(".tf-v3-sprite")).toHaveLength(0);
   expect(front.querySelector('[data-stat-label="Abilità primaria"] .tf-v6-stat-text>span').textContent)
    .toBe("Abilità Primaria");
@@ -474,7 +474,7 @@ describe("approved Incantesimo integration", () => {
     expect(front).not.toBeNull();
     expect(front.getAttribute("data-front-layout")).toBe("spell-5x7-v1");
     expect(front.querySelector(".tf-spell-school-emblem").getAttribute("src"))
-      .toBe("/emblemi/scuole/scl-01-abiurazione.png");
+      .toBe("/emblemi/scuole-hd/scl-01-abiurazione-hd.png");
     expect(front.querySelector(".tf-spell-school-medallion")).not.toBeNull();
     expect(front.querySelector(".tf-v3-medallion")).toBeNull();
     await act(async () => root.unmount());
@@ -494,7 +494,7 @@ describe("subclass shares the approved class renderer",()=>{
    expect(node.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
    expect(node.querySelector("h3").textContent).toBe("Campione");
    expect(node.querySelector(".tf-v3-titles p").textContent).toBe("Guerriero • Sottoclasse");
-   expect(node.querySelector(".tf-class-original-emblem").getAttribute("src")).toBe("/emblemi/classi/cls-05-guerriero.png");
+   expect(node.querySelector(".tf-class-original-emblem").getAttribute("src")).toBe("/emblemi/classi-hd/cls-05-guerriero-hd.png");
    expect(node.querySelector(".tf-class-hit-die").getAttribute("data-die")).toBe("d10");
    expect(node.querySelector('[data-testid="front-artwork-empty"]')).not.toBeNull();
    expect(node.querySelector(".tf-v3-desc").textContent).toBe("Descrizione specifica.");

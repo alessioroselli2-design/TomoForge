@@ -151,11 +151,12 @@ async function renderApprovedMaster(element,card) {
  // master coordinates as the CSS preview; never offset the source artwork.
  const icon=data.type==="monster" ? null : await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
-   if((data.type==="class"&&data.emblem.sprite==="class-original")||
+   if(data.emblem.sprite==="class-original"||
       (data.type==="spell"&&data.emblem.sprite==="school-original")){
      // Use the complete original square PNG, at the same size and center as the CSS card.
-     const badgeSize=width*.275;
-     ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);
+     const badgeSize = width * (data.type === "spell" ? 0.255 : 0.26);
+     const center = data.type === "character" ? MASTER_REGIONS.emblem : {x:width*.158, y:height*.101};
+     ctx.drawImage(icon,center.x-badgeSize/2,center.y-badgeSize/2,badgeSize,badgeSize);
    } else {
      const s=data.emblem,m=MASTER_REGIONS.emblem;
      drawIntegratedMedallion(ctx,icon,

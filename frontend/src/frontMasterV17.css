@@ -390,23 +390,28 @@
   display:block;width:100%!important;height:100%!important;
 }
 
-/* Class emblem: original square PNG at 27.5% of card width, centered at 15.8% / 10.1%.
-   2.05% = 15.8% - 27.5%/2; 0.2786% = 10.1% - (27.5% * 5/7)/2. */
+/* Full HD medals retain the center of each master. */
+.tf-front-master-v17[data-front-category="character"] .tf-v3-medallion[data-emblem-sprite="class-original"],
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ left:2.8%!important;top:0.814286%!important;width:26%!important;
  height:auto!important;aspect-ratio:1!important;z-index:14!important;
  overflow:visible!important;border-radius:0!important;
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
  background:transparent!important;box-shadow:none!important;filter:none!important;transform:none!important;
 }
+/* Character uses the upper-left well of the Monster master at (54,40) / 340x476. */
+.tf-front-master-v17[data-front-category="character"] .tf-v3-medallion[data-emblem-sprite="class-original"]{
+ left:2.882353%!important;top:-0.882353%!important;
+}
+.tf-front-master-v17[data-front-category="character"] .tf-class-original-emblem,
 .tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
  width:100%!important;height:100%!important;object-fit:contain!important;
  overflow:visible!important;clip-path:none!important;
  -webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;
 }
-/* A standalone school medal matches Class geometry without changing any Class rule. */
+/* Legacy spell renderer uses the same school geometry as the dedicated card. */
 .tf-front-master-v17[data-front-category="spell"] .tf-v3-medallion[data-emblem-sprite="school-original"]{
- left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ left:3.05%!important;top:0.992857%!important;width:25.5%!important;
  height:auto!important;aspect-ratio:1!important;z-index:14!important;
  overflow:visible!important;border-radius:0!important;
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;

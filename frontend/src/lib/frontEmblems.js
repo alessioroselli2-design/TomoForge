@@ -49,10 +49,12 @@ export const getFrontEmblem = (card = {}) => {
  } else if (type === "spell") {
    label = attrs.scuola || attrs.school || "";
    index = keyFor(label, SCHOOLS);
-   if (index >= 0) index += CLASSES.length + MONSTERS.length;
+   if (!Number.isInteger(index) || index < 0) return null;
+   index += CLASSES.length + MONSTERS.length;
  } else if (type === "class" || type === "subclass" || type === "character") {
    label = type === "class" ? card.name : (attrs.classe || attrs.parent_class || "");
    index = keyFor(label, CLASSES);
+   if (!Number.isInteger(index) || index < 0) return null;
  } else if (type === "feature") { index = 38; label = "Privilegi"; }
  else if (type === "feat") { index = 35; label = "Talenti"; }
  else if (type === "weapon" || type === "armor") { index = 36; label = "Armi e armature"; }
@@ -91,15 +93,15 @@ export const getFrontEmblem = (card = {}) => {
    // The 8 complete, transparent original school PNGs supersede the 44px atlas.
    // Keep the legacy atlas index for consumers that track it.
    const schoolIndex = index - CLASSES.length - MONSTERS.length;
-   const file = `scl-${String(schoolIndex+1).padStart(2,"0")}-${SCHOOLS[schoolIndex]}.png`;
+   const file = `scl-${String(schoolIndex+1).padStart(2,"0")}-${SCHOOLS[schoolIndex]}-hd.png`;
    return {sprite:"school-original",index,col:0,row:0,label,
-     src:`/emblemi/scuole/${file}`,width:640,height:640,cell:640,
+     src:`/emblemi/scuole-hd/${file}`,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  if (type === "class" || type === "subclass" || type === "character") {
-   const file = `cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}.png`;
+   const file = `cls-${String(index+1).padStart(2,"0")}-${CLASSES[index]}-hd.png`;
    return {sprite:"class-original",index,col:0,row:0,label,
-     src:`/emblemi/classi/${file}`,width:640,height:640,cell:640,
+     src:`/emblemi/classi-hd/${file}`,width:640,height:640,cell:640,
      backgroundPosition:"0% 0%",backgroundSize:"100% 100%"};
  }
  const col = index % 8, row = Math.floor(index / 8);

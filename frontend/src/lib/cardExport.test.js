@@ -123,6 +123,24 @@ describe("card export renderers", () => {
 
   const written = (canvas) => canvas.operations.filter((op) => op.name === "fillText").map((op) => op.text).join(" ");
 
+  it.each([
+    ["class", "Druido", {}, "classi-hd/cls-04-druido", .26, 340*.158, 476*.101],
+    ["subclass", "Circolo delle Stelle", {parent_class:"Druid"}, "classi-hd/cls-04-druido", .26, 340*.158, 476*.101],
+    ["character", "Alba", {classe:"Druid"}, "classi-hd/cls-04-druido", .26, 54, 40],
+    ["spell", "Luce", {school:"Evocation"}, "scuole-hd/scl-06-invocazione", .255, 340*.158, 476*.101],
+  ])("prints the full HD %s emblem at its original center", async (type,name,attributes,asset,ratio,cx,cy) => {
+    const front = await createCardPng(makeExportElement(), {type,name,attributes});
+    const draws = front.operations.filter(op => op.name === "drawImage" && op.args[0]?.src === `/emblemi/${asset}-hd.png`);
+    expect(draws).toHaveLength(1);
+    const [image,x,y,w,h] = draws[0].args;
+    expect(draws[0].args).toHaveLength(5);
+    expect(image.complete).toBe(true);
+    expect(w).toBeCloseTo(340*ratio);
+    expect(h).toBeCloseTo(w);
+    expect(x+w/2).toBeCloseTo(cx);
+    expect(y+h/2).toBeCloseTo(cy);
+  });
+
   it("renders new monster front with its six abilities, sourced stats and actual dice formula", async () => {
     const card = {
       id: "drago", type: "monster", name: "Drago Cremisi",

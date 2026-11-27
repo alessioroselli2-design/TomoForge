@@ -104,10 +104,10 @@ describe("shared Monster master across every front",()=>{
 });
 
 describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
- it("centers the 27.5% original class emblem above the master ring",()=>{
+ it("centers the 26% HD class emblem above the master ring",()=>{
    const medalRules=finalMaster.split('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{');
    expect(medalRules).toHaveLength(2);
-   expect(finalMaster).toContain('left:2.05%!important;top:0.2786%!important;width:27.5%!important;');
+   expect(finalMaster).toContain('left:2.8%!important;top:0.814286%!important;width:26%!important;');
    expect(finalMaster).toContain('height:auto!important;aspect-ratio:1!important;z-index:14!important;');
    expect(finalMaster).toContain('overflow:visible!important;border-radius:0!important;');
    expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;clip-path:none!important;');
@@ -116,7 +116,7 @@ describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
    expect(finalMaster).toContain('overflow:visible!important;clip-path:none!important;');
    expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;filter:none!important;');
    expect(finalMaster).toContain('-webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;');
-   expect(exporter).toContain('const badgeSize=width*.275;');
+   expect(exporter).toContain('const badgeSize = width * (data.type === "spell" ? 0.255 : 0.26);');
    expect(exporter).toContain('const diameter=width*.283,x=width*.833,y=height*.762;');
    expect(exporter).toContain('ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);');
    expect(exporter).not.toContain('sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
