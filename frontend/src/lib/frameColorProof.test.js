@@ -1,27 +1,22 @@
-import {reverseAccent,isOrnamentRegion,tintOrnamentPixels} from "./frameColorProof";
-test("actual reverse color determines the accent",()=>{
- const p=new Uint8ClampedArray(40*40*4);
- for(let i=0;i<p.length;i+=4)p.set([15,160,255,255],i);
- const a=reverseAccent(p,40,40);
- expect(a.h).toBeGreaterThan(190);expect(a.h).toBeLessThan(220);
+import {isGold,isOrnamentRegion,sampleRail,tintGoldRailPixels} from "./frameColorProof";
+test("samples the exterior gold rather than interior art",()=>{
+ const w=100,h=140,p=new Uint8ClampedArray(w*h*4);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)p.set(x<8||x>92?[181,115,49,255]:[250,210,40,255],4*(y*w+x));
+ const a=sampleRail(p,w,h);
+ expect(a.v).toBe(181);
+ expect(a.h).toBeCloseTo(30,0);
 });
-test("art, both upper emblems and lower dice are protected",()=>{
- expect(isOrnamentRegion(.16,.10,"class")).toBe(false);
- expect(isOrnamentRegion(.83,.10,"spell")).toBe(false);
- expect(isOrnamentRegion(.5,.3,"monster")).toBe(false);
- expect(isOrnamentRegion(.83,.76,"class")).toBe(false);
- expect(isOrnamentRegion(.03,.6,"class")).toBe(true);
-});
-test("tints ruby but not gold, parchment or the protected image",()=>{
+test("only gold on the outer rail changes; rubies, parchment and medallions are protected",()=>{
  const w=100,h=140,p=new Uint8ClampedArray(w*h*4);
  const at=(x,y)=>4*(y*w+x);
- p.set([220,20,30,255],at(3,60));
- p.set([220,160,40,255],at(4,60));
- p.set([245,220,180,255],at(5,60));
- p.set([220,20,30,255],at(50,42));
- tintOrnamentPixels(p,w,h,{h:205,s:.85},"monster");
- expect(p[at(3,60)+2]).toBeGreaterThan(p[at(3,60)]);
- expect(Array.from(p.slice(at(4,60),at(4,60)+4))).toEqual([220,160,40,255]);
- expect(Array.from(p.slice(at(5,60),at(5,60)+4))).toEqual([245,220,180,255]);
- expect(Array.from(p.slice(at(50,42),at(50,42)+4))).toEqual([220,20,30,255]);
+ const gold=[245,192,65,255],ruby=[218,20,27,255],paper=[245,220,180,255];
+ const keep=[[3,70,ruby],[3,90,paper],[16,10,gold],[83,10,gold],[50,42,gold],[50,80,gold],[5,70,gold]];
+ for(const [x,y,c] of keep)p.set(c,at(x,y));
+ p.set(gold,at(3,110));
+ expect(isGold(...ruby)).toBe(false);
+ expect(isOrnamentRegion(.16,.07)).toBe(false);
+ const count=tintGoldRailPixels(p,w,h,{h:42,s:.73,v:245},{h:32,s:.73,v:181});
+ expect(count).toBeGreaterThan(0);
+ for(const [x,y,c] of keep.filter(([x,y])=>x!==5||y!==70))expect(Array.from(p.slice(at(x,y),at(x,y)+4))).toEqual(c);
+ expect(p[at(3,110)]).toBeLessThan(245);
 });

@@ -2,10 +2,8 @@ import React from "react";
 import jsPDF from "jspdf";
 import { CardFront } from "@/components/TradingCard";
 import { getCornerPreviewRadius } from "@/lib/pressGeometry";
-import { PRESS_SPEC, addPressFace } from "@/lib/pressExport";
-import { SINGLE_CARD_A4_BOUNDS, createCardPng, createCardBackPng } from "@/lib/cardExport";
-import { drawCutGuides } from "@/lib/cardPrintGeometry";
-import { setA4PrintPreferences } from "@/lib/printFormats";
+import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
+import { addSingleCardA4PdfPages, createCardPng, createCardBackPng } from "@/lib/cardExport";
 import { createFrameColorProof } from "@/lib/frameColorProof";
 
 const SAMPLES=[
@@ -30,7 +28,7 @@ const SAMPLES=[
  {type:"character",name:"Personaggio · Argento",back:{variant:"silver"},attributes:{classe:"Druido",livello:"5"}},
 ];
 export default function PrintPressPreview(){
- const [index,setIndex]=React.useState(0);
+ const [index,setIndex]=React.useState(()=>SAMPLES.findIndex(s=>s.name==="Cotta di Maglia"));
  const [busy,setBusy]=React.useState(false);
  const [feedback,setFeedback]=React.useState("");
  const [proof,setProof]=React.useState(null);
@@ -46,43 +44,30 @@ export default function PrintPressPreview(){
     const front=await createCardPng(ref.current,card);
     const back=await createCardBackPng(card);
     if(!active)return;
-    const variant=createFrameColorProof(front,back,card);
-    if(active)setProof({originalCanvas:front,matchedCanvas:variant.canvas,backCanvas:back,matched:variant.canvas.toDataURL("image/png"),accent:variant.accent,front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge});
+    const variant=card.name==="Cotta di Maglia"?createFrameColorProof(front,back):null;
+    if(active)setProof({matched:variant?.canvas.toDataURL("image/png"),color:variant?.color,changed:variant?.changed,front:front.toDataURL("image/png"),back:back.toDataURL("image/png"),frontW:front.width,frontH:front.height,backW:back.width,backH:back.height,frame:front.frameMeasurements,heading:front.exportHeading,badge:front.exportBadge});
    }catch(error){if(active)setFeedback("Anteprima non disponibile: "+(error?.message||"riprova"));}
   })();
   return()=>{active=false;};
  },[card]);
  async function download(press){
-  if(!proof||busy)return;
+  if(!ref.current||busy)return;
   setBusy(true);setFeedback("Preparazione del PDF…");
   try{
    const format=press?[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight]:"a4";
    const pdf=new jsPDF({orientation:"portrait",unit:"mm",format,compress:true});
-   const front=matched?proof.matchedCanvas:proof.originalCanvas;
-   const back=proof.backCanvas;
-   if(press){
-    addPressFace(pdf,front);
-    pdf.addPage([PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],"portrait");
-    addPressFace(pdf,back);
-   }else{
-    setA4PrintPreferences(pdf,true);
-    const bounds=SINGLE_CARD_A4_BOUNDS;
-    for(const [i,canvas] of [front,back].entries()){
-     if(i)pdf.addPage();
-     pdf.addImage(canvas.toDataURL("image/png"),"PNG",bounds.x,bounds.y,bounds.w,bounds.h);
-     drawCutGuides(pdf,bounds);
-    }
-   }
+   if(press)await addPressCardPages(pdf,ref.current,card);
+   else await addSingleCardA4PdfPages(pdf,ref.current,card);
    pdf.save("tomeforge-prova-"+(press?"tipografia":"a4")+"-"+card.type+".pdf");
    setFeedback("PDF generato. Aprilo da File e controlla entrambe le pagine.");
   }catch(error){setFeedback("Errore di esportazione: "+(error?.message||"riprova"));}
   finally{setBusy(false);}
  }
  async function downloadPng(back){
-  if(!proof||busy)return;
+  if(!ref.current||busy)return;
   setBusy(true);setFeedback("Preparazione PNG…");
   try{
-   const canvas=back?proof.backCanvas:matched?proof.matchedCanvas:proof.originalCanvas;
+   const canvas=back?await createCardBackPng(card):await createCardPng(ref.current,card);
    const link=document.createElement("a");
    link.download="tomeforge-prova-"+card.type+"-"+(back?"retro":"fronte")+".png";
    link.href=canvas.toDataURL("image/png");link.click();
@@ -93,7 +78,7 @@ export default function PrintPressPreview(){
  return <main className="min-h-screen bg-obsidian text-gold px-3 py-6 text-center" data-testid="print-press-preview">
   <div className="max-w-3xl mx-auto">
    <h1 className="font-display text-2xl">TomoForge · Collaudo stampa</h1>
-   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 19 · prova colore fronte/retro (solo confronto) · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
+   <p className="my-3 text-xs text-foreground/75">Anteprima PR #704 · revisione 20 · prova oro scuro della cornice (Cotta di Maglia) · stampa A4 fronte/retro · renderer reale · nessun login, nessuna modifica alla collezione.</p>
    <label className="block my-4 text-sm">Scegli una carta
     <select disabled={busy} value={index} onChange={e=>{setIndex(Number(e.target.value));setFeedback("");}} className="block mx-auto mt-2 p-2 border border-gold-deep bg-card text-foreground">
      {SAMPLES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
@@ -103,17 +88,17 @@ export default function PrintPressPreview(){
     <input type="checkbox" checked={rounded} onChange={e=>setRounded(e.target.checked)} data-testid="rounded-corners-toggle"/>
     Simula il taglio arrotondato (R 3 mm)
    </label>
-   <div className="my-4 p-3 border border-gold-deep rounded text-sm">
-    <p className="font-semibold mb-2">Confronto cromatico della cornice</p>
+   {card.name==="Cotta di Maglia"&&<div className="my-4 p-3 border border-gold-deep rounded text-sm">
+    <p className="font-semibold mb-2">Prova oro scuro · gemme rosse originali</p>
     <div className="flex flex-wrap justify-center gap-2">
      <button type="button" aria-pressed={!matched} onClick={()=>setMatched(false)} className={"border border-gold px-3 py-2 "+(!matched?"bg-gold text-obsidian":"")}>Originale · rev. 18</button>
-     <button type="button" aria-pressed={matched} onClick={()=>setMatched(true)} className={"border border-gold px-3 py-2 "+(matched?"bg-gold text-obsidian":"")}>Prova colore del retro</button>
+     <button type="button" aria-pressed={matched} onClick={()=>setMatched(true)} className={"border border-gold px-3 py-2 "+(matched?"bg-gold text-obsidian":"")}>Oro del retro · prova</button>
     </div>
-    {proof&&matched&&<p className="mt-2 flex justify-center items-center gap-2 text-xs"><span aria-hidden="true" style={{display:"inline-block",width:18,height:18,borderRadius:3,background:"hsl("+proof.accent.h+" "+Math.round(proof.accent.s*100)+"% 55%)"}}/>{proof.accent.label}</p>}
-    <p className="mt-2 text-xs">La prova modifica gli accenti rossi della cornice, non i medaglioni né la pergamena. PNG e PDF scaricabili corrispondono alla variante selezionata. L’editor resta invariato.</p>
-   </div>
+    {proof?.color&&matched&&<p className="mt-2 flex justify-center items-center gap-2 text-xs"><span aria-hidden="true" style={{display:"inline-block",width:18,height:18,borderRadius:3,background:proof.color}}/>Oro campionato dal fregio del retro</p>}
+    <p className="mt-2 text-xs">Cambia solo l’oro dei fregi esterni. Rubini e contenuti restano invariati. Le esportazioni scaricano ancora la versione originale; la prova è soltanto visiva.</p>
+   </div>}
    <div className="grid grid-cols-2 gap-2 max-w-[690px] mx-auto">
-    <div className="min-w-0"><p className="text-xs mb-2">{matched?"FRONTE · PROVA":"FRONTE · ORIGINALE"}</p><div style={previewStyle}>{proof?<img src={matched?proof.matched:proof.front} alt="Fronte realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
+    <div className="min-w-0"><p className="text-xs mb-2">{matched&&proof?.matched?"FRONTE · ORO SCURO":"FRONTE · ORIGINALE"}</p><div style={previewStyle}>{proof?<img src={matched&&proof.matched?proof.matched:proof.front} alt="Fronte della carta campione" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
     <div className="min-w-0"><p className="text-xs mb-2">RETRO</p><div style={previewStyle}>{proof?<img src={proof.back} alt="Retro realmente esportato" className="block w-full h-full"/>:<p className="text-xs">Preparazione…</p>}</div></div>
    </div>
    {proof&&<p className="mt-3 text-xs" data-testid="proof-dimensions">
