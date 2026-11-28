@@ -154,6 +154,7 @@ function OAuthCallback() {
 function App() {
   return (
     <div className="App tf-noise">
+      {window.location.hostname.endsWith("-alessio-roselli-s-projects.vercel.app")&&<div data-testid="preview-build" className="bg-amber-950 text-amber-100 text-center text-xs px-2 py-1">ANTEPRIMA TEST · STABILITÀ 705</div>}
       <BrowserRouter>
         <AuthProvider>
           <LanguageProvider>

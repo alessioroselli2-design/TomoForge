@@ -26,7 +26,7 @@ const DEMO_CARD = {
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, loading, loginWithToken } = useAuth();
+  const { user, loading, loginWithToken, authError, checkAuth } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
@@ -157,6 +157,7 @@ export default function Landing() {
             ))}
           </div>
 
+          {authError&&<div role="alert" className="mb-4 text-xs text-amber-200">Connessione alla sessione temporaneamente non disponibile. <button type="button" className="underline" onClick={checkAuth}>Riprova sessione</button></div>}
           <form onSubmit={submit} className="space-y-5">
             {mode === "register" && (
               <div>

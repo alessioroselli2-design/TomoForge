@@ -47,7 +47,7 @@ from core.config import (
     TRANSLATION_WAIT_SECONDS,
     utc_now,
 )
-from core.db import db as _singleton_db
+from core.db import db as _singleton_db, SupabaseCollection
 from core.providers import require_gemini
 from schemas.library import ReferenceImportInput, ReferenceImportResult
 
@@ -420,7 +420,7 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
 
 
 async def private_reference_records(
-    user_id: str, *, db=None, reference_types: set[str] | None = None
+    user_id: str, *, db=None, reference_types: set[str] | None = None, readiness_only: bool = False
 ) -> list[dict]:
     """Return the owner's references without silent PostgREST result truncation.
 
@@ -438,9 +438,15 @@ async def private_reference_records(
     records: list[dict] = []
     try:
         while True:
-            page = await collection.find(query).sort("id", 1).to_list(
-                page_size, offset=len(records)
-            )
+            if readiness_only and isinstance(collection, SupabaseCollection):
+                fields = "id,reference_type,source_refs,source_language,translation_status,translation_error,review_status,review_flags"
+                statement = collection.apply_filters(collection.client.table(collection.name).select(fields), query)
+                result = statement.order("id").range(len(records), len(records) + page_size - 1).execute()
+                page = result.data or []
+            else:
+                page = await collection.find(query).sort("id", 1).to_list(
+                    page_size, offset=len(records)
+                )
             records.extend(page)
             if len(page) < page_size:
                 return records

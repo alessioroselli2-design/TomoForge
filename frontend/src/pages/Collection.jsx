@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2, Wand2, Sparkles, FileText } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import { api } from "@/lib/api";
 import { CARD_TYPES } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -14,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/context/AuthContext";
-import { addPrintSheetCard } from "@/lib/cardExport";
 import { getPrintSheetPositions, PRINT_FORMATS, setA4PrintPreferences } from "@/lib/printFormats";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
@@ -80,6 +77,7 @@ export default function Collection() {
     setExportingPress(true);
     setProgress(0);
     try {
+      const [{default:jsPDF},{PRESS_SPEC,addPressCardPages}]=await Promise.all([import("jspdf"),import("@/lib/pressExport")]);
       const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],compress:true});
       for (let i=0;i<chosenCards.length;i++) {
         const card=chosenCards[i], el=cardRefs.current[card.id];
@@ -103,6 +101,7 @@ export default function Collection() {
     const { w: cardW, h: cardH, cols, rows } = PRINT_FORMATS[format];
     const perPage = cols * rows;
     try {
+      const [{default:jsPDF},{addPrintSheetCard}]=await Promise.all([import("jspdf"),import("@/lib/cardExport")]);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       setA4PrintPreferences(pdf,includeBack);
       const pages = Math.ceil(chosenCards.length / perPage);
@@ -148,7 +147,7 @@ export default function Collection() {
       const params = {};
       if (filter !== "all") params.type = filter;
       if (search.trim()) params.search = search.trim();
-      const res = await api.get("/cards", { params, signal });
+      const res = await api.get("/cards", { params, signal,timeout:15000 });
       if(!signal.aborted)setCards(res.data);
     } catch (e) {
       if(!signal.aborted)toast.error("Impossibile caricare la collezione");
@@ -210,35 +209,7 @@ export default function Collection() {
           </div>
         </section>
 
-        {user?.is_premium && (
-          <section className="mt-6" aria-label="Stato della biblioteca privata">
-            {/* Compact blocker summary — visible once coverage data has loaded */}
-            {libraryBlockers !== null && (libraryBlockers.to_review > 0 || libraryBlockers.translation_pending > 0 || libraryBlockers.missing > 0) && (
-              <div
-                data-testid="library-blocker-summary"
-                className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 border border-amber-700/45 bg-amber-950/15 px-4 py-2.5"
-              >
-                <span className="font-label text-[9px] tracking-widest text-amber-300">BIBLIOTECA NON ANCORA COMPLETA</span>
-                {libraryBlockers.to_review > 0 && (
-                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.to_review} da rivedere</span>
-                )}
-                {libraryBlockers.translation_pending > 0 && (
-                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.translation_pending} traduzion{libraryBlockers.translation_pending === 1 ? "e" : "i"} in sospeso</span>
-                )}
-                {libraryBlockers.missing > 0 && (
-                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.missing} categor{libraryBlockers.missing === 1 ? "ia" : "ie"} senza record</span>
-                )}
-              </div>
-            )}
-            <LibraryCoverageReadiness
-              defer={loading}
-              onOpenReviews={openCoverageReviews}
-              onTotalsChange={setLibraryBlockers}
-            />
-          </section>
-        )}
-
-        {/* Controls */}
+                {/* Controls */}
         <div className="mt-8 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -360,6 +331,33 @@ export default function Collection() {
             </div>
           )}
         </div>
+        {user?.is_premium && (
+          <section className="mt-6" aria-label="Stato della biblioteca privata">
+            {/* Compact blocker summary — visible once coverage data has loaded */}
+            {libraryBlockers !== null && (libraryBlockers.to_review > 0 || libraryBlockers.translation_pending > 0 || libraryBlockers.missing > 0) && (
+              <div
+                data-testid="library-blocker-summary"
+                className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 border border-amber-700/45 bg-amber-950/15 px-4 py-2.5"
+              >
+                <span className="font-label text-[9px] tracking-widest text-amber-300">BIBLIOTECA NON ANCORA COMPLETA</span>
+                {libraryBlockers.to_review > 0 && (
+                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.to_review} da rivedere</span>
+                )}
+                {libraryBlockers.translation_pending > 0 && (
+                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.translation_pending} traduzion{libraryBlockers.translation_pending === 1 ? "e" : "i"} in sospeso</span>
+                )}
+                {libraryBlockers.missing > 0 && (
+                  <span className="font-body text-[11px] text-amber-200">{libraryBlockers.missing} categor{libraryBlockers.missing === 1 ? "ia" : "ie"} senza record</span>
+                )}
+              </div>
+            )}
+            <LibraryCoverageReadiness
+              defer={loading}
+              onOpenReviews={openCoverageReviews}
+              onTotalsChange={setLibraryBlockers}
+            />
+          </section>
+        )}
       </main>
 
       {/* Floating export bar */}
