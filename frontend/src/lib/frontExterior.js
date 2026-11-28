@@ -22,7 +22,7 @@ export function perimeterPoint(k,w,h){
  k-=b;if(k<a)return [a-k,b];
  k-=a;return [0,b-k];
 }
-export function traceOuterRail(p,w,h){
+export function traceOuterRail(p,w,h,detect=gold){
  const cx=(w-1)/2,cy=(h-1)/2,len=2*(w+h-2);
  const ray=new Float32Array(len);
  for(let k=0;k<len;k++){
@@ -30,7 +30,7 @@ export function traceOuterRail(p,w,h){
   const dx=ex-cx,dy=ey-cy,steps=Math.max(Math.abs(dx),Math.abs(dy));
   for(let n=0;n<=Math.ceil(steps*(1-SEARCH));n++){
    const t=1-n/steps,x=Math.round(cx+dx*t),y=Math.round(cy+dy*t);
-   if(gold(p,4*(y*w+x))){ray[k]=t;break;}
+   if(detect(p,4*(y*w+x))){ray[k]=t;break;}
   }
  }
  const original=ray.slice();
@@ -86,9 +86,26 @@ export function roundedTrimDistance(x,y,w,h){
  const d=r-Math.hypot(Math.max(qx,0),Math.max(qy,0))-Math.min(Math.max(qx,qy),0);
  return Math.abs(d)<1e-8?0:d;
 }
-export function exteriorAlpha(p,w,h){
+// A gold-only ray can fall between the narrow highlights of a sculpted
+// ornament. Protect pale metal highlights as well as gold, then use the
+// outer envelope of adjacent rays, including the carved dark outline.
+// Never derive this boundary from recoloured pixels or dynamic contents.
+const ornamentHighlight=(p,i)=>gold(p,i)||
+ (p[i]>155&&p[i+1]>115&&p[i]>=p[i+1]*.94&&p[i+2]>p[i+1]*.84)||
+ (p[i]>160&&p[i+2]>95&&p[i+2]>p[i+1]*.95);
+export function safeExteriorTrace(p,w,h){
+ const raw=traceOuterRail(p,w,h,ornamentHighlight),len=raw.length;
+ const span=Math.max(2,Math.round(w*.012)),trace=new Float32Array(len);
+ for(let k=0;k<len;k++){
+  let far=raw[k];
+  for(let j=-span;j<=span;j++)far=Math.max(far,raw[(k+j+len)%len]);
+  trace[k]=far;
+ }
+ return trace;
+}
+export function exteriorAlpha(p,w,h,artwork=p){
  const cx=(w-1)/2,cy=(h-1)/2,a=w-1,b=h-1;
- const trace=traceOuterRail(p,w,h),len=trace.length,profile=sampleRailProfile(p,w,h);
+ const trace=safeExteriorTrace(artwork,w,h),railTrace=traceOuterRail(p,w,h),len=trace.length,profile=sampleRailProfile(p,w,h);
  const width=Math.max(2,w*.009),shadow=[44,17,6];
  const result=new Uint8ClampedArray(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
@@ -97,11 +114,14 @@ export function exteriorAlpha(p,w,h){
   const ex=clamp(cx+dx/t,0,a),ey=clamp(cy+dy/t,0,b);
   const k=Math.abs(dy)/cy>=Math.abs(dx)/cx?(dy<0?ex:a+b+(a-ex)):(dx>0?a+ey:2*a+b+(b-ey));
   const k0=Math.floor(k)%len,k1=(k0+1)%len;
-  const edge=trace[k0]+(trace[k1]-trace[k0])*(k-Math.floor(k));
-  const i=4*(y*w+x),guard=1/Math.max(Math.abs(ex-cx),Math.abs(ey-cy));
-  // No original pixels within the traced ornament contour are resampled.
-  if(t<=edge+guard||gold(p,i))continue;
   const d=roundedTrimDistance(x,y,w,h);
+  // Keep the established outer double rail. Beyond it, the dark matte must
+  // stay outside the full ornamental silhouette, not just the gold cores.
+  const contour=d<width?railTrace:trace;
+  const edge=contour[k0]+(contour[k1]-contour[k0])*(k-Math.floor(k));
+  const i=4*(y*w+x),step=1/Math.max(Math.abs(ex-cx),Math.abs(ey-cy));
+  const guard=d<width?step:Math.max(2,w*.003)*step;
+  if(t<=edge+guard||gold(p,i)||ornamentHighlight(artwork,i))continue;
   const z=clamp(d/Math.max(1,width-1),0,1)*(profile.length-1),j=Math.floor(z),frac=z-j;
   const col=profile[j].map((v,q)=>v*(1-frac)+profile[Math.min(j+1,profile.length-1)][q]*frac);
   const blend=d<0?0:clamp(width-d,0,1);
@@ -241,17 +261,24 @@ export function getFrontExteriorMask(type) {
    }
    const correctedPixels=corrected===master?rgba:corrected.getContext("2d").getImageData(0,0,W,H);
    const after=measureFrameRails(correctedPixels.data,W,H);
+   // The restored master is the exact artwork being rendered. Trace it
+   // after the same approved slices/plan, retaining original rail profile
+   // and all existing geometry measurements.
+   const restored=await loadMaster(restoredFrontMaster(spec.src));
+   const native=prepareNativeMaster(restored,plan);
+   const contourCanvas=document.createElement("canvas");contourCanvas.width=W;contourCanvas.height=H;
+   const contourCtx=contourCanvas.getContext("2d");
+   contourCtx.imageSmoothingEnabled=true;contourCtx.imageSmoothingQuality="high";
+   contourCtx.drawImage(native,0,0,W,H);
+   if(spec.legacy)frontMasterSlices(spec.type).forEach(s=>contourCtx.drawImage(native,0,s.sourceY*native.height,native.width,s.sourceH*native.height,0,s.y*H,W,s.h*H));
+   const contourPixels=contourCtx.getImageData(0,0,W,H).data;
    const mask=document.createElement("canvas");mask.width=W;mask.height=H;
    const out=mask.getContext("2d"),data=out.createImageData(W,H);
-   data.data.set(exteriorAlpha(correctedPixels.data,W,H));out.putImageData(data,0,0);
+   data.data.set(exteriorAlpha(correctedPixels.data,W,H,contourPixels));out.putImageData(data,0,0);
    // Measure and trace the ORIGINAL at the established trim resolution;
    // apply the identical correction to the restored double-resolution source.
    mask.frameBackground=null;
-   if(plan){
-     const restored=await loadMaster(restoredFrontMaster(spec.src));
-     const high=prepareNativeMaster(restored,plan);
-     mask.frameBackground=high.toDataURL("image/png");
-   }
+   if(plan)mask.frameBackground=native.toDataURL("image/png");
    mask.bottomPlan=plan;
    mask.frameMeasurements={before,after,reference,delta:plan?.delta||0,width:W,height:H};
    return mask;

@@ -1,4 +1,4 @@
-import {exteriorAlpha,frontMaskSource,traceOuterRail,perimeterPoint,sampleRailProfile,roundedTrimDistance,measureFrameRails,bottomRailPlan} from "./frontExterior";
+import {safeExteriorTrace,exteriorAlpha,frontMaskSource,traceOuterRail,perimeterPoint,sampleRailProfile,roundedTrimDistance,measureFrameRails,bottomRailPlan} from "./frontExterior";
 
 function sample(){
  const w=201,h=281,p=new Uint8ClampedArray(w*h*4);
@@ -59,4 +59,16 @@ it("measures the ornamental rails rather than the canvas and extends only a blan
  expect(plan.delta).toBe(8);
  expect(plan.y+plan.band).toBeLessThan(263);
  expect(bottomRailPlan(p,w,h,m,m)).toBeNull();
+});
+
+it("does not paint the matte over a pale highlight or the adjoining carved outline",()=>{
+ const {w,h,p}=sample(),artwork=p.slice();
+ const set=(x,y,col)=>artwork.set([...col,255],4*(y*w+x));
+ // The low-resolution reference misses a narrow protruding restored highlight.
+ set(3,100,[251,225,207]);set(4,101,[67,39,20]);
+ const a=exteriorAlpha(p,w,h,artwork);
+ expect(a[4*(100*w+3)+3]).toBe(0);
+ expect(a[4*(101*w+4)+3]).toBe(0);
+ expect(a[4*(70*w)+3]).toBe(255);
+ expect(safeExteriorTrace(artwork,w,h).length).toBe(2*(w+h-2));
 });
