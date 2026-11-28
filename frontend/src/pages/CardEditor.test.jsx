@@ -114,7 +114,7 @@ describe("CardEditor preload dashboard", () => {
     container.remove();
   });
 
-  it("shows preload status per manual and fires POST /library/preload once", async () => {
+  it("shows completed manual status without redundant preload", async () => {
     api.get.mockImplementation((path) => {
       if (path === "/library/manuals") {
         return Promise.resolve({
@@ -152,7 +152,7 @@ describe("CardEditor preload dashboard", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    expect(api.post).toHaveBeenCalledWith("/library/preload");
+    expect(api.post).not.toHaveBeenCalledWith("/library/preload");
     expect(container.querySelector('[data-testid="preload-dashboard"]')).not.toBeNull();
     expect(container.textContent).toContain("Manuale del Giocatore");
     expect(container.textContent).toContain("COMPLETATO");
@@ -511,9 +511,9 @@ describe("CardEditor preload dashboard", () => {
     // The initial state should show the job as in-progress
     expect(container.textContent).toContain("ELABORAZIONE IN CORSO");
 
-    // Advance the 3000 ms polling setTimeout so loadLibraryManuals fires again
+    // Advance the 15-second active polling interval.
     await act(async () => {
-      jest.advanceTimersByTime(3000);
+      jest.advanceTimersByTime(15000);
     });
 
     // Flush the promise chain from the second API call

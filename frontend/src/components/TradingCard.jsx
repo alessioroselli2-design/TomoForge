@@ -8,7 +8,7 @@ import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { backImageStyle, frontMasterSlices, frontMasterSliceStyle } from "@/lib/cardPrintGeometry";
 import { getFrontExteriorMask } from "@/lib/frontExterior";
-import { getMetalPresentation } from "@/lib/frameColorProof";
+import { getMetalPresentation, getStaticMetalPresentation } from "@/lib/frameColorProof";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
@@ -204,18 +204,20 @@ ApprovedCardFront.displayName="ApprovedCardFront";
 
 export const CardFront=React.forwardRef((props,ref)=>{
  const type=props.card?.type;
- const [mask,setMask]=React.useState(null);
+ const [dynamicMask,setMask]=React.useState(null);
+ const staticMask=props.exportMode?null:getStaticMetalPresentation(type);
+ const mask=staticMask||(dynamicMask?.type===type?dynamicMask.value:null);
  React.useEffect(()=>{
   let alive=true;setMask(null);
   // The offscreen exporter applies the same mask after rendering.
-  if(!props.exportMode)(async()=>{
+  if(!props.exportMode&&!staticMask)(async()=>{
    const approved=await getMetalPresentation(type);
-   if(approved){if(alive)setMask(approved);return;}
+   if(approved){if(alive)setMask({type,value:approved});return;}
    const c=await getFrontExteriorMask(type);
-   if(alive&&c)setMask({src:c.toDataURL("image/png"),background:c.frameBackground});
+   if(alive&&c)setMask({type,value:{src:c.toDataURL("image/png"),background:c.frameBackground}});
   })().catch(()=>{});
   return()=>{alive=false;};
- },[type,props.exportMode]);
+ },[type,props.exportMode,staticMask]);
  const frame = mask && <img src={mask.src} alt="" aria-hidden="true" draggable={false}
    style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>;
  return <div className={"relative w-full h-full overflow-hidden"+(mask?.background?" tf-frame-corrected":"")} style={mask?.background?{"--tf-print-master":`url("${mask.background}")`}:undefined} data-front-edge="expanded-original-rail">

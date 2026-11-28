@@ -676,9 +676,12 @@ export default function CardEditor() {
     }
   };
 
+  const manualRequest=useRef(null);
   const loadLibraryManuals = useCallback(async () => {
     if (!user?.is_premium) return;
+    if(manualRequest.current)return manualRequest.current;
     setLoadingManuals(true);
+    const pending=(async()=>{
     try {
       const res = await api.get("/library/manuals");
       setLibraryManuals(res.data.manuals || []);
@@ -687,6 +690,9 @@ export default function CardEditor() {
     } finally {
       setLoadingManuals(false);
     }
+    })();
+    manualRequest.current=pending;
+    try{return await pending;}finally{if(manualRequest.current===pending)manualRequest.current=null;}
   }, [user?.is_premium]);
 
   useEffect(() => { loadLibraryManuals(); }, [loadLibraryManuals]);
@@ -696,6 +702,7 @@ export default function CardEditor() {
     if (!user?.is_premium || preloadFired || loadingManuals) return;
     if (libraryManuals.length === 0) return;
     setPreloadFired(true);
+    if(libraryManuals.every(manual=>manual.job?.status==="completed"))return;
     api.post("/library/preload")
       .then((response) => {
         if (Array.isArray(response.data?.manuals)) {
@@ -715,8 +722,9 @@ export default function CardEditor() {
         (m.records_translation_pending > 0)
     );
     if (!active) return undefined;
-    const id = window.setTimeout(() => { loadLibraryManuals(); }, 3000);
-    return () => window.clearTimeout(id);
+    const running=libraryManuals.some(m=>["queued","processing"].includes(m.job?.status));
+    const id=window.setInterval(()=>{if(document.visibilityState!=="hidden")loadLibraryManuals();},running?15000:60000);
+    return () => window.clearInterval(id);
   }, [libraryManuals, loadLibraryManuals]);
 
   useEffect(() => {

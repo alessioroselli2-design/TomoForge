@@ -66,13 +66,13 @@ export default function Collection() {
   const totalSteps = chosenCards.length * (exportingPress || includeBack ? 2 : 1);
   const perPage = PRINT_FORMATS[format].cols * PRINT_FORMATS[format].rows;
 
-  const openCoverageReviews = (types, sourceFilename) => {
+  const openCoverageReviews = useCallback((types, sourceFilename) => {
     const params = new URLSearchParams({
       types,
       ...(sourceFilename ? { source: sourceFilename } : {}),
     });
     navigate(`/revisioni?${params.toString()}`);
-  };
+  },[navigate]);
 
   const exportPressDeck = async () => {
     if (!chosenCards.length || exporting) return;
@@ -231,6 +231,7 @@ export default function Collection() {
               </div>
             )}
             <LibraryCoverageReadiness
+              defer={loading}
               onOpenReviews={openCoverageReviews}
               onTotalsChange={setLibraryBlockers}
             />
