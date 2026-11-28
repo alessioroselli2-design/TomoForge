@@ -6,6 +6,7 @@ import logging
 import re
 import time
 import uuid
+from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Optional
@@ -134,13 +135,18 @@ def manual_source_duplicate_of(
 
 def manual_page_count(path: Path) -> Optional[int]:
     try:
-        import pymupdf as fitz
-        document = fitz.open(path)
-        page_count = len(document)
-        document.close()
-        return page_count
+        stat = path.stat()
+        return _cached_manual_page_count(str(path), stat.st_size, stat.st_mtime_ns)
     except Exception:
         return None
+
+
+@lru_cache(maxsize=128)
+def _cached_manual_page_count(path: str, size: int, modified_ns: int) -> int:
+    # File metadata is part of the cache key, so changed PDFs are reread.
+    import pymupdf as fitz
+    with fitz.open(path) as document:
+        return len(document)
 
 
 def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
@@ -441,7 +447,7 @@ async def private_reference_records(
             if readiness_only and isinstance(collection, SupabaseCollection):
                 fields = "id,reference_type,source_refs,source_language,translation_status,translation_error,review_status,review_flags"
                 statement = collection.apply_filters(collection.client.table(collection.name).select(fields), query)
-                result = statement.order("id").range(len(records), len(records) + page_size - 1).execute()
+                result = await asyncio.to_thread(statement.order("id").range(len(records), len(records) + page_size - 1).execute)
                 page = result.data or []
             else:
                 page = await collection.find(query).sort("id", 1).to_list(
