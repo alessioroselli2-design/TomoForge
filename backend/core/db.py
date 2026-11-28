@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import logging
 from typing import Any, Optional
@@ -30,7 +31,7 @@ class SupabaseCursor:
         statement = self.collection.apply_filters(statement, self.query)
         for field, descending in self.order_fields:
             statement = statement.order(field, desc=descending)
-        result = statement.range(offset, offset + limit - 1).execute()
+        result = await asyncio.to_thread(statement.range(offset, offset + limit - 1).execute)
         return [self.collection.apply_projection(row, self.projection) for row in (result.data or [])]
 
 
@@ -172,29 +173,29 @@ class SupabaseCollection:
 
     async def find_one(self, query: dict, projection: Optional[dict] = None) -> Optional[dict]:
         statement = self.apply_filters(self.client.table(self.name).select("*"), query)
-        result = statement.limit(1).execute()
+        result = await asyncio.to_thread(statement.limit(1).execute)
         if not result.data:
             return None
         return self.apply_projection(result.data[0], projection)
 
     async def insert_one(self, document: dict) -> None:
-        self.client.table(self.name).insert(document).execute()
+        await asyncio.to_thread(self.client.table(self.name).insert(document).execute)
 
     async def insert_many(self, documents: list[dict]) -> None:
         if documents:
-            self.client.table(self.name).insert(documents).execute()
+            await asyncio.to_thread(self.client.table(self.name).insert(documents).execute)
 
     async def update_one(self, query: dict, update: dict) -> UpdateResult:
         changes = update.get("$set", update)
         statement = self.apply_filters(self.client.table(self.name).update(changes), query)
         # `users` is keyed by `user_id`; every other collection currently
         # exposes the conventional `id` primary key.
-        result = statement.select("user_id" if self.name == "users" else "id").execute()
+        result = await asyncio.to_thread(statement.select("user_id" if self.name == "users" else "id").execute)
         return UpdateResult(len(result.data or []))
 
     async def delete_one(self, query: dict) -> UpdateResult:
         statement = self.apply_filters(self.client.table(self.name).delete(), query)
-        result = statement.execute()
+        result = await asyncio.to_thread(statement.execute)
         return UpdateResult(len(result.data or []))
 
     def find(self, query: dict, projection: Optional[dict] = None) -> SupabaseCursor:
