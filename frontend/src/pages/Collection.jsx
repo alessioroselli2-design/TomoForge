@@ -19,6 +19,19 @@ import { getPrintSheetPositions, PRINT_FORMATS, setA4PrintPreferences } from "@/
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
+export function DeferredCard({card}){
+ const host=useRef(null);
+ const [visible,setVisible]=useState(()=>typeof IntersectionObserver==="undefined");
+ useEffect(()=>{
+  if(visible||!host.current)return;
+  const observer=new IntersectionObserver(entries=>{
+   if(entries.some(entry=>entry.isIntersecting)){setVisible(true);observer.disconnect();}
+  },{rootMargin:"320px"});
+  observer.observe(host.current);
+  return()=>observer.disconnect();
+ },[visible]);
+ return <div ref={host} className="w-full h-full">{visible?<CardFront card={card}/>:<div aria-hidden="true" className="w-full h-full bg-card border border-gold-deep/30"/>}</div>;
+}
 export default function Collection() {
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -129,25 +142,26 @@ export default function Collection() {
     }
   };
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal) => {
     setLoading(true);
     try {
       const params = {};
       if (filter !== "all") params.type = filter;
       if (search.trim()) params.search = search.trim();
-      const res = await api.get("/cards", { params });
-      setCards(res.data);
+      const res = await api.get("/cards", { params, signal });
+      if(!signal.aborted)setCards(res.data);
     } catch (e) {
-      toast.error("Impossibile caricare la collezione");
+      if(!signal.aborted)toast.error("Impossibile caricare la collezione");
     } finally {
-      setLoading(false);
+      if(!signal.aborted)setLoading(false);
     }
   }, [filter, search]);
 
   useEffect(() => {
-    const t = setTimeout(load, 250);
-    return () => clearTimeout(t);
-  }, [load]);
+    const controller=new AbortController();
+    const t=setTimeout(()=>load(controller.signal),search.trim()?250:0);
+    return()=>{clearTimeout(t);controller.abort();};
+  }, [load,search]);
 
   return (
     <div className="min-h-screen bg-obsidian">
@@ -332,7 +346,7 @@ export default function Collection() {
                     style={{ aspectRatio: "2.5/3.5" }}
                   >
                     <div className={`w-full h-full transition-shadow duration-300 group-hover:shadow-[0_14px_40px_-8px_rgba(212,175,55,0.35)] ${selectMode && isSel ? "ring-2 ring-gold" : ""} ${selectMode && !isSel ? "opacity-70" : ""}`}>
-                      <CardFront card={card} />
+                      <DeferredCard card={card} />
                     </div>
                     {selectMode && (
                       <div className={`absolute top-2 right-2 w-7 h-7 flex items-center justify-center border-2 transition-colors ${isSel ? "bg-gold border-gold" : "bg-obsidian/70 border-gold-deep/60"}`}>

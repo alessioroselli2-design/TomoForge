@@ -4,28 +4,46 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Landing from "@/pages/Landing";
-import Collection from "@/pages/Collection";
-import CardEditor from "@/pages/CardEditor";
-import CardDetail from "@/pages/CardDetail";
-import CharacterSheet from "@/pages/CharacterSheet";
-import PublicCard from "@/pages/PublicCard";
-import PublicDescription from "@/pages/PublicDescription";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import PaymentCancel from "@/pages/PaymentCancel";
-import Admin from "@/pages/Admin";
-import ReferenceReview from "@/pages/ReferenceReview";
-import DiceMasterPreview from "@/pages/DiceMasterPreview";
-import ClassAbilityPreview from "@/pages/ClassAbilityPreview";
-import SpellCardPreview from "@/pages/SpellCardPreview";
-import FeatureCardPreview from "@/pages/FeatureCardPreview";
-import RaceCardPreview from "@/pages/RaceCardPreview";
-import CategoryCardPreview from "@/pages/CategoryCardPreview";
-import PrintPressPreview from "@/pages/PrintPressPreview";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
+import { isTemporaryAuthError } from "@/lib/authRead";
+const Collection=React.lazy(()=>import("@/pages/Collection"));
+const CardEditor=React.lazy(()=>import("@/pages/CardEditor"));
+const CardDetail=React.lazy(()=>import("@/pages/CardDetail"));
+const CharacterSheet=React.lazy(()=>import("@/pages/CharacterSheet"));
+const PublicCard=React.lazy(()=>import("@/pages/PublicCard"));
+const PublicDescription=React.lazy(()=>import("@/pages/PublicDescription"));
+const PaymentSuccess=React.lazy(()=>import("@/pages/PaymentSuccess"));
+const PaymentCancel=React.lazy(()=>import("@/pages/PaymentCancel"));
+const Admin=React.lazy(()=>import("@/pages/Admin"));
+const ReferenceReview=React.lazy(()=>import("@/pages/ReferenceReview"));
+const DiceMasterPreview=React.lazy(()=>import("@/pages/DiceMasterPreview"));
+const ClassAbilityPreview=React.lazy(()=>import("@/pages/ClassAbilityPreview"));
+const SpellCardPreview=React.lazy(()=>import("@/pages/SpellCardPreview"));
+const FeatureCardPreview=React.lazy(()=>import("@/pages/FeatureCardPreview"));
+const RaceCardPreview=React.lazy(()=>import("@/pages/RaceCardPreview"));
+const CategoryCardPreview=React.lazy(()=>import("@/pages/CategoryCardPreview"));
+const PrintPressPreview=React.lazy(()=>import("@/pages/PrintPressPreview"));
 
 const Protected = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, authError, checkAuth } = useAuth();
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-obsidian">
@@ -33,6 +51,10 @@ const Protected = ({ children }) => {
       </div>
     );
   }
+  if (authError&&!user)return <div className="min-h-screen flex flex-col gap-4 items-center justify-center bg-obsidian px-6 text-center">
+    <p className="text-gold">Connessione temporaneamente non disponibile.</p>
+    <button type="button" onClick={checkAuth} className="border border-gold px-4 py-2 text-gold">RIPROVA</button>
+  </div>;
   if (!user) return <Navigate to="/" replace />;
   return children;
 };
@@ -69,29 +91,40 @@ function OAuthCallback() {
   const navigate = useNavigate();
   const { loginWithToken } = useAuth();
   const [error, setError] = React.useState("");
+  const [retryable,setRetryable]=React.useState(false);
+  const exchange=React.useRef(null);
+  const tokenRef=React.useRef(null);
+  const [attempt,setAttempt]=React.useState(0);
 
   React.useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const queryParams = new URLSearchParams(window.location.search);
-    const accessToken = hashParams.get("access_token");
-    const providerError = hashParams.get("error_description")
-      || queryParams.get("error_description")
-      || hashParams.get("error")
-      || queryParams.get("error");
-    window.history.replaceState(null, "", "/oauth/callback");
-    if (!accessToken) {
-      setError(providerError || "Google non ha restituito una sessione valida. Riprova l'accesso.");
-      return;
+    let active=true;
+    if (!tokenRef.current) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const queryParams = new URLSearchParams(window.location.search);
+      const accessToken = hashParams.get("access_token");
+      const providerError = hashParams.get("error_description") || queryParams.get("error_description") || hashParams.get("error") || queryParams.get("error");
+      window.history.replaceState(null, "", "/oauth/callback");
+      if (!accessToken) {
+        setError(providerError || "Google non ha restituito una sessione valida. Riprova l'accesso.");
+        return;
+      }
+      tokenRef.current=accessToken;
     }
-    api.post("/auth/supabase-session", { access_token: accessToken })
-      .then(({ data }) => {
-        loginWithToken(data.token, data.user);
-        navigate("/collezione", { replace: true });
-      })
-      .catch((requestError) => {
-        setError(requestError.response?.data?.detail || "Impossibile completare l'accesso Google. Riprova.");
-      });
-  }, [loginWithToken, navigate]);
+    if(!exchange.current)exchange.current=api.post("/auth/supabase-session",{access_token:tokenRef.current},{timeout:20000});
+    exchange.current.then(({data})=>{
+      if(!active)return;
+      tokenRef.current=null;
+      loginWithToken(data.token,data.user);
+      navigate("/collezione",{replace:true});
+    }).catch(requestError=>{
+      if(!active)return;
+      exchange.current=null;
+      const temporary=isTemporaryAuthError(requestError);
+      setRetryable(temporary);
+      setError(temporary?"Connessione temporaneamente non disponibile. Puoi riprovare senza tornare al login.":(requestError.response?.data?.detail||"Impossibile completare l'accesso Google. Riprova."));
+    });
+    return()=>{active=false;};
+  }, [loginWithToken, navigate, attempt]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-obsidian">
@@ -102,6 +135,7 @@ function OAuthCallback() {
         {error && (
           <>
             <p className="mt-4 font-body text-sm leading-relaxed text-foreground/75">{error}</p>
+            {retryable&&<button type="button" onClick={()=>{setError("");setRetryable(false);setAttempt(n=>n+1);}} className="mt-6 block mx-auto border border-gold px-4 py-2 text-gold">RIPROVA CONNESSIONE</button>}
             <button
               type="button"
               onClick={() => navigate("/", { replace: true })}
@@ -123,7 +157,7 @@ function App() {
         <AuthProvider>
           <LanguageProvider>
             <Toaster position="top-center" theme="dark" toastOptions={{ style: { background: "#151311", border: "1px solid #9a7d2e", color: "#e5e0d8", fontFamily: "'Spectral', serif" } }} />
-            <AppRouter />
+            <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-obsidian"><p className="font-label text-gold animate-pulse">APERTURA DEL TOMO…</p></div>}><AppRouter /></React.Suspense>
           </LanguageProvider>
         </AuthProvider>
       </BrowserRouter>
