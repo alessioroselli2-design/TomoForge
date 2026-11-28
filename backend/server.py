@@ -8,6 +8,8 @@ directly as kwargs.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 import os
@@ -161,8 +163,23 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     if MOCK_DATA:
         await seed_mock_data()
-    await resume_manual_preload_workers()
-    yield
+    if os.getenv("VERCEL") == "1" and not MOCK_DATA:
+        # Cold starts must not wait for the global manual-recovery scan.
+        async def recover_manuals():
+            try:
+                await resume_manual_preload_workers()
+            except Exception:
+                logging.getLogger("tomeforge").exception("Manual preload recovery failed")
+
+        recovery = asyncio.create_task(recover_manuals())
+        try:
+            yield
+        finally:
+            recovery.cancel()
+            await asyncio.gather(recovery, return_exceptions=True)
+    else:
+        await resume_manual_preload_workers()
+        yield
 
 
 app = FastAPI(title="TomeForge API", version="1.0.0", lifespan=lifespan)
