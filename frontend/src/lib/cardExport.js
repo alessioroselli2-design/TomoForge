@@ -2,11 +2,19 @@ import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
 import { ORNATE_FRAME_URL } from "@/lib/ornateFrame";
-import { FRONT_MASTER_URL, MASTER_REGIONS } from "@/lib/frontMaster";
-import { categoryFrontLayout } from "@/lib/frontCategoryLayouts";
+import { FRONT_MASTER_URL, MASTER_REGIONS, MONSTER_EMBLEM_BOUNDS, CHARACTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
+import { getFrontEmblem } from "@/lib/frontEmblems";
+import { categoryFrontLayout, restoredFrontMaster } from "@/lib/frontCategoryLayouts";
 import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
+import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
+import { colorFrontExterior , prepareFrontBackground, paintNativeFrontBackground} from "@/lib/frontExterior";
+import { resolveFrontLayers } from "@/lib/frameColorProof";
 import html2canvas from "html2canvas";
+import { setA4PrintPreferences } from "@/lib/printFormats";
+import {captureExportHeading,paintExportHeading} from "@/lib/exportHeading";
+import {captureExportBadge,paintExportBadge} from "@/lib/exportBadge";
+import {captureExportBody,paintExportBody,fitBodyText} from "@/lib/exportBody";
 
 const ABILITIES = ["for", "des", "cos", "int", "sag", "car"];
 
@@ -116,17 +124,21 @@ function drawIntegratedMedallion(ctx, image, source, dest, fadeStart=.26, fadeEn
 /* Print the same exact approved frame seen in the editor, with real text and
    true artwork, rather than drawing a second approximation of the design.
    Legacy projects lacking a v7 preview still use the original safe renderer. */
-async function renderApprovedMaster(element,card) {
+async function renderApprovedMaster(element,card,proofMaster=null) {
  const data=buildFrontBlueprint(card), {width,height,scale}=CARD_CANVAS_SIZE;
  const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
  const ctx=canvas.getContext("2d");ctx.scale(scale,scale);
- const master=new Image();
- await new Promise((resolve,reject)=>{
+ const master=proofMaster||new Image();
+ if(!proofMaster)await new Promise((resolve,reject)=>{
    master.onload=resolve;master.onerror=()=>reject(new Error("Fronte artistico non disponibile"));
-   master.src=categoryFrontLayout(data.type).master||FRONT_MASTER_URL;
+   master.src=restoredFrontMaster(categoryFrontLayout(data.type).master||FRONT_MASTER_URL);
    if(master.complete&&master.naturalWidth>0)resolve();
  });
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
  ctx.drawImage(master,0,0,width,height);
+ // Stretch ONLY a blank master strip, not the rendered card or its contents.
+ const mw=master.naturalWidth||master.width||width,mh=master.naturalHeight||master.height||mw*7/5;
+ frontMasterSlices(data.type).forEach(s=>ctx.drawImage(master,0,s.sourceY*mh,mw,s.sourceH*mh,0,s.y*height,width,s.h*height));
  const layout=categoryFrontLayout(data.type);
  // V17 is clean already. The old repair would misalign and blur the new artwork.
  const art=element.querySelector(".tf-v3-picture img");
@@ -140,20 +152,20 @@ async function renderApprovedMaster(element,card) {
  } catch {}
  // The card image, header badge and stat icons all use the same engraved
  // master coordinates as the CSS preview; never offset the source artwork.
- const icon=await loadFrontEmblem(data.emblem);
+ const icon=(data.type==="monster" || data.type==="character") ? null : await loadFrontEmblem(data.emblem);
  if(icon&&data.emblem) {
-   if((data.type==="class"&&data.emblem.sprite==="class-original")||
+   if(data.emblem.sprite==="class-original"||
       (data.type==="spell"&&data.emblem.sprite==="school-original")){
      // Use the complete original square PNG, at the same size and center as the CSS card.
-     const badgeSize=width*.275;
-     ctx.drawImage(icon,width*.158-badgeSize/2,height*.101-badgeSize/2,badgeSize,badgeSize);
+     const badgeSize = width * (data.type === "spell" ? 0.255 : 0.26);
+     const center = data.type === "character" ? MASTER_REGIONS.emblem : {x:width*.158, y:height*.101};
+     ctx.drawImage(icon,center.x-badgeSize/2,center.y-badgeSize/2,badgeSize,badgeSize);
    } else {
      const s=data.emblem,m=MASTER_REGIONS.emblem;
-     const dragon=s.sprite==="drago-hd";
      drawIntegratedMedallion(ctx,icon,
-       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:dragon?1.28:1.2},
+       {x:s.col*s.cell,y:s.row*s.cell,cell:s.cell,zoom:1.2},
        {x:m.x,y:m.y,size:m.r*2},
-       dragon?.37:.35,dragon?.48:.48);
+       .35,.48);
    }
  }
  ctx.fillStyle="#29180e";ctx.textAlign="center";
@@ -202,13 +214,13 @@ async function renderApprovedMaster(element,card) {
      const primary=primaryImages[i]||[];
      const start=cx-cellW/2;
      if(i===0&&primary.length>1){
-       // Same as the DOM: two original 22px PNGs side by side, 6px apart,
+       // Same as the DOM: two 18px originals below the engraved heading,
        // with the unmodified one-line ability value centered underneath.
-       const size=22,gap=6,items=primary.slice(0,2);
+       const size=18,gap=6,items=primary.slice(0,2);
        const iconStart=cx-(items.length*size+(items.length-1)*gap)/2;
-       items.forEach((asset,j)=>{if(asset)ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size);});
+       items.forEach((asset,j)=>{if(asset)ctx.drawImage(asset,iconStart+j*(size+gap),statY+26,size,size);});
        ctx.textAlign="center";ctx.fillStyle="#23160d";
-       drawFittedText(ctx,it.value,cx,statY+53,cellW-6,8.2,"Georgia,serif","700");
+       drawFittedText(ctx,it.value,cx,statY+57,cellW-6,8.2,"Georgia,serif","700");
        return;
      }
      if(i===0&&primary.length===1){
@@ -224,13 +236,13 @@ async function renderApprovedMaster(element,card) {
        return;
      }
      // The other Class cells are unchanged (their shield/swords are engraved).
-     const x=start+(i===0?5:28),textWidth=Math.max(10,cellW-(x-start)-6);
+     const x=start+(i===0?5:34),textWidth=Math.max(10,cellW-(x-start)-5);
      const fontSize=i===2?8.2:i===0?8.6:9;
      ctx.textAlign="left";ctx.fillStyle="#23160d";
-     ctx.font=`700 ${fontSize}px Georgia,serif`;
-     const lines=wrapTextLines(ctx,it.value,textWidth).slice(0,4);
-     const top=statY+38;
-     lines.forEach((line,n)=>ctx.fillText(line,x,top+n*(fontSize*1.13),textWidth));
+     const fit=fitBodyText(ctx,it.value,textWidth,31,"Georgia,serif","700",fontSize,5,3);
+     ctx.font=`700 ${fit.size}px Georgia,serif`;
+     const top=statY+40-(fit.lines.length-1)*fit.lineHeight/2;
+     fit.lines.forEach((line,n)=>ctx.fillText(line,x,top+n*fit.lineHeight,textWidth));
      return;
    }
    if(icon&&data.type!=="class"){
@@ -350,7 +362,7 @@ const canvasBox=(ctx,x,y,w,h,fill,stroke="#a3773f")=>{
 // Take the approved Spell DOM as the source of truth, not the old v17 raster.
 // Clone into a fixed 5:7 box so exports work even when the source is offscreen.
 // All other categories stay on their existing dedicated canvas renderer.
-async function renderApprovedSpell(element, card) {
+async function renderApprovedSpell(element, card,proofBackground=null) {
  const source=element.matches?.('[data-front-category="spell"]')
    ? element : element.querySelector?.('[data-front-category="spell"]');
  if(!source)throw new Error("Anteprima Incantesimo non disponibile");
@@ -374,19 +386,28 @@ async function renderApprovedSpell(element, card) {
  stage.appendChild(clone);
  document.body.appendChild(stage);
  try {
+   const background=proofBackground||await prepareFrontBackground(clone,"spell");
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
+   const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
+   const body=captureExportBody(clone,"spell");
    const canvas=await html2canvas(clone,{
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
+   paintNativeFrontBackground(canvas,background);
+   paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
+   paintExportBody(canvas,body);
    canvas.artworkDrawn=!!(card?.artwork_path && clone.querySelector(".tf-spell-picture img"));
    return canvas;
  } finally {stage.remove();}
 }
 // Privilegi use their own approved DOM composition. Capture the real card
 // for PNG, single PDF, A4 and duplex, exactly as for Incantesimi.
-async function renderApprovedFeature(element, card) {
+async function renderApprovedFeature(element, card,proofBackground=null) {
  const source=element.matches?.('[data-front-category="feature"]')
    ? element : element.querySelector?.('[data-front-category="feature"]');
  if(!source)throw new Error("Anteprima Privilegio di classe non disponibile");
@@ -408,18 +429,25 @@ async function renderApprovedFeature(element, card) {
  });
  stage.appendChild(clone);document.body.appendChild(stage);
  try {
+   const background=proofBackground||await prepareFrontBackground(clone,"feature");
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
    await waitForImages(clone);
    if(document.fonts?.ready)await document.fonts.ready;
+   const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
    const canvas=await html2canvas(clone,{
      scale,width,height,backgroundColor:null,useCORS:true,logging:false,
      scrollX:0,scrollY:0,
    });
+   paintNativeFrontBackground(canvas,background);
+   paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
    canvas.artworkDrawn=!!(clone.querySelector(".tf-feature-artwork img"));
    return canvas;
  } finally {stage.remove();}
 }
 // Race uses the actual same DOM layout for preview, PNG, PDF and A4.
-async function renderApprovedRace(element,card){
+async function renderApprovedRace(element,card,proofBackground=null){
  const source=element.matches?.('[data-front-category="race"]')
   ? element : element.querySelector?.('[data-front-category="race"]');
  if(!source)throw new Error("Anteprima Razza non disponibile");
@@ -431,16 +459,23 @@ async function renderApprovedRace(element,card){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  await waitForImages(clone);
+  const background=proofBackground||await prepareFrontBackground(clone,"race");
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
+   await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
+   const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
   const canvas=await html2canvas(clone,{scale,width,height,backgroundColor:null,
     useCORS:true,logging:false,scrollX:0,scrollY:0});
-  canvas.artworkDrawn=false;
+  paintNativeFrontBackground(canvas,background);
+   paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
+   canvas.artworkDrawn=false;
   return canvas;
  }finally{stage.remove();}
 }
 // Capture the same dedicated DOM for these four categories; no legacy atlas or QR.
-async function renderApprovedCategory(element){
+async function renderApprovedCategory(element,proofBackground=null){
  const selector='[data-category-master="approved"]';
  const source=element.matches?.(selector)?element:element.querySelector?.(selector);
  if(!source)throw new Error("Anteprima categoria non disponibile");
@@ -452,17 +487,28 @@ async function renderApprovedCategory(element){
  Object.assign(clone.style,{width:"100%",height:"100%"});
  stage.appendChild(clone);document.body.appendChild(stage);
  try{
-  await waitForImages(clone);
+  // Isolated proof path: the regular editor and every normal export still use
+  // the approved master and exterior geometry. The proof is a separate asset.
+  const background=proofBackground||await prepareFrontBackground(clone,clone.getAttribute("data-front-category"));
+  if(proofBackground){clone.style.backgroundImage="none";clone.style.backgroundColor="transparent";}
+   await waitForImages(clone);
   if(document.fonts?.ready)await document.fonts.ready;
+   const heading=captureExportHeading(clone);
+   const badge=captureExportBadge(clone);
+   const body=captureExportBody(clone,"category");
   const capture=await html2canvas(clone,{scale:width*scale/sourceWidth,width:sourceWidth,height:sourceHeight,backgroundColor:null,useCORS:true,logging:false,scrollX:0,scrollY:0});
   const canvas=document.createElement("canvas");canvas.width=width*scale;canvas.height=height*scale;
   canvas.getContext("2d").drawImage(capture,0,0,canvas.width,canvas.height);
-  canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");
+  paintNativeFrontBackground(canvas,background);
+   paintExportHeading(canvas,heading);
+   paintExportBadge(canvas,badge);
+   paintExportBody(canvas,body);
+   canvas.artworkDrawn=!!clone.querySelector(".tf-category-artwork img");
   return canvas;
  }finally{stage.remove();}
 }
 // Existing renderer remains untouched for Class, Monster and all other types.
-export async function renderCardCanvas(element,card){
+async function renderRawCardCanvas(element,card,frontLayers){
  if(!element)throw new Error("Card render unavailable");
  await waitForImages(element);
  if(document.fonts?.ready)await document.fonts.ready;
@@ -470,17 +516,37 @@ export async function renderCardCanvas(element,card){
  // Every live Spell card is rendered from the approved DOM through html2canvas.
  if(card?.type==="spell" && (element.matches?.('[data-front-category="spell"]') ||
    element.querySelector?.('[data-front-category="spell"]')))
-   return renderApprovedSpell(element,card);
+   return renderApprovedSpell(element,card,frontLayers?.background);
  if(card?.type==="feature" && (element.matches?.('[data-front-category="feature"]') ||
    element.querySelector?.('[data-front-category="feature"]')))
-   return renderApprovedFeature(element,card);
+   return renderApprovedFeature(element,card,frontLayers?.background);
  if(card?.type==="race" && (element.matches?.('[data-front-category="race"]') ||
    element.querySelector?.('[data-front-category="race"]')))
-   return renderApprovedRace(element,card);
+   return renderApprovedRace(element,card,frontLayers?.background);
  if(["feat","item","weapon","armor"].includes(card?.type) &&
    (element.matches?.('[data-category-master="approved"]')||element.querySelector?.('[data-category-master="approved"]')))
-   return renderApprovedCategory(element);
- return renderApprovedMaster(element,card);
+   return renderApprovedCategory(element,frontLayers?.background);
+ return renderApprovedMaster(element,card,frontLayers?.background);
+}
+
+export async function renderCardCanvas(element,card,frontLayers){
+ const canRender=frontLayers===undefined&&typeof document.createElement("canvas").getContext("2d")?.getImageData==="function";
+ frontLayers=await resolveFrontLayers(card?.type,frontLayers,canRender);
+ if(frontLayers && frontLayers.type!==card?.type)throw new Error("Master di prova incompatibile con la categoria");
+ const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card,frontLayers),card?.type,frontLayers?.trim);
+ if (["monster","character"].includes(card?.type)) {
+   const emblem = getFrontEmblem(card);
+   if (emblem) {
+     const image = await loadFrontEmblem(emblem);
+     if (!image) throw new Error(`Simbolo non disponibile: ${emblem.label}`);
+     // The master context is already scaled for print. Paint above the exterior rail.
+     const {width, height} = CARD_CANVAS_SIZE;
+     const bounds = card.type==="character" ? CHARACTER_EMBLEM_BOUNDS : MONSTER_EMBLEM_BOUNDS;
+     const size = width * bounds.width;
+     canvas.getContext("2d").drawImage(image, width * bounds.left, height * bounds.top, size, size);
+   }
+ }
+ return canvas;
 }
 
 // Dedicated back renderer for duplex sheets and card PDFs. Keeping the back
@@ -501,23 +567,16 @@ export async function renderCardBackCanvas(card) {
     image.src = art.src;
     if (image.complete && image.naturalWidth > 0) resolve();
   });
-  // Do not stretch any original frame, oval, wordmark or book. A back that
-  // already has the print ratio fills the entire canvas; otherwise the entire
-  // drawing is letterboxed, never cropped.
-  const naturalWidth = image.naturalWidth || canvas.width;
-  const naturalHeight = image.naturalHeight || naturalWidth * (canvas.height / canvas.width);
-  const fit = Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
-  const drawWidth = Math.min(canvas.width, naturalWidth * fit);
-  const drawHeight = Math.min(canvas.height, naturalHeight * fit);
-  ctx.fillStyle = "#101019";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
+  const iw=image.naturalWidth||canvas.width,ih=image.naturalHeight||iw*7/5;
+  const crop=getBackCrop(art.file,iw,ih);
+  ctx.drawImage(image,crop.x,crop.y,crop.w,crop.h,0,0,canvas.width,canvas.height);
   return canvas;
 }
 
 // These adapters keep the user-facing export routes on the same dedicated
 // canvas path as the regression tests, rather than reintroducing DOM capture.
-export const createCardPng = (element, card) => renderCardCanvas(element, card);
+export const createCardPng = renderCardCanvas;
+export const createCardBackPng = (card) => renderCardBackCanvas(card);
 
 export async function addSingleCardPdfPages(pdf, element, card) {
   const [front, back] = await Promise.all([
@@ -530,16 +589,18 @@ export async function addSingleCardPdfPages(pdf, element, card) {
   return { front, back };
 }
 
-export async function addPrintSheetCard(pdf, element, card, bounds, back = false) {
+export async function addPrintSheetCard(pdf, element, card, bounds, back = false, frontLayers) {
   const canvas = back
     ? await renderCardBackCanvas(card)
-    : await renderCardCanvas(element, card);
+    : await renderCardCanvas(element, card, frontLayers);
   pdf.addImage(canvas.toDataURL("image/png"), "PNG", bounds.x, bounds.y, bounds.w, bounds.h);
+  drawCutGuides(pdf,bounds);
   return canvas;
 }
 
-export async function addSingleCardA4PdfPages(pdf, element, card) {
-  const front = await addPrintSheetCard(pdf, element, card, SINGLE_CARD_A4_BOUNDS);
+export async function addSingleCardA4PdfPages(pdf, element, card, frontLayers) {
+  setA4PrintPreferences(pdf,true);
+  const front = await addPrintSheetCard(pdf, element, card, SINGLE_CARD_A4_BOUNDS, false, frontLayers);
   pdf.addPage();
   const back = await addPrintSheetCard(pdf, null, card, SINGLE_CARD_A4_BOUNDS, true);
   return { front, back };

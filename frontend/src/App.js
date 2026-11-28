@@ -20,6 +20,7 @@ import SpellCardPreview from "@/pages/SpellCardPreview";
 import FeatureCardPreview from "@/pages/FeatureCardPreview";
 import RaceCardPreview from "@/pages/RaceCardPreview";
 import CategoryCardPreview from "@/pages/CategoryCardPreview";
+import PrintPressPreview from "@/pages/PrintPressPreview";
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
 
@@ -49,6 +50,7 @@ function AppRouter() {
       <Route path="/prova-privilegi" element={<FeatureCardPreview />} />
       <Route path="/prova-razze" element={<RaceCardPreview />} />
       <Route path="/prova-categorie" element={<CategoryCardPreview />} />
+      <Route path="/prova-stampa" element={<PrintPressPreview />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
       <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
       <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />

@@ -51,6 +51,7 @@ const createContext = (operations, gradients) => ({
   createRadialGradient: () => ({
     addColorStop: jest.fn(),
   }),
+  setTransform: jest.fn(),
   save: jest.fn(),
   clip: jest.fn(),
   restore: jest.fn(),
@@ -122,6 +123,42 @@ describe("card export renderers", () => {
 
   const written = (canvas) => canvas.operations.filter((op) => op.name === "fillText").map((op) => op.text).join(" ");
 
+  it.each([
+    ["class", "Druido", {}, "classi-hd/cls-04-druido", .26, 340*.158, 476*.101],
+    ["subclass", "Circolo delle Stelle", {parent_class:"Druid"}, "classi-hd/cls-04-druido", .26, 340*.158, 476*.101],
+    ["character", "Alba", {classe:"Druid"}, "classi-hd/cls-04-druido", .26, 54, 476*.09],
+    ["spell", "Luce", {school:"Evocation"}, "scuole-hd/scl-06-invocazione", .255, 340*.158, 476*.101],
+  ])("prints the full HD %s emblem at its original center", async (type,name,attributes,asset,ratio,cx,cy) => {
+    const front = await createCardPng(makeExportElement(), {type,name,attributes});
+    const draws = front.operations.filter(op => op.name === "drawImage" && op.args[0]?.src === `/emblemi/${asset}-hd.png`);
+    expect(draws).toHaveLength(1);
+    const [image,x,y,w,h] = draws[0].args;
+    expect(draws[0].args).toHaveLength(5);
+    expect(image.complete).toBe(true);
+    expect(w).toBeCloseTo(340*ratio);
+    expect(h).toBeCloseTo(w);
+    expect(x+w/2).toBeCloseTo(cx);
+    expect(y+h/2).toBeCloseTo(cy);
+  });
+
+  it("keeps both Fighter primary icons below the heading and above their value", async () => {
+    const front = await createCardPng(makeExportElement(), {
+      type:"class",name:"Guerriero",attributes:{abilita_primaria:"Forza o Destrezza",tiri_salvezza:"Forza, Costituzione",competenze:"Armature e scudi",dado_vita:"d10"}
+    });
+    const icons=front.operations.filter(op=>op.name==="drawImage" && /\/icone-caratteristiche\/(forza|destrezza)\.png$/.test(op.args[0]?.src||""));
+    expect(icons).toHaveLength(2);
+    const start=476*.483, end=start+476*.14;
+    const value=front.operations.find(op=>op.name==="fillText"&&op.text==="Forza o Destrezza");
+    expect(value).toBeDefined();
+    for(const {args:[,x,y,w,h]} of icons){
+      expect(y-start).toBeCloseTo(26);
+      expect(w).toBeCloseTo(18);
+      expect(h).toBeCloseTo(w);
+      expect(value.y-(y+h)).toBeGreaterThan(8);
+      expect(value.y).toBeLessThan(end-5);
+    }
+  });
+
   it("renders new monster front with its six abilities, sourced stats and actual dice formula", async () => {
     const card = {
       id: "drago", type: "monster", name: "Drago Cremisi",
@@ -146,7 +183,7 @@ describe("card export renderers", () => {
     expect(text).not.toContain("MOSTRO");
     // Every recorded movement mode is preserved by the print renderer.
     expect(text).toContain("12 m");
-    expect(front.operations.some(op=>op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
+    expect(front.operations.some(op=>op.name==="drawImage" && op.args[0]?.src==="/card-art/front-restored-v18/front-master-v17.webp")).toBe(true);
   });
 
   it.each(["d4","d6","d8","d10","d12","d20"])("uses the correct %s illustrated jewel in export canvas", async(die)=>{
@@ -175,14 +212,17 @@ describe("card export renderers", () => {
         velocita:"12 m",for:"27",des:"10",cos:"25",int:"16",sag:"13",car:"21"}};
     const front=await renderCardCanvas(el,card);
     const drawings=front.operations.filter(op=>op.name==="drawImage");
-    const embedded=canvases.slice(1).flatMap(c=>c.operations.filter(op=>op.name==="drawImage"));
-    expect(drawings[0].args[0].src).toBe("/card-art/front-master-v17.webp");
+    expect(drawings[0].args[0].src).toBe("/card-art/front-restored-v18/front-master-v17.webp");
     expect(drawings.map(op=>op.args[0]?.src)).not.toContain("/card-art/front-detail-repair-v8.webp");
     expect(written(front)).toContain("Drago Rosso Adulto");
-    const dragonDraw=embedded.find(op=>op.args[0]?.src==="/emblemi/drago-originale-hd-v2.webp");
-    expect(dragonDraw).toBeDefined();
-    const dragonOnMaster=drawings.find(op=>op.args[0]?.operations?.some(op=>op.args?.[0]?.src==="/emblemi/drago-originale-hd-v2.webp"));
-    expect(dragonOnMaster.args.slice(-2)).toEqual([56,56]);
+    const dragonDraw=drawings.at(-1).args;
+    expect(dragonDraw[0].src).toBe("/emblemi/mostri/mst-05-drago.png");
+    expect(dragonDraw).toHaveLength(5); // entire image, destination rectangle only
+    const [,left,top,width,height]=dragonDraw;
+    expect(width).toBeCloseTo(340*.265);
+    expect(height).toBeCloseTo(width);
+    expect(left+width/2).toBeCloseTo(54);
+    expect(top+height/2).toBeCloseTo(476*.09);
 
     const statDraws=drawings.filter(op=>/stat-(ca|pf)-clean-v24\.svg$/.test(op.args[0]?.src||""));
     expect(statDraws).toHaveLength(2);
@@ -192,10 +232,6 @@ describe("card export renderers", () => {
     expect(statDraws[0].args.at(-3)).toBeCloseTo(195+19);
     expect(statDraws[1].args.at(-3)).toBeCloseTo(195+19);
     expect(statDraws[1].args.at(-4)-statDraws[0].args.at(-4)).toBeGreaterThan(90);
-    expect(embedded.map(op=>op.args[0]?.src).filter(Boolean))
-      .toEqual(expect.arrayContaining(["/emblemi/drago-originale-hd-v2.webp"]));
-    expect(canvases.slice(1).some(c=>c.operations.some(op=>op.name==="fillRect")))
-      .toBe(true);
     expect(written(front)).toContain("17");
     expect(written(front)).not.toContain("MOSTRI");
     expect(front.width).toBe(CARD_CANVAS_SIZE.width*CARD_CANVAS_SIZE.scale);
@@ -231,7 +267,7 @@ describe("card export renderers", () => {
     const text = written(front);
     ["Palla di Fuoco", "Invocazione", "8d6", "LIV.", "Lancio", "Gittata"].forEach((value) => expect(text).toContain(value));
     expect(front.gradients.flatMap(g => g.stops.map(s => s.color))).not.toContain("#ff0000");
-    expect(front.operations.some(op => op.name==="drawImage" && op.args[0]?.src==="/card-art/front-master-v17.webp")).toBe(true);
+    expect(front.operations.some(op => op.name==="drawImage" && op.args[0]?.src==="/card-art/front-restored-v18/front-master-v17.webp")).toBe(true);
   });
 
   it("keeps unchanged official backs, including the silver Personaggio variant", async () => {
@@ -241,23 +277,35 @@ describe("card export renderers", () => {
     expect(back.operations.some((entry) => entry.name === "fillText")).toBe(false);
   });
 
-  it("letterboxes a nonstandard back instead of stretching its artwork", async () => {
-    global.Image = class TallBackMock {
-      complete = false; naturalWidth = 750; naturalHeight = 1200;
-      set src(value) { this._src = value; this.complete = true; this.onload?.(); }
-      get src() { return this._src; }
+  it("uses an undistorted full-card crop on a nonstandard reverse", async()=>{
+    global.Image=class TallBackMock{
+      complete=false;naturalWidth=750;naturalHeight=1200;
+      set src(value){this._src=value;this.complete=true;this.onload?.();}
+      get src(){return this._src;}
     };
-    const back = await renderCardBackCanvas({ type: "spell" });
-    const [, x, y, w, h] = back.operations.find((op) => op.name === "drawImage").args;
-    expect(x).toBeGreaterThan(0);
-    expect(y).toBe(0);
-    expect(w / h).toBeCloseTo(750 / 1200);
+    const back=await renderCardBackCanvas({type:"spell"});
+    expect(back.operations.find(op=>op.name==="drawImage").args.slice(1)).toEqual([0,75,750,1050,0,0,1020,1428]);
+  });
+  it("fills the full Class and Monster reverse without a black surround",async()=>{
+    for(const [type,expected] of [["class",[8,27,708,991.2]],["monster",[6,7,738,1033.2]]]){
+      const back=await renderCardBackCanvas({type});
+      const op=back.operations.find(o=>o.name==="drawImage");
+      expect(op.args.slice(1,5)).toEqual(expected);
+      expect(op.args.slice(5)).toEqual([0,0,1020,1428]);
+      expect(back.operations.filter(o=>o.name==="drawImage")).toHaveLength(1);
+    }
+  });
+  it("extends the blank master before drawing dynamic contents",async()=>{
+    const front=await renderCardCanvas(makeExportElement(),{type:"monster",name:"Drago",attributes:{}});
+    const draws=front.operations.filter(o=>o.name==="drawImage"&&o.args[0]?.src==="/card-art/front-restored-v18/front-master-v17.webp");
+    expect(draws).toHaveLength(3);
+    expect(draws[2].args.at(-3)+draws[2].args.at(-1)).toBeCloseTo(476);
   });
 
   it("shares one renderer between PNG, card PDF, duplex sheet, and A4 PDF", async () => {
     const card = { id: "person", type: "character", name: "Thalion",
       attributes: { ...abilities, classe: "Druido", livello: "5" }, back: { variant: "silver" } };
-    const pdf = { addImage: jest.fn(), addPage: jest.fn() };
+    const pdf = { addImage: jest.fn(), addPage: jest.fn(), setDrawColor:jest.fn(), setLineWidth:jest.fn(), setLineDashPattern:jest.fn(), line:jest.fn() };
     const element = makeExportElement();
     const png = await createCardPng(element, card);
     const single = await addSingleCardPdfPages(pdf, element, card);
@@ -341,7 +389,7 @@ describe("card export renderers", () => {
     const element = {querySelectorAll: () => [artwork], querySelector: sel => (sel === "img" || sel === ".tf-v3-picture img") ? artwork : null};
     const front = await renderCardCanvas(element, { type: "item", name: "Spada", description: "Oggetto arcano." });
     expect(front.artworkDrawn).toBe(false);
-    expect(front.operations.some(op => op.name === "drawImage" && op.args[0]?.src === "/card-art/front-master-v17.webp")).toBe(true);
+    expect(front.operations.some(op => op.name === "drawImage" && op.args[0]?.src === "/card-art/front-restored-v18/front-master-v17.webp")).toBe(true);
     expect(written(front)).toContain("Spada");
   });
 });

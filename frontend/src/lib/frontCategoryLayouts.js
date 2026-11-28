@@ -19,6 +19,9 @@ export const categoryFrontLayout=(type)=>CATEGORY_FRONT_LAYOUTS[type]||CATEGORY_
 // The outer reference stays the same inline style for EVERY category.
 // Inner background layers are owned by each category CSS (not by the shell).
 // One self-contained raster for each category. No layered pasted rectangles.
+// Versioned, restored copies of the nine approved masters. Originals remain
+// the reference for trim geometry and can be recovered without any redraw.
+export const restoredFrontMaster=src=>"/card-art/front-restored-v18/"+src.split("/").pop().replace(/\.(png|jpg|webp)$/i,".webp");
 export const frontBackground=(type)=>({
- backgroundImage:`url(${categoryFrontLayout(type).master||FRONT_OUTER_MASTER})`,
+ backgroundImage:`url(${restoredFrontMaster(categoryFrontLayout(type).master||FRONT_OUTER_MASTER)})`,
 });

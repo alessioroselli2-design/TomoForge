@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import {
   ArrowLeft, Pencil, Trash2, Download, Printer, RotateCw, Moon, Plus, Minus, FileText, Loader2, ImageDown, Link2,
 } from "lucide-react";
@@ -13,7 +14,7 @@ import { CardFront, CardBack } from "@/components/TradingCard";
 import { Button } from "@/components/ui/button";
 import { ReferenceUpdatesPanel } from "@/components/ReferenceUpdatesPanel";
 import { CardHistoryPanel } from "@/components/CardHistoryPanel";
-import { addCharacterSheetPdfPages, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng } from "@/lib/cardExport";
+import { addCharacterSheetPdfPages, addSingleCardA4PdfPages, addSingleCardPdfPages, createCardPng, createCardBackPng } from "@/lib/cardExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -335,6 +336,20 @@ export default function CardDetail() {
     finally { setBusy(false); }
   };
 
+  const shareBackImage = async () => {
+    setBusy(true);
+    try {
+      const canvas=await createCardBackPng(card);
+      const link=document.createElement("a");
+      link.download=`${card.name || "carta"}-retro.png`;
+      link.href=canvas.toDataURL("image/png");
+      link.click();
+      setExportFeedback("PNG del retro scaricato.");
+      toast.success("Retro esportato");
+    } catch(e) { toast.error("Esportazione retro fallita"); }
+    finally { setBusy(false); }
+  };
+
   const exportPDF = async () => {
     if (!exportFrontRef.current) return;
     setBusy(true);
@@ -349,6 +364,20 @@ export default function CardDetail() {
     finally { setBusy(false); }
   };
 
+  const exportPress = async () => {
+    if (!exportFrontRef.current) return;
+    setBusy(true);
+    try {
+      const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],compress:true});
+      const result = await addPressCardPages(pdf,exportFrontRef.current,card);
+      warnIfArtworkMissing(result.front);
+      pdf.save(`${card.name || "carta"}-tipografia.pdf`);
+      setExportFeedback("PDF tipografia: 2 pagine, taglio 63,5 × 88,9 mm e abbondanza 3 mm.");
+      toast.success("PDF tipografia generato");
+    } catch (e) { toast.error("Generazione PDF tipografia fallita"); }
+    finally { setBusy(false); }
+  };
+
   const exportSheet = async () => {
     if (!exportFrontRef.current) return;
     setBusy(true);
@@ -357,7 +386,7 @@ export default function CardDetail() {
       const exportResult = await addSingleCardA4PdfPages(pdf, exportFrontRef.current, card);
       warnIfArtworkMissing(exportResult?.front);
       pdf.save(`carta-${card.name || "personaggio"}-a4-fronte-retro.pdf`);
-      setExportFeedback("Foglio A4 fronte/retro generato.");
+      setExportFeedback("PDF A4 pronto: stampa fronte/retro sul lato lungo, al 100%, senza adattamento alla pagina.");
       toast.success("Carta A4 generata");
     } catch (e) { toast.error("Generazione carta A4 fallita"); }
     finally { setBusy(false); }
@@ -507,11 +536,19 @@ export default function CardDetail() {
               <div className="mt-3 grid grid-cols-1 gap-2">
                 <Button data-testid="share-btn" onClick={shareImage} disabled={busy} variant="outline"
                   className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
-                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG
+                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG FRONTE
+                </Button>
+                <Button data-testid="share-back-btn" onClick={shareBackImage} disabled={busy} variant="outline"
+                  className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide">
+                  <ImageDown className="w-3.5 h-3.5 mr-2 text-gold" /> SCARICA PNG RETRO
                 </Button>
                 <Button data-testid="pdf-btn" onClick={exportPDF} disabled={busy} variant="outline"
                   className="justify-start rounded-none border-border bg-transparent text-foreground hover:bg-secondary font-label text-[11px] tracking-wide transition-colors">
                   <Download className="w-3.5 h-3.5 mr-2 text-gold" /> PDF FRONTE / RETRO
+                </Button>
+                <Button data-testid="press-pdf-btn" onClick={exportPress} disabled={busy} variant="outline"
+                  className="justify-start rounded-none border-gold-deep/50 bg-transparent text-gold hover:bg-secondary font-label text-[11px] tracking-wide">
+                  <FileText className="w-3.5 h-3.5 mr-2" /> PDF TIPOGRAFIA
                 </Button>
                 <Button data-testid="sheet-btn" onClick={exportSheet} disabled={busy}
                   className="justify-start rounded-none bg-gold text-obsidian hover:bg-gold-deep font-label text-[11px] tracking-wide transition-colors">
@@ -531,7 +568,8 @@ export default function CardDetail() {
                 )}
               </div>
               <p className="mt-3 font-body text-[11px] leading-relaxed text-muted-foreground">
-                Il foglio A4 mantiene la dimensione Standard e il retro allineato per la stampa fronte/retro.
+                Il foglio A4 dispone fronte e retro sulle due facce dello stesso foglio. Stampa fronte/retro, lato lungo, dimensioni effettive (100%), senza adattamento. Verifica l’allineamento fisico con una prova.
+                Il PDF tipografia contiene due pagine RGB con abbondanza 3 mm, taglio 63,5 × 88,9 mm e margine di sicurezza: verificare il profilo colore e gli angoli con lo stampatore.
               </p>
               <p aria-live="polite" className="mt-2 min-h-4 font-body text-[11px] text-gold/90">
                 {busy ? "Preparazione dell’export in corso…" : exportFeedback}

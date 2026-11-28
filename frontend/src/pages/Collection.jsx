@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search, Plus, Printer, Check, CheckCheck, Layers, RotateCw, X, Loader2, Wand2, Sparkles, FileText } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { PRESS_SPEC, addPressCardPages } from "@/lib/pressExport";
 import { api } from "@/lib/api";
 import { CARD_TYPES } from "@/lib/cardTypes";
 import Navbar from "@/components/Navbar";
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/context/AuthContext";
 import { addPrintSheetCard } from "@/lib/cardExport";
-import { getPrintSheetPositions, PRINT_FORMATS } from "@/lib/printFormats";
+import { getPrintSheetPositions, PRINT_FORMATS, setA4PrintPreferences } from "@/lib/printFormats";
 
 const EMPTY_IMG = "https://images.pexels.com/photos/7978240/pexels-photo-7978240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -30,9 +31,10 @@ export default function Collection() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [exportingPress, setExportingPress] = useState(false);
   const [progress, setProgress] = useState(0);
   const [format, setFormat] = useState("standard");
-  const [includeBack, setIncludeBack] = useState(false);
+  const [includeBack, setIncludeBack] = useState(true);
   const cardRefs = useRef({});
   const sheetContainerRef = useRef(null);
 
@@ -48,7 +50,7 @@ export default function Collection() {
   };
 
   const chosenCards = cards.filter((c) => selected.includes(c.id));
-  const totalSteps = chosenCards.length * (includeBack ? 2 : 1);
+  const totalSteps = chosenCards.length * (exportingPress || includeBack ? 2 : 1);
   const perPage = PRINT_FORMATS[format].cols * PRINT_FORMATS[format].rows;
 
   const openCoverageReviews = (types, sourceFilename) => {
@@ -59,6 +61,26 @@ export default function Collection() {
     navigate(`/revisioni?${params.toString()}`);
   };
 
+  const exportPressDeck = async () => {
+    if (!chosenCards.length || exporting) return;
+    setExporting(true);
+    setExportingPress(true);
+    setProgress(0);
+    try {
+      const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:[PRESS_SPEC.pageWidth,PRESS_SPEC.pageHeight],compress:true});
+      for (let i=0;i<chosenCards.length;i++) {
+        const card=chosenCards[i], el=cardRefs.current[card.id];
+        if (!el) throw new Error("Anteprima di stampa non disponibile");
+        await addPressCardPages(pdf,el,card,{first:i===0});
+        setProgress((i+1)*2);
+      }
+      pdf.save("tomeforge-mazzo-tipografia.pdf");
+      toast.success(`PDF tipografia: ${chosenCards.length} carte`);
+      exitSelectMode();
+    } catch (e) { toast.error("Generazione mazzo tipografia fallita"); }
+    finally { setExporting(false); setExportingPress(false); setProgress(0); }
+  };
+
   const exportPrintSheet = async () => {
     if (!chosenCards.length) {
       toast.error("Seleziona almeno una carta");
@@ -67,29 +89,9 @@ export default function Collection() {
     setExporting(true);
     const { w: cardW, h: cardH, cols, rows } = PRINT_FORMATS[format];
     const perPage = cols * rows;
-    const drawCut = (pdf, x, y) => {
-      // faint card boundary
-      pdf.setDrawColor(120, 100, 50);
-      pdf.setLineWidth(0.1);
-      pdf.rect(x, y, cardW, cardH);
-      // corner crop/trim marks (L-shaped, pointing outward) for precise cutting
-      const L = 3, o = 0.6;
-      pdf.setDrawColor(60, 50, 25);
-      pdf.setLineWidth(0.2);
-      const marks = [
-        // top-left
-        [x - o - L, y, x - o, y], [x, y - o - L, x, y - o],
-        // top-right
-        [x + cardW + o, y, x + cardW + o + L, y], [x + cardW, y - o - L, x + cardW, y - o],
-        // bottom-left
-        [x - o - L, y + cardH, x - o, y + cardH], [x, y + cardH + o, x, y + cardH + o + L],
-        // bottom-right
-        [x + cardW + o, y + cardH, x + cardW + o + L, y + cardH], [x + cardW, y + cardH + o, x + cardW, y + cardH + o + L],
-      ];
-      marks.forEach(([x1, y1, x2, y2]) => pdf.line(x1, y1, x2, y2));
-    };
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      setA4PrintPreferences(pdf,includeBack);
       const pages = Math.ceil(chosenCards.length / perPage);
       let step = 0;
       let firstPage = true;
@@ -102,10 +104,9 @@ export default function Collection() {
         for (let i = 0; i < group.length; i++) {
           step += 1; setProgress(step);
           const el = cardRefs.current[group[i].id];
-          if (!el) continue;
+          if (!el) throw new Error("Anteprima di stampa non disponibile");
            const { x, y } = getPrintSheetPositions(format, group.length)[i];
            await addPrintSheetCard(pdf, el, group[i], { x, y, w: cardW, h: cardH });
-           drawCut(pdf, x, y);
         }
         // Mirrored back page for duplex printing
         if (includeBack) {
@@ -114,11 +115,10 @@ export default function Collection() {
             step += 1; setProgress(step);
              const { x, y } = getPrintSheetPositions(format, group.length, true)[i];
              await addPrintSheetCard(pdf, null, group[i], { x, y, w: cardW, h: cardH }, true);
-            drawCut(pdf, x, y);
           }
         }
       }
-      pdf.save(`tomeforge-foglio-stampa.pdf`);
+      pdf.save(includeBack?"tomeforge-a4-fronte-retro.pdf":"tomeforge-a4-solo-fronte.pdf");
       toast.success(`Foglio pronto: ${chosenCards.length} carte`);
       exitSelectMode();
     } catch (e) {
@@ -279,13 +279,20 @@ export default function Collection() {
               </div>
               <button data-testid="include-back-toggle" onClick={() => setIncludeBack((v) => !v)}
                 className={`mt-2 flex items-center gap-2 px-3 py-1 rounded-none border font-label text-[10px] tracking-widest uppercase transition-colors ${includeBack ? "bg-gold text-obsidian border-gold" : "border-border text-muted-foreground hover:text-gold hover:border-gold-deep"}`}>
-                <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "RETRO INCLUSO (F/R)" : "INCLUDI RETRO (F/R)"}
+                <RotateCw className="w-3.5 h-3.5" /> {includeBack ? "FRONTE/RETRO ATTIVO" : "SOLO FRONTE"}
               </button>
+            </div>
+            <div className="border-t border-border/40 pt-3 space-y-2">
+              <Button data-testid="export-press-deck-btn" onClick={exportPressDeck} disabled={exporting || !chosenCards.length} variant="outline"
+                className="w-full justify-start rounded-none border-gold-deep/50 text-gold font-label text-[11px]">
+                <FileText className="w-4 h-4 mr-2" /> {exportingPress ? `TIPOGRAFIA ${progress}/${totalSteps}` : "ESPORTA MAZZO PER TIPOGRAFIA"}
+              </Button>
+              <p className="font-body text-xs text-muted-foreground">PDF RGB, una pagina per faccia, fronte/retro in coppia. Taglio Standard 63,5 × 88,9 mm, abbondanza 3 mm; indipendente dalle impostazioni A4. Confermare profilo colore, raggio angoli e specifiche con la tipografia.</p>
             </div>
             <p className="font-body text-xs text-muted-foreground/80 border-t border-border/40 pt-2">
               Il PDF mantiene le dimensioni fisiche selezionate: {PRINT_FORMATS[format].cols}×{PRINT_FORMATS[format].rows} carte per A4.
               {selected.length < perPage && " Le posizioni non selezionate restano bianche: seleziona altre carte per riempire la griglia."}
-              {includeBack && " Per allineare fronte e retro, stampa in modalità fronte/retro con ribaltamento sul lato lungo."}
+              {includeBack && " Stampa sullo stesso foglio: fronte/retro, lato lungo, scala 100% (dimensioni effettive), senza adattamento alla pagina. Le pagine sono accoppiate e le posizioni dei dorsi speculari; verifica la registrazione della stampante con una prova."}
             </p>
           </div>
         )}

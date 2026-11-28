@@ -1,10 +1,14 @@
 import React from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { publicDescriptionUrl } from "@/lib/cardDescription";
-import { categoryFrontLayout, frontBackground } from "@/lib/frontCategoryLayouts";
+import { categoryFrontLayout, frontBackground, restoredFrontMaster } from "@/lib/frontCategoryLayouts";
+import { MONSTER_EMBLEM_BOUNDS, CHARACTER_EMBLEM_BOUNDS } from "@/lib/frontMaster";
 import { artworkUrl } from "@/lib/api";
 import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
+import { backImageStyle, frontMasterSlices, frontMasterSliceStyle } from "@/lib/cardPrintGeometry";
+import { getFrontExteriorMask } from "@/lib/frontExterior";
+import { getMetalPresentation } from "@/lib/frameColorProof";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
@@ -15,7 +19,13 @@ import { RaceCardFront, RaceCardErrorBoundary } from "@/components/RaceCardFront
 import { CategoryCardFront } from "@/components/CategoryCardFront";
 import { isCategoryMaster } from "@/lib/categoryCardView";
 
-const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl }, ref) => {
+const monsterEmblemStyle = {
+ left: `${MONSTER_EMBLEM_BOUNDS.left * 100}%`,
+ top: `${MONSTER_EMBLEM_BOUNDS.top * 100}%`,
+ width: `${MONSTER_EMBLEM_BOUNDS.width * 100}%`,
+};
+
+const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl, monsterFrame, masterOverride }, ref) => {
  const data=buildFrontBlueprint(card);
  const layout=categoryFrontLayout(data.type);
  const [artworkError,setArtworkError]=React.useState(false);
@@ -32,6 +42,10 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    }
  },[hasArtwork]);
  const symbol=data.emblem;
+ const hasMonsterEmblem = symbol?.sprite === "monster-original";
+ const hasCharacterEmblem = data.type === "character" && symbol?.sprite === "class-original";
+ const fullOverlay = hasMonsterEmblem || hasCharacterEmblem;
+ const emblemStyle = hasCharacterEmblem ? Object.fromEntries(Object.entries(CHARACTER_EMBLEM_BOUNDS).map(([key,value])=>[key,`${value*100}%`])) : monsterEmblemStyle;
  const detailsLink=publicDescriptionUrl(card);
  const descriptionRef=React.useRef(null);
  const [printedClassDescription,setPrintedClassDescription]=React.useState(data.description);
@@ -75,6 +89,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    data-front-category={data.type} data-record-category={data.recordType || undefined} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,...frontBackground(data.type)}}>
+   {frontMasterSlices(data.type).map((slice,i)=><div key={i} aria-hidden="true" style={frontMasterSliceStyle(masterOverride||restoredFrontMaster(layout.master||"/card-art/front-master-v17.webp"),slice)}/>)}
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
@@ -82,7 +97,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    
    <div className="tf-v3-layout">
      <header className="tf-v3-banner">
-       <div className="tf-v3-medallion" data-testid="front-emblem"
+       {data.type!=="monster" && !hasCharacterEmblem && <div className="tf-v3-medallion" data-testid="front-emblem"
          data-emblem-sprite={symbol?.sprite||"none"} title={symbol?.label||data.subtitle}>
          {symbol?.sprite==="class-original"
             ? <img className="tf-class-original-emblem" src={symbol.src} alt={symbol.label||""} draggable={false}/>
@@ -94,7 +109,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
                 <div className="tf-v3-sprite" style={{backgroundImage:`url(${symbol.src})`,
                   backgroundPosition:symbol.backgroundPosition,backgroundSize:symbol.backgroundSize}} aria-label={symbol.label}/>
               </> : <span className="tf-v3-fallback">✦</span>}
-       </div>
+       </div>}
        <div className="tf-v3-titles">
          <h3 title={data.name}>{data.name}</h3>
          <p>{data.subtitle}</p>
@@ -164,14 +179,17 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
        </a>}
      </section>
    </div>
-
+   {monsterFrame}
+   {fullOverlay && <img className={hasCharacterEmblem?"tf-character-original-emblem tf-class-original-emblem":"tf-monster-original-emblem"} data-testid="front-emblem"
+     data-emblem-sprite={symbol.sprite} src={symbol.src} alt={symbol.label} title={symbol.label}
+     style={emblemStyle} draggable={false}/>}
  </div>;
 });
 LegacyCardFront.displayName="LegacyCardFront";
 //
 // All app surfaces (editor, detail, saved cards and print-sheet previews) now
 // use exactly the approved Spell master. Other categories retain their renderer.
-export const CardFront = React.forwardRef((props, ref) =>
+const ApprovedCardFront = React.forwardRef((props, ref) =>
   props.card?.type === "spell"
     ? <SpellCardFront {...props} ref={ref} />
     : props.card?.type === "feature"
@@ -182,14 +200,37 @@ export const CardFront = React.forwardRef((props, ref) =>
           ? <CategoryCardFront {...props} ref={ref} />
           : <LegacyCardFront {...props} ref={ref} />
 );
+ApprovedCardFront.displayName="ApprovedCardFront";
+
+export const CardFront=React.forwardRef((props,ref)=>{
+ const type=props.card?.type;
+ const [mask,setMask]=React.useState(null);
+ React.useEffect(()=>{
+  let alive=true;setMask(null);
+  // The offscreen exporter applies the same mask after rendering.
+  if(!props.exportMode)(async()=>{
+   const approved=await getMetalPresentation(type);
+   if(approved){if(alive)setMask(approved);return;}
+   const c=await getFrontExteriorMask(type);
+   if(alive&&c)setMask({src:c.toDataURL("image/png"),background:c.frameBackground});
+  })().catch(()=>{});
+  return()=>{alive=false;};
+ },[type,props.exportMode]);
+ const frame = mask && <img src={mask.src} alt="" aria-hidden="true" draggable={false}
+   style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>;
+ return <div className={"relative w-full h-full overflow-hidden"+(mask?.background?" tf-frame-corrected":"")} style={mask?.background?{"--tf-print-master":`url("${mask.background}")`}:undefined} data-front-edge="expanded-original-rail">
+  <ApprovedCardFront {...props} ref={ref} masterOverride={mask?.background} monsterFrame={["monster","character"].includes(type) ? frame : undefined}/>
+  {!["monster","character"].includes(type) && frame}
+ </div>;
+});
 CardFront.displayName="CardFront";
 
 export const CardBack=React.forwardRef(({card,exportMode},ref)=>{
  const back=getApprovedBack(card);
  return <div ref={ref} data-testid="card-back" data-back-asset={back.file}
-   className={`relative h-full w-full overflow-hidden bg-[#101019] ${exportMode?"tf-export-card":""}`}>
+   className={`relative h-full w-full overflow-hidden ${exportMode?"tf-export-card":""}`}>
     <img src={back.src} alt={`Retro ufficiale TomoForge: ${back.label}`}
-    className="absolute inset-0 block h-full w-full" style={{objectFit:"contain"}} draggable={false}/>
+     className="block" style={backImageStyle(back.file)} draggable={false}/>
  </div>;
 });
 CardBack.displayName="CardBack";

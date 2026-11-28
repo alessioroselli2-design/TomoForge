@@ -269,16 +269,37 @@ describe("new front integration",()=>{
  });
 });
 
+describe("Monster full PNG emblem selection",()=>{
+  it("switches all fourteen creature types and shows no fallback for unknown types",async()=>{
+    const container=document.createElement("div");document.body.appendChild(container);
+    const root=createRoot(container);
+    const types=["aberrazione","bestia","celestiale","costrutto","drago","elementale","folletto","gigante","immondo","melma","mostruosita","non morto","pianta","umanoide"];
+    try {
+      for (const [index,type] of types.entries()) {
+        await act(async()=>root.render(<CardFront card={{type:"monster",name:"Mostro",attributes:{tipo_creatura:type}}}/>));
+        const emblem=container.querySelector('[data-testid="front-emblem"]');
+        expect(emblem.getAttribute("src")).toBe("/emblemi/mostri/mst-"+String(index+1).padStart(2,"0")+"-"+type.replace(/ /g,"-")+".png");
+        expect(emblem.style.width).toBe("26.5%");
+        expect(container.querySelector(".tf-v3-sprite, .tf-v3-medallion")).toBeNull();
+      }
+      await act(async()=>root.render(<CardFront card={{type:"monster",name:"Mostro",attributes:{tipo_creatura:"sconosciuto"}}}/>));
+      expect(container.querySelector('[data-testid="front-emblem"]')).toBeNull();
+    } finally {await act(async()=>root.unmount());container.remove();}
+  });
+});
+
 describe("v10: approved dragon high resolution and readable senses",()=>{
   it("uses an original-size separate Dragon medal and preserves all senses",async()=>{
     const container=document.createElement("div");document.body.appendChild(container);
     const root=createRoot(container);
     await act(async()=>root.render(<CardFront card={{type:"monster",name:"Drago Rosso Adulto",
       attributes:{tipo_creatura:"Drago",grado_sfida:"17",sensi:"Percezione passiva 23, scurovisione 36 m, vista cieca 18 m"}}}/>));
-    const emblem=container.querySelector(".tf-v3-sprite");
-    expect(emblem.style.backgroundImage).toContain("drago-originale-hd-v2.webp");
-    expect(emblem.style.backgroundSize).toBe("100% 100%");
-    expect(container.querySelector('[data-testid="front-emblem"]').dataset.emblemSprite).toBe("drago-hd");
+    const emblem=container.querySelector('[data-testid="front-emblem"]');
+    expect(emblem.tagName).toBe("IMG");
+    expect(emblem.getAttribute("src")).toBe("/emblemi/mostri/mst-05-drago.png");
+    expect(emblem.dataset.emblemSprite).toBe("monster-original");
+    expect(emblem.style.width).toBe("26.5%");
+    expect(container.querySelector(".tf-v3-sprite, .tf-v3-medallion")).toBeNull();
     expect(container.querySelector("[data-front-layout]")?.className).toContain("tf-v6-long-title");
     expect(container.textContent).toContain("vista cieca 18 m");
     await act(async()=>root.unmount());container.remove();
@@ -299,7 +320,7 @@ describe("approved premium spell dice",()=>{
       .toBe("/card-art/spell-dice/d6-blank-v31.webp");
     expect(mount.querySelector(".tf-spell-damage strong")?.textContent).toBe("8d6");
     expect(mount.querySelector(".tf-spell-damage")?.textContent).toBe("8d6");
-    expect(mount.querySelector(".tf-spell-school-emblem")?.getAttribute("src")).toBe("/emblemi/scuole/scl-06-invocazione.png");
+    expect(mount.querySelector(".tf-spell-school-emblem")?.getAttribute("src")).toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
     expect(mount.querySelector(".tf-class-hit-die")).toBeNull();
     await act(async()=>root.unmount());mount.remove();
   });
@@ -332,9 +353,9 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    expect(m.dataset.frontLayout).toBe("unified-monster-master-v17");
    expect(c.dataset.frontLayout).toBe(m.dataset.frontLayout);
    expect(c.dataset.categoryLayout).toBe("class-5x7-finale");
-   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/front-restored-v18/master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(c.style.backgroundImage).not.toBe(m.style.backgroundImage);
-   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/front-restored-v18/master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(c.querySelectorAll(".tf-v3-layout")).toHaveLength(1);
    expect(c.querySelectorAll(".tf-class-v40-master,.tf-v39-class-master")).toHaveLength(0);
    expect([...c.querySelectorAll(".tf-v3-stat")].map(el=>el.dataset.statLabel))
@@ -366,7 +387,7 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const {mount,close}=await mountCard({type:"class",name:"Druido",
      artwork_path:"druid.jpg",attributes:{dado_vita:"d8",abilita_primaria:"Saggezza"}});
    const c=mount.querySelector("[data-testid='card-front']");
-   expect(c.style.backgroundImage).toContain("/card-art/master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(c.style.backgroundImage).toContain("/card-art/front-restored-v18/master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(c.querySelector(".tf-v3-picture img").getAttribute("src"))
      .toBe("https://cdn.example.com/druid.jpg");
    expect(c.querySelector(".tf-v3-medallion")).not.toBeNull();
@@ -378,11 +399,11 @@ describe("One Monster master for all cards, with category-specific data",()=>{
    const item=await mountCard({type:"item",name:"Anello",attributes:{rarita:"Raro"}});
    const approved=spell.mount.querySelector("[data-testid='card-front']");
    expect(approved.dataset.frontLayout).toBe("spell-5x7-v1");
-   expect(approved.style.backgroundImage).toContain("/card-art/master-incantesimo-5x7-v1.webp");
+   expect(approved.style.backgroundImage).toContain("/card-art/front-restored-v18/master-incantesimo-5x7-v1.webp");
    expect(approved.querySelector(".tf-spell-level")?.textContent).toContain("3");
    expect(approved.querySelector(".tf-spell-school-emblem")?.getAttribute("src"))
-     .toBe("/emblemi/scuole/scl-06-invocazione.png");
-   expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage).toContain("master-oggetto-magico-5x7.png");
+     .toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
+   expect(item.mount.querySelector("[data-testid='card-front']").style.backgroundImage).toContain("master-oggetto-magico-5x7.webp");
    expect(item.mount.querySelector(".tf-category-badge").textContent).toBe("Raro");
    await spell.close();await item.close();
  });
@@ -428,11 +449,11 @@ describe("Class 5x7 uses the master image and clean emblems",()=>{
    dado_vita:"d6",abilita_primaria:"Intelligenza",tiri_salvezza:"Intelligenza, Saggezza",competenze:"Armi semplici"
   }}}/>));
   const front=m.querySelector('[data-front-category="class"]');
-  expect(front.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+  expect(front.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
   expect(front.querySelector(".tf-v3-art-hint")).toBeNull();
   expect(front.querySelector("[data-testid='front-artwork-empty']")).not.toBeNull();
   expect(front.querySelector(".tf-class-original-emblem")?.getAttribute("src"))
-   .toBe("/emblemi/classi/cls-12-mago.png");
+   .toBe("/emblemi/classi-hd/cls-12-mago-hd.png");
   expect(front.querySelectorAll(".tf-v3-sprite")).toHaveLength(0);
   expect(front.querySelector('[data-stat-label="Abilità primaria"] .tf-v6-stat-text>span').textContent)
    .toBe("Abilità Primaria");
@@ -453,7 +474,7 @@ describe("approved Incantesimo integration", () => {
     expect(front).not.toBeNull();
     expect(front.getAttribute("data-front-layout")).toBe("spell-5x7-v1");
     expect(front.querySelector(".tf-spell-school-emblem").getAttribute("src"))
-      .toBe("/emblemi/scuole/scl-01-abiurazione.png");
+      .toBe("/emblemi/scuole-hd/scl-01-abiurazione-hd.png");
     expect(front.querySelector(".tf-spell-school-medallion")).not.toBeNull();
     expect(front.querySelector(".tf-v3-medallion")).toBeNull();
     await act(async () => root.unmount());
@@ -470,10 +491,10 @@ describe("subclass shares the approved class renderer",()=>{
    const node=host.querySelector('[data-record-category="subclass"]');
    expect(node.getAttribute("data-front-category")).toBe("class");
    expect(node.getAttribute("data-category-layout")).toBe("class-5x7-finale");
-   expect(node.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.jpg");
+   expect(node.style.backgroundImage).toContain("master-classe-5x7-senza-muscolo-e-anello-20261118.webp");
    expect(node.querySelector("h3").textContent).toBe("Campione");
    expect(node.querySelector(".tf-v3-titles p").textContent).toBe("Guerriero • Sottoclasse");
-   expect(node.querySelector(".tf-class-original-emblem").getAttribute("src")).toBe("/emblemi/classi/cls-05-guerriero.png");
+   expect(node.querySelector(".tf-class-original-emblem").getAttribute("src")).toBe("/emblemi/classi-hd/cls-05-guerriero-hd.png");
    expect(node.querySelector(".tf-class-hit-die").getAttribute("data-die")).toBe("d10");
    expect(node.querySelector('[data-testid="front-artwork-empty"]')).not.toBeNull();
    expect(node.querySelector(".tf-v3-desc").textContent).toBe("Descrizione specifica.");

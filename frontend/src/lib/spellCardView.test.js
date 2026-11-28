@@ -3,17 +3,17 @@ import {readFileSync} from 'fs';
 import {resolve} from 'path';
 
 describe('new independent Incantesimo master — source-data presentation',()=>{
-  it('maps eight recreated circular school medals at the Class native 320px size',()=>{
+  it('maps eight recreated circular school medals at the normalized 640px size',()=>{
     expect(SPELL_SCHOOLS).toHaveLength(8);
     SPELL_SCHOOLS.forEach((name,i)=>{
       const path=spellSchoolAsset(name);
-      expect(path).toBe(`/emblemi/scuole/scl-${String(i+1).padStart(2,'0')}-${name.toLowerCase()}.png`);
+      expect(path).toBe(`/emblemi/scuole-hd/scl-${String(i+1).padStart(2,'0')}-${name.toLowerCase()}-hd.png`);
       const file=readFileSync(resolve(__dirname,`../../public${path}`));
       expect(file.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
       // PNG ottimizzati: i byte non sono una misura della risoluzione.
-      // Stessa tela quadrata 320x320 dei simboli delle Classi.
-      expect(file.readUInt32BE(16)).toBe(320);
-      expect(file.readUInt32BE(20)).toBe(320);
+      // Tela quadrata 640x640 già normalizzata nella PR #704.
+      expect(file.readUInt32BE(16)).toBe(640);
+      expect(file.readUInt32BE(20)).toBe(640);
     });
   });
   it('uses Invocazione for fireball, school-only subtitle, damage and a half-save',()=>{
@@ -22,7 +22,7 @@ describe('new independent Incantesimo master — source-data presentation',()=>{
       componenti:'V, S, M',tiro_salvezza:'Destrezza',esito_ts:'metà',
       area_effetto:'Sfera, raggio 6 m',tipo_danno:'Fuoco',danno:'8d6',aumento_livello:'+1d6'}});
     expect(view.subtitle).toBe('Incantesimo di Invocazione');
-    expect(view.schoolAsset).toContain('scl-06-invocazione.png');
+    expect(view.schoolAsset).toContain('scl-06-invocazione-hd.png');
     expect(view.level).toBe('3');
     expect(view.basics.map(x=>x.value)).toEqual(['1 azione','45 m','Istantanea','V, S, M']);
     expect(view.combat[0].value).toBe('TS Des · metà');
@@ -82,7 +82,7 @@ describe('spell DC and quick effect without changes to approved Class renderer',
  });
  it('keeps the approved Class emblem geometry while optically matching school artwork',()=>{
    const css=readFileSync(resolve(__dirname,'../components/SpellCardFront.css'),'utf8');
-   expect(css).toContain('left:2.05%;top:.2786%;width:27.5%');
+   expect(css).toContain('left:3.05%;top:.992857%;width:25.5%');
    expect(css).toContain('padding:0;box-sizing:border-box');
    expect(css).toContain('filter:none;-webkit-filter:none');
    expect(css).not.toContain('padding:2.15%');

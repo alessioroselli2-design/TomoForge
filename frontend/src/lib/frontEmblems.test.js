@@ -4,7 +4,7 @@ import {resolve} from "path";
 describe("approved TomoForge front medal rules",()=>{
  it("uses unique Beholder and Dragon monster medals",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Aberrazione"}}).index).toBe(13);
-  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/drago-originale-hd-v2.webp", cell:160});
+  expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Drago"}})).toMatchObject({src:"/emblemi/mostri/mst-05-drago.png", cell:640});
  });
  it("uses school-specific medals rather than a generic magic icon",()=>{
   expect(getFrontEmblem({type:"spell",attributes:{scuola:"Invocazione"}}).index).toBe(32);
@@ -15,14 +15,14 @@ describe("approved TomoForge front medal rules",()=>{
      "illusione","invocazione","necromanzia","trasmutazione"];
    schools.forEach((school,i)=>{
      expect(getFrontEmblem({type:"spell",attributes:{scuola:school}})).toMatchObject({
-       index:27+i,sprite:"school-original",cell:384,
-       src:`/emblemi/scuole/scl-${String(i+1).padStart(2,"0")}-${school}.png`
+       index:27+i,sprite:"school-original",cell:640,
+       src:`/emblemi/scuole-hd/scl-${String(i+1).padStart(2,"0")}-${school}-hd.png`
      });
    });
    expect(getFrontEmblem({type:"spell",attributes:{school:"Evocation"}}).src)
-     .toBe("/emblemi/scuole/scl-06-invocazione.png");
+     .toBe("/emblemi/scuole-hd/scl-06-invocazione-hd.png");
    expect(getFrontEmblem({type:"spell",attributes:{school:"Conjuration"}}).src)
-     .toBe("/emblemi/scuole/scl-04-evocazione.png");
+     .toBe("/emblemi/scuole-hd/scl-04-evocazione-hd.png");
  });
  it("renders the full school PNG with the same Class geometry in the legacy preview and export",()=>{
    const component=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
@@ -36,7 +36,7 @@ describe("approved TomoForge front medal rules",()=>{
  it("distinguishes the new sapphire Privileges medal from the winged Cleric",()=>{
   expect(getFrontEmblem({type:"feature"})).toMatchObject({index:38,sprite:"feature-original",src:"/emblemi/privilegi/simbolo-privilegi-alta-risoluzione.png"});
   expect(getFrontEmblem({type:"class",name:"Chierico"}).index).toBe(2);
-  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi/cls-05-guerriero.png",cell:320,sprite:"class-original"});
+  expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({src:"/emblemi/classi-hd/cls-05-guerriero-hd.png",cell:640,sprite:"class-original"});
  });
  it("keeps the race medal empty until a real race is selected",()=>{
    expect(getFrontEmblem({type:"race",name:"",attributes:{}})).toBeNull();
@@ -66,7 +66,7 @@ describe("approved TomoForge front medal rules",()=>{
  });
  it("keeps the user-approved Warrior crest (not an invented SVG)",()=>{
    expect(getFrontEmblem({type:"class",name:"Guerriero"})).toMatchObject({
-     sprite:"class-original",src:"/emblemi/classi/cls-05-guerriero.png",cell:320
+     sprite:"class-original",src:"/emblemi/classi-hd/cls-05-guerriero-hd.png",cell:640
    });
    expect(getFrontEmblem({type:"class",name:"Druido"}).sprite).toBe("class-original");
  });
@@ -74,7 +74,7 @@ describe("approved TomoForge front medal rules",()=>{
    const classes=["Barbaro","Bardo","Chierico","Druido","Guerriero","Monaco",
      "Paladino","Ranger","Ladro","Stregone","Warlock","Mago","Artefice"];
    classes.forEach((name,index)=>{
-     const expected=`/emblemi/classi/cls-${String(index+1).padStart(2,"0")}-${name.toLowerCase()}.png`;
+     const expected=`/emblemi/classi-hd/cls-${String(index+1).padStart(2,"0")}-${name.toLowerCase()}-hd.png`;
      expect(getFrontEmblem({type:"class",name})).toMatchObject({
        index,sprite:"class-original",src:expected,
      });
@@ -84,3 +84,19 @@ describe("approved TomoForge front medal rules",()=>{
   expect(getFrontEmblem({type:"monster",attributes:{tipo_creatura:"Sconosciuto"}})).toBeNull();
  });
 });
+
+ it("maps all fourteen creature types and their English aliases to full 640px RGBA PNGs",()=>{
+  const types=["aberrazione","bestia","celestiale","costrutto","drago","elementale","folletto","gigante","immondo","melma","mostruosita","non morto","pianta","umanoide"], aliases=["aberration","beast","celestial","construct","dragon","elemental","fey","giant","fiend","ooze","monstrosity","undead","plant","humanoid"];
+  types.forEach((name,i)=>{
+    const em=getFrontEmblem({type:"monster",attributes:{tipo_creatura:name}});
+    expect(getFrontEmblem({type:"monster",attributes:{creature_type:aliases[i]}}).src).toBe(em.src);
+    expect(em).toMatchObject({sprite:"monster-original",index:13+i,cell:640,width:640,height:640,col:0,row:0});
+    expect(em.src).toBe("/emblemi/mostri/mst-"+String(i+1).padStart(2,"0")+"-"+name.replace(/ /g,"-")+".png");
+    const png=readFileSync(resolve(__dirname,"../../public"+em.src));
+    expect(png.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect(png.readUInt32BE(16)).toBe(640);
+    expect(png.readUInt32BE(20)).toBe(640);
+    expect(png[25]).toBe(6); // truecolour with alpha
+  });
+  expect(getFrontEmblem({type:"monster",attributes:{}})).toBeNull();
+ });

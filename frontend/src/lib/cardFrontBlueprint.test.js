@@ -269,7 +269,7 @@ describe("subclass uses the approved class presentation",()=>{
   expect(bp.recordType).toBe("subclass");
   expect(bp.name).toBe(card.name);
   expect(bp.subtitle).toBe("Druido • Sottoclasse");
-  expect(bp.emblem.src).toBe("/emblemi/classi/cls-04-druido.png");
+  expect(bp.emblem.src).toBe("/emblemi/classi-hd/cls-04-druido-hd.png");
   expect(bp.classDieAsset).toBe("/card-art/dadi-vita/d8.png");
   expect(bp.highlights.map(x=>x.label)).toEqual(["Abilità primaria","Tiri salvezza","Competenze"]);
   expect(bp.fullDescription).toBe(card.description);
@@ -286,6 +286,6 @@ describe("subclass uses the approved class presentation",()=>{
  it("uses the parent from a saved reference snapshot if absent from the attributes",()=>{
   const bp=buildFrontBlueprint({type:"subclass",name:"Campione",attributes:{},reference_snapshots:[{reference_type:"subclass",parent_class:"Guerriero"}]});
   expect(bp.subtitle).toBe("Guerriero • Sottoclasse");
-  expect(bp.emblem.src).toBe("/emblemi/classi/cls-05-guerriero.png");
+  expect(bp.emblem.src).toBe("/emblemi/classi-hd/cls-05-guerriero-hd.png");
  });
 });

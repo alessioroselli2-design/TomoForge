@@ -20,7 +20,7 @@ describe("race-only 5x7 front",()=>{
   }});
   try{
    const card=view.host.querySelector('[data-front-layout="race-5x7-v1"]');
-   expect(card.style.backgroundImage).toContain("master-razze-5x7.png");
+   expect(card.style.backgroundImage).toContain("master-razze-5x7.webp");
    expect(card.querySelector(".tf-race-emblem").getAttribute("src")).toBe("/emblemi/razze/rz-02-elfo.png");
    expect(card.querySelector(".tf-race-size").textContent).toContain("Media");
    expect(card.querySelector(".tf-race-title").textContent).toBe("Elfo");

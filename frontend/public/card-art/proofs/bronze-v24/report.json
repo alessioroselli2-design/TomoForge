@@ -1,0 +1,65 @@
+[
+  {
+    "name": "front-master-v17.webp",
+    "panels": 7,
+    "protected": 4492465,
+    "changed": 479281,
+    "bytes": 4362606
+  },
+  {
+    "name": "master-arma-5x7.webp",
+    "panels": 6,
+    "protected": 4893601,
+    "changed": 394027,
+    "bytes": 3569716
+  },
+  {
+    "name": "master-armatura-5x7.webp",
+    "panels": 6,
+    "protected": 4870339,
+    "changed": 411451,
+    "bytes": 3557256
+  },
+  {
+    "name": "master-classe-5x7-senza-muscolo-e-anello-20261118.webp",
+    "panels": 5,
+    "protected": 4756212,
+    "changed": 400681,
+    "bytes": 4943806
+  },
+  {
+    "name": "master-incantesimo-5x7-v1.webp",
+    "panels": 11,
+    "protected": 4731994,
+    "changed": 410614,
+    "bytes": 3398630
+  },
+  {
+    "name": "master-oggetto-magico-5x7.webp",
+    "panels": 6,
+    "protected": 4907271,
+    "changed": 384527,
+    "bytes": 3537578
+  },
+  {
+    "name": "master-privilegi-5x7.webp",
+    "panels": 6,
+    "protected": 4891698,
+    "changed": 390522,
+    "bytes": 4000602
+  },
+  {
+    "name": "master-razze-5x7.webp",
+    "panels": 6,
+    "protected": 4877103,
+    "changed": 408665,
+    "bytes": 3602048
+  },
+  {
+    "name": "master-talento-5x7.webp",
+    "panels": 6,
+    "protected": 4883812,
+    "changed": 402536,
+    "bytes": 3547724
+  }
+]

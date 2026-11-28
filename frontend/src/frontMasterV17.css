@@ -3,7 +3,6 @@
 .tf-front-master-v17 .tf-v8-detail-repair{display:none!important}
 .tf-front-master-v17 .tf-v3-medallion{left:7.64706%!important;top:2.52101%!important;width:16.47059%!important;height:auto!important;aspect-ratio:1;overflow:hidden;border-radius:50%;background:transparent!important;box-shadow:none!important}
 .tf-front-master-v17 .tf-v3-medallion .tf-v3-sprite{width:100%;height:100%;background-repeat:no-repeat;image-rendering:auto}
-.tf-front-master-v17 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite{transform:scale(1.23)!important;transform-origin:center}
 .tf-front-master-v17 .tf-v3-badge{right:7.64706%!important;top:2.52101%!important;width:16.47059%!important;height:auto!important;aspect-ratio:1;background:none!important;box-shadow:none!important;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .tf-front-master-v17 .tf-v3-titles{left:28%!important;top:3.6%!important;width:44%!important;height:9.15%!important;transform:none!important;gap:2px}
 .tf-front-master-v17 .tf-v3-titles h3{font-size:clamp(14px,5.05cqw,17.25px);line-height:1.04;color:#291709}
@@ -35,10 +34,13 @@
   -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 59%,rgba(0,0,0,.75) 67%,transparent 82%)!important;
   mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 59%,rgba(0,0,0,.75) 67%,transparent 82%)!important;
 }
-.tf-front-master-v17 .tf-v3-medallion[data-emblem-sprite="drago-hd"] .tf-v3-sprite {
-  transform:scale(1.28)!important;
-  -webkit-mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
-  mask-image:radial-gradient(circle closest-side at center,#000 0%,#000 58%,rgba(0,0,0,.7) 66%,transparent 78%)!important;
+/* The original Monster PNG sits above the exterior rail, including its top jewel. */
+.tf-front-master-v17[data-front-category="monster"] > .tf-monster-original-emblem {
+  position:absolute;
+  z-index:101;
+  display:block;
+  height:auto;
+  pointer-events:none;
 }
 
 .tf-front-master-v17 .tf-v3-stat[data-stat-label="CA"] .tf-v6-stat-icon,
@@ -388,23 +390,27 @@
   display:block;width:100%!important;height:100%!important;
 }
 
-/* Class emblem: original square PNG at 27.5% of card width, centered at 15.8% / 10.1%.
-   2.05% = 15.8% - 27.5%/2; 0.2786% = 10.1% - (27.5% * 5/7)/2. */
+/* Full HD medals retain the center of each master. */
+.tf-front-master-v17[data-front-category="character"] .tf-v3-medallion[data-emblem-sprite="class-original"],
 .tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{
- left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ left:2.8%!important;top:0.814286%!important;width:26%!important;
  height:auto!important;aspect-ratio:1!important;z-index:14!important;
  overflow:visible!important;border-radius:0!important;
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
  background:transparent!important;box-shadow:none!important;filter:none!important;transform:none!important;
+}
+/* Character uses the upper-left well of the Monster master at (54,40) / 340x476. */
+.tf-front-master-v17[data-front-category="character"] .tf-v3-medallion[data-emblem-sprite="class-original"]{
+ left:2.882353%!important;top:-0.882353%!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem{
  width:100%!important;height:100%!important;object-fit:contain!important;
  overflow:visible!important;clip-path:none!important;
  -webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;
 }
-/* A standalone school medal matches Class geometry without changing any Class rule. */
+/* Legacy spell renderer uses the same school geometry as the dedicated card. */
 .tf-front-master-v17[data-front-category="spell"] .tf-v3-medallion[data-emblem-sprite="school-original"]{
- left:2.05%!important;top:0.2786%!important;width:27.5%!important;
+ left:3.05%!important;top:0.992857%!important;width:25.5%!important;
  height:auto!important;aspect-ratio:1!important;z-index:14!important;
  overflow:visible!important;border-radius:0!important;
  mask:none!important;-webkit-mask:none!important;clip-path:none!important;
@@ -459,7 +465,7 @@
 
 /* Class only: original PNGs at their native proportions, no filter, mask or vectorization.
    Single: [26px icon] 6px [text], vertically centered.
-   Double: [22px icon] 6px [22px icon], then 6px separation to one text line. */
+   Double: [18px icon] 6px [18px icon], below the engraved heading. */
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row{
   display:flex!important;flex-direction:row!important;align-items:center!important;
   justify-content:center!important;gap:6px!important;
@@ -483,15 +489,15 @@
   mask:none!important;-webkit-mask:none!important;clip-path:none!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-double{
-  top:22%!important;min-height:49px!important;height:49px!important;
-  flex-direction:column!important;align-items:center!important;justify-content:center!important;
-  gap:6px!important;
+  top:39%!important;min-height:0!important;height:34px!important;
+  flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+  gap:5px!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons{
-  flex-direction:row!important;gap:6px!important;height:22px!important;
+  flex-direction:row!important;gap:6px!important;height:18px!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-class-primary-double .tf-class-primary-icons img{
-  width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;
+  width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;
 }
 .tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-primary-row>strong{
   position:static!important;flex:0 1 auto!important;min-width:0!important;
@@ -503,4 +509,23 @@
   flex:0 0 auto!important;align-self:stretch!important;
   white-space:nowrap!important;overflow-wrap:normal!important;
   font-size:8.2px!important;letter-spacing:-0.1px!important;text-align:center!important;
+}
+
+/* Only dedicated, calibrated master backgrounds; editor content stays in place. */
+.tf-frame-corrected [data-front-category] { background-image:var(--tf-print-master) !important; }
+
+/* Legacy monster GS: remove the former downward text offset. */
+.tf-front-master-v17 .tf-v3-badge small,.tf-front-master-v17 .tf-v3-badge strong {top:0;}
+
+/* Character HD art sits above the exterior rail, like the Monster PNG. */
+.tf-front-master-v17[data-front-category="character"] > .tf-character-original-emblem {
+ position:absolute;z-index:101;display:block;height:auto!important;pointer-events:none;
+ max-width:none!important;max-height:none!important;object-fit:contain!important;
+ border:0!important;border-radius:0!important;overflow:visible!important;
+ mask:none!important;-webkit-mask:none!important;clip-path:none!important;transform:none!important;
+ filter:none!important;box-shadow:none!important;
+}
+/* Leave a clear gap after the shield/swords printed in the Class master. */
+.tf-front-master-v17[data-front-category="class"] .tf-v3-stats .tf-class-static-row{
+ padding-left:30px!important;padding-right:4px!important;
 }

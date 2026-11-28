@@ -1,4 +1,5 @@
 import React from "react";
+import { restoredFrontMaster } from "@/lib/frontCategoryLayouts";
 import { artworkUrl } from "@/lib/api";
 import { categoryCardView,completeUnits } from "@/lib/categoryCardView";
 import "./CategoryCardFront.css";
@@ -78,7 +79,7 @@ export const CategoryCardFront=React.forwardRef(({card={},imgUrl,exportMode},ref
  const {config}=view;
  return <div ref={ref} data-testid="card-front" data-front-version="7" data-front-category={card.type}
   data-front-layout={card.type+"-5x7-v1"} data-category-master="approved" className={"tf-category-master"+(exportMode?" tf-export-card":"")}
-  style={{backgroundImage:"url('/card-art/"+config.master+"')"}}>
+  style={{backgroundImage:"url('"+restoredFrontMaster("/card-art/"+config.master)+"')"}}>
   <div className="tf-category-emblem" data-testid="front-emblem">
    <img src={"/emblemi/categorie/"+config.symbol} alt={"Emblema "+config.subtitle} draggable={false}/>
   </div>

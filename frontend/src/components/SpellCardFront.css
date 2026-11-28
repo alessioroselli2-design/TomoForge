@@ -7,11 +7,9 @@
   font-family:'Spectral',Georgia,serif;
 }
 .tf-spell-master *{box-sizing:border-box;}
-/* Emblemi delle 8 scuole RICREATI come PNG quadrati 320x320.
-   Stesso box della Classe (Guerriero), nessun ingrandimento ottico:
-   centro 15.8%/10.1%, larghezza 27.5% della carta. */
+/* School PNG centered at 15.8% / 10.1% of the card. */
 .tf-spell-school-medallion{
-  position:absolute;left:2.05%;top:.2786%;width:27.5%;height:auto;
+  position:absolute;left:3.05%;top:.992857%;width:25.5%;height:auto;
   aspect-ratio:1 / 1;z-index:14;display:block;
   margin:0;padding:0;box-sizing:border-box;overflow:visible;
   border:0;border-radius:0;background:transparent;
@@ -122,3 +120,13 @@
  -webkit-line-clamp:5;line-clamp:5;
 }
 .tf-spell-footnote{overflow:hidden;}
+
+.tf-spell-level {top:3.15%;gap:2px;}
+.tf-spell-level strong {font-size:clamp(16px,6.8cqw,25px);line-height:1.08;transform:none;}
+.tf-spell-level span {transform:none;}
+
+/* Keep dynamic fields inside their cells in the editor too. */
+.tf-spell-cell-copy{flex:1 1 0;min-width:0;max-height:100%;}
+.tf-spell-cell-copy span{white-space:normal;text-align:center;line-height:1.12;}
+.tf-spell-cell-copy strong{line-height:1.12;}
+.tf-spell-basic-grid .tf-spell-cell-copy,.tf-spell-combat-grid .tf-spell-cell-copy{gap:2px;}

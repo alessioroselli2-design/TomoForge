@@ -8,11 +8,7 @@ const exporter=readFileSync(resolve(__dirname,"./cardExport.js"),"utf8");
 const component=readFileSync(resolve(__dirname,"../components/TradingCard.jsx"),"utf8");
 
 describe("TomoForge approved ornate master",()=>{
-  it("preserves the signed-off dragon medallion and title parchment",()=>{
-    expect(finalMaster).toContain('data-emblem-sprite="drago-hd"');
-    expect(finalMaster).toContain("transform:scale(1.28)!important");
-    expect(finalMaster).toContain("circle closest-side at center");
-    expect(exporter).toContain('zoom:dragon?1.28:1.2');
+  it("preserves the title parchment and the original class emblem",()=>{
     expect(base).toContain("font-size:clamp(14px,4.65cqw,16px)");
     // On the shared raster class emblems scale independently, never the gold rim.
     expect(finalMaster).toContain('.tf-front-master-v17[data-front-category="class"] .tf-class-original-emblem');
@@ -108,10 +104,10 @@ describe("shared Monster master across every front",()=>{
 });
 
 describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
- it("centers the 27.5% original class emblem above the master ring",()=>{
+ it("centers the 26% HD class emblem above the master ring",()=>{
    const medalRules=finalMaster.split('.tf-front-master-v17[data-front-category="class"] .tf-v3-medallion{');
    expect(medalRules).toHaveLength(2);
-   expect(finalMaster).toContain('left:2.05%!important;top:0.2786%!important;width:27.5%!important;');
+   expect(finalMaster).toContain('left:2.8%!important;top:0.814286%!important;width:26%!important;');
    expect(finalMaster).toContain('height:auto!important;aspect-ratio:1!important;z-index:14!important;');
    expect(finalMaster).toContain('overflow:visible!important;border-radius:0!important;');
    expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;clip-path:none!important;');
@@ -120,18 +116,18 @@ describe("Class 5x7 regression: Guerriero, Mago, Paladino and Ranger",()=>{
    expect(finalMaster).toContain('overflow:visible!important;clip-path:none!important;');
    expect(finalMaster).toContain('mask:none!important;-webkit-mask:none!important;filter:none!important;');
    expect(finalMaster).toContain('-webkit-mask:none!important;mask:none!important;filter:none!important;transform:none!important;');
-   expect(exporter).toContain('const badgeSize=width*.275;');
+   expect(exporter).toContain('const badgeSize = width * (data.type === "spell" ? 0.255 : 0.26);');
    expect(exporter).toContain('const diameter=width*.283,x=width*.833,y=height*.762;');
    expect(exporter).toContain('ctx.drawImage(jewel,x-diameter/2,y-diameter/2,diameter,diameter);');
    expect(exporter).not.toContain('sourceSide=Math.min(jewel.naturalWidth,jewel.naturalHeight)*.65;');
  });
- it("places two original 22px PNGs side by side, with 6px between them and one line of text",()=>{
-   expect(finalMaster).toContain('width:22px!important;height:22px!important;');
-   expect(finalMaster).toContain('flex-direction:row!important;gap:6px!important;height:22px!important;');
-   expect(finalMaster).toContain('top:22%!important;min-height:49px!important;height:49px!important;');
+ it("places the approved 18px PNGs below the heading, side by side with 6px spacing",()=>{
+   expect(finalMaster).toContain('width:18px!important;height:18px!important;');
+   expect(finalMaster).toContain('flex-direction:row!important;gap:6px!important;height:18px!important;');
+   expect(finalMaster).toContain('top:39%!important;min-height:0!important;height:34px!important;');
    expect(finalMaster).toContain('white-space:nowrap!important;overflow-wrap:normal!important;');
-   expect(exporter).toContain('const size=22,gap=6,items=primary.slice(0,2);');
-   expect(exporter).toContain('ctx.drawImage(asset,iconStart+j*(size+gap),statY+16,size,size)');
+   expect(exporter).toContain('const size=18,gap=6,items=primary.slice(0,2);');
+   expect(exporter).toContain('ctx.drawImage(asset,iconStart+j*(size+gap),statY+26,size,size)');
  });
  it("uses Mago's original 26px PNG to the left of the ability text, without extra shield",()=>{
    expect(finalMaster).toContain('width:26px!important;height:26px!important;');
