@@ -752,7 +752,7 @@ export default function CardEditor() {
 
   const generateImage = async () => {
     if (!user?.is_premium) { setPremiumOpen(true); return; }
-    const p = card.description.trim() || prompt.trim() || card.story.trim();
+    const p = String(card.description || "").trim() || String(prompt || "").trim() || String(card.story || "").trim() || String(card.name || "").trim();
     if (!p) { toast.error("Aggiungi un nome o una descrizione prima"); return; }
     setGenImg(true);
     try {
@@ -760,7 +760,8 @@ export default function CardEditor() {
         prompt: p,
         type: card.type,
         cleanup: cleanupArtwork,
-      });
+      }, { timeout: 150000 });
+      if (!res.data?.artwork_path) throw new Error("Artwork mancante");
       set({ artwork_path: res.data.artwork_path });
       if (res.data.cleanup_notice) {
         toast.warning(res.data.cleanup_notice);
@@ -768,7 +769,7 @@ export default function CardEditor() {
         toast.success("Artwork evocato");
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Generazione immagine fallita");
+      toast.error(e.code === "ECONNABORTED" || e.code === "ETIMEDOUT" ? "La generazione ha superato il tempo di attesa. Controlla la carta prima di riprovare." : (e.response?.data?.detail || "Generazione immagine fallita"));
     } finally {
       setGenImg(false);
     }
