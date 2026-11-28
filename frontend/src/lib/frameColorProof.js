@@ -63,3 +63,28 @@ export async function getMetalProofLayers(type) {
 }
 
 export const getArmorProofLayers=()=>getMetalProofLayers("armor");
+// Undefined means the approved app finish. Null is the explicit original
+// comparison selection. Non-canvas fixtures retain the original fallback.
+export async function resolveFrontLayers(type, requested, canRender=true, load=getMetalProofLayers){
+ if(requested!==undefined)return requested;
+ return canRender&&METAL_PROOF_TYPES.includes(type)?load(type):null;
+}
+// One immutable background and trim URL per master category for the live UI.
+// Keep the HD native canvas only during encoding, not in the preview cache.
+const presentationCache=new Map();
+const encodeCanvas=canvas=>new Promise((resolve,reject)=>{
+ canvas.toBlob(blob=>blob?resolve(URL.createObjectURL(blob)):reject(new Error("Cornice non disponibile")),"image/png");
+});
+export function getMetalPresentation(type){
+ if(!METAL_PROOF_TYPES.includes(type))return Promise.resolve(null);
+ const key=metalProofUrl(type);
+ if(!presentationCache.has(key)){
+  const pending=getMetalProofLayers(type).then(async layers=>{
+    const [background,src]=await Promise.all([encodeCanvas(layers.background),encodeCanvas(layers.trim)]);
+    return {background,src};
+  });
+  presentationCache.set(key,pending);
+  pending.catch(()=>presentationCache.delete(key));
+ }
+ return presentationCache.get(key);
+}

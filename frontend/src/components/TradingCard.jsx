@@ -8,6 +8,7 @@ import artworkPlaceholder from "@/assets/artwork-placeholder.svg";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { backImageStyle, frontMasterSlices, frontMasterSliceStyle } from "@/lib/cardPrintGeometry";
 import { getFrontExteriorMask } from "@/lib/frontExterior";
+import { getMetalPresentation } from "@/lib/frameColorProof";
 import { buildFrontBlueprint } from "@/lib/cardFrontBlueprint";
 import { getFrontStatIcon } from "@/lib/frontStatIcons";
 import { getClassPrimaryAbilityIcons } from "@/lib/classPrimaryAbilityIcons";
@@ -24,7 +25,7 @@ const monsterEmblemStyle = {
  width: `${MONSTER_EMBLEM_BOUNDS.width * 100}%`,
 };
 
-const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl, monsterFrame }, ref) => {
+const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl, monsterFrame, masterOverride }, ref) => {
  const data=buildFrontBlueprint(card);
  const layout=categoryFrontLayout(data.type);
  const [artworkError,setArtworkError]=React.useState(false);
@@ -88,7 +89,7 @@ const LegacyCardFront = React.forwardRef(({ card, exportMode, editorMode, imgUrl
    data-front-category={data.type} data-record-category={data.recordType || undefined} data-front-layout="unified-monster-master-v17" data-category-layout={layout.id}
    className={`tf-front-v3 tf-front-v6 tf-front-master-v7 tf-front-master-v17 ${exportMode?"tf-export-card":""} ${data.hasAbilities?"tf-v3-six":""} ${data.name.length>=27?"tf-v6-extra-long-title":""} ${data.name.length>=17?"tf-v6-long-title":""}`}
    style={{"--tf-v3-accent":data.accent,...frontBackground(data.type)}}>
-   {frontMasterSlices(data.type).map((slice,i)=><div key={i} aria-hidden="true" style={frontMasterSliceStyle(restoredFrontMaster(layout.master||"/card-art/front-master-v17.webp"),slice)}/>)}
+   {frontMasterSlices(data.type).map((slice,i)=><div key={i} aria-hidden="true" style={frontMasterSliceStyle(masterOverride||restoredFrontMaster(layout.master||"/card-art/front-master-v17.webp"),slice)}/>)}
    <span className="tf-v3-corner tf-v3-tl" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-tr" aria-hidden="true">✦</span>
    <span className="tf-v3-corner tf-v3-bl" aria-hidden="true">✦</span>
@@ -207,15 +208,18 @@ export const CardFront=React.forwardRef((props,ref)=>{
  React.useEffect(()=>{
   let alive=true;setMask(null);
   // The offscreen exporter applies the same mask after rendering.
-  if(!props.exportMode)getFrontExteriorMask(type).then(c=>{
+  if(!props.exportMode)(async()=>{
+   const approved=await getMetalPresentation(type);
+   if(approved){if(alive)setMask(approved);return;}
+   const c=await getFrontExteriorMask(type);
    if(alive&&c)setMask({src:c.toDataURL("image/png"),background:c.frameBackground});
-  }).catch(()=>{});
+  })().catch(()=>{});
   return()=>{alive=false;};
  },[type,props.exportMode]);
  const frame = mask && <img src={mask.src} alt="" aria-hidden="true" draggable={false}
    style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:100}}/>;
  return <div className={"relative w-full h-full overflow-hidden"+(mask?.background?" tf-frame-corrected":"")} style={mask?.background?{"--tf-print-master":`url("${mask.background}")`}:undefined} data-front-edge="expanded-original-rail">
-  <ApprovedCardFront {...props} ref={ref} monsterFrame={["monster","character"].includes(type) ? frame : undefined}/>
+  <ApprovedCardFront {...props} ref={ref} masterOverride={mask?.background} monsterFrame={["monster","character"].includes(type) ? frame : undefined}/>
   {!["monster","character"].includes(type) && frame}
  </div>;
 });

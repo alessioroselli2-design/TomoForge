@@ -9,6 +9,7 @@ import { fitClassDescription } from "@/lib/classDescriptionFit";
 import { getApprovedBack } from "@/lib/cardBacks";
 import { getBackCrop, frontMasterSlices, drawCutGuides } from "@/lib/cardPrintGeometry";
 import { colorFrontExterior , prepareFrontBackground, paintNativeFrontBackground} from "@/lib/frontExterior";
+import { resolveFrontLayers } from "@/lib/frameColorProof";
 import html2canvas from "html2canvas";
 import { setA4PrintPreferences } from "@/lib/printFormats";
 import {captureExportHeading,paintExportHeading} from "@/lib/exportHeading";
@@ -529,6 +530,8 @@ async function renderRawCardCanvas(element,card,frontLayers){
 }
 
 export async function renderCardCanvas(element,card,frontLayers){
+ const canRender=frontLayers===undefined&&typeof document.createElement("canvas").getContext("2d")?.getImageData==="function";
+ frontLayers=await resolveFrontLayers(card?.type,frontLayers,canRender);
  if(frontLayers && frontLayers.type!==card?.type)throw new Error("Master di prova incompatibile con la categoria");
  const canvas=await colorFrontExterior(await renderRawCardCanvas(element,card,frontLayers),card?.type,frontLayers?.trim);
  if (["monster","character"].includes(card?.type)) {

@@ -68,7 +68,7 @@ export default function PrintPressPreview(){
   let active=true;setProof(null);
   (async()=>{
    try{
-    const front=await createCardPng(ref.current,card);
+    const front=await createCardPng(ref.current,card,null);
     if(!active)return;
     const back=await createCardBackPng(card);
     if(!active)return;
@@ -90,7 +90,7 @@ export default function PrintPressPreview(){
   })();
   return()=>{active=false;};
  },[card]);
- const selectedLayers=matched?proof?.layers:undefined;
+ const selectedLayers=matched&&proof?.layers?proof.layers:null;
  const variantName=selectedLayers?"oro-brunito":"v18";
  const faces=proof?[
   {label:"Fronte originale · v18",src:proof.front},

@@ -31,3 +31,16 @@ test("every supported category has a native-sized lossless metal layer; nine uni
  expect(metalProofUrl("subclass")).toBe(metalProofUrl("class"));
  expect(metalProofUrl("character")).toBe(metalProofUrl("monster"));
 });
+
+import {resolveFrontLayers} from "./frameColorProof";
+test("the app and exports default to the approved bronze finish; explicit original remains available",async()=>{
+ const load=jest.fn(async type=>({type,background:{},trim:{}}));
+ for(const type of METAL_PROOF_TYPES)expect((await resolveFrontLayers(type,undefined,true,load)).type).toBe(type);
+ expect(load).toHaveBeenCalledTimes(METAL_PROOF_TYPES.length);
+ expect(await resolveFrontLayers("armor",null,true,load)).toBeNull();
+ expect(await resolveFrontLayers("custom",undefined,true,load)).toBeNull();
+ expect(await resolveFrontLayers("armor",undefined,false,load)).toBeNull();
+ const explicit={type:"armor"};
+ expect(await resolveFrontLayers("armor",explicit,true,load)).toBe(explicit);
+ expect(load).toHaveBeenCalledTimes(METAL_PROOF_TYPES.length);
+});
