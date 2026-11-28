@@ -6,6 +6,7 @@ import logging
 import re
 import time
 import uuid
+from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Optional
@@ -47,7 +48,7 @@ from core.config import (
     TRANSLATION_WAIT_SECONDS,
     utc_now,
 )
-from core.db import db as _singleton_db
+from core.db import db as _singleton_db, SupabaseCollection
 from core.providers import require_gemini
 from schemas.library import ReferenceImportInput, ReferenceImportResult
 
@@ -134,13 +135,18 @@ def manual_source_duplicate_of(
 
 def manual_page_count(path: Path) -> Optional[int]:
     try:
-        import pymupdf as fitz
-        document = fitz.open(path)
-        page_count = len(document)
-        document.close()
-        return page_count
+        stat = path.stat()
+        return _cached_manual_page_count(str(path), stat.st_size, stat.st_mtime_ns)
     except Exception:
         return None
+
+
+@lru_cache(maxsize=128)
+def _cached_manual_page_count(path: str, size: int, modified_ns: int) -> int:
+    # File metadata is part of the cache key, so changed PDFs are reread.
+    import pymupdf as fitz
+    with fitz.open(path) as document:
+        return len(document)
 
 
 def gemini_ocr_manual_page(page: Any, page_number: int) -> str:
@@ -420,7 +426,7 @@ def translate_spanish_reference_batch(records: list[dict]) -> tuple[dict[str, di
 
 
 async def private_reference_records(
-    user_id: str, *, db=None, reference_types: set[str] | None = None
+    user_id: str, *, db=None, reference_types: set[str] | None = None, readiness_only: bool = False
 ) -> list[dict]:
     """Return the owner's references without silent PostgREST result truncation.
 
@@ -438,9 +444,15 @@ async def private_reference_records(
     records: list[dict] = []
     try:
         while True:
-            page = await collection.find(query).sort("id", 1).to_list(
-                page_size, offset=len(records)
-            )
+            if readiness_only and isinstance(collection, SupabaseCollection):
+                fields = "id,reference_type,source_refs,source_language,translation_status,translation_error,review_status,review_flags"
+                statement = collection.apply_filters(collection.client.table(collection.name).select(fields), query)
+                result = await asyncio.to_thread(statement.order("id").range(len(records), len(records) + page_size - 1).execute)
+                page = result.data or []
+            else:
+                page = await collection.find(query).sort("id", 1).to_list(
+                    page_size, offset=len(records)
+                )
             records.extend(page)
             if len(page) < page_size:
                 return records

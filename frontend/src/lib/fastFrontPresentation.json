@@ -1,0 +1,38 @@
+{
+  "/card-art/proofs/metal-v26/front-master-v17.webp": {
+    "background": "/card-art/screen-bronze-v1/monster-master.webp",
+    "src": "/card-art/screen-bronze-v1/monster-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-classe-5x7-senza-muscolo-e-anello-20261118.webp": {
+    "background": "/card-art/screen-bronze-v1/class-master.webp",
+    "src": "/card-art/screen-bronze-v1/class-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-incantesimo-5x7-v1.webp": {
+    "background": "/card-art/screen-bronze-v1/spell-master.webp",
+    "src": "/card-art/screen-bronze-v1/spell-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-privilegi-5x7.webp": {
+    "background": "/card-art/screen-bronze-v1/feature-master.webp",
+    "src": "/card-art/screen-bronze-v1/feature-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-razze-5x7.webp": {
+    "background": "/card-art/screen-bronze-v1/race-master.webp",
+    "src": "/card-art/screen-bronze-v1/race-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-talento-5x7.webp": {
+    "background": "/card-art/screen-bronze-v1/feat-master.webp",
+    "src": "/card-art/screen-bronze-v1/feat-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-oggetto-magico-5x7.webp": {
+    "background": "/card-art/screen-bronze-v1/item-master.webp",
+    "src": "/card-art/screen-bronze-v1/item-trim.webp"
+  },
+  "/card-art/proofs/metal-v26/master-arma-5x7.webp": {
+    "background": "/card-art/screen-bronze-v1/weapon-master.webp",
+    "src": "/card-art/screen-bronze-v1/weapon-trim.webp"
+  },
+  "/card-art/proofs/armor-metal-v25.webp": {
+    "background": "/card-art/screen-bronze-v1/armor-master.webp",
+    "src": "/card-art/screen-bronze-v1/armor-trim.webp"
+  }
+}

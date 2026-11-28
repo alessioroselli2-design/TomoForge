@@ -8,7 +8,8 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CardFront } from "@/components/TradingCard";
+import { readAuth } from "@/lib/authRead";
+const LandingCard=React.lazy(()=>import("@/components/TradingCard").then(m=>({default:m.CardFront})));
 
 const HERO = "https://images.unsplash.com/photo-1774366127010-9835ae1373a0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwzfHxhbmNpZW50JTIwc3BlbGxib29rJTIwZ3JpbW9pcmUlMjBkYXJrfGVufDB8fHx8MTc4NzAzMjcyOXww&ixlib=rb-4.1.0&q=85";
 const PREVIEW_ART = "https://images.unsplash.com/photo-1769221909977-dafd61c79a3d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxkYXJrJTIwZmFudGFzeSUyMGNoYXJhY3RlciUyMHBvcnRyYWl0fGVufDB8fHx8MTc4NzAzMjcyOXww&ixlib=rb-4.1.0&q=85";
@@ -25,10 +26,18 @@ const DEMO_CARD = {
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, loading, loginWithToken } = useAuth();
+  const { user, loading, loginWithToken, authError, checkAuth } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
+  const [desktop,setDesktop]=useState(()=>typeof window.matchMedia==="function"&&window.matchMedia("(min-width: 1280px)").matches);
+  React.useEffect(()=>{
+    if(typeof window.matchMedia!=="function")return;
+    const query=window.matchMedia("(min-width: 1280px)");
+    const update=()=>setDesktop(query.matches);
+    query.addEventListener?.("change",update);
+    return()=>query.removeEventListener?.("change",update);
+  },[]);
 
   React.useEffect(() => {
     if (!loading && user) navigate("/collezione", { replace: true });
@@ -54,13 +63,16 @@ export default function Landing() {
   };
 
   const googleLogin = async () => {
+    if(busy)return;
+    setBusy(true);
     try {
-      const res = await api.get("/auth/google/start", {
+      const res = await readAuth(api,"/auth/google/start", {
         params: { redirect_to: `${window.location.origin}/oauth/callback` },
       });
       window.location.assign(res.data.url);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Accesso Google non disponibile");
+      setBusy(false);
     }
   };
 
@@ -114,7 +126,7 @@ export default function Landing() {
           </div>
           <div className="mt-8 hidden items-end gap-5 xl:flex" aria-label="Anteprima carta">
             <div className="w-[152px] rotate-3 shadow-2xl shadow-black/70 transition-transform duration-500 hover:rotate-0">
-              <CardFront card={DEMO_CARD} imgUrl={PREVIEW_ART} />
+              {desktop&&<React.Suspense fallback={null}><LandingCard card={DEMO_CARD} imgUrl={PREVIEW_ART}/></React.Suspense>}
             </div>
             <div className="max-w-[180px] pb-2">
               <p className="font-label text-[10px] tracking-[0.2em] text-gold/70">UN ASSAGGIO DEL TOMO</p>
@@ -145,6 +157,7 @@ export default function Landing() {
             ))}
           </div>
 
+          {authError&&<div role="alert" className="mb-4 text-xs text-amber-200">Connessione alla sessione temporaneamente non disponibile. <button type="button" className="underline" onClick={checkAuth}>Riprova sessione</button></div>}
           <form onSubmit={submit} className="space-y-5">
             {mode === "register" && (
               <div>
@@ -179,7 +192,7 @@ export default function Landing() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Button data-testid="google-login" onClick={googleLogin} variant="outline"
+          <Button data-testid="google-login" onClick={googleLogin} disabled={busy} variant="outline"
             className="w-full rounded-none border-gold-deep/50 bg-transparent text-foreground hover:bg-secondary hover:text-gold font-label tracking-wide h-11 transition-colors">
             <Sparkles className="w-4 h-4 mr-2 text-gold" /> Continua con Google
           </Button>

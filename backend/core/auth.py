@@ -43,10 +43,11 @@ def compute_premium(user) -> bool:
 
 async def get_current_user(request: Request, db: SupabaseDatabase = Depends(get_db)):
     from schemas.users import User
-    token = request.cookies.get("session_token") or request.query_params.get("auth")
     auth = request.headers.get("Authorization")
-    if not token and auth and auth.startswith("Bearer "):
+    if auth and auth.startswith("Bearer "):
         token = auth.split(" ", 1)[1]
+    else:
+        token = request.query_params.get("auth") or request.cookies.get("session_token")
     if not token:
         raise HTTPException(status_code=401, detail="Non autenticato")
     from core.config import require_jwt_secret

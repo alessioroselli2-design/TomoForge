@@ -114,7 +114,7 @@ describe("CardEditor preload dashboard", () => {
     container.remove();
   });
 
-  it("shows preload status per manual and fires POST /library/preload once", async () => {
+  it("shows completed manual status without redundant preload", async () => {
     api.get.mockImplementation((path) => {
       if (path === "/library/manuals") {
         return Promise.resolve({
@@ -152,7 +152,7 @@ describe("CardEditor preload dashboard", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    expect(api.post).toHaveBeenCalledWith("/library/preload");
+    expect(api.post).not.toHaveBeenCalledWith("/library/preload");
     expect(container.querySelector('[data-testid="preload-dashboard"]')).not.toBeNull();
     expect(container.textContent).toContain("Manuale del Giocatore");
     expect(container.textContent).toContain("COMPLETATO");
@@ -511,9 +511,9 @@ describe("CardEditor preload dashboard", () => {
     // The initial state should show the job as in-progress
     expect(container.textContent).toContain("ELABORAZIONE IN CORSO");
 
-    // Advance the 3000 ms polling setTimeout so loadLibraryManuals fires again
+    // Advance the 15-second active polling interval.
     await act(async () => {
-      jest.advanceTimersByTime(3000);
+      jest.advanceTimersByTime(15000);
     });
 
     // Flush the promise chain from the second API call
@@ -643,7 +643,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     expect(api.get).toHaveBeenCalledWith("/library", {
@@ -653,6 +653,7 @@ describe("CardEditor review scope", () => {
         include_unverified: true,
         source_filename: "manuale del giocatore.pdf",
       },
+      signal:expect.anything(),timeout:15000,
     });
     expect(container.textContent).toContain("Classe da rivedere");
   });
@@ -697,7 +698,7 @@ describe("CardEditor review scope", () => {
       classFilter.dispatchEvent(new Event("input", { bubbles: true }));
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(levelFilter, "3");
       levelFilter.dispatchEvent(new Event("input", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     expect(api.get).toHaveBeenCalledWith("/library", {
@@ -706,6 +707,7 @@ describe("CardEditor review scope", () => {
         parent_class: "Guerriero",
         level: "3",
       },
+      signal:expect.anything(),timeout:15000,
     });
     expect(container.textContent).toContain(
       "Classe: Guerriero · Sottoclasse: Maestro della Battaglia · Livello 3",
@@ -725,7 +727,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     const typeSelect = container.querySelector('[data-testid="type-select"]');
@@ -733,7 +735,7 @@ describe("CardEditor review scope", () => {
 
     await act(async () => {
       typeSelect.click();
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     const libraryCalls = api.get.mock.calls.filter(([path]) => path === "/library");
@@ -745,6 +747,7 @@ describe("CardEditor review scope", () => {
         include_unverified: true,
         source_filename: "manuale del giocatore.pdf",
       },
+      signal:expect.anything(),timeout:15000,
     }]);
   });
 
@@ -813,7 +816,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     await act(async () => {
@@ -839,7 +842,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     await act(async () => {
@@ -917,7 +920,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     expect(container.textContent).toContain("Classe Verificata Traduzione Fallita");
@@ -991,7 +994,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     const applyBtn = container.querySelector('[data-testid="apply-reference-verified-failed-1"]');
@@ -1048,7 +1051,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     const applyBtn = container.querySelector('[data-testid="apply-reference-untrusted-1"]');
@@ -1117,7 +1120,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     await act(async () => {
@@ -1199,7 +1202,7 @@ describe("CardEditor review scope", () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     await act(async () => {
@@ -1285,7 +1288,7 @@ describe("CardEditor spell apply guard", () => {
     await act(async () => {
       nativeInputValueSetter.call(spellSearch, "Bloccato");
       spellSearch.dispatchEvent(new Event("input", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     const applyBtn = container.querySelector('[data-testid="apply-spell-spell-blocked-1"]');
@@ -1307,7 +1310,7 @@ describe("CardEditor spell apply guard", () => {
             records: [{
               id: "spell-trusted-1",
               name: "Palla di Fuoco",
-              attributes: { livello: "3", scuola: "Evocazione" },
+              attributes: { livello: "3", scuola: "Evocazione", classi: "Mago, Stregone" },
               source_refs: [{ filename: "manuale.pdf", page: 55 }],
               is_trusted: true,
             }],
@@ -1356,12 +1359,13 @@ describe("CardEditor spell apply guard", () => {
     await act(async () => {
       nativeInputValueSetter.call(spellSearch, "Palla");
       spellSearch.dispatchEvent(new Event("input", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 280));
+      await new Promise((resolve) => setTimeout(resolve, 420));
     });
 
     const applyBtn = container.querySelector('[data-testid="apply-spell-spell-trusted-1"]');
     expect(applyBtn).not.toBeNull();
     expect(applyBtn.disabled).toBe(false);
+    expect(container.textContent).toContain("Mago, Stregone");
     expect(container.textContent).toContain("APPLICA");
 
     await act(async () => {

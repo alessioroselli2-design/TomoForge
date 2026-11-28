@@ -46,7 +46,7 @@ logger = logging.getLogger("tomeforge")
 @router.get("/library/manuals")
 async def private_library_manuals(user: User = Depends(require_premium), db: SupabaseDatabase = Depends(get_db)):
     """Return local import metadata only, never the manual files or page text."""
-    records = await private_reference_records(user.user_id, db=db)
+    records = await private_reference_records(user.user_id, db=db, readiness_only=True)
     jobs_by_filename = {
         job.get("filename"): job
         for job in await private_manual_import_jobs(user.user_id, db=db)
@@ -95,7 +95,7 @@ async def start_private_library_preload(
 @router.get("/library/coverage")
 async def private_library_coverage(user: User = Depends(require_premium), db: SupabaseDatabase = Depends(get_db)):
     """Report record readiness by supplied manual and applicable category."""
-    records = await private_reference_records(user.user_id, db=db)
+    records = await private_reference_records(user.user_id, db=db, readiness_only=True)
     manuals = manual_coverage_report(records)
     translation_pending = sum(
         1 for record in records

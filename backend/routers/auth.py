@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from urllib.parse import urlencode
 
@@ -105,9 +106,14 @@ async def supabase_session(body: SupabaseSessionInput, db: SupabaseDatabase = De
     """Exchange a verified Supabase OAuth token for TomeForge's session token."""
     from fastapi import HTTPException
     try:
-        external_user = supabase_auth_client().auth.get_user(body.access_token).user
+        external_user = (await asyncio.to_thread(supabase_auth_client().auth.get_user, body.access_token)).user
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=401, detail="Sessione Supabase non valida") from exc
+        status = getattr(exc, "status", None) or getattr(exc, "status_code", None)
+        if status in (400, 401, 403, 422):
+            raise HTTPException(status_code=401, detail="Sessione Supabase non valida") from exc
+        raise HTTPException(status_code=503, detail="Verifica Google temporaneamente non disponibile") from exc
     if not external_user or not external_user.email:
         raise HTTPException(status_code=401, detail="L'account Google non contiene un'email verificata")
     email = external_user.email.lower()

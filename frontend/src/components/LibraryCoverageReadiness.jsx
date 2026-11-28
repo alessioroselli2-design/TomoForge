@@ -28,7 +28,7 @@ function StatePill({ tone, children }) {
   return <span className={`inline-flex items-center gap-1 border px-2 py-1 font-label text-[9px] tracking-widest ${styles[tone] || styles.neutral}`}>{children}</span>;
 }
 
-export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange, refreshKey = 0 }) {
+export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange, refreshKey = 0, defer = false }) {
   const [manuals, setManuals] = useState([]);
   const [totals, setTotals] = useState({ valid: 0, to_review: 0, missing: 0, translation_pending: 0 });
   const [status, setStatus] = useState("loading");
@@ -60,7 +60,8 @@ export default function LibraryCoverageReadiness({ onOpenReviews, onTotalsChange
     }
   }, [onTotalsChange]);
 
-  useEffect(() => { loadCoverage(); }, [loadCoverage, refreshKey]);
+  const loadedRefreshKey=useRef(null);
+  useEffect(()=>{if(defer||loadedRefreshKey.current===refreshKey)return;loadedRefreshKey.current=refreshKey;loadCoverage();},[defer,loadCoverage,refreshKey]);
 
   const toggleCategory = useCallback(async (filename, type) => {
     const isOpen = expandedCategory?.filename === filename && expandedCategory?.type === type;
