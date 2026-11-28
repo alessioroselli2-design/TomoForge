@@ -711,7 +711,7 @@ export default function CardEditor() {
         }
       })
       .catch(() => {});
-  }, [user?.is_premium, preloadFired, loadingManuals, libraryManuals.length]);
+  }, [user?.is_premium, preloadFired, loadingManuals, libraryManuals]);
 
   // Poll while any manual job is active OR has unresolved pending translations
   // (so the badge disappears as soon as the user verifies the last pending record).
