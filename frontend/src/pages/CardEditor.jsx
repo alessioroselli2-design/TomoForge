@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
+import { displayText, displayClasses, displaySources, searchRecords } from "@/lib/librarySearchView";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -180,6 +181,7 @@ export default function CardEditor() {
   const [spellQuery, setSpellQuery] = useState("");
   const [spellResults, setSpellResults] = useState([]);
   const [searchingSpells, setSearchingSpells] = useState(false);
+  const [spellSearchError,setSpellSearchError]=useState("");
   const [applyingSpell, setApplyingSpell] = useState(null);
   const [referenceQuery, setReferenceQuery] = useState("");
   const [referenceClassFilter, setReferenceClassFilter] = useState("");
@@ -354,30 +356,29 @@ export default function CardEditor() {
   };
 
   useEffect(() => {
-    if (card.type !== "spell" || !spellQuery.trim()) {
-      setSpellResults([]);
+    setSpellResults([]);
+    setSpellSearchError("");
+    if(card.type!=="spell"||spellQuery.trim().length<2){
       setSearchingSpells(false);
-      return undefined;
+      return;
     }
-    const timer = window.setTimeout(async () => {
-      setSearchingSpells(true);
-      try {
-        const res = await api.get("/library", {
-          params: {
-            q: spellQuery,
-            types: "spell",
-            include_unverified: true,
-          },
+    const controller=new AbortController();
+    setSearchingSpells(true);
+    const timer=window.setTimeout(async()=>{
+      try{
+        const res=await api.get("/library",{
+          params:{q:spellQuery.trim(),types:"spell",include_unverified:true},
+          signal:controller.signal,timeout:15000,
         });
-        setSpellResults(res.data.records || []);
-      } catch (error) {
-        setSpellResults([]);
-      } finally {
-        setSearchingSpells(false);
+        if(!controller.signal.aborted)setSpellResults(searchRecords(res.data?.records));
+      }catch(error){
+        if(!controller.signal.aborted)setSpellSearchError("Ricerca momentaneamente non disponibile. Modifica il testo per riprovare.");
+      }finally{
+        if(!controller.signal.aborted)setSearchingSpells(false);
       }
-    }, 220);
-    return () => window.clearTimeout(timer);
-  }, [card.type, spellQuery]);
+    },350);
+    return()=>{window.clearTimeout(timer);controller.abort();};
+  },[card.type,spellQuery]);
 
   const applySpell = async (spellId) => {
     setApplyingSpell(spellId);
@@ -408,38 +409,41 @@ export default function CardEditor() {
     const types = LIBRARY_TYPES_BY_CARD[card.type];
     if (
       (!types && !reviewTypes)
-      || (!referenceQuery.trim() && !reviewTypes && !referenceClassFilter.trim() && !referenceLevelFilter.trim())
+      || (referenceQuery.trim().length<2 && !reviewTypes && !referenceClassFilter.trim() && !referenceLevelFilter.trim())
     ) {
       setReferenceResults([]);
       setReferenceSearchError("");
       setSearchingReferences(false);
       return undefined;
     }
+    const controller=new AbortController();
+    setReferenceResults([]);
+    setSearchingReferences(true);
+    setReferenceSearchError("");
     const timer = window.setTimeout(async () => {
-      setSearchingReferences(true);
-      setReferenceSearchError("");
       try {
         const res = await api.get("/library", {
           params: {
-            ...(referenceQuery.trim() ? { q: referenceQuery } : {}),
+            ...(referenceQuery.trim().length>=2 ? { q: referenceQuery.trim() } : {}),
             types: reviewTypes || types,
             ...(referenceClassFilter.trim() ? { parent_class: referenceClassFilter.trim() } : {}),
             ...(referenceLevelFilter.trim() ? { level: referenceLevelFilter.trim() } : {}),
             ...(reviewTypes ? { review_only: true, include_unverified: true } : {}),
             ...(reviewManual ? { source_filename: reviewManual } : {}),
           },
+          signal:controller.signal,timeout:15000,
         });
-        setReferenceResults(res.data.records || []);
+        if(!controller.signal.aborted)setReferenceResults(searchRecords(res.data?.records));
       } catch (error) {
-        setReferenceResults([]);
-        setReferenceSearchError(
-          error.response?.data?.detail || "La ricerca non è riuscita. Riprova: i record della biblioteca non sono stati cancellati."
-        );
+        if(!controller.signal.aborted){
+          setReferenceResults([]);
+          setReferenceSearchError(displayText(error.response?.data?.detail)||"La ricerca non è riuscita. Riprova: i record della biblioteca non sono stati cancellati.");
+        }
       } finally {
-        setSearchingReferences(false);
+        if(!controller.signal.aborted)setSearchingReferences(false);
       }
-    }, 220);
-    return () => window.clearTimeout(timer);
+    }, 350);
+    return()=>{window.clearTimeout(timer);controller.abort();};
   }, [
     card.type,
     referenceClassFilter,
@@ -1031,16 +1035,17 @@ export default function CardEditor() {
                    />
                    {searchingSpells && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gold" />}
                  </div>
-                 {spellQuery.trim() && !searchingSpells && spellResults.length === 0 && (
+                 {spellSearchError&&<p role="alert" className="mt-3 text-xs text-red-300">{spellSearchError}</p>}
+                 {spellQuery.trim().length>=2 && !searchingSpells && !spellSearchError && spellResults.length === 0 && (
                    <p className="mt-3 font-body text-xs text-muted-foreground">Nessun incantesimo corrispondente nel tuo Grimorio.</p>
                  )}
                  {spellResults.length > 0 && (
                    <div className="mt-3 divide-y divide-border border border-border">
                       {spellResults.map((spell) => {
                         const attributes = spell.attributes || {};
-                        const level = spell.level || attributes.livello || "";
-                        const school = spell.school || attributes.scuola || "";
-                        const classes = spell.classes || attributes.classi || [];
+                        const level = displayText(spell.level || attributes.livello);
+                        const school = displayText(spell.school || attributes.scuola);
+                        const classes = displayClasses(spell.classes || attributes.classi);
                         return (
                         <button
                          key={spell.id}
@@ -1051,12 +1056,12 @@ export default function CardEditor() {
                          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary disabled:opacity-60"
                        >
                          <span>
-                           <span className="block font-heading text-base text-foreground">{spell.name}</span>
+                           <span className="block font-heading text-base text-foreground">{displayText(spell.name)||"Incantesimo"}</span>
                            <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
-                              {level === "Trucchetto" ? level : `${level || "?"}° livello`} · {school || "Scuola non rilevata"}{classes.length > 0 && ` · ${classes.join(", ")}`}
+                              {level === "Trucchetto" ? level : `${level || "?"}° livello`} · {school || "Scuola non rilevata"}{classes && ` · ${classes}`}
                            </span>
                            <span className="mt-1 block font-body text-[11px] text-sky-100/75">
-                             {(spell.source_refs || []).map((ref) => `${ref.filename || "Manuale"} p.${ref.page || "?"}`).join(" · ")}
+                             {displaySources(spell.source_refs)}
                              {spell.is_trusted === false && ` · BLOCCATO: ${spell.review_reason || "da verificare"}`}
                            </span>
                          </span>
@@ -1191,7 +1196,7 @@ export default function CardEditor() {
                   {referenceSearchError && !searchingReferences && (
                     <p role="alert" className="mt-3 font-body text-xs text-red-300">{referenceSearchError}</p>
                   )}
-                  {(referenceQuery.trim() || reviewTypes) && !searchingReferences && !referenceSearchError && referenceResults.length === 0 && (
+                  {(referenceQuery.trim().length>=2 || reviewTypes) && !searchingReferences && !referenceSearchError && referenceResults.length === 0 && (
                     <p className="mt-3 font-body text-xs text-muted-foreground">
                       {reviewTypes ? "Nessun record da verificare per queste categorie." : "Nessun contenuto corrispondente nella tua biblioteca."}
                     </p>
@@ -1207,15 +1212,15 @@ export default function CardEditor() {
                             onClick={() => applyReference(record.id)}
                             className="min-w-0 flex-1 text-left disabled:opacity-60"
                           >
-                            <span className="block font-heading text-base text-foreground">{record.name}</span>
+                            <span className="block font-heading text-base text-foreground">{displayText(record.name)||"Contenuto"}</span>
                              {privilegeProgressionLabel(record) && (
                                <span className="mt-0.5 block font-label text-[10px] tracking-wide text-gold/90">
                                  {privilegeProgressionLabel(record)}
                                </span>
                              )}
                             <span className="mt-0.5 block font-body text-[11px] text-muted-foreground">
-                              {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {(record.source_refs || []).map((ref) => `${ref.language === "es" ? "Fonte spagnola" : ref.filename} p.${ref.page}`).join(", ")}
-                              {record.source_language === "es" && record.source_name ? ` · Originale: ${record.source_name}` : ""}
+                              {LIBRARY_TYPE_LABELS[record.reference_type] || "Contenuto"} · {displaySources(record.source_refs,true)}
+                              {record.source_language === "es" && record.source_name ? ` · Originale: ${displayText(record.source_name)}` : ""}
                               {record.is_trusted === false ? ` · BLOCCATO: ${record.review_reason || "da verificare"}` : " · Fonte verificata"}
                             </span>
                           </button>

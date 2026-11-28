@@ -24,6 +24,7 @@ import Landing from "@/pages/Landing";
 import { LanguageProvider } from "@/lib/i18n";
 import { api } from "@/lib/api";
 import { isTemporaryAuthError } from "@/lib/authRead";
+import EditorErrorBoundary from "@/components/EditorErrorBoundary";
 const Collection=React.lazy(()=>import("@/pages/Collection"));
 const CardEditor=React.lazy(()=>import("@/pages/CardEditor"));
 const CardDetail=React.lazy(()=>import("@/pages/CardDetail"));
@@ -74,9 +75,9 @@ function AppRouter() {
       <Route path="/prova-categorie" element={<CategoryCardPreview />} />
       <Route path="/prova-stampa" element={<PrintPressPreview />} />
       <Route path="/collezione" element={<Protected><Collection /></Protected>} />
-      <Route path="/crea" element={<Protected><CardEditor /></Protected>} />
+      <Route path="/crea" element={<Protected><EditorErrorBoundary><CardEditor /></EditorErrorBoundary></Protected>} />
       <Route path="/revisioni" element={<Protected><ReferenceReview /></Protected>} />
-      <Route path="/carta/:id/modifica" element={<Protected><CardEditor /></Protected>} />
+      <Route path="/carta/:id/modifica" element={<Protected><EditorErrorBoundary><CardEditor /></EditorErrorBoundary></Protected>} />
       <Route path="/carta/:id/scheda" element={<Protected><CharacterSheet /></Protected>} />
       <Route path="/carta/:id" element={<Protected><CardDetail /></Protected>} />
       <Route path="/payment/success" element={<Protected><PaymentSuccess /></Protected>} />
